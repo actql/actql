@@ -35,6 +35,7 @@ struct CheckedDAG {
   targets : Array[@pipeline.Target?]
   input_counts : Array[Int]
   selected_steps : Array[Int?]
+  prefix_ends : Array[Int?]
   data : Array[DataEdge]
   supplied_slots : Array[LocalInputSlot]
   control : Array[ControlEdge]
@@ -720,6 +721,7 @@ fn prepare_checked_dag_owned(
       )
     }),
     selected_steps: Array::make(count, None),
+    prefix_ends: Array::make(count, None),
     data,
     supplied_slots,
     control,
@@ -881,6 +883,12 @@ pub fn graph_task_input_count(graph : CheckedDAG, index : Int) -> Int? {
 ///|
 pub fn graph_task_selected_step(graph : CheckedDAG, index : Int) -> Int? {
   graph.selected_steps.get(index).bind(value => value)
+}
+
+///|
+/// Terminal checked step of a fused prefix retained as one physical task.
+pub fn graph_task_prefix_end(graph : CheckedDAG, index : Int) -> Int? {
+  graph.prefix_ends.get(index).bind(value => value)
 }
 
 ///|

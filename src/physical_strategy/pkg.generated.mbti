@@ -392,6 +392,8 @@ pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
+pub fn graph_task_prefix_end(CheckedDAG, Int) -> Int?
+
 pub fn graph_task_selected_step(CheckedDAG, Int) -> Int?
 
 pub fn graph_task_target(CheckedDAG, Int) -> @pipeline_typing.Target?

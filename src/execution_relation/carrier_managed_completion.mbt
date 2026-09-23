@@ -57,10 +57,7 @@ fn validate_carrier_completion_target(
   let owner = completion_preparation_owner(preparation)
   let prepared = @lower.bound_preparation(owner)
   guard target is @pipeline.Step(index) &&
-    index ==
-    preparation.selected_step.unwrap_or(
-      @lower.sequence_count(preparation.sequence) - 1,
-    ) &&
+    index == completion_preparation_terminal_step(preparation) &&
     @lower.node_at(prepared, index) is Some(node) &&
     @lower.preparation_carrier_at(prepared, target) is Some(carrier) else {
     return Err(InvalidTarget)

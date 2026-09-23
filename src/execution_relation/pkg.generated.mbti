@@ -302,6 +302,8 @@ pub fn completion_preparation_selected_step(CompletionPreparation) -> Int?
 
 pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relation.PreparedSequence
 
+pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
+
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -867,6 +869,8 @@ pub fn row_wire_order_work(RowWireOrder) -> Int
 pub fn row_wire_usage(RowWireIdentity) -> (Int, Int, Int)
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
+
+pub fn select_generated_sequence_prefix(GeneratedSequence, Int) -> GeneratedSequence?
 
 pub fn select_generated_sequence_step(GeneratedSequence, Int) -> GeneratedSequence?
 

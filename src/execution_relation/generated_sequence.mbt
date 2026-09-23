@@ -5,6 +5,7 @@ struct GeneratedSequence {
   contracts : RegisteredRelationContracts
   sequence : @lower.PreparedSequence
   selected_steps : Array[Int]?
+  selected_prefix_end : Int?
   contexts : Array[FragmentRuntimeContext]
   retained_ids : Array[String]
   join_ceilings : Array[(Int, Int64)]
@@ -93,6 +94,7 @@ pub fn prepare_generated_sequence(
         contracts,
         sequence,
         selected_steps: None,
+        selected_prefix_end: None,
         contexts,
         retained_ids,
         join_ceilings: [],
@@ -118,7 +120,8 @@ pub fn execute_generated_sequence(
   limits : SequenceExecutionLimits,
   produced? : Array[BoundProducerInput] = [],
 ) -> Result[CompletedSequence, SequenceRunIssue] {
-  if generated.selected_steps is Some(_) {
+  if generated.selected_steps is Some(_) ||
+    generated.selected_prefix_end is Some(_) {
     return Err(InputSet)
   }
   evaluate_sequence_components(
@@ -475,12 +478,42 @@ pub fn select_generated_sequence_step(
   Some({
     ..generated,
     selected_steps: Some([step]),
+    selected_prefix_end: None,
+    retained_ids: [@lower.node_id(node)],
+  })
+}
+
+///|
+/// Retain a checked prefix as one physical task when its internal operations
+/// have no independent managed read boundary. The view cannot execute through
+/// the whole-sequence evaluator or expose any later checked occurrence.
+pub fn select_generated_sequence_prefix(
+  generated : GeneratedSequence,
+  last : Int,
+) -> GeneratedSequence? {
+  guard generated.selected_steps is None &&
+    generated.selected_prefix_end is None &&
+    last >= 0 &&
+    last < @lower.sequence_count(generated.sequence) - 1 &&
+    @lower.node_at(
+      @lower.bound_preparation(@lower.sequence_owner(generated.sequence)),
+      last,
+    )
+    is Some(node) else {
+    return None
+  }
+  Some({
+    ..generated,
+    selected_prefix_end: Some(last),
     retained_ids: [@lower.node_id(node)],
   })
 }
 
 ///|
 pub fn generated_sequence_step_count(generated : GeneratedSequence) -> Int {
+  if generated.selected_prefix_end is Some(last) {
+    return last + 1
+  }
   match generated.selected_steps {
     Some(steps) => steps.length()
     None => @lower.sequence_count(generated.sequence)
@@ -493,6 +526,12 @@ pub fn generated_sequence_step_index_at(
   generated : GeneratedSequence,
   position : Int,
 ) -> Int? {
+  if generated.selected_prefix_end is Some(last) {
+    if position >= 0 && position <= last {
+      return Some(position)
+    }
+    return None
+  }
   match generated.selected_steps {
     Some(steps) => steps.get(position)
     None =>

@@ -1,35 +1,40 @@
 ///|
-/// Split a mixed sequence only when every internal use has a typed managed
-/// read boundary. Relation-only sequences retain their fused evaluator path.
-fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
+/// Split a mixed sequence at checked managed read boundaries. A prefix without
+/// standalone providers remains one fused task through its Relation bridge;
+/// later row operations use their own selected tasks.
+/// -1 means that every step can be selected independently.
+fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if stage <= 0 || stage >= graph.owners.length() {
-    return false
+    return None
   }
-  if graph.selected_steps[stage] is Some(_) {
-    return false
+  if graph.selected_steps[stage] is Some(_) ||
+    graph.prefix_ends[stage] is Some(_) {
+    return None
   }
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
   let count = @pipeline.step_count(pipeline)
   if count < 2 {
-    return false
+    return None
   }
   let mut found_carrier = false
   let mut found_relation = false
   let mut prefer_fused_without_relation = false
+  let mut all_selected = true
   for step in 0..<count {
-    guard @lower.node_at(prepared, step) is Some(node) else { return false }
+    guard @lower.node_at(prepared, step) is Some(node) else { return None }
     if !@lower.node_supports_selected_managed_execution(node) {
-      return false
+      all_selected = false
+      break
     }
     if @lower.operation(node) == "BRIDGE.rows.to_graph" &&
       @lower.node_input_count(node) > 1 {
       guard @lower.node_input_target(node, 0) is Some(first) else {
-        return false
+        return None
       }
       for input in 1..<@lower.node_input_count(node) {
         if @lower.node_input_target(node, input) != Some(first) {
-          return false
+          return None
         }
       }
     }
@@ -40,18 +45,18 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
             producer < step &&
             @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
             is Some(carrier) else {
-            return false
+            return None
           }
           if @carrier.kind(carrier) == @carrier.RelationKind {
             if @lower.preparation_schema_at(prepared, @pipeline.Step(producer))
               is None ||
               !@lower.node_accepts_managed_relation_view(node, input) {
-              return false
+              return None
             }
             found_relation = true
           } else {
             if !@lower.node_accepts_managed_carrier_view(node, input) {
-              return false
+              return None
             }
             found_carrier = true
             if @lower.node_prefers_fused_without_relation_consumer(node) {
@@ -60,11 +65,63 @@ fn carrier_segmentable_stage(graph : CheckedDAG, stage : Int) -> Bool {
           }
         }
         Some(@pipeline.Input(_)) => ()
-        None => return false
+        None => return None
       }
     }
   }
-  found_carrier && (!prefer_fused_without_relation || found_relation)
+  if all_selected &&
+    found_carrier &&
+    (!prefer_fused_without_relation || found_relation) {
+    return Some(-1)
+  }
+  // Find the maximal selected Relation suffix in one pass. Its predecessor
+  // is the exact output retained by the fused prefix.
+  let mut suffix_start = count
+  while suffix_start > 1 {
+    let step = suffix_start - 1
+    guard @lower.node_at(prepared, step) is Some(node) else { return None }
+    if !@lower.node_supports_selected_managed_execution(node) ||
+      @lower.node_input_count(node) != 1 ||
+      !@lower.node_accepts_managed_relation_view(node, 0) ||
+      @lower.node_input_target(node, 0) != Some(@pipeline.Step(step - 1)) {
+      break
+    }
+    suffix_start = step
+  }
+  if suffix_start == count || suffix_start < 2 {
+    return None
+  }
+  let terminal = suffix_start - 1
+  guard @lower.preparation_carrier_at(prepared, @pipeline.Step(terminal))
+    is Some(carrier) &&
+    @carrier.kind(carrier) == @carrier.RelationKind else {
+    return None
+  }
+  let mut carrier_prefix = false
+  for step in 0..<terminal {
+    guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+      is Some(input_carrier) else {
+      return None
+    }
+    if @carrier.kind(input_carrier) != @carrier.RelationKind {
+      carrier_prefix = true
+    }
+  }
+  if !carrier_prefix {
+    return None
+  }
+  for result in graph.results {
+    if result.task == stage {
+      match
+        @ports.port_target(
+          @execution.managed_result_occurrence_port(result.occurrence),
+        ) {
+        @pipeline.Step(step) => if step < terminal { return None }
+        _ => return None
+      }
+    }
+  }
+  Some(terminal)
 }
 
 ///|
@@ -128,7 +185,7 @@ pub fn expand_internal_carrier_tasks(
   let stages = graph.owners.length()
   let mut any_segmentable = false
   for stage in 0..<stages {
-    if carrier_segmentable_stage(graph, stage) {
+    if carrier_segment_prefix_end(graph, stage) is Some(_) {
       any_segmentable = true
       break
     }
@@ -143,6 +200,7 @@ pub fn expand_internal_carrier_tasks(
   let targets = []
   let input_counts = []
   let selected_steps = []
+  let prefix_ends = []
   let operations : Array[Array[TaskOperationRequirement]] = []
   let numeric : Array[Array[TaskNumericObservation]] = []
 
@@ -151,16 +209,22 @@ pub fn expand_internal_carrier_tasks(
       return Err(WorkLimit)
     }
     work -= 1
-    let split = carrier_segmentable_stage(graph, stage)
+    let split_boundary = carrier_segment_prefix_end(graph, stage)
+    let split = split_boundary is Some(_)
     expanded[stage] = split
-    let task_count = if split {
-      @pipeline.step_count(
-        @lower.pipeline(@lower.bound_preparation(graph.owners[stage])),
-      )
-    } else {
+    let step_count = @pipeline.step_count(
+      @lower.pipeline(@lower.bound_preparation(graph.owners[stage])),
+    )
+    let prefix_end = split_boundary.unwrap_or(-1)
+    let task_count = if !split {
       1
+    } else if prefix_end < 0 {
+      step_count
+    } else {
+      step_count - prefix_end
     }
-    if owners.length() + task_count > max_tasks || task_count > work {
+    let mapping_work = if split { step_count } else { 1 }
+    if owners.length() + task_count > max_tasks || mapping_work > work {
       return Err(
         if owners.length() + task_count > max_tasks {
           TaskLimit
@@ -169,25 +233,44 @@ pub fn expand_internal_carrier_tasks(
         },
       )
     }
-    work -= task_count
+    work -= mapping_work
     for position in 0..<task_count {
       let task = owners.length()
-      stage_tasks[stage].push(task)
+      if split && position == 0 && prefix_end >= 0 {
+        for _ in 0..<(prefix_end + 1) {
+          stage_tasks[stage].push(task)
+        }
+      } else {
+        stage_tasks[stage].push(task)
+      }
       owners.push(graph.owners[stage])
       operations.push([])
       numeric.push([])
       if split {
+        let step = if prefix_end >= 0 {
+          prefix_end + position
+        } else {
+          position
+        }
         let node = @lower.node_at(
           @lower.bound_preparation(graph.owners[stage]),
-          position,
+          step,
         ).unwrap()
-        targets.push(Some(@pipeline.Step(position)))
-        input_counts.push(@lower.node_input_count(node))
-        selected_steps.push(Some(position))
+        targets.push(Some(@pipeline.Step(step)))
+        if prefix_end >= 0 && position == 0 {
+          input_counts.push(graph.input_counts[stage])
+          selected_steps.push(None)
+          prefix_ends.push(Some(prefix_end))
+        } else {
+          input_counts.push(@lower.node_input_count(node))
+          selected_steps.push(Some(step))
+          prefix_ends.push(None)
+        }
       } else {
         targets.push(graph.targets[stage])
         input_counts.push(graph.input_counts[stage])
         selected_steps.push(None)
+        prefix_ends.push(None)
       }
     }
   }
@@ -214,7 +297,28 @@ pub fn expand_internal_carrier_tasks(
       continue
     }
     let prepared = @lower.bound_preparation(graph.owners[stage])
+    let prefix_end = carrier_segment_prefix_end(graph, stage).unwrap_or(-1)
+    if prefix_end >= 0 {
+      let prefix_task = stage_tasks[stage][0]
+      for edge in graph.data {
+        if edge.consumer == stage {
+          guard mapped_stage_target(stage_tasks, edge.producer, edge.target)
+            is Some(producer) else {
+            return Err(ForeignPort(stage, edge.input))
+          }
+          data.push({ ..edge, producer, consumer: prefix_task, })
+        }
+      }
+      for slot in graph.supplied_slots {
+        if slot.consumer == stage {
+          supplied_slots.push({ ..slot, consumer: prefix_task, })
+        }
+      }
+    }
     for step, consumer in stage_tasks[stage] {
+      if step <= prefix_end {
+        continue
+      }
       let node = @lower.node_at(prepared, step).unwrap()
       for operation_input in 0..<@lower.node_input_count(node) {
         match @lower.node_input_target(node, operation_input) {
@@ -311,6 +415,7 @@ pub fn expand_internal_carrier_tasks(
     targets,
     input_counts,
     selected_steps,
+    prefix_ends,
     data,
     supplied_slots,
     control,
