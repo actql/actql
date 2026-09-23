@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
 pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
@@ -13,6 +15,16 @@ pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
+
+pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_follows(EffectLedgerEntry?, EffectLedgerEntry) -> Bool
+
+pub fn effect_ledger_entry_locator_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
 
 pub fn effect_row_action_code(EffectRowAction) -> Int
 
@@ -88,6 +100,37 @@ pub(all) enum EffectItemProgress {
   ItemAccepted
   ItemFailed
   ItemUnknown
+} derive(Eq, @debug.Debug)
+
+pub struct EffectLedgerEntry {
+  wire : String
+  cid : String
+  logical_request_scope_cid : String
+  logical_item_locator_cid : String
+  unit_definition_cid : String
+  original_membership_cid : String
+  intent_fingerprint_cid : String
+  effect_preview_cid : String
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  recovery_contract_cid : String
+  capability : String
+  state : EffectRowState
+  fence : Int
+  attempt_sequence : Int
+  prior_entry_cid : String?
+  outcome_receipt_cid : String?
+  reservation_evidence_cid : String
+  retention_contract_cid : String
+}
+
+pub(all) enum EffectLedgerIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidShape
+  InvalidIdentity
+  InvalidTransition
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) struct EffectMemberProgress {
