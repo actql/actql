@@ -82,7 +82,8 @@ function validProfile(value, selected) {
     typeof value.scopeRef === 'string' && value.scopeRef.length > 0 &&
     Array.isArray(value.capabilities) &&
     value.capabilities.every(item => typeof item === 'string' && item) &&
-    exact(value.limits, ['maxReadWireBytes', 'maxRowBytes',
+    exact(value.limits, ['maxReadWireBytes', 'maxRowWireBytes',
+      'maxRowRetainedValueBytes',
       'maxRetainedValueBytes', 'maxRows', 'maxBatchRows',
       'maxBatchRetainedValueBytes']) &&
     Object.values(value.limits).every(positive);
@@ -181,8 +182,11 @@ export async function connect(options) {
         const attemptId = crypto.randomUUID();
         const maxWireBytes = tighter(options.maxWireBytes,
           confirmed.limits.maxReadWireBytes);
-        const maxRowBytes = tighter(options.maxRowBytes,
-          confirmed.limits.maxRowBytes);
+        const maxRowWireBytes = tighter(options.maxRowWireBytes,
+          confirmed.limits.maxRowWireBytes);
+        const maxRowRetainedValueBytes = tighter(
+          options.maxRowRetainedValueBytes,
+          confirmed.limits.maxRowRetainedValueBytes);
         let state = 'not_started';
         const controller = new AbortController();
         const iterate = async function* () {
@@ -209,19 +213,21 @@ export async function connect(options) {
               while ((newline = line.indexOf('\n')) >= 0) {
                 const item = line.slice(0, newline);
                 line = line.slice(newline + 1);
-                if (new TextEncoder().encode(item).byteLength > maxRowBytes) {
-                  fail('ResultRowLimit');
+                if (new TextEncoder().encode(item).byteLength >
+                    maxRowWireBytes) {
+                  fail('ResultRowWireLimit');
                 }
                 if (item) {
                   const row = JSON.parse(item);
-                  if (retainedValueBytes(row) > maxRowBytes) {
-                    fail('ResultRowLimit');
+                  if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
+                    fail('ResultRowRetainedLimit');
                   }
                   yield row;
                 }
               }
-              if (new TextEncoder().encode(line).byteLength > maxRowBytes) {
-                fail('ResultRowLimit');
+              if (new TextEncoder().encode(line).byteLength >
+                  maxRowWireBytes) {
+                fail('ResultRowWireLimit');
               }
             }
             line += decoder.decode();
