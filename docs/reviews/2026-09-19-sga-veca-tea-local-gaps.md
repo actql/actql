@@ -135,14 +135,14 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   workspace boundaries with in-flight cancellation after charged work. A Node
   standard Host timer reaches the same graph-bounds operation, giving its
   direct entrypoint all four proof roles. Its kernel reports cumulative work,
-  and a separate one-row fixture now fixes the output value-work boundary at
-  30 units, rejects 29, and admits seven workspace slots but rejects six.
-  This value-construction budget is not the kernel's cumulative control-work
-  ceiling: its direct start has no local cumulative work ceiling. The provider
-  receives the common execution limits but does not yet use its execution
-  work ceiling; the value limit passed to the kernel is a separate validation
-  budget. The common selected execution ceiling needs an exact/one-short
-  product-path fixture before this dimension closes.
+  and a separate one-row fixture fixes output value work at 30 units and
+  cumulative control work at 11 units, rejecting 29 and 10 respectively.
+  Seven workspace slots admit the same case; six reject it before execution.
+  The kernel now enforces its own finite control-work ceiling across resumes,
+  apart from the output-value budget. The provider still does not account for
+  prior graph-construction work against the common selected execution ceiling.
+  That task-wide scope needs a product-path exact/one-short fixture before
+  resource assurance closes.
   The degree route uses the same
   resumable diagnostic kernel, but has its own workspace eight/seven and
   output two/one exact-boundary fixtures. Its direct
@@ -186,11 +186,11 @@ check is a blocker guard, not a positive proof that a replacement is bounded.
   cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
   selected fixtures. Graph normalization and graph bounds have all four
-  lifecycle proof roles. Graph bounds now has independent value-work evidence,
-  but neither operation has independently registered exact and one-short
-  cumulative control-work assurance. The completion command intentionally
-  fails. The ordinary resource command checks route identity and existing
-  scoped evidence without claiming release completion.
+  lifecycle proof roles. Graph bounds now has independent kernel-level value
+  and control-work evidence, but neither operation has task-wide execution
+  work assurance across construction and projection. The completion command
+  intentionally fails. The ordinary resource command checks route identity
+  and existing scoped evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task
   and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
   output order, stable ties, cancellation without partial publication, and

@@ -1328,11 +1328,11 @@
           "fixture": "graph diagnostics admit workspace before execution and clean cancel"
         },
         {
-          "role": "graph_bounds_value_work_exact_one_short",
+          "role": "graph_bounds_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "graph bounds admits exact value work and rejects one short"
+          "fixture": "graph bounds admits exact value and control work"
         },
         {
           "role": "graph_bounds_cancel_cleanup",

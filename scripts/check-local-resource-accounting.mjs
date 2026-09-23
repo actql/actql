@@ -817,8 +817,8 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
-    !boundaryRoles.has('graph_bounds_value_work_exact_one_short')) {
-    fail(`${label}: exact value-work boundary fixture is missing`);
+    !boundaryRoles.has('graph_bounds_work_exact_one_short')) {
+    fail(`${label}: exact work boundary fixture is missing`);
   }
 }
 

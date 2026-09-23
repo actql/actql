@@ -187,9 +187,9 @@ pub fn start_graph_apply(@bounded_execution.Control, @lowering_relation.Prepared
 
 pub fn start_graph_apply_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraphApplyExecution, GraphApplyIssue]
 
-pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphBoundsExecution, GraphBoundsIssue]
+pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
-pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDegreeExecution, GraphBoundsIssue]
+pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphDegreeExecution, GraphBoundsIssue]
 
 pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDiffExecution, GraphDiffIssue]
 
@@ -302,6 +302,7 @@ pub(all) enum GraphBoundsIssue {
   InvalidGraphBoundsKernel
   GraphBoundsInputUnavailable
   GraphBoundsWorkspaceLimit
+  GraphBoundsWorkLimit
   GraphBoundsKeyOrder(@value_admission.KeyOrderIssue)
   GraphBoundsOutput(@execution_relation.CaptureIssue)
   GraphBoundsCompletion(@execution_relation.TrustedOutputIssue)
