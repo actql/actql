@@ -2805,6 +2805,21 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'normalize-take',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 5,
+    managedStarts: 5,
+    completedTasks: [1, 2, 3, 4],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', take: 1, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'subgraph',
     rows: 40,
     advanceQuantum: 1,
@@ -4266,6 +4281,7 @@ async function exerciseStrategyGraph(
                       setTimeout(() => graphCancellation.abort(), 0);
                     }
                   } else if (!cancellationCase.cancelDuringFinalization &&
+                      cancellationCase.cancelOnManagedStart === undefined &&
                       constructionComplete &&
                       observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {

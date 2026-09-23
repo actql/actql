@@ -15,7 +15,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
 | Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
 | Progress | Long principal paths use bounded sessions and each operation has a checked production route | Prove operation-specific boundary evidence and the remaining common cancellation boundary |
-| Cancellation | Closed for the 39 operation entries; in-flight RelA execution after a mixed Carrier/Relation split remains a shared gap | Preserve stop/reclaim separation while closing the common evaluator boundary |
+| Cancellation | Closed for the 39 operation entries; a Node standard Host timer now stops Graph-to-Relation take after the mixed split, while other selected Relation paths remain unverified | Preserve stop/reclaim separation and test the remaining mixed paths |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
@@ -35,9 +35,13 @@ readable coverage manifest is authoritative for individual operation status.
   Graph path passes with execution quanta 1, 2, 7, and 1024, including two
   downstream consumers and final reclamation. A separate Graph fixture
   cancels after several advances, checks stop without publication, and
-  settles and reclaims the task. Other selected Relation fallback kernels and
-  environment-delivered cancellation across this split remain unverified.
-  These are connection gaps, not new normative operations.
+  settles and reclaims the task. A Node standard Host timer also reaches the
+  selected take after Graph construction, normalization, and node projection
+  in one authored Stage. It confirms stop after delivery, leaves the take
+  completion unpublished, and reclaims the attempt while preserving earlier
+  independent task completions. Other selected Relation fallback kernels and
+  their environment-delivered cancellation remain unverified. These are
+  connection gaps, not new normative operations.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -75,8 +79,11 @@ bridge's Relation output uses this no-sort route in the standard Host, then
 feeds two consumers and formal publication. Graph-to-Relation take requires
 an added key-completion sort; its sort and row charging now advance in
 bounded steps. Exact/one-short work and workspace fixtures exercise that
-added sort on all three targets. Other selected Relation kernels and
-environment-delivered cancellation remain open.
+added sort on all three targets. The Node standard Host cancellation fixture
+reaches this sort through the ordinary family subset; it selects the exact
+physical task view and reserves capacity across the selected task set. Other
+selected Relation kernels and their environment-delivered cancellation remain
+open.
 
 ## Local family correction branch
 
