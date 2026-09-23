@@ -84,6 +84,17 @@ function finish(response, format) {
   });
 }
 
+function observationAttempt(response) {
+  const controller = new AbortController();
+  const disconnected = () => {
+    if (!response.writableEnded) controller.abort();
+  };
+  response.on('close', disconnected);
+  if (response.destroyed) disconnected();
+  return Object.freeze({signal: controller.signal,
+    release: () => response.off('close', disconnected)});
+}
+
 export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
@@ -128,7 +139,7 @@ export function createClientHttpHandler({
         }));
       } catch { authorized = false; }
       if (authorized !== true) invalid('ClientConnectionDenied');
-      const invoke = async (handler, name) => {
+      const invoke = async (handler, signal) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         return handler(Object.freeze({
           principalId: principal,
@@ -136,6 +147,7 @@ export function createClientHttpHandler({
           ...Object.fromEntries(Object.entries(body)
             .filter(([key]) => key !== 'connection' && key !== 'ref')),
           ...(ref === undefined ? {} : {ref}),
+          ...(signal === undefined ? {} : {signal}),
         }));
       };
       const sendJson = value => {
@@ -178,7 +190,9 @@ export function createClientHttpHandler({
         }) : await invoke(observeRun);
         sendJson(state);
       } else if (operation === 'wait') {
-        sendJson(await invoke(wait));
+        const observer = observationAttempt(response);
+        try { sendJson(await invoke(wait, observer.signal)); }
+        finally { observer.release(); }
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
       } else if (operation === 'reconcile') {
@@ -212,21 +226,20 @@ export function createClientHttpHandler({
             response.writeHead(200, {'content-type': contentType});
           }
         };
-        const controller = new AbortController();
-        response.once('close', () => {
-          if (!response.writableEnded) controller.abort();
-        });
-        await deliverAuthorizedResult(resultService, {
-          indexKey: body.ref,
-          principalId: principal,
-          purpose: 'download',
-          resultName: body.resultName,
-          format: body.format,
-          attemptId: body.attemptId,
-        }, {
-          write: bytes => { begin(); return write(response, bytes); },
-          finish: () => { begin(); return finish(response, body.format); },
-        }, controller.signal);
+        const observer = observationAttempt(response);
+        try {
+          await deliverAuthorizedResult(resultService, {
+            indexKey: body.ref,
+            principalId: principal,
+            purpose: 'download',
+            resultName: body.resultName,
+            format: body.format,
+            attemptId: body.attemptId,
+          }, {
+            write: bytes => { begin(); return write(response, bytes); },
+            finish: () => { begin(); return finish(response, body.format); },
+          }, observer.signal);
+        } finally { observer.release(); }
       }
     } catch (error) {
       sendError(response, error);
