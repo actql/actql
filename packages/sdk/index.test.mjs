@@ -16,6 +16,61 @@ const profile = Object.freeze({version: 'actql-client-host/0.1',
 const admission = Object.freeze({ref, durability: 'durable', revision: 4});
 const options = {mode: 'remote', endpoint: 'https://host.example/',
   token: () => 'scoped-token'};
+const oversizedControl = cancelled => new Response(new ReadableStream({
+  start(controller) {
+    controller.enqueue(new Uint8Array(1024 * 1024));
+    controller.enqueue(new Uint8Array([123]));
+  },
+  cancel() { cancelled.push(true); },
+}));
+
+test('control responses are bounded and uncertain submit keeps its ID',
+  async t => {
+    const cancelled = [];
+    let reply = oversizedControl(cancelled);
+    const requests = [];
+    mock.method(globalThis, 'fetch', async url => {
+      requests.push(url.pathname.split('/').at(-1));
+      return requests.at(-1) === 'connect' && requests.length > 1
+        ? Response.json(profile) : reply;
+    });
+    t.after(() => mock.restoreAll());
+    await assert.rejects(connect(options), {code: 'InvalidHostProfile'});
+    assert.equal(cancelled.length, 1);
+    reply = oversizedControl(cancelled);
+    const client = await connect(options);
+    await assert.rejects(client.start({version: 'actql/0.1'},
+      {requestId: 'saved-control-id'}), error =>
+      error.code === 'SubmissionUnknown' &&
+      error.requestId === 'saved-control-id');
+    assert.equal(cancelled.length, 2);
+    assert.deepEqual(requests, ['connect', 'connect', 'submit']);
+  });
+
+test('bounded control reads cover attach, status and error responses',
+  async t => {
+    const cancelled = [];
+    let operationReply = Response.json(admission);
+    mock.method(globalThis, 'fetch', async url => {
+      const operation = url.pathname.split('/').at(-1);
+      return operation === 'connect' ? Response.json(profile) : operationReply;
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    operationReply = oversizedControl(cancelled);
+    await assert.rejects(client.attach(ref), {code: 'InvalidHostAdmission'});
+    operationReply = Response.json(admission);
+    const execution = await client.attach(ref);
+    operationReply = oversizedControl(cancelled);
+    await assert.rejects(execution.status(), {code: 'InvalidHostResponse'});
+    operationReply = new Response(oversizedControl(cancelled).body,
+      {status: 503});
+    await assert.rejects(client.start({version: 'actql/0.1'},
+      {requestId: 'saved-error-id'}), error =>
+      error.code === 'SubmissionUnknown' &&
+      error.requestId === 'saved-error-id');
+    assert.equal(cancelled.length, 3);
+  });
 
 test('document submit, attach and reads use one reference without replay', async t => {
   const requests = [];

@@ -2,6 +2,7 @@
 import {validDeliveryAttemptLookup} from '@actql/client-wire';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const maxControlResponseBytes = 1024 * 1024;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') ===
   [...keys].sort().join('\0');
@@ -18,6 +19,44 @@ const validRef = ref => exact(ref,
   ['tenantId', 'authorityScopeCid', 'runDefinitionCid']) &&
   typeof ref.tenantId === 'string' && ref.tenantId.length > 0 &&
   cid.test(ref.authorityScopeCid) && cid.test(ref.runDefinitionCid);
+
+async function boundedHostJson(response) {
+  const declared = response.headers.get('content-length');
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('InvalidHostControlResponse');
+  let complete = false;
+  try {
+    if (declared !== null && Number(declared) > maxControlResponseBytes) {
+      throw new Error('HostControlResponseLimit');
+    }
+    const chunks = [];
+    let size = 0;
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxControlResponseBytes) {
+        throw new Error('HostControlResponseLimit');
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true})
+      .decode(bytes));
+    complete = true;
+    return parsed;
+  } finally {
+    if (!complete) {
+      try { await reader.cancel(); } catch {}
+    }
+    reader.releaseLock();
+  }
+}
 
 function connectionOptions(options) {
   if (options === null || typeof options !== 'object' ||
@@ -151,7 +190,7 @@ export async function connect(options) {
     }
     if (!response.ok) {
       let error;
-      try { error = await response.json(); } catch {}
+      try { error = await boundedHostJson(response); } catch {}
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
@@ -163,7 +202,10 @@ export async function connect(options) {
     }
     return response;
   };
-  const profile = await (await exchange('connect')).json();
+  const profileResponse = await exchange('connect');
+  let profile;
+  try { profile = await boundedHostJson(profileResponse); }
+  catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
   if (!validProfile(profile, selected.wire)) fail('InvalidHostProfile');
   const confirmed = Object.freeze({...profile,
     capabilities: Object.freeze([...profile.capabilities]),
@@ -183,6 +225,11 @@ export async function connect(options) {
       durability: admission.durability});
     const runRequest = (operation, body = {}, signal) =>
       exchange(operation, {ref, ...body}, signal);
+    const readControl = async (operation, body, signal) => {
+      const response = await runRequest(operation, body, signal);
+      try { return await boundedHostJson(response); }
+      catch (cause) { throw new ClientError('InvalidHostResponse', {cause}); }
+    };
 
     const result = name => {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
@@ -336,7 +383,7 @@ export async function connect(options) {
             resultName: name, attemptId,
           }, signal);
           let answer;
-          try { answer = await response.json(); }
+          try { answer = await boundedHostJson(response); }
           catch (cause) {
             throw new ClientError('InvalidHostAttemptLookup', {cause});
           }
@@ -350,14 +397,18 @@ export async function connect(options) {
     };
     return Object.freeze({
       ref, profile: runProfile, result,
-      status: async ({signal} = {}) =>
-        (await runRequest('status', {}, signal)).json(),
-      wait: async ({until, signal} = {}) =>
-        (await runRequest('wait', {until: until ?? null}, signal)).json(),
-      cancel: async ({signal} = {}) =>
-        (await runRequest('cancel', {}, signal)).json(),
-      reconcile: async ({signal} = {}) =>
-        (await runRequest('reconcile', {}, signal)).json(),
+      status: async ({signal} = {}) => {
+        return readControl('status', {}, signal);
+      },
+      wait: async ({until, signal} = {}) => {
+        return readControl('wait', {until: until ?? null}, signal);
+      },
+      cancel: async ({signal} = {}) => {
+        return readControl('cancel', {}, signal);
+      },
+      reconcile: async ({signal} = {}) => {
+        return readControl('reconcile', {}, signal);
+      },
     });
   };
 
@@ -370,7 +421,7 @@ export async function connect(options) {
     const response = await exchange('submit', {requestId, kind, input,
       parameters: options.parameters ?? null}, options.signal, context);
     let admitted;
-    try { admitted = await response.json(); }
+    try { admitted = await boundedHostJson(response); }
     catch (cause) {
       throw new ClientError('SubmissionUnknown', {...context, cause});
     }
@@ -399,8 +450,10 @@ export async function connect(options) {
     attach: async (ref, {signal} = {}) => {
       const requested = Object.freeze({...ref});
       if (!validRef(requested)) fail('InvalidRunReference');
-      const admitted = await (await exchange('attach',
-        {ref: requested}, signal)).json();
+      const response = await exchange('attach', {ref: requested}, signal);
+      let admitted;
+      try { admitted = await boundedHostJson(response); }
+      catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       if (!validRef(admitted?.ref)) fail('InvalidHostAdmission');
       if (admitted.ref.tenantId !== requested.tenantId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
@@ -413,7 +466,7 @@ export async function connect(options) {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
       const response = await exchange('lookup-request', {requestId}, signal);
       let answer;
-      try { answer = await response.json(); }
+      try { answer = await boundedHostJson(response); }
       catch (cause) {
         throw new ClientError('InvalidHostRequestLookup', {cause});
       }
