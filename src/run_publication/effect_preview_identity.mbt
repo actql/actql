@@ -15,6 +15,7 @@ pub(all) enum EffectPreviewIdentityIssue {
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
+  member_effect_ids : Array[String]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
   row_order : Array[Array[String]]
@@ -216,8 +217,17 @@ pub fn derive_effect_preview_identities(
     _ => return Err(InvalidMember)
   }
   let cids = []
+  let seen_effect_ids : Map[String, Bool] = Map([])
   for index in 0..<members.length() {
     let effect = members[index]
+    let effect_id = match @json.object_field(effect, "effect_id") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_ids.contains(effect_id) {
+      return Err(InvalidMember)
+    }
+    seen_effect_ids[effect_id] = true
     match effect_member_row_inventory(effect, index) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -261,10 +271,21 @@ pub fn admit_effect_preview_identity(
   }
   let cids = []
   let row_keys : Array[Array[String]] = []
+  let member_effect_ids : Array[String] = []
+  let seen_effect_ids : Map[String, Bool] = Map([])
   let row_cids : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
     let effect = members[index]
+    let effect_id = match @json.object_field(effect, "effect_id") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_ids.contains(effect_id) {
+      return Err(InvalidMember)
+    }
+    seen_effect_ids[effect_id] = true
+    member_effect_ids.push(effect_id)
     let (member_keys, member_rows, member_order) = match
       effect_member_row_inventory(effect, index) {
       Ok(value) => value
@@ -333,6 +354,7 @@ pub fn admit_effect_preview_identity(
   Ok({
     semantic_cid: cid,
     member_cids: cids,
+    member_effect_ids,
     row_keys,
     row_cids,
     row_order,
@@ -354,6 +376,14 @@ pub fn effect_preview_member_identity(
   index : Int,
 ) -> String? {
   value.member_cids.get(index)
+}
+
+///|
+pub fn effect_preview_member_effect_id(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_effect_ids.get(index)
 }
 
 ///|
