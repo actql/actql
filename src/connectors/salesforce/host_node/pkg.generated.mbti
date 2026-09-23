@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/host_node"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+}
+
+// Values
+pub fn salesforce_catalog_begin(@catalog.ResourceListing) -> @catalog.CatalogSync
+
+pub fn salesforce_catalog_cancel(@catalog.CatalogSync) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_catalog_describe(@catalog.CatalogSync, String, Bytes, Int, Int, Int, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_catalog_finish(@catalog.CatalogSync) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_catalog_http_failure(Int, Bytes, Int) -> Int
+
+pub fn salesforce_catalog_next(@catalog.CatalogSync) -> String?
+
+pub fn salesforce_catalog_resource_names(@catalog.ResourceListing) -> Array[String]
+
+pub fn salesforce_catalog_resource_state(@catalog.CatalogSync, String) -> Int
+
+pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
+
+// Errors
+pub(all) suberror SalesforceCatalogBridgeIssue {
+  Listing(@catalog.ListingIssue)
+  Sync(@catalog.CatalogSyncIssue)
+  InvalidResource
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits

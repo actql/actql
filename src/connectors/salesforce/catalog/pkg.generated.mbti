@@ -10,6 +10,8 @@ pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
 
 pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
+pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
+
 pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_sync_is_complete(CatalogSync) -> Bool
