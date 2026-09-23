@@ -37,24 +37,20 @@ function validateLimits(limits) {
   }
 }
 
-/// Read one bounded query and its locator chain at the Site. The MoonBit
-/// owner chooses every request path and decides when observation is complete.
-/// The caller receives bounded pages, never an implied Acquisition receipt.
-export async function readSalesforceQuery({
+function validateRead({
   moon,
   plan,
-  apiVersion,
   initialAuthorization,
   authorizationForPage,
   credential,
   limits,
   consumePage,
   callResource = callHttpsCredentialResource,
-  signal,
 }) {
-  if (!moon || !plan || typeof apiVersion !== 'string' ||
+  if (!moon || !plan ||
       typeof authorizationForPage !== 'function' ||
       typeof consumePage !== 'function' || !credential ||
+      typeof credential !== 'object' ||
       typeof callResource !== 'function') {
     fail('InvalidSalesforceQueryRead');
   }
@@ -68,15 +64,23 @@ export async function readSalesforceQuery({
   )) {
     fail('ForeignSalesforceQueryProjection');
   }
-  const read = checked(moon.salesforceBeginQueryRead(
-    plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
-    limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
-    BigInt(limits.maxTotalRows),
-  ));
+  return scope;
+}
+
+async function driveQueryPages({
+  moon,
+  initialAuthorization,
+  authorizationForPage,
+  credential,
+  limits,
+  consumePage,
+  callResource,
+  signal,
+}, scope, owner) {
   const pages = [];
   try {
     while (true) {
-      const path = moon.salesforceQueryReadNextPath(read);
+      const path = owner.nextPath();
       if (path === undefined || path === null) break;
       signal?.throwIfAborted();
       const authorization = pages.length === 0
@@ -95,11 +99,9 @@ export async function readSalesforceQuery({
       if (!response.accepted) {
         fail('SalesforceQueryResourceRejected');
       }
-      const page = checked(moon.salesforceQueryReadAcceptPage(
-        read, path, response.body,
-      ));
+      const page = checked(owner.acceptPage(path, response.body));
       await consumePage(page, Object.freeze({path, pageIndex: pages.length}));
-      checked(moon.salesforceQueryReadAcknowledgePage(read, page));
+      owner.acknowledgePage?.(page);
       pages.push(Object.freeze({
         path,
         useCid: response.useCid,
@@ -107,16 +109,68 @@ export async function readSalesforceQuery({
         rows: moon.salesforceQueryPageRowCount(page),
       }));
     }
-    if (!moon.salesforceQueryReadComplete(read)) {
+    if (!owner.complete()) {
       fail('SalesforceQueryIncomplete');
     }
     return Object.freeze({
-      read,
+      ...owner.finish(),
       pages: Object.freeze(pages),
-      rowCount: moon.salesforceQueryReadRowCount(read),
+      rowCount: owner.rowCount(),
     });
   } catch (error) {
-    moon.salesforceQueryReadInterrupt(read);
+    owner.interrupt();
     throw error;
   }
+}
+
+/// Read one bounded query and its locator chain at the Site. The MoonBit
+/// owner chooses every request path and decides when observation is complete.
+/// The caller receives bounded pages, never an implied Acquisition receipt.
+export async function readSalesforceQuery(options) {
+  const {moon, plan, apiVersion, limits} = options;
+  if (typeof apiVersion !== 'string') fail('InvalidSalesforceQueryRead');
+  const scope = validateRead(options);
+  const read = checked(moon.salesforceBeginQueryRead(
+    plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
+    limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
+    BigInt(limits.maxTotalRows),
+  ));
+  return driveQueryPages({callResource: callHttpsCredentialResource,
+    ...options}, scope, {
+    nextPath: () => moon.salesforceQueryReadNextPath(read),
+    acceptPage: (path, body) => moon.salesforceQueryReadAcceptPage(read, path,
+      body),
+    acknowledgePage: page => checked(
+      moon.salesforceQueryReadAcknowledgePage(read, page)),
+    complete: () => moon.salesforceQueryReadComplete(read),
+    rowCount: () => moon.salesforceQueryReadRowCount(read),
+    finish: () => ({read}),
+    interrupt: () => moon.salesforceQueryReadInterrupt(read),
+  });
+}
+
+/// Use the same physical query path while MoonBit appends each page to one
+/// common managed output owner. The receipt is content evidence, not an
+/// Acquisition completion or a grant to consume the result.
+export async function readSalesforceManagedQuery(options) {
+  const {moon, plan, apiVersion, limits, values} = options;
+  if (typeof apiVersion !== 'string' || !values) {
+    fail('InvalidSalesforceQueryRead');
+  }
+  const scope = validateRead({consumePage: async () => {}, ...options});
+  const query = checked(moon.salesforcePrepareManagedQuery(
+    plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
+    limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
+    BigInt(limits.maxTotalRows), values,
+  ));
+  return driveQueryPages({callResource: callHttpsCredentialResource,
+    consumePage: async () => {}, ...options}, scope, {
+    nextPath: () => moon.salesforceManagedQueryNextPath(query),
+    acceptPage: (path, body) => moon.salesforceManagedQueryAcceptPage(
+      query, path, body),
+    complete: () => moon.salesforceManagedQueryComplete(query),
+    rowCount: () => moon.salesforceManagedQueryRowCount(query),
+    finish: () => ({receipt: checked(moon.salesforceManagedQueryFinish(query))}),
+    interrupt: () => moon.salesforceManagedQueryCancel(query),
+  });
 }

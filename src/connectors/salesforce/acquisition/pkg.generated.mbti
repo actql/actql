@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/acquisition"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_relation",
+}
+
+// Values
+pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog.QueryPage, ManagedQueryIssue]
+
+pub fn cancel_managed_query(ManagedQuery) -> Bool
+
+pub fn finish_managed_query(ManagedQuery) -> Result[@execution_relation.ManagedOutputValueReceipt, ManagedQueryIssue]
+
+pub fn managed_query_complete(ManagedQuery) -> Bool
+
+pub fn managed_query_next_path(ManagedQuery) -> String?
+
+pub fn managed_query_row_count(ManagedQuery) -> Int64
+
+pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPageLimits, Int, Int64, @execution_relation.ManagedOutputValues) -> Result[ManagedQuery, ManagedQueryIssue]
+
+// Errors
+
+// Types and methods
+pub struct ManagedQuery {
+  plan : @catalog.ReadProjection
+  read : @catalog.QueryRead
+  values : @execution_relation.ManagedOutputValues
+  columns : Array[Int]
+  mut open : Bool
+}
+
+pub(all) enum ManagedQueryIssue {
+  InvalidOutputSchema
+  Query(@catalog.QueryReadIssue)
+  Values(@execution_relation.ManagedOutputValueIssue)
+  Closed
+  Incomplete
+}
+
+// Type aliases
+
+// Traits

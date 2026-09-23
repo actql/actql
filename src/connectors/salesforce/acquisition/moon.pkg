@@ -1,0 +1,8 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
+}

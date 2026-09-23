@@ -23,6 +23,7 @@ pub(all) enum QueryPageIssue {
 /// One bounded Salesforce query batch. This is provider observation material,
 /// not a typed Relation or a completed Acquisition receipt.
 pub struct QueryPage {
+  projection : ReadProjection
   rows : Array[Array[@admitted.CheckedValue]]
   done : Bool
   next_url : String?
@@ -227,7 +228,22 @@ pub fn project_query_page(
     }
     rows.push(cells)
   }
-  Ok({ rows, done, next_url, total_size, response_sha256: @sha.hex(bytes), })
+  Ok({
+    projection: plan,
+    rows,
+    done,
+    next_url,
+    total_size,
+    response_sha256: @sha.hex(bytes),
+  })
+}
+
+///|
+pub fn query_page_matches_projection(
+  page : QueryPage,
+  plan : ReadProjection,
+) -> Bool {
+  physical_equal(page.projection, plan)
 }
 
 ///|

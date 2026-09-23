@@ -79,6 +79,50 @@ test "query page projects a bounded batch and exact continuation" {
 }
 
 ///|
+test "query page retains its exact projection occurrence" {
+  let plan = query_test_plan()
+  let same_content = query_test_plan()
+  let page = project_query_page(
+    @utf8.encode(
+      (
+        #|{"totalSize":1,"done":true,"records":[{"Id":"001A"}]}
+      ),
+    ),
+    plan,
+    "v62.0",
+    query_test_limits(),
+  ).unwrap()
+  assert_true(query_page_matches_projection(page, plan))
+  assert_false(query_page_matches_projection(page, same_content))
+}
+
+///|
+test "query admission binds the exact checked output field contract" {
+  let plan = query_test_plan()
+  let output_contract = @contract.primitive(StringType, nullable=false)
+  let bound = bind_read_projection_contracts(plan, [output_contract]).unwrap()
+  assert_eq(read_projection_soql(bound), read_projection_soql(plan))
+  assert_true(
+    bind_read_projection_contracts(plan, [
+      @contract.primitive(NumberType, nullable=false),
+    ])
+    is None,
+  )
+  let page = project_query_page(
+    @utf8.encode(
+      (
+        #|{"totalSize":1,"done":true,"records":[{"Id":"001A"}]}
+      ),
+    ),
+    bound,
+    "v62.0",
+    query_test_limits(),
+  ).unwrap()
+  assert_true(physical_equal(page.rows[0][0].contract, output_contract))
+  assert_false(query_page_matches_projection(page, plan))
+}
+
+///|
 test "query page accepts an empty terminal batch without a locator" {
   let body =
     #|{"totalSize":0,"done":true,"records":[]}

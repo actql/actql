@@ -2,7 +2,9 @@
 package "actql/actql/connectors/salesforce/host_node"
 
 import {
+  "actql/actql/connectors/salesforce/acquisition",
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_relation",
 }
 
 // Values
@@ -32,7 +34,21 @@ pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
 pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_managed_query_accept_page(@acquisition.ManagedQuery, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_managed_query_cancel(@acquisition.ManagedQuery) -> Bool
+
+pub fn salesforce_managed_query_complete(@acquisition.ManagedQuery) -> Bool
+
+pub fn salesforce_managed_query_finish(@acquisition.ManagedQuery) -> @execution_relation.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_managed_query_next_path(@acquisition.ManagedQuery) -> String?
+
+pub fn salesforce_managed_query_row_count(@acquisition.ManagedQuery) -> Int64
+
 pub fn salesforce_prepare_catalog_observation(@catalog.CatalogSync, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String?], Array[String?], Int) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @acquisition.ManagedQuery raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String], Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
@@ -69,6 +85,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Observation(@catalog.CatalogObservationIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
   QueryRead(@catalog.QueryReadIssue)
+  ManagedQuery(@acquisition.ManagedQueryIssue)
   InvalidResource
 }
 
