@@ -180,6 +180,9 @@ pub struct FieldMetadata {
   name : String
   native_type : String
   nullable : Bool
+  nullability_confirmed : Bool
+  defaulted_on_create : Bool
+  default_on_create_confirmed : Bool
   createable : Bool
   updateable : Bool
   filterable : Bool
@@ -280,6 +283,7 @@ pub(all) enum ReadProjectionIssue {
   Requirement(ResourceRequirementIssue)
   EmptyProjection
   QueryLimit
+  UnconfirmedNullability(String)
   UnsupportedReadType(String)
 } derive(Eq, @debug.Debug)
 
@@ -313,6 +317,8 @@ pub(all) enum ResourceRequirementIssue {
   ResourceNotUpdateable
   FieldNotCreateable(String)
   FieldNotUpdateable(String)
+  FieldConstraintUnconfirmed(String)
+  MissingRequiredCreateField(String)
   ExternalIdNotUnique(String)
 } derive(Eq, @debug.Debug)
 

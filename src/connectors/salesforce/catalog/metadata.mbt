@@ -24,6 +24,9 @@ pub struct FieldMetadata {
   name : String
   native_type : String
   nullable : Bool
+  nullability_confirmed : Bool
+  defaulted_on_create : Bool
+  default_on_create_confirmed : Bool
   createable : Bool
   updateable : Bool
   filterable : Bool
@@ -133,6 +136,8 @@ fn project_field(
     return Err(InvalidField(name))
   }
   guard optional_boolean(object, "nillable", true) is Some(nullable) &&
+    optional_boolean(object, "defaultedOnCreate", false)
+    is Some(defaulted_on_create) &&
     optional_boolean(object, "createable", false) is Some(createable) &&
     optional_boolean(object, "updateable", false) is Some(updateable) &&
     optional_boolean(object, "filterable", false) is Some(filterable) &&
@@ -146,6 +151,10 @@ fn project_field(
     name,
     native_type,
     nullable,
+    nullability_confirmed: @decode.lookup(object, "nillable") is Some(_),
+    defaulted_on_create,
+    default_on_create_confirmed: @decode.lookup(object, "defaultedOnCreate")
+    is Some(_),
     createable,
     updateable,
     filterable,

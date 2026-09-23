@@ -4,6 +4,7 @@ pub(all) enum ReadProjectionIssue {
   Requirement(ResourceRequirementIssue)
   EmptyProjection
   QueryLimit
+  UnconfirmedNullability(String)
   UnsupportedReadType(String)
 } derive(Eq, Debug)
 
@@ -62,6 +63,9 @@ pub fn prepare_read_projection(
   }
   let contracts = []
   for field in fields {
+    if !field.nullability_confirmed {
+      return Err(UnconfirmedNullability(field.name))
+    }
     match read_field_contract(field) {
       Some(value) => contracts.push(value)
       None => return Err(UnsupportedReadType(field.name))
