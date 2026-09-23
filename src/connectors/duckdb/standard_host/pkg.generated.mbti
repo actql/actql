@@ -14,6 +14,10 @@ import {
 }
 
 // Values
+pub fn commit_dispatch_offline_policy_choice(StrategyHostDispatch) -> Result[Unit, DispatchIssue]
+
+pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
+
 pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_retained_output(StrategyHostDispatch, Int64, Int64?) -> Result[Unit, DispatchIssue]
@@ -34,6 +38,8 @@ pub fn dispatch_local_registration(StrategyHostDispatch) -> @connector_sdk.Capab
 
 pub fn dispatch_module_keys(StrategyHostDispatch) -> Array[String]
 
+pub fn dispatch_policy_candidates(StrategyHostDispatch) -> @physical_strategy.PolicyCandidateSet?
+
 pub fn dispatch_registration(TaskDispatch) -> @connector_sdk.CapabilityRegistration?
 
 pub fn dispatch_resident_inputs(StrategyHostDispatch, Int) -> Array[(Int, Int64, Int, Int)]?
@@ -45,6 +51,10 @@ pub fn dispatch_run(StrategyHostDispatch) -> @physical_strategy.CapturedDAG
 pub fn dispatch_task(TaskDispatch) -> Int
 
 pub fn execute_synchronous_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
+
+pub fn prepare_dispatch_policy_choice(StrategyHostDispatch) -> Result[Bool, DispatchIssue]
+
+pub fn prepare_dispatch_policy_request(StrategyHostDispatch, String, String, String, Int64, Int64) -> Result[@physical_strategy.PolicyRequest, DispatchIssue]
 
 pub fn prepare_next_dispatch(StrategyHostDispatch) -> Result[TaskDispatch?, DispatchIssue]
 

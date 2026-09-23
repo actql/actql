@@ -44,6 +44,53 @@ fn adaptive_host(
 }
 
 ///|
+test "standard Host commits an authenticated external policy before dispatch" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  let host = adaptive_host(run, registry)
+  @dbhost.configure_dispatch_estimates(host, adaptive_profiles(), {
+    max_offers: 6,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 2,
+  }).unwrap()
+  assert_true(@dbhost.prepare_dispatch_policy_choice(host).unwrap())
+  assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
+  let request = @dbhost.prepare_dispatch_policy_request(
+    host, "request-1", "run-1", "authority-1", 100L, 0L,
+  ).unwrap()
+  let candidates = @dbhost.dispatch_policy_candidates(host).unwrap()
+  assert_eq(candidates.cid, request.candidate_set_cid)
+  assert_true(!candidates.canonical_json.is_empty())
+  let wire = "{\"authority\":\"authority-1\",\"candidate_set_cid\":\"" +
+    request.candidate_set_cid +
+    "\",\"deadline_ms\":\"100\",\"explanation\":\"configured placement\",\"generation\":" +
+    request.generation.to_string() +
+    ",\"policy_id\":\"placement-service\",\"policy_revision\":\"r1\",\"position\":0,\"request_id\":\"request-1\",\"revision\":" +
+    request.revision.to_string() +
+    ",\"run_identity\":\"run-1\",\"version\":\"actql-placement-policy/0.1\"}"
+  assert_true(
+    @dbhost.commit_dispatch_policy_response_json(
+      host, request, wire, "other-service", 1L,
+    )
+    is Err(Search(InvalidPreference)),
+  )
+  assert_true(@strategy.captured_dag_strategy(run) is None)
+  @dbhost.commit_dispatch_policy_response_json(
+    host, request, wire, "placement-service", 1L,
+  ).unwrap()
+  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  assert_true(
+    @dbhost.commit_dispatch_policy_response_json(
+      host, request, wire, "placement-service", 2L,
+    )
+    is Err(_),
+  )
+  let prepared = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
+  assert_eq(@dbhost.dispatch_task(prepared), 1)
+}
+
+///|
 test "observed completion revises only the unstarted suffix without resetting resources" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()

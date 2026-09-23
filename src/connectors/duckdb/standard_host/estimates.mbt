@@ -165,3 +165,74 @@ pub fn refresh_dispatch_estimates(
     adaptive_estimate_issue,
   )
 }
+
+///|
+/// Pause the ordinary standard Host before dispatch and expose one exact
+/// bounded candidate set to a trusted environment policy adapter. No task is
+/// started while the choice remains pending.
+pub fn prepare_dispatch_policy_choice(
+  host : StrategyHostDispatch,
+) -> Result[Bool, DispatchIssue] {
+  match @host_driver.prepare_compute_host_policy_choice(host.runtime) {
+    Ok(Some(_)) => Ok(true)
+    Ok(None) => Ok(false)
+    Err(issue) => Err(adaptive_estimate_issue(issue))
+  }
+}
+
+///|
+pub fn dispatch_policy_candidates(
+  host : StrategyHostDispatch,
+) -> @strategy.PolicyCandidateSet? {
+  @host_driver.compute_host_policy_candidates(host.runtime)
+}
+
+///|
+pub fn prepare_dispatch_policy_request(
+  host : StrategyHostDispatch,
+  request_id : String,
+  run_identity : String,
+  authority : String,
+  deadline_ms : Int64,
+  now_ms : Int64,
+) -> Result[@strategy.PolicyRequest, DispatchIssue] {
+  @host_driver.prepare_compute_host_policy_request(
+    host.runtime,
+    request_id,
+    run_identity,
+    authority,
+    deadline_ms,
+    now_ms,
+  ).map_err(adaptive_estimate_issue)
+}
+
+///|
+/// `authenticated_policy_id` is supplied by the environment's authenticated
+/// peer mapping, not by the response body. Common admission checks the current
+/// generation, reservation and registration again before dispatch.
+pub fn commit_dispatch_policy_response_json(
+  host : StrategyHostDispatch,
+  request : @strategy.PolicyRequest,
+  body : String,
+  authenticated_policy_id : String,
+  now_ms : Int64,
+) -> Result[Unit, DispatchIssue] {
+  @host_driver.commit_compute_host_policy_response_json(
+    host.runtime,
+    request,
+    body,
+    authenticated_policy_id,
+    now_ms,
+  ).map_err(adaptive_estimate_issue)
+}
+
+///|
+/// Offline selection is explicit; a failed or malformed remote response is
+/// never converted into this choice by the standard Host.
+pub fn commit_dispatch_offline_policy_choice(
+  host : StrategyHostDispatch,
+) -> Result[Unit, DispatchIssue] {
+  @host_driver.commit_compute_host_policy_choice(host.runtime, None).map_err(
+    adaptive_estimate_issue,
+  )
+}

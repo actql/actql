@@ -14,6 +14,14 @@ projection is sent separately as the exact canonical JSON returned by
 Candidate metadata can still be sensitive and requires an explicit disclosure
 policy at the Host boundary.
 
+The portable DuckDB/Local standard Host exposes this boundary through
+`prepare_dispatch_policy_choice`, `dispatch_policy_candidates`,
+`prepare_dispatch_policy_request` and `commit_dispatch_policy_response_json`.
+Its ordinary `prepare_next_dispatch` cannot start a task while the external
+choice is pending. This keeps the product Host on the same common admission
+path as an internal policy decision; the environment still owns HTTPS,
+authenticated endpoint mapping, disclosure and the fresh clock observation.
+
 The response is a closed JSON object with exactly these fields:
 
 | Field | Type | Meaning |
