@@ -17,39 +17,41 @@ if (!Number.isSafeInteger(repetitions) || repetitions < 2 ||
   throw new Error('build query_integration JS tests first; repetitions must be 2..1000');
 }
 
-function measure(index, count) {
+function measure(file, index, count) {
   const selection = JSON.stringify({
     file_and_index: Array.from({length: count}, () => [
-      'physical_search_wbtest.mbt', [{start: index, end: index + 1}],
+      file, [{start: index, end: index + 1}],
     ]),
   });
   const child = spawnSync(process.execPath, [
     '--import', preload, bundle, selection,
   ], {encoding: 'utf8', maxBuffer: 4 * 1024 * 1024});
   if (child.error || child.status !== 0) {
-    throw new Error(`test ${index} failed: ${child.error ?? child.stderr}`);
+    throw new Error(`test ${file}:${index} failed: ${child.error ?? child.stderr}`);
   }
   const results = [...child.stdout.matchAll(/"type":"result"/g)].length;
   if (results !== count) {
-    throw new Error(`test ${index} returned ${results} results, expected ${count}`);
+    throw new Error(`test ${file}:${index} returned ${results} results, expected ${count}`);
   }
   const line = child.stderr.split('\n').find(value =>
     value.startsWith('ACTQL_SEARCH_RESOURCE '));
   if (line === undefined) {
-    throw new Error(`test ${index} omitted process resource telemetry`);
+    throw new Error(`test ${file}:${index} omitted process resource telemetry`);
   }
   return JSON.parse(line.slice('ACTQL_SEARCH_RESOURCE '.length));
 }
 
 const profiles = [
-  {index: 5, name: 'seven-task-five-offer'},
-  {index: 6, name: 'seven-task-one-and-two-offer'},
+  {file: 'physical_search_wbtest.mbt', index: 5, name: 'seven-task-five-offer'},
+  {file: 'physical_search_wbtest.mbt', index: 6, name: 'seven-task-one-and-two-offer'},
+  {file: 'placement_scale_wbtest.mbt', index: 0, name: 'twenty-task-standard-host-two-provider'},
 ];
-const results = profiles.map(({index, name}) => {
-  const single = measure(index, 1);
-  const repeated = measure(index, repetitions);
+const results = profiles.map(({file, index, name}) => {
+  const single = measure(file, index, 1);
+  const repeated = measure(file, index, repetitions);
   return {
     name,
+    testFile: file,
     testIndex: index,
     repetitions,
     single,
