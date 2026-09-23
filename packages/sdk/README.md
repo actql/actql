@@ -34,7 +34,9 @@ This lightweight package does not install an embedded Local provider.
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
 new delivery attempt; a reader exposes `attemptId` before iteration.
 `deliveryAttempt(id)` inspects the existing Host attempt and release receipt
-without sending payload. A release receipt never proves that the Client
+without sending payload. It rejects a reply bound to another attempt, Run,
+Result or serialization contract, and invalid record/receipt combinations.
+A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
 An empty JSONL record fails the attempt instead of silently omitting a row.

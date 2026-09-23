@@ -1,3 +1,5 @@
+import type {WireDeliveryAttemptLookup} from '@actql/client-wire';
+
 export type Durability = 'volatile' | 'durable';
 export type RunReference = Readonly<{
   tenantId: string;
@@ -50,11 +52,7 @@ export type RequestLookup =
   | Readonly<{kind: 'not_found'}>
   | Readonly<{kind: 'unknown'; reason: string}>;
 
-export type DeliveryAttemptLookup =
-  | Readonly<{kind: 'not_found'}>
-  | Readonly<{kind: 'found'; attempt: Readonly<Record<string, unknown>>;
-      record: Readonly<Record<string, unknown>> | null;
-      hostReleaseReceipt: Readonly<Record<string, unknown>> | null}>;
+export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
 export declare class ClientError extends Error {
   readonly code: string;
