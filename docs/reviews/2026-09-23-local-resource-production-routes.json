@@ -112,6 +112,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "standard Host cancels ordered Graph projection take before completion"
+        },
+        {
+          "role": "key_completion_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take admits exact key-completion work"
+        },
+        {
+          "role": "key_completion_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected take bounds key-completion workspace and output overlap"
         }
       ]
     },
