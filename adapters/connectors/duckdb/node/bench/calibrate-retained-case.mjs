@@ -94,7 +94,9 @@ async function runTrainingCandidate(candidate, round, selection = plan(candidate
       executionMs, warmMs: elapsed.reduce((sum, value) => sum + value, 0),
       selection, outputCid: expectedCid,
       taskRealizations: tasks.map(task => task.realization),
-      tasks, hostPhases: result.phases, usage: result.usage()};
+      tasks, hostPhases: result.phases,
+      workerPreparationDetails: result.report.preparation_diagnostics,
+      usage: result.usage()};
   } finally {
     if (result) {
       const started = performance.now();
