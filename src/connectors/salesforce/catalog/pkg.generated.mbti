@@ -94,6 +94,8 @@ pub fn read_projection_soql(ReadProjection) -> String
 
 pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
 
+pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -362,6 +364,8 @@ pub struct WriteProjection {
   resource : String
   operation : WriteOperation
   field_names : Array[String]
+  fields : Array[FieldMetadata]
+  external_target : FieldMetadata?
 }
 
 pub(all) enum WriteProjectionIssue {
@@ -370,6 +374,8 @@ pub(all) enum WriteProjectionIssue {
   FieldLimit
   EmptyUpdate
   TargetFieldInBody(String)
+  ForeignCurrentObservation
+  SchemaChanged(String)
 } derive(Eq, @debug.Debug)
 
 // Type aliases

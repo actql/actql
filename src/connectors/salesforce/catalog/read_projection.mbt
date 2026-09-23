@@ -135,16 +135,7 @@ pub fn recheck_read_projection(
 ) -> Result[Unit, ReadProjectionIssue] {
   let old = plan.binding
   let next = current.binding
-  if old.tenant != next.tenant ||
-    old.principal != next.principal ||
-    old.environment != next.environment ||
-    old.connection_revision != next.connection_revision ||
-    old.site_key != next.site_key ||
-    old.site_generation != next.site_generation ||
-    old.connector_registration != next.connector_registration ||
-    old.connector_revision != next.connector_revision ||
-    old.resource_origin != next.resource_origin ||
-    old.run_invocation_cid != next.run_invocation_cid {
+  if !catalog_execution_binding_matches(old, next) {
     return Err(ForeignCurrentObservation)
   }
   let resource = match
