@@ -12,6 +12,8 @@ pub(all) enum WriteProjectionIssue {
   FieldLimit
   EmptyUpdate
   TargetFieldInBody(String)
+  UnconfirmedNullability(String)
+  UnsupportedWriteType(String)
   ForeignCurrentObservation
   SchemaChanged(String)
 } derive(Eq, Debug)
@@ -27,6 +29,35 @@ pub struct WriteProjection {
   field_names : Array[String]
   fields : Array[FieldMetadata]
   external_target : FieldMetadata?
+}
+
+///|
+/// This is the scalar subset with an exact JSON representation. Salesforce
+/// can still reject a value under constraints not proved by this projection.
+fn write_field_type_supported(native_type : String) -> Bool {
+  match native_type {
+    "id"
+    | "reference"
+    | "string"
+    | "textarea"
+    | "email"
+    | "phone"
+    | "url"
+    | "picklist"
+    | "combobox"
+    | "boolean"
+    | "int"
+    | "double" => true
+    _ => false
+  }
+}
+
+///|
+fn write_target_type_supported(native_type : String) -> Bool {
+  match native_type {
+    "string" | "email" | "int" => true
+    _ => false
+  }
 }
 
 ///|
@@ -68,10 +99,23 @@ pub fn prepare_write_projection(
     Ok(value) => value
     Err(issue) => return Err(Requirement(issue))
   }
+  for field in fields {
+    if !field.nullability_confirmed {
+      return Err(UnconfirmedNullability(field.name))
+    }
+    if !write_field_type_supported(field.native_type) {
+      return Err(UnsupportedWriteType(field.name))
+    }
+  }
   let external_target = match operation {
     WriteUpsertByExternalId(name) =>
       match require_unique_external_id(resource, name) {
-        Ok(field) => Some(field)
+        Ok(field) => {
+          if !write_target_type_supported(field.native_type) {
+            return Err(UnsupportedWriteType(field.name))
+          }
+          Some(field)
+        }
         Err(issue) => return Err(Requirement(issue))
       }
     _ => None
