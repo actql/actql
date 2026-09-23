@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 8 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 16 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 9 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('append loses its boundary record when exact resource evidence is removed', () => {
@@ -58,6 +58,22 @@ test('append loses its boundary record when exact resource evidence is removed',
       item.role === 'append_self_occurrence_reclamation').fixture =
       'missing-append-self-occurrence';
   }), /RelA append: missing operation boundary fixture missing-append-self-occurrence/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    delete append.external_input_entrypoint;
+  }), /RelA append: bounded external append provider is missing/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.boundary_tests = append.boundary_tests.filter(item =>
+      item.role !== 'append_external_cancel_cleanup');
+  }), /RelA append: append_external_cancel_cleanup fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.environment_tests = [];
+  }), /RelA append: external_input_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('zero-input values bind their bounded production provider', () => {

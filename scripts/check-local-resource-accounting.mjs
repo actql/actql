@@ -406,10 +406,17 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'RelA' && route.operation === 'append') {
+    if (route.external_input_entrypoint?.symbol !== 'append_provider') {
+      fail(`${label}: bounded external append provider is missing`);
+    }
     for (const role of [
       'append_work_workspace_exact_one_short',
       'append_two_consumer_reclamation',
       'append_self_occurrence_reclamation',
+      'append_external_work_workspace_exact_one_short',
+      'append_external_quantum_and_output',
+      'append_external_nullable_alignment',
+      'append_external_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

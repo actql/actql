@@ -5734,6 +5734,25 @@ async function exerciseStrategyGraph(
   splitCrossedStage.steps.push({
     from: 'crossed_rows', filter: 'id > 0', as: 'out',
   });
+  const externalAppendProgram = structuredClone(externalCrossJoinProgram);
+  const appendRight = externalAppendProgram.stages.find(
+    stage => stage.id === 'cross_right',
+  );
+  appendRight.steps[0].values = {
+    schema: {id: {type: 'number', nullable: false}},
+    rows: [{id: 3}, {id: 4}],
+  };
+  appendRight.results.r.fields = ['id'];
+  const appendStage = externalAppendProgram.stages.find(
+    stage => stage.id === 'crossed',
+  );
+  appendStage.steps = [{from: 'l', append: {with: 'r'}, as: 'out'}];
+  appendStage.results.r.fields = ['id'];
+  for (const consumer of externalAppendProgram.stages.filter(
+    stage => stage.id.startsWith('external_cross_consumer_'))) {
+    consumer.steps[0].select = ['id'];
+    consumer.results.r.fields = ['id'];
+  }
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
@@ -5765,6 +5784,7 @@ async function exerciseStrategyGraph(
     ['singleton cross join', singletonCrossJoinProgram, [1, 2, 3]],
     ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
+    ['external append', externalAppendProgram, [1, 2, 3, 4, 5]],
   ]) {
     const fixtureArgs = name === 'analytic' ? analyticArgs : args;
     let zeroInputFixture;
@@ -5834,6 +5854,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           name === 'external cross join'
             ? [2, 3, 6, 6, 6] : [2, 3, 6, 6, 6, 6],
+        );
+      }
+      if (name === 'external append') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 4, 4, 4],
+          'append and both consumers retain the full ordered output',
         );
       }
       if (name === 'snapshot derive') {
@@ -5932,9 +5959,11 @@ async function exerciseStrategyGraph(
   for (const {name: cancellationName, program: cancellationProgram} of [
     {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
     {name: 'split-external-cross-join-in-flight', program: splitCrossJoinProgram},
+    {name: 'external-append-in-flight', program: externalAppendProgram},
   ]) {
     const externalCrossJoinCancellationCase = {name: cancellationName};
     const cancellableCrossJoinProgram = structuredClone(cancellationProgram);
+    const appendCancellation = cancellationName === 'external-append-in-flight';
     const cancellableLeft = cancellableCrossJoinProgram.stages.find(
       stage => stage.id === 'cross_left',
     );
@@ -5942,10 +5971,11 @@ async function exerciseStrategyGraph(
       stage => stage.id === 'cross_right',
     );
     cancellableLeft.steps[0].values.rows = Array.from(
-      {length: 10}, (_, index) => ({id: index}),
+      {length: appendCancellation ? 49 : 10}, (_, index) => ({id: index}),
     );
     cancellableRight.steps[0].values.rows = Array.from(
-      {length: 10}, (_, index) => ({tag: `tag${index}`}),
+      {length: appendCancellation ? 49 : 10}, (_, index) => appendCancellation
+        ? {id: index + 10} : {tag: `tag${index}`},
     );
     const crossJoinCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableCrossJoinProgram),

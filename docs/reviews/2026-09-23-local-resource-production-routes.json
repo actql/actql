@@ -1006,6 +1006,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "external_input_entrypoint": {
+        "path": "src/connectors/local/append_provider.mbt",
+        "symbol": "append_provider"
+      },
       "boundary_tests": [
         {
           "role": "append_work_workspace_exact_one_short",
@@ -1027,8 +1031,65 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_append_wbtest.mbt",
           "fixture": "Local managed append retains both self occurrences"
+        },
+        {
+          "role": "append_external_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_append_wbtest.mbt",
+          "fixture": "bounded append admits independently calculated work and workspace"
+        },
+        {
+          "role": "append_external_quantum_and_output",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_append_wbtest.mbt",
+          "fixture": "bounded append preserves order across quantum-one resumes"
+        },
+        {
+          "role": "append_external_nullable_alignment",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_append_wbtest.mbt",
+          "fixture": "bounded append aligns nullable fields in authored left order"
+        },
+        {
+          "role": "append_external_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_append_wbtest.mbt",
+          "fixture": "standard Host stops external append after row work"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "append_external_node_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "external-append-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "external_input_entrypoint": {
+          "exact_limit": "append_external_work_workspace_exact_one_short",
+          "one_short_limit": "append_external_work_workspace_exact_one_short",
+          "in_flight_cancel": "append_external_node_timer_cancel_cleanup",
+          "cleanup": "append_external_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "external_input_entrypoint": {
+          "work": {
+            "exact_limit": "append_external_work_workspace_exact_one_short",
+            "one_short_limit": "append_external_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "append_external_work_workspace_exact_one_short",
+            "one_short_limit": "append_external_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
