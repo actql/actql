@@ -225,21 +225,13 @@ fn estimate_duckdb_configuration(
   if duckdb_dispatch_rejection(installed, task, resident=true) is Some(_) {
     return Ok(offers)
   }
-  // A streamed fresh task holds completion metadata plus its file. A resident
-  // alternative additionally needs the DB-copy ceiling checked at start. Do
-  // not inflate the fresh envelope merely because resident offers are enabled.
+  // The task envelope holds completion metadata and the independent file.
+  // A resident DB copy is checked against its separate shared allocation;
+  // adding that copy to task retention would count the same storage twice.
   let capacity = configuration.capacities[task - 1]
-  let resident_capacity = if installed.retained_output is Some(_) {
-    guard @compute.duckdb_task_retention_capacity(installed.limits.execution)
-      is Some(copy_bytes) else {
-      return Err(InvalidConfiguration)
-    }
-    {
-      ..capacity,
-      retained_bytes: Int64::max(capacity.retained_bytes, copy_bytes),
-    }
-  } else {
-    capacity
+  guard @compute.duckdb_task_retention_capacity(installed.limits.execution)
+    is Some(copy_bytes) else {
+    return Err(InvalidConfiguration)
   }
   for resident in installed.resident_estimates {
     let lines = match
@@ -258,9 +250,10 @@ fn estimate_duckdb_configuration(
         task,
         installed.registration,
         lines,
-        resident_capacity,
+        capacity,
         configuration.max_work,
         resident=resident.profile,
+        resident_copy_bytes=copy_bytes,
         retained_output?=installed.retained_output,
       ) {
       Ok(value) => offers.push(value)

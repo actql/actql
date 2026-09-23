@@ -125,7 +125,7 @@ pub fn estimate_duckdb_installed_offers(DuckDBDispatchModule, Int, @physical_hos
 
 pub fn estimate_duckdb_module_offers(DuckDBEstimateModule, Int, @physical_host.TaskEstimateQuantities) -> Result[Array[@physical_strategy.TaskOffer], DuckDBEstimateIssue]
 
-pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile, retained_output? : (Int64, Int64?)) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
+pub fn estimate_duckdb_task_offer(@physical_strategy.CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Array[@physical_cost.SerialEstimateLine], @physical_strategy.PhysicalEnvelope, Int, resident? : @physical_strategy.ResidentProfile, resident_copy_bytes? : Int64, retained_output? : (Int64, Int64?)) -> Result[@physical_strategy.TaskOffer, @physical_strategy.SearchIssue]
 
 pub fn install_duckdb_dispatch_estimates(DuckDBDispatchModule, DuckDBEstimateModule) -> Result[Unit, DuckDBEstimateIssue]
 

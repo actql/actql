@@ -23,6 +23,7 @@ test "resident offer retains independent file work without charging file bytes a
         { transfer_bytes: 100L, retained_bytes: 100L, execution_bytes: 2000L, },
         1000,
         resident=profile,
+        resident_copy_bytes=300L,
         retained_output=(1000L, file_ms),
       ).unwrap()
     })
@@ -41,6 +42,7 @@ test "resident offer retains independent file work without charging file bytes a
           },
           1000,
           resident=profile,
+          resident_copy_bytes=300L,
           retained_output=invalid,
         )
         is Err(InvalidCapacity),

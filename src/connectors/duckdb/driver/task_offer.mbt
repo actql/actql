@@ -11,9 +11,13 @@ pub fn estimate_duckdb_task_offer(
   capacity : @strategy.PhysicalEnvelope,
   max_work : Int,
   resident? : @strategy.ResidentProfile,
+  resident_copy_bytes? : Int64,
   retained_output? : (Int64, Int64?),
 ) -> Result[@strategy.TaskOffer, @strategy.SearchIssue] {
-  let copy_bytes = capacity.retained_bytes
+  if (resident is Some(_) && resident_copy_bytes is None) ||
+    (resident is None && resident_copy_bytes is Some(_)) {
+    return Err(InvalidCapacity)
+  }
   let (lines, capacity, slots) = match retained_output {
     None => (lines, capacity, duckdb_dispatch_work_slots())
     Some((bytes, milliseconds)) => {
@@ -45,7 +49,12 @@ pub fn estimate_duckdb_task_offer(
   }
   match resident {
     Some(profile) =>
-      @strategy.resident_task_offer(run, base, profile, copy_bytes)
+      @strategy.resident_task_offer(
+        run,
+        base,
+        profile,
+        resident_copy_bytes.unwrap(),
+      )
     None => Ok(base)
   }
 }
