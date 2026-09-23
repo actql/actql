@@ -8,6 +8,8 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteBody(@catalog.WriteBodyIssue)
   WriteRequest(@catalog.WriteRequestIssue)
   WriteSingleResponse(@catalog.WriteSingleResponseIssue)
+  WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
+  WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
   BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
