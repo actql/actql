@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {clientHostOperations, validClientBody, validClientConnection,
-  validRunRef} from './index.mjs';
+  validDeliveryAttemptLookup, validRunRef} from './index.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
@@ -54,4 +55,62 @@ test('Hybrid wire binds Cloud assistance to its selected Run owner', () => {
     runners: []}}), false);
   assert.equal(validClientBody('connect', {connection: {...connection,
     cloudConnectionRef: 'registered-cloud-a'}}), false);
+});
+
+const delivery = JSON.parse(readFileSync(new URL(
+  './fixtures/delivery-attempt.found.json', import.meta.url), 'utf8'));
+const expectedDelivery = {attemptId: 'read-a',
+  runDefinitionCid: ref.runDefinitionCid, resultName: 'answer'};
+
+test('delivery lookup follows the published attempt, record and receipt shapes',
+  () => {
+    const protocol = JSON.parse(readFileSync(new URL(
+      '../../spec/contracts/actql-protocol-schemas.json', import.meta.url),
+    'utf8')).artifact_schemas;
+    const publication = JSON.parse(readFileSync(new URL(
+      '../../spec/contracts/actql-run-publication.json', import.meta.url),
+    'utf8')).schemas;
+    for (const [key, schema] of [
+      ['attempt', publication.delivery_attempt],
+      ['record', publication.delivery_record],
+      ['hostReleaseReceipt', protocol.result_delivery_receipt],
+    ]) {
+      assert(schema.required.every(field =>
+        Object.hasOwn(delivery[key], field)));
+      assert(Object.keys(delivery[key]).every(field =>
+        Object.hasOwn(schema.properties, field)));
+    }
+    assert.equal(validDeliveryAttemptLookup(delivery, expectedDelivery), true);
+    assert.equal(validDeliveryAttemptLookup({kind: 'not_found'},
+      expectedDelivery), true);
+    assert.equal(validDeliveryAttemptLookup({kind: 'found',
+      attempt: delivery.attempt, record: null, hostReleaseReceipt: null},
+    expectedDelivery), true);
+  });
+
+test('delivery lookup rejects foreign identity and contradictory receipts', () => {
+  const changed = update => {
+    const answer = structuredClone(delivery);
+    update(answer);
+    return validDeliveryAttemptLookup(answer, expectedDelivery);
+  };
+  for (const update of [
+    answer => { answer.attempt.attempt_id = 'OTHER'; },
+    answer => { answer.attempt.run_definition_cid = `sha256:${'9'.repeat(64)}`; },
+    answer => { answer.attempt.result_name = 'foreign'; },
+    answer => { answer.record.delivery_attempt_cid = `sha256:${'9'.repeat(64)}`; },
+    answer => { answer.hostReleaseReceipt.result_name = 'foreign'; },
+    answer => { answer.hostReleaseReceipt.serialization_contract_cid =
+      `sha256:${'9'.repeat(64)}`; },
+    answer => { answer.hostReleaseReceipt.result_artifact_cid =
+      `sha256:${'9'.repeat(64)}`; },
+    answer => { answer.hostReleaseReceipt = {}; },
+    answer => { answer.record = {}; },
+    answer => { answer.hostReleaseReceipt = null; },
+    answer => { answer.record = null; },
+    answer => { answer.record.state = 'failed'; },
+    answer => { answer.record.confirmed_byte_count++; },
+    answer => { answer.record.exposure = 'unknown_additional'; },
+    answer => { answer.record.sequence = 1; },
+  ]) assert.equal(changed(update), false);
 });
