@@ -31,6 +31,26 @@ struct PreparedClientProgram {
 }
 
 ///|
+/// Checked identity components of one prepared Program. Request admission
+/// additionally binds scope, authority, grants, owner and durability; these
+/// two CIDs alone are not a complete Client request fingerprint.
+pub(all) struct ClientProgramIdentity {
+  program_definition_cid : String
+  parameter_values_cid : String
+} derive(Eq, Debug)
+
+///|
+pub fn prepared_client_identity(
+  value : PreparedClientProgram,
+) -> ClientProgramIdentity {
+  let source = @checked.source_identity(@strategy.graph_program(value.graph))
+  {
+    program_definition_cid: @context.program_identity_definition_cid(source),
+    parameter_values_cid: @context.program_identity_parameter_values_cid(source),
+  }
+}
+
+///|
 pub fn prepared_client_graph(
   value : PreparedClientProgram,
 ) -> @strategy.CheckedDAG {
