@@ -247,3 +247,81 @@ test('local-owned Hybrid Cloud ref reaches Host authorization before use',
     assert.deepEqual(authorized,
       ['registered-cloud-a', 'foreign-cloud']);
   });
+
+test('wait disconnect ends only its observation and releases its listener',
+  {timeout: 10000}, async () => {
+    const connection = {mode: 'remote', owner: 'remote',
+      runners: [], consentRefs: []};
+    const responses = [];
+    let entered;
+    const waiting = new Promise(resolve => { entered = resolve; });
+    let released;
+    const release = new Promise(resolve => { released = resolve; });
+    let active = 0;
+    let waitCalls = 0;
+    let cancelCalls = 0;
+    let normal = false;
+    const observedSignals = [];
+    const handler = createClientHttpHandler({
+      authenticate: () => 'principal-a',
+      authorizeConnection: () => true,
+      attach: () => ({ref, durability: 'volatile', revision: 1}),
+      cancel: () => { cancelCalls++; return {accepted: true}; },
+      wait: ({signal}) => {
+        waitCalls++;
+        observedSignals.push(signal);
+        if (normal) return {kind: 'observed'};
+        return new Promise((resolve, reject) => {
+          active++;
+          const onAbort = () => {
+            active--;
+            released();
+            reject(new Error('WaitObservationAborted'));
+          };
+          signal.addEventListener('abort', onAbort, {once: true});
+          entered();
+          if (signal.aborted) onAbort();
+        });
+      },
+    });
+    await withServer((request, response) => {
+      responses.push(response);
+      return handler(request, response);
+    }, async base => {
+      const path = operation => `${base}/actql/client/0.1/${operation}`;
+      const send = (operation, fields, signal) => fetch(path(operation), {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection, ...fields}), signal,
+      });
+      const controller = new AbortController();
+      const pending = send('wait', {ref, until: null}, controller.signal);
+      await waiting;
+      assert.equal(active, 1);
+      controller.abort();
+      await assert.rejects(pending, {name: 'AbortError'});
+      await release;
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(active, 0);
+      assert.equal(responses[0].listenerCount('close'), 0);
+      assert.equal(observedSignals[0].aborted, true);
+      assert.equal(cancelCalls, 0);
+
+      const alreadyAborted = AbortSignal.abort();
+      await assert.rejects(send('wait', {ref, until: null},
+        alreadyAborted), {name: 'AbortError'});
+      assert.equal(waitCalls, 1);
+      assert.deepEqual(await (await send('attach', {ref})).json(),
+        {ref, durability: 'volatile', revision: 1});
+      normal = true;
+      const normalController = new AbortController();
+      const completed = await send('wait', {ref, until: null},
+        normalController.signal);
+      assert.deepEqual(await completed.json(), {kind: 'observed'});
+      normalController.abort();
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(observedSignals[1].aborted, false);
+      assert.equal(responses.at(-1).listenerCount('close'), 0);
+      assert.equal(waitCalls, 2);
+      assert.equal(cancelCalls, 0);
+    });
+  });
