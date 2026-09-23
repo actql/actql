@@ -57,10 +57,13 @@ test('mixed-path gate preserves Carrier, Bridge, and Relation roles', () => {
 });
 
 test('resource completion requires each unselected Carrier prefix', () => {
-  assert.match(run(undefined, value => {
-    value.mixed_paths = [];
-  }, ['--require-boundary-complete']),
-  /Graph: unselected prefix mixed-stage assurance is missing/);
+  for (const carrier of ['Graph', 'Events', 'Vectors']) {
+    assert.match(run(undefined, value => {
+      value.mixed_paths = value.mixed_paths.filter(path =>
+        path.carrier !== carrier);
+    }, ['--require-boundary-complete']),
+    new RegExp(`${carrier}: unselected prefix mixed-stage assurance is missing`));
+  }
 });
 
 test('resource completion requires work and workspace proof independently', () => {

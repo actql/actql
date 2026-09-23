@@ -46,9 +46,15 @@ readable coverage manifest is authoritative for individual operation status.
   delivered cancellation, stop, no partial prefix completion, and cleanup
   while preserving the earlier values task. The existing portable Host fixture
   executes that prefix through the subsequent Relation filter and two real
-  consumers. This proves one unselected Graph-prefix cancellation path, not
-  every Events, Vectors, or selected Relation fallback path. Those remaining
-  paths are connection gaps, not new normative operations.
+  consumers. Equivalent portable Host fixtures execute unselected Events and
+  Vectors prefixes through Relation filters, two consumers, publication
+  identity, and reclamation. Node Host timers now cancel those prefixes after
+  actual work, observe stop, reject partial completion, and reclaim their
+  attempts. Family conformance registration selects the same task prefix used
+  by dispatch; checking the entire authored sequence would reject these
+  providers before execution. This proves one mixed path per Carrier, not
+  every formal branch or selected Relation fallback. Those remaining paths
+  are connection gaps, not new normative operations.
 - Ordinary single-step text, structured, and NULL filters now use the same
   bounded Relation provider as selected Carrier projections. Quantum-one
   standard Host fixtures retain two real consumers and final reclamation on

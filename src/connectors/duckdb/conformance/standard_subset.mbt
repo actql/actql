@@ -35,6 +35,26 @@ fn register_used_provider(
 }
 
 ///|
+fn fixture_task_sequences(
+  graph : @strategy.CheckedDAG,
+  generated : Array[@execution.GeneratedSequence],
+) -> Array[@execution.GeneratedSequence] {
+  Array::makei(generated.length(), index => {
+    let task = index + 1
+    match @strategy.graph_task_prefix_end(graph, task) {
+      Some(end) =>
+        @execution.select_generated_sequence_prefix(generated[index], end).unwrap()
+      None =>
+        match @strategy.graph_task_selected_step(graph, task) {
+          Some(step) =>
+            @execution.select_generated_sequence_step(generated[index], step).unwrap()
+          None => generated[index]
+        }
+    }
+  })
+}
+
+///|
 /// Fixture setup only; the standard generated bridge and installed modules own
 /// every execution operation. No unused Compute provider configuration is built.
 #export_name("strategyFixtureModuleSubset")
@@ -98,19 +118,7 @@ pub fn strategy_fixture_sga_subset(
     max_work: 100000,
     max_frames: 100,
   }
-  let task_sequences = Array::makei(generated.length(), index => {
-    let task = index + 1
-    match @strategy.graph_task_prefix_end(f.graph, task) {
-      Some(end) =>
-        @execution.select_generated_sequence_prefix(generated[index], end).unwrap()
-      None =>
-        match @strategy.graph_task_selected_step(f.graph, task) {
-          Some(step) =>
-            @execution.select_generated_sequence_step(generated[index], step).unwrap()
-          None => generated[index]
-        }
-    }
-  })
+  let task_sequences = fixture_task_sequences(f.graph, generated)
   let provider = @local_sga_provider.provider(
     {
       max_input_rows: 100,
@@ -189,32 +197,33 @@ pub fn strategy_fixture_tea_subset(
     max_work: 100000,
     max_workspace_slots: 10000,
   }
+  let task_sequences = fixture_task_sequences(f.graph, generated)
   let providers = []
-  let capacity = fixture_max_capacity(generated, execution)
+  let capacity = fixture_max_capacity(task_sequences, execution)
   register_used_provider(
     providers,
     @local_tea_provider.provider(storage, 100000L, capacity),
-    generated,
+    task_sequences,
   )
   register_used_provider(
     providers,
     @local_tea_provider.time_series_provider(storage, capacity),
-    generated,
+    task_sequences,
   )
   register_used_provider(
     providers,
     @local_tea_provider.interval_join_provider(storage, capacity),
-    generated,
+    task_sequences,
   )
   register_used_provider(
     providers,
     @local_tea_provider.asof_join_provider(storage, capacity),
-    generated,
+    task_sequences,
   )
   register_used_provider(
     providers,
     @local_tea_provider.sequence_match_provider(storage, capacity),
-    generated,
+    task_sequences,
   )
   if providers.is_empty() {
     abort("TEA fixture providers rejected every generated sequence")
@@ -281,12 +290,13 @@ pub fn strategy_fixture_veca_subset(
     max_work: 100000,
     max_workspace_slots: 10000,
   }
+  let task_sequences = fixture_task_sequences(f.graph, generated)
   let providers = []
-  let capacity = fixture_max_capacity(generated, execution)
+  let capacity = fixture_max_capacity(task_sequences, execution)
   register_used_provider(
     providers,
     @local_veca_provider.provider(storage, 100000L, capacity),
-    generated,
+    task_sequences,
   )
   if providers.is_empty() {
     abort("VecA fixture provider rejected every generated sequence")
