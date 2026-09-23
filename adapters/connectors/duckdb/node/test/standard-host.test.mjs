@@ -4865,6 +4865,14 @@ async function exerciseStrategyGraph(
     }],
     results: {source: {from: {stage: 'a', result: 'r'}}},
   };
+  const splitValuesProgram = structuredClone(zeroInputProgram);
+  const splitValuesStage = splitValuesProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesStage.steps[0].as = 'values_rows';
+  splitValuesStage.steps.push({
+    from: 'values_rows', filter: 'id > 0', as: 'out',
+  });
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -5717,6 +5725,7 @@ async function exerciseStrategyGraph(
   });
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
+    ['split values', splitValuesProgram, [1, 2, 3, 4]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
@@ -5793,6 +5802,12 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'split values') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 1, 1, 1],
         );
       }
       if (name === 'external cross join' ||
@@ -6025,115 +6040,120 @@ async function exerciseStrategyGraph(
       }
     }
   }
-  const valuesCancellationCase = {name: 'zero-input-values-in-flight'};
-  const cancellableValuesProgram = structuredClone(zeroInputProgram);
-  const valuesStage = cancellableValuesProgram.stages.find(
-    stage => stage.id === 'values_a',
-  );
-  valuesStage.steps[0].values.rows = Array.from(
-    {length: 80}, (_, index) => ({id: index, label: `row${index}`}));
-  const valuesCancellationFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(cancellableValuesProgram),
-  );
-  const valuesCancellationCapture = await runNativeHostQuery(
-    grant,
-    fixture.strategyFixtureAcquisition(valuesCancellationFixture),
-    suppliedLimits,
-  );
-  const valuesCancellation = new AbortController();
-  let valuesCancellationExecution;
-  let valuesManagedStarts = 0;
-  let valuesWorkObserved = false;
-  let valuesCancellationDeliveredAt;
-  let valuesStopObservedAt;
-  valuesCancellation.signal.addEventListener('abort', () => {
-    valuesCancellationDeliveredAt = performance.now();
-  }, {once: true});
-  try {
-    assert.equal(fixture.strategyFixtureOpen(
-      valuesCancellationFixture, valuesCancellationCapture.source(),
-    ), true);
-    const setup = fixture.strategyFixtureModuleSubset(
-      valuesCancellationFixture, 0,
+  for (const {name: cancellationName, program: cancellationProgram} of [
+    {name: 'zero-input-values-in-flight', program: zeroInputProgram},
+    {name: 'split-values-in-flight', program: splitValuesProgram},
+  ]) {
+    const valuesCancellationCase = {name: cancellationName};
+    const cancellableValuesProgram = structuredClone(cancellationProgram);
+    const valuesStage = cancellableValuesProgram.stages.find(
+      stage => stage.id === 'values_a',
     );
-    const observedRuntime = new Proxy(hostRuntime, {
-      get(target, property, receiver) {
-        if (property !== 'strategyModule_local_ManagedStart') {
-          return Reflect.get(target, property, receiver);
-        }
-        return configuration => {
-          const start = ++valuesManagedStarts;
-          const execution = checked(
-            target.strategyModule_local_ManagedStart(configuration),
-          );
-          const observed = new Proxy(execution, {
-            get(operation, name, operationReceiver) {
-              if (name === 'execution_stopped') {
-                return () => {
-                  const stopped = operation.execution_stopped();
-                  if (stopped && valuesCancellation.signal.aborted &&
-                      valuesStopObservedAt === undefined) {
-                    valuesStopObservedAt = performance.now();
-                  }
-                  return stopped;
-                };
-              }
-              if (name !== 'advance') {
-                return Reflect.get(operation, name, operationReceiver);
-              }
-              return quantum => {
-                const result = operation.advance(quantum);
-                const observation = checked(result);
-                if (start === 2) {
-                  assert(observation.work <= BigInt(quantum));
-                }
-                if (start === 2 && observation?.complete === false &&
-                    observation.work > 0n && !valuesWorkObserved) {
-                  valuesWorkObserved = true;
-                  setTimeout(() => valuesCancellation.abort(), 0);
-                }
-                return result;
-              };
-            },
-          });
-          return {$tag: 1, _0: observed};
-        };
-      },
-    });
-    valuesCancellationExecution = await runInstalledStrategy(
-      setup,
-      runtimeCore(hostRuntime),
-      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-      valuesCancellation.signal,
+    valuesStage.steps[0].values.rows = Array.from(
+      {length: 80}, (_, index) => ({id: index, label: `row${index}`}));
+    const valuesCancellationFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(cancellableValuesProgram),
     );
-    assert.equal(valuesManagedStarts, 2);
-    assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
-    assert.equal(valuesCancellation.signal.aborted, true);
-    assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);
-    assert.equal(Number.isFinite(valuesStopObservedAt), true);
-    assert(valuesStopObservedAt >= valuesCancellationDeliveredAt);
-    assert.equal(valuesCancellationExecution.status, 'host-tasks-failed');
-    assert.equal(valuesCancellationExecution.failure?.name, 'AbortError');
-    assert.deepEqual(
-      valuesCancellationExecution.completed.map(item => item.task),
-      [1],
-      'bounded values cannot publish a partial output',
+    const valuesCancellationCapture = await runNativeHostQuery(
+      grant,
+      fixture.strategyFixtureAcquisition(valuesCancellationFixture),
+      suppliedLimits,
     );
-  } finally {
-    valuesCancellationCapture.close();
-    await valuesCancellationExecution?.close();
-    if (valuesCancellationExecution) {
-      let cleaned = false;
-      for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
-        cleaned = await valuesCancellationExecution.cleanup();
-      }
-      assert.equal(cleaned, true);
-      assert.equal(valuesCancellationExecution.cleanupPending(), false);
-      assert.equal(valuesCancellationExecution.usage().heldBytes, 0n);
-      assert.equal(
-        valuesCancellationExecution.usage().reservedExecutionBytes,
-        0n,
+    const valuesCancellation = new AbortController();
+    let valuesCancellationExecution;
+    let valuesManagedStarts = 0;
+    let valuesWorkObserved = false;
+    let valuesCancellationDeliveredAt;
+    let valuesStopObservedAt;
+    valuesCancellation.signal.addEventListener('abort', () => {
+      valuesCancellationDeliveredAt = performance.now();
+    }, {once: true});
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        valuesCancellationFixture, valuesCancellationCapture.source(),
+      ), true);
+      const setup = fixture.strategyFixtureModuleSubset(
+        valuesCancellationFixture, 0,
       );
+      const observedRuntime = new Proxy(hostRuntime, {
+        get(target, property, receiver) {
+          if (property !== 'strategyModule_local_ManagedStart') {
+            return Reflect.get(target, property, receiver);
+          }
+          return configuration => {
+            const start = ++valuesManagedStarts;
+            const execution = checked(
+              target.strategyModule_local_ManagedStart(configuration),
+            );
+            const observed = new Proxy(execution, {
+              get(operation, name, operationReceiver) {
+                if (name === 'execution_stopped') {
+                  return () => {
+                    const stopped = operation.execution_stopped();
+                    if (stopped && valuesCancellation.signal.aborted &&
+                        valuesStopObservedAt === undefined) {
+                      valuesStopObservedAt = performance.now();
+                    }
+                    return stopped;
+                  };
+                }
+                if (name !== 'advance') {
+                  return Reflect.get(operation, name, operationReceiver);
+                }
+                return quantum => {
+                  const result = operation.advance(quantum);
+                  const observation = checked(result);
+                  if (start === 2) {
+                    assert(observation.work <= BigInt(quantum));
+                  }
+                  if (start === 2 && observation?.complete === false &&
+                      observation.work > 0n && !valuesWorkObserved) {
+                    valuesWorkObserved = true;
+                    setTimeout(() => valuesCancellation.abort(), 0);
+                  }
+                  return result;
+                };
+              },
+            });
+            return {$tag: 1, _0: observed};
+          };
+        },
+      });
+      valuesCancellationExecution = await runInstalledStrategy(
+        setup,
+        runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        valuesCancellation.signal,
+      );
+      assert.equal(valuesManagedStarts, 2);
+      assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
+      assert.equal(valuesCancellation.signal.aborted, true);
+      assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);
+      assert.equal(Number.isFinite(valuesStopObservedAt), true);
+      assert(valuesStopObservedAt >= valuesCancellationDeliveredAt);
+      assert.equal(valuesCancellationExecution.status, 'host-tasks-failed');
+      assert.equal(valuesCancellationExecution.failure?.name, 'AbortError');
+      assert.deepEqual(
+        valuesCancellationExecution.completed.map(item => item.task),
+        [1],
+        'bounded values cannot publish a partial output',
+      );
+    } finally {
+      valuesCancellationCapture.close();
+      await valuesCancellationExecution?.close();
+      if (valuesCancellationExecution) {
+        let cleaned = false;
+        for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+          cleaned = await valuesCancellationExecution.cleanup();
+        }
+        assert.equal(cleaned, true);
+        assert.equal(valuesCancellationExecution.cleanupPending(), false);
+        assert.equal(valuesCancellationExecution.usage().heldBytes, 0n);
+        assert.equal(
+          valuesCancellationExecution.usage().reservedExecutionBytes,
+          0n,
+        );
+      }
     }
   }
   // The runnable application reads user-supplied documents, not conformance

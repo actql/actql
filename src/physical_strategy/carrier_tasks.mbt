@@ -101,7 +101,8 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     // The prefix is independently bounded; its later Relation consumers can
     // be split without executing the whole authored sequence synchronously.
     guard @lower.node_at(prepared, 0) is Some(prefix) &&
-      @lower.node_supports_bounded_managed_prefix(prefix) else {
+      @lower.node_at(prepared, 1) is Some(consumer) &&
+      @lower.node_supports_bounded_managed_prefix(prefix, consumer) else {
       return None
     }
   } else {

@@ -249,6 +249,117 @@ test "Local managed zero-input values feed two downstream Computes" {
 }
 
 ///|
+test "standard Host splits zero-input values from Relation filter" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_filter=true,
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  let values_live = Ref(true)
+  let values_advances = Ref(0)
+  let (values_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+    execution_quantum=1,
+    execution_advances=Some(values_advances),
+  )
+  assert_true(values_advances.val > 1)
+  let values_rows = local_managed_test_rows(values_ops)
+  assert_eq(values_rows, [
+    "{\"id\":null,\"label\":\"none\"}", "{\"id\":1,\"label\":\"one\"}",
+  ])
+  let filter_live = Ref(true)
+  let filter_advances = Ref(0)
+  let (filter_ops, filtered) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [values_rows],
+    2,
+    filter_live,
+    execution_quantum=1,
+    execution_advances=Some(filter_advances),
+  )
+  assert_true(filter_advances.val > 1)
+  let filtered_rows = local_managed_test_rows(filter_ops)
+  assert_eq(filtered_rows, ["{\"id\":1,\"label\":\"one\"}"])
+  let first_live = Ref(true)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [filtered],
+    [filtered_rows],
+    3,
+    first_live,
+  )
+  let second_live = Ref(true)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    4,
+    [filtered],
+    [filtered_rows],
+    4,
+    second_live,
+  )
+  assert_eq(local_managed_test_rows(first_ops), filtered_rows)
+  assert_eq(local_managed_test_rows(second_ops), [
+    "{\"label\":\"one\",\"id\":1}",
+  ])
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (first_ops.close)()
+  ignore((first_ops.cleanup_refresh)())
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(filtered))
+  second_live.val = false
+  filter_live.val = false
+  values_live.val = false
+  for (task, operations) in [(4, second_ops), (2, filter_ops), (1, values_ops)] {
+    @strategy.close_captured_task_output(run, task)
+    (operations.close)()
+    ignore((operations.cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "checked VecA expressions reach two standard Host consumers" {
   let (run, issuer) = captured_graph_fixture(
     local_vector_expression_chain=true,
