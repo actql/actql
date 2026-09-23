@@ -147,6 +147,76 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
 }
 
 ///|
+test "Effect apply checks every current target guard before mutation" {
+  let approved = preview_footprint_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(approved, "request-1", 32).unwrap()
+  let (wire, key) = preview_apply_test_wire(scope, "halt")
+  let preview = admit_effect_preview_apply_identity(
+    wire,
+    approved,
+    authoring,
+    scope,
+    [[key]],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let row = @publication.effect_preview_row_identity(preview, 0, 0).unwrap()
+  assert_eq(
+    @publication.effect_preview_row_guard_version_cid(preview, 0, 0),
+    Some(approved),
+  )
+  let matching = EffectTargetVersionObservation::{
+    row_preview_cid: row,
+    version_cid: approved,
+  }
+  assert_true(
+    check_effect_preview_target_guards(preview, [matching], 1, 2) is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_target_guards(preview, [], 1, 1)
+    is Err(MissingObservation(0, 0)),
+  )
+  assert_true(
+    check_effect_preview_target_guards(
+      preview,
+      [{ row_preview_cid: row, version_cid: preview_footprint_test_cid("b"), }],
+      1,
+      2,
+    )
+    is Err(StalePreview(0, 0)),
+  )
+  assert_true(
+    check_effect_preview_target_guards(preview, [matching, matching], 2, 3)
+    is Err(DuplicateObservation(1)),
+  )
+  assert_true(
+    check_effect_preview_target_guards(
+      preview,
+      [
+        matching,
+        {
+          row_preview_cid: preview_footprint_test_cid("c"),
+          version_cid: approved,
+        },
+      ],
+      2,
+      3,
+    )
+    is Err(ForeignObservation),
+  )
+  assert_true(
+    check_effect_preview_target_guards(preview, [matching], 0, 2)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    check_effect_preview_target_guards(preview, [matching], 1, 1)
+    is Err(CapacityExceeded),
+  )
+}
+
+///|
 test "Collections send rows match the admitted Preview and request scope" {
   let authority = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
@@ -432,6 +502,27 @@ test "Collections slices follow Preview row order rather than change order" {
     256,
     12,
   ).unwrap()
+  assert_true(
+    check_effect_preview_target_guards(
+      preview,
+      [
+        { row_preview_cid: row_one, version_cid: authority, },
+        { row_preview_cid: row_two, version_cid: authority, },
+      ],
+      2,
+      4,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_target_guards(
+      preview,
+      [{ row_preview_cid: row_two, version_cid: authority, }],
+      2,
+      3,
+    )
+    is Err(MissingObservation(0, 0)),
+  )
   let second_locator = prepare_logical_item_locator(
     scope, "program-1", "node-1", "write", "\"row-2\"", 64, 128, 8, 3,
   ).unwrap()

@@ -17,6 +17,8 @@ pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int,
 
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
+pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
+
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
@@ -237,6 +239,16 @@ pub(all) enum EffectPreviewFootprintIssue {
   Conflict(EffectFootprintIssue)
 } derive(@debug.Debug)
 
+pub(all) enum EffectPreviewTargetGuardIssue {
+  InvalidLimits
+  CapacityExceeded
+  InvalidObservation(Int)
+  DuplicateObservation(Int)
+  MissingObservation(Int, Int)
+  StalePreview(Int, Int)
+  ForeignObservation
+} derive(Eq, @debug.Debug)
+
 pub(all) enum EffectRowAction {
   PersistPrepared
   ClaimPrepared
@@ -286,6 +298,11 @@ pub(all) enum EffectSetProgressIssue {
   InvalidHistory
   ForeignLedgerEntry(Int, Int)
   ForeignPreviewRow(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectTargetVersionObservation {
+  row_preview_cid : String
+  version_cid : String
 } derive(Eq, @debug.Debug)
 
 pub struct LogicalItemLocator {
