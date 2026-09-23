@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 0 with complete boundary assurance, 4 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -220,6 +220,14 @@ test('resource gate requires the normalization managed-view route', () => {
       entry.family === 'SGA' && entry.operation === 'normalize_graph');
     delete normalization.selected_entrypoint;
   }), /SGA normalize_graph: managed-view production route is missing/);
+});
+
+test('resource gate rejects normalization without its Host timer', () => {
+  assert.match(run(undefined, value => {
+    const normalization = value.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'normalize_graph');
+    normalization.environment_tests = [];
+  }), /SGA normalize_graph: selected_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {

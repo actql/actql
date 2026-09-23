@@ -2824,6 +2824,22 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'normalize-selected-kernel',
+    rows: 40,
+    advanceQuantum: 1,
+    // Values, graph construction, then selected normalize-view execution.
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'normalize-select',
     rows: 40,
     advanceQuantum: 1,
