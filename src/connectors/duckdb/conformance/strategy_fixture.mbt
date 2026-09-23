@@ -568,14 +568,16 @@ fn strategy_fixture_create_impl(
       None => []
     }
     @acquisition_host.close_native_host(native.host) // unused fixture issuer, not real Host
-    let extended = @program_check.unit_count(program) > 4
+    // A single authored Stage may expand into several bounded physical tasks.
+    let extended = @program_check.unit_count(program) > 4 ||
+      @strategy.graph_task_count(graph) > 4
     let ledger = @resources.create_ledger({
       planning_work: if join || multiple_resources {
         100000
       } else {
         10000
       },
-      attempts: if join || multiple_resources {
+      attempts: if join || multiple_resources || extended {
         20
       } else {
         10

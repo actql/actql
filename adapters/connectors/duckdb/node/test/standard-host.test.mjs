@@ -4871,6 +4871,17 @@ async function exerciseStrategyGraph(
   splitValuesStage.steps.push({
     from: 'values_rows', filter: 'id > 0', as: 'out',
   });
+  const splitValuesSortTakeProgram = structuredClone(zeroInputProgram);
+  const splitValuesSortTakeStage = splitValuesSortTakeProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesSortTakeStage.steps[0].as = 'values_rows';
+  splitValuesSortTakeStage.steps.push(
+    {from: 'values_rows', sort: [
+      {field: 'id', dir: 'desc', nulls: 'last'},
+    ], as: 'ordered'},
+    {from: 'ordered', take: 1, as: 'out'},
+  );
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -5724,6 +5735,7 @@ async function exerciseStrategyGraph(
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
+    ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
@@ -5806,6 +5818,12 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 1, 1, 1],
+        );
+      }
+      if (name === 'split values sort/take') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 1, 1, 1],
         );
       }
       if (name === 'external cross join' ||
@@ -6038,9 +6056,17 @@ async function exerciseStrategyGraph(
       }
     }
   }
-  for (const {name: cancellationName, program: cancellationProgram} of [
-    {name: 'zero-input-values-in-flight', program: zeroInputProgram},
-    {name: 'split-values-in-flight', program: splitValuesProgram},
+  for (const {
+    name: cancellationName,
+    program: cancellationProgram,
+    cancelAtStart,
+  } of [
+    {name: 'zero-input-values-in-flight', program: zeroInputProgram,
+      cancelAtStart: 2},
+    {name: 'split-values-in-flight', program: splitValuesProgram,
+      cancelAtStart: 2},
+    {name: 'split-values-sort-in-flight',
+      program: splitValuesSortTakeProgram, cancelAtStart: 3},
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);
@@ -6101,10 +6127,11 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const result = operation.advance(quantum);
                   const observation = checked(result);
-                  if (start === 2) {
+                  if (start === cancelAtStart) {
                     assert(observation.work <= BigInt(quantum));
                   }
-                  if (start === 2 && observation?.complete === false &&
+                  if (start === cancelAtStart &&
+                      observation?.complete === false &&
                       observation.work > 0n && !valuesWorkObserved) {
                     valuesWorkObserved = true;
                     setTimeout(() => valuesCancellation.abort(), 0);
@@ -6123,7 +6150,7 @@ async function exerciseStrategyGraph(
         [localStrategyContribution(observedRuntime, setup, checked, undefined)],
         valuesCancellation.signal,
       );
-      assert.equal(valuesManagedStarts, 2);
+      assert.equal(valuesManagedStarts, cancelAtStart);
       assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
       assert.equal(valuesCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);
@@ -6133,8 +6160,8 @@ async function exerciseStrategyGraph(
       assert.equal(valuesCancellationExecution.failure?.name, 'AbortError');
       assert.deepEqual(
         valuesCancellationExecution.completed.map(item => item.task),
-        [1],
-        'bounded values cannot publish a partial output',
+        cancelAtStart === 2 ? [1] : [1, 2],
+        'bounded values and sort cannot publish a partial output',
       );
     } finally {
       valuesCancellationCapture.close();

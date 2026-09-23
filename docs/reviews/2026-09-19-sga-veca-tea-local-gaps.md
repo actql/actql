@@ -69,7 +69,12 @@ reclaims the attempt. A zero-input `values` step followed by a Relation
 filter now splits to the bounded values and selected Relation providers.
 The standard Host checks both downstream Computes and final reclamation;
 the real Node Host delivers timer cancellation after values work in this
-split form. Other multi-step sequences beginning with `values`, including
+split form. A zero-input `values` step followed by stable `sort` and `take`
+also splits into bounded values and selected Relation tasks. The standard
+Host checks quantum-one progress, sorted/taken values, two consumers,
+independent release, and final reclamation. The Node Host checks timer
+cancellation after sort work has started, with no partial result published.
+Other multi-step sequences beginning with `values`, including
 identity-bearing assertions, and unmatched Relation sequences can still
 reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;

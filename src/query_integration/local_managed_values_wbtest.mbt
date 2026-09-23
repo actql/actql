@@ -360,6 +360,118 @@ test "standard Host splits zero-input values from Relation filter" {
 }
 
 ///|
+test "standard Host splits zero-input values from sort and take" {
+  let ledger_limits : @resources.LedgerLimits = {
+    planning_work: 10000,
+    attempts: 20,
+    holdings: 20,
+    transfer_bytes: 300000L,
+    retained_bytes: 134217728L,
+    execution_bytes: 536870912L,
+  }
+  let (run, issuer) = captured_graph_fixture(
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_sort_take=true,
+    ledger_limits=Some(ledger_limits),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  let held = []
+  let operations = []
+  let live = []
+  let advances = []
+  for task in 1..<6 {
+    let task_live = Ref(true)
+    let task_advances = Ref(0)
+    let input = if task == 1 {
+      []
+    } else if task <= 3 {
+      [held[task - 2]]
+    } else {
+      [held[2]]
+    }
+    let input_rows = if task == 1 {
+      []
+    } else if task <= 3 {
+      [local_managed_test_rows(operations[task - 2])]
+    } else {
+      [local_managed_test_rows(operations[2])]
+    }
+    let (task_ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      input,
+      input_rows,
+      task,
+      task_live,
+      execution_quantum=1,
+      execution_advances=Some(task_advances),
+    )
+    held.push(output)
+    operations.push(task_ops)
+    live.push(task_live)
+    advances.push(task_advances.val)
+  }
+  assert_true(advances[0] > 1)
+  assert_true(advances[1] > 1)
+  assert_true(advances[2] > 1)
+  assert_eq(local_managed_test_rows(operations[1]), [
+    "{\"id\":1,\"label\":\"one\"}", "{\"id\":null,\"label\":\"none\"}",
+  ])
+  assert_eq(local_managed_test_rows(operations[2]), [
+    "{\"id\":1,\"label\":\"one\"}",
+  ])
+  assert_eq(local_managed_test_rows(operations[3]), [
+    "{\"id\":1,\"label\":\"one\"}",
+  ])
+  assert_eq(local_managed_test_rows(operations[4]), [
+    "{\"label\":\"one\",\"id\":1}",
+  ])
+  live[3].val = false
+  @strategy.close_captured_task_output(run, 4)
+  (operations[3].close)()
+  ignore((operations[3].cleanup_refresh)())
+  assert_false(@execution.managed_completed_output_available(held[3]))
+  assert_true(@execution.managed_completed_output_available(held[4]))
+  assert_true(@execution.managed_completed_output_available(held[2]))
+  for task in [5, 3, 2, 1] {
+    live[task - 1].val = false
+    @strategy.close_captured_task_output(run, task)
+    (operations[task - 1].close)()
+    ignore((operations[task - 1].cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "checked VecA expressions reach two standard Host consumers" {
   let (run, issuer) = captured_graph_fixture(
     local_vector_expression_chain=true,

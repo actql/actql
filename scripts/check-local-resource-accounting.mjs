@@ -398,6 +398,7 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_cancel_cleanup',
       'zero_input_two_consumers',
       'zero_input_mixed_stage_two_consumers',
+      'zero_input_sort_take_two_consumers',
     ];
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
@@ -832,7 +833,8 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'RelA' && route.operation === 'values' &&
-    !environmentRoles.has('zero_input_mixed_stage_timer_cancel_cleanup')) {
+    (!environmentRoles.has('zero_input_mixed_stage_timer_cancel_cleanup') ||
+      !environmentRoles.has('zero_input_sort_timer_cancel_cleanup'))) {
     fail(`${label}: mixed-stage timer cancellation fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'cross_join') {
