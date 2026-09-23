@@ -59,6 +59,45 @@ ActQL text equality ([Salesforce comparison operators](https://developer.salesfo
   Site secret-resolver reference are supplied; never store secret values in
   source, chat, or logs.
 
+## Effect Set completion boundary
+
+The Salesforce milestone includes a checked multi-member Effect Set through
+the standard Host, not only a single REST write or response parser. This uses
+the existing language and execution contracts; it introduces no ordered
+cross-member workflow.
+
+- Members of one Stage are an unordered `attempt_all` intent set. Failure or
+  uncertainty in one member does not suppress another independent member.
+  Actual dispatch order is evidence, not authored member order.
+- `halt` and `continue` govern the stable row sequence **within one member**.
+  Under halt, a failed or unknown row leaves later rows of that member
+  unattempted. Under continue, other rows may proceed, but an unknown row is
+  never silently resent.
+- Before any mutation, the Host must check every member's preview, current
+  authority, capability and target guards, plus the structured write
+  footprints of the complete set. Unprovable overlap is a preflight rejection
+  with zero writes. Multi-member partial-application risk requires the
+  authenticated acceptance bound to the exact complete Preview.
+- Each member retains its own input, target, identity, result and reconciliation
+  responsibility. A member's rows remain distinct from Effect Set members;
+  sObject Collections may batch eligible rows of one member but may not merge
+  members or turn `halt` into an unordered batch.
+- `accepted` needs a valid OperationRef and may satisfy the Run's outcome rule.
+  Unknown takes precedence for reconciliation; cancellation does not erase
+  applied results or relabel possible dispatch as never sent. There is no
+  cross-member transaction, rollback or compensation graph.
+
+Required product tests include: all members succeed; one member halts after a
+row failure while another proceeds; continue after a failed or unknown row;
+known success mixed with unknown; overlap rejected before every write; lost
+response and restart without resending successful or uncertain work; and
+cancellation that distinguishes unattempted from possibly dispatched rows.
+Each test must assert the exact request count and order, member/row outcomes,
+durable evidence and remaining reconciliation responsibility. The current
+MoonBit identity and progress helpers do not by themselves meet this product
+boundary: the checked Program, Preview, authorization, durable journal,
+physical requests and final receipts must be connected before completion.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
