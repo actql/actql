@@ -10,6 +10,14 @@ pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
+pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn require_unique_external_id(ResourceMetadata, String) -> Result[FieldMetadata, ResourceRequirementIssue]
+
+pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
 // Errors
 
 // Types and methods
@@ -51,6 +59,17 @@ pub(all) struct ResourceMetadata {
   fields : Array[FieldMetadata]
   response_sha256 : String
 }
+
+pub(all) enum ResourceRequirementIssue {
+  DuplicateRequestedField(String)
+  FieldUnconfirmed(String)
+  ResourceNotQueryable
+  ResourceNotCreateable
+  ResourceNotUpdateable
+  FieldNotCreateable(String)
+  FieldNotUpdateable(String)
+  ExternalIdNotUnique(String)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
