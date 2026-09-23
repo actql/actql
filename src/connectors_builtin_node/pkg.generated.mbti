@@ -156,7 +156,11 @@ pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_app
 
 pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
 
+pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
+
 pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
@@ -1233,6 +1237,7 @@ pub(all) suberror NodeHostFailure {
   EffectSetProgress(@effect_application.EffectSetProgressIssue)
   EffectFootprint(@effect_application.EffectFootprintIssue)
   EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
+  EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
