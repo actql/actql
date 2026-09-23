@@ -8,6 +8,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/run_publication",
 }
 
 // Values
@@ -57,11 +58,15 @@ pub fn salesforce_catalog_unavailable(@catalog.CatalogSync, String, Int) -> Bool
 
 pub fn salesforce_collection_write_request_body(@catalog.WriteCollectionRequest) -> String
 
+pub fn salesforce_collection_write_request_boundary_cid(@catalog.WriteCollectionRequest, Int) -> String raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_collection_write_request_cid(@catalog.WriteCollectionRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_request_effect_kind(@catalog.WriteCollectionRequest) -> String
 
 pub fn salesforce_collection_write_request_grant_operation(@catalog.WriteCollectionRequest) -> String
+
+pub fn salesforce_collection_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, @catalog.WriteCollectionRequest, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_request_method(@catalog.WriteCollectionRequest) -> String
 
@@ -165,11 +170,15 @@ pub fn salesforce_recheck_write_projection(@catalog.WriteProjection, @catalog.Ca
 
 pub fn salesforce_single_write_request_body(@catalog.SingleWriteRequest) -> String
 
+pub fn salesforce_single_write_request_boundary_cid(@catalog.SingleWriteRequest, Int) -> String raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_single_write_request_cid(@catalog.SingleWriteRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_request_effect_kind(@catalog.SingleWriteRequest) -> String
 
 pub fn salesforce_single_write_request_grant_operation(@catalog.SingleWriteRequest) -> String
+
+pub fn salesforce_single_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, @catalog.SingleWriteRequest, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_request_method(@catalog.SingleWriteRequest) -> String
 

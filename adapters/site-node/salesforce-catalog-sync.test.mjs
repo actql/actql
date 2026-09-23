@@ -39,7 +39,8 @@ import {writeSalesforceContinueCollection} from
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
-function admittedCreateRowFixture(effect, scope, rowCid, effectId, after) {
+function admittedCreateRowFixture(effect, scope, rowCid, effectId, after,
+  providerBoundaryCid) {
   const authoring =
     'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
   const contentCid = `sha256:${createHash('sha256').update(canonicalJson({
@@ -55,7 +56,8 @@ function admittedCreateRowFixture(effect, scope, rowCid, effectId, after) {
     authority_scope_cid: cid('8'),
     write_footprint: {
       kind: 'collection', resource_identity_scheme_cid: cid('a'),
-      provider_namespace: 'salesforce', provider_boundary_cid: cid('a'),
+      provider_namespace: 'salesforce',
+      provider_boundary_cid: providerBoundaryCid,
       resource_kind: 'Test_Record__c', provider_object_identity_cids: [],
     },
     count: 1, max_items: 1, required_permissions: ['write'],
@@ -614,8 +616,11 @@ test('Host claim owns one local HTTPS write', async t => {
   const scope = effect.logicalRequestScope(authorityScopeCid,
     'salesforce-business-request', 128);
   const rowPreviewCid = cid('3');
+  const boundaryCid = checked(
+    salesforceMoon.salesforceSingleWriteRequestBoundaryCid(outbound, 4096));
   const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
-    'CreateOne', {state: 'present', value: {External_Key__c: 'key-1'}});
+    'CreateOne', {state: 'present', value: {External_Key__c: 'key-1'}},
+    boundaryCid);
   const key = preview.key;
   const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
     'CreateOne', canonicalJson(preview.correlation), 64, 128, 8, 3);
@@ -639,6 +644,12 @@ test('Host claim owns one local HTTPS write', async t => {
       maxNodes: 32, maxDepth: 5}};
   const first = open();
   t.after(() => first.close());
+  const foreignPreview = admittedCreateRowFixture(effect, scope,
+    rowPreviewCid, 'CreateOne',
+    {state: 'present', value: {External_Key__c: 'key-1'}}, cid('f'));
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first, admittedPreview: foreignPreview.admit(),
+  }), {code: 'ForeignSalesforceEffectFootprint'});
   await assert.rejects(captureSalesforceSingleEffectWrite({
     ...options, ledger: first,
     claim: {...claim, canonicalRequestCid: cid('9')},
@@ -719,10 +730,12 @@ test('lost HTTPS reply remains uncertain across Effect ledger restart',
     const scope = effect.logicalRequestScope(authorityScopeCid,
       'lost-reply-business-request', 128);
     const rowPreviewCid = cid('3');
+    const boundaryCid = checked(
+      salesforceMoon.salesforceSingleWriteRequestBoundaryCid(outbound, 4096));
     const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
       'CreateLostReply', {state: 'present', value: {
         External_Key__c: 'lost-reply',
-      }});
+      }}, boundaryCid);
     const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
       'CreateLostReply', canonicalJson(preview.correlation), 64, 128, 8, 3);
     const basis = effect.ledgerBasis(scope, locator, preview.key,
@@ -926,6 +939,9 @@ test('Host custody binds one HTTPS Collections response to every row',
     const requestCid = checked(
       salesforceMoon.salesforceCollectionWriteRequestCid(
         outbound, binding.resourceOrigin, 4096));
+    const boundaryCid = checked(
+      salesforceMoon.salesforceCollectionWriteRequestBoundaryCid(
+        outbound, 4096));
     const effect = runtimeCore(commonMoon).effectApplicationControl;
     const authorityScopeCid = cid('8');
     const scope = effect.logicalRequestScope(authorityScopeCid,
@@ -942,7 +958,8 @@ test('Host custody binds one HTTPS Collections response to every row',
       authority_scope_cid: authorityScopeCid,
       write_footprint: {
         kind: 'collection', resource_identity_scheme_cid: cid('a'),
-        provider_namespace: 'salesforce', provider_boundary_cid: cid('a'),
+        provider_namespace: 'salesforce',
+        provider_boundary_cid: boundaryCid,
         resource_kind: 'Test_Record__c',
         provider_object_identity_cids: [],
       },
@@ -1023,12 +1040,34 @@ test('Host custody binds one HTTPS Collections response to every row',
       claims, admittedPreview, memberIndex: 0, firstRow: 0};
     const first = open();
     t.after(() => first.close());
+    const foreignPreview = structuredClone(preview);
+    foreignPreview.effects[0].write_footprint.provider_boundary_cid = cid('f');
+    foreignPreview.effects[0].effect_member_preview_cid =
+      effect.derivePreviewIdentities(
+        canonicalJson(foreignPreview), 8192, 256, 12)[1];
+    foreignPreview.effect_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(foreignPreview), 8192, 256, 12)[0];
+    const foreignKeys = contentCids.map(contentCid => effect.dispatchKey(
+      scope, foreignPreview.effect_preview_cid,
+      canonicalJson({content_cid: contentCid, occurrence: 0}),
+      128, 8, 3));
+    foreignPreview.effects[0].changes.forEach((change, index) => {
+      change.row_idempotency_key = effect.dispatchKeyCid(foreignKeys[index]);
+    });
+    const foreignAdmitted = effect.admitPreviewIdentity(
+      canonicalJson(foreignPreview), cid('a'), authoring, scope,
+      [foreignKeys], 8192, 256, 12);
+    const usesBeforeForeign = setup.journal.recover().length;
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first, admittedPreview: foreignAdmitted,
+    }), {code: 'ForeignSalesforceEffectFootprint'});
+    assert.equal(setup.journal.recover().length, usesBeforeForeign);
     await assert.rejects(captureSalesforceCollectionEffectWrite({
       ...options, ledger: first, claims: [...claims].reverse(),
     }), {code: 'MoonBitHostFailure'});
     await assert.rejects(captureSalesforceCollectionEffectWrite({
       ...options, ledger: first, memberIndex: 1,
-    }), {code: 'MoonBitHostFailure'});
+    }), {code: 'ForeignSalesforceEffectFootprint'});
     await assert.rejects(captureSalesforceCollectionEffectWrite({
       ...options, ledger: first, firstRow: 1,
     }), {code: 'MoonBitHostFailure'});

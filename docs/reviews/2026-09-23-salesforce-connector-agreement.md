@@ -175,6 +175,13 @@ The single-record REST path now uses the same MoonBit row rule for a `halt`
 or `continue` member; Collections additionally require `continue`. Preview
 admission builds the row index once, so each later send checks only its bounded
 slice rather than rescanning the member's complete row inventory.
+The admitted Preview also retains its typed write footprint. Before a
+single-record or Collections send claim, the Salesforce MoonBit bridge compares
+the physical request's exact resource, org boundary, target scheme, and each
+existing target with that member's admitted footprint. A foreign boundary is
+rejected without a ledger claim or credential use. This check does not prove
+that the request body equals the Preview's source-derived rows, nor does it
+replace whole-set conflict admission or current apply authority.
 This is not yet an apply permit: checked input provenance, exact Preview-to-
 physical payload equivalence, all-member preflight, current authorization,
 and final receipts still require the shared Effectful Run port above.

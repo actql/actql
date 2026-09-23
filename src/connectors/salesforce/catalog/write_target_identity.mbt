@@ -45,6 +45,26 @@ fn write_target_digest(
 }
 
 ///|
+/// The connection's admitted org, not the instance URL or authored target,
+/// defines the provider boundary even for creates without an existing record.
+pub fn write_projection_boundary_cid(
+  projection : WriteProjection,
+  max_identity_bytes : Int,
+) -> Result[String, WriteCollectionRequestIssue] {
+  if max_identity_bytes < 1 {
+    return Err(InvalidLimits)
+  }
+  let org_id = match canonical_write_record_id(projection.binding.org_id) {
+    Some(value) => value
+    None => return Err(InvalidTarget)
+  }
+  write_target_digest(
+    [("org_id", org_id), ("version", "actql-salesforce-target-boundary/0.1")],
+    max_identity_bytes,
+  )
+}
+
+///|
 /// The org ID must come from the admitted connection, not the authored
 /// Effect. Distinct target schemes in one org cannot prove non-overlap: an
 /// external ID and a RecordId might still select the same physical record.
@@ -56,10 +76,6 @@ pub fn prepare_write_target_identity(
 ) -> Result[WriteTargetIdentity, WriteCollectionRequestIssue] {
   if max_target_bytes < 1 || max_identity_bytes < 1 {
     return Err(InvalidLimits)
-  }
-  let org_id = match canonical_write_record_id(projection.binding.org_id) {
-    Some(value) => value
-    None => return Err(InvalidTarget)
   }
   let wire_target = match
     collection_target_key(projection, target, max_target_bytes) {
@@ -91,10 +107,7 @@ pub fn prepare_write_target_identity(
     WriteCreate => return Err(InvalidTarget)
   }
   let boundary_cid = match
-    write_target_digest(
-      [("org_id", org_id), ("version", "actql-salesforce-target-boundary/0.1")],
-      max_identity_bytes,
-    ) {
+    write_projection_boundary_cid(projection, max_identity_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
