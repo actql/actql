@@ -1,0 +1,57 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
+
+pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum DescribeIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  ResourceMismatch
+  DuplicateField(String)
+  InvalidField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DescribeLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_units : Int
+}
+
+pub(all) struct FieldMetadata {
+  name : String
+  native_type : String
+  nullable : Bool
+  createable : Bool
+  updateable : Bool
+  filterable : Bool
+  sortable : Bool
+  external_id : Bool
+  unique : Bool
+  reference_to : Array[String]
+}
+
+pub(all) struct ResourceMetadata {
+  name : String
+  queryable : Bool
+  createable : Bool
+  updateable : Bool
+  fields : Array[FieldMetadata]
+  response_sha256 : String
+}
+
+// Type aliases
+
+// Traits
