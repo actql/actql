@@ -92,3 +92,16 @@ Program preparation and process startup are much smaller than the measured
 JS parent/child preparation cost for this fixture. The next product diagnostic
 should execute the same checked fixture through the native Host with its exact
 data profile and independent holding before selecting an optimization target.
+
+That next diagnostic used the same narrow 100-row Program and explicit
+`DataProfile` from `managedCaseConfiguration`. The native application loader,
+real DuckDB acquisition, common captured DAG, three Local tasks, final logical
+CID, and confirmed strategy cleanup completed in ten fresh processes. Every
+output CID matched the independent fixture oracle. The process cycle ranged
+from 21.2 to 27.9 ms (median 21.9 ms) on macOS arm64. Both tested fixed
+DuckDB estimates (`1` and `1000` ms) selected Local under the complete cost
+model, so this does not measure a native DuckDB Compute choice. The command
+still lacks independent file holding, a downstream reader and a comparator
+with identical obligations. Its timing is diagnostic only. It narrows the
+next bottleneck to native holding and formal placement calibration rather than
+assuming the JS example's duplicate preparation is intrinsic to ActQL.

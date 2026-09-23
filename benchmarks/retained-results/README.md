@@ -40,6 +40,20 @@ The later [2026-09-23 small-case diagnostic](diagnostic-2026-09-23.md) records
 seven matched pairs and preparation-phase timings. It also does not satisfy the
 registered performance gate.
 
+The narrow-100 native diagnostic loads the same registered Program and data
+profile, acquires from real DuckDB, executes through the native standard Host,
+and checks the final CID against the independent fixture oracle:
+
+```sh
+moon build --target native --release src/cmd/native_retained_case_probe
+node benchmarks/retained-results/native-case-probe.mjs
+```
+
+Node prepares the fixture and launches the native binary; it is not used by the
+running Host. The reported process interval is diagnostic. This path currently
+lacks independent file holding, a fresh reader and equivalent comparator
+obligations, so it cannot supply formal acceptance samples.
+
 The correctness smoke checks run without importing the ActQL evaluator:
 
 ```sh

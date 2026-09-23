@@ -29,6 +29,8 @@ pub fn bind_native_remote_application_run(NativeRemoteApplicationRun, () -> Bool
 
 pub fn load_native_remote_application(String, NativeRemoteApplicationFiles, Int64, String, String) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
 
+pub fn load_native_remote_application_with_data(String, NativeRemoteApplicationFiles, Int64, String, String, @physical_strategy_example.DataProfile) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
+
 pub fn native_remote_application_output_cleanup_pending(NativeRemoteApplicationOutputIssue) -> Bool
 
 pub fn native_remote_application_program_definition_cid(@physical_strategy_example.Application) -> String

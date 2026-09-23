@@ -212,6 +212,46 @@ pub fn load_native_remote_application(
   database_schema : String,
   table : String,
 ) -> Result[@application.Application, NativeRemoteApplicationLoadIssue] {
+  load_native_remote_application_internal(
+    root,
+    files,
+    max_file_bytes,
+    database_schema,
+    table,
+    None,
+  )
+}
+
+///|
+/// The same native file boundary with explicit source and intermediate limits.
+/// The portable application builder validates the profile before execution.
+pub fn load_native_remote_application_with_data(
+  root : String,
+  files : NativeRemoteApplicationFiles,
+  max_file_bytes : Int64,
+  database_schema : String,
+  table : String,
+  data : @application.DataProfile,
+) -> Result[@application.Application, NativeRemoteApplicationLoadIssue] {
+  load_native_remote_application_internal(
+    root,
+    files,
+    max_file_bytes,
+    database_schema,
+    table,
+    Some(data),
+  )
+}
+
+///|
+fn load_native_remote_application_internal(
+  root : String,
+  files : NativeRemoteApplicationFiles,
+  max_file_bytes : Int64,
+  database_schema : String,
+  table : String,
+  data : @application.DataProfile?,
+) -> Result[@application.Application, NativeRemoteApplicationLoadIssue] {
   if max_file_bytes <= 0L {
     return Err(InvalidApplication)
   }
@@ -266,10 +306,18 @@ pub fn load_native_remote_application(
     Err(issue) => return Err(issue)
   }
   Ok(
-    @application.prepare_application(
-      program, environment, environment_cid, parameters, registry, values, fragment,
-      query, evidence, two_receipt, database_schema, table,
-    ),
+    match data {
+      None =>
+        @application.prepare_application(
+          program, environment, environment_cid, parameters, registry, values, fragment,
+          query, evidence, two_receipt, database_schema, table,
+        )
+      Some(profile) =>
+        @application.prepare_application_with_data(
+          program, environment, environment_cid, parameters, registry, values, fragment,
+          query, evidence, two_receipt, database_schema, table, profile,
+        )
+    },
   ) catch {
     _ => Err(InvalidApplication)
   }
