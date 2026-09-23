@@ -364,3 +364,19 @@ calibrated product CPU profile at this revision has substantial self time in
 UTF-8 admission, transport preflight and decoding, canonical output encoding,
 and SHA-256, with repeated row work still present. The standalone profiled
 sample is diagnostic, not one of the seven timed pairs.
+
+At clean revision `df62fceb1`, checked ASCII SHA-256 updates absorb complete
+64-byte blocks without passing every byte through the buffered append path.
+The JS, Wasm, and native digest tests cover partial/full boundaries and an
+invalid unit inside a complete block. In one release JS process, the 256 KiB
+checked per-byte baseline averaged 1.91 ms and the block path 1.64 ms. This
+is component evidence only. The registered narrow/100000 retained-reuse case
+completed seven eligible alternating pairs with the result, holding,
+accounting, and cleanup gates intact, but the 1.25 execution-ratio gate still
+failed: estimate 2.162, 95% bootstrap interval 1.790–2.649. Raw assessment
+and case records are in workspace scratch `equivalent-narrow-df62fceb1`, with
+SHA-256 digests `f208b159a725cbda18c1d6ac6f425982e19f6f51fc3bcc6f9bd9955048d27d2f`
+and `2e3df78a29de2c8d4b87e5b18e7b002e6a6ee3e42d8ec682097d7f6c6ba3ce68`.
+The full 27-case experiment remains incomplete. Product traces show three
+fresh 100,000-row input verifications and three large output receptions on
+the selected resident path; they dominate the SHA component improvement.
