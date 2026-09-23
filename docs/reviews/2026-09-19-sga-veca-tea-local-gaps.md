@@ -79,7 +79,12 @@ readable coverage manifest is authoritative for individual operation status.
   roles. These direct fixtures are paired with the standard Host route rather
   than substituted for it. The synchronous and ordinary take paths still lack
   corresponding full boundary assurance, so this is not operation completion.
-  A passing route gate alone is not completion evidence.
+  The selected sort path likewise binds independent work and workspace
+  exact/one-short fixtures for both an authored ordering term and an empty
+  ordering term. The empty branch uses charged identity indices rather than
+  merge comparisons; its resource proof is not borrowed from the ordered
+  branch. The synchronous and ordinary sort paths remain unassured. A passing
+  route gate alone is not operation-completion evidence.
   The RelA cross-join route now pairs an independently calculated 2-by-2
   work/workspace exact-and-one-short kernel fixture with a managed
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation

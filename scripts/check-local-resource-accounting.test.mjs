@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 2 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('mixed-path gate rejects missing delivered prefix cancellation', () => {
@@ -85,7 +85,34 @@ test('selected take needs both keyed and unkeyed resource branches', () => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'take');
     delete take.resource_assurance.selected_entrypoint.variants.keyed;
-  }), /RelA take: selected_entrypoint needs keyed and unkeyed take resource variants/);
+  }), /RelA take: selected_entrypoint needs unkeyed and keyed resource variants/);
+});
+
+test('selected sort needs ordered and empty resource branches', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    delete sort.resource_assurance.selected_entrypoint.variants.empty;
+  }), /RelA sort: selected_entrypoint needs ordered and empty resource variants/);
+});
+
+test('selected sort loses proof when its ordered work fixture is removed', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.boundary_tests.find(item =>
+      item.role === 'sort_ordered_work_exact_one_short').fixture =
+      'missing-ordered-work-case';
+  }), /RelA sort: missing operation boundary fixture missing-ordered-work-case/);
+});
+
+test('selected sort rejects an empty-branch proof from ordered sort', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.resource_assurance.selected_entrypoint.variants.empty
+      .workspace.one_short_limit = 'sort_ordered_workspace_one_short';
+  }), /RelA sort: selected_entrypoint empty workspace lacks an executable fixture/);
 });
 
 test('selected take loses resource proof when a fixture is removed', () => {

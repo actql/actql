@@ -466,8 +466,12 @@ for (const [index, route] of routeEntries.entries()) {
       }
       const assertion = route.family === 'RelA' &&
         route.operation === 'assert_rows';
-      const selectedTake = route.family === 'RelA' &&
-        route.operation === 'take' && pathName === 'selected_entrypoint';
+      const selectedVariants = route.family === 'RelA' &&
+        pathName === 'selected_entrypoint'
+        ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty']}[
+            route.operation
+          ]
+        : undefined;
       if (assertion &&
         (Object.keys(dimensions ?? {}).length !== 1 ||
           Object.keys(dimensions?.variants ?? {}).length !== 2 ||
@@ -475,14 +479,14 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${pathName} needs both assertion resource variants`);
         continue;
       }
-      if (selectedTake &&
+      if (selectedVariants &&
         (Object.keys(dimensions ?? {}).length !== 1 ||
           Object.keys(dimensions?.variants ?? {}).length !== 2 ||
-          !dimensions.variants.unkeyed || !dimensions.variants.keyed)) {
-        fail(`${label}: ${pathName} needs keyed and unkeyed take resource variants`);
+          selectedVariants.some(variant => !dimensions.variants[variant]))) {
+        fail(`${label}: ${pathName} needs ${selectedVariants.join(' and ')} resource variants`);
         continue;
       }
-      const proofSets = assertion || selectedTake
+      const proofSets = assertion || selectedVariants
         ? Object.entries(dimensions.variants)
         : [['operation', dimensions]];
       for (const [variant, proofSet] of proofSets) {
@@ -506,7 +510,8 @@ for (const [index, route] of routeEntries.entries()) {
           for (const role of Object.values(proofs)) {
             if (!boundaryRoles.has(role) ||
               (assertion && !role.startsWith(`assert_${variant}_`)) ||
-              (selectedTake && !role.startsWith(`take_${variant}_`))) {
+              (selectedVariants &&
+                !role.startsWith(`${route.operation}_${variant}_`))) {
               fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);
             }
             if (!proofPaths.has(role)) proofPaths.set(role, new Set());
@@ -764,6 +769,8 @@ if (errors.length > 0) {
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
   ].every(pathName => route.path_assurance?.[pathName] !== undefined &&
     route.resource_assurance?.[pathName] !== undefined)).length;
+  const resourceAssuredPaths = routeEntries.reduce((count, route) =>
+    count + Object.keys(route.resource_assurance ?? {}).length, 0);
   const selectedAssuredRoutes = routeEntries.filter(route =>
     route.path_assurance?.selected_entrypoint !== undefined &&
     Object.keys(route.path_assurance).length === 1).length;
@@ -774,6 +781,7 @@ if (errors.length > 0) {
     `${boundaryRoutes} with operation-specific boundary records, ` +
     `${assuredRoutes} with four-role boundary evidence, ` +
     `${fullyAssuredRoutes} with full work/workspace assurance, ` +
+    `${resourceAssuredPaths} with path-scoped work/workspace evidence, ` +
     `${selectedAssuredRoutes} with selected-only assurance; ` +
     `full boundary completion is not asserted.`,
   );
