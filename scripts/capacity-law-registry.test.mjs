@@ -73,7 +73,7 @@ test('ranking and series semantic bodies and independent counts are pinned', () 
 test('Graph count body fixes quantity transfers and independent selector arithmetic', () => {
   const path = 'spec/contracts/actql-bound-graph-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89';
+  const cid = 'sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48';
   assert.equal(machineCid(body), cid);
   for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
@@ -102,7 +102,7 @@ test('Graph count body fixes quantity transfers and independent selector arithme
 test('window count semantics and independent membership bounds are pinned', () => {
   const path = 'spec/contracts/actql-bound-window-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a';
+  const cid = 'sha256:2ad08f2130caa35968ac9cdf660708693c5e14f021f7878d9965a5e1fff5ff78';
   assert.equal(machineCid(body), cid);
   for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));

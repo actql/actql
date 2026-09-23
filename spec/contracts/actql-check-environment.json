@@ -1289,7 +1289,7 @@
       "relation_laws": {
         "path": "spec/dependencies/aoa-rela-primitive-laws.json",
         "pointer": "",
-        "cid": "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2"
+        "cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
       },
       "expression_contract": {
         "path": "spec/contracts/actql-expressions.json",

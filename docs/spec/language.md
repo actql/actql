@@ -3240,6 +3240,10 @@ invariants rather than authoring fields and are recorded in the Plan.
 The compiler lowers this to `REL.dedupeRows`. If two candidate rows for one
 key tie on every authored order key, execution MUST fail; implementation row
 order or CID MUST NOT silently choose the representative.
+Groups are emitted in ascending canonical typed key order, comparing the
+authored `by` tuple component by component with NULLS FIRST and the declared
+type's non-null comparison. This order is separate from canonical key encoding
+and from the authored order used to select each representative.
 
 <!-- requirement-block: distinct-and-dedupe.global-dedupe distinct-and-dedupe.repeated-dedupe-keys distinct-and-dedupe.retain-dedupe-keys -->
 Check MUST accept `dedupe_rows` with `by: []`, treating all input rows as one
@@ -4548,6 +4552,11 @@ Fixed-window starts are `offset + n * size`, and sliding-window starts are
 Checked arithmetic must not saturate or wrap. `offset` is not reduced modulo
 size or step for canonical identity. In particular, a supplied sliding offset
 must not be ignored by a lowerer or evaluator.
+Membership and the grid are computed at the exact value of the admitted time,
+including fractional numbers and large timestamps. An intermediate grid value
+need not fit binary64. A required output boundary that cannot be represented
+exactly as binary64 fails with the window arithmetic error; rounding it to
+change the width or membership is not permitted.
 
 <!-- requirement-block: event-windows.occurrence-order -->
 Window output MUST enumerate input occurrences in their existing logical order,
@@ -5561,6 +5570,11 @@ returns `start_id`, `end_id`, `hop_count`, `node_ids`, and `edge_ids`. Paths are
 simple (a node cannot repeat) and are ordered by start identity, hop count,
 node-identity sequence, then edge-identity sequence using AoA canonical value
 order. Duplicate paths are removed by exact identity.
+For node emission, minimum depth is taken only over simple paths that satisfy
+the complete authored hop and predicate conditions. A shorter ineligible path
+does not suppress an eligible longer one. Node and path emission share this
+path eligibility rule; node emission collapses each start/end pair to its
+minimum eligible depth without changing the path tie order.
 
 <!-- requirement-block: traverse.typed-edge-identity-records -->
 In traversal and shortest-path output, each `edge_ids` element MUST be the
@@ -5748,7 +5762,13 @@ values are equal. `exact_equal` requires typed value equality and returns that
 value; a property without a strategy has the same equality requirement.
 `number_sum`, `number_mean`, `number_min` and `number_max` require two finite
 number values and compute addition, binary pairwise average, minimum and maximum
-respectively. `set_union` and `set_difference` require arrays with compatible
+respectively. `number_mean` takes the exact mathematical average of its two
+finite binary64 operands and rounds once to binary64, nearest with ties to
+even. It uses the existing zero-normalization rule. An intermediate sum that
+would overflow binary64 does not by itself make the average invalid.
+`number_sum` keeps its own overflow rule, and a finite-list fold of pairwise
+means is not a multi-input global mean. `set_union` and `set_difference`
+require arrays with compatible
 item domains and compute canonical typed-value set union and left difference.
 Nullable property contracts may reach these strategies, but an actual null
 numeric or array operand fails before result publication: null is never zero
@@ -9595,7 +9615,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d
+../../spec/contracts/actql-aoa.json# sha256:4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
