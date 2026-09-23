@@ -232,3 +232,194 @@ pub fn salesforce_single_write_success_projection(
     @catalog.RowFailed(_) => raise InvalidResource
   }
 }
+
+///|
+#export_name("salesforcePrepareContinueWriteCollection")
+pub fn salesforce_prepare_continue_write_collection(
+  row_preview_cids : Array[String],
+  bodies : Array[@catalog.WriteBody],
+  target_codes : Array[Int],
+  target_texts : Array[String],
+  target_ints : Array[Int],
+  api_version : String,
+  max_path_bytes : Int,
+  max_target_bytes : Int,
+  max_body_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+) -> @catalog.WriteCollectionRequest raise SalesforceCatalogBridgeIssue {
+  if row_preview_cids.length() != bodies.length() ||
+    bodies.length() != target_codes.length() ||
+    bodies.length() != target_texts.length() ||
+    bodies.length() != target_ints.length() ||
+    bodies.length() > max_rows {
+    raise InvalidResource
+  }
+  let rows : Array[@catalog.WriteCollectionItem] = []
+  for index in 0..<bodies.length() {
+    let target = match target_codes[index] {
+      0 => @catalog.NoWriteTarget
+      1 => @catalog.RecordId(target_texts[index])
+      2 => @catalog.ExternalText(target_texts[index])
+      3 => @catalog.ExternalInt(target_ints[index])
+      _ => raise InvalidResource
+    }
+    rows.push({
+      row_preview_cid: row_preview_cids[index],
+      body: bodies[index],
+      target,
+    })
+  }
+  match
+    @catalog.prepare_continue_write_collection(rows, api_version, {
+      max_path_bytes,
+      max_target_bytes,
+      max_body_bytes,
+      max_nodes,
+      max_depth,
+      max_rows,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestMethod")
+pub fn salesforce_collection_write_request_method(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_method(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestPath")
+pub fn salesforce_collection_write_request_path(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_path(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestBody")
+pub fn salesforce_collection_write_request_body(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_body(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestGrantOperation")
+pub fn salesforce_collection_write_request_grant_operation(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_grant_operation(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestRowCount")
+pub fn salesforce_collection_write_request_row_count(
+  request : @catalog.WriteCollectionRequest,
+) -> Int {
+  @catalog.write_collection_request_row_count(request)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestRowCid")
+pub fn salesforce_collection_write_request_row_cid(
+  request : @catalog.WriteCollectionRequest,
+  index : Int,
+) -> String? {
+  @catalog.write_collection_request_row_cid(request, index)
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestCid")
+pub fn salesforce_collection_write_request_cid(
+  request : @catalog.WriteCollectionRequest,
+  resource_origin : String,
+  max_wire_bytes : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.write_collection_request_cid(
+      request, resource_origin, max_wire_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteRequest(issue)
+  }
+}
+
+///|
+#export_name("salesforceCollectionWriteRequestScopeMatches")
+pub fn salesforce_collection_write_request_scope_matches(
+  request : @catalog.WriteCollectionRequest,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
+  @catalog.write_collection_request_matches_site_scope(
+    request, tenant, principal, environment, site_key, site_generation, connector_registration,
+    connector_revision, resource_origin, run_invocation_cid, dispatch_request_cid,
+  )
+}
+
+///|
+#export_name("salesforceRecheckCollectionWriteRequest")
+pub fn salesforce_recheck_collection_write_request(
+  request : @catalog.WriteCollectionRequest,
+  current : @catalog.CatalogObservation,
+) -> Bool raise SalesforceCatalogBridgeIssue {
+  match @catalog.recheck_write_collection_request(request, current) {
+    Ok(_) => true
+    Err(issue) => raise WriteProjection(issue)
+  }
+}
+
+///|
+#export_name("salesforceProjectCollectionWriteResponse")
+pub fn salesforce_project_collection_write_response(
+  request : @catalog.WriteCollectionRequest,
+  status : Int,
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+) -> @catalog.WriteCollectionResponse raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.project_write_collection_response_for_request(
+      status,
+      bytes,
+      request,
+      { max_bytes, max_nodes, max_depth, max_rows, },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionResponse(issue)
+  }
+}
+
+///|
+#export_name("salesforceCollectionWriteResponseRowCount")
+pub fn salesforce_collection_write_response_row_count(
+  response : @catalog.WriteCollectionResponse,
+) -> Int {
+  @catalog.write_collection_result_count(response)
+}
+
+///|
+#export_name("salesforceCollectionWriteResponseRowApplied")
+pub fn salesforce_collection_write_response_row_applied(
+  response : @catalog.WriteCollectionResponse,
+  index : Int,
+) -> Bool {
+  @catalog.write_collection_result_at(response, index)
+  is Some(@catalog.RowApplied(_, _))
+}

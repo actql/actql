@@ -24,6 +24,8 @@ import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
   './salesforce-query-read.mjs';
 import {writeSalesforceSingleRecord} from './salesforce-single-write.mjs';
+import {writeSalesforceContinueCollection} from
+  './salesforce-collection-write.mjs';
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -51,7 +53,13 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   accountRefreshResponse, querySecondStatus = 200,
   queryFirstResponse, writeStatus = 201,
   writeResponse = JSON.stringify({id: 'a00123456789012',
-    success: true, errors: []})} = {}) {
+    success: true, errors: []}),
+  collectionStatus = 200,
+  collectionResponse = JSON.stringify([
+    {id: 'a00123456789012', success: true, errors: []},
+    {id: null, success: false, errors: [{statusCode: 'INVALID_FIELD',
+      message: 'Rejected field', fields: ['External_Key__c']}]},
+  ])} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-catalog-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out',
@@ -97,6 +105,19 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
         observed.body = Buffer.concat(chunks).toString('utf8');
         response.writeHead(writeStatus, {'content-type': 'application/json'});
         response.end(writeResponse);
+      });
+    } else if (['POST', 'PATCH'].includes(request.method) && [
+      '/services/data/v62.0/composite/sobjects',
+      '/services/data/v62.0/composite/sobjects/' +
+        'Test_Record__c/External_Key__c',
+    ].includes(request.url)) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.on('end', () => {
+        observed.body = Buffer.concat(chunks).toString('utf8');
+        response.writeHead(collectionStatus,
+          {'content-type': 'application/json'});
+        response.end(collectionResponse);
       });
     } else if (request.url ===
       '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account') {
@@ -156,8 +177,10 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   const describe = authorize('salesforce:catalog:describe');
   const query = authorize('salesforce:query:read');
   const write = authorize('salesforce:record:create');
+  const writeUpdate = authorize('salesforce:record:update');
+  const writeUpsert = authorize('salesforce:record:upsert');
   return {
-    seen, journal, list, describe, query, write, ca,
+    seen, journal, list, describe, query, write, writeUpdate, writeUpsert, ca,
     credential: {
       control, journal,
       resolveSecret: async () => 'test-only-secret',
@@ -399,6 +422,209 @@ test('Site does not promote rejected or malformed writes to Effect success',
         assert.equal(result.observation.statusCode, scenario.writeStatus);
         assert.equal(setup.seen.filter(item => item.method === 'POST').length,
           1);
+      });
+    }
+  });
+
+test('Site Collections preserve exact row order and partial outcomes',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(
+      salesforceMoon.salesforcePrepareWriteProjection(
+        catalog.observation,
+        binding.tenant, binding.principal, binding.environment,
+        'connection-revision-a', binding.siteKey, binding.siteGeneration,
+        binding.connectorRegistration, binding.connectorRevision,
+        binding.resourceOrigin, binding.runInvocationCid,
+        binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+        0, '', ['External_Key__c'], 2));
+    const first = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"key-1"}'),
+      1024, 32, 5));
+    const second = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"key-2"}'),
+      1024, 32, 5));
+    const outbound = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        [cid('1'), cid('2')], [first, second], [0, 0], ['', ''],
+        [0, 0], 'v62.0', 256, 128, 1024, 64, 6, 200));
+    assert.equal(salesforceMoon.salesforceCollectionWriteRequestGrantOperation(
+      outbound), 'salesforce:record:create');
+    assert.equal(salesforceMoon.salesforceCollectionWriteRequestRowCid(
+      outbound, 1), cid('2'));
+    const restBody = '{"allOrNone":false,"records":[' +
+      '{"External_Key__c":"key-1","attributes":{"type":' +
+      '"Test_Record__c"}},{"External_Key__c":"key-2",' +
+      '"attributes":{"type":"Test_Record__c"}}]}';
+    const requestPreimage = JSON.stringify({
+      body: restBody,
+      method: 'POST',
+      path: '/services/data/v62.0/composite/sobjects',
+      resource_origin: binding.resourceOrigin,
+      row_preview_cids: [cid('1'), cid('2')],
+      version: 'actql-salesforce-collection-request/0.1',
+    });
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteRequestCid(
+      outbound, binding.resourceOrigin, 4096)),
+    `sha256:${createHash('sha256').update(requestPreimage).digest('hex')}`);
+    const swapped = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        [cid('2'), cid('1')], [first, second], [0, 0], ['', ''],
+        [0, 0], 'v62.0', 256, 128, 1024, 64, 6, 200));
+    assert.notEqual(checked(salesforceMoon.salesforceCollectionWriteRequestCid(
+      swapped, binding.resourceOrigin, 4096)),
+    checked(salesforceMoon.salesforceCollectionWriteRequestCid(
+      outbound, binding.resourceOrigin, 4096)));
+    const options = {
+      moon: salesforceMoon,
+      request: outbound,
+      currentObservation: catalog.observation,
+      authorization: {...setup.write, useId: 'collection-use'},
+      credential: setup.credential,
+      limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+        maxNodes: 64, maxDepth: 6, maxRows: 200},
+    };
+    const priorUses = setup.journal.recover().length;
+    await assert.rejects(writeSalesforceContinueCollection({
+      ...options, limits: {...options.limits, maxRows: 1},
+    }), {code: 'SalesforceCollectionRowLimitExceeded'});
+    assert.equal(setup.journal.recover().length, priorUses);
+    await assert.rejects(writeSalesforceContinueCollection({
+      ...options,
+      authorization: {...setup.write, useId: 'foreign-collection-use',
+        scope: {...setup.write.scope, siteGeneration: 5}},
+    }), {code: 'ForeignSalesforceCollectionWrite'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 0);
+    const result = await writeSalesforceContinueCollection(options);
+    assert.equal(result.kind, 'typed-row-response');
+    assert.equal(result.rowCount, 2);
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      result.result, 0), true);
+    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      result.result, 1), false);
+    assert.equal(setup.journal.inspect(result.observation.useCid).outcome,
+      'succeeded');
+    assert.deepEqual(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).map(item => [item.method, item.body]), [[
+      'POST', restBody,
+    ]]);
+  });
+
+test('Site Collections do not turn malformed or rejected HTTP into success',
+  async t => {
+    for (const scenario of [
+      {collectionStatus: 429, collectionResponse: '[]',
+        expected: 'provider-response'},
+      {collectionStatus: 200, collectionResponse: '[]',
+        expected: 'unclassified-response'},
+      {collectionStatus: 201, collectionResponse: JSON.stringify([
+        {id: 'a00123456789012', success: true, errors: []},
+      ]), expected: 'unclassified-response'},
+    ]) {
+      await t.test(scenario.expected, async child => {
+        const setup = await fixture(child, scenario);
+        const catalog = await syncSalesforceCatalog(request(setup));
+        const binding = setup.list.scope;
+        const projection = checked(
+          salesforceMoon.salesforcePrepareWriteProjection(
+            catalog.observation,
+            binding.tenant, binding.principal, binding.environment,
+            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            binding.connectorRegistration, binding.connectorRevision,
+            binding.resourceOrigin, binding.runInvocationCid,
+            binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+            0, '', ['External_Key__c'], 2));
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          projection, Buffer.from('{"External_Key__c":"key-1"}'),
+          1024, 32, 5));
+        const outbound = checked(
+          salesforceMoon.salesforcePrepareContinueWriteCollection(
+            [cid('1')], [body], [0], [''], [0], 'v62.0',
+            256, 128, 1024, 64, 6, 200));
+        const result = await writeSalesforceContinueCollection({
+          moon: salesforceMoon, request: outbound,
+          currentObservation: catalog.observation,
+          authorization: {...setup.write, useId: 'collection-use'},
+          credential: setup.credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 64, maxDepth: 6, maxRows: 200},
+        });
+        assert.equal(result.kind, scenario.expected);
+        assert.equal(setup.seen.filter(item => item.path?.endsWith(
+          '/composite/sobjects')).length, 1);
+      });
+    }
+  });
+
+test('Site Collections use exact update and external-ID upsert authority',
+  async t => {
+    const metadata = JSON.stringify({name: 'Test_Record__c', queryable: true,
+      createable: true, updateable: true, fields: [
+        {name: 'External_Key__c', type: 'string', externalId: true,
+          unique: true, nillable: false, defaultedOnCreate: false,
+          createable: true, updateable: true},
+        {name: 'Name', type: 'string', nillable: false,
+          defaultedOnCreate: false, createable: true, updateable: true},
+      ]});
+    for (const scenario of [
+      {name: 'update', operation: 1, external: '', targetCode: 1,
+        target: 'a00123456789012', method: 'PATCH',
+        path: '/services/data/v62.0/composite/sobjects',
+        targetField: 'Id', authorization: 'writeUpdate',
+        response: [{id: 'a00123456789012', success: true, errors: []}]},
+      {name: 'upsert', operation: 2, external: 'External_Key__c',
+        targetCode: 2, target: 'key-1', method: 'PATCH',
+        path: '/services/data/v62.0/composite/sobjects/' +
+          'Test_Record__c/External_Key__c',
+        targetField: 'External_Key__c', authorization: 'writeUpsert',
+        response: [{id: 'a00123456789012', created: false,
+          success: true, errors: []}]},
+    ]) {
+      await t.test(scenario.name, async child => {
+        const setup = await fixture(child, {customResponse: metadata,
+          collectionResponse: JSON.stringify(scenario.response)});
+        const catalog = await syncSalesforceCatalog(request(setup));
+        const binding = setup.list.scope;
+        const projection = checked(
+          salesforceMoon.salesforcePrepareWriteProjection(
+            catalog.observation,
+            binding.tenant, binding.principal, binding.environment,
+            'connection-revision-a', binding.siteKey, binding.siteGeneration,
+            binding.connectorRegistration, binding.connectorRevision,
+            binding.resourceOrigin, binding.runInvocationCid,
+            binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+            scenario.operation, scenario.external, ['Name'], 2));
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          projection, Buffer.from('{"Name":"new value"}'),
+          1024, 32, 5));
+        const outbound = checked(
+          salesforceMoon.salesforcePrepareContinueWriteCollection(
+            [cid('1')], [body], [scenario.targetCode], [scenario.target],
+            [0], 'v62.0', 256, 128, 1024, 64, 6, 200));
+        const result = await writeSalesforceContinueCollection({
+          moon: salesforceMoon, request: outbound,
+          currentObservation: catalog.observation,
+          authorization: {...setup[scenario.authorization],
+            useId: `collection-${scenario.name}`},
+          credential: setup.credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 64, maxDepth: 6, maxRows: 200},
+        });
+        assert.equal(result.kind, 'typed-row-response');
+        assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+          result.result, 0), true);
+        const writes = setup.seen.filter(item => item.method === 'PATCH');
+        assert.deepEqual(writes.map(item => [item.method, item.path]), [[
+          scenario.method, scenario.path,
+        ]]);
+        assert.equal(JSON.parse(writes[0].body).allOrNone, false);
+        assert.equal(JSON.parse(writes[0].body).records[0]
+          [scenario.targetField], scenario.target);
+        assert.equal(setup.journal.inspect(result.observation.useCid).outcome,
+          'succeeded');
       });
     }
   });
