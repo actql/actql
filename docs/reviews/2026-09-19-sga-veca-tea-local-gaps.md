@@ -92,8 +92,11 @@ readable coverage manifest is authoritative for individual operation status.
   admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
   profiles exceed the accepted response behavior. This evidence is for the
-  selected bounded path; the other production sort path remains in the route
-  inventory without whole-operation boundary assurance.
+  selected bounded path. Ordinary one-step sort now also uses that bounded
+  provider, with quantum-one execution and two real downstream consumers
+  verified on JS, Wasm, and native. The two paths still lack whole-operation
+  boundary assurance until exact, one-short, in-flight cancellation, and
+  cleanup evidence covers every admitted sort representation.
   The checked `assert_rows` where branch now also uses the bounded Relation
   session after a Carrier projection. Its false/NULL predicate is an assertion
   failure, never a filter omission; a later failure leaves no completion.

@@ -170,6 +170,15 @@ test('resource gate rejects sort without mixed-stage evidence', () => {
   }), /RelA sort: reviewed mixed_stage_sort_quantum_and_lifetime fixture is missing/);
 });
 
+test('resource gate rejects sort without ordinary quantum evidence', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.boundary_tests = sort.boundary_tests.filter(item =>
+      item.role !== 'ordinary_sort_quantum_and_lifetime');
+  }), /RelA sort: reviewed ordinary_sort_quantum_and_lifetime fixture is missing/);
+});
+
 test('resource gate rejects sort without its real Host timer case', () => {
   assert.match(run(undefined, value => {
     const sort = value.routes.find(entry => entry.family === 'RelA' &&
@@ -193,6 +202,14 @@ test('resource gate rejects sort without its selected product entrypoint', () =>
       entry.operation === 'sort');
     delete sort.selected_entrypoint;
   }), /RelA sort: bounded selected sort entrypoint is missing/);
+});
+
+test('resource gate rejects sort without its ordinary product entrypoint', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    delete sort.ordinary_entrypoint;
+  }), /RelA sort: bounded ordinary sort entrypoint is missing/);
 });
 
 test('resource gate rejects assertion without failure cleanup', () => {
