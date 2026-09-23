@@ -123,8 +123,11 @@ HTTPS evidence cannot be reported as live-provider verification.
 
 `02-salesforce-effects.md` inspected `66b42189d2bb17407776fd74ca0e7ea9ddf73d01`.
 SF-1's exact HTTPS request-target and SF-2's provider target identity were
-corrected after that SHA. The Salesforce Site suite passes 103/103 at the
-rechecked HEAD, including local HTTPS target and whole-set footprint tests.
+corrected after that SHA. A later check also binds each physical write to the
+corresponding admitted Preview row, not merely to a target somewhere in the
+member footprint. The Salesforce Site suite passes 104/104 at
+`6415fd2ab31058f829f735089f553a882017babc`, including local HTTPS target,
+row-swap rejection, and whole-set footprint tests.
 These component results do not close SF-3: the ordinary checked Program,
 standard Host, complete multi-member Preview/apply admission, final receipt,
 and restart-safe reconciliation still require one connected product test path.
