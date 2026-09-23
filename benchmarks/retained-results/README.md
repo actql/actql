@@ -314,6 +314,17 @@ finite durations, and alternating retained/reference order. Missing, timed-out
 or unsupported samples remain `incomplete`; they cannot be dropped from a pair.
 At least seven pairs and 10000 bootstrap resamples are required.
 
+`equivalent-series-assessment.mjs` adds the first case-level admission boundary
+for the independent-obligations comparator. It requires one registered fixture,
+the unchanged experiment pin, seven admitted pairs on the same implementation
+revision, Program, source definition, source contents and runtime, confirmed
+release, and a product leg qualified for normal cost-grounded selection. It
+then applies the registered warm/cold or large-case equivalent timing limits.
+The current matched-pair diagnostic uses explicit example estimates and marks
+its product leg unqualified, so those samples correctly remain `incomplete`
+under this boundary. A passing one-comparator series still cannot certify the
+27-case matrix, baseline and raw comparators, or the whole experiment.
+
 The statistic is the ratio of paired arithmetic means for ratios, or their
 difference for absolute overhead. A reproducible seeded bootstrap resamples whole
 pairs and reports a two-sided percentile interval. Its upper endpoint must meet
