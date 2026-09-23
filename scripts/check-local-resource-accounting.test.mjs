@@ -41,20 +41,29 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 3 with complete boundary assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 0 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /RelA rename: boundary assurance is missing/);
+    /RelA filter: boundary assurance is missing/);
 });
 
 test('resource gate rejects a false in-flight assurance', () => {
   assert.match(run(undefined, value => {
     const filter = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'filter');
-    filter.boundary_assurance.in_flight_cancel = 'filter_cancel_cleanup';
-  }), /RelA filter: in_flight_cancel does not bind an executable fixture/);
+    filter.selected_boundary_assurance.in_flight_cancel =
+      'filter_cancel_cleanup';
+  }), /RelA filter: selected in_flight_cancel lacks an executable fixture/);
+});
+
+test('resource gate rejects selected assurance without its product route', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    delete filter.selected_entrypoint;
+  }), /RelA filter: selected assurance has no selected entrypoint/);
 });
 
 test('resource gate rejects an omitted operation', () => {

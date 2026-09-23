@@ -278,20 +278,26 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
   }
-  const boundaryAssurance = route.boundary_assurance;
-  if (boundaryAssurance !== undefined) {
+  for (const [scope, boundaryAssurance] of [
+    ['full', route.boundary_assurance],
+    ['selected', route.selected_boundary_assurance],
+  ]) {
+    if (boundaryAssurance === undefined) continue;
     const requiredProofs = [
       'exact_limit',
       'one_short_limit',
       'in_flight_cancel',
       'cleanup',
     ];
+    if (scope === 'selected' && route.selected_entrypoint === undefined) {
+      fail(`${label}: selected assurance has no selected entrypoint`);
+    }
     if (!boundaryAssurance || typeof boundaryAssurance !== 'object' ||
       Array.isArray(boundaryAssurance) ||
       Object.keys(boundaryAssurance).length !== requiredProofs.length ||
       requiredProofs.some(proof =>
         typeof boundaryAssurance[proof] !== 'string')) {
-      fail(`${label}: boundary assurance must name all four proof roles`);
+      fail(`${label}: ${scope} assurance must name all four proof roles`);
     } else {
       for (const proof of requiredProofs) {
         const role = boundaryAssurance[proof];
@@ -299,11 +305,12 @@ for (const [index, route] of routeEntries.entries()) {
           ? environmentRoles
           : boundaryRoles;
         if (!roles.has(role)) {
-          fail(`${label}: ${proof} does not bind an executable fixture`);
+          fail(`${label}: ${scope} ${proof} lacks an executable fixture`);
         }
       }
     }
-  } else if (requireBoundaryComplete) {
+  }
+  if (requireBoundaryComplete && route.boundary_assurance === undefined) {
     fail(`${label}: boundary assurance is missing`);
   }
   if (['traverse', 'apply_graph_delta'].includes(route.operation) &&
@@ -461,12 +468,15 @@ if (errors.length > 0) {
     (route.boundary_tests ?? []).length > 0).length;
   const assuredRoutes = routeEntries.filter(route =>
     route.boundary_assurance !== undefined).length;
+  const selectedAssuredRoutes = routeEntries.filter(route =>
+    route.selected_boundary_assurance !== undefined).length;
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +
     `${routeEntries.length} production routes mapped, ` +
     `${boundaryRoutes} with operation-specific boundary records, ` +
-    `${assuredRoutes} with complete boundary assurance; ` +
+    `${assuredRoutes} with complete boundary assurance, ` +
+    `${selectedAssuredRoutes} with selected-only assurance; ` +
     `full boundary completion is not asserted.`,
   );
 }

@@ -57,7 +57,7 @@
           "fixture": "normalize-filter"
         }
       ],
-      "boundary_assurance": {
+      "selected_boundary_assurance": {
         "exact_limit": "filter_input_exact",
         "one_short_limit": "filter_input_one_short",
         "in_flight_cancel": "filter_in_flight_host_timer",
@@ -120,7 +120,7 @@
           "fixture": "normalize-select"
         }
       ],
-      "boundary_assurance": {
+      "selected_boundary_assurance": {
         "exact_limit": "select_input_exact",
         "one_short_limit": "select_input_one_short",
         "in_flight_cancel": "select_in_flight_host_timer",
@@ -631,7 +631,7 @@
           "fixture": "normalize-assert-unique"
         }
       ],
-      "boundary_assurance": {
+      "selected_boundary_assurance": {
         "exact_limit": "assert_where_input_exact",
         "one_short_limit": "assert_where_input_one_short",
         "in_flight_cancel": "assert_unique_in_flight_host_timer",
