@@ -14,6 +14,8 @@ pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
 
 pub fn begin_query_read(ReadProjection, String, QueryPageLimits, Int, Int64) -> Result[QueryRead, QueryReadIssue]
 
+pub fn bind_read_projection_contracts(ReadProjection, Array[@value_contract.Contract]) -> ReadProjection?
+
 pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
@@ -57,6 +59,8 @@ pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, Li
 pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn query_page_done(QueryPage) -> Bool
+
+pub fn query_page_matches_projection(QueryPage, ReadProjection) -> Bool
 
 pub fn query_page_next_url(QueryPage) -> String?
 
@@ -209,6 +213,7 @@ pub(all) enum ListingIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct QueryPage {
+  projection : ReadProjection
   rows : Array[Array[@value_admission.CheckedValue]]
   done : Bool
   next_url : String?

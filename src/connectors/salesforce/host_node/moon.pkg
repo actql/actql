@@ -4,4 +4,6 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/connectors/salesforce/acquisition",
+  "actql/actql/execution_relation" @execution,
 }
