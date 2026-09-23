@@ -88,6 +88,7 @@ fn preview_identity_test_wire(
 ///|
 test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" {
   let a = preview_identity_test_cid("a")
+  let row = preview_identity_test_cid("3")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
   let placeholder = preview_identity_test_wire(
     preview_identity_test_cid("b"),
@@ -139,6 +140,36 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   assert_eq(effect_preview_semantic_identity(admitted), preview_cid)
   assert_eq(effect_preview_member_identity(admitted, 0), Some(expected_member))
   assert_eq(effect_preview_member_identity(admitted, 1), None)
+  assert_eq(effect_preview_row_identity(admitted, 0, 0), Some(row))
+  assert_eq(effect_preview_ordered_row_identity(admitted, 0, 0), Some(row))
+  assert_eq(effect_preview_row_identity(admitted, 0, 1), None)
+  let wrong_count = valid.replace_all(old="\"count\":1", new="\"count\":2")
+  assert_true(
+    admit_effect_preview_identity(
+      wrong_count,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowInventoryMismatch(0)),
+  )
+  let foreign_order = valid.replace_all(
+    old="\"row_order\":[\"" + row + "\"]",
+    new="\"row_order\":[\"" + preview_identity_test_cid("6") + "\"]",
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      foreign_order,
+      preview_identity_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RowInventoryMismatch(0)),
+  )
   let forged_authoring = valid.replace_all(
     old="\"authoring_context_cid\":\"" +
       authoring +

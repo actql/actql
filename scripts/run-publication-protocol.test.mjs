@@ -54,3 +54,21 @@ test('generator keeps object-scoped Effect branch constraints', () => {
     allOf: [{properties: {kind: {const: 'command'}}}],
   }), /Unsupported typeless/);
 });
+
+test('generator keeps Effect receipt conditional and exclusion rules', () => {
+  assert.doesNotThrow(() => emitSchema({
+    type: 'object',
+    properties: {state: {enum: ['unknown', 'applied']}},
+    allOf: [{if: {properties: {state: {const: 'unknown'}},
+      required: ['state']}, then: {required: ['reason']},
+    else: {not: {required: ['reason']}}}],
+    oneOf: [{required: ['command_id'],
+      not: {required: ['operation_ref']}},
+    {required: ['operation_ref'],
+      not: {anyOf: [{required: ['command_id']},
+        {required: ['idempotency_key']}]}}],
+  }));
+  assert.throws(() => emitSchema({then: {required: ['reason']}}),
+    /requires if/);
+  assert.throws(() => emitSchema({anyOf: []}), /Empty.*anyOf/);
+});

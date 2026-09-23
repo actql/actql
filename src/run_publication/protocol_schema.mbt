@@ -12,7 +12,10 @@ priv enum ProtocolSchemaRule {
   ArrayRule(Int, Int, Bool)
   ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?)
   OneOfRule(Array[Int])
+  AnyOfRule(Array[Int])
   AllOfRule(Array[Int])
+  NotRule(Int)
+  ConditionalRule(Int, Int, Int)
 }
 
 ///|
@@ -282,7 +285,23 @@ fn validate_protocol_node(
         }
         budget.remaining = branch_budget.remaining
       }
-      matches == 1
+      budget.remaining > 0 && matches == 1
+    }
+    AnyOfRule(alternatives) => {
+      let mut matches = 0
+      for alternative in alternatives {
+        let branch_budget = {
+          remaining: budget.remaining,
+          max_wire_bytes: budget.max_wire_bytes,
+          max_nodes: budget.max_nodes,
+          max_depth: budget.max_depth,
+        }
+        if validate_protocol_node(value, alternative, nodes, branch_budget) {
+          matches += 1
+        }
+        budget.remaining = branch_budget.remaining
+      }
+      matches > 0
     }
     AllOfRule(conditions) => {
       for condition in conditions {
@@ -291,6 +310,23 @@ fn validate_protocol_node(
         }
       }
       true
+    }
+    NotRule(excluded) => {
+      if budget.remaining <= 1 {
+        return false
+      }
+      let excluded_match = validate_protocol_node(
+        value, excluded, nodes, budget,
+      )
+      budget.remaining > 0 && !excluded_match
+    }
+    ConditionalRule(condition, when_true, when_false) => {
+      let branch = if validate_protocol_node(value, condition, nodes, budget) {
+        when_true
+      } else {
+        when_false
+      }
+      validate_protocol_node(value, branch, nodes, budget)
     }
   }
 }
