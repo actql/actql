@@ -111,7 +111,9 @@ pub fn explain_captured_strategy(
         @encode.key(w, "reason")
         @encode.string_value(
           w,
-          if revision.estimated_fastest {
+          if !revision.search_complete {
+            "bounded_frontier"
+          } else if revision.estimated_fastest {
             "estimated_fastest"
           } else {
             "host_preferred"

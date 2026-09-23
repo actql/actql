@@ -94,6 +94,115 @@ test "placement proposal chooses only an existing feasible position" {
 }
 
 ///|
+test "bounded placement frontier keeps a late assignment without claiming optimum" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 2,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let choices = @strategy.prepare_bounded_strategy_choices(
+    run,
+    search_offers(run, registry, [1, 2, 3], Some(20L)),
+    registry,
+  ).unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 2)
+  let request = @strategy.prepare_strategy_policy_request(
+    choices, "bounded-1", "run-bounded", "authority-1", 100L, 0L,
+  ).unwrap()
+  let candidates = @strategy.strategy_policy_candidates(choices).unwrap()
+  assert_true(
+    candidates.canonical_json.contains("\"actql-policy-candidates/0.2\""),
+  )
+  assert_true(candidates.canonical_json.contains(",false,["))
+  assert_eq(request.candidate_set_cid, candidates.cid)
+  guard @strategy.commit_strategy_choice(choices, Some(1)).unwrap()
+    is Selected(revision) else {
+    abort("selected")
+  }
+  let native = @connector.capability_registration_at(registry, 1).unwrap()
+  for task in [1, 2, 3] {
+    assert_true(
+      physical_equal(
+        @strategy.strategy_registration(revision, task).unwrap(),
+        native,
+      ),
+    )
+  }
+  assert_true(
+    @strategy.explain_captured_strategy(run, 100000, 10000)
+    .unwrap()
+    .contains("\"bounded_frontier\""),
+  )
+}
+
+///|
+test "bounded placement reports incomplete when sampled assignments all fail" {
+  let (run, _) = captured_graph_fixture()
+  let registry = search_registry()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 6,
+    max_strategies: 2,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  let offers = []
+  for task in [1, 2, 3] {
+    for registration in [0, 1] {
+      offers.push(
+        @strategy.prepare_task_offer(
+          run,
+          task,
+          @connector.capability_registration_at(registry, registration).unwrap(),
+          1,
+          [{ work_slots: [0], milliseconds: Some(1L), }],
+          {
+            transfer_bytes: 0L,
+            retained_bytes: 2305843009213693951L,
+            execution_bytes: 1L,
+          },
+          100,
+        ).unwrap(),
+      )
+    }
+  }
+  let choices = @strategy.prepare_bounded_strategy_choices(
+    run, offers, registry,
+  ).unwrap()
+  assert_eq(@strategy.strategy_choice_count(choices), 0)
+  assert_true(
+    @strategy.commit_strategy_choice(choices, None).unwrap() is Deferred,
+  )
+  assert_true(
+    @strategy.explain_captured_strategy(run, 100000, 10000)
+    .unwrap()
+    .contains("\"assessment_complete\":false"),
+  )
+}
+
+///|
+test "bounded placement respects one, two and five candidate ceilings" {
+  for ceiling in [1, 2, 5] {
+    let (run, _) = captured_graph_fixture()
+    let registry = search_registry()
+    @strategy.configure_strategy_search(run, {
+      max_offers: 6,
+      max_strategies: ceiling,
+      max_work: 1000,
+      max_revisions: 1,
+    }).unwrap()
+    let choices = @strategy.prepare_bounded_strategy_choices(
+      run,
+      search_offers(run, registry, [1, 2, 3], Some(20L)),
+      registry,
+    ).unwrap()
+    assert_eq(@strategy.strategy_choice_count(choices), ceiling)
+  }
+}
+
+///|
 test "placement policy provenance rejects empty metadata before commit" {
   let (run, _) = captured_graph_fixture()
   let registry = search_registry()
@@ -116,15 +225,15 @@ test "placement policy provenance rejects empty metadata before commit" {
   let candidates = @strategy.strategy_policy_candidates(choices).unwrap()
   assert_eq(candidates.cid, request.candidate_set_cid)
   assert_true(
-    candidates.canonical_json.has_prefix("[\"actql-policy-candidates/0.1\","),
+    candidates.canonical_json.has_prefix("[\"actql-policy-candidates/0.2\","),
   )
   assert_true(
-    candidates.canonical_json.contains("\"actql-policy-candidates/0.1\""),
+    candidates.canonical_json.contains("\"actql-policy-candidates/0.2\""),
   )
   assert_true(request.candidate_set_cid.has_prefix("sha256:"))
   assert_eq(
     request.candidate_set_cid,
-    "sha256:557d320ba1d153b5c1e30cb79c2a75d82ef4166be14bf0a8914dc33c60b2a902",
+    "sha256:9b9f7f4b38b9ef8afc299672bb3e318be1f670932e420379ccd99648a66e7e4d",
   )
   let response : @strategy.PolicyResponse = {
     request,

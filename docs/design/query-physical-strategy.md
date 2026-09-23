@@ -175,7 +175,7 @@ pending even after a candidate has been selected.
 
 The common search can also expose a bounded, owner-bound `StrategyChoiceSet`
 before committing a revision. A placement policy may inspect its feasible
-assessments and registered implementations, then propose one original assignment
+assessments and registered implementations, then propose one immutable candidate
 position. This allows the policy to prefer an eligible candidate for reasons
 other than estimated latency without falsifying the cost estimate. A proposal
 does not reserve capacity or start a task. At commit, the common search checks
@@ -185,11 +185,20 @@ default offline latency choice uses this same preparation and commit path.
 External policy I/O belongs to the Host between those two calls. While a
 response is pending, routine Host refresh does not substitute the offline
 choice. Dispatch still performs its ordinary exact input and reservation checks.
+The adaptive Host opts into a bounded frontier when the complete offer product
+exceeds `max_strategies`. It ranks partial paths by declared duration and
+retention, retains at most the configured width at each task, and includes the
+opposite endpoint as a late-feasible probe when the width is at least two.
+Complete assignments still pass the same resource and resident checks before
+policy exposure. The candidate projection includes an `assessment_complete`
+bit, and a partial selection is never reported as globally fastest. A partial
+frontier with no feasible sampled assignment is deferred, not proof that no
+assignment exists. The explicit exhaustive API keeps its `StrategyLimit` rule.
 An external consultation now has one versioned `PolicyRequest`. It binds the
 Host-supplied Run and authority identities, request occurrence, planning
 generation and revision, deadline, and the common planner's digest of the
 ordered feasible assignments. A response repeats that exact request and names
-one original assignment position, a bounded policy ID and revision, and a
+one candidate position, a bounded policy ID and revision, and a
 bounded explanation. The common planner rejects altered, expired, stale, or
 out-of-set responses before committing the strategy. The candidate digest is
 an identity for this planning projection, not a material Result CID or a
@@ -211,8 +220,9 @@ and network transport remain Host responsibilities.
 The minted consultation also exposes a bounded canonical JSON candidate-set
 projection. Its SHA-256 is the request's `candidate_set_cid`; the Host sends the
 bytes and CID together and the recipient checks their equality. The projection
-contains the Program definition CID, search generation and revision, feasible
-original assignment positions, task positions, registration selection keys,
+contains the Program definition CID, search generation and revision, whether
+the assessment was complete, feasible candidate positions, task positions,
+registration selection keys,
 duration estimates and enforceable capacity envelopes. It never serializes
 opaque offer handles or raw rows. The candidate projection is a planning input,
 not a standalone grant or proof that the supplied estimates are measured.

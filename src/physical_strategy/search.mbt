@@ -68,6 +68,7 @@ struct StrategyRevision {
   choices : Array[TaskOffer?]
   assessment : StrategyAssessment
   before : @resources.LedgerUsage
+  search_complete : Bool
   estimated_fastest : Bool
   selection_source : StrategySelectionSource
 }
@@ -115,6 +116,7 @@ pub(all) struct PolicyResponse {
 ///|
 pub(all) enum StrategySelectionSource {
   OfflineLatency
+  BoundedLatency
   HostProposal
   ExternalPolicy(PolicyDecisionRef)
 } derive(Eq, Debug)
@@ -310,6 +312,131 @@ pub fn prepare_strategy_choices(
   registry : @connector.CapabilityRegistry,
   host_priority : Array[Int]?,
 ) -> Result[StrategyChoiceSet, SearchIssue] {
+  prepare_strategy_choices_with_mode(
+    run, offers, registry, host_priority, false,
+  )
+}
+
+///|
+/// An opt-in bounded frontier for large adaptive placements. The exhaustive
+/// API retains its original limit behavior. Partial search never proves a
+/// global optimum or that every assignment is infeasible.
+pub fn prepare_bounded_strategy_choices(
+  run : CapturedDAG,
+  offers : Array[TaskOffer],
+  registry : @connector.CapabilityRegistry,
+) -> Result[StrategyChoiceSet, SearchIssue] {
+  prepare_strategy_choices_with_mode(run, offers, registry, None, true)
+}
+
+///|
+priv struct SearchFrontier {
+  indices : Array[Int]
+  duration : Int64
+  retention : Int64
+}
+
+///|
+fn frontier_duration(offer : TaskOffer) -> Int64 {
+  match offer.duration {
+    @cost.Complete(value) => value
+    @cost.Unknown => 9223372036854775807L
+  }
+}
+
+///|
+fn frontier_add(left : Int64, right : Int64) -> Int64 {
+  if right > 9223372036854775807L - left {
+    9223372036854775807L
+  } else {
+    left + right
+  }
+}
+
+///|
+fn bounded_strategy_frontier(
+  tasks : Array[Int],
+  groups : Array[Array[TaskOffer]],
+  max_strategies : Int,
+  work : SearchWork,
+) -> Result[Array[Array[Int]], SearchIssue] {
+  let mut frontier : Array[SearchFrontier] = [
+    { indices: [], duration: 0L, retention: 0L, },
+  ]
+  for task in tasks {
+    let next : Array[SearchFrontier] = []
+    for state in frontier {
+      for index, offer in groups[task] {
+        match search_charge(work, 1) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        let indices = state.indices.copy()
+        indices.push(index)
+        next.push({
+          indices,
+          duration: frontier_add(state.duration, frontier_duration(offer)),
+          retention: frontier_add(
+            state.retention,
+            offer.capacity.retained_bytes,
+          ),
+        })
+      }
+    }
+    next.sort_by((left, right) => {
+      let by_duration = left.duration.compare(right.duration)
+      if by_duration != 0 {
+        by_duration
+      } else {
+        let by_retention = left.retention.compare(right.retention)
+        if by_retention != 0 {
+          by_retention
+        } else {
+          let mut by_position = 0
+          for index in 0..<left.indices.length() {
+            if by_position == 0 {
+              by_position = left.indices[index].compare(right.indices[index])
+            }
+          }
+          by_position
+        }
+      }
+    })
+    let bounded : Array[SearchFrontier] = []
+    for index in 0..<next.length() {
+      if index >= max_strategies {
+        break
+      }
+      bounded.push(next[index])
+    }
+    frontier = bounded
+  }
+  let selected = frontier.map(state => state.indices)
+  // The opposite endpoint provides a deterministic late-feasible probe even
+  // when every cheap prefix was retained by the duration frontier.
+  if max_strategies > 1 {
+    let last = tasks.map(task => groups[task].length() - 1)
+    let mut present = false
+    for candidate in selected {
+      if candidate == last {
+        present = true
+      }
+    }
+    if !present && !selected.is_empty() {
+      selected[selected.length() - 1] = last
+    }
+  }
+  Ok(selected)
+}
+
+///|
+fn prepare_strategy_choices_with_mode(
+  run : CapturedDAG,
+  offers : Array[TaskOffer],
+  registry : @connector.CapabilityRegistry,
+  host_priority : Array[Int]?,
+  bounded : Bool,
+) -> Result[StrategyChoiceSet, SearchIssue] {
   guard run.search is Some(limits) else { return Err(NotConfigured) }
   if run.stopped {
     return Err(Stopped)
@@ -351,6 +478,7 @@ pub fn prepare_strategy_choices(
   }
   let tasks = []
   let mut combinations = 1
+  let mut truncated = false
   for task in 1..<count {
     if task_done(run, task) {
       continue
@@ -358,11 +486,25 @@ pub fn prepare_strategy_choices(
     if groups[task].is_empty() {
       return Err(MissingTask(task))
     }
-    if groups[task].length() > limits.max_strategies / combinations {
-      return Err(StrategyLimit)
+    if !truncated &&
+      groups[task].length() > limits.max_strategies / combinations {
+      if !bounded || host_priority is Some(_) {
+        return Err(StrategyLimit)
+      }
+      truncated = true
+      combinations = limits.max_strategies
+    } else if !truncated {
+      combinations *= groups[task].length()
     }
-    combinations *= groups[task].length()
     tasks.push(task)
+  }
+  let sampled = if truncated {
+    match bounded_strategy_frontier(tasks, groups, combinations, work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    []
   }
   // Host priority addresses original enumeration positions, before resource
   // rejection. Validate the whole permutation in charged, correctable preflight.
@@ -407,6 +549,12 @@ pub fn prepare_strategy_choices(
   let durations = []
   let usage = @resources.ledger_usage(run.ledger)
   for position in 0..<combinations {
+    if truncated {
+      let candidate = sampled[position]
+      for index in 0..<indices.length() {
+        indices[index] = candidate[index]
+      }
+    }
     match search_charge(work, count) {
       Err(e) => return Err(e)
       Ok(_) => ()
@@ -526,6 +674,7 @@ pub fn prepare_strategy_choices(
         choices,
         assessment,
         before: usage,
+        search_complete: !truncated,
         estimated_fastest: false,
         selection_source: OfflineLatency,
       })
@@ -533,14 +682,16 @@ pub fn prepare_strategy_choices(
     } else if host_priority is Some(_) {
       positions[position] = -1
     }
-    let mut digit = indices.length() - 1
-    while digit >= 0 {
-      indices[digit] += 1
-      if indices[digit] < groups[tasks[digit]].length() {
-        break
+    if !truncated {
+      let mut digit = indices.length() - 1
+      while digit >= 0 {
+        indices[digit] += 1
+        if indices[digit] < groups[tasks[digit]].length() {
+          break
+        }
+        indices[digit] = 0
+        digit -= 1
       }
-      indices[digit] = 0
-      digit -= 1
     }
   }
   if durations.length() > work.remaining / 2 {
@@ -569,7 +720,7 @@ pub fn prepare_strategy_choices(
       )
     }
   }
-  run.search_report_complete = true
+  run.search_report_complete = !truncated
   Ok({
     run,
     registry,
@@ -630,9 +781,10 @@ pub fn strategy_choice_registration(
 }
 
 ///|
-/// `position` is the original complete-assignment position, not an index into
-/// a policy-controlled list. Invalid or stale responses never fall back to a
-/// different candidate. `None` applies the offline default latency policy.
+/// `position` is the planner's immutable candidate position. Exhaustive search
+/// uses the original complete-assignment order; a bounded frontier uses its
+/// selected candidate order. Invalid or stale responses never fall back to a
+/// different candidate. `None` applies the offline latency policy.
 pub fn commit_strategy_choice(
   choices : StrategyChoiceSet,
   position : Int?,
@@ -642,8 +794,10 @@ pub fn commit_strategy_choice(
     position,
     if position is Some(_) {
       HostProposal
-    } else {
+    } else if choices.run.search_report_complete {
       OfflineLatency
+    } else {
+      BoundedLatency
     },
   )
 }
@@ -775,13 +929,20 @@ fn commit_strategy_choice_with_source(
         Err(issue) => return Err(Cost(issue))
         Ok(NoCandidates) => {
           choices.committed = true
-          return Ok(NoFeasible)
+          return Ok(
+            if run.search_report_complete {
+              NoFeasible
+            } else {
+              Deferred
+            },
+          )
         }
         Ok(Deferred) => {
           choices.committed = true
           return Ok(Deferred)
         }
-        Ok(EstimatedFastest(index, _)) => Some((index, true))
+        Ok(EstimatedFastest(index, _)) =>
+          Some((index, run.search_report_complete))
         Ok(HostPreferred(index)) => Some((index, false))
       }
   }

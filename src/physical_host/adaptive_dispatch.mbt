@@ -411,7 +411,8 @@ fn[E] rebuild_adaptive_dispatch(
       Err(Unavailable) | Err(ForeignOffer) => return Err(ForeignSelection)
     }
   }
-  match @strategy.prepare_strategy_choices(run, offers, policy.registry, None) {
+  match
+    @strategy.prepare_bounded_strategy_choices(run, offers, policy.registry) {
     Ok(choices) => Ok(choices)
     Err(issue) => Err(Search(issue))
   }

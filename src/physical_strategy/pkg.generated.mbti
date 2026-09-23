@@ -242,6 +242,8 @@ pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @phys
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
+pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
+
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedDAG, GraphIssue]
@@ -729,6 +731,7 @@ type StrategyRevision
 
 pub(all) enum StrategySelectionSource {
   OfflineLatency
+  BoundedLatency
   HostProposal
   ExternalPolicy(PolicyDecisionRef)
 } derive(Eq, @debug.Debug)

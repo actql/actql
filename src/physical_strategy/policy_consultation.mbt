@@ -1,6 +1,7 @@
 ///|
-/// A digest of the exact ordered, feasible assignment projection. The private
-/// offer handles remain local; the response can only select their positions.
+/// A digest of the exact ordered, feasible assignment projection and whether
+/// search was complete. The private offer handles remain local; the response
+/// can only select the projected candidate positions.
 fn strategy_policy_candidate_set(
   choices : StrategyChoiceSet,
 ) -> Result[PolicyCandidateSet, SearchIssue] {
@@ -9,13 +10,14 @@ fn strategy_policy_candidate_set(
   }
   try {
     @encode.begin_array(writer)
-    @encode.string_value(writer, "actql-policy-candidates/0.1")
+    @encode.string_value(writer, "actql-policy-candidates/0.2")
     @encode.string_value(
       writer,
       graph_program_definition_cid(choices.run.graph),
     )
     @encode.number_value(writer, choices.generation.to_double())
     @encode.number_value(writer, choices.revision.to_double())
+    @encode.bool_value(writer, choices.run.search_report_complete)
     @encode.begin_array(writer)
     for candidate in choices.feasible {
       @encode.begin_array(writer)

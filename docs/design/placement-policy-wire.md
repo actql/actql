@@ -22,7 +22,7 @@ The response is a closed JSON object with exactly these fields:
 | `request_id`, `run_identity`, `authority`, `candidate_set_cid` | string | Exact echoes of the pending request |
 | `generation`, `revision` | nonnegative safe integer | Exact echoes of the pending request |
 | `deadline_ms` | decimal string | Exact echo of the pending request |
-| `position` | nonnegative safe integer | Original feasible assignment position |
+| `position` | nonnegative safe integer | Exact position in the projected feasible candidate set |
 | `policy_id` | string | Must match the authenticated policy peer identity |
 | `policy_revision`, `explanation` | string | Bounded decision provenance |
 
