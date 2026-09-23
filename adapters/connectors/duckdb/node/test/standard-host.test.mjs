@@ -6320,6 +6320,8 @@ async function exerciseStrategyGraph(
   }
   for (const ordinaryUnaryCase of [
     {name: 'ordinary-select-in-flight', kind: 'select'},
+    {name: 'ordinary-rename-in-flight', kind: 'rename'},
+    {name: 'ordinary-drop-in-flight', kind: 'drop'},
     {name: 'ordinary-filter-in-flight', kind: 'filter'},
     {name: 'ordinary-derive-in-flight', kind: 'derive'},
     {name: 'ordinary-assert-where-in-flight', kind: 'assert-where'},
@@ -6337,6 +6339,8 @@ async function exerciseStrategyGraph(
         stage.id === 'selected');
       const unaryStep = {
         filter: {filter: 'id > 0', as: 'out'},
+        rename: {rename: {amount: 'total'}, as: 'out'},
+        drop: {drop: ['amount'], as: 'out'},
         derive: {derive: {next: 'id + 1'}, as: 'out'},
         'assert-where': {assert_rows: {where: 'id > 0'}, as: 'out'},
         'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
@@ -6345,7 +6349,10 @@ async function exerciseStrategyGraph(
       }[ordinaryUnaryCase.kind];
       unary.steps = [unaryStep];
       const fields = ordinaryUnaryCase.kind === 'derive'
-        ? ['id', 'amount', 'next'] : ['id', 'amount'];
+        ? ['id', 'amount', 'next']
+        : ordinaryUnaryCase.kind === 'rename' ? ['id', 'total']
+          : ordinaryUnaryCase.kind === 'drop' ? ['id']
+            : ['id', 'amount'];
       unary.results.r.fields = fields;
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
         stage.id.startsWith('select_consumer_'))) {
