@@ -12,4 +12,5 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_cost" @cost,
+  "actql/actql/encode_core" @encode,
 }

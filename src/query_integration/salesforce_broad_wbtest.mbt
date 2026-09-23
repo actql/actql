@@ -285,3 +285,227 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     @salesforce_query.finish_salesforce_broad_query(cancelled) is Err(Closed),
   )
 }
+
+///|
+priv struct SalesforceIssuedFixture {
+  requirement : @planning.QueryRequirement
+  issuer : @salesforce_query.SalesforceBroadIssuer
+  choice : @planning.AcquisitionChoice
+  candidate : @planning.PreparedAcquisition[
+    @salesforce_query.SalesforceBroadPreparation,
+  ]
+  settled : Array[@salesforce_query.SalesforceBroadAttempt]
+}
+
+///|
+fn salesforce_issued_fixture() -> SalesforceIssuedFixture raise {
+  let requirement = salesforce_broad_requirement()
+  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+    requirement,
+    salesforce_broad_plan(),
+    "crm/main",
+  ).unwrap()
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "salesforce", acquisition: true, fixed_compute: false, }],
+    1,
+    20,
+  ).unwrap()
+  let candidate = @salesforce_query.salesforce_broad_candidate(
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    preparation,
+    [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
+    { transfer_bytes: None, retained_bytes: None, money_units: None, },
+    100,
+  ).unwrap()
+  guard @planning.choose_acquisition_candidate(
+      registry,
+      requirement,
+      [@planning.prepared_acquisition_candidate(candidate)],
+      None,
+      100,
+    ).unwrap()
+    is Proposed(choice) else {
+    abort("Salesforce candidate was not selected")
+  }
+  let (query_body, evidence_body) = query_evidence_test_bodies()
+  let contracts = @planning.admit_query_evidence_contracts(
+    query_body,
+    evidence_body,
+    query_capture_limits(),
+  ).unwrap()
+  let settled : Array[@salesforce_query.SalesforceBroadAttempt] = []
+  let issuer = @salesforce_query.prepare_salesforce_broad_issuer(
+    contracts,
+    requirement,
+    "test-process",
+    100,
+    attempt => settled.any(value => physical_equal(value, attempt)),
+  ).unwrap()
+  { requirement, issuer, choice, candidate, settled, }
+}
+
+///|
+fn salesforce_issued_read(
+  fixture : SalesforceIssuedFixture,
+) -> @salesforce_query.SalesforceBroadAttempt {
+  let attempt = @salesforce_query.prepare_issued_salesforce_broad_attempt(
+    fixture.issuer,
+    fixture.choice,
+    fixture.candidate,
+  ).unwrap()
+  @salesforce_query.begin_issued_salesforce_broad_read(
+    attempt,
+    "v62.0",
+    {
+      max_bytes: 4096,
+      max_nodes: 100,
+      max_depth: 10,
+      max_rows: 3,
+      max_locator_units: 128,
+    },
+    2,
+    3L,
+    3,
+    run_limits().input_values,
+  ).unwrap()
+  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt).unwrap()
+  @salesforce_query.accept_issued_salesforce_broad_page(
+    attempt,
+    path,
+    @utf8.encode(
+      (
+        #|{"totalSize":3,"done":true,"records":[{"id":3},{"id":1},{"id":2}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
+  attempt
+}
+
+///|
+fn salesforce_completion_limits() -> @salesforce_query.SalesforceBroadCompletionLimits {
+  {
+    execution: compute_test_limits(),
+    guards: query_guard_physical(),
+    retention: {
+      received_wire_bytes: 28,
+      retained_wire_bytes: 47,
+      measurement: {
+        max_columns: 10,
+        max_order_work: 1000,
+        max_bytes: 47,
+        max_nodes: 12,
+        max_depth: 10,
+      },
+    },
+    records: query_material_limits(),
+    capture: query_capture_limits(),
+  }
+}
+
+///|
+test "Salesforce completion requires selected attempt and settled transport" {
+  let fixture = salesforce_issued_fixture()
+  let attempt = salesforce_issued_read(fixture)
+  assert_true(
+    @salesforce_query.issue_salesforce_broad_records(
+      attempt,
+      query_material_limits(),
+    )
+    is Err(NotRetained),
+  )
+  assert_true(
+    @salesforce_query.complete_salesforce_broad_capture(
+      fixture.issuer,
+      attempt,
+      salesforce_completion_limits(),
+    )
+    is Err(UnverifiedTransport),
+  )
+  let settled = salesforce_issued_read(fixture)
+  fixture.settled.push(settled)
+  let observation = @salesforce_query.complete_salesforce_broad_capture(
+    fixture.issuer,
+    settled,
+    salesforce_completion_limits(),
+  ).unwrap()
+  let (expected, _) = query_observation_oracle(
+    fixture.requirement,
+    @salesforce_query.salesforce_broad_attempt_identity(settled),
+    "[{\"id\":3},{\"id\":1},{\"id\":2}]",
+    3,
+    "[\"id\"]",
+    "[{\"id\":3},{\"id\":2}]",
+    2,
+  )
+  assert_eq(
+    @encode.document_text(
+      @salesforce_query.salesforce_broad_observation_document(observation),
+    ),
+    expected,
+  )
+  assert_eq(
+    @salesforce_query.salesforce_broad_observation_cid(observation),
+    query_material_expected(expected),
+  )
+  let owner = @query.query_sequence_owner(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(fixture.requirement),
+    ),
+  )
+  let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
+  let input = @salesforce_query.bind_captured_salesforce_broad_input(
+    fixture.issuer,
+    settled,
+    observation,
+    receiver,
+    0,
+    owner,
+  ).unwrap()
+  let generated = compute_test_sequence(receiver)
+  let local_attempt = @execution.prepare_local_compute_attempt(
+    generated,
+    [input],
+    3,
+  ).unwrap()
+  let completed = @execution.execute_local_compute_attempt(
+    local_attempt,
+    compute_test_limits(),
+  ).unwrap()
+  let output = @execution.completed_output(completed, Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 2)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+  assert_true(@execution.completed_cell(output, 1, 0) is Some(Number(2)))
+  let foreign = salesforce_issued_read(fixture)
+  fixture.settled.push(foreign)
+  assert_true(
+    @salesforce_query.bind_captured_salesforce_broad_input(
+      fixture.issuer,
+      foreign,
+      observation,
+      receiver,
+      0,
+      owner,
+    )
+    is Err(UnauthorizedAttempt),
+  )
+  @salesforce_query.abort_salesforce_broad_attempt(settled)
+  assert_true(
+    @salesforce_query.complete_salesforce_broad_capture(
+      fixture.issuer,
+      settled,
+      salesforce_completion_limits(),
+    )
+    is Err(Attempt(InvalidState)),
+  )
+  @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  assert_true(
+    @salesforce_query.prepare_issued_salesforce_broad_attempt(
+      fixture.issuer,
+      fixture.choice,
+      fixture.candidate,
+    )
+    is Err(IssuerClosed),
+  )
+}
