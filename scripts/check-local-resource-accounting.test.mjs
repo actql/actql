@@ -41,7 +41,17 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 3 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 4 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('selected projection loses its resource proof when the fixture is removed', () => {
+  assert.match(run(undefined, routes => {
+    const select = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    select.boundary_tests.find(item =>
+      item.role === 'select_workspace_exact_one_short').fixture =
+      'missing-selected-projection-resources';
+  }), /RelA select: missing operation boundary fixture missing-selected-projection-resources/);
 });
 
 test('selected filter retains its shared expression accounting rule', () => {

@@ -90,8 +90,12 @@ readable coverage manifest is authoritative for individual operation status.
   or silently dropping one claim. Selected filter now has an exact/one-short
   comparison work and workspace fixture. Its shared expression rule records
   the production call edge and separate nested-workspace, text-work, and
-  branch-demand fixtures. This establishes a third path-scoped resource proof,
-  not full assurance for filter, sort, take, or the other 65 operations.
+  branch-demand fixtures. Selected projection now has an independent
+  two-row exact/one-short work and workspace fixture. Its selected ordinal
+  map is reserved before construction, so the peak includes both the map
+  and live output row buffers. This establishes four path-scoped resource
+  proofs, not full assurance for filter, select, sort, take, or the other
+  64 operations.
   The RelA cross-join route now pairs an independently calculated 2-by-2
   work/workspace exact-and-one-short kernel fixture with a managed
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
@@ -109,8 +113,11 @@ readable coverage manifest is authoritative for individual operation status.
   workspace boundaries with in-flight cancellation after charged work. A Node
   standard Host timer reaches the same graph-bounds operation, giving its
   direct entrypoint all four proof roles. Its kernel reports cumulative work,
-  but its direct start has no local cumulative work ceiling. The Host ceiling
-  needs an exact/one-short product-path fixture before this dimension closes.
+  but its direct start has no local cumulative work ceiling. The provider
+  receives the common execution limits but does not yet use its execution
+  work ceiling; the value limit passed to the kernel is a separate validation
+  budget. The common selected execution ceiling needs an exact/one-short
+  product-path fixture before this dimension closes.
   The degree route uses the same
   resumable diagnostic kernel, but has its own workspace eight/seven and
   output two/one exact-boundary fixtures. Its direct

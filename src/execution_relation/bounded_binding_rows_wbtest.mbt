@@ -1229,6 +1229,65 @@ test "bounded selected projection preserves schema order and input admission" {
 }
 
 ///|
+test "bounded selected projection admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Work: two input-row openings, two output-row openings, and the
+  // seven UTF-8 output-name bytes charged for each of two rows.
+  // Workspace: two selected-field view entries, three input names, two
+  // output names, three input ordinals, two selected ordinals, and four
+  // slots for one output row plus its checked copy.
+  let (_, accepted, input) = bounded_binding_rows_fixture(
+    rows,
+    select=true,
+    max_work=18,
+    max_entries=16,
+  )
+  let mut completed = false
+  let mut polls = 0
+  while !completed && polls < 500 {
+    polls += 1
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        assert_eq(completed_column_name(output, 0), Some("id"))
+        assert_eq(completed_column_name(output, 1), Some("right"))
+        completed = true
+      }
+      _ => fail("exact selected projection resources failed")
+    }
+  }
+  assert_true(completed)
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  for (work, slots) in [(17, 16), (18, 15)] {
+    let (_, rejected, input) = bounded_binding_rows_fixture(
+      rows,
+      select=true,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut failed = false
+    let mut polls = 0
+    while !failed && polls < 500 {
+      polls += 1
+      match advance_bounded_binding_rows(rejected, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => failed = true
+        BoundedBindingRowsComplete(_, ..) =>
+          fail("one-short selected projection resources completed")
+        _ => fail("one-short selected projection had another outcome")
+      }
+    }
+    assert_true(failed)
+    assert_true(producer_read_available(input))
+    assert_true(bounded_binding_rows_cleanup_pending(rejected))
+    assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  }
+}
+
+///|
 test "bounded selected projection cancels before publication" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",

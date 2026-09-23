@@ -7,6 +7,7 @@
   "production_routes": "docs/reviews/2026-09-23-local-resource-production-routes.json",
   "assured_production_paths": [
     {"family": "RelA", "operation": "filter", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "select", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "take", "path": "selected_entrypoint"}
   ],
