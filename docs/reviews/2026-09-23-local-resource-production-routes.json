@@ -133,6 +133,15 @@
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected sort cancels after work without publishing rows"
         }
+      ],
+      "environment_tests": [
+        {
+          "role": "selected_sort_wide_comparison_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-sort-wide-comparison"
+        }
       ]
     },
     {

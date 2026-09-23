@@ -157,6 +157,14 @@ test('resource gate rejects sort without mixed-stage evidence', () => {
   }), /RelA sort: reviewed mixed_stage_sort_quantum_and_lifetime fixture is missing/);
 });
 
+test('resource gate rejects sort without its real Host timer case', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    sort.environment_tests = [];
+  }), /RelA sort: selected sort Host timer evidence is missing/);
+});
+
 test('resource gate rejects assertion without failure cleanup', () => {
   assert.match(run(undefined, value => {
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
