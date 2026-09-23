@@ -26,5 +26,9 @@ import {
   "actql/actql/connectors/duckdb/driver" @binding19,
   "actql/actql/connectors/reference_compute/driver" @binding20,
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/check_environment",
+  "actql/actql/program_check",
+  "actql/actql/stage_syntax",
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }
