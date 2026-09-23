@@ -25,7 +25,8 @@ export type ConfirmedProfile = Readonly<{
   capabilities: readonly string[];
   limits: Readonly<{
     maxReadWireBytes: number;
-    maxRowBytes: number;
+    maxRowWireBytes: number;
+    maxRowRetainedValueBytes: number;
     maxRetainedValueBytes: number;
     maxRows: number;
     maxBatchRows: number;
@@ -56,7 +57,8 @@ export declare class ClientError extends Error {
 export type ReadOptions = {
   signal?: AbortSignal;
   maxWireBytes?: number;
-  maxRowBytes?: number;
+  maxRowWireBytes?: number;
+  maxRowRetainedValueBytes?: number;
   maxRows?: number;
   maxRetainedValueBytes?: number;
   maxBatchRows?: number;
