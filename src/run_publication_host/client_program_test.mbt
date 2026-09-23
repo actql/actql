@@ -79,6 +79,14 @@ test "ordinary values document prepares one named Effect-free result" {
   let identity = prepared_client_identity(prepared)
   assert_eq(
     identity.program_definition_cid,
+    "sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c",
+  )
+  assert_eq(
+    identity.parameter_values_cid,
+    "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
+  )
+  assert_eq(
+    identity.program_definition_cid,
     @strategy.graph_program_definition_cid(prepared_client_graph(prepared)),
   )
   let spaced = prepare_effect_free_client_program(
@@ -103,6 +111,100 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     prepared_client_identity(changed).parameter_values_cid,
     identity.parameter_values_cid,
+  )
+  let scope_cid = "sha256:" + "a".repeat(64)
+  let input_cid = "sha256:" + "b".repeat(64)
+  let request = prepare_client_request_identity(
+    prepared, scope_cid, "saved-request", input_cid,
+  ).unwrap()
+  assert_eq(
+    client_request_scope_cid(request),
+    "sha256:2e497e1244d7db59831b0ab81ae7dc89333babea783a102a747a55f3e7890dd3",
+  )
+  assert_eq(
+    client_request_intent_cid(request),
+    "sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d",
+  )
+  let readmitted = admit_client_request_identity_record(
+    scope_cid,
+    "saved-request",
+    identity.program_definition_cid,
+    identity.parameter_values_cid,
+    input_cid,
+    client_request_scope_cid(request),
+    client_request_intent_cid(request),
+  ).unwrap()
+  assert_eq(readmitted, request)
+  assert_eq(client_request_identity_relation(request, readmitted), SameRequest)
+  assert_true(
+    admit_client_request_identity_record(
+      scope_cid,
+      "saved-request",
+      identity.program_definition_cid,
+      identity.parameter_values_cid,
+      input_cid,
+      client_request_scope_cid(request),
+      "sha256:" + "f".repeat(64),
+    )
+    is Err(IdentityMismatch),
+  )
+  assert_eq(
+    prepare_client_request_identity(
+      spaced, scope_cid, "saved-request", input_cid,
+    ).unwrap(),
+    request,
+  )
+  let changed_request = prepare_client_request_identity(
+    changed, scope_cid, "saved-request", input_cid,
+  ).unwrap()
+  assert_eq(
+    client_request_scope_cid(changed_request),
+    client_request_scope_cid(request),
+  )
+  assert_true(
+    client_request_intent_cid(changed_request) !=
+    client_request_intent_cid(request),
+  )
+  assert_eq(
+    client_request_identity_relation(changed_request, request),
+    ChangedIntent,
+  )
+  let other_id = prepare_client_request_identity(
+    prepared, scope_cid, "another-request", input_cid,
+  ).unwrap()
+  assert_true(
+    client_request_scope_cid(other_id) != client_request_scope_cid(request),
+  )
+  assert_eq(
+    client_request_intent_cid(other_id),
+    client_request_intent_cid(request),
+  )
+  assert_eq(
+    client_request_identity_relation(other_id, request),
+    DifferentRequest,
+  )
+  let other_input = prepare_client_request_identity(
+    prepared,
+    scope_cid,
+    "saved-request",
+    "sha256:" + "c".repeat(64),
+  ).unwrap()
+  assert_eq(
+    client_request_scope_cid(other_input),
+    client_request_scope_cid(request),
+  )
+  assert_true(
+    client_request_intent_cid(other_input) != client_request_intent_cid(request),
+  )
+  assert_true(
+    prepare_client_request_identity(prepared, scope_cid, "", input_cid)
+    is Err(InvalidRequestId),
+  )
+  assert_true(
+    prepare_client_request_identity(
+      prepared, "sha256:bad", "saved-request", input_cid,
+    )
+    is Err(InvalidAuthorityScope),
   )
   let run = open_prepared_source_free_client_run(prepared, {
     planning_work: 10000,

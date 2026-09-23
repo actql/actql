@@ -101,7 +101,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     )
     is Err(@publication_host.MissingTask),
   )
-  let ledger = @resources.create_ledger({
+  let run = @publication_host.open_prepared_source_free_client_run(prepared, {
     planning_work: 100000,
     attempts: 10,
     holdings: 10,
@@ -109,7 +109,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     retained_bytes: 200000000L,
     execution_bytes: 268435456L,
   }).unwrap()
-  let run = @strategy.open_source_free_dag(graph, ledger).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let generated = @publication_host.prepare_client_task_sequence(

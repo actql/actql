@@ -1737,12 +1737,26 @@ without self-CIDs; schema/law IDs are pinned by the checked contract.
 ```text
 LogicalRequestScope = CID({version: "actql-logical-request/0.1",
   authority_scope_cid, caller_request_id})
+IntentFingerprint = CID({version: "actql-logical-request-intent/0.1",
+  caller_input_intent_cid, parameter_values_cid,
+  program_definition_cid})
 LogicalItemLocator = CID({version: "actql-logical-item/0.1",
   logical_request_scope_cid, unit_namespace, effect_id,
   item_correlation})
 DispatchKey = CID({version: "actql-row-idempotency-key/0.1",
   logical_request_scope_cid, effect_preview_cid, row_or_item_key})
 ```
+
+The intent fingerprint uses the checked Program Definition and effective
+Parameter Values identities. `caller_input_intent_cid` must identify the
+admitted caller input selection, including its explicit absence for a
+source-free Program. It is not a hash of raw source text, transport JSON,
+physical Run identity, Site placement or authorization timestamps. An
+environment must establish that input CID under its applicable input
+contract before accepting the request; an arbitrary caller-supplied CID does
+not itself prove that input is admitted. The logical request key and intent
+fingerprint are distinct: an identical intent under a new caller request ID
+is a new logical request, while a changed intent under the same key conflicts.
 
 The locator finds durable recovery state; the dispatch key binds the exact
 Preview. Recovery MUST reuse the ledger's original Preview, key and canonical
