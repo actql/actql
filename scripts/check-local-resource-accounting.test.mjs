@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 13 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 4 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 14 with operation-specific boundary records, 2 with four-role boundary evidence, 0 with full work\/workspace assurance, 4 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('selected projection loses its resource proof when the fixture is removed', () => {
@@ -149,6 +149,15 @@ test('degree control-work evidence cannot disappear from its route', () => {
     degree.boundary_tests = degree.boundary_tests.filter(item =>
       item.role !== 'degree_control_work_exact_one_short');
   }), /SGA degree: exact control-work boundary fixture is missing/);
+});
+
+test('shortest path cannot lose its kernel cancellation evidence', () => {
+  assert.match(run(undefined, routes => {
+    const shortest = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'shortest_path');
+    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
+      item.role !== 'shortest_kernel_cancel_cleanup');
+  }), /SGA shortest_path: reviewed shortest_kernel_cancel_cleanup fixture is missing/);
 });
 
 test('resource completion cannot accept the synchronous providerless lane', () => {

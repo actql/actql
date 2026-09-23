@@ -1269,7 +1269,37 @@
       "entrypoint": {
         "path": "src/local_sga/shortest.mbt",
         "symbol": "start_shortest"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "shortest_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "scalar shortest path admits workspace before allocation and cancels"
+        },
+        {
+          "role": "shortest_value_preallocation_rejection",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "scalar shortest path admits workspace before allocation and cancels"
+        },
+        {
+          "role": "shortest_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "scalar shortest path admits workspace before allocation and cancels"
+        },
+        {
+          "role": "shortest_standard_host_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "standard Host runs a bounded scalar shortest path"
+        }
+      ]
     },
     {
       "inventory": "families",
