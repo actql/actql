@@ -37,6 +37,9 @@ The following bridge derives each member's selector and written field set
 from those same retained headers and the explicit Mapping row field map, then
 selects the exact static permission rule. This is not a current grant or a
 complete checked Effect Set.
+It now rejects missing required inline-create fields and missing mapped
+source fields in retained Results; target type and conversion proofs remain
+open.
 The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member

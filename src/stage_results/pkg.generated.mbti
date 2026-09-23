@@ -264,6 +264,8 @@ pub(all) enum EffectMappingRuleIssueKind {
   InvalidLimits
   WorkLimit
   InvalidBody
+  MissingRequiredField(String)
+  MissingResultField(String)
   RowFields(@check_environment.MappingRowFieldsIssue)
   Permission(@check_environment.MappingPermissionIssue)
 } derive(Eq, @debug.Debug)

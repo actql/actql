@@ -3,6 +3,8 @@ pub(all) enum EffectMappingRuleIssueKind {
   InvalidLimits
   WorkLimit
   InvalidBody
+  MissingRequiredField(String)
+  MissingResultField(String)
   RowFields(@environment.MappingRowFieldsIssue)
   Permission(@environment.MappingPermissionIssue)
 } derive(Eq, Debug)
@@ -120,6 +122,57 @@ fn effect_mapping_rule_fields(
 }
 
 ///|
+fn effect_mapping_rule_required(
+  mapping : @environment.MappingContractShape,
+  fields : Array[String],
+  remaining : Ref[Int],
+  header : @syntax.EffectHeader,
+) -> Result[Unit, EffectMappingRuleIssue] {
+  let count = @environment.mapping_shape_required_field_count(mapping)
+  if fields.length() > remaining.val || count > remaining.val - fields.length() {
+    return Err(effect_mapping_rule_issue(WorkLimit, header))
+  }
+  remaining.val -= fields.length() + count
+  let present : Map[String, Bool] = Map([])
+  for field in fields {
+    present[field] = true
+  }
+  for index in 0..<count {
+    let field = @environment.mapping_shape_required_field_at(mapping, index).unwrap()
+    if !present.contains(field) {
+      return Err(effect_mapping_rule_issue(MissingRequiredField(field), header))
+    }
+  }
+  Ok(())
+}
+
+///|
+fn effect_mapping_rule_sources(
+  rows : @environment.MappingRowFields,
+  effect : EffectResultBinding,
+  remaining : Ref[Int],
+  header : @syntax.EffectHeader,
+) -> Result[Unit, EffectMappingRuleIssue] {
+  let count = @environment.mapping_row_fields_count(rows)
+  if count > remaining.val {
+    return Err(effect_mapping_rule_issue(WorkLimit, header))
+  }
+  remaining.val -= count
+  let result = match effect_result_binding_result(effect) {
+    Some(value) => value
+    None => return Err(effect_mapping_rule_issue(InvalidBody, header))
+  }
+  let schema = @results.output_schema(result)
+  for index in 0..<count {
+    let (_, source) = @environment.mapping_row_fields_source_at(rows, index).unwrap()
+    if source is Some(name) && @schema.lookup_reference(schema, name) is None {
+      return Err(effect_mapping_rule_issue(MissingResultField(name), header))
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Derive the selector and complete write-field set from retained checked
 /// Effect headers, then select a static Mapping rule. Result-field values,
 /// conversion laws, current authority and Preview guards remain separate.
@@ -171,11 +224,17 @@ pub fn bind_effect_mapping_rules(
         }
       }
       "delete" => []
-      "create" if @decode.lookup(object, "payload") is Some(payload) =>
-        match effect_mapping_rule_fields(payload, remaining, header) {
+      "create" if @decode.lookup(object, "payload") is Some(payload) => {
+        let fields = match
+          effect_mapping_rule_fields(payload, remaining, header) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
+        match effect_mapping_rule_required(mapping, fields, remaining, header) {
+          Ok(_) => fields
+          Err(issue) => return Err(issue)
+        }
+      }
       "create" | "store" => {
         let admitted = match
           @environment.check_mapping_row_fields(mapping, remaining.val) {
@@ -186,6 +245,16 @@ pub fn bind_effect_mapping_rules(
             return Err(effect_mapping_rule_issue(RowFields(issue), header))
         }
         remaining.val -= @environment.mapping_row_fields_work(admitted)
+        match
+          effect_mapping_rule_sources(
+            admitted,
+            effect_mapping_shape_effect(binding),
+            remaining,
+            header,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
         @environment.mapping_row_fields_names(admitted)
       }
       _ => abort("closed Mapping Effect kind")

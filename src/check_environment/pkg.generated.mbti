@@ -238,9 +238,13 @@ pub fn mapping_permission_shape(MappingPermissionSelection) -> MappingContractSh
 
 pub fn mapping_permission_work(MappingPermissionSelection) -> Int
 
+pub fn mapping_row_fields_count(MappingRowFields) -> Int
+
 pub fn mapping_row_fields_names(MappingRowFields) -> Array[String]
 
 pub fn mapping_row_fields_shape(MappingRowFields) -> MappingContractShape
+
+pub fn mapping_row_fields_source_at(MappingRowFields, Int) -> (String, String?)?
 
 pub fn mapping_row_fields_work(MappingRowFields) -> Int
 
@@ -259,6 +263,10 @@ pub fn mapping_shape_member(MappingContractShape) -> Member
 pub fn mapping_shape_primary_identity(MappingContractShape) -> String
 
 pub fn mapping_shape_reference(MappingContractShape) -> String
+
+pub fn mapping_shape_required_field_at(MappingContractShape, Int) -> String?
+
+pub fn mapping_shape_required_field_count(MappingContractShape) -> Int
 
 pub fn mapping_shape_required_fields(MappingContractShape) -> Array[String]
 
@@ -780,6 +788,7 @@ pub struct MappingPermissionSelection {
 pub struct MappingRowFields {
   shape : MappingContractShape
   fields : Array[String]
+  sources : Array[String?]
   work : Int
 }
 
