@@ -4941,6 +4941,14 @@ async function exerciseStrategyGraph(
     stage => stage.id === 'consumer_a' || stage.id === 'consumer_b')) {
     consumer.inputs.x.result.stage = 'ordered';
   }
+  const separateFilterSortTakeProgram = structuredClone(
+    separateSortTakeProgram,
+  );
+  const filteredOrderedStage = separateFilterSortTakeProgram.stages.find(
+    stage => stage.id === 'ordered',
+  );
+  filteredOrderedStage.steps.unshift({from: 'x', filter: 'true', as: 'filtered'});
+  filteredOrderedStage.steps[1].from = 'filtered';
   const appendProgram = structuredClone(zeroInputProgram);
   appendProgram.stages.splice(1, 3, {
     id: 'append_a',
@@ -5827,6 +5835,8 @@ async function exerciseStrategyGraph(
     ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
     ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
     ['separate sort/take Stage', separateSortTakeProgram, [1, 2, 3, 4, 5]],
+    ['separate filter/sort/take Stage', separateFilterSortTakeProgram,
+      [1, 2, 3, 4, 5, 6]],
     ['empty values', emptyValuesProgram, [1, 2, 3]],
     ['nested values', nestedValuesProgram, [1, 2, 3]],
     ['select', selectProgram, [1, 2, 3, 4]],
@@ -5926,6 +5936,12 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 1, 1, 1],
+        );
+      }
+      if (name === 'separate filter/sort/take Stage') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2, 1, 1, 1],
         );
       }
       if (name === 'unrestricted cross join' ||
@@ -6459,6 +6475,8 @@ async function exerciseStrategyGraph(
       program: splitValuesSortTakeProgram, cancelAtStart: 3},
     {name: 'separate-sort-in-flight',
       program: separateSortTakeProgram, cancelAtStart: 3},
+    {name: 'separate-filter-sort-in-flight',
+      program: separateFilterSortTakeProgram, cancelAtStart: 4},
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);
@@ -6556,8 +6574,8 @@ async function exerciseStrategyGraph(
       assert.equal(valuesCancellationExecution.failure?.name, 'AbortError');
       assert.deepEqual(
         valuesCancellationExecution.completed.map(item => item.task),
-        cancelAtStart === 2 ? [1] : [1, 2],
-        'bounded values and sort cannot publish a partial output',
+        Array.from({length: cancelAtStart - 1}, (_, index) => index + 1),
+        'a bounded task cannot publish its partial output',
       );
     } finally {
       valuesCancellationCapture.close();

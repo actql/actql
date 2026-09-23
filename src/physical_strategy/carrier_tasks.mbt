@@ -86,12 +86,12 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if all_selected && found_zero_input && found_binary && found_relation {
     return Some(-1)
   }
-  // A bounded zero-input producer gives the indexed row chain a selected
+  // A bounded zero-input producer gives the unary row chain a selected
   // managed source. Do not change unrelated imported or connector-backed
   // DAGs whose placement has not selected that source boundary.
   if all_selected && found_relation && !found_carrier {
     guard @lower.node_at(prepared, 0) is Some(first) else { return None }
-    if @lower.node_has_bounded_relation_handoff(first) &&
+    if @lower.node_accepts_managed_relation_view(first, 0) &&
       @lower.node_input_count(first) == 1 &&
       @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
       for edge in graph.data {

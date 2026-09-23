@@ -436,7 +436,10 @@ test "standard Host splits zero-input values from distinct" {
 }
 
 ///|
-fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
+fn run_standard_host_values_sort_take(
+  separate_stage : Bool,
+  filter_first : Bool,
+) -> Unit raise {
   let ledger_limits : @resources.LedgerLimits = {
     planning_work: 10000,
     attempts: 20,
@@ -448,7 +451,9 @@ fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
     local_values_two_consumer_sort_take=!separate_stage,
-    local_values_two_consumer_relation_variant=if separate_stage {
+    local_values_two_consumer_relation_variant=if filter_first {
+      "separate_filter_sort_take"
+    } else if separate_stage {
       "separate_sort_take"
     } else {
       ""
@@ -481,22 +486,24 @@ fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
   let operations = []
   let live = []
   let advances = []
-  for task in 1..<6 {
+  let prefix_tasks = if filter_first { 4 } else { 3 }
+  let total_tasks = prefix_tasks + 2
+  for task in 1..<(total_tasks + 1) {
     let task_live = Ref(true)
     let task_advances = Ref(0)
     let input = if task == 1 {
       []
-    } else if task <= 3 {
+    } else if task <= prefix_tasks {
       [held[task - 2]]
     } else {
-      [held[2]]
+      [held[prefix_tasks - 1]]
     }
     let input_rows = if task == 1 {
       []
-    } else if task <= 3 {
+    } else if task <= prefix_tasks {
       [local_managed_test_rows(operations[task - 2])]
     } else {
-      [local_managed_test_rows(operations[2])]
+      [local_managed_test_rows(operations[prefix_tasks - 1])]
     }
     let (task_ops, output) = run_local_managed_test_task(
       installed,
@@ -517,26 +524,39 @@ fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
   assert_true(advances[0] > 1)
   assert_true(advances[1] > 1)
   assert_true(advances[2] > 1)
-  assert_eq(local_managed_test_rows(operations[1]), [
+  let sort_index = if filter_first { 2 } else { 1 }
+  let take_index = if filter_first { 3 } else { 2 }
+  let consumer_a_index = prefix_tasks
+  let consumer_b_index = prefix_tasks + 1
+  assert_eq(local_managed_test_rows(operations[sort_index]), [
     "{\"id\":1,\"label\":\"one\"}", "{\"id\":null,\"label\":\"none\"}",
   ])
-  assert_eq(local_managed_test_rows(operations[2]), [
+  assert_eq(local_managed_test_rows(operations[take_index]), [
     "{\"id\":1,\"label\":\"one\"}",
   ])
-  assert_eq(local_managed_test_rows(operations[3]), [
+  assert_eq(local_managed_test_rows(operations[consumer_a_index]), [
     "{\"id\":1,\"label\":\"one\"}",
   ])
-  assert_eq(local_managed_test_rows(operations[4]), [
+  assert_eq(local_managed_test_rows(operations[consumer_b_index]), [
     "{\"label\":\"one\",\"id\":1}",
   ])
-  live[3].val = false
-  @strategy.close_captured_task_output(run, 4)
-  (operations[3].close)()
-  ignore((operations[3].cleanup_refresh)())
-  assert_false(@execution.managed_completed_output_available(held[3]))
-  assert_true(@execution.managed_completed_output_available(held[4]))
-  assert_true(@execution.managed_completed_output_available(held[2]))
-  for task in [5, 3, 2, 1] {
+  live[consumer_a_index].val = false
+  @strategy.close_captured_task_output(run, prefix_tasks + 1)
+  (operations[consumer_a_index].close)()
+  ignore((operations[consumer_a_index].cleanup_refresh)())
+  assert_false(
+    @execution.managed_completed_output_available(held[consumer_a_index]),
+  )
+  assert_true(
+    @execution.managed_completed_output_available(held[consumer_b_index]),
+  )
+  assert_true(@execution.managed_completed_output_available(held[take_index]))
+  let remaining_tasks = if filter_first {
+    [6, 4, 3, 2, 1]
+  } else {
+    [5, 3, 2, 1]
+  }
+  for task in remaining_tasks {
     live[task - 1].val = false
     @strategy.close_captured_task_output(run, task)
     (operations[task - 1].close)()
@@ -554,12 +574,17 @@ fn run_standard_host_values_sort_take(separate_stage : Bool) -> Unit raise {
 
 ///|
 test "standard Host splits zero-input values from sort and take" {
-  run_standard_host_values_sort_take(false)
+  run_standard_host_values_sort_take(false, false)
 }
 
 ///|
 test "standard Host splits an indexed Relation Stage for two consumers" {
-  run_standard_host_values_sort_take(true)
+  run_standard_host_values_sort_take(true, false)
+}
+
+///|
+test "standard Host splits a unary Relation Stage for two consumers" {
+  run_standard_host_values_sort_take(true, true)
 }
 
 ///|
