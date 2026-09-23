@@ -1,5 +1,5 @@
 {
-  "version": "actql-local-resource-production-routes/0.1",
+  "version": "actql-local-resource-production-routes/0.2",
   "routes": [
     {
       "inventory": "rela",
@@ -68,11 +68,13 @@
           "fixture": "normalize-filter"
         }
       ],
-      "selected_boundary_assurance": {
-        "exact_limit": "filter_input_exact",
-        "one_short_limit": "filter_input_one_short",
-        "in_flight_cancel": "filter_in_flight_host_timer",
-        "cleanup": "filter_cancel_cleanup"
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "filter_input_exact",
+          "one_short_limit": "filter_input_one_short",
+          "in_flight_cancel": "filter_in_flight_host_timer",
+          "cleanup": "filter_cancel_cleanup"
+        }
       }
     },
     {
@@ -142,11 +144,13 @@
           "fixture": "normalize-select"
         }
       ],
-      "selected_boundary_assurance": {
-        "exact_limit": "select_input_exact",
-        "one_short_limit": "select_input_one_short",
-        "in_flight_cancel": "select_in_flight_host_timer",
-        "cleanup": "select_cancel_cleanup"
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "select_input_exact",
+          "one_short_limit": "select_input_one_short",
+          "in_flight_cancel": "select_in_flight_host_timer",
+          "cleanup": "select_cancel_cleanup"
+        }
       }
     },
     {
@@ -679,11 +683,23 @@
           "fixture": "normalize-assert-unique"
         }
       ],
-      "selected_boundary_assurance": {
-        "exact_limit": "assert_where_input_exact",
-        "one_short_limit": "assert_where_input_one_short",
-        "in_flight_cancel": "assert_unique_in_flight_host_timer",
-        "cleanup": "assert_unique_sort_failure_cleanup"
+      "path_assurance": {
+        "selected_entrypoint": {
+          "variants": {
+            "where": {
+              "exact_limit": "assert_where_input_exact",
+              "one_short_limit": "assert_where_input_one_short",
+              "in_flight_cancel": "assert_where_in_flight_host_timer",
+              "cleanup": "assert_where_cancel_cleanup"
+            },
+            "unique_by": {
+              "exact_limit": "assert_unique_exact_one_short_workspace",
+              "one_short_limit": "assert_unique_exact_one_short_workspace",
+              "in_flight_cancel": "assert_unique_in_flight_host_timer",
+              "cleanup": "assert_unique_sort_failure_cleanup"
+            }
+          }
+        }
       }
     },
     {
