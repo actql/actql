@@ -18,9 +18,13 @@ pub fn obligation_comparison(ObligationStream, String, String, Int, @execution_r
 
 pub fn obligation_comparison_finish(ObligationComparison, Int) -> @adapter.NativeDemandUsage raise ObligationFailure
 
-pub fn obligation_execution(Int64, Int64, Int64) -> ObligationExecution raise ExecutionCapacityFailure
+pub fn obligation_execution(Int64, Int64, Int64, Int) -> ObligationExecution raise ExecutionCapacityFailure
 
 pub fn obligation_execution_released(ObligationExecution) -> Unit raise ExecutionCapacityFailure
+
+pub fn obligation_execution_task_begin(ObligationExecution) -> Unit raise ExecutionCapacityFailure
+
+pub fn obligation_execution_task_finish(ObligationExecution) -> Unit raise ExecutionCapacityFailure
 
 pub fn obligation_execution_usage(ObligationExecution) -> @physical_resources.LedgerUsage
 

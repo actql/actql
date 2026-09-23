@@ -26,6 +26,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     executionCapacity.limitBytes,
     executionCapacity.databaseBytes,
     executionCapacity.scratchBytes,
+    f.workload === workloads[1] ? 4 : 3,
   ));
   const accounting = {
     nativeSemanticRows: 0,
@@ -151,6 +152,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   let sourceValidation;
   async function stage(name, query, names, inputs) {
     const before = performance.now(), ownBudget = budget();
+    if (name !== 'capture') checked(moon.obligationExecutionTaskBegin(execution));
     // Declared bounded metadata allowance, not an observation of heap/RSS.
     // Reserve it with the independent file before this stage performs SQL.
     const metadataBytes = 4096 + names.reduce((sum, field) => sum + 256 + Buffer.byteLength(field) * 8, 0);
@@ -222,6 +224,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
       names: Object.freeze([...names]),
       metadata,
     }));
+    if (name !== 'capture') checked(moon.obligationExecutionTaskFinish(execution));
     stages.push({stage: name, rows: output.rows, cid: output.cid, bytes: output.bytes,
       milliseconds: performance.now() - before, parameterInsertRows: 0,
       reusedMeasurements, metadataAllowanceBytes: metadataBytes,
