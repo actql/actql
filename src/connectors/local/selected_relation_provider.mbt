@@ -175,6 +175,7 @@ fn selected_relation_provider(
         | @lower.OrderedBindings(_)
         | @lower.Filter(_)
         | @lower.AssertAll(_)
+        | @lower.AssertUnique(_)
         | @lower.Select(_) =>
           return selected_binding_rows_execution(
             sequence, input, execution, max_value_bytes, step,

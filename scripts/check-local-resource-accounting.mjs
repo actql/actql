@@ -196,6 +196,9 @@ for (const [index, route] of routeEntries.entries()) {
   const dispatch = route.dispatch ?? {};
   const entrypoint = route.entrypoint ?? {};
   const productionSources = [['dispatch', dispatch], ['entrypoint', entrypoint]];
+  if (route.additional_dispatch !== undefined) {
+    productionSources.push(['dispatch', route.additional_dispatch]);
+  }
   if (route.selected_entrypoint !== undefined) {
     productionSources.push(['selected_entrypoint', route.selected_entrypoint]);
   }
@@ -369,13 +372,34 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'RelA' && route.operation === 'assert_rows') {
+    if (route.additional_dispatch?.marker !== 'AssertUnique(' ||
+      route.selected_entrypoint?.symbol !==
+        'selected_binding_rows_execution') {
+      fail(`${label}: both selected assertion forms must reach production`);
+    }
     for (const role of [
       'assert_where_mixed_stage_lifetime',
+      'assert_where_input_exact',
+      'assert_where_input_one_short',
       'assert_where_failure_cleanup',
       'assert_where_cancel_cleanup',
+      'assert_unique_mixed_stage_lifetime',
+      'assert_unique_exact_one_short_workspace',
+      'assert_unique_failure_cleanup',
+      'assert_unique_cancel_cleanup',
+      'assert_unique_sort_cancel_cleanup',
+      'assert_unique_sort_failure_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+    for (const role of [
+      'assert_where_in_flight_host_timer',
+      'assert_unique_in_flight_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
       }
     }
   }

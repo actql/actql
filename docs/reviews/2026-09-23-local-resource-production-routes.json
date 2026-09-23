@@ -471,9 +471,17 @@
         "path": "src/connectors/local/compute.mbt",
         "marker": "AssertAll("
       },
+      "additional_dispatch": {
+        "path": "src/connectors/local/compute.mbt",
+        "marker": "AssertUnique("
+      },
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
+      },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
       },
       "boundary_tests": [
         {
@@ -491,13 +499,91 @@
           "fixture": "bounded selected assertion preserves rows and rejects a later failure"
         },
         {
+          "role": "assert_where_input_exact",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected assertion admits its exact input boundary"
+        },
+        {
+          "role": "assert_where_input_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected assertion rejects an input one node short"
+        },
+        {
           "role": "assert_where_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected assertion cancels without publishing rows"
+        },
+        {
+          "role": "assert_unique_mixed_stage_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "standard Host composes Graph projection and bounded unique assertion"
+        },
+        {
+          "role": "assert_unique_exact_one_short_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion has exact workspace peak"
+        },
+        {
+          "role": "assert_unique_failure_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion rejects duplicates before output"
+        },
+        {
+          "role": "assert_unique_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion cancels during key validation"
+        },
+        {
+          "role": "assert_unique_sort_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion cancels during index sorting"
+        },
+        {
+          "role": "assert_unique_sort_failure_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected unique assertion reclaims a failed child sort"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "assert_where_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-assert"
+        },
+        {
+          "role": "assert_unique_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-assert-unique"
+        }
+      ],
+      "boundary_assurance": {
+        "exact_limit": "assert_where_input_exact",
+        "one_short_limit": "assert_where_input_one_short",
+        "in_flight_cancel": "assert_unique_in_flight_host_timer",
+        "cleanup": "assert_unique_sort_failure_cleanup"
+      }
     },
     {
       "inventory": "rela",

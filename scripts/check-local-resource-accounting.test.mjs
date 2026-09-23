@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 2 with complete boundary assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 8 with operation-specific boundary records, 3 with complete boundary assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -185,6 +185,49 @@ test('resource gate rejects assertion without failure cleanup', () => {
     assertion.boundary_tests = assertion.boundary_tests.filter(item =>
       item.role !== 'assert_where_failure_cleanup');
   }), /RelA assert_rows: reviewed assert_where_failure_cleanup fixture is missing/);
+});
+
+test('resource gate rejects a missing unique assertion product route', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    delete assertion.additional_dispatch;
+  }), /RelA assert_rows: both selected assertion forms must reach production/);
+});
+
+test('resource gate rejects unique assertion without its exact boundary', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_unique_exact_one_short_workspace');
+  }), /RelA assert_rows: reviewed assert_unique_exact_one_short_workspace fixture is missing/);
+});
+
+test('resource gate rejects unique assertion without Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.environment_tests = [];
+  }), /RelA assert_rows: assert_where_in_flight_host_timer fixture is missing/);
+});
+
+test('resource gate rejects assertion without exact input admission', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_where_input_exact');
+  }), /RelA assert_rows: reviewed assert_where_input_exact fixture is missing/);
+});
+
+test('resource gate rejects assertion without failed sort cleanup', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_unique_sort_failure_cleanup');
+  }), /RelA assert_rows: reviewed assert_unique_sort_failure_cleanup fixture is missing/);
 });
 
 test('resource gate rejects selection without exact admission evidence', () => {

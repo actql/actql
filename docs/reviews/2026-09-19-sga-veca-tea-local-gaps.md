@@ -15,7 +15,7 @@ readable coverage manifest is authoritative for individual operation status.
 | Completion | Closed for operation coverage: all 39 entries use the shared Carrier-aware lifecycle with registered lifetime evidence | Preserve exact owner, generation, view, and independent release rules while closing the shared release gates |
 | Runtime material | Closed for operation coverage: all 39 entries retain their Carrier laws through bounded immutable or managed shared storage | Preserve storage meaning, admission, holding, and reclamation while closing the shared release gates |
 | Progress | Long principal paths use bounded sessions and each operation has a checked production route | Prove operation-specific boundary evidence and the remaining common cancellation boundary |
-| Cancellation | Closed for the 39 operation entries; a Node standard Host timer now stops Graph-to-Relation take after the mixed split, while other selected Relation paths remain unverified | Preserve stop/reclaim separation and test the remaining mixed paths |
+| Cancellation | Closed for the 39 operation entries; Node standard Host timers now stop selected filter, select, sort, take, and assertion paths after a mixed Carrier/Relation split | Preserve stop/reclaim separation and test the remaining mixed paths |
 | Packaging | Closed: the RelA-only artifact and each family provider have verified transitive imports and generated artifacts | Preserve the artifact gate whenever runtime or provider imports change |
 | Publication | Closed for operation coverage: every applicable Effect-free Relation result and Carrier projection uses the formal publication path | Preserve publication preflight, exact identity, custody, retrieval, and failure behavior |
 | Differential conformance | Closed: all 29 RelA operations are classified and the six registered overlapping Local/DuckDB scopes require same-program execution, canonical comparison, and independent expectations | Preserve the operation-indexed manifest and extend it whenever a second registered implementation gains formal scope |
@@ -67,9 +67,9 @@ readable coverage manifest is authoritative for individual operation status.
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
-  explicit proof roles on every route. Filter and select have complete proof
-  bindings recorded so far, each including real Host timer cancellation; the
-  command is intentionally failing while the
+  explicit proof roles on every route. Filter, select, and assert_rows have
+  complete proof bindings recorded so far, each including real Host timer
+  cancellation; the command is intentionally failing while the
   remaining routes are audited. The ordinary resource command checks route
   identity and existing evidence without claiming release completion.
   Checked Relation sort after a Carrier projection now has a selected task
@@ -84,8 +84,9 @@ readable coverage manifest is authoritative for individual operation status.
   keys, including six equal 165-byte text values (990 text bytes per row
   under the fixture's 1,000 `max_value_bytes` setting). It measures the maximum
   resume duration, delivers a real timer cancellation after 70 quantum-one
-  advances, and verifies stop and cleanup. A local run measured
-  0.347 ms maximum resume and 0.099 ms from delivery to stop. These are
+  advances, and verifies stop and cleanup. Two local runs measured 0.347
+  and 0.601 ms maximum resume, with 0.099 and 0.137 ms from cancellation
+  delivery to stop. These are
   environment diagnostics, not a universal deadline or proof for every
   admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
@@ -95,8 +96,14 @@ readable coverage manifest is authoritative for individual operation status.
   failure, never a filter omission; a later failure leaves no completion.
   Three-target fixtures cover quantum-one execution, two consumers, formal
   publication, cancellation, and cleanup. A Node standard Host timer delivers
-  cancellation during the selected assertion. The unique-key assertion branch
-  remains on the synchronous fallback and is not covered by this change.
+  cancellation during the selected assertion. The unique-key branch now has
+  its own bounded key validation, stable index ordering, duplicate check, and
+  unchanged-row output. Its direct three-target fixtures cover empty input,
+  NULL and duplicate failures, exact/one-short workspace, and cleanup. The
+  Graph-to-Relation standard Host path retains two consumers and publication
+  on all three targets, and a Node timer delivers in-flight cancellation.
+  The combined `assert_rows` route still lacks exact resource evidence for
+  every assertion form, so it is not marked boundary-complete.
 
 The bounded binding-row API now takes separate input and output value limits.
 This is a low-level source signature change, not a standard Host or wire

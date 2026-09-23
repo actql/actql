@@ -1,5 +1,7 @@
 ///|
 priv enum BoundedBindingRowsPhase {
+  CheckUniqueKeys
+  CheckUniquePairs
   ChargeInput
   RetainInputs
   ChargeSortNames
@@ -75,6 +77,7 @@ priv struct BoundedBindingRowsState {
   bindings : Array[(String, @lower.Expression)]
   predicate : @lower.Expression?
   assertion : Bool
+  unique_keys : Array[@schema.FieldName]?
   input_names : Array[String]
   output_names : Array[String]
   input_ordinals : Map[String, Int]
@@ -90,6 +93,9 @@ priv struct BoundedBindingRowsState {
   mut sort_row : Int
   mut sort_column : Int
   mut sort_charge_open : Bool
+  mut unique_key : Int
+  mut unique_row : Int
+  mut unique_pair : Int
   ordered : Bool
   output_schema : @schema.Schema
   admitted_limits : @admitted.Limits
@@ -178,7 +184,21 @@ fn checked_ordered_output_value(
 ///|
 fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.sort_execution is Some(execution) {
-    cleanup_bounded_index_sort(execution) |> ignore
+    // The parent may already be stopped while its child sort still owns two
+    // private arrays. Observe the child's stop before releasing its custody.
+    if !bounded_index_sort_stopped(execution) {
+      @bounded.request_cancel(state.engine) |> ignore
+      match advance_bounded_index_sort(execution, 1) {
+        Ok(BoundedIndexSortStopped(_)) => ()
+        Ok(BoundedIndexSortContinue)
+        | Ok(BoundedIndexSortComplete(_))
+        | Ok(BoundedIndexSortFailed(_))
+        | Err(_) => return false
+      }
+    }
+    if !cleanup_bounded_index_sort(execution) {
+      return false
+    }
     state.sort_execution = None
   }
   state.sort_orders = []
@@ -238,6 +258,99 @@ fn bounded_binding_rows_step(
       return fail_bounded_binding_rows(InvalidExecution, progress, used)
     }
     match state.phase {
+      CheckUniqueKeys => {
+        guard state.unique_keys is Some(keys) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.unique_key == keys.length() {
+          state.phase = StartSort
+          continue
+        }
+        let name = @schema.reference_name(keys[state.unique_key])
+        if state.unique_row < 0 {
+          if !reserve_slots(state.workspace, 1) ||
+            !spend_control(state.control, 1) ||
+            !spend_control_text(state.control, name) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          guard state.input_ordinals.get(name) is Some(column) else {
+            return fail_bounded_binding_rows(Rows(InvalidRows), progress, used)
+          }
+          state.sort_orders.push({
+            column,
+            descending: false,
+            nulls_first: false,
+          })
+          state.unique_row = 0
+          used += 1
+        } else if state.unique_row < count {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          let column = state.sort_orders[state.unique_key].column
+          guard producer_read_cell(state.input, state.unique_row, column)
+            is Some(value) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          if value is Null {
+            return fail_bounded_binding_rows(
+              Rows(AssertionNullKey(state.unique_row, state.unique_key)),
+              progress,
+              used + 1,
+            )
+          }
+          state.unique_row += 1
+          used += 1
+        } else {
+          state.unique_key += 1
+          state.unique_row = -1
+        }
+      }
+      CheckUniquePairs => {
+        if state.unique_pair >= count {
+          release_slots(state.workspace, count + state.sort_orders.length())
+          state.sorted_indices = None
+          state.sort_orders = []
+          state.phase = ChargeInput
+          continue
+        }
+        guard state.sorted_indices is Some(indices) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        let rows : ProducerReadIndexedRows = {
+          input: state.input,
+          width: state.input_names.length(),
+        }
+        let left = indices[state.unique_pair - 1]
+        let right = indices[state.unique_pair]
+        match
+          compare_row_indices(
+            rows,
+            left,
+            right,
+            state.sort_orders,
+            state.control,
+          ) {
+          Ok(0) =>
+            return fail_bounded_binding_rows(
+              Rows(AssertionDuplicate(left, right)),
+              progress,
+              used + 1,
+            )
+          Ok(_) => ()
+          Err(issue) =>
+            return fail_bounded_binding_rows(
+              Rows(ordering_row_issue(issue)),
+              progress,
+              used + 1,
+            )
+        }
+        state.unique_pair += 1
+        used += 1
+      }
       ChargeInput => {
         if state.charge_row == count {
           state.phase = RetainInputs
@@ -454,7 +567,9 @@ fn bounded_binding_rows_step(
             state.sort_row = 0
             state.sort_column = 0
             state.sort_charge_open = false
-            state.phase = if state.sort_only {
+            state.phase = if state.unique_keys is Some(_) {
+              CheckUniquePairs
+            } else if state.sort_only {
               BeginRow
             } else {
               ChargeSortedRows
@@ -919,18 +1034,14 @@ pub fn start_bounded_binding_rows(
       true
     }
   }
-  // The copied binding view, both name arrays, and both ordinal maps coexist
-  // for the complete session. Admit all entries before constructing any of
-  // those containers.
-  if !admit_metadata(binding_count) ||
-    !admit_metadata(input_width) ||
-    !admit_metadata(output_width) ||
-    !admit_metadata(input_width) ||
-    !admit_metadata(binding_count) {
+  // Admit the copied typed view before reading it. Name arrays and ordinal
+  // maps are admitted below using their actual sizes before construction.
+  if !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
+  let body = @lower.kernel_body(kernel)
   let (bindings, ordered, predicate, select_mode, take_range, sort_kernel) = match
-    @lower.kernel_body(kernel) {
+    body {
     @lower.OrderedBindings(bindings) =>
       (bindings, true, None, false, None, None)
     @lower.SnapshotMap(bindings) => (bindings, false, None, false, None, None)
@@ -938,6 +1049,7 @@ pub fn start_bounded_binding_rows(
       ([], false, Some(expression), false, None, None)
     @lower.AssertAll(expression) =>
       ([], false, Some(expression), false, None, None)
+    @lower.AssertUnique(_) => ([], false, None, false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.StableSort(_) =>
       (
@@ -972,9 +1084,25 @@ pub fn start_bounded_binding_rows(
     }
     _ => return Err(InvalidExecution)
   }
-  let sort_only = @lower.kernel_body(kernel) is @lower.StableSort(_)
-  let assertion = @lower.kernel_body(kernel) is @lower.AssertAll(_)
-  if take_range is None && !select_mode && bindings.length() != binding_count {
+  if !admit_metadata(input_width) ||
+    !admit_metadata(output_width) ||
+    !admit_metadata(input_width) ||
+    !admit_metadata(bindings.length()) {
+    return Err(InvalidExecution)
+  }
+  let sort_only = body is @lower.StableSort(_)
+  let assertion = body is @lower.AssertAll(_)
+  let unique_keys = match body {
+    @lower.AssertUnique(keys) => Some(keys)
+    _ => None
+  }
+  if unique_keys is Some(keys) && keys.is_empty() {
+    return Err(InvalidExecution)
+  }
+  if take_range is None &&
+    !select_mode &&
+    unique_keys is None &&
+    bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
   if take_range is Some(_) && !admit_metadata(output_width) {
@@ -996,7 +1124,7 @@ pub fn start_bounded_binding_rows(
       }
     }
   }
-  if !select_mode && take_range is None {
+  if !select_mode && unique_keys is None && take_range is None {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
@@ -1021,8 +1149,7 @@ pub fn start_bounded_binding_rows(
   for index, binding in bindings {
     binding_ordinals[binding.0] = index
   }
-  let projection_ordinals : Map[String, Int]? = match
-    @lower.kernel_body(kernel) {
+  let projection_ordinals : Map[String, Int]? = match body {
     @lower.Select(fields) => {
       let projection : Map[String, Int] = Map([])
       for field in fields {
@@ -1039,7 +1166,7 @@ pub fn start_bounded_binding_rows(
       }
       Some(projection)
     }
-    @lower.StableSort(_) | @lower.Limit(_, _, _) => {
+    @lower.StableSort(_) | @lower.Limit(_, _, _) | @lower.AssertUnique(_) => {
       let projection : Map[String, Int] = Map([])
       for name in output_names {
         guard input_ordinals.get(name) is Some(index) else {
@@ -1103,6 +1230,7 @@ pub fn start_bounded_binding_rows(
     bindings,
     predicate,
     assertion,
+    unique_keys,
     input_names,
     output_names,
     input_ordinals,
@@ -1118,6 +1246,9 @@ pub fn start_bounded_binding_rows(
     sort_row: 0,
     sort_column: 0,
     sort_charge_open: false,
+    unique_key: 0,
+    unique_row: -1,
+    unique_pair: 1,
     ordered,
     output_schema,
     admitted_limits: {
@@ -1137,7 +1268,11 @@ pub fn start_bounded_binding_rows(
     live,
     accepted,
     port,
-    phase: ChargeInput,
+    phase: if unique_keys is Some(_) {
+      CheckUniqueKeys
+    } else {
+      ChargeInput
+    },
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
