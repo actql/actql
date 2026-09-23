@@ -31,7 +31,7 @@ pub(all) enum CatalogObservationIssue {
 ///|
 pub struct CatalogObservation {
   names : Array[String]
-  resources : Array[ResourceMetadata?]
+  outcomes : Array[ResourceDescribeOutcome]
   truncated : Bool
   binding : CatalogObservationBinding
   body : String
@@ -65,6 +65,15 @@ fn copy_resource(resource : ResourceMetadata) -> ResourceMetadata {
     fields.push({ ..field, reference_to: field.reference_to.copy(), })
   }
   { ..resource, fields, }
+}
+
+///|
+fn copy_outcome(outcome : ResourceDescribeOutcome) -> ResourceDescribeOutcome {
+  match outcome {
+    Described(resource) => Described(copy_resource(resource))
+    Unavailable(reason) => Unavailable(reason)
+    Pending => Pending
+  }
 }
 
 ///|
@@ -267,17 +276,14 @@ pub fn prepare_catalog_observation(
     Err(issue) => return Err(issue)
   }
   let names = []
-  let resources = []
+  let outcomes = []
   for index in 0..<sync.listing.selected.length() {
     names.push(sync.listing.selected[index].name)
-    match sync.outcomes[index] {
-      Described(resource) => resources.push(Some(copy_resource(resource)))
-      _ => resources.push(None)
-    }
+    outcomes.push(copy_outcome(sync.outcomes[index]))
   }
   Ok({
     names,
-    resources,
+    outcomes,
     truncated: sync.listing.truncated,
     binding,
     body,
@@ -303,15 +309,27 @@ pub fn catalog_observation_resource(
   current : CatalogObservationBinding,
   name : String,
 ) -> Result[ResourceMetadata, CatalogObservationIssue] {
+  match catalog_observation_resource_outcome(observation, current, name) {
+    Ok(Described(resource)) => Ok(resource)
+    Ok(_) => Err(Resource(DescribeRequired))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// A failed describe is an incomplete observation, not proof of absence.
+/// This accessor does not grant disclosure or current execution authority.
+pub fn catalog_observation_resource_outcome(
+  observation : CatalogObservation,
+  current : CatalogObservationBinding,
+  name : String,
+) -> Result[ResourceDescribeOutcome, CatalogObservationIssue] {
   if current != observation.binding {
     return Err(ForeignBinding)
   }
   for index in 0..<observation.names.length() {
     if observation.names[index] == name {
-      return match observation.resources[index] {
-        Some(resource) => Ok(copy_resource(resource))
-        None => Err(Resource(DescribeRequired))
-      }
+      return Ok(copy_outcome(observation.outcomes[index]))
     }
   }
   Err(
