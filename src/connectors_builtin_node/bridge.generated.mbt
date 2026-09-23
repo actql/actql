@@ -6967,16 +6967,21 @@ pub fn strategy_effect_apply_key_cid(key : @effect.EffectApplyKey) -> String {
 ///|
 #export_name("strategyEffectRowRecoveryAction")
 pub fn strategy_effect_row_recovery_action(
+  expected_locator : @effect.LogicalItemLocator,
+  intent_fingerprint_cid : String,
   expected_key : @effect.EffectDispatchKey,
   canonical_request_cid : String,
+  stored_locator_cid : String,
+  stored_fingerprint_cid : String,
   stored_key_cid : String,
   stored_request_cid : String,
   stored_state : Int,
   active_owner : Bool,
 ) -> Int {
   @effect.effect_row_recovery_action_from_store(
-    expected_key, canonical_request_cid, stored_key_cid, stored_request_cid, stored_state,
-    active_owner,
+    expected_locator, intent_fingerprint_cid, expected_key, canonical_request_cid,
+    stored_locator_cid, stored_fingerprint_cid, stored_key_cid, stored_request_cid,
+    stored_state, active_owner,
   )
 }
 
