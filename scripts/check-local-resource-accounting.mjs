@@ -417,10 +417,18 @@ for (const [index, route] of routeEntries.entries()) {
     fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'normalize_graph') {
+    if (route.selected_entrypoint?.symbol !== 'start_normalize_view' ||
+      !fs.readFileSync(path.join(root, route.dispatch.path), 'utf8')
+        .includes('@sga.start_normalize_view(')) {
+      fail(`${label}: managed-view production route is missing`);
+    }
     for (const role of [
       'normalize_exact_node_capacity',
       'normalize_one_short_node_capacity',
       'normalize_cancel_cleanup',
+      'normalize_view_exact_node_capacity',
+      'normalize_view_one_short_node_capacity',
+      'normalize_view_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
