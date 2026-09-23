@@ -8,6 +8,7 @@
   "assured_production_paths": [
     {"family": "RelA", "operation": "filter", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "select", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "select", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "take", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "values", "path": "zero_input_entrypoint"},
