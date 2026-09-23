@@ -9,6 +9,7 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
+  "actql/actql/run_publication",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
@@ -40,6 +41,8 @@ pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPort
 pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
+
+pub fn check_effect_preview_checked_inventory(EffectResultBindings, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewInventoryIssue]
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
 
@@ -381,6 +384,15 @@ pub struct EffectMappingShapes {
   entries : Array[EffectMappingShapeBinding]
   work : Int
 }
+
+pub(all) enum EffectPreviewInventoryIssue {
+  InvalidStage
+  WorkLimit
+  MemberCountMismatch
+  MissingMember(String)
+  KindMismatch(String)
+  FailurePolicyMismatch(String)
+} derive(Eq, @debug.Debug)
 
 pub struct EffectResultBinding {
   header : @stage_syntax.EffectHeader
