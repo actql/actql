@@ -47,6 +47,14 @@ fn query_read_initial_path(
       out.write_string("%20")
     } else if character == ',' {
       out.write_string("%2C")
+    } else if character == '=' {
+      out.write_string("%3D")
+    } else if character == '<' {
+      out.write_string("%3C")
+    } else if character == '>' {
+      out.write_string("%3E")
+    } else if character == '-' {
+      out.write_string("%2D")
     } else {
       return Err(InvalidQuery)
     }

@@ -2,6 +2,7 @@
 pub(all) enum SalesforceBroadIssue {
   ForeignSource
   InvalidInputSchema
+  UnexpectedPrefilter
   Query(@catalog.QueryReadIssue)
   Capture(@execution.CaptureIssue)
   Closed
@@ -20,11 +21,53 @@ struct SalesforceBroadPreparation {
 }
 
 ///|
+/// An optional exact prefilter is derived only from the bound checked filter.
+/// An unsupported expression retains the broad query and the full residual.
+fn exact_int_prefilter(
+  owner : @lower.BoundPrepared,
+  filter_index : Int,
+  plan : @catalog.ReadProjection,
+) -> @catalog.ReadProjection? {
+  guard @lower.lower_expression(owner, filter_index, 0, {
+      max_nodes: 3,
+      max_work: 16,
+      max_depth: 3,
+      max_literal_nodes: 1,
+      max_literal_text_bytes: 16,
+    })
+    is Ok(expression) &&
+    @lower.expression_body(expression) is @lower.Binary(operator, left, right) &&
+    @lower.expression_body(left)
+    is @lower.Field(_, @relation.InputField(@schema.Unqualified(name))) &&
+    @lower.expression_contract(left).shape is @contract.Number &&
+    @lower.expression_body(right) is @lower.Literal(value) &&
+    value.value is @admitted.Number(number) else {
+    return None
+  }
+  let threshold = number.to_int()
+  if threshold.to_double() != number {
+    return None
+  }
+  let comparison = match operator {
+    @lower.Equal => @catalog.ExactIntComparison::Equal
+    @lower.Less => @catalog.ExactIntComparison::Less
+    @lower.LessEqual => @catalog.ExactIntComparison::LessEqual
+    @lower.Greater => @catalog.ExactIntComparison::Greater
+    @lower.GreaterEqual => @catalog.ExactIntComparison::GreaterEqual
+    _ => return None
+  }
+  @catalog.with_exact_int_comparison(plan, name, comparison, threshold)
+}
+
+///|
 pub fn prepare_salesforce_broad_query(
   requirement : @planning.QueryRequirement,
   plan : @catalog.ReadProjection,
   connector_instance : String,
 ) -> Result[SalesforceBroadPreparation, SalesforceBroadIssue] {
+  if @catalog.read_projection_has_prefilter(plan) {
+    return Err(UnexpectedPrefilter)
+  }
   let sequence = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
   )
@@ -56,7 +99,12 @@ pub fn prepare_salesforce_broad_query(
     Some(value) => value
     None => return Err(InvalidInputSchema)
   }
-  Ok({ requirement, plan: bound, owner, input_index, columns, })
+  let filtered = exact_int_prefilter(
+    owner,
+    @sourcequery.query_acquisition_filter_index(query),
+    bound,
+  ).unwrap_or(bound)
+  Ok({ requirement, plan: filtered, owner, input_index, columns, })
 }
 
 ///|
