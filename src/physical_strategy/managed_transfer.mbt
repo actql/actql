@@ -46,7 +46,7 @@ pub fn begin_captured_managed_transfer(
     execution_bytes < 0L {
     return Err(if run.stopped { Stopped } else { Physical(InvalidLimits) })
   }
-  guard source_task > 0 &&
+  guard source_task >= captured_compute_first_task(run) &&
     run.done.get(source_task) == Some(true) &&
     run.lifetimes.get(source_task) is Some(lifetime) &&
     lifetime.live &&

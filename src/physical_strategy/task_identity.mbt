@@ -51,7 +51,7 @@ pub fn prepare_checked_task_reference(
   if max_references < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
-  if task < 1 || task >= graph.owners.length() {
+  if task < 0 || task >= graph.owners.length() || graph.targets[task] is None {
     return Err(InvalidTask)
   }
   if graph.data.length() > max_work ||

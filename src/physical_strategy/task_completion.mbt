@@ -11,7 +11,7 @@ fn commit_task_output(
   if run.stopped {
     return Err(Stopped)
   }
-  guard task > 0 &&
+  guard task >= captured_compute_first_task(run) &&
     task < run.outputs.length() &&
     !run.done[task] &&
     run.outputs[task] is None &&

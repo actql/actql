@@ -29,6 +29,7 @@ priv struct LocalInputSlot {
 ///|
 struct CheckedDAG {
   program : @checked.CheckedProgram
+  source_free_root : Bool
   owners : Array[@lower.BoundPrepared]
   targets : Array[@pipeline.Target?]
   input_counts : Array[Int]
@@ -110,6 +111,7 @@ pub fn prepare_checked_dag(
   owners : Array[@lower.BoundPrepared],
   max_tasks : Int,
   max_work : Int,
+  source_free_root? : Bool = false,
 ) -> Result[CheckedDAG, GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
@@ -117,6 +119,19 @@ pub fn prepare_checked_dag(
   let count = @checked.unit_count(program)
   if count > max_tasks || owners.length() != count {
     return Err(TaskLimit)
+  }
+  if source_free_root &&
+    (
+      count == 0 ||
+      @pipeline.input_count(
+        @lower.pipeline(@lower.bound_preparation(owners[0])),
+      ) !=
+      0 ||
+      !@pipeline.starts_with_values(
+        @lower.pipeline(@lower.bound_preparation(owners[0])),
+      )
+    ) {
+    return Err(UnsupportedIncoming(0))
   }
   if count > max_work {
     return Err(WorkLimit)
@@ -447,12 +462,13 @@ pub fn prepare_checked_dag(
   }
   let logical : CheckedDAG = {
     program,
+    source_free_root,
     owners: owners.copy(),
     targets: Array::makei(count, task => {
-      if task == 0 {
+      let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
+      if (task == 0 && !source_free_root) || @pipeline.step_count(pipeline) == 0 {
         None
       } else {
-        let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
         Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
       }
     }),
