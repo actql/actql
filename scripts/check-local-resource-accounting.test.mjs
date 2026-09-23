@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 1 with complete boundary assurance, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 1 with complete boundary assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -52,6 +52,24 @@ test('resource completion rejects every unassured operation', () => {
 test('resource completion also rejects an unassured SGA route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /SGA shortest_path: entrypoint boundary assurance is missing/);
+});
+
+test('resource completion requires the selected sort proof set', () => {
+  assert.match(run(undefined, value => {
+    const sort = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'sort');
+    delete sort.path_assurance.selected_entrypoint;
+  }, ['--require-boundary-complete']),
+  /RelA sort: selected_entrypoint boundary assurance is missing/);
+});
+
+test('resource completion requires the selected take proof set', () => {
+  assert.match(run(undefined, value => {
+    const take = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'take');
+    delete take.path_assurance.selected_entrypoint;
+  }, ['--require-boundary-complete']),
+  /RelA take: selected_entrypoint boundary assurance is missing/);
 });
 
 test('resource completion rejects borrowed proof roles on another route', () => {

@@ -99,8 +99,11 @@ readable coverage manifest is authoritative for individual operation status.
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
   The separate `check:local-resource-completion` command requires all four
-  explicit proof roles on every route. Filter and select have selected-path
-  proof bindings. The where and unique_by `assert_rows` variants have separate
+  explicit proof roles on every route. Filter, select, sort, and take have
+  selected-path proof bindings. Sort uses an exact/one-short workspace pair and
+  its wide-comparison Host timer; take uses independent exact/one-short work
+  and peak-workspace fixtures plus the selected Host timer. The where and
+  unique_by `assert_rows` variants have separate
   selected-path proof sets so one variant cannot borrow the other's bound or
   cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
@@ -114,8 +117,8 @@ readable coverage manifest is authoritative for individual operation status.
   output order, stable ties, cancellation without partial publication, and
   an independently fixed 21-entry peak workspace with a 20-entry rejection.
   A Node standard Host timer reaches this selected sort after Graph
-  construction, normalization, and node projection. Other selected Relation
-  fallback kernels remain synchronous and unverified for in-flight cancel.
+  construction, normalization, and node projection. Other Relation paths
+  require their own boundedness and in-flight cancellation evidence.
   The sort's outer merge is bounded, but each comparison still processes all
   ordering terms and long text operands synchronously. A Node standard Host
   stress case uses the maximum ten-column fixture schema and seven sort keys,
