@@ -97,7 +97,7 @@
     "REL.dedupeRows": {
       "law_id": "aoa.rela.REL.dedupeRows.v0.1",
       "deterministic": true,
-      "ordering_law": "groups are ordered by canonical key identity; representative order is explicit and unresolved first-place ties fail",
+      "ordering_law": "groups are ordered by the canonical typed key tuple: authored component order, NULLS FIRST per component, then the type-specific non-null order; the key CID is not an ordering key. Representative order is explicit and unresolved first-place ties fail",
       "proof_status": "conformance-backed",
       "conformance_cases": [
         "packages/rela/test/exec-dedupe-rows.spec.ts"

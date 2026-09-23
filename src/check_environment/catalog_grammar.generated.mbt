@@ -3,13 +3,13 @@
 ///|
 pub fn catalog_grammar_cid(body : CatalogGrammar) -> String {
   match body {
-    EnvironmentBody => "sha256:d6ec4aed854d53b3e85cfb6aa6fc9d11989a46cd8a4fd13800483d6687a76e8e"
+    EnvironmentBody => "sha256:7676ba34c4643399da116b4f90ed3a420976e055f7124a86aa6a94693f1586ce"
     ValueGrammarBody =>
       "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
     GraphLawBody =>
       "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
     RelationLawBody =>
-      "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2"
+      "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
     TextPolicyGrammarBody =>
       "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a"
     CapacityGrammarBody =>

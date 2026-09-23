@@ -20,9 +20,9 @@
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
   "rela_scalar_law_manifest_cid": "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122",
-  "rela_primitive_law_manifest_cid": "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2",
+  "rela_primitive_law_manifest_cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
   "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
-  "sga_structural_law_manifest_cid": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
+  "sga_structural_law_manifest_cid": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
   "pipeline_registry_cid": "sha256:9824889f4b22df1bd7086959df4b2cc5d32971d29a4239852d8fe24df4ff459c",
@@ -93,9 +93,9 @@
     ],
     "law_manifest_cids": {
       "pipeline": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
-      "relation": "sha256:78738e358ec26e70304f7cad6b0ac10b063f9939b107b903bebac4c8fc56d5b2",
+      "relation": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
       "vector_numeric": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
-      "graph_structural": "sha256:7dbf4a4b5830e66867388a34f12751691e9c90594e8e09cab754472144a65b18",
+      "graph_structural": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
       "graph_identity": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
     }
   },

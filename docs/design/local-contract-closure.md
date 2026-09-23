@@ -309,7 +309,7 @@ and validation evidence remain applications rather than contract-set members.
 
 Window occurrences select `spec/contracts/actql-bound-window-laws.json`, pointer
 `""`, with CID
-`sha256:a5045688150b6b5aaf0c992b2e528ba3b5f1dd49e0db14e5673c9515af82ac3a`.
+`sha256:2ad08f2130caa35968ac9cdf660708693c5e14f021f7878d9965a5e1fff5ff78`.
 The common body governs fixed/sliding multipliers for both accepted Carriers;
 the selected operation retains its actual Carrier and source occurrence. Fixed
 step validation is not erased because the multiplier is one. Concrete bound
@@ -319,7 +319,7 @@ This body has no external contract-reference fields.
 Graph construction, structural combination, normalization/bounds, subgraph,
 matching, node/edge projection, components/degree and traversal/shortest
 occurrences select `spec/contracts/actql-bound-graph-laws.json`, pointer `""`,
-pinned as `sha256:5e9a00ff401f42059f037c52babb40f8440201b3dccaffa90da297058d6adc89`.
+pinned as `sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48`.
 This body fixes quantity-specific conditional transfers and selector extents;
 it does not treat path enumeration as node emission or make arbitrary Graph
 operations nonexpanding. Roots retain their owning operation; the body has no

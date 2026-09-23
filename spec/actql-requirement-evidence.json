@@ -8089,7 +8089,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "7d76c188beb235749b95e1aae25c9fafbeaf42bfb42d03e8a35c4acc9a6c57d3",
+      "statement_sha256": "415d284dd19052186512974fef1c7498f997757ced7293530c58df29e034460d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10465,7 +10465,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.window-count-machine",
-      "statement_sha256": "abae949ae95b0d8361bf8e0d8d332e7955671e0e1c3ee3cbfa988033c907698b",
+      "statement_sha256": "8a1d93a2473fa5408a914e8b900e7a913416548fb1ad70016b6eb1138cbfac43",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10487,7 +10487,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-count-machine",
-      "statement_sha256": "f57fc601cd173cf486f8ca79aba2afdc958584d33a416ae1bf95cda5e19c0cb9",
+      "statement_sha256": "9331d58f30c6259db6b93cfb0bef5ec676ff3820796edba50ef832c53b40e185",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -11477,7 +11477,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "3a159fc061f5f5f44612da22676706138ddc1b7babf365d234c415bc14e73e36",
+      "statement_sha256": "b5b4d6c46cfc2edd6b6162e010e517b5a6a0f0d9296b7a0fff8cb6b11724a3f7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

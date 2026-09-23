@@ -6,7 +6,7 @@
   "strategies": {
     "exact_equal": "Require typed equality, including null/null, and return the value.",
     "number_sum": "Add two finite number values, including when equal.",
-    "number_mean": "Compute the binary pairwise average of two finite number values, not a multi-sample global mean.",
+    "number_mean": "Compute the exact mathematical average of two finite binary64 values and round once to binary64, nearest with ties to even, with the existing zero-normalization rule. Intermediate binary64 sum overflow alone is not failure. This is a binary pairwise operation, not a multi-sample global mean.",
     "number_min": "Return the minimum of two finite number values.",
     "number_max": "Return the maximum of two finite number values.",
     "set_union": "Return the union of typed-value equality classes of two arrays in canonical typed-value order.",
