@@ -3,6 +3,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)
   Sync(@catalog.CatalogSyncIssue)
   Observation(@catalog.CatalogObservationIssue)
+  ReadProjection(@catalog.ReadProjectionIssue)
   InvalidResource
 }
 
@@ -230,4 +231,63 @@ pub fn salesforce_catalog_observation_cid(
 #export_name("salesforceCatalogResponseSha256")
 pub fn salesforce_catalog_response_sha256(bytes : Bytes) -> String {
   @catalog.catalog_response_sha256(bytes)
+}
+
+///|
+#export_name("salesforcePrepareReadProjection")
+pub fn salesforce_prepare_read_projection(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  resource_name : String,
+  field_names : Array[String],
+  max_soql_bytes : Int,
+) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue {
+  let current : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.prepare_read_projection(
+      observation, current, resource_name, field_names, max_soql_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ReadProjection(issue)
+  }
+}
+
+///|
+#export_name("salesforceReadProjectionSoql")
+pub fn salesforce_read_projection_soql(
+  plan : @catalog.ReadProjection,
+) -> String {
+  @catalog.read_projection_soql(plan)
+}
+
+///|
+#export_name("salesforceReadProjectionObservationCid")
+pub fn salesforce_read_projection_observation_cid(
+  plan : @catalog.ReadProjection,
+) -> String {
+  @catalog.read_projection_observation(plan)
 }

@@ -29,10 +29,21 @@ pub(all) enum CatalogObservationIssue {
 
 ///|
 pub struct CatalogObservation {
-  sync : CatalogSync
+  names : Array[String]
+  resources : Array[ResourceMetadata?]
+  truncated : Bool
   binding : CatalogObservationBinding
   body : String
   cid : String
+}
+
+///|
+fn copy_resource(resource : ResourceMetadata) -> ResourceMetadata {
+  let fields = []
+  for field in resource.fields {
+    fields.push({ ..field, reference_to: field.reference_to.copy(), })
+  }
+  { ..resource, fields, }
 }
 
 ///|
@@ -232,7 +243,23 @@ pub fn prepare_catalog_observation(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ sync, binding, body, cid: "sha256:" + @sha.hex(@utf8.encode(body)), })
+  let names = []
+  let resources = []
+  for index in 0..<sync.listing.selected.length() {
+    names.push(sync.listing.selected[index].name)
+    match sync.outcomes[index] {
+      Described(resource) => resources.push(Some(copy_resource(resource)))
+      _ => resources.push(None)
+    }
+  }
+  Ok({
+    names,
+    resources,
+    truncated: sync.listing.truncated,
+    binding,
+    body,
+    cid: "sha256:" + @sha.hex(@utf8.encode(body)),
+  })
 }
 
 ///|
@@ -256,8 +283,15 @@ pub fn catalog_observation_resource(
   if current != observation.binding {
     return Err(ForeignBinding)
   }
-  match catalog_sync_resource(observation.sync, name) {
-    Ok(resource) => Ok(resource)
-    Err(issue) => Err(Resource(issue))
+  for index in 0..<observation.names.length() {
+    if observation.names[index] == name {
+      return match observation.resources[index] {
+        Some(resource) => Ok(copy_resource(resource))
+        None => Err(Resource(DescribeRequired))
+      }
+    }
   }
+  Err(
+    Resource(if observation.truncated { ListingTruncated } else { NotVisible }),
+  )
 }
