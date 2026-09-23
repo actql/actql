@@ -655,6 +655,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_values_wbtest.mbt",
           "fixture": "standard Host splits zero-input values from derive"
+        },
+        {
+          "role": "derive_scalar_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected derive admits exact work and workspace"
+        },
+        {
+          "role": "derive_scalar_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected derive admits exact work and workspace"
+        },
+        {
+          "role": "derive_input_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected derive admits exact input and rejects one-short"
+        },
+        {
+          "role": "derive_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded selected derive stops after work without publication"
         }
       ],
       "environment_tests": [
@@ -671,6 +699,64 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-derive-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "derive_input_exact_one_short",
+          "one_short_limit": "derive_input_exact_one_short",
+          "in_flight_cancel": "same_stage_values_derive_timer_cancel_cleanup",
+          "cleanup": "derive_cancel_cleanup"
+        },
+        "ordinary_entrypoint": {
+          "exact_limit": "derive_input_exact_one_short",
+          "one_short_limit": "derive_input_exact_one_short",
+          "in_flight_cancel": "ordinary_derive_in_flight_host_timer",
+          "cleanup": "derive_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "derive_scalar_work_exact_one_short",
+            "one_short_limit": "derive_scalar_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "derive_scalar_workspace_exact_one_short",
+            "one_short_limit": "derive_scalar_workspace_exact_one_short"
+          }
+        },
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "derive_scalar_work_exact_one_short",
+            "one_short_limit": "derive_scalar_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "derive_scalar_workspace_exact_one_short",
+            "one_short_limit": "derive_scalar_workspace_exact_one_short"
+          }
+        }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "derive_input_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both registered paths enter the same selected_binding_rows_execution symbol, so their checked ProducerRead input admission and input-value limits are identical."
+        },
+        {
+          "role": "derive_cancel_cleanup",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both registered paths enter the same selected_binding_rows_execution symbol and use the same bounded scalar-expression session and unpublished-output cleanup owner."
+        },
+        {
+          "role": "derive_scalar_work_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "The selected and ordinary routes have the same registered bounded execution symbol and the same scalar derive work accounting; distinct Host timer fixtures reach both routes."
+        },
+        {
+          "role": "derive_scalar_workspace_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "The selected and ordinary routes have the same registered bounded execution symbol and the same scalar derive workspace ownership; distinct Host timer fixtures reach both routes."
         }
       ]
     },

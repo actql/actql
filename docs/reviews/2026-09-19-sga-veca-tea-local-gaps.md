@@ -252,7 +252,14 @@ same-sequence variants can still reach the providerless lane.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
-  cleanup evidence. The take route registers bounded mixed-stage quantum,
+  cleanup evidence. The scalar `derive` path now has an independently fixed
+  two-row work boundary of 78 control units and a 27-slot peak workspace
+  boundary. The one-short cases fail before completion and retain cleanup
+  ownership. Direct input-value and post-work cancellation fixtures join
+  separate ordinary and selected standard Host timer routes. These proofs
+  share only the exact bounded execution symbol; the synchronous whole-
+  sequence entrypoint remains unassured. The take route registers bounded
+  mixed-stage quantum,
   lifetime, cancellation, and cleanup fixtures. Its selected path now binds
   separate exact/one-short control-work and peak-workspace fixtures for both
   unkeyed and key-completion variants. The key-completion peak includes the
