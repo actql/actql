@@ -77,3 +77,65 @@ test "bounded independent row copy stops before partial output publication" {
   assert_true(cleanup_bounded_independent_row_copy(copy).unwrap())
   assert_false(bounded_independent_row_copy_cleanup_pending(copy))
 }
+
+///|
+test "bounded independent row copy admits exact dimensions before starting" {
+  let owner = capture_fixture()
+  let generated = compute_test_sequence(owner)
+  let completed = test_typed_completion(generated, 1)
+  let source = completed_output(completed, Step(1)).unwrap()
+  let control = @bounded.control()
+  assert_true(
+    start_bounded_independent_row_copy(control, source, 1, 2) is Err(Limit),
+  )
+  assert_true(
+    start_bounded_independent_row_copy(control, source, 2, 1) is Err(Limit),
+  )
+  let copy = start_bounded_independent_row_copy(control, source, 2, 2).unwrap()
+  let mut total_work = 0L
+  let mut output : CompletedOutput? = None
+  while output is None && total_work < 20L {
+    match advance_bounded_independent_row_copy(copy, 1).unwrap() {
+      RowCopyContinue(work~, ..) => total_work = work
+      RowCopyComplete(value, work~, ..) => {
+        total_work = work
+        output = Some(value)
+      }
+      RowCopyFailed(_, ..) | RowCopyStopped(_, ..) =>
+        abort("exact bounded copy did not complete")
+    }
+  }
+  assert_true(output is Some(_))
+  assert_eq(total_work, 11L)
+  assert_true(cleanup_bounded_independent_row_copy(copy).unwrap())
+}
+
+///|
+test "bounded independent row copy rejects a source lost between resumes" {
+  let owner = capture_fixture()
+  let generated = compute_test_sequence(owner)
+  let completed = test_typed_completion(generated, 1)
+  let permission = Ref(true)
+  let source = restrict_completed_output(
+    completed_output(completed, Step(1)).unwrap(),
+    fn() { permission.val },
+  )
+  let copy = start_bounded_independent_row_copy(
+    @bounded.control(),
+    source,
+    2,
+    2,
+  ).unwrap()
+  assert_true(
+    advance_bounded_independent_row_copy(copy, 1) is Ok(RowCopyContinue(..)),
+  )
+  permission.val = false
+  assert_true(
+    advance_bounded_independent_row_copy(copy, 1)
+    is Ok(RowCopyFailed(Unavailable, ..)),
+  )
+  assert_true(bounded_independent_row_copy_stopped(copy))
+  assert_true(bounded_independent_row_copy_cleanup_pending(copy))
+  assert_true(cleanup_bounded_independent_row_copy(copy).unwrap())
+  assert_false(bounded_independent_row_copy_cleanup_pending(copy))
+}

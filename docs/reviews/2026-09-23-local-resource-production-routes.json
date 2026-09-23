@@ -1076,6 +1076,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
           "fixture": "Local managed cross join cancellation publishes nothing and reclaims"
+        },
+        {
+          "role": "managed_in_flight_copy_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
+          "fixture": "Local managed cross join copy stops after execution has started"
         }
       ]
     },
