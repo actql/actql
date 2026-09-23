@@ -4,6 +4,11 @@ The external review was fixed at `e4029354d452732d6c205fd6132ca54d74019248`.
 It distinguishes implementation defects, scale limits, and unfinished acceptance
 evidence. This response tracks those findings against this branch; none of the
 items below is declared complete merely because a diagnostic test passes.
+The reviewed `01-performance-policy.md` is incorporated here as a fixed-revision
+review, not as a current-source audit. Its PERF-1 acceptance requirement is
+adopted without reducing the registered matrix or thresholds. PERF-2 remains
+an operational scale question after the bounded-frontier implementation, and
+PERF-3 still needs final-revision Linux CI after the native policy adapter.
 
 | Review item | Current result | Required closure |
 | --- | --- | --- |
@@ -91,3 +96,21 @@ mere missing measurement paperwork.
 Review regressions to add before closing PERF-1: missing pair, missing case,
 changed Program or implementation hash, unconfirmed cleanup, and a baseline
 capacity exception incorrectly converted into a finite speed ratio.
+
+At clean revision `4d8da8dec`, a distinct 100-row training case produced a
+verified estimate profile for the registered 1,000-row evaluation case. One
+fresh-child alternating retained/equivalent pair then completed with the real
+DuckDB Store path. The independent assembly now records all three Compute
+attempts while keeping one bounded shared database capacity; it matched the
+product's seven total attempt admissions, logical guard and comparison charges,
+acquisition metadata, final identity, and terminal release. The raw training
+and pair records are in the workspace scratch directories
+`actql-retained-calibration-pspM3F` and
+`matched-calibrated-4d8da8dec.json`.
+
+The pair's `acceptanceEligible: true` means its *equivalent-obligation
+admission* succeeded. Both child legs still report `acceptanceEligible: false`,
+and the registered series assessor rejects the retained leg as an unqualified
+product timing sample. This run is one diagnostic pair, not seven alternating
+pairs, and says nothing about the other 26 cases or the other comparators.
+PERF-1 therefore remains open at the reviewed priority.
