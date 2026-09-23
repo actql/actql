@@ -30,6 +30,7 @@ function effectApplicationControl(moon) {
     dispatchKey: (...args) =>
       checked(moon.strategyEffectDispatchKey(...args)),
     dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    batchRowsShareMember: moon.strategyEffectBatchRowsShareMember,
     logicalItemLocator: (...args) =>
       checked(moon.strategyEffectLogicalItemLocator(...args)),
     logicalItemLocatorCid: moon.strategyEffectLogicalItemLocatorCid,
