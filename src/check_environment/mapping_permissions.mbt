@@ -17,6 +17,7 @@ pub struct MappingPermissionSelection {
   write_fields : Array[String]
   permissions : Array[String]
   required_permissions : Array[String]
+  work : Int
 }
 
 ///|
@@ -49,6 +50,11 @@ pub fn mapping_permission_required_names(
   selection : MappingPermissionSelection,
 ) -> Array[String] {
   selection.required_permissions.copy()
+}
+
+///|
+pub fn mapping_permission_work(selection : MappingPermissionSelection) -> Int {
+  selection.work
 }
 
 ///|
@@ -246,6 +252,7 @@ pub fn select_mapping_permissions(
           write_fields: write_fields.copy(),
           permissions,
           required_permissions: required,
+          work: max_work - remaining.val,
         })
       None => Err(NoMatchingRule)
     }

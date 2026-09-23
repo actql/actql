@@ -22,6 +22,7 @@ test "Mapping permission rule matches kind selector and exact field set" {
   assert_eq(mapping_permission_rule(selected), ("create", "none", ["Name"]))
   assert_eq(mapping_permission_names(selected), ["scope:create"])
   assert_eq(mapping_permission_required_names(selected), [])
+  assert_eq(mapping_permission_work(selected), 5)
   assert_eq(
     select_mapping_permissions(shape, "update", "id", ["Name"], 10).unwrap_err(),
     NoMatchingRule,
