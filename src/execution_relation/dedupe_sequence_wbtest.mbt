@@ -109,13 +109,13 @@ test "dedupe runs through the owned driver retaining payload and canonical group
     let complete = execute_generated_sequence(generated, [], limits).unwrap()
     let table = test_row_output(completed_output(complete, Step(1)).unwrap())
     assert_eq(table.rows.length(), 2)
-    // Fixed SHA-256 ordering: [2] precedes [1], independent of input order.
-    assert_true(table.rows[0][0] is Number(2))
-    assert_true(table.rows[1][0] is Number(1))
+    // Typed numeric key order is independent of the input and CID order.
+    assert_true(table.rows[0][0] is Number(1))
+    assert_true(table.rows[1][0] is Number(2))
     let selected = test_row_output(completed_output(complete, Step(2)).unwrap())
     assert_eq(selected.names, ["rank", "payload"])
-    assert_true(selected.rows[0][0] is Number(3))
-    assert_true(selected.rows[1][0] is Number(4))
+    assert_true(selected.rows[0][0] is Number(4))
+    assert_true(selected.rows[1][0] is Number(3))
     assert_true(selected.rows[0][1] is Captured(@admitted.Array(_)))
   }
 }

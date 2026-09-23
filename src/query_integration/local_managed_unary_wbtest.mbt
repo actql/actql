@@ -96,10 +96,10 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":3}",
       ]
-    "dedupe_rows" => ["{\"id\":2,\"amount\":30}", "{\"id\":1,\"amount\":10}"]
+    "dedupe_rows" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
     "dedupe_compound_nullable" =>
       [
-        "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}", "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}",
+        "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}", "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}",
       ]
     _ => abort("unknown Local unary expectation")
   }
@@ -205,7 +205,7 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     ]
   } else if kind == "dedupe_compound_nullable" {
     [
-      "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}", "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}",
+      "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}", "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}",
     ]
   } else {
     local_managed_unary_expected(kind)

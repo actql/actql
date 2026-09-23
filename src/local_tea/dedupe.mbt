@@ -115,72 +115,13 @@ fn dedupe_scratch(records : Int, terms : Int) -> Int? {
 }
 
 ///|
-fn event_decimal_compare(
-  left : @value.DecimalValue,
-  right : @value.DecimalValue,
-) -> Int {
-  let a = left.coefficient
-  let b = right.coefficient
-  let negative_a = a[0] == '-'
-  let negative_b = b[0] == '-'
-  if a == "0" {
-    return if b == "0" { 0 } else if negative_b { 1 } else { -1 }
-  }
-  if b == "0" {
-    return if negative_a { -1 } else { 1 }
-  }
-  if negative_a != negative_b {
-    return if negative_a { -1 } else { 1 }
-  }
-  let offset_a = if negative_a { 1 } else { 0 }
-  let offset_b = if negative_b { 1 } else { 0 }
-  let digits_a = a.length() - offset_a
-  let digits_b = b.length() - offset_b
-  let exponent_a = digits_a - left.scale
-  let exponent_b = digits_b - right.scale
-  let direction = if negative_a { -1 } else { 1 }
-  if exponent_a != exponent_b {
-    return (if exponent_a < exponent_b { -1 } else { 1 }) * direction
-  }
-  for index in 0..<Int::max(digits_a, digits_b) {
-    let digit_a = if index < digits_a { a[offset_a + index] } else { '0' }
-    let digit_b = if index < digits_b { b[offset_b + index] } else { '0' }
-    if digit_a != digit_b {
-      return (if digit_a < digit_b { -1 } else { 1 }) * direction
-    }
-  }
-  0
-}
-
-///|
 fn event_compare_non_null(
   left : @value.CheckedValue,
   right : @value.CheckedValue,
 ) -> Int? {
-  match (left.value, right.value) {
-    (@value.Number(a), @value.Number(b)) =>
-      Some(if a < b { -1 } else if a > b { 1 } else { 0 })
-    (@value.Boolean(a), @value.Boolean(b)) =>
-      Some(if a == b { 0 } else if a { 1 } else { -1 })
-    (@value.Text(a), @value.Text(b))
-    | (@value.Date(a), @value.Date(b))
-    | (@value.Timestamp(a), @value.Timestamp(b)) =>
-      Some(@canonical.compare_utf16(a, b))
-    (@value.Decimal(a), @value.Decimal(b)) => Some(event_decimal_compare(a, b))
-    (@value.Reference(a), @value.Reference(b)) =>
-      if @value.reference_available(a) &&
-        @value.reference_available(b) &&
-        @value.reference_same_domain(a, b) {
-        Some(
-          @canonical.compare_utf16(
-            @value.reference_identity_cid(a),
-            @value.reference_identity_cid(b),
-          ),
-        )
-      } else {
-        None
-      }
-    _ => None
+  match @value.compare_group_key_values(left, right) {
+    Ok(order) => Some(order)
+    Err(_) => None
   }
 }
 
@@ -247,11 +188,11 @@ fn dedupe_compare_term(
     (@value.Null, _) => Some(if nulls_first { -1 } else { 1 })
     (_, @value.Null) => Some(if nulls_first { 1 } else { -1 })
     _ =>
-      event_compare_non_null(left, right).map(comparison => {
+      event_compare_non_null(left, right).map(order => {
         if descending {
-          -comparison
+          -order
         } else {
-          comparison
+          order
         }
       })
   }
