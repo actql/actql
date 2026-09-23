@@ -254,6 +254,27 @@ test "durable ledger heads own Effect Set progress after restart" {
     )
     is Err(InvalidHistory),
   )
+  let foreign_applied = issue_next_effect_ledger_entry(
+    foreign_sending,
+    "applied",
+    Some(ledger_test_cid("8")),
+    4096,
+    64,
+    3,
+  ).unwrap()
+  assert_true(
+    effect_set_frontier_from_ledger_entries(
+      ["first", "second"],
+      [1, 1],
+      [[first_locator, second_locator], [third_locator]],
+      [[first, foreign_second], [third]],
+      [[Some(sending), Some(foreign_applied)], [None]],
+      2,
+      3,
+      24,
+    )
+    is Err(InvalidHistory),
+  )
   let unknown = issue_next_effect_ledger_entry(
     sending,
     "unknown",
