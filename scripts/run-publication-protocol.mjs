@@ -292,6 +292,14 @@ function emitSchema(schema, assumedType) {
 export {emitSchema};
 
 const roots = new Map();
+function omitRequiredProperty(schema, field) {
+  if (!schema.required?.includes(field) || schema.properties?.[field] === undefined) {
+    throw new Error(`Missing Effect Preview identity exclusion: ${field}`);
+  }
+  schema.required = schema.required.filter(name => name !== field);
+  delete schema.properties[field];
+}
+
 for (const [name, selection] of Object.entries(selected)) {
   const complete = structuredClone(
     document.artifact_schemas[selection.schema],
@@ -300,8 +308,16 @@ for (const [name, selection] of Object.entries(selected)) {
     throw new Error(`Missing publication schema: ${selection.schema}`);
   }
   const body = structuredClone(complete);
-  body.required = body.required.filter(field => field !== selection.identity);
-  delete body.properties[selection.identity];
+  omitRequiredProperty(body, selection.identity);
+  if (name === 'effect_preview') {
+    // The generated body descriptor is the semantic CID preimage, not the
+    // transported Preview minus only its self field.
+    omitRequiredProperty(body, 'run_identity_cid');
+    omitRequiredProperty(body, 'authoring_context');
+    const row = body.properties.effects?.items?.properties?.changes?.items;
+    if (row === undefined) throw new Error('Missing Effect Preview row schema');
+    omitRequiredProperty(row, 'row_idempotency_key');
+  }
   roots.set(`${name}:false`, emitSchema(body));
   roots.set(`${name}:true`, emitSchema(complete));
 }

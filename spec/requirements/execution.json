@@ -1378,6 +1378,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body",
+      "statement_sha256": "1863284846223e517a5c5fa645bfd2f5230c739cbff4d553d682fea62f263eef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings",
+      "statement_sha256": "ed21d3760688e1731ad1e15878e92797eb839a3fdf7bab8453b7a72a5eb21f82",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/effect-application.when-review-is-required-the-runtime-must-pause-at-one",
       "statement_sha256": "8e351081b73140a129bf1e4fac3715937126e44c94380173cea86fe26f8100b7",
       "status": "pending",

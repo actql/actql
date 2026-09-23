@@ -9474,6 +9474,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body",
+      "statement_sha256": "1863284846223e517a5c5fa645bfd2f5230c739cbff4d553d682fea62f263eef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings",
+      "statement_sha256": "ed21d3760688e1731ad1e15878e92797eb839a3fdf7bab8453b7a72a5eb21f82",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/effect-application.when-review-is-required-the-runtime-must-pause-at-one",
       "statement_sha256": "8e351081b73140a129bf1e4fac3715937126e44c94380173cea86fe26f8100b7",
       "status": "pending",
@@ -12224,6 +12246,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/review-artifacts.effect-preview-semantic-exclusions-do-not-waive-exact-apply-binding",
+      "statement_sha256": "c0bf606d82dfb1967d45f4bec07958f1145f28c3aaf97253a281e8d80a44baac",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "review-artifacts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/review-artifacts.row-variant-required-review-evidence-full-diff",
       "statement_sha256": "218665f40d415256815696bc98a2b8521c1e6d2bfc3297d2ac79596fdc7c40c8",
       "status": "pending",
@@ -12335,7 +12368,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "9012915693ef83b3c49660c15903dd01470064323cb03128776d2709ed5ae9b3",
+      "statement_sha256": "c90a3f16a4fdd51dbae79dd6db42bfa01123026f4e540e3e30a87f9d416e1d3e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
