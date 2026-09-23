@@ -3,7 +3,8 @@
 import { realpath, stat, lstat } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { DuckDBInstance, StatementType } from '@duckdb/node-api';
-import { bindPhysicalValue, exportPhysicalValue, physicalType } from './physical-values.mjs';
+import { bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes,
+  physicalType } from './physical-values.mjs';
 import {createPhysicalAppender} from './physical-appender.mjs';
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
@@ -328,7 +329,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
                 ? boundedVectorItem(vectors[i], rowCount, fields[i].type, frameLimit)
                 : vectors[i].getItem(rowCount);
               const cell = exportPhysicalValue(item, fields[i].type);
-              nextBytes += Buffer.byteLength(JSON.stringify(cell), 'utf8') + (rowCount === 0 ? 0 : 1);
+              nextBytes += physicalJsonScalarBytes(cell) + (rowCount === 0 ? 0 : 1);
               if (nextBytes > frameLimit) break;
               candidate.push(cell);
             }

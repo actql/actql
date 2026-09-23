@@ -82,6 +82,24 @@ export function exportPhysicalValue(value, type) {
   }
 }
 
+// The native transport exports only JSON scalars. Most numeric encodings and
+// ordinary identifiers are printable ASCII and need no JSON escaping. Avoid
+// allocating an encoded string solely to enforce the physical frame ceiling;
+// preserve JSON.stringify's exact byte count for every other string.
+export function physicalJsonScalarBytes(value) {
+  if (value === null) return 4;
+  if (value === true) return 4;
+  if (value === false) return 5;
+  if (typeof value !== 'string') throw new PhysicalValueError('InvalidPhysicalValue');
+  for (let i = 0; i < value.length; i++) {
+    const unit = value.charCodeAt(i);
+    if (unit < 0x20 || unit > 0x7e || unit === 0x22 || unit === 0x5c) {
+      return Buffer.byteLength(JSON.stringify(value), 'utf8');
+    }
+  }
+  return value.length + 2;
+}
+
 // Only transport-shape/range validation here. This does not certify that a
 // physical integer is representable as ActQL number, or that a timestamp is UTC.
 export function bindPhysicalValue(statement, index, { type, value }) {
