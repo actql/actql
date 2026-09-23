@@ -35,6 +35,7 @@ pub(all) enum EffectSetProgressIssue {
   InvalidMember
   CapacityExceeded
   InvalidHistory
+  ForeignLedgerEntry(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -204,6 +205,88 @@ pub fn effect_set_frontier_from_codes(
     members.push({ effect_id: effect_ids[index], policy, rows: states, })
   }
   effect_set_frontier(members, max_members, max_rows, max_work - used)
+}
+
+///|
+/// Derive progress from exact durable row heads, not caller-supplied state
+/// codes. The expected bases must come from the admitted checked Preview and
+/// physical request. A dispatching head remains in flight/uncertain until a
+/// separate reconciliation transition establishes its outcome; this function
+/// never authorizes another physical send.
+pub fn effect_set_frontier_from_ledger_entries(
+  effect_ids : Array[String],
+  policies : Array[Int],
+  locators : Array[Array[LogicalItemLocator]],
+  expected_bases : Array[Array[EffectLedgerBasis]],
+  heads : Array[Array[EffectLedgerEntry?]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> Result[EffectSetFrontier, EffectSetProgressIssue] {
+  if max_members < 1 ||
+    max_rows < 0 ||
+    max_work < 1 ||
+    effect_ids.length() != policies.length() ||
+    effect_ids.length() != locators.length() ||
+    effect_ids.length() != expected_bases.length() ||
+    effect_ids.length() != heads.length() ||
+    effect_ids.length() > max_members {
+    return Err(InvalidLimits)
+  }
+  let members : Array[EffectMemberProgress] = []
+  let mut work = 0
+  let mut total_rows = 0
+  for member_index in 0..<effect_ids.length() {
+    work += 1
+    if work >= max_work {
+      return Err(CapacityExceeded)
+    }
+    let policy = match policies[member_index] {
+      0 => HaltMember
+      1 => ContinueMember
+      _ => return Err(InvalidMember)
+    }
+    let bases = expected_bases[member_index]
+    let member_locators = locators[member_index]
+    let current = heads[member_index]
+    if bases.length() != current.length() ||
+      bases.length() != member_locators.length() ||
+      bases.length() > max_rows - total_rows {
+      return Err(InvalidLimits)
+    }
+    total_rows += bases.length()
+    let rows : Array[EffectItemProgress] = []
+    for row_index in 0..<bases.length() {
+      work += 1
+      if work >= max_work {
+        return Err(CapacityExceeded)
+      }
+      let locator = member_locators[row_index]
+      if locator.effect_id != effect_ids[member_index] ||
+        locator.cid != bases[row_index].logical_item_locator_cid {
+        return Err(ForeignLedgerEntry(member_index, row_index))
+      }
+      let state = match current[row_index] {
+        None => ItemUnattempted
+        Some(entry) => {
+          if !effect_ledger_entry_matches_basis(entry, bases[row_index]) {
+            return Err(ForeignLedgerEntry(member_index, row_index))
+          }
+          match entry.state {
+            Prepared => ItemUnattempted
+            Dispatching => ItemSending
+            Applied => ItemApplied
+            Accepted => ItemAccepted
+            Failed => ItemFailed
+            Unknown => ItemUnknown
+          }
+        }
+      }
+      rows.push(state)
+    }
+    members.push({ effect_id: effect_ids[member_index], policy, rows, })
+  }
+  effect_set_frontier(members, max_members, max_rows, max_work - work)
 }
 
 ///|

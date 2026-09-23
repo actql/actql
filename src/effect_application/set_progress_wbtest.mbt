@@ -122,3 +122,128 @@ test "Effect Set progress refuses invalid histories and uncharged scans" {
     SetSucceeded,
   )
 }
+
+///|
+test "durable ledger heads own Effect Set progress after restart" {
+  let scope = prepare_logical_request_scope(
+    ledger_test_cid("a"),
+    "request-1",
+    32,
+  ).unwrap()
+  let preview = ledger_test_cid("b")
+  let make_basis = (effect_id : String, row : String) => {
+    let key = prepare_effect_dispatch_key(
+      scope,
+      preview,
+      "\"" + row + "\"",
+      32,
+      8,
+      3,
+    ).unwrap()
+    let locator = prepare_logical_item_locator(
+      scope,
+      "program-1",
+      "node-1",
+      effect_id,
+      "{\"row\":\"" + row + "\"}",
+      64,
+      128,
+      8,
+      3,
+    ).unwrap()
+    let basis = prepare_effect_ledger_basis(
+      scope,
+      locator,
+      key,
+      ledger_test_cid("c"),
+      ledger_test_cid("d"),
+      ledger_test_cid("e"),
+      ledger_test_cid("f"),
+      ledger_test_cid("0"),
+      "unavailable",
+      ledger_test_cid("1"),
+      ledger_test_cid("2"),
+    ).unwrap()
+    (locator, basis)
+  }
+  let (first_locator, first) = make_basis("first", "row-1")
+  let (second_locator, second) = make_basis("first", "row-2")
+  let (third_locator, third) = make_basis("second", "row-3")
+  let prepared = issue_prepared_effect_ledger_entry(first, 4096, 64, 3).unwrap()
+  let sending = issue_next_effect_ledger_entry(
+    prepared,
+    "dispatching",
+    None,
+    4096,
+    64,
+    3,
+  ).unwrap()
+  let pending = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [0, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, second], [third]],
+    [[Some(sending), None], [None]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(pending.outcome, SetRunning)
+  assert_eq(pending.ready, [(1, 0)])
+  let unknown = issue_next_effect_ledger_entry(
+    sending,
+    "unknown",
+    None,
+    4096,
+    64,
+    3,
+  ).unwrap()
+  let halted = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [0, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, second], [third]],
+    [[Some(unknown), None], [None]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(halted.ready, [(1, 0)])
+  let continued = effect_set_frontier_from_ledger_entries(
+    ["first", "second"],
+    [1, 1],
+    [[first_locator, second_locator], [third_locator]],
+    [[first, second], [third]],
+    [[Some(unknown), None], [None]],
+    2,
+    3,
+    24,
+  ).unwrap()
+  assert_eq(continued.ready, [(0, 1), (1, 0)])
+  assert_true(
+    effect_set_frontier_from_ledger_entries(
+      ["first", "second"],
+      [1, 1],
+      [[first_locator, second_locator], [third_locator]],
+      [[first, second], [third]],
+      [[Some(unknown), None], [Some(sending)]],
+      2,
+      3,
+      24,
+    )
+    is Err(ForeignLedgerEntry(1, 0)),
+  )
+  assert_true(
+    effect_set_frontier_from_ledger_entries(
+      ["foreign", "second"],
+      [1, 1],
+      [[first_locator, second_locator], [third_locator]],
+      [[first, second], [third]],
+      [[Some(unknown), None], [None]],
+      2,
+      3,
+      24,
+    )
+    is Err(ForeignLedgerEntry(0, 0)),
+  )
+}

@@ -99,6 +99,71 @@ export function openEffectLedger({
       }
       return rows;
     },
+    // Read each admitted row's authenticated durable head. MoonBit checks the
+    // immutable basis and decides the common Effect frontier.
+    // The caller must obtain member IDs, policies, and claims from the checked
+    // Program and admitted Preview; this is progress, never send admission.
+    frontierFromDurableHeads(members, maxWork) {
+      if (!Array.isArray(members) || members.length === 0 ||
+          members.length > 1000 || !Number.isSafeInteger(maxWork) ||
+          maxWork < 1 || maxWork > 100_000_000) {
+        fail('InvalidEffectProgressInventory');
+      }
+      const effectIds = [];
+      const policies = [];
+      const locators = [];
+      const bases = [];
+      const heads = [];
+      const seen = new Set();
+      let totalRows = 0;
+      for (const member of members) {
+        if (typeof member?.effectId !== 'string' ||
+            !Array.isArray(member.claims) ||
+            !Number.isSafeInteger(member.policy) ||
+            (member.policy !== 0 && member.policy !== 1) ||
+            member.claims.length > maxEntries - totalRows) {
+          fail('InvalidEffectProgressInventory');
+        }
+        effectIds.push(member.effectId);
+        policies.push(member.policy);
+        totalRows += member.claims.length;
+        const memberBases = [];
+        const memberLocators = [];
+        const memberHeads = [];
+        for (const claim of member.claims) {
+          if (!claim?.basis || !claim.scope || !claim.locator ||
+              !claim.key || typeof claim.canonicalRequestCid !== 'string' ||
+              typeof claim.intentFingerprintCid !== 'string') {
+            fail('InvalidEffectProgressInventory');
+          }
+          const prepared = control.issuePreparedLedgerEntry(
+            claim.basis, maxEntryBytes, maxNodes, maxDepth);
+          const dispatching = control.issueNextLedgerEntry(
+            prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+          if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
+              !control.ledgerEntryAdmitsDispatch(
+                dispatching, claim.scope, claim.locator, claim.key,
+                claim.canonicalRequestCid) ||
+              control.recoveryActionFromEntry(
+                claim.locator, claim.intentFingerprintCid, claim.key,
+                claim.canonicalRequestCid, prepared, false) !== 1) {
+            fail('EffectProgressBindingMismatch');
+          }
+          const locatorCid = control.logicalItemLocatorCid(claim.locator);
+          if (seen.has(locatorCid)) fail('EffectProgressDuplicateLocator');
+          seen.add(locatorCid);
+          memberLocators.push(claim.locator);
+          memberBases.push(claim.basis);
+          memberHeads.push(validateStored(physical.current(locatorCid))?.entry);
+        }
+        locators.push(memberLocators);
+        bases.push(memberBases);
+        heads.push(memberHeads);
+      }
+      return control.setFrontierFromLedger(
+        effectIds, policies, locators, bases, heads,
+        members.length, totalRows, maxWork);
+    },
     response(dispatchEntryCid) {
       const row = physical.response(dispatchEntryCid);
       if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
