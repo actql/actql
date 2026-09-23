@@ -128,6 +128,21 @@ test "catalog observation binds exact connection, Site and use evidence" {
     catalog_observation_resource(observation, binding, "Missing")
     is Err(Resource(NotVisible)),
   )
+  let source_resource = match catalog_sync_outcome(sync, "Account") {
+    Some(Described(resource)) => resource
+    _ => abort("expected described Account")
+  }
+  ignore(source_resource.fields.pop())
+  assert_eq(
+    catalog_observation_resource(observation, binding, "Account").unwrap().fields.length(),
+    1,
+  )
+  let returned = catalog_observation_resource(observation, binding, "Account").unwrap()
+  ignore(returned.fields.pop())
+  assert_eq(
+    catalog_observation_resource(observation, binding, "Account").unwrap().fields.length(),
+    1,
+  )
 }
 
 ///|

@@ -20,7 +20,7 @@ pub(all) enum DescribeIssue {
 } derive(Eq, Debug)
 
 ///|
-pub(all) struct FieldMetadata {
+pub struct FieldMetadata {
   name : String
   native_type : String
   nullable : Bool
@@ -34,7 +34,7 @@ pub(all) struct FieldMetadata {
 }
 
 ///|
-pub(all) struct ResourceMetadata {
+pub struct ResourceMetadata {
   name : String
   queryable : Bool
   createable : Bool

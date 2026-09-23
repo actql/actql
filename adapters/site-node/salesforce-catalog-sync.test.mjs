@@ -11,6 +11,7 @@ import * as commonMoon from
 import * as salesforceMoon from
   '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
@@ -176,6 +177,27 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       entry.authorization === 'Bearer test-only-secret'));
     assert.equal(setup.journal.inspect(result.listUseCid).outcome,
       'succeeded');
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareReadProjection(
+      result.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
+      ['Id'], 22));
+    assert.equal(salesforceMoon.salesforceReadProjectionSoql(projection),
+      'SELECT Id FROM Account');
+    assert.equal(salesforceMoon.salesforceReadProjectionObservationCid(
+      projection), result.observationCid);
+    assert.throws(() => checked(salesforceMoon.salesforcePrepareReadProjection(
+      result.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-b', binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
+      ['Id'], 22)), {code: 'MoonBitHostFailure'});
   });
 
 test('rate-limited describe remains partial with its physical use failed',

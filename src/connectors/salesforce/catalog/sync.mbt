@@ -38,11 +38,16 @@ pub struct CatalogSync {
 
 ///|
 pub fn begin_catalog_sync(listing : ResourceListing) -> CatalogSync {
+  let selected = []
+  for entry in listing.selected {
+    selected.push(entry)
+  }
+  let owned_listing = { ..listing, selected, }
   let outcomes = []
-  for _ in listing.selected {
+  for _ in owned_listing.selected {
     outcomes.push(Pending)
   }
-  { listing, outcomes, next_index: 0, finished: false, }
+  { listing: owned_listing, outcomes, next_index: 0, finished: false, }
 }
 
 ///|
