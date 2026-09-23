@@ -203,6 +203,47 @@ test('durable row heads determine multi-member progress after restart',
     ], 48), {code: 'MoonBitHostFailure'});
   });
 
+test('one Collections claim keeps its member in flight after restart',
+  async t => {
+    const root = await fixture(t);
+    const first = open(root);
+    t.after(() => first.close());
+    const {admitted, members, claims} = admittedProgressFixture();
+    const ownership = first.claimDispatchBatch(claims[0]);
+    assert.equal(ownership.claimed, true);
+    assert.equal(ownership.dispatching.length, 2);
+    const progress = ledger => {
+      const frontier = ledger.frontierFromDurableHeads(admitted, members, 48);
+      return {outcome: effect.setFrontierOutcome(frontier),
+        ready: Array.from({length: effect.setFrontierReadyCount(frontier)},
+          (_, index) => [effect.setFrontierReadyMember(frontier, index),
+            effect.setFrontierReadyRow(frontier, index)])};
+    };
+    assert.deepEqual(progress(first), {outcome: 0, ready: [[1, 0]]});
+    first.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.deepEqual(progress(restarted), {outcome: 0, ready: [[1, 0]]});
+    const retry = restarted.claimDispatchBatch(claims[0]);
+    assert.equal(retry.claimed, false);
+    assert.deepEqual(retry.actions, [3, 3]);
+    assert.deepEqual(progress(restarted), {outcome: 0, ready: [[1, 0]]});
+    const applied = effect.issueNextLedgerEntry(ownership.dispatching[0],
+      'applied', cid('7'), 4096, 64, 4);
+    restarted.append(effect.ledgerEntryWire(applied));
+    assert.deepEqual(progress(restarted), {outcome: 0, ready: [[1, 0]]});
+    const unknown = effect.issueNextLedgerEntry(ownership.dispatching[1],
+      'unknown', '', 4096, 64, 4);
+    restarted.append(effect.ledgerEntryWire(unknown));
+    assert.deepEqual(progress(restarted), {outcome: 0, ready: [[1, 0]]});
+    const independent = restarted.claimDispatch(claims[1][0]);
+    assert.equal(independent.claimed, true);
+    const completed = effect.issueNextLedgerEntry(independent.dispatching,
+      'applied', cid('8'), 4096, 64, 4);
+    restarted.append(effect.ledgerEntryWire(completed));
+    assert.deepEqual(progress(restarted), {outcome: 3, ready: []});
+  });
+
 test('admitted Preview fixes halt policy and rejects foreign row bindings',
   async t => {
     const root = await fixture(t);
