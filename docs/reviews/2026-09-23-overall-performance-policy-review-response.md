@@ -35,8 +35,9 @@ their retained leg uses the example's uncalibrated estimate. This does not
 close PERF-1: qualified execution and the other comparator/matrix gates remain.
 The 27-case equivalent-comparator aggregator now rejects missing, duplicate,
 foreign and mixed-revision records and prints each case's paired interval and
-gate result. It is still only one comparator; no raw formal samples have been
-admitted from the current product path.
+gate result. It is still only one comparator. The later seven-pair product
+sample below is admitted for one case only, so this aggregator cannot close
+the matrix.
 
 The registered narrow-100 Program also runs through a Node-free native Host
 probe with real DuckDB acquisition and an independently checked final CID.
