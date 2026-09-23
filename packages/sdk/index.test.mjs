@@ -8,7 +8,8 @@ const ref = Object.freeze({tenantId: 'tenant-a',
 const profile = Object.freeze({version: 'actql-client-host/0.1',
   mode: 'remote', owner: 'remote', durability: 'durable',
   scopeRef: 'scope-a', capabilities: ['aql-document', 'result-jsonl'],
-  limits: {maxReadWireBytes: 4096, maxRowBytes: 1024,
+  limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+    maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10,
     maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}});
 const admission = Object.freeze({ref, durability: 'durable', revision: 4});
@@ -105,6 +106,27 @@ test('read limits reject complete collection without cancelling the Run', async 
   await assert.rejects(result.all({maxRows: 1}), error =>
     error.code === 'ResultRetainedLimit' && !!error.attemptId);
   assert.deepEqual(requests, ['connect', 'attach', 'read']);
+});
+
+test('row wire and retained-value limits are independent', async t => {
+  const requests = [];
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    requests.push(operation);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response('{"n":1}\n\x1e');
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  await assert.rejects(result.all({maxRowWireBytes: 6}), error =>
+    error.code === 'ResultRowWireLimit' && !!error.attemptId);
+  await assert.rejects(result.all({maxRowRetainedValueBytes: 7}), error =>
+    error.code === 'ResultRowRetainedLimit' && !!error.attemptId);
+  assert.deepEqual(await result.all({maxRowWireBytes: 7,
+    maxRowRetainedValueBytes: 1024}), [{n: 1}]);
+  assert.deepEqual(requests, ['connect', 'attach', 'read', 'read', 'read']);
 });
 
 test('hybrid options are snapshotted and durable requests cannot downgrade', async t => {
