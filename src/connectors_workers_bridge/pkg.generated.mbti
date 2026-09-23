@@ -412,15 +412,27 @@ pub fn strategy_remote_bundle_activation_transition_at(@remote_bundle.RemoteBund
 
 pub fn strategy_remote_bundle_activation_transition_count(@remote_bundle.RemoteBundleActivation) -> Int
 
+pub fn strategy_remote_bundle_component_prepare(String, String, Int64) -> @remote_bundle.RemoteBundleComponent
+
+pub fn strategy_remote_bundle_component_projection(@remote_bundle.RemoteBundleComponent) -> Array[String]
+
 pub fn strategy_remote_bundle_drain_prepare(@remote_bundle.RemoteBundleRecord) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
 pub fn strategy_remote_bundle_manifest_admit_json(String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_component(@remote_bundle.RemoteBundleManifest, String) -> @remote_bundle.RemoteBundleComponent?
+
+pub fn strategy_remote_bundle_manifest_component_count(@remote_bundle.RemoteBundleManifest) -> Int
+
+pub fn strategy_remote_bundle_manifest_components_projection(@remote_bundle.RemoteBundleManifest) -> Array[Array[String]]
 
 pub fn strategy_remote_bundle_manifest_identity(@remote_bundle.RemoteBundleManifest) -> String
 
 pub fn strategy_remote_bundle_manifest_json(@remote_bundle.RemoteBundleManifest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_bundle_manifest_prepare(String, String, String, String, String, Int64, String, String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
+
+pub fn strategy_remote_bundle_manifest_prepare_components(String, String, String, String, Array[@remote_bundle.RemoteBundleComponent], String, String, String) -> @remote_bundle.RemoteBundleManifest raise NodeHostFailure
 
 pub fn strategy_remote_bundle_manifest_projection(@remote_bundle.RemoteBundleManifest) -> Array[String]
 
