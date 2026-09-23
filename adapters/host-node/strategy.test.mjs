@@ -404,6 +404,52 @@ test('managed equal-cost choice is stable when installation order is reversed', 
   }
 });
 
+test('a checked source-free root enters the installed managed task lifecycle',
+  async () => {
+    const setup = {}, registration = {};
+    const output = Object.freeze({name: 'source-free-output'});
+    let completed = false;
+    let starts = 0;
+    const core = {
+      siteControl,
+      count: () => 1,
+      taskCapacity: () => [0n, 0n],
+      nextTask: () => completed ? -1 : 0,
+      managedProducers: () => [],
+      selectManaged: (_setup, task, selected) =>
+        task === 0 && selected === registration,
+      managedMatches: () => true,
+      completed: () => completed,
+      finished: () => completed,
+      stop: () => {},
+      closeOutputs: () => {},
+      output: () => completed ? output : undefined,
+      usage: () => ({}),
+      explain: () => ({}),
+    };
+    const entry = {
+      registration,
+      managedSelectionKey: 'local',
+      run() { assert.fail('source-free root must use managed execution'); },
+      prepareNext() {
+        return completed ? undefined : {
+          task: 0, inputs: [], durationMilliseconds: 1n,
+        };
+      },
+      runPrepared() {
+        starts++;
+        completed = true;
+        return {completed: output, material: {}};
+      },
+    };
+    const result = await runInstalledStrategy(setup, core, [entry]);
+    assert.equal(result.status, 'host-tasks-completed',
+      result.failure?.code ?? result.failure?.message);
+    assert.equal(starts, 1);
+    assert.equal(result.output(0), output);
+    result.close();
+  });
+
 test('managed choice compares known cost before its stable registration key', async () => {
   const setup = {}, registrations = {cheap: {}, expensive: {}, unknown: {}};
   let completed = false, ran;

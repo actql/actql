@@ -83,6 +83,44 @@ test('Site placement is independent from implementation registration', () => {
   assert.deepEqual(executionSitePlacements(installation, second), [b]);
 });
 
+test('Site candidates admit source-free task zero and its later output', () => {
+  const source = site('source-free-zero');
+  const destination = site('source-free-consumer');
+  const implementation = contribution('source-free');
+  const material = {};
+  const installation = installExecutionSites(prepareExecutionSitePolicy({
+    sites: [source, destination],
+    placements: new Map([['source-free', [source, destination]]]),
+    transferProvider: transferProvider({
+      estimate: value => value === material ? {
+        transferBytes: 1n, retainedBytes: 1n, executionBytes: 1n,
+      } : undefined,
+      copy() {},
+    }),
+  }), [implementation]);
+  const root = executionSiteCandidate({
+    installation, contribution: implementation, site: source, task: 0,
+    registration: implementation.registration, inputs: [],
+    durationMilliseconds: 1n,
+  });
+  assert.equal(root.excluded, undefined);
+  assert.ok(bindExecutionSiteCandidate(root));
+  const consumer = executionSiteCandidate({
+    installation, contribution: implementation, site: destination, task: 1,
+    registration: implementation.registration,
+    inputs: [{task: 0, material: {}, site: source,
+      siteMaterial: material, materialGeneration: {}}],
+    durationMilliseconds: 1n, acceptsSiteTransfer: true,
+  });
+  assert.equal(consumer.excluded, undefined);
+  assert.equal(consumer.transfers.length, 1);
+  assert.throws(() => executionSiteCandidate({
+    installation, contribution: implementation, site: source, task: -1,
+    registration: implementation.registration, inputs: [],
+    durationMilliseconds: 1n,
+  }), {code: 'InvalidExecutionSiteCandidate'});
+});
+
 test('candidate comparison facts are pure and missing estimates are explicit', () => {
   const a = site('a');
   const b = site('b', 1, {startupMilliseconds: 2n,
