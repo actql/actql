@@ -16,6 +16,32 @@ fn collection_request_test_limits() -> WriteCollectionRequestLimits {
 }
 
 ///|
+fn collection_case_write_body(case_metadata : String) -> WriteBody {
+  let binding = observation_test_binding()
+  let metadata = (
+      #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"externalId":true,"unique":true
+    ) +
+    case_metadata +
+    (
+      #|},{"name":"Optional_Value__c","type":"string","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true}]}
+    )
+  let observation = write_test_observation_with(@utf8.encode(metadata), binding)
+  let projection = prepare_write_projection(
+    observation,
+    binding,
+    "ActQL_Test_Record__c",
+    WriteUpsertByExternalId("External_Key__c"),
+    ["Optional_Value__c"],
+    1,
+  ).unwrap()
+  prepare_write_body(
+    projection,
+    @utf8.encode("{\"Optional_Value__c\":\"value\"}"),
+    write_body_test_limits(),
+  ).unwrap()
+}
+
+///|
 test "continue collection preserves row order and exact response mapping" {
   let create = write_request_body(WriteCreate)
   let rows : Array[WriteCollectionItem] = [
@@ -251,5 +277,121 @@ test "collection preparation rejects mixed, duplicate, and over-budget rows" {
       collection_request_test_limits(),
     )
     is Err(DuplicateTarget),
+  )
+}
+
+///|
+test "collection rejects the same RecordId spelled with 15 or 18 characters" {
+  let update = write_request_body(WriteUpdateById)
+  assert_true(
+    prepare_continue_write_collection(
+      [
+        {
+          row_preview_cid: collection_request_test_cid("1"),
+          body: update,
+          target: RecordId("001000000000001"),
+        },
+        {
+          row_preview_cid: collection_request_test_cid("2"),
+          body: update,
+          target: RecordId("001000000000001AAA"),
+        },
+      ],
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Err(DuplicateTarget),
+  )
+  assert_true(
+    prepare_continue_write_collection(
+      [
+        {
+          row_preview_cid: collection_request_test_cid("1"),
+          body: update,
+          target: RecordId("00100000000000A"),
+        },
+        {
+          row_preview_cid: collection_request_test_cid("2"),
+          body: update,
+          target: RecordId("00100000000000a"),
+        },
+      ],
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    prepare_continue_write_collection(
+      [
+        {
+          row_preview_cid: collection_request_test_cid("1"),
+          body: update,
+          target: RecordId("001000000000001AAB"),
+        },
+      ],
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Err(InvalidTarget),
+  )
+}
+
+///|
+test "collection uses confirmed external-ID case matching" {
+  let insensitive = collection_case_write_body(",\"caseSensitive\":false")
+  let sensitive = collection_case_write_body(",\"caseSensitive\":true")
+  let unconfirmed = collection_case_write_body("")
+  let rows = fn(body : WriteBody) -> Array[WriteCollectionItem] {
+    [
+      {
+        row_preview_cid: collection_request_test_cid("1"),
+        body,
+        target: ExternalText("ABC123"),
+      },
+      {
+        row_preview_cid: collection_request_test_cid("2"),
+        body,
+        target: ExternalText("abc123"),
+      },
+    ]
+  }
+  assert_true(
+    prepare_continue_write_collection(
+      rows(insensitive),
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Err(DuplicateTarget),
+  )
+  assert_true(
+    prepare_continue_write_collection(
+      rows(sensitive),
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    prepare_continue_write_collection(
+      rows(unconfirmed),
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Err(InvalidTarget),
+  )
+  assert_true(
+    prepare_continue_write_collection(
+      [
+        {
+          row_preview_cid: collection_request_test_cid("1"),
+          body: insensitive,
+          target: ExternalText("É"),
+        },
+      ],
+      "v66.0",
+      collection_request_test_limits(),
+    )
+    is Err(InvalidTarget),
   )
 }
