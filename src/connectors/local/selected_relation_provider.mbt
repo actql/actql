@@ -144,7 +144,7 @@ fn selected_relation_provider(
         is Some(@lower.RowStep(kernel)) else {
         return false
       }
-      // Ordinary one-step sorts and limits share the selected bounded kernel.
+      // Ordinary one-step row forms share the selected bounded kernel.
       // Other ordinary row forms retain their established representation.
       match
         @execution.completion_preparation_selected_step(
@@ -153,7 +153,8 @@ fn selected_relation_provider(
         Some(selected) => if selected != step { return false }
         None =>
           match @lower.kernel_body(kernel) {
-            @lower.StableSort(_) | @lower.Limit(_, _, _) => ()
+            @lower.Filter(_) | @lower.StableSort(_) | @lower.Limit(_, _, _) =>
+              ()
             _ => return false
           }
       }

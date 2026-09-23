@@ -323,7 +323,12 @@ for (const [index, route] of routeEntries.entries()) {
       'selected_binding_rows_execution') {
       fail(`${label}: bounded selected entrypoint is missing`);
     }
+    if (route.ordinary_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded ordinary entrypoint is missing`);
+    }
     for (const role of [
+      'ordinary_filter_quantum_and_lifetime',
       'filter_mixed_stage_lifetime',
       'filter_input_exact',
       'filter_input_one_short',

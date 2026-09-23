@@ -308,6 +308,23 @@ test('resource gate rejects filter without its one-short evidence', () => {
   }), /RelA filter: reviewed filter_input_one_short fixture is missing/);
 });
 
+test('resource gate rejects filter without ordinary quantum evidence', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    filter.boundary_tests = filter.boundary_tests.filter(item =>
+      item.role !== 'ordinary_filter_quantum_and_lifetime');
+  }), /RelA filter: reviewed ordinary_filter_quantum_and_lifetime fixture is missing/);
+});
+
+test('resource gate rejects filter without its ordinary product route', () => {
+  assert.match(run(undefined, value => {
+    const filter = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    delete filter.ordinary_entrypoint;
+  }), /RelA filter: bounded ordinary entrypoint is missing/);
+});
+
 test('resource gate rejects filter without delivered Host cancellation', () => {
   assert.match(run(undefined, value => {
     const filter = value.routes.find(entry => entry.family === 'RelA' &&

@@ -2,8 +2,8 @@
 fn local_managed_unary_expected(kind : String) -> Array[String] {
   match kind {
     "select" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
-    "filter_text" | "filter_structured" => ["{\"id\":2,\"amount\":null}"]
-    "filter_null" => ["{\"id\":1,\"amount\":10}"]
+    "filter_text" | "filter_structured" => ["{\"amount\":null,\"id\":2}"]
+    "filter_null" => ["{\"amount\":10,\"id\":1}"]
     "assert_where" | "assert_unique" =>
       ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
     "derive_map" =>
@@ -189,7 +189,11 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
 
 ///|
 fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
-  if kind == "rename" {
+  if kind == "filter_text" || kind == "filter_structured" {
+    ["{\"id\":2,\"amount\":null}"]
+  } else if kind == "filter_null" {
+    ["{\"id\":1,\"amount\":10}"]
+  } else if kind == "rename" {
     ["{\"id\":1,\"total\":10}", "{\"id\":2,\"total\":null}"]
   } else if kind == "rename_swap" {
     ["{\"amount\":1,\"id\":10}", "{\"amount\":2,\"id\":null}"]
@@ -308,7 +312,10 @@ fn run_local_managed_unary_case(
     2,
     unary_live,
     obligations?=unary_obligations,
-    execution_quantum=if kind == "sort" ||
+    execution_quantum=if kind == "filter_text" ||
+      kind == "filter_structured" ||
+      kind == "filter_null" ||
+      kind == "sort" ||
       kind == "sort_compound" ||
       kind == "take" ||
       kind == "take_parameter" {
@@ -318,7 +325,10 @@ fn run_local_managed_unary_case(
     },
     execution_advances=Some(bounded_advances),
   )
-  if kind == "sort" ||
+  if kind == "filter_text" ||
+    kind == "filter_structured" ||
+    kind == "filter_null" ||
+    kind == "sort" ||
     kind == "sort_compound" ||
     kind == "take" ||
     kind == "take_parameter" {
@@ -446,6 +456,13 @@ test "Local managed unary source forms feed two downstream Computes" {
 test "ordinary Local sort resumes within quantum and feeds two Computes" {
   run_local_managed_unary_case("sort")
   run_local_managed_unary_case("sort_compound")
+}
+
+///|
+test "ordinary Local filters resume within quantum" {
+  run_local_managed_unary_case("filter_text")
+  run_local_managed_unary_case("filter_structured")
+  run_local_managed_unary_case("filter_null")
 }
 
 ///|
