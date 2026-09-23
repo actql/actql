@@ -95,6 +95,25 @@ pub fn single_write_request_target_identity(
 }
 
 ///|
+pub fn single_write_request_matches_preview_row_target(
+  value : SingleWriteRequest,
+  correlation_wire : String,
+  max_identity_bytes : Int,
+) -> Result[Bool, WriteCollectionRequestIssue] {
+  match value.target {
+    NoWriteTarget => Ok(false)
+    target =>
+      write_target_matches_preview_correlation(
+        value.projection,
+        target,
+        correlation_wire,
+        value.max_target_bytes,
+        max_identity_bytes,
+      )
+  }
+}
+
+///|
 pub fn single_write_request_kind(value : SingleWriteRequest) -> WriteSingleKind {
   value.kind
 }

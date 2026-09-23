@@ -182,6 +182,11 @@ existing target with that member's admitted footprint. A foreign boundary is
 rejected without a ledger claim or credential use. This check does not prove
 that the request body equals the Preview's source-derived rows, nor does it
 replace whole-set conflict admission or current apply authority.
+For update and upsert rows, the bridge also compares each request target with
+the corresponding Preview row identity under the observed Salesforce matching
+rule. A Collections batch cannot swap two otherwise valid targets between its
+ordered rows. RecordId aliases remain equivalent; unknown external-ID
+matching is rejected. The create path still needs source-to-payload evidence.
 This is not yet an apply permit: checked input provenance, exact Preview-to-
 physical payload equivalence, all-member preflight, current authorization,
 and final receipts still require the shared Effectful Run port above.

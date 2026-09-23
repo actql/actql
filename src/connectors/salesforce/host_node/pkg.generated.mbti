@@ -66,7 +66,7 @@ pub fn salesforce_collection_write_request_effect_kind(@catalog.WriteCollectionR
 
 pub fn salesforce_collection_write_request_grant_operation(@catalog.WriteCollectionRequest) -> String
 
-pub fn salesforce_collection_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, @catalog.WriteCollectionRequest, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
+pub fn salesforce_collection_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.WriteCollectionRequest, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_request_method(@catalog.WriteCollectionRequest) -> String
 
@@ -178,7 +178,7 @@ pub fn salesforce_single_write_request_effect_kind(@catalog.SingleWriteRequest) 
 
 pub fn salesforce_single_write_request_grant_operation(@catalog.SingleWriteRequest) -> String
 
-pub fn salesforce_single_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, @catalog.SingleWriteRequest, Int) -> Bool raise SalesforceCatalogBridgeIssue
+pub fn salesforce_single_write_request_matches_preview_footprint(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.SingleWriteRequest, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_request_method(@catalog.SingleWriteRequest) -> String
 
