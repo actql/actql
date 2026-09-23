@@ -113,6 +113,16 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
       throw Object.assign(new Error('TrainingCapacityInfeasible'),
         {code: 'TrainingCapacityInfeasible'});
     }
+    // A mixed strategy cannot measure the forced candidate, even if a later
+    // task also fails. Preserve the full failed report and release its holding
+    // before the matrix runner tries the next registered training size.
+    const selectedTasks = result.report.explanation?.selection?.tasks;
+    if (candidate !== 'ordinary' && Array.isArray(selectedTasks) &&
+        selectedTasks.length === taskCount &&
+        selectedTasks.some(task => task.capability !== candidate)) {
+      throw Object.assign(new Error(`CalibrationCandidateMismatch:${candidate}`),
+        {code: 'TrainingCandidateNotSelected'});
+    }
     assert.equal(result.report.status, 'host-tasks-completed');
     assert.equal(result.report.completed.length, taskCount);
     const selectedExpectedCid = selectedFixture.identity().rowsCid;
