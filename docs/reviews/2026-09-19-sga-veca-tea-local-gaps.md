@@ -106,7 +106,7 @@ closure conditions. The independent RowTable copy, external-input cross join,
 zero-input values, and external-input append now have bounded paths. The
 providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
-mapped operations and 16 with operation-specific boundary records. The
+mapped operations and 17 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
 one-short work/workspace assurance. The ordinary and selected one-step filter
 and select paths now share their respective bounded evaluators and have
@@ -120,17 +120,24 @@ The strict completion gate remains red.
 Standard Host fixtures do not prove the Distribution-owned ordinary Run entry;
 that integration is also open. Closing one condition does not close the others.
 
-The ordinary one-step filter, select, sort, take, external-input cross join,
-and zero-input values forms use bounded Relation providers. External-input
+The ordinary one-step filter, select, derive, assertion, sort, take,
+external-input cross join, and zero-input values forms use bounded Relation
+providers. External-input
 cross join and zero-input values each support a tested same-Stage Relation
 filter handoff without changing the authored Stage. Other accepted Relation
 forms, including same-sequence binary and multi-step sequences, can still use
 the providerless lane.
-Moving ordinary derive or assertions onto the selected bounded evaluator
-requires a representation-preservation check: a direct route experiment
-changed the serialized field order in the existing Host fixture. In
-particular, `assert_rows` is required to preserve input row bytes and shape.
-Do not change its expected output merely to make a new provider route pass.
+The ordinary derive and assertion routes now use the bounded Relation
+evaluator at quantum one. Their standard Host fixture retains the existing
+authored row-wire order, two downstream Computes, and final reclamation on
+JS, Wasm, and native. The typed input projection supplies the wire order for
+one-step scalar derive and assertion output; vector expression output keeps
+its canonical physical order. The Node standard Host delivers timer
+cancellation after positive work for ordinary derive and both assertion
+forms, then checks stop, nonpublication, and final cleanup. This is
+path-scoped progress, not exact/one-short work and workspace assurance for
+either operation. Same-sequence variants can still reach the providerless
+lane.
 
 ## Current cross-operation review gaps
 
@@ -221,7 +228,7 @@ Do not change its expected output merely to make a new provider route pass.
   The append route now binds an independently calculated control-work and
   peak-workspace exact/one-short fixture, plus distinct-input and
   self-occurrence two-consumer reclamation fixtures. This raises the
-  operation-specific record count to 16/68. A single-step append with two
+  operation-specific record count to 16/68 at that point. A single-step append with two
   external Relation inputs now uses a bounded provider. Its field alignment,
   row construction, and completion run in finite resume steps. Independent
   exact/one-short work and workspace fixtures, quantum-one output, and

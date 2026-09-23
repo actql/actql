@@ -313,6 +313,11 @@ fn run_local_managed_unary_case(
     unary_live,
     obligations?=unary_obligations,
     execution_quantum=if kind == "select" ||
+      kind == "derive_map" ||
+      kind == "derive_empty" ||
+      kind == "derive_ordered" ||
+      kind == "assert_where" ||
+      kind == "assert_unique" ||
       kind == "rename" ||
       kind == "rename_swap" ||
       kind == "rename_empty" ||
@@ -333,6 +338,11 @@ fn run_local_managed_unary_case(
     execution_advances=Some(bounded_advances),
   )
   if kind == "select" ||
+    kind == "derive_map" ||
+    kind == "derive_empty" ||
+    kind == "derive_ordered" ||
+    kind == "assert_where" ||
+    kind == "assert_unique" ||
     kind == "rename" ||
     kind == "rename_swap" ||
     kind == "rename_empty" ||
@@ -482,6 +492,19 @@ test "ordinary Local filters resume within quantum" {
 ///|
 test "ordinary Local select preserves authored order within quantum" {
   run_local_managed_unary_case("select")
+}
+
+///|
+test "ordinary Local derive resumes within quantum and preserves row order" {
+  for kind in ["derive_map", "derive_empty", "derive_ordered"] {
+    run_local_managed_unary_case(kind)
+  }
+}
+
+///|
+test "ordinary Local assertions resume within quantum and retain input rows" {
+  run_local_managed_unary_case("assert_where")
+  run_local_managed_unary_case("assert_unique")
 }
 
 ///|
