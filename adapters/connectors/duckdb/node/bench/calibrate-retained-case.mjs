@@ -66,7 +66,7 @@ const plan = candidate => ({
   nativeTaskMilliseconds: Array(taskCount).fill(candidate === 'duckdb' ? '1' : expensive),
   estimateSource: `sha256:${sha256(`calibration:${candidate}:${fixture.id}:${revision}`)}`,
 });
-async function runTrainingCandidate(candidate, round) {
+async function runTrainingCandidate(candidate, round, selection = plan(candidate)) {
   const config = managedCaseConfiguration(fixture, contracts, database, directory);
   const host = await createManagedExampleHost(config.limits);
   let result;
@@ -74,7 +74,7 @@ async function runTrainingCandidate(candidate, round) {
   let cleanupMs = 0;
   try {
     const started = performance.now();
-    result = await host.run({...config.input, ...plan(candidate)},
+    result = await host.run({...config.input, ...selection},
       {run: `calibration-${round}-${candidate}`, childLimits: config.childLimits},
       AbortSignal.timeout(config.timeoutMs));
     const executionMs = performance.now() - started;
@@ -83,14 +83,16 @@ async function runTrainingCandidate(candidate, round) {
     assert.equal(result.completion(taskCount)?.descriptor.rows_cid, expectedCid);
     assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
     const tasks = result.report.completed;
-    assert(tasks.every(task => task.realization === candidate),
-      `CalibrationCandidateMismatch:${candidate}`);
+    if (candidate !== 'ordinary') {
+      assert(tasks.every(task => task.realization === candidate),
+        `CalibrationCandidateMismatch:${candidate}`);
+    }
     const elapsed = tasks.map(task => task.taskElapsedMilliseconds);
     assert(elapsed.every(value => Number.isFinite(value) && value >= 0),
       'CalibrationMissingTaskInterval');
     observation = {round, candidate, taskElapsedMilliseconds: elapsed,
       executionMs, warmMs: elapsed.reduce((sum, value) => sum + value, 0),
-      selection: plan(candidate), outputCid: expectedCid,
+      selection, outputCid: expectedCid,
       taskRealizations: tasks.map(task => task.realization),
       tasks, hostPhases: result.phases, usage: result.usage()};
   } finally {
@@ -149,9 +151,23 @@ try {
     scope: 'measured training profile requiring held-out selection and obligation admission'};
   await writeFile(join(directory, 'training.json'), trainingBytes);
   await writeFile(join(directory, 'profile.json'), serialize(profile));
+  const ordinary = await runTrainingCandidate('ordinary', 3, {
+    resident: true,
+    nativeMilliseconds: '1',
+    localTaskMilliseconds: profile.localTaskMilliseconds,
+    nativeTaskMilliseconds: profile.nativeTaskMilliseconds,
+    estimateSource: `sha256:${trainingSha256}`,
+  });
+  assert.equal(await fileHash(database), sourceSha256,
+    'CalibrationSourceChanged');
+  await writeFile(join(directory, 'ordinary-choice.json'), serialize({
+    ...ordinary, scope: 'same-case held-out execution, not held-out workload',
+    acceptanceEligible: false,
+  }));
   console.log(JSON.stringify({event: 'finished', directory, caseId: fixture.id,
     trainingSha256, localTaskMilliseconds: profile.localTaskMilliseconds,
-    nativeTaskMilliseconds: profile.nativeTaskMilliseconds}));
+    nativeTaskMilliseconds: profile.nativeTaskMilliseconds,
+    ordinaryTaskRealizations: ordinary.taskRealizations}));
 } catch (error) {
   await writeFile(join(directory, 'failure.json'), serialize({caseId: fixture.id,
     revision, sourceSha256, observations,
