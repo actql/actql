@@ -107,7 +107,7 @@ pub fn node_supports_bounded_managed_prefix(
   consumer : PreparedNode,
 ) -> Bool {
   match (node.payload, consumer.payload) {
-    (Values(_), Where(_)) | (CrossJoinRows(_), _) => true
+    (Values(_), Where(_)) | (Values(_), Sort(_)) | (CrossJoinRows(_), _) => true
     _ => false
   }
 }
