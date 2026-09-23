@@ -95,6 +95,11 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
       {run: `calibration-${round}-${candidate}`, childLimits: config.childLimits},
       AbortSignal.timeout(config.timeoutMs));
     const executionMs = performance.now() - started;
+    if (result.report.status !== 'host-tasks-completed') {
+      await writeFile(join(directory, `failed-${round}-${candidate}.json`),
+        serialize({caseId: selectedFixture.id, selection, report: result.report,
+          phases: result.phases, usage: result.usage()}));
+    }
     assert.equal(result.report.status, 'host-tasks-completed');
     assert.equal(result.report.completed.length, taskCount);
     const selectedExpectedCid = selectedFixture.identity().rowsCid;
