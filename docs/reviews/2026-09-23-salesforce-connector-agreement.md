@@ -259,6 +259,10 @@ explicit row field map; inline create, update, and upsert use authored keys;
 delete writes no fields. It then invokes the same static rule selector for
 every non-Command member. Mapping row values, type conversions, exact
 Environment ownership, current grants, Preview, and apply remain unadmitted.
+The bridge additionally rejects inline create when a required target field
+is omitted and result-backed create/store when an explicitly mapped source
+field is absent from the retained checked Result. Those checks do not yet
+prove source-to-target type compatibility or conversion-law closure.
 
 ## Capability comparison with Smooth Cloud
 
