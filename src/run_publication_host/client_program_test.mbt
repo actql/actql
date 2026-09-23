@@ -76,6 +76,34 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(prepared_client_result_count(prepared), 1)
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
+  let identity = prepared_client_identity(prepared)
+  assert_eq(
+    identity.program_definition_cid,
+    @strategy.graph_program_definition_cid(prepared_client_graph(prepared)),
+  )
+  let spaced = prepare_effect_free_client_program(
+    " \n" + document + " \n",
+    Json,
+    selected,
+    None,
+    limits,
+  ).unwrap()
+  assert_eq(prepared_client_identity(spaced), identity)
+  let changed = prepare_effect_free_client_program(
+    document.replace(old="\"id\":2", new="\"id\":3"),
+    Json,
+    selected,
+    None,
+    limits,
+  ).unwrap()
+  assert_true(
+    prepared_client_identity(changed).program_definition_cid !=
+    identity.program_definition_cid,
+  )
+  assert_eq(
+    prepared_client_identity(changed).parameter_values_cid,
+    identity.parameter_values_cid,
+  )
   let ledger = @resources.create_ledger({
     planning_work: 10000,
     attempts: 2,

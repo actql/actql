@@ -9,6 +9,7 @@ import {
   "actql/actql/program_check",
   "actql/actql/run_publication",
   "actql/actql/stage_syntax",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -26,6 +27,8 @@ pub fn prepare_result_publication_export(@execution_relation.CompletedOutput, @e
 
 pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
 
+pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
+
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
@@ -33,6 +36,11 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
+pub(all) struct ClientProgramIdentity {
+  program_definition_cid : String
+  parameter_values_cid : String
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientProgramPreparationIssue {
   Syntax(@stage_syntax.SyntaxError)
   EffectNotSupported(String)
