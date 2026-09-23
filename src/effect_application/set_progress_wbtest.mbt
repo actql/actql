@@ -63,6 +63,28 @@ test "in-flight row blocks only its own member" {
 }
 
 ///|
+test "an in-flight row cannot coexist with a later attempted row" {
+  for later in [ItemSending, ItemApplied, ItemAccepted, ItemFailed, ItemUnknown] {
+    for policy in [HaltMember, ContinueMember] {
+      let members : Array[EffectMemberProgress] = [
+        { effect_id: "first", policy, rows: [ItemSending, later], },
+      ]
+      assert_true(effect_set_frontier(members, 1, 2, 8) is Err(InvalidHistory))
+    }
+  }
+  let valid : Array[EffectMemberProgress] = [
+    {
+      effect_id: "first",
+      policy: ContinueMember,
+      rows: [ItemUnknown, ItemSending, ItemUnattempted],
+    },
+  ]
+  let frontier = effect_set_frontier(valid, 1, 3, 8).unwrap()
+  assert_eq(frontier.ready.length(), 0)
+  assert_eq(frontier.outcome, SetRunning)
+}
+
+///|
 test "Effect Set frontier does not turn authored member order into dispatch order" {
   let members : Array[EffectMemberProgress] = [
     { effect_id: "zeta", policy: HaltMember, rows: [ItemUnattempted], },

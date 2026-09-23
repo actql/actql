@@ -48,6 +48,19 @@ test('Effect Set frontier keeps member order independent of row halt', () => {
   assert.equal(effect.setFrontierReadyRow(frontier, 0), 1);
 });
 
+test('Host bridge refuses a later attempted row while a member is sending', () => {
+  for (const later of [1, 2, 3, 4, 5]) {
+    assert.throws(() => effect.setFrontier(
+      ['first'], [1], [[1, later]], 1, 2, 8,
+    ));
+  }
+  const valid = effect.setFrontier(
+    ['first'], [1], [[5, 1, 0]], 1, 3, 8,
+  );
+  assert.equal(effect.setFrontierReadyCount(valid), 0);
+  assert.equal(effect.setFrontierOutcome(valid), 0);
+});
+
 test('Host bridge rejects conflicting Effect members before mutation', () => {
   const input = (targets, kinds = [0, 0], boundaries = [cid('a'), cid('a')]) => [
     ['first', 'second'], kinds,
