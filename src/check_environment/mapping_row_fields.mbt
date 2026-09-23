@@ -12,6 +12,8 @@ pub struct MappingRowFields {
   shape : MappingContractShape
   fields : Array[String]
   sources : Array[String?]
+  literals : Array[@decode.Cursor?]
+  null_behaviors : Array[String]
   work : Int
 }
 
@@ -42,6 +44,25 @@ pub fn mapping_row_fields_source_at(
   } else {
     Some((value.fields[index], value.sources[index]))
   }
+}
+
+///|
+pub fn mapping_row_fields_literal_at(
+  value : MappingRowFields,
+  index : Int,
+) -> @decode.Cursor? {
+  match value.literals.get(index) {
+    Some(literal) => literal
+    None => None
+  }
+}
+
+///|
+pub fn mapping_row_fields_null_behavior_at(
+  value : MappingRowFields,
+  index : Int,
+) -> String? {
+  value.null_behaviors.get(index)
 }
 
 ///|
@@ -82,6 +103,8 @@ pub fn check_mapping_row_fields(
   }
   let fields : Array[String] = []
   let sources : Array[String?] = []
+  let literals : Array[@decode.Cursor?] = []
+  let null_behaviors : Array[String] = []
   let selected : Map[String, Bool] = Map([])
   for index in 0..<count {
     let (field, source) = @decode.field_at(row, index).unwrap()
@@ -122,6 +145,8 @@ pub fn check_mapping_row_fields(
     }
     fields.push(field)
     sources.push(result_field)
+    literals.push(literal)
+    null_behaviors.push(behavior)
     selected[field] = true
   }
   for field in shape.required_fields {
@@ -133,6 +158,8 @@ pub fn check_mapping_row_fields(
     shape,
     fields,
     sources,
+    literals,
+    null_behaviors,
     work: count +
     shape.writable_fields.length() +
     shape.required_fields.length(),
