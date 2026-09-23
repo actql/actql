@@ -52,6 +52,8 @@ pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.Checke
 
 pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
+pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
+
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?

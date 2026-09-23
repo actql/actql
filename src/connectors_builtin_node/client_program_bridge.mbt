@@ -122,6 +122,14 @@ pub fn client_program_result_count(
 }
 
 ///|
+#export_name("clientProgramSemanticsCid")
+pub fn client_program_semantics_cid(
+  prepared : @publication_host.PreparedClientProgram,
+) -> String {
+  @publication_host.prepared_client_program_semantics_cid(prepared)
+}
+
+///|
 #export_name("clientProgramResultName")
 pub fn client_program_result_name(
   prepared : @publication_host.PreparedClientProgram,
