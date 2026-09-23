@@ -36,6 +36,9 @@ node --test benchmarks/retained-results/comparison-eligibility.test.mjs benchmar
 Development observations are recorded separately in
 [2026-09-16 diagnostic observations](observations-2026-09-16.md). They include
 failures and exclude unperformed comparisons; they are not acceptance results.
+The later [2026-09-23 small-case diagnostic](diagnostic-2026-09-23.md) records
+seven matched pairs and preparation-phase timings. It also does not satisfy the
+registered performance gate.
 
 The correctness smoke checks run without importing the ActQL evaluator:
 
