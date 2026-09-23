@@ -5,5 +5,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/sha256" @sha,
   "actql/actql/encode_core" @encode,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
   "moonbitlang/core/encoding/utf8",
 }
