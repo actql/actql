@@ -28,8 +28,11 @@ downstream Relation Computes, publishes all three named outputs through the
 formal Effect-free Run path, retrieves each independently, and checks the
 expected rows and task topology before final reclamation. This is stronger
 standard Host evidence for the mixed pipeline, but it is not a Distribution
-ordinary Run submission, does not exercise Events or Vectors, and does not
-establish delivered in-flight cancellation for that exact Program. The
+ordinary Run submission and does not exercise Events or Vectors. A separate
+Graph normalization variant carries `filter`, `sort`, and `take` in the same
+Stage and uses a real Node timer to cancel after the sort task has reported
+work. It checks stop, nonpublication, and final cleanup; it is not a claim
+that cancellation was delivered to the exact publication fixture. The
 ordinary Program integration row remains open.
 
 The fixed-SHA review of `f878797f2fa07749622e6f15fb06da41d33c3f82`

@@ -2971,6 +2971,25 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
+    name: 'normalize-filter-sort-take',
+    rows: 40,
+    advanceQuantum: 1,
+    cancelOnManagedStart: 6,
+    managedStarts: 6,
+    completedTasks: [1, 2, 3, 4, 5],
+    steps: [{
+      from: 'g', normalize_graph: true, as: 'normalized',
+    }, {
+      from: 'normalized', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 0', as: 'filtered',
+    }, {
+      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
+    }, {
+      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'normalize-sort-wide-comparison',
     rows: 2,
     sortStress: true,
@@ -4358,6 +4377,9 @@ async function exerciseStrategyGraph(
         [graphFields[0]];
       graphCancellationProgram.stages[graphStageIndex + 3].results.r.fields =
         [graphFields[0]];
+    }
+    if (cancellationCase.name === 'normalize-filter-sort-take') {
+      graphCancellationProgram.stages.splice(graphStageIndex + 1);
     }
     if (cancellationCase.resultAliases === 2) {
       graphCancellationProgram.results = {
