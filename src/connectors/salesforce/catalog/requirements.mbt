@@ -12,6 +12,7 @@ pub(all) enum ResourceRequirementIssue {
   FieldConstraintUnconfirmed(String)
   MissingRequiredCreateField(String)
   ExternalIdNotUnique(String)
+  ExternalTargetInBody(String)
 } derive(Eq, Debug)
 
 ///|
@@ -53,6 +54,15 @@ pub fn require_create_fields(
   resource : ResourceMetadata,
   names : Array[String],
 ) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  require_create_fields_with_target(resource, names, None)
+}
+
+///|
+fn require_create_fields_with_target(
+  resource : ResourceMetadata,
+  names : Array[String],
+  external_target : String?,
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
   if !resource.createable {
     return Err(ResourceNotCreateable)
   }
@@ -74,11 +84,41 @@ pub fn require_create_fields(
     }
     if !field.nullable &&
       !field.defaulted_on_create &&
-      !names.contains(field.name) {
+      !names.contains(field.name) &&
+      external_target != Some(field.name) {
       return Err(MissingRequiredCreateField(field.name))
     }
   }
   Ok(fields)
+}
+
+///|
+/// Upsert can create or update. The unique external ID in its exact target
+/// path supplies that create field, but is not repeated in the body.
+pub fn require_upsert_fields(
+  resource : ResourceMetadata,
+  external_id : String,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  if names.contains(external_id) {
+    return Err(ExternalTargetInBody(external_id))
+  }
+  let target = match require_unique_external_id(resource, external_id) {
+    Ok(field) => field
+    Err(issue) => return Err(issue)
+  }
+  if !target.createable {
+    return Err(FieldNotCreateable(external_id))
+  }
+  let fields = match
+    require_create_fields_with_target(resource, names, Some(external_id)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match require_update_fields(resource, names) {
+    Ok(_) => Ok(fields)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
