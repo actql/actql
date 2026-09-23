@@ -158,6 +158,15 @@ acceptance matrix are recorded in
 `docs/reviews/2026-09-24-effect-run-shared-port.md`. Do not close SF-3 or the
 Salesforce milestone on the basis of the first two fixes.
 
+Subsequent work added an atomic all-row Collections send claim (`8bcbbd105`),
+one durable response body with per-row custody (`5fab9ad56`), a local HTTPS
+send/restart fixture (`2e78a67c6`), and a MoonBit-owned same-member/Preview
+batch check (`c8b2a1872`). These close physical batch-custody gaps, but they do
+not establish the checked Program inventory, whole-set apply admission, final
+Effect receipts, or the standard Effectful Run path. SF-3 remains open. The
+isolated Salesforce org and write permission also remain unavailable, so no
+live-provider verification is claimed.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
