@@ -119,8 +119,10 @@ pub(all) enum SessionIssue {
   InvalidSessionKernel
   InvalidSessionLimits
   SessionInputUnavailable
+  EmptySessionInput
   InvalidSessionRecord(Int)
   InvalidSessionValue(Int, Int)
+  DuplicateSessionIdentity(Int)
   SessionArithmetic(Int)
   SessionIdentityLimit
   SessionWorkspaceLimit

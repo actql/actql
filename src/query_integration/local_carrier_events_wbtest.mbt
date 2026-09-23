@@ -655,6 +655,121 @@ fn carrier_events_source_output(
 }
 
 ///|
+fn carrier_events_relation_session_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
+      "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}}]",
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    Some(input_cursor("\"rows\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+test "Relation-backed session rejects duplicate IDs across groups" {
+  for payload in ["a", "b"] {
+    let producer = carrier_events_source_owner_with(
+      "number",
+      "[{\"event_id\":1,\"occurred_at\":1,\"payload\":\"a\"}," +
+      "{\"event_id\":1,\"occurred_at\":2,\"payload\":\"" +
+      payload +
+      "\"}]",
+    )
+    let source = carrier_events_source_output(producer)
+    let owner = carrier_events_relation_session_owner(producer)
+    let input = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let execution = @local_tea.start_session_relation(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      carrier_events_storage_limits(),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut failed = false
+    while !failed {
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionFailed(@local_tea.DuplicateSessionIdentity(1), ..) =>
+          failed = true
+        _ => fail("duplicate relation event ID was not rejected")
+      }
+    }
+    assert_true(@local_tea.session_cleanup_pending(execution))
+    assert_eq(@local_tea.cleanup_session(execution), Ok(true))
+    assert_true(@execution.producer_read_available(input))
+  }
+}
+
+///|
+test "Relation-backed session rejects empty input before publication" {
+  let producer = carrier_events_source_owner_with("number", "[]")
+  let source = carrier_events_source_output(producer)
+  let owner = carrier_events_relation_session_owner(producer)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let execution = @local_tea.start_session_relation(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    @local_tea.advance_session(execution, 1).unwrap()
+    is @local_tea.SessionFailed(@local_tea.EmptySessionInput, ..),
+  )
+  assert_true(@local_tea.session_cleanup_pending(execution))
+  assert_eq(@local_tea.cleanup_session(execution), Ok(true))
+  assert_true(@execution.producer_read_available(input))
+}
+
+///|
 fn carrier_events_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,
