@@ -57,6 +57,8 @@ pub fn salesforce_collection_write_request_body(@catalog.WriteCollectionRequest)
 
 pub fn salesforce_collection_write_request_cid(@catalog.WriteCollectionRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_collection_write_request_effect_kind(@catalog.WriteCollectionRequest) -> String
+
 pub fn salesforce_collection_write_request_grant_operation(@catalog.WriteCollectionRequest) -> String
 
 pub fn salesforce_collection_write_request_method(@catalog.WriteCollectionRequest) -> String

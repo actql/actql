@@ -104,6 +104,17 @@ pub fn write_collection_request_grant_operation(
 }
 
 ///|
+pub fn write_collection_request_effect_kind(
+  value : WriteCollectionRequest,
+) -> String {
+  match value.kind {
+    CollectionCreate => "create"
+    CollectionUpdate => "update"
+    CollectionUpsert => "upsert"
+  }
+}
+
+///|
 pub fn recheck_write_collection_request(
   value : WriteCollectionRequest,
   current : CatalogObservation,

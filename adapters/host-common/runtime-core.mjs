@@ -56,6 +56,12 @@ function effectApplicationControl(moon) {
     admitPreviewApplyIdentity: (...args) => checked(
       moon.strategyEffectPreviewApplyIdentityAdmit(...args),
     ),
+    admitPreviewIdentity: (...args) => checked(
+      moon.strategyEffectPreviewApplyIdentity(...args),
+    ),
+    admitCollectionBatch: (...args) => checked(
+      moon.strategyEffectCollectionBatchAdmit(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),

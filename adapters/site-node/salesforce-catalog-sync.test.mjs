@@ -14,10 +14,11 @@ import * as salesforceConformance from
   '../../_build/js/release/build/connectors/salesforce/site_test/site_test.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {canonicalJson} from
+  '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
-import {captureClaimedEffectCollectionResponse} from
-  '../host-node/effect-physical-dispatch.mjs';
-import {captureSalesforceSingleEffectWrite} from
+import {captureSalesforceSingleEffectWrite,
+  captureSalesforceCollectionEffectWrite} from
   '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
@@ -767,16 +768,80 @@ test('Host custody binds one HTTPS Collections response to every row',
     const authorityScopeCid = cid('8');
     const scope = effect.logicalRequestScope(authorityScopeCid,
       'collection-business-request', 128);
+    const contentCids = [cid('c'), cid('d')];
+    const authoring =
+      'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
+    const member = {
+      effect_id: 'CreateTwo', effect_kind: 'create',
+      target: 'Test_Record__c', mapping: 'mapping:fixture',
+      resolved_mapping_contract_cid: cid('a'),
+      effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+      source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+      authority_scope_cid: authorityScopeCid,
+      write_footprint: {
+        kind: 'collection', resource_identity_scheme_cid: cid('a'),
+        provider_namespace: 'salesforce', provider_boundary_cid: cid('a'),
+        resource_kind: 'Test_Record__c',
+        provider_object_identity_cids: [],
+      },
+      count: 2, max_items: 2, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'continue',
+      changes: rowCids.map((rowCid, index) => ({
+        target_row_identity: {content_cid: contentCids[index], occurrence: 0},
+        before: {state: 'absent'},
+        after: {state: 'present', value: {
+          External_Key__c: `key-${index + 1}`}},
+        row_preview_cid: rowCid,
+        row_idempotency_key: cid(index === 0 ? '4' : '5'),
+      })),
+      row_order: rowCids, effect_member_preview_cid: cid('a'),
+      executed: false,
+    };
+    const preview = {
+      version: 'actql-effect-preview/0.1', sensitivity: 'private',
+      retention_class: 'authority-evidence', encryption_required: true,
+      program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+      invocation_cid: cid('a'), run_identity_cid: cid('a'),
+      compiled_plan_cid: cid('a'), check_environment_cid: cid('a'),
+      authoring_context: {
+        version: 'actql-authoring-context/0.1',
+        program_definition_cid: cid('a'), annotations: [],
+        authoring_context_cid: authoring,
+      },
+      barrier_provenance_cids: [], model_derived: false,
+      model_task_contract_cids: [], model_invocation_evidence_cids: [],
+      model_response_artifact_cids: [], effects: [member], executed: false,
+      effect_preview_cid: cid('a'),
+    };
+    member.effect_member_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(preview), 8192, 256, 12)[1];
+    preview.effect_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(preview), 8192, 256, 12)[0];
+    const keys = contentCids.map(contentCid => effect.dispatchKey(
+      scope, preview.effect_preview_cid,
+      canonicalJson({content_cid: contentCid, occurrence: 0}),
+      128, 8, 3));
+    member.changes.forEach((change, index) => {
+      change.row_idempotency_key = effect.dispatchKeyCid(keys[index]);
+    });
+    const previewWire = canonicalJson(preview);
+    const admitPreview = () => effect.admitPreviewIdentity(
+      previewWire, cid('a'), authoring, scope, [keys], 8192, 256, 12);
+    const admittedPreview = admitPreview();
+    assert.equal(effect.checkPreviewFootprintConflicts(
+      previewWire, ['CreateTwo'], [1], [cid('a')],
+      8192, 256, 12, 1, 0, 100), true);
     const claims = rowCids.map((rowCid, index) => {
       assert.equal(salesforceMoon.salesforceCollectionWriteRequestRowCid(
         outbound, index), rowCid);
-      const key = effect.dispatchKey(scope, cid('7'),
-        JSON.stringify(rowCid), 128, 8, 3);
+      const key = keys[index];
       const locator = effect.logicalItemLocator(scope, 'program-1',
-        'node-1', 'CreateTwo', JSON.stringify({row_preview_cid: rowCid}),
+        'node-1', 'CreateTwo', canonicalJson({
+          content_cid: contentCids[index], occurrence: 0}),
         64, 128, 8, 3);
       const basis = effect.ledgerBasis(scope, locator, key,
-        cid('6'), cid('5'), cid('4'), requestCid, cid('3'),
+        cid('6'), member.effect_member_preview_cid, cid('4'),
+        requestCid, cid('3'),
         'unavailable', cid('2'), cid('1'));
       return {scope, locator, key, basis,
         intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
@@ -787,18 +852,32 @@ test('Host custody binds one HTTPS Collections response to every row',
     const open = () => openEffectLedger({moon: commonMoon, root,
       authorityScopeCid, callerRequestId: 'collection-business-request',
       maxEntryBytes: 4096});
-    const execute = () => writeSalesforceContinueCollection({
-      moon: salesforceMoon, request: outbound,
+    const options = {commonMoon, moon: salesforceMoon, request: outbound,
       currentObservation: catalog.observation,
       authorization: {...setup.write, useId: 'collection-effect-use'},
       credential: setup.credential,
       limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
         maxNodes: 64, maxDepth: 6, maxRows: 200},
-    });
+      claims, admittedPreview, memberIndex: 0, firstRow: 0};
     const first = open();
     t.after(() => first.close());
-    const sent = await captureClaimedEffectCollectionResponse({
-      ledger: first, claims, requestCid, execute,
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first, claims: [...claims].reverse(),
+    }), {code: 'MoonBitHostFailure'});
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first, memberIndex: 1,
+    }), {code: 'MoonBitHostFailure'});
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first, firstRow: 1,
+    }), {code: 'MoonBitHostFailure'});
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first,
+      claims: [{...claims[0], locator: claims[1].locator}, claims[1]],
+    }), {code: 'MoonBitHostFailure'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 0);
+    const sent = await captureSalesforceCollectionEffectWrite({
+      ...options, ledger: first,
     });
     assert.equal(sent.claimed, true);
     assert.equal(sent.physical.kind, 'typed-row-response');
@@ -811,8 +890,8 @@ test('Host custody binds one HTTPS Collections response to every row',
     first.close();
     const restarted = open();
     t.after(() => restarted.close());
-    const retry = await captureClaimedEffectCollectionResponse({
-      ledger: restarted, claims, requestCid, execute,
+    const retry = await captureSalesforceCollectionEffectWrite({
+      ...options, ledger: restarted, admittedPreview: admitPreview(),
     });
     assert.equal(retry.claimed, false);
     assert.deepEqual(retry.ownership.actions, [3, 3]);

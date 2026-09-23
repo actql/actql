@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
+
 pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
 pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
@@ -89,6 +91,17 @@ pub struct EffectApplyKey {
   effect_member_preview_cid : String
   cid : String
 }
+
+pub(all) enum EffectCollectionBatchIssue {
+  InvalidLimits
+  InvalidMember
+  ForeignKind
+  InvalidSlice
+  CapacityExceeded
+  ForeignRow(Int)
+  ForeignKey(Int)
+  ForeignLocator(Int)
+} derive(Eq, @debug.Debug)
 
 pub struct EffectDispatchKey {
   logical_request_scope_cid : String
