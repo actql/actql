@@ -9,6 +9,7 @@ import {arch, platform, release} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
+import {gzipSync} from 'node:zlib';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -70,6 +71,7 @@ for (const name of ['client-wire', 'sdk', 'node']) {
 const probe = `
 import assert from 'node:assert/strict';
 const packageName = process.argv[2];
+globalThis.fetch = async () => { throw new Error('NetworkOnImport'); };
 const {connect} = await import(packageName);
 let calls = 0;
 globalThis.fetch = async () => {
@@ -111,6 +113,27 @@ for (const name of ['sdk', 'node']) {
       measure(process.execPath, ['probe.mjs', packageName], installation))};
 }
 
+// Bundle the installed remote package exactly as a browser ESM consumer would.
+// The metadata must contain only the two public lightweight packages and no
+// output imports, so Local kernel and native bindings cannot hide behind a
+// deferred module reference.
+const browser = join(root, 'actql-sdk-browser.mjs');
+const browserMetadata = join(root, 'actql-sdk-browser-meta.json');
+run(join(repository, 'node_modules/.bin/esbuild'), [
+  join(root, 'install-sdk/node_modules/@actql/sdk/index.mjs'),
+  '--bundle', '--platform=browser', '--format=esm', '--target=es2022',
+  `--outfile=${browser}`, `--metafile=${browserMetadata}`,
+], root);
+const bundleMap = JSON.parse(await readFile(browserMetadata, 'utf8'));
+const browserInputs = Object.keys(bundleMap.inputs).sort();
+assert(browserInputs.length >= 2 && browserInputs.every(path =>
+  /node_modules\/@actql\/(?:sdk|client-wire)\//u.test(path)));
+assert(Object.values(bundleMap.outputs).every(output =>
+  output.imports.length === 0));
+await writeFile(join(root, 'browser-probe.mjs'), probe);
+run(process.execPath, ['browser-probe.mjs', './actql-sdk-browser.mjs'], root);
+const browserBytes = await readFile(browser);
+
 const nativeBytes = await readFile(native);
 const nativeSamples = Array.from({length: repetitions}, () =>
   measure(native, ['--help'], root));
@@ -127,6 +150,14 @@ const report = {
   repetitions,
   tarballs,
   profiles,
+  browser_esm: {
+    bytes: browserBytes.byteLength,
+    gzip_bytes: gzipSync(browserBytes).byteLength,
+    sha256: createHash('sha256').update(browserBytes).digest('hex'),
+    inputs: browserInputs,
+    output_imports: 0,
+    smoke: 'fixture connect after import without network during import',
+  },
   native_cli: {bytes: nativeBytes.byteLength,
     sha256: createHash('sha256').update(nativeBytes).digest('hex'),
     scope: 'fresh process --help only', samples: nativeSamples},
