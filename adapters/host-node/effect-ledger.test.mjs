@@ -10,7 +10,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
-import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {captureClaimedEffectCollectionResponse,
+  captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const authorityScopeCid = cid('a');
@@ -286,6 +287,59 @@ test('physical flight is distinct from durable possible-dispatch', async t => {
   const retry = restarted.claimDispatch(claims[0][0]);
   assert.equal(retry.claimed, false);
   assert.equal(retry.action, 3);
+});
+
+test('lost Collections reply preserves independent member progress', async t => {
+  const root = await fixture(t);
+  const ledger = open(root);
+  t.after(() => ledger.close());
+  const {admitted, members, claims} = admittedProgressFixture();
+  const frontier = current =>
+    current.frontierFromDurableHeads(admitted, members, 48);
+  const ready = value => Array.from({
+    length: effect.setFrontierReadyCount(value),
+  }, (_, index) => [effect.setFrontierReadyMember(value, index),
+    effect.setFrontierReadyRow(value, index)]);
+  let entered;
+  let release;
+  const started = new Promise(resolve => { entered = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  let sends = 0;
+  const execute = async () => {
+    sends += 1;
+    entered();
+    await gate;
+    throw new Error('collection reply lost');
+  };
+  const call = captureClaimedEffectCollectionResponse({
+    ledger, claims: claims[0],
+    requestCid: claims[0][0].canonicalRequestCid,
+    execute,
+  });
+  await started;
+  assert.deepEqual(ready(frontier(ledger)), [[1, 0]]);
+  assert.equal(sends, 1);
+  release();
+  await assert.rejects(call, /collection reply lost/);
+  assert.deepEqual(ready(frontier(ledger)), [[1, 0]]);
+  const independent = ledger.claimDispatch(claims[1][0]);
+  assert.equal(independent.claimed, true);
+  const applied = effect.issueNextLedgerEntry(independent.dispatching,
+    'applied', cid('8'), 4096, 64, 4);
+  ledger.append(effect.ledgerEntryWire(applied));
+  assert.equal(effect.setFrontierOutcome(frontier(ledger)), 3);
+  ledger.close();
+  const restarted = open(root);
+  t.after(() => restarted.close());
+  assert.equal(effect.setFrontierOutcome(frontier(restarted)), 3);
+  const retry = await captureClaimedEffectCollectionResponse({
+    ledger: restarted, claims: claims[0],
+    requestCid: claims[0][0].canonicalRequestCid,
+    execute,
+  });
+  assert.equal(retry.claimed, false);
+  assert.deepEqual(retry.ownership.actions, [3, 3]);
+  assert.equal(sends, 1);
 });
 
 test('admitted Preview fixes halt policy and rejects foreign row bindings',
