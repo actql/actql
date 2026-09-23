@@ -38,6 +38,25 @@ pub struct CatalogObservation {
 }
 
 ///|
+/// A refresh is a new observation and may use a new sync dispatch. Its
+/// execution authority, connection, and Site generation must remain exact.
+fn catalog_execution_binding_matches(
+  prior : CatalogObservationBinding,
+  current : CatalogObservationBinding,
+) -> Bool {
+  prior.tenant == current.tenant &&
+  prior.principal == current.principal &&
+  prior.environment == current.environment &&
+  prior.connection_revision == current.connection_revision &&
+  prior.site_key == current.site_key &&
+  prior.site_generation == current.site_generation &&
+  prior.connector_registration == current.connector_registration &&
+  prior.connector_revision == current.connector_revision &&
+  prior.resource_origin == current.resource_origin &&
+  prior.run_invocation_cid == current.run_invocation_cid
+}
+
+///|
 fn copy_resource(resource : ResourceMetadata) -> ResourceMetadata {
   let fields = []
   for field in resource.fields {
