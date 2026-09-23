@@ -1,14 +1,13 @@
-export type ClientHostOperation =
-  | 'connect' | 'submit' | 'attach' | 'lookup-request' | 'status'
-  | 'wait' | 'cancel' | 'reconcile' | 'read' | 'delivery-attempt';
+import type {ClientHostOperation, WireAdmissionShape,
+  WireConnectionShape, WireLookupFoundShape, WireLookupNotFoundShape,
+  WireLookupUnknownShape, WireProfileShape, WireRunRefShape} from
+  './client-host.generated.js';
+export type {ClientHostOperation} from './client-host.generated.js';
 
 export declare const clientHostOperations: readonly ClientHostOperation[];
 
-type WireConnectionBase = Readonly<{
-  durability?: 'volatile' | 'durable';
-  consentRefs: readonly string[];
-  runners: readonly string[];
-}>;
+type WireConnectionBase = Pick<WireConnectionShape,
+  'durability' | 'consentRefs' | 'runners'>;
 
 export type WireConnection =
   | (WireConnectionBase & Readonly<{mode: 'local'; owner: 'local';
@@ -20,11 +19,7 @@ export type WireConnection =
   | (WireConnectionBase & Readonly<{mode: 'hybrid'; owner: 'cloud';
       movementPolicyRef: string; cloudConnectionRef?: never}>);
 
-export type WireRunRef = Readonly<{
-  tenantId: string;
-  authorityScopeCid: string;
-  runDefinitionCid: string;
-}>;
+export type WireRunRef = WireRunRefShape;
 
 type WireBodyBase = Readonly<{connection: WireConnection}>;
 type WireRefBody = WireBodyBase & Readonly<{ref: WireRunRef}>;
@@ -69,33 +64,12 @@ type WireProfileSelection =
   | Readonly<{mode: 'remote'; owner: 'remote'}>
   | Readonly<{mode: 'hybrid'; owner: 'local' | 'cloud'}>;
 
-export type WireClientProfile = WireProfileSelection & Readonly<{
-  version: 'actql-client-host/0.1';
-  durability: 'volatile' | 'durable';
-  scopeRef: string;
-  capabilities: readonly string[];
-  limits: Readonly<{
-    maxReadWireBytes: number;
-    maxRowWireBytes: number;
-    maxRowRetainedValueBytes: number;
-    maxRetainedValueBytes: number;
-    maxRows: number;
-    maxBatchRows: number;
-    maxBatchRetainedValueBytes: number;
-  }>;
-}>;
+export type WireClientProfile = WireProfileShape & WireProfileSelection;
 
-export type WireClientAdmission = Readonly<{
-  ref: WireRunRef;
-  durability: 'volatile' | 'durable';
-  revision: number;
-}>;
+export type WireClientAdmission = WireAdmissionShape;
 
 export type WireRequestLookup =
-  | Readonly<{kind: 'found'; requestId: string; ref: WireRunRef;
-      durability: 'volatile' | 'durable'; lookupExpiresAt: string}>
-  | Readonly<{kind: 'not_found'}>
-  | Readonly<{kind: 'unknown'; reason: string}>;
+  | WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape;
 
 export declare function validClientProfile(value: unknown,
   selected: WireConnection): value is WireClientProfile;

@@ -15,10 +15,13 @@ attempt ID, Run definition and Result name. It also checks the shared artifact
 and serialization contract CIDs, record state, receipt reference, byte count
 and digest. The Host still authorizes lookup against tenant, scope and grant;
 those private grant facts are not present in this public response.
-The three artifact guards and their TypeScript shapes are generated from the
-registered Run publication and protocol schemas with
-`node scripts/generate-client-publication-wire.mjs --write`. The normal
-distribution gate checks generated-file freshness. The small remaining
+The request keys, Client–Host response shapes, and their TypeScript types are
+generated from `spec/contracts/actql-client-host.json` with
+`node scripts/generate-client-host-wire.mjs --write`. The publication artifact
+guards and types are generated from the registered Run publication and protocol
+schemas with `node scripts/generate-client-publication-wire.mjs --write`. The
+normal distribution gate checks both generated-file sets for freshness. The
+small remaining
 cross-artifact checks bind a reply to the requested Run and Result; they do
 not decide publication or delivery transitions.
 `validClientProfile`, `validClientAdmission` and

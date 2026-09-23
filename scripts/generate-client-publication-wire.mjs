@@ -11,10 +11,10 @@ const sources = [
 ];
 const allowed = new Set(['$schema', '$id', 'title', 'type',
   'additionalProperties', 'required', 'properties', 'items', 'uniqueItems',
-  'const', 'enum', 'pattern', 'minLength', 'minimum', 'maximum', 'allOf',
+  'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
   'if', 'then']);
 
-function project(schema) {
+export function project(schema) {
   if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
     throw new Error('InvalidPublicationSchema');
   }
@@ -30,7 +30,7 @@ function project(schema) {
   }
   const result = {};
   for (const key of ['type', 'additionalProperties', 'required',
-    'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'minimum',
+    'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
     'maximum']) {
     if (Object.hasOwn(schema, key)) result[key] = schema[key];
   }
@@ -44,7 +44,7 @@ function project(schema) {
   return result;
 }
 
-function typeOf(schema) {
+export function typeOf(schema) {
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');
   if (schema.type === 'string') return 'string';
@@ -57,6 +57,34 @@ function typeOf(schema) {
     ).join('')}\n}>`;
   }
   throw new Error('UnsupportedPublicationType');
+}
+
+export function structuralValidatorSource() {
+  return `function valid(value, schema) {\n` +
+`  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
+`  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
+`  if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;\n` +
+`  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
+`  if (schema.type === 'string') return typeof value === 'string' &&\n` +
+`    (schema.minLength === undefined || [...value].length >= schema.minLength) &&\n` +
+`    (schema.maxLength === undefined || value.length <= schema.maxLength) &&\n` +
+`    (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));\n` +
+`  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
+`    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
+`    (schema.maximum === undefined || value <= schema.maximum);\n` +
+`  if (schema.type === 'array') return Array.isArray(value) &&\n` +
+`    value.every(item => valid(item, schema.items)) &&\n` +
+`    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
+`  if (schema.type === 'object' || schema.properties || schema.required) {\n` +
+`    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
+`    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
+`    if (schema.additionalProperties === false &&\n` +
+`        Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;\n` +
+`    return Object.entries(schema.properties ?? {}).every(([key, field]) =>\n` +
+`      !Object.hasOwn(value, key) || valid(value[key], field));\n` +
+`  }\n` +
+`  return true;\n` +
+`}\n\n`;
 }
 
 export function buildClientPublicationWire(registries) {
@@ -74,30 +102,7 @@ export function buildClientPublicationWire(registries) {
   const module = `// Generated from registered ActQL publication schemas.\n` +
 `// Run: node scripts/generate-client-publication-wire.mjs --write\n` +
 `const schemas = ${JSON.stringify(schemas, null, 2)};\n\n` +
-`function valid(value, schema) {\n` +
-`  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
-`  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
-`  if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;\n` +
-`  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
-`  if (schema.type === 'string') return typeof value === 'string' &&\n` +
-`    (schema.minLength === undefined || [...value].length >= schema.minLength) &&\n` +
-`    (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));\n` +
-`  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
-`    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
-`    (schema.maximum === undefined || value <= schema.maximum);\n` +
-`  if (schema.type === 'array') return Array.isArray(value) &&\n` +
-`    value.every(item => valid(item, schema.items)) &&\n` +
-`    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
-`  if (schema.type === 'object' || schema.properties || schema.required) {\n` +
-`    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
-`    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
-`    if (schema.additionalProperties === false &&\n` +
-`        Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;\n` +
-`    return Object.entries(schema.properties ?? {}).every(([key, field]) =>\n` +
-`      !Object.hasOwn(value, key) || valid(value[key], field));\n` +
-`  }\n` +
-`  return true;\n` +
-`}\n\n` +
+structuralValidatorSource() +
 `export const validDeliveryAttempt = value => valid(value, schemas.delivery_attempt);\n` +
 `export const validDeliveryRecord = value => valid(value, schemas.delivery_record);\n` +
 `export const validHostReleaseReceipt = value =>\n` +
