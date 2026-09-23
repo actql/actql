@@ -158,6 +158,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
         result.report.acquisition_evidence,
       ),
       accounting,
+      hostPhases: result.phases,
       completionDescriptors: descriptors,
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,

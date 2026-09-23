@@ -27,7 +27,14 @@ export async function createManagedExampleHost(limits) {
       }
       if (runs.size >= capacity.attempts) throw new TypeError('ExampleRunRecordLimit');
       if (active) throw new TypeError('ManagedExampleHoldingActive');
+      const phases = {};
+      let phaseStarted = performance.now();
+      const finishPhase = name => {
+        phases[name] = performance.now() - phaseStarted;
+        phaseStarted = performance.now();
+      };
       const plan = await prepareExampleText(input, childLimits);
+      finishPhase('parentPreparationMs');
       if (!input.retainedOutput || input.localImportWorkMilliseconds === undefined) {
         throw new TypeError('ManagedExampleRequiresIndependentRetention');
       }
@@ -81,20 +88,27 @@ export async function createManagedExampleHost(limits) {
         }
       };
       try {
+        finishPhase('custodySetupMs');
         channel = await host.start({entry: new URL('./managed-worker.mjs', import.meta.url), run,
           frames: {maxBytes: 1000000, maxNodes: 100000, maxDepth: 64},
           maxRequests: 3, graceMs: 1000, startupMs: 10000,
           hostService: custody.service, maxHostCalls: 32},
         {retainedBytes: childLimits.retained_bytes, executionBytes: childLimits.execution_bytes, childLimits}, signal);
+        finishPhase('processStartMs');
         custody.observe(channel);
         phase = 'prepare';
         await channel.request({command: 'prepare', input: {...input, controlStore: true}}, signal);
+        finishPhase('workerPreparationMs');
         phase = 'execute';
         const result = await channel.request({command: 'execute'}, signal);
+        finishPhase('workerExecutionMs');
         phase = 'release';
         await channel.request({command: 'release'});
+        finishPhase('workerReleaseMs');
         await channel.close();
+        finishPhase('processCloseMs');
         return Object.freeze({report: result.report, program_success: false,
+          phases: Object.freeze(phases),
           process: () => channel.status(), usage: host.usage,
           storageUsage: () => store.status(), cleanupHandle, close,
           completion(task) {
