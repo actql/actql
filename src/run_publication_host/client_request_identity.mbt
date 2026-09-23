@@ -12,6 +12,18 @@ struct ClientRequestIdentity {
 } derive(Eq, Debug)
 
 ///|
+pub fn client_request_authority_scope_cid(
+  value : ClientRequestIdentity,
+) -> String {
+  value.authority_scope_cid
+}
+
+///|
+pub fn client_request_caller_id(value : ClientRequestIdentity) -> String {
+  value.caller_request_id
+}
+
+///|
 pub fn client_request_scope_cid(value : ClientRequestIdentity) -> String {
   value.logical_request_scope_cid
 }
