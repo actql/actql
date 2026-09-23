@@ -159,16 +159,24 @@ fn mapping_shape_cid_text(
   index : Int,
 ) -> String raise MappingShapeStop {
   let value = mapping_shape_text(object, key, index)
-  if value.length() != 71 || !value.has_prefix("sha256:") {
+  if !mapping_cid_valid(value) {
     raise MappingShapeStop(InvalidMapping(index))
+  }
+  value
+}
+
+///|
+fn mapping_cid_valid(value : String) -> Bool {
+  if value.length() != 71 || !value.has_prefix("sha256:") {
+    return false
   }
   for at in 7..<value.length() {
     let digit = value[at].to_int()
     if !((digit >= 0x30 && digit <= 0x39) || (digit >= 0x61 && digit <= 0x66)) {
-      raise MappingShapeStop(InvalidMapping(index))
+      return false
     }
   }
-  value
+  true
 }
 
 ///|

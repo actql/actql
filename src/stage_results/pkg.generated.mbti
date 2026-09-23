@@ -62,6 +62,8 @@ pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
 pub fn effect_mapping_rule_at(EffectMappingRules, Int) -> EffectMappingRuleBinding?
 
+pub fn effect_mapping_rule_conversions(EffectMappingRuleBinding) -> @check_environment.MappingConversions
+
 pub fn effect_mapping_rule_count(EffectMappingRules) -> Int
 
 pub fn effect_mapping_rule_effect(EffectMappingRuleBinding) -> EffectMappingShapeBinding
@@ -251,6 +253,7 @@ pub struct EffectCommandTargets {
 
 pub struct EffectMappingRuleBinding {
   effect : EffectMappingShapeBinding
+  conversions : @check_environment.MappingConversions
   selection : @check_environment.MappingPermissionSelection
 }
 
@@ -267,6 +270,7 @@ pub(all) enum EffectMappingRuleIssueKind {
   MissingRequiredField(String)
   MissingResultField(String)
   RowFields(@check_environment.MappingRowFieldsIssue)
+  Conversion(@check_environment.MappingConversionIssue)
   Permission(@check_environment.MappingPermissionIssue)
 } derive(Eq, @debug.Debug)
 
