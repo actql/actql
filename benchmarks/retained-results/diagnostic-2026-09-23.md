@@ -67,3 +67,12 @@ complete formal experiment. The parent and child each perform application
 preparation, including a full Program check, before the retained completion.
 Removing that duplicate work or choosing a different normal execution profile
 must preserve independent validation, authority, holding and cleanup.
+
+A temporary whitebox timing probe used the existing checked three-task Program
+fixture, without native DuckDB I/O. Its three preparation calls took 7.7–8.2 ms
+on the native target and 6.6–8.3 ms on JS after the surrounding test suite had
+already warmed the module. The probe was removed after measurement. This is not
+an equivalent benchmark leg and cannot be substituted for the registered
+Program or its cold-start cost. It does suggest that a native end-to-end
+execution profile is worth measuring before changing semantic validation or
+weakening the timing boundary.
