@@ -93,11 +93,18 @@ pub fn prepare_managed_query(
 }
 
 ///|
-pub fn managed_query_next_path(query : ManagedQuery) -> String? {
-  if query.open {
-    @catalog.query_read_next_path(query.read)
-  } else {
-    None
+pub fn managed_query_next_path(
+  query : ManagedQuery,
+) -> Result[String?, ManagedQueryIssue] {
+  if !query.open {
+    return Ok(None)
+  }
+  match @catalog.query_read_next_path(query.read) {
+    Ok(path) => Ok(path)
+    Err(issue) => {
+      cancel_managed_query(query) |> ignore
+      Err(Query(issue))
+    }
   }
 }
 

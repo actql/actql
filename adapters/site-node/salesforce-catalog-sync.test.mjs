@@ -386,6 +386,52 @@ test('Site HTTPS query follows the exact locator with bounded page delivery',
     assert.ok(result.pages.every(entry => entry.responseSha256.length === 64));
   });
 
+test('page ceiling rejects a locator before HTTP or credential use',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    let delivered = 0;
+    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+      limits: {...queryLimits, maxPages: 1},
+      consumePage: async () => { delivered += 1; },
+    })), {code: 'MoonBitHostFailure'});
+    assert.equal(delivered, 1);
+    assert.deepEqual(setup.seen.filter(entry =>
+      entry.path?.includes('/query')).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+    ]);
+    assert.deepEqual(setup.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).map(entry => entry.useId),
+    ['query-initial']);
+  });
+
+test('terminal first page and exact two-page ceiling both complete',
+  async t => {
+    const single = await fixture(t, {queryFirstResponse: JSON.stringify({
+      totalSize: 1, done: true, records: [{Id: '001A'}],
+    })});
+    const singlePlan = await queryProjection(single);
+    const one = await readSalesforceQuery(queryRequest(single, singlePlan, {
+      limits: {...queryLimits, maxPages: 1},
+    }));
+    assert.equal(one.rowCount, 1n);
+    assert.equal(single.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 1);
+    assert.equal(single.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).length, 1);
+
+    const double = await fixture(t);
+    const doublePlan = await queryProjection(double);
+    const two = await readSalesforceQuery(queryRequest(double, doublePlan, {
+      limits: {...queryLimits, maxPages: 2},
+    }));
+    assert.equal(two.rowCount, 2n);
+    assert.equal(double.seen.filter(entry => entry.path?.includes('/query'))
+      .length, 2);
+    assert.equal(double.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).length, 2);
+  });
+
 test('query rejects changed selected schema before any query credential use',
   async t => {
     const setup = await fixture(t, {accountRefreshResponse: JSON.stringify({

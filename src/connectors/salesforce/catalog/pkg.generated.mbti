@@ -76,7 +76,7 @@ pub fn query_read_accept_page(QueryRead, String, Bytes) -> Result[QueryPage, Que
 
 pub fn query_read_complete(QueryRead) -> Bool
 
-pub fn query_read_next_path(QueryRead) -> String?
+pub fn query_read_next_path(QueryRead) -> Result[String?, QueryReadIssue]
 
 pub fn query_read_page_count(QueryRead) -> Int
 
