@@ -74,6 +74,7 @@ priv struct BoundedBindingRowsState {
   available : () -> Bool
   bindings : Array[(String, @lower.Expression)]
   predicate : @lower.Expression?
+  assertion : Bool
   input_names : Array[String]
   output_names : Array[String]
   input_ordinals : Map[String, Int]
@@ -684,6 +685,13 @@ fn bounded_binding_rows_step(
                 state.phase = BuildOutputRow
               }
               Boolean(false) | Null => {
+                if state.assertion {
+                  return fail_bounded_binding_rows(
+                    Rows(AssertionPredicate(state.row)),
+                    progress,
+                    used,
+                  )
+                }
                 match release_expression_root(state.input_roots[state.row]) {
                   Err(issue) =>
                     return fail_bounded_binding_rows(
@@ -700,7 +708,13 @@ fn bounded_binding_rows_step(
               }
               Number(_) | Text(_) | Captured(_) =>
                 return fail_bounded_binding_rows(
-                  Rows(InvalidRows),
+                  Rows(
+                    if state.assertion {
+                      AssertionPredicate(state.row)
+                    } else {
+                      InvalidRows
+                    },
+                  ),
                   progress,
                   used,
                 )
@@ -922,6 +936,8 @@ pub fn start_bounded_binding_rows(
     @lower.SnapshotMap(bindings) => (bindings, false, None, false, None, None)
     @lower.Filter(expression) =>
       ([], false, Some(expression), false, None, None)
+    @lower.AssertAll(expression) =>
+      ([], false, Some(expression), false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.StableSort(_) =>
       (
@@ -957,6 +973,7 @@ pub fn start_bounded_binding_rows(
     _ => return Err(InvalidExecution)
   }
   let sort_only = @lower.kernel_body(kernel) is @lower.StableSort(_)
+  let assertion = @lower.kernel_body(kernel) is @lower.AssertAll(_)
   if take_range is None && !select_mode && bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
@@ -1085,6 +1102,7 @@ pub fn start_bounded_binding_rows(
     available: fn() { producer_read_available(input) },
     bindings,
     predicate,
+    assertion,
     input_names,
     output_names,
     input_ordinals,

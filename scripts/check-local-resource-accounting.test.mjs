@@ -156,3 +156,12 @@ test('resource gate rejects sort without mixed-stage evidence', () => {
       item.role !== 'mixed_stage_sort_quantum_and_lifetime');
   }), /RelA sort: reviewed mixed_stage_sort_quantum_and_lifetime fixture is missing/);
 });
+
+test('resource gate rejects assertion without failure cleanup', () => {
+  assert.match(run(undefined, value => {
+    const assertion = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'assert_rows');
+    assertion.boundary_tests = assertion.boundary_tests.filter(item =>
+      item.role !== 'assert_where_failure_cleanup');
+  }), /RelA assert_rows: reviewed assert_where_failure_cleanup fixture is missing/);
+});

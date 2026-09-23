@@ -532,7 +532,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     variant == "normalize_select" ||
     variant == "normalize_derive" ||
     variant == "normalize_take" ||
-    variant == "normalize_sort" {
+    variant == "normalize_sort" ||
+    variant == "normalize_assert" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true," +
     "\"as\":\"projected\"},{" +
@@ -545,6 +546,8 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"take\":1"
     } else if variant == "normalize_sort" {
       "\"sort\":[{\"id\":\"desc\"}]"
+    } else if variant == "normalize_assert" {
+      "\"assert_rows\":{\"where\":\"id > 0\"}"
     } else if variant == "normalize_filter_false" {
       "\"filter\":\"false\""
     } else {
@@ -8535,6 +8538,8 @@ fn run_standard_host_mixed_graph_relation_path(
   } else if variant == "normalize_sort" {
     assert_true(filtered_rows[0].contains("\"id\":2"))
     assert_true(filtered_rows[1].contains("\"id\":1"))
+  } else if variant == "normalize_assert" {
+    assert_eq(filtered_rows, projected_rows)
   } else {
     assert_true(filtered_rows[0].contains("\"src\":1"))
     assert_true(filtered_rows[1].contains("\"src\":2"))
@@ -8837,6 +8842,16 @@ test "standard Host composes Graph projection and bounded Relation sort" {
   for quantum in [1, 7, 1024] {
     run_standard_host_mixed_graph_relation_path(
       variant="normalize_sort",
+      execution_quantum=quantum,
+    )
+  }
+}
+
+///|
+test "standard Host composes Graph projection and bounded Relation assertion" {
+  for quantum in [1, 7, 1024] {
+    run_standard_host_mixed_graph_relation_path(
+      variant="normalize_assert",
       execution_quantum=quantum,
     )
   }

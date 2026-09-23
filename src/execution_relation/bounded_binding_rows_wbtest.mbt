@@ -29,6 +29,7 @@ fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
   following_step? : Bool = false,
   filter? : Bool = false,
+  assert_all? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
@@ -47,6 +48,8 @@ fn bounded_binding_rows_receiver(
         "{\"sort\":" +
         (if sort_empty { "[]" } else { "[{\"id\":\"desc\"}]" }) +
         ",\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if assert_all {
+        "{\"assert_rows\":{\"where\":\"id > 0\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
@@ -92,6 +95,7 @@ fn bounded_binding_rows_fixture(
   rows : String,
   following_step? : Bool = false,
   filter? : Bool = false,
+  assert_all? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
   sort? : Bool = false,
@@ -104,6 +108,7 @@ fn bounded_binding_rows_fixture(
     source_owner,
     following_step~,
     filter~,
+    assert_all~,
     select~,
     take~,
     sort~,
@@ -509,6 +514,74 @@ test "bounded binding rows cancel without publishing partial output" {
   assert_true(bounded_binding_rows_cleanup_pending(execution))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_false(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected assertion preserves rows and rejects a later failure" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  let (_, accepted, source) = bounded_binding_rows_fixture(
+    rows,
+    assert_all=true,
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(accepted, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("valid assertion failed")
+    }
+  }
+  guard completed is Some(output) else { fail("assertion did not finish") }
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(2.0)))
+  assert_true(producer_read_available(source))
+  assert_true(cleanup_bounded_binding_rows(accepted).unwrap())
+
+  let (_, rejected, rejected_input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":-1,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_all=true,
+  )
+  let mut failed = false
+  let mut failure_advances = 0
+  while !failed && failure_advances < 1000 {
+    failure_advances += 1
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(AssertionPredicate(1)), ..) => failed = true
+      BoundedBindingRowsComplete(_, ..) =>
+        fail("failed assertion published rows")
+      _ => fail("assertion reported the wrong failure")
+    }
+  }
+  assert_true(failed)
+  assert_true(bounded_binding_rows_cleanup_pending(rejected))
+  assert_true(producer_read_available(rejected_input))
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+test "bounded selected assertion cancels without publishing rows" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    assert_all=true,
+  )
+  for _ in 0..<20 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
 }
 

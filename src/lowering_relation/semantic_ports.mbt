@@ -92,6 +92,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "BRIDGE.events.to_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
     Where(_) | Derive(_) | Select(_) | Sort(_) | Limit(_) => true
+    AssertRows(_) => operation(node) == "REL.assert_all"
     _ => false
   }
 }
@@ -125,6 +126,7 @@ pub fn node_accepts_managed_relation_view(
   }
   match node.payload {
     Where(_) | Derive(_) | Select(_) | Sort(_) | Limit(_) => true
+    AssertRows(_) => operation(node) == "REL.assert_all"
     _ => false
   }
 }
