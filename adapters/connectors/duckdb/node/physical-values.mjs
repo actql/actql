@@ -43,11 +43,13 @@ function exactInteger(text, bits, signed) {
 
 // Use bits rather than JSON numbers: negative zero and nonfinite physical values
 // survive transport for MoonBit to admit/reject under the selected value contract.
+// Only the returned hex string escapes this synchronous function. Reusing the
+// fully overwritten scratch buffer avoids one native allocation per number.
+const floatBitsScratch = Buffer.allocUnsafe(8);
 function floatBits(value, width) {
-  const buffer = Buffer.alloc(width);
-  if (width === 4) buffer.writeFloatBE(value);
-  else buffer.writeDoubleBE(value);
-  return buffer.toString('hex');
+  if (width === 4) floatBitsScratch.writeFloatBE(value);
+  else floatBitsScratch.writeDoubleBE(value);
+  return floatBitsScratch.toString('hex', 0, width);
 }
 
 function floatFromBits(text, width) {
