@@ -311,6 +311,18 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       result.sync, 'Account'), 1);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
       result.sync, 'Test_Record__c'), 1);
+    const scope = setup.list.scope;
+    const observedState = (name, generation = scope.siteGeneration) =>
+      checked(salesforceMoon.salesforceCatalogObservedResourceState(
+        result.observation, scope.tenant, scope.principal, scope.environment,
+        'connection-revision-a', setup.orgId, scope.siteKey, generation,
+        scope.connectorRegistration, scope.connectorRevision,
+        scope.resourceOrigin, scope.runInvocationCid,
+        scope.dispatchRequestCid, 'catalog-sync-a', name));
+    assert.equal(observedState('Account'), 1);
+    assert.equal(observedState('Test_Record__c'), 1);
+    assert.equal(observedState('Unlisted__c'), -1);
+    assert.throws(() => observedState('Account', scope.siteGeneration + 1));
     assert.deepEqual(setup.seen.map(({method, path}) => [method, path]), [
       ['GET', '/services/data/v62.0/sobjects/'],
       ['GET', '/services/data/v62.0/sobjects/Account/describe'],
@@ -1410,6 +1422,13 @@ test('rate-limited describe remains partial with its physical use failed',
       result.sync, 'Account'), 1);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
       result.sync, 'Test_Record__c'), 3);
+    const scope = setup.list.scope;
+    assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
+      result.observation, scope.tenant, scope.principal, scope.environment,
+      'connection-revision-a', setup.orgId, scope.siteKey,
+      scope.siteGeneration, scope.connectorRegistration,
+      scope.connectorRevision, scope.resourceOrigin, scope.runInvocationCid,
+      scope.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c')), 3);
     assert.equal(setup.journal.inspect(result.describeUseCids[1]).outcome,
       'failed');
     assert.equal(setup.seen.length, 3);
@@ -1476,6 +1495,13 @@ test('truncated discovery never requests or implies an unseen describe',
     assert.equal(setup.seen.length, 2);
     assert.equal(salesforceMoon.salesforceCatalogResourceState(
       result.sync, 'Test_Record__c'), -1);
+    const scope = setup.list.scope;
+    assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
+      result.observation, scope.tenant, scope.principal, scope.environment,
+      'connection-revision-a', setup.orgId, scope.siteKey,
+      scope.siteGeneration, scope.connectorRegistration,
+      scope.connectorRevision, scope.resourceOrigin, scope.runInvocationCid,
+      scope.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c')), -2);
   });
 
 test('list rejection keeps the provider reason without starting describes',
