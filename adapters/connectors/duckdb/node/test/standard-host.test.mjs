@@ -1648,6 +1648,21 @@ async function exerciseStrategyGraph(
       {id: 2, node_name: 'second'},
     ],
   }, {
+    name: 'node-rows-filter-sort-take',
+    completedTasks: 9,
+    steps: [{
+      from: 'g', node_rows: true, as: 'projected',
+    }, {
+      from: 'projected', filter: 'id > 1', as: 'filtered',
+    }, {
+      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
+    }, {
+      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
+    }],
+    fields: ['id', 'node_name'],
+    secondFields: ['node_name'],
+    expected: [{id: 2, node_name: 'second'}],
+  }, {
     name: 'concise-edge-rows',
     concise: true,
     step: {from: 'g', edge_rows: true, as: 'out'},
@@ -1923,6 +1938,14 @@ async function exerciseStrategyGraph(
     graphProgram.stages[4].results.r.fields = publicationCase.secondFields;
     graphProgram.stages[5].steps[0].select = [publicationCase.fields[0]];
     graphProgram.stages[5].results.r.fields = [publicationCase.fields[0]];
+    if (publicationCase.name === 'node-rows-filter-sort-take') {
+      graphProgram.results.consumed_a = {
+        from: {stage: 'consumer_a', result: 'r'},
+      };
+      graphProgram.results.consumed_b = {
+        from: {stage: 'consumer_b', result: 'r'},
+      };
+    }
     const createSgaFixture = publicationCase.name.startsWith('components-')
       ? fixture.strategyFixtureSgaComponentsCreate
       : publicationCase.name.startsWith('reach-')
@@ -1951,7 +1974,10 @@ async function exerciseStrategyGraph(
       const setup = fixture.strategyFixtureSgaSubset(sgaFixture);
       const runtime = runtimeCore(hostRuntime);
       const resultCount = runtime.resultInventory(setup).length;
-      assert.equal(resultCount, 1);
+      assert.equal(
+        resultCount,
+        publicationCase.name === 'node-rows-filter-sort-take' ? 3 : 1,
+      );
       sgaPublicationStore = await openLocalPublicationStore({
         directory: sgaPublicationDirectory,
         storeAuthorityCid: hash('sga-publication-store'),
@@ -1980,22 +2006,37 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         sgaPublicationOwner.execution.completed.map(value => value.realization),
-        Array(publicationCase.name === 'node-rows' ? 6 : 5)
+        Array(publicationCase.completedTasks ??
+          (publicationCase.name === 'node-rows' ? 6 : 5))
           .fill('local-managed'),
       );
-      const occurrence =
-        sgaPublicationOwner.execution.publicationInventory.occurrences[0];
-      const received = [];
-      await sgaPublicationStore.consumeCommittedResult({
-        tenantId: plan.request.tenantId,
-        authorityScopeCid: plan.request.authorityScopeCid,
-        runDefinitionCid: plan.runDefinition.identity,
-      }, occurrence.definitionContract.identity, () => true,
-      chunk => received.push(Buffer.from(chunk)));
-      assert.deepEqual(
-        JSON.parse(Buffer.concat(received).toString('utf8')),
-        publicationCase.expected,
-      );
+      if (publicationCase.name === 'node-rows-filter-sort-take') {
+        assert.deepEqual(
+          sgaPublicationOwner.execution.completed.map(value => value.task),
+          [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        );
+      }
+      const expectedResults = {
+        published: publicationCase.expected,
+        ...(publicationCase.name === 'node-rows-filter-sort-take' ? {
+          consumed_a: [{id: 2, node_name: 'second'}],
+          consumed_b: [{node_name: 'second'}],
+        } : {}),
+      };
+      for (const occurrence of
+        sgaPublicationOwner.execution.publicationInventory.occurrences) {
+        const received = [];
+        await sgaPublicationStore.consumeCommittedResult({
+          tenantId: plan.request.tenantId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, occurrence.definitionContract.identity, () => true,
+        chunk => received.push(Buffer.from(chunk)));
+        assert.deepEqual(
+          JSON.parse(Buffer.concat(received).toString('utf8')),
+          expectedResults[occurrence.name],
+        );
+      }
     } finally {
       if (sgaPublicationOwner !== undefined) {
         await sgaPublicationOwner.close();
