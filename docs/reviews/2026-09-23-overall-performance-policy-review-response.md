@@ -415,3 +415,25 @@ Raw assessment and case records are in workspace scratch
 and `6371aed2e93c6f01e5463e67adb0b34252e384ea50bf0811841502a3a8ca48cc`.
 Only one of 27 registered cases was measured at this revision, so PERF-1
 remains open.
+
+At clean revision `3e89b3f5c`, the Node DuckDB transport avoids allocating a
+JSON encoding solely to count ordinary printable-ASCII physical scalar bytes,
+and reuses a fully overwritten scratch buffer while converting physical
+floating-point bits to hex. Exact byte-count and special-bit regressions passed,
+along with 28 focused transport/session tests and the real resident DuckDB
+profile test. A same-process component comparison over two million plain
+physical strings measured approximately 103 ms with the former JSON encoding
+and 40 ms with the direct byte count; a separate two-million-value float-bit
+comparison measured approximately 135 ms with per-value Buffer allocation
+and 90 ms with reused scratch. These are component diagnostics, not Run speed
+or a cross-revision A/B result.
+
+The registered narrow/100000 retained-reuse case completed seven eligible
+alternating pairs at this revision. Its unchanged 1.25 execution-ratio gate
+was indeterminate: estimate 1.322, 95% bootstrap interval 0.846–2.563.
+Samples on both sides varied substantially, so neither a pass nor a whole-Run
+speedup is established. Only this case was measured of the 27 registered
+cases. Raw assessment and case records are in workspace scratch
+`equivalent-narrow-3e89b3f5c`, with SHA-256 digests
+`c117d9d85a163dbfb2cc42ea70d06d47cfc4b018ae079e3e304a8cffbd4d084c`
+and `9f6dc4448206fb050459a37238ba1b44bcc203263f837295760348a7ba3425f8`.
