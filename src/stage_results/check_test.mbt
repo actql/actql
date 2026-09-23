@@ -1,12 +1,19 @@
 ///|
-fn prepared(body : String) -> @parameters.CollectedOperations {
+fn prepared(
+  body : String,
+  effects? : String = "",
+) -> @parameters.CollectedOperations {
   let text = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[" +
     "{\"id\":\"a\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
     body +
-    "}}," +
+    "}" +
+    effects +
+    "}," +
     "{\"id\":\"b\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
     body +
-    "}}]," +
+    "}" +
+    effects +
+    "}]," +
     "\"results\":{\"out\":{\"from\":{\"stage\":\"b\",\"result\":\"r\"}}}}"
   let program = @syntax.parse(
     text,

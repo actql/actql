@@ -8,6 +8,7 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/relation_results" @results,
+  "actql/actql/relation_schema" @schema,
   "actql/actql/decode_core" @decode,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_scalar" @scalar,
@@ -16,7 +17,6 @@ import {
 }
 
 import {
-  "actql/actql/relation_schema" @schema,
   "actql/actql/calendar_typing" @calendar,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
