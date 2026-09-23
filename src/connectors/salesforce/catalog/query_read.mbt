@@ -91,12 +91,21 @@ pub fn begin_query_read(
 }
 
 ///|
-pub fn query_read_next_path(read : QueryRead) -> String? {
-  if read.interrupted || read.pending_page is Some(_) {
-    None
-  } else {
-    read.next_path
+pub fn query_read_next_path(
+  read : QueryRead,
+) -> Result[String?, QueryReadIssue] {
+  if read.interrupted {
+    return Err(Interrupted)
   }
+  if read.pending_page is Some(_) {
+    return Ok(None)
+  }
+  if read.next_path is Some(_) && read.page_count >= read.max_pages {
+    read.interrupted = true
+    read.next_path = None
+    return Err(PageLimit)
+  }
+  Ok(read.next_path)
 }
 
 ///|

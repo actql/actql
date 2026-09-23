@@ -166,7 +166,9 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_next_path(query).unwrap()
+  let path = @salesforce_query.salesforce_broad_next_path(query)
+    .unwrap()
+    .unwrap()
   assert_eq(path, "/services/data/v62.0/query?q=SELECT%20id%20FROM%20r")
   @salesforce_query.accept_salesforce_broad_page(
     query,
@@ -178,7 +180,9 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     ),
   ).unwrap()
   |> ignore
-  let next = @salesforce_query.salesforce_broad_next_path(query).unwrap()
+  let next = @salesforce_query.salesforce_broad_next_path(query)
+    .unwrap()
+    .unwrap()
   assert_eq(next, "/services/data/v62.0/query/01gABC")
   @salesforce_query.accept_salesforce_broad_page(
     query,
@@ -242,7 +246,9 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     1,
     run_limits().input_values,
   ).unwrap()
-  let initial = @salesforce_query.salesforce_broad_next_path(limited).unwrap()
+  let initial = @salesforce_query.salesforce_broad_next_path(limited)
+    .unwrap()
+    .unwrap()
   assert_true(
     @salesforce_query.accept_salesforce_broad_page(
       limited,
@@ -255,7 +261,7 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     )
     is Err(Capture(_)),
   )
-  assert_true(@salesforce_query.salesforce_broad_next_path(limited) is None)
+  assert_true(@salesforce_query.salesforce_broad_next_path(limited) is Ok(None))
   assert_true(
     @salesforce_query.finish_salesforce_broad_query(limited) is Err(Closed),
   )
@@ -268,7 +274,9 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     3,
     run_limits().input_values,
   ).unwrap()
-  let first = @salesforce_query.salesforce_broad_next_path(cancelled).unwrap()
+  let first = @salesforce_query.salesforce_broad_next_path(cancelled)
+    .unwrap()
+    .unwrap()
   @salesforce_query.accept_salesforce_broad_page(
     cancelled,
     first,
@@ -280,9 +288,39 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
   ).unwrap()
   |> ignore
   assert_true(@salesforce_query.cancel_salesforce_broad_query(cancelled))
-  assert_true(@salesforce_query.salesforce_broad_next_path(cancelled) is None)
+  assert_true(
+    @salesforce_query.salesforce_broad_next_path(cancelled) is Ok(None),
+  )
   assert_true(
     @salesforce_query.finish_salesforce_broad_query(cancelled) is Err(Closed),
+  )
+  let page_limited = @salesforce_query.begin_salesforce_broad_query(
+    preparation,
+    "v62.0",
+    limits,
+    1,
+    3L,
+    3,
+    run_limits().input_values,
+  ).unwrap()
+  let first_path = @salesforce_query.salesforce_broad_next_path(page_limited)
+    .unwrap()
+    .unwrap()
+  @salesforce_query.accept_salesforce_broad_page(
+    page_limited,
+    first_path,
+    @utf8.encode(
+      (
+        #|{"totalSize":2,"done":false,"nextRecordsUrl":"/services/data/v62.0/query/01gABC","records":[{"id":3}]}
+      ),
+    ),
+  ).unwrap()
+  |> ignore
+  assert_true(
+    @salesforce_query.salesforce_broad_next_path(page_limited) is Err(Query(_)),
+  )
+  assert_true(
+    @salesforce_query.finish_salesforce_broad_query(page_limited) is Err(Closed),
   )
 }
 
@@ -368,7 +406,9 @@ fn salesforce_issued_read(
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt).unwrap()
+  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+    .unwrap()
+    .unwrap()
   @salesforce_query.accept_issued_salesforce_broad_page(
     attempt,
     path,
