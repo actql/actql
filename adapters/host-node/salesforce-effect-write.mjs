@@ -13,10 +13,9 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-// The caller must have completed whole-set Preview and apply admission. The
-// exact MoonBit-issued transport request is bound to the durable row claim
-// before the Site adapter is allowed to make an HTTPS mutation.
-export async function captureSalesforceSingleEffectWrite({
+// Low-level physical custody used only after the caller has established the
+// Preview row binding and whole-set apply admission.
+export async function captureClaimedSalesforceSingleResponse({
   ledger,
   claim,
   moon,
@@ -58,6 +57,34 @@ export async function captureSalesforceSingleEffectWrite({
       moon, request, currentObservation, authorization, credential,
       limits, signal, callResource,
     }),
+  });
+}
+
+// Bind one physical REST request to the admitted member and row before the
+// low-level custody path can claim a possible-dispatch fact.
+export async function captureSalesforceSingleEffectWrite({
+  commonMoon,
+  admittedPreview,
+  memberIndex,
+  rowIndex,
+  rowPreviewCid,
+  claim,
+  moon,
+  request,
+  ...physical
+}) {
+  if (!commonMoon || !admittedPreview || !moon || !request || !claim ||
+      !Number.isSafeInteger(memberIndex) ||
+      !Number.isSafeInteger(rowIndex) ||
+      typeof rowPreviewCid !== 'string') {
+    fail('InvalidSalesforceEffectRowBinding');
+  }
+  runtimeCore(commonMoon).effectApplicationControl.admitMemberRow(
+    admittedPreview, memberIndex, rowIndex,
+    moon.salesforceSingleWriteRequestEffectKind(request), claim.scope,
+    rowPreviewCid, claim.locator, claim.key);
+  return captureClaimedSalesforceSingleResponse({
+    claim, moon, request, ...physical,
   });
 }
 

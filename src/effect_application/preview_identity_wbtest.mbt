@@ -16,6 +16,7 @@ fn preview_apply_test_canonical(wire : String) -> String {
 ///|
 fn preview_apply_test_wire(
   scope : LogicalRequestScope,
+  policy : String,
 ) -> (String, EffectDispatchKey) {
   let a = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
@@ -25,7 +26,7 @@ fn preview_apply_test_wire(
     "write",
     preview_footprint_test_cid("1"),
     "false",
-    "halt",
+    policy,
   )
   let base = preview_footprint_test_wire(effect).replace_all(
     old="\"authoring_context_cid\":\"" + a + "\"",
@@ -74,7 +75,7 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
   let a = preview_footprint_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
   let scope = prepare_logical_request_scope(a, "request-1", 32).unwrap()
-  let (wire, key) = preview_apply_test_wire(scope)
+  let (wire, key) = preview_apply_test_wire(scope, "halt")
   assert_true(
     admit_effect_preview_apply_identity(
       wire,
@@ -144,7 +145,7 @@ test "Collections send rows match the admitted Preview and request scope" {
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
   let row = preview_footprint_test_cid("3")
   let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
-  let (wire, key) = preview_apply_test_wire(scope)
+  let (wire, key) = preview_apply_test_wire(scope, "continue")
   let preview = admit_effect_preview_apply_identity(
     wire,
     authority,
@@ -292,6 +293,38 @@ test "Collections send rows match the admitted Preview and request scope" {
     )
     is Err(CapacityExceeded),
   )
+  let (halt_wire, halt_key) = preview_apply_test_wire(scope, "halt")
+  let halt_preview = admit_effect_preview_apply_identity(
+    halt_wire,
+    authority,
+    authoring,
+    scope,
+    [[halt_key]],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(
+    admit_effect_collection_batch(
+      halt_preview,
+      0,
+      0,
+      "update",
+      scope,
+      [row],
+      [locator],
+      [halt_key],
+      200,
+      100,
+    )
+    is Err(ForeignPolicy),
+  )
+  assert_true(
+    admit_effect_single_row(
+      halt_preview, 0, 0, "update", scope, row, locator, halt_key,
+    )
+    is Ok(_),
+  )
 }
 
 ///|
@@ -422,8 +455,23 @@ test "Collections slices follow Preview row order rather than change order" {
       [first_locator],
       [first_key],
       200,
-      100,
+      2,
     )
     is Ok(_),
+  )
+  assert_true(
+    admit_effect_collection_batch(
+      preview,
+      0,
+      0,
+      "update",
+      scope,
+      [row_two, row_one],
+      [second_locator, first_locator],
+      [second_key, first_key],
+      200,
+      2,
+    )
+    is Err(CapacityExceeded),
   )
 }

@@ -132,6 +132,8 @@ pub fn single_write_request_body(SingleWriteRequest) -> String
 
 pub fn single_write_request_cid(SingleWriteRequest, String, Int) -> Result[String, WriteRequestIssue]
 
+pub fn single_write_request_effect_kind(SingleWriteRequest) -> String
+
 pub fn single_write_request_grant_operation(SingleWriteRequest) -> String
 
 pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind

@@ -17,8 +17,10 @@ pub struct EffectPreviewIdentity {
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
+  member_failure_policies : Array[String]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
+  row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
@@ -292,8 +294,10 @@ pub fn admit_effect_preview_identity(
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
+  let member_failure_policies : Array[String] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
   let row_cids : Array[Array[String]] = []
+  let row_indices : Array[Map[String, Int]] = []
   let row_correlation_wires : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
@@ -312,6 +316,11 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_effect_kinds.push(effect_kind)
+    let failure_policy = match @json.object_field(effect, "on_item_failure") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    member_failure_policies.push(failure_policy)
     let (member_keys, member_rows, member_order, member_correlations) = match
       effect_member_row_inventory(
         effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -320,6 +329,11 @@ pub fn admit_effect_preview_identity(
       Err(issue) => return Err(issue)
     }
     row_keys.push(member_keys)
+    let indices : Map[String, Int] = Map([])
+    for row_index in 0..<member_rows.length() {
+      indices[member_rows[row_index]] = row_index
+    }
+    row_indices.push(indices)
     row_cids.push(member_rows)
     row_correlation_wires.push(member_correlations)
     row_order.push(member_order)
@@ -385,8 +399,10 @@ pub fn admit_effect_preview_identity(
     member_cids: cids,
     member_effect_ids,
     member_effect_kinds,
+    member_failure_policies,
     row_keys,
     row_cids,
+    row_indices,
     row_correlation_wires,
     row_order,
     run_identity_cid: run,
@@ -426,6 +442,14 @@ pub fn effect_preview_member_kind(
 }
 
 ///|
+pub fn effect_preview_member_failure_policy(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_failure_policies.get(index)
+}
+
+///|
 pub fn effect_preview_member_count(value : EffectPreviewIdentity) -> Int {
   value.member_cids.length()
 }
@@ -461,6 +485,18 @@ pub fn effect_preview_row_identity(
 ) -> String? {
   match value.row_cids.get(member_index) {
     Some(rows) => rows.get(row_index)
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_row_index(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_cid : String,
+) -> Int? {
+  match value.row_indices.get(member_index) {
+    Some(indices) => indices.get(row_cid)
     None => None
   }
 }

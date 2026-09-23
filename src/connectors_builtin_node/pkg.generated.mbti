@@ -164,6 +164,8 @@ pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_app
 
 pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
 
+pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
+
 pub fn strategy_effect_preview_apply_identity(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
 
 pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure

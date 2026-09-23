@@ -165,6 +165,8 @@ pub fn salesforce_single_write_request_body(@catalog.SingleWriteRequest) -> Stri
 
 pub fn salesforce_single_write_request_cid(@catalog.SingleWriteRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_single_write_request_effect_kind(@catalog.SingleWriteRequest) -> String
+
 pub fn salesforce_single_write_request_grant_operation(@catalog.SingleWriteRequest) -> String
 
 pub fn salesforce_single_write_request_method(@catalog.SingleWriteRequest) -> String
