@@ -128,6 +128,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         database,
         directory,
         index,
+        ...(index === 1 ? {estimateProfileDirectory: directory} : {}),
         runChild,
         inspectCheckout: async () => ({revision: 'fixed', dirty: false}),
       });
@@ -142,6 +143,8 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       assert(calls[0].script.endsWith(report.order[0] === 'retained-actql'
         ? 'retained-case.mjs'
         : 'equivalent-case.mjs'));
+      const retainedCall = calls.find(call => call.label === 'retained-actql');
+      assert.equal(retainedCall.arguments_.at(-1), index === 1 ? directory : '1');
       assert.equal(report.status, 'diagnostic-completed');
       assert.equal(report.logicalAccountingEquivalent, true);
       assert.equal(report.acquisitionMetadataEquivalent, true);

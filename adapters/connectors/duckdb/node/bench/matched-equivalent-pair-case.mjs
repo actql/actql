@@ -4,7 +4,8 @@ import {retainedCase} from
   '../../../../../benchmarks/retained-results/fixtures.mjs';
 import {runMatchedEquivalentPair} from './matched-equivalent-pair.mjs';
 
-const [checkout, database, directory, workload, layout, rows, index, ...extra] =
+const [checkout, database, directory, workload, layout, rows, index,
+  estimateProfileDirectory, ...extra] =
   process.argv.slice(2);
 if (!checkout || !database || !directory || !/^\d+$/.test(rows ?? '') ||
     !/^\d+$/.test(index ?? '') || extra.length) {
@@ -18,6 +19,9 @@ try {
     database: resolve(database),
     directory: resolve(directory),
     index: Number(index),
+    ...(estimateProfileDirectory === undefined ? {} : {
+      estimateProfileDirectory: resolve(estimateProfileDirectory),
+    }),
   });
   console.log(JSON.stringify(report));
   if (report.status !== 'diagnostic-completed') process.exitCode = 1;
@@ -34,4 +38,3 @@ try {
   }));
   process.exitCode = 1;
 }
-

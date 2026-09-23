@@ -249,6 +249,7 @@ export async function runMatchedEquivalentPair({
   database,
   directory,
   index,
+  estimateProfileDirectory,
   runChild = defaultRunChild,
   inspectCheckout = defaultInspectCheckout,
 }) {
@@ -256,6 +257,8 @@ export async function runMatchedEquivalentPair({
       typeof database !== 'string' || !database.length ||
       typeof directory !== 'string' || !directory.length ||
       !Number.isSafeInteger(index) || index < 0 ||
+      (estimateProfileDirectory !== undefined &&
+        (typeof estimateProfileDirectory !== 'string' || !estimateProfileDirectory.length)) ||
       typeof runChild !== 'function' || typeof inspectCheckout !== 'function') {
     throw new TypeError('InvalidMatchedPairArguments');
   }
@@ -294,7 +297,8 @@ export async function runMatchedEquivalentPair({
     );
     const arguments_ = label === 'retained-actql'
       ? [checkout, database, directory, fixture.workload, fixture.layout,
-        String(fixture.rows), '1']
+        String(fixture.rows), '1',
+        ...(estimateProfileDirectory === undefined ? [] : [estimateProfileDirectory])]
       : [database, directory, fixture.workload, fixture.layout,
         String(fixture.rows)];
     samples[label] = await runChild(label, arguments_, timeoutMs, script);

@@ -170,6 +170,13 @@ accepted sample for the registered paired experiment.
 The profile binds both case IDs and both source, source-definition and Program
 hashes. A later paired runner must verify these fields before using its rates;
 the profile file alone is not authority to mark a selection qualified.
+Pass its directory as the optional final argument to
+`matched-equivalent-pair-case.mjs` to run the retained leg through normal Host
+selection with those measured rates. The retained child verifies the profile,
+its training source and the evaluation source before starting, then checks the
+evaluation source again after the Run. This remains diagnostic until release
+build provenance, all equivalent obligations and the registered paired timing
+gate are admitted.
 
 To compare ordinary and reused INSERTs through the actual bounded transport:
 
