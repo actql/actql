@@ -39,6 +39,10 @@ test('independent assembly validates hashes and holds every named boundary witho
         database, workload, layout, '100']);
       const result = await runEquivalentObligations(fixture, database, directory);
       assert.equal(result.validationRows, 100);
+      assert.deepEqual(result.acquisitionEvidenceMetadata.validationScan.receivedFields,
+        [...fixture.fields].sort());
+      assert.deepEqual(result.acquisitionEvidenceMetadata.nativeResult.receivedFields,
+        workload === workloads[2] ? [...fixture.fields].sort() : ['id']);
       assert(result.warmMs > 0 && result.warmMs <= result.executionMs);
       assert.equal(result.stages.at(-1).cid, fixture.identity().rowsCid);
       assert.equal(result.stages.length, workload === workloads[1] ? 5 : 4);

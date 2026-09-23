@@ -70,6 +70,9 @@ export async function runEquivalentObligations(fixture, database, directory, sup
   const physical = {max_rows: l.intermediateRows, max_cells: l.intermediateRows * l.maxColumns,
     max_nodes: l.cumulativeValueNodes, max_text_bytes: l.cumulativeValueTextBytes};
   const kind = name => name === 'payload' && f.layout === 'text-1024' ? 1 : 0;
+  // The registered field names are ASCII. The product's receipt order is the
+  // canonical UTF-16 field order, which JavaScript's default sort shares here.
+  const sourceFields = [...f.fields].sort();
   const quote = name => '"' + name.replaceAll('"', '""') + '"';
   const list = names => names.map(quote).join(', ');
   const boundedSql = sql => {
@@ -147,6 +150,7 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     if (writer && receipt._0) await writer.append(receipt._0);
     const body = writer ? await writer.seal({cid: receipt._1, bytes: receipt._2}) : undefined;
     return Object.freeze({run, cid: receipt._1, bytes: receipt._2, rows: receipt._4,
+      fields: Object.freeze([...names]),
       measurement: receipt._5, body, chunks, demands});
   }
   let sourceValidation;
@@ -243,13 +247,13 @@ export async function runEquivalentObligations(fixture, database, directory, sup
     signal.addEventListener('abort', interrupt, {once: true});
     await exec('BEGIN TRANSACTION'); transaction = true;
     const validationStarted = performance.now();
-    const validation = await scan(`SELECT ${list(f.fields)} FROM records ORDER BY rowid`,
-      f.fields, budget(), {records: true, maxRows: l.sourceRows,
+    const validation = await scan(`SELECT ${list(sourceFields)} FROM records ORDER BY rowid`,
+      sourceFields, budget(), {records: true, maxRows: l.sourceRows,
         comparisons: [{consumer: 'capture', rhs: f.minimum,
           chargeFieldResolution: false}]});
     sourceValidation = validation;
     const validationMs = performance.now() - validationStarted;
-    const names = f.workload === workloads[2] ? f.fields : ['id'];
+    const names = f.workload === workloads[2] ? sourceFields : ['id'];
     await stage('capture', `SELECT ${list(names)} FROM records WHERE id > ${f.minimum} ORDER BY rowid`, names, []);
     acquisitionEvidenceMetadata = equivalentAcquisitionMetadata(
       f,

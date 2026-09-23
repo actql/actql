@@ -32,7 +32,7 @@ function fixtureMaterial(fixture) {
   const policyContract = contract(view.output.data_policy.cid);
   assert(rowContract && policyContract, 'MissingBenchmarkAcquisitionContract');
   const fields = fixture.workload === workloads[2]
-    ? fixture.fields : ['id'];
+    ? [...fixture.fields].sort() : ['id'];
   const outputContractCid = hash(Object.fromEntries(fields.map(name => {
     const value = rowContract.body.fields[name];
     assert(value, `MissingBenchmarkField:${name}`);
@@ -53,6 +53,7 @@ function fixtureMaterial(fixture) {
   });
   return Object.freeze({
     fields: Object.freeze([...fields]),
+    validationFields: Object.freeze([...fixture.fields].sort()),
     outputContractCid,
     parameterValuesCid,
     resolvedRequestCid,
@@ -117,13 +118,11 @@ function projection(material, validation, output) {
 
 export function equivalentAcquisitionMetadata(fixture, validation, output) {
   const material = fixtureMaterial(fixture);
-  return projection(material, {
-    ...validation,
-    fields: fixture.fields,
-  }, {
-    ...output,
-    fields: material.fields,
-  });
+  assert.deepEqual(validation?.fields, material.validationFields,
+    'NoncanonicalValidationReceiptFields');
+  assert.deepEqual(output?.fields, material.fields,
+    'NoncanonicalOutputReceiptFields');
+  return projection(material, validation, output);
 }
 
 export function productAcquisitionMetadata(fixture, evidence) {
