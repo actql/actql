@@ -11,7 +11,8 @@ const equivalent = 'direct-duckdb-with-identical-obligations-and-independent-hol
 
 function admittedPairs() {
   const provenance = {
-    revision: 'a'.repeat(40), sourceContentSha256: 'b'.repeat(64), runtime: 'v22.23.2',
+    revision: 'a'.repeat(40), sourceContentSha256: 'b'.repeat(64),
+    releaseArtifactSha256: 'd'.repeat(64), runtime: 'v22.23.2',
     registrationSha256: digest(readFileSync(new URL('experiment.json', import.meta.url))),
     programSha256: digest(JSON.stringify(fixture.program())),
     sourceDefinitionSha256: digest(fixture.createSourceSql),
@@ -49,6 +50,8 @@ test('missing, changed, unqualified and unreleased evidence never passes', () =>
     pairs => { pairs[3].provenance.revision = 'c'.repeat(40); },
     pairs => { pairs[3].provenance.programSha256 = 'c'.repeat(64); },
     pairs => { pairs[3].provenance.sourceContentSha256 = 'c'.repeat(64); },
+    pairs => { pairs[3].provenance.releaseArtifactSha256 = 'c'.repeat(64); },
+    pairs => { delete pairs[3].provenance.releaseArtifactSha256; },
     pairs => { pairs[3].equivalentObligationAdmission.accepted = false; },
     pairs => { pairs[3].samples['retained-actql'].acceptanceEligible = false; },
     pairs => { pairs[3].samples['retained-actql'].cleanupMs = undefined; },

@@ -137,3 +137,10 @@ preparation, 82.956 ms of child startup, 218.447 ms of child preparation and
 28.531 ms on average, compared with 3.653 ms for the independent comparator.
 The next optimization should target duplicate preparation and per-task overhead
 while preserving the current matched obligations and timing boundaries.
+
+The pair runner now fingerprints the generated release modules used by both
+legs before and after each child, and the series assessor requires that digest
+to match across all seven pairs. This closes a provenance gap: ignored `_build`
+outputs could previously differ despite an unchanged clean source revision.
+The seven-pair result above predates this stronger artifact check and is retained
+as diagnostic history, not promoted to acceptance evidence under the new gate.

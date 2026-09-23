@@ -8,6 +8,8 @@ import {join} from 'node:path';
 import {isDeepStrictEqual, promisify} from 'node:util';
 import {admitEquivalentObligationPair} from
   './equivalent-admission.mjs';
+import {releaseArtifactDigest} from
+  '../../../../../benchmarks/retained-results/release-artifacts.mjs';
 
 const exec = promisify(execFile);
 
@@ -252,6 +254,7 @@ export async function runMatchedEquivalentPair({
   estimateProfileDirectory,
   runChild = defaultRunChild,
   inspectCheckout = defaultInspectCheckout,
+  inspectReleaseArtifacts = releaseArtifactDigest,
 }) {
   if (!fixture || typeof checkout !== 'string' || !checkout.length ||
       typeof database !== 'string' || !database.length ||
@@ -259,7 +262,8 @@ export async function runMatchedEquivalentPair({
       !Number.isSafeInteger(index) || index < 0 ||
       (estimateProfileDirectory !== undefined &&
         (typeof estimateProfileDirectory !== 'string' || !estimateProfileDirectory.length)) ||
-      typeof runChild !== 'function' || typeof inspectCheckout !== 'function') {
+      typeof runChild !== 'function' || typeof inspectCheckout !== 'function' ||
+      typeof inspectReleaseArtifacts !== 'function') {
     throw new TypeError('InvalidMatchedPairArguments');
   }
   const initialCheckout = await inspectCheckout(checkout);
@@ -271,6 +275,10 @@ export async function runMatchedEquivalentPair({
   const revision = initialCheckout.revision;
   if (initialCheckout.dirty) {
     throw new Error('MatchedPairRequiresCleanCheckout');
+  }
+  const artifactDigest = await inspectReleaseArtifacts(checkout);
+  if (!/^[0-9a-f]{64}$/.test(artifactDigest)) {
+    throw new Error('InvalidReleaseArtifactDigest');
   }
   const registration = await readFile(join(
     checkout,
@@ -308,6 +316,9 @@ export async function runMatchedEquivalentPair({
     const currentCheckout = await inspectCheckout(checkout);
     if (currentCheckout.revision !== revision || currentCheckout.dirty) {
       throw new Error('MatchedPairSourcesChanged');
+    }
+    if (await inspectReleaseArtifacts(checkout) !== artifactDigest) {
+      throw new Error('MatchedPairReleaseArtifactsChanged');
     }
   }
   const equivalent = samples[
@@ -370,6 +381,7 @@ export async function runMatchedEquivalentPair({
     samples: Object.freeze(samples),
     provenance: Object.freeze({
       revision,
+      releaseArtifactSha256: artifactDigest,
       registrationSha256: sha256(registration),
       sourceContentSha256: sourceContentHash,
       sourceDefinitionSha256: sha256(fixture.createSourceSql),

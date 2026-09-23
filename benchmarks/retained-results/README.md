@@ -389,7 +389,8 @@ At least seven pairs and 10000 bootstrap resamples are required.
 `equivalent-series-assessment.mjs` adds the first case-level admission boundary
 for the independent-obligations comparator. It requires one registered fixture,
 the unchanged experiment pin, seven admitted pairs on the same implementation
-revision, Program, source definition, source contents and runtime, confirmed
+revision, generated release artifact digest, Program, source definition,
+source contents and runtime, confirmed
 release, and a product leg qualified for normal cost-grounded selection. It
 then applies the registered warm/cold or large-case equivalent timing limits.
 Matched pairs without a verified held-out estimate profile mark the product
@@ -417,7 +418,9 @@ node --test benchmarks/retained-results/*.test.mjs
 `adapters/connectors/duckdb/node/bench/matched-equivalent-pair.mjs` provides the next
 lower-level runner boundary: one alternating retained/equivalent pair against
 one hashed immutable database and one clean revision, with a fresh child for
-each leg. It records matched parent-cycle, child execution and cleanup timing
+each leg. It hashes the six generated release modules loaded by these legs
+before execution and after each child; a missing or changed module invalidates
+the pair. It records matched parent-cycle, child execution and cleanup timing
 plus the downstream-consumer warm interval without declaring the independent
 comparator equivalent. The executable
 `matched-equivalent-pair-case.mjs` wrapper takes the explicit fixture and pair

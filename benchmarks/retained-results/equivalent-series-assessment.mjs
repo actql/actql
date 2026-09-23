@@ -29,7 +29,7 @@ export function assessEquivalentSeries(fixture, pairs) {
   }
   const programSha256 = sha256(JSON.stringify(fixture.program()));
   const sourceDefinitionSha256 = sha256(fixture.createSourceSql);
-  let revision, sourceContentSha256, runtime;
+  let revision, sourceContentSha256, releaseArtifactSha256, runtime;
   const timingPairs = [];
   for (const [index, pair] of pairs.entries()) {
     const provenance = pair?.provenance;
@@ -47,14 +47,18 @@ export function assessEquivalentSeries(fixture, pairs) {
       provenance.sourceDefinitionSha256 !== sourceDefinitionSha256 ||
       !/^[0-9a-f]{40}$/.test(provenance.revision ?? '') ||
       !/^[0-9a-f]{64}$/.test(provenance.sourceContentSha256 ?? '') ||
+      !/^[0-9a-f]{64}$/.test(provenance.releaseArtifactSha256 ?? '') ||
       typeof provenance.runtime !== 'string' || !provenance.runtime.length ||
       (revision !== undefined && revision !== provenance.revision) ||
       (sourceContentSha256 !== undefined && sourceContentSha256 !== provenance.sourceContentSha256) ||
+      (releaseArtifactSha256 !== undefined &&
+        releaseArtifactSha256 !== provenance.releaseArtifactSha256) ||
       (runtime !== undefined && runtime !== provenance.runtime)) {
       return incomplete(`unmatched-provenance:${index}`);
     }
     revision = provenance.revision;
     sourceContentSha256 = provenance.sourceContentSha256;
+    releaseArtifactSha256 = provenance.releaseArtifactSha256;
     runtime = provenance.runtime;
     const a = pair.samples?.[equivalent];
     const b = pair.samples?.[retained];
@@ -84,6 +88,7 @@ export function assessEquivalentSeries(fixture, pairs) {
     gates.some(gate => gate.status === 'fail') ? 'fail' :
       gates.some(gate => gate.status === 'indeterminate') ? 'indeterminate' : 'pass';
   return Object.freeze({status, scope: 'one-equivalent-comparator-only',
-    caseId: fixture.id, revision, sourceContentSha256, registrationSha256,
+    caseId: fixture.id, revision, sourceContentSha256, releaseArtifactSha256,
+    registrationSha256,
     programSha256, runtime, pairs: pairs.length, gates});
 }

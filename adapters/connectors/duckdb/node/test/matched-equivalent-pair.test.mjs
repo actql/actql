@@ -131,6 +131,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
         ...(index === 1 ? {estimateProfileDirectory: directory} : {}),
         runChild,
         inspectCheckout: async () => ({revision: 'fixed', dirty: false}),
+        inspectReleaseArtifacts: async () => 'a'.repeat(64),
       });
       assert.deepEqual(report.order, index === 0
         ? ['direct-duckdb-with-identical-obligations-and-independent-holding',
@@ -163,6 +164,7 @@ test('matched pair alternates fresh legs and cannot promote diagnostics', async 
       ]);
       assert(report.missing.includes('equivalent-obligation admission'));
       assert.equal(report.provenance.processBoundary, 'fresh child per leg');
+      assert.equal(report.provenance.releaseArtifactSha256, 'a'.repeat(64));
       assert.deepEqual(report.accountingComparison.nativeSemanticRows,
         {retained: 10, equivalent: 8, difference: 2});
       assert.deepEqual(report.accountingComparison.identityPasses,
@@ -202,7 +204,32 @@ test('matched pair rejects source mutation between legs', async () => {
         return {status: 'failed', acceptanceEligible: false};
       },
       inspectCheckout: async () => ({revision: 'fixed', dirty: false}),
+      inspectReleaseArtifacts: async () => 'a'.repeat(64),
     }), /MatchedPairSourceChanged/);
+    assert.equal(calls, 1);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
+test('matched pair rejects a changed release bundle between legs', async () => {
+  const fixture = retainedCase(workloads[0], 'narrow', 100);
+  const directory = await mkdtemp(join(tmpdir(), 'actql-matched-pair-'));
+  const database = join(directory, 'source.duckdb');
+  await writeFile(database, 'immutable fixture');
+  let inspections = 0;
+  let calls = 0;
+  try {
+    await assert.rejects(runMatchedEquivalentPair({
+      fixture, checkout, database, directory, index: 0,
+      runChild: async () => {
+        calls++;
+        return {status: 'failed', acceptanceEligible: false};
+      },
+      inspectCheckout: async () => ({revision: 'fixed', dirty: false}),
+      inspectReleaseArtifacts: async () =>
+        (inspections++ === 0 ? 'a' : 'b').repeat(64),
+    }), /MatchedPairReleaseArtifactsChanged/);
     assert.equal(calls, 1);
   } finally {
     await rm(directory, {recursive: true, force: true});

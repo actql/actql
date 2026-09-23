@@ -15,6 +15,7 @@ function record(fixture) {
   const provenance = {
     revision,
     sourceContentSha256: 'b'.repeat(64),
+    releaseArtifactSha256: 'd'.repeat(64),
     runtime: 'v22.23.2',
     registrationSha256,
     programSha256: digest(JSON.stringify(fixture.program())),
