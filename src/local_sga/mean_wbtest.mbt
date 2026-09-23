@@ -311,6 +311,7 @@ fn mean_numeric_policy_owner(
   third : @lower.BoundPrepared,
   missing : String,
   nulls : String,
+  edge_fail? : Bool = false,
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_with_evidence(
@@ -318,14 +319,22 @@ fn mean_numeric_policy_owner(
         "[{\"mean_graphs\":{" +
         "\"with\":[\"a\",\"b\",\"c\"]," +
         "\"weights\":[1,2,3]," +
-        "\"support\":{\"nodes\":0.5,\"edges\":1}," +
+        "\"support\":{\"nodes\":0.5,\"edges\":" +
+        (if edge_fail { "0.1" } else { "1" }) +
+        "}," +
         "\"properties\":{\"nodes\":{\"score\":{" +
         "\"mean\":{\"missing\":\"" +
         missing +
         "\",\"nulls\":\"" +
         nulls +
         "\"}}}," +
-        "\"edges\":{\"score\":\"exact_equal\"}}},\"as\":\"m\"}]",
+        "\"edges\":{\"score\":" +
+        (if edge_fail {
+          "{\"mean\":{\"missing\":\"exclude\",\"nulls\":\"fail\"}}"
+        } else {
+          "\"exact_equal\""
+        }) +
+        "}}},\"as\":\"m\"}]",
       ),
       [
         (
@@ -455,6 +464,87 @@ fn mean_numeric_graph(
     @graph.append_node(output, number(1.0), [value]).unwrap()
   }
   @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_numeric_edge_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Bool,
+  edge : Bool,
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  if nodes {
+    @graph.append_node(output, number(1.0), [mean_numeric_value("0")]).unwrap()
+    @graph.append_node(output, number(2.0), [mean_numeric_value("0")]).unwrap()
+  }
+  if edge {
+    @graph.append_edge(output, number(1.0), number(2.0), None, [
+      mean_numeric_value("null"),
+    ]).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+test "graph mean demands edge properties only with retained endpoints" {
+  let first_owner = mean_numeric_source_owner()
+  let second_owner = mean_numeric_source_owner()
+  let third_owner = mean_numeric_source_owner()
+  let owners = [first_owner, second_owner, third_owner]
+  let owner = mean_numeric_policy_owner(
+    first_owner,
+    second_owner,
+    third_owner,
+    "exclude",
+    "exclude",
+    edge_fail=true,
+  )
+  let first = mean_numeric_edge_graph(first_owner, true, true)
+  let empty_second = mean_numeric_edge_graph(second_owner, false, false)
+  let empty_third = mean_numeric_edge_graph(third_owner, false, false)
+  let excluded = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_numeric_views(owner, owners, [first, empty_second, empty_third]),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  let excluded_output = finish_mean(excluded)
+  let excluded_storage = @graph.completed_storage(excluded_output).unwrap()
+  assert_eq(@storage.node_count(excluded_storage), 0)
+  assert_eq(@storage.edge_count(excluded_storage), 0)
+  assert_eq(cleanup_mean(excluded), Ok(true))
+
+  let second = mean_numeric_edge_graph(second_owner, true, false)
+  let third = mean_numeric_edge_graph(third_owner, true, false)
+  let retained = start_mean_views(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    mean_numeric_views(owner, owners, [first, second, third]),
+    storage_limits(),
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  while true {
+    match advance_mean(retained, 1).unwrap() {
+      MeanContinue(_) => ()
+      MeanFailed(MeanPropertyValue, ..) => break
+      _ => abort("retained edge null did not fail")
+    }
+  }
+  assert_eq(cleanup_mean(retained), Ok(true))
 }
 
 ///|
