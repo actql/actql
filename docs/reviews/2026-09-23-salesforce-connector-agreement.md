@@ -198,6 +198,16 @@ must still prove that the Preview belongs to the checked Program and that the
 physical requests satisfy current apply admission. This progress reader is
 not an apply permit, does not send HTTP requests, and does not close SF-3.
 
+At `5217412b1e2bce5592b9dcfab0cb54fd75c111f7`, the Effect header and
+Result-field binding work additionally retains the exact checked Stage Result
+occurrence and typed selector, key, command-target, and value references.
+This is structural check progress, not Mapping/Command Contract admission or
+an Effectful standard Host path. The local Salesforce Site suite passed
+103/103 on 2026-09-24. SF-1 and SF-2 remain closed without duplicate changes;
+SF-3 and authorized live-org verification remain open. The shared product
+port and its acceptance matrix are maintained in
+`docs/reviews/2026-09-24-effect-run-shared-port.md`.
+
 The Salesforce Host bridge also reprojects a verified, durably stored physical
 response after restart without claiming another credential use or sending the
 request again. A Collections replay checks the exact batch owner and ordered
