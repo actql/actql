@@ -12,6 +12,14 @@ pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
 
+pub fn catalog_observation_identity(CatalogObservation) -> String
+
+pub fn catalog_observation_json(CatalogObservation) -> String
+
+pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
+
+pub fn catalog_response_sha256(Bytes) -> String
+
 pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_sync_is_complete(CatalogSync) -> Bool
@@ -27,6 +35,8 @@ pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
+
+pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
 
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
@@ -45,6 +55,38 @@ pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> 
 // Errors
 
 // Types and methods
+pub struct CatalogObservation {
+  sync : CatalogSync
+  binding : CatalogObservationBinding
+  body : String
+  cid : String
+}
+
+pub(all) struct CatalogObservationBinding {
+  tenant : String
+  principal : String
+  environment : String
+  connection_revision : String
+  site_key : String
+  site_generation : Int
+  connector_registration : String
+  connector_revision : String
+  resource_origin : String
+  run_invocation_cid : String
+  dispatch_request_cid : String
+  sync_occurrence : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CatalogObservationIssue {
+  IncompleteSync
+  InvalidBinding
+  InvalidUseEvidence
+  EvidenceCountMismatch
+  OutputLimit
+  ForeignBinding
+  Resource(ResourceSelectionIssue)
+} derive(Eq, @debug.Debug)
+
 pub struct CatalogSync {
   listing : ResourceListing
   outcomes : Array[ResourceDescribeOutcome]
