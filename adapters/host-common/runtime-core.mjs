@@ -42,6 +42,14 @@ function effectApplicationControl(moon) {
     setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
     setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
     setFrontierReadyRow: moon.strategyEffectSetFrontierReadyRow,
+    admitLedgerEntry: (...args) => checked(
+      moon.strategyEffectAdmitLedgerEntry(...args),
+    ),
+    ledgerEntryFollows: moon.strategyEffectLedgerEntryFollows,
+    ledgerEntryCid: moon.strategyEffectLedgerEntryCid,
+    ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
+    ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
+    ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
   });
   effectApplicationControls.set(moon, control);
   return control;
