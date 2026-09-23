@@ -208,6 +208,15 @@ These are physical-response facts, not terminal Effect facts or final receipts.
 The checked Program, all-member preflight and apply permit, durable outcome
 admission, receipts, and ordinary Effectful Run path remain open under SF-3.
 
+The next shared step retains a bounded structural header inventory from the
+original Stage declarations. It preserves exact Stage/member occurrences,
+Effect kinds, source Result references, Contract references, and authored row
+failure policy. This inventory is deliberately not a `CheckedEffectSet`: it
+does not establish field typing, Contract closure, authority, Preview guards,
+or execution permission. The standard checker continues to reject nonempty
+Effects until those obligations and the Host caller are connected. Structural
+header tests therefore advance SF-3 without closing its product-path review.
+
 ## Capability comparison with Smooth Cloud
 
 This is a design comparison, not an import of Smooth Cloud contracts. The
