@@ -6088,6 +6088,112 @@ async function exerciseStrategyGraph(
       }
     }
   }
+  const copyCancellationCase = {
+    name: 'providerless-cross-join-copy-in-flight',
+  };
+  const copyCancellationProgram = structuredClone(unrestrictedCrossJoinProgram);
+  copyCancellationProgram.stages.find(stage =>
+    stage.id === 'crossed').steps[2].values.rows = Array.from(
+    {length: 40}, (_, index) => ({tag: `tag${index}`}),
+  );
+  const copyCancellationFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(copyCancellationProgram),
+  );
+  const copyCancellationCapture = await runNativeHostQuery(
+    grant,
+    fixture.strategyFixtureAcquisition(copyCancellationFixture),
+    suppliedLimits,
+  );
+  const copyCancellation = new AbortController();
+  let copyCancellationExecution;
+  let copyManagedStarts = 0;
+  let copyProgress = 0n;
+  let copyCancelScheduled = false;
+  let copyCancelDeliveredAt;
+  let copyStopObservedAt;
+  copyCancellation.signal.addEventListener('abort', () => {
+    copyCancelDeliveredAt = performance.now();
+  }, {once: true});
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      copyCancellationFixture, copyCancellationCapture.source(),
+    ), true);
+    const setup = fixture.strategyFixtureModuleSubset(
+      copyCancellationFixture, 0,
+    );
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_ManagedStart') {
+          return Reflect.get(target, property, receiver);
+        }
+        return configuration => {
+          const start = ++copyManagedStarts;
+          const operation = checked(
+            target.strategyModule_local_ManagedStart(configuration),
+          );
+          const observed = new Proxy(operation, {
+            get(active, name, operationReceiver) {
+              if (name === 'execution_stopped') {
+                return () => {
+                  const stopped = active.execution_stopped();
+                  if (stopped && copyCancellation.signal.aborted &&
+                      copyStopObservedAt === undefined) {
+                    copyStopObservedAt = performance.now();
+                  }
+                  return stopped;
+                };
+              }
+              if (name !== 'advance') {
+                return Reflect.get(active, name, operationReceiver);
+              }
+              return quantum => {
+                const result = active.advance(quantum);
+                const poll = checked(result);
+                if (start === 1) {
+                  assert(poll.work <= BigInt(quantum));
+                  if (poll.complete === false && poll.progress > 0n &&
+                      poll.work > 0n) {
+                    copyProgress += poll.progress;
+                    if (!copyCancelScheduled) {
+                      copyCancelScheduled = true;
+                      setTimeout(() => copyCancellation.abort(), 0);
+                    }
+                  }
+                }
+                return result;
+              };
+            },
+          });
+          return {$tag: 1, _0: observed};
+        };
+      },
+    });
+    copyCancellationExecution = await runInstalledStrategy(
+      setup,
+      runtimeCore(hostRuntime),
+      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+      copyCancellation.signal,
+    );
+    assert(copyProgress > 0n,
+      `${copyCancellationCase.name}: row copy must start before cancel`);
+    assert.equal(copyCancellation.signal.aborted, true);
+    assert.equal(Number.isFinite(copyCancelDeliveredAt), true);
+    assert.equal(Number.isFinite(copyStopObservedAt), true);
+    assert(copyStopObservedAt >= copyCancelDeliveredAt);
+    assert.equal(copyCancellationExecution.status, 'host-tasks-failed');
+    assert.equal(copyCancellationExecution.failure?.name, 'AbortError');
+    assert.equal(copyCancellationExecution.completed.some(item =>
+      item.task === 1), false, 'partial copied output must not publish');
+  } finally {
+    copyCancellationCapture.close();
+    await copyCancellationExecution?.close();
+    if (copyCancellationExecution) {
+      assert.equal(await copyCancellationExecution.cleanup(), true);
+      assert.equal(copyCancellationExecution.cleanupPending(), false);
+      assert.equal(copyCancellationExecution.usage().heldBytes, 0n);
+      assert.equal(copyCancellationExecution.usage().reservedExecutionBytes, 0n);
+    }
+  }
   for (const ordinaryUnaryCase of [
     {name: 'ordinary-select-in-flight', kind: 'select'},
     {name: 'ordinary-filter-in-flight', kind: 'filter'},
