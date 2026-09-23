@@ -4871,6 +4871,14 @@ async function exerciseStrategyGraph(
   splitValuesStage.steps.push({
     from: 'values_rows', filter: 'id > 0', as: 'out',
   });
+  const splitValuesAssertProgram = structuredClone(zeroInputProgram);
+  const splitValuesAssertStage = splitValuesAssertProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  splitValuesAssertStage.steps[0].as = 'values_rows';
+  splitValuesAssertStage.steps.push({
+    from: 'values_rows', assert_rows: {where: '1 > 0'}, as: 'out',
+  });
   const splitValuesSortTakeProgram = structuredClone(zeroInputProgram);
   const splitValuesSortTakeStage = splitValuesSortTakeProgram.stages.find(
     stage => stage.id === 'values_a',
@@ -6335,6 +6343,8 @@ async function exerciseStrategyGraph(
       cancelAtStart: 2},
     {name: 'split-values-in-flight', program: splitValuesProgram,
       cancelAtStart: 2},
+    {name: 'split-values-assert-in-flight',
+      program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-sort-in-flight',
       program: splitValuesSortTakeProgram, cancelAtStart: 3},
   ]) {

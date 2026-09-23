@@ -249,10 +249,11 @@ test "Local managed zero-input values feed two downstream Computes" {
 }
 
 ///|
-test "standard Host splits zero-input values from Relation filter" {
+fn run_standard_host_values_relation_step(assertion : Bool) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
-    local_values_two_consumer_filter=true,
+    local_values_two_consumer_filter=!assertion,
+    local_values_two_consumer_assert=assertion,
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -294,29 +295,34 @@ test "standard Host splits zero-input values from Relation filter" {
   assert_eq(values_rows, [
     "{\"id\":null,\"label\":\"none\"}", "{\"id\":1,\"label\":\"one\"}",
   ])
-  let filter_live = Ref(true)
-  let filter_advances = Ref(0)
-  let (filter_ops, filtered) = run_local_managed_test_task(
+  let relation_live = Ref(true)
+  let relation_advances = Ref(0)
+  let (relation_ops, relation_output) = run_local_managed_test_task(
     installed,
     run,
     2,
     [values],
     [values_rows],
     2,
-    filter_live,
+    relation_live,
     execution_quantum=1,
-    execution_advances=Some(filter_advances),
+    execution_advances=Some(relation_advances),
   )
-  assert_true(filter_advances.val > 1)
-  let filtered_rows = local_managed_test_rows(filter_ops)
-  assert_eq(filtered_rows, ["{\"id\":1,\"label\":\"one\"}"])
+  assert_true(relation_advances.val > 1)
+  let relation_rows = local_managed_test_rows(relation_ops)
+  let expected = if assertion {
+    values_rows
+  } else {
+    ["{\"id\":1,\"label\":\"one\"}"]
+  }
+  assert_eq(relation_rows, expected)
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
     3,
-    [filtered],
-    [filtered_rows],
+    [relation_output],
+    [relation_rows],
     3,
     first_live,
   )
@@ -325,26 +331,30 @@ test "standard Host splits zero-input values from Relation filter" {
     installed,
     run,
     4,
-    [filtered],
-    [filtered_rows],
+    [relation_output],
+    [relation_rows],
     4,
     second_live,
   )
-  assert_eq(local_managed_test_rows(first_ops), filtered_rows)
-  assert_eq(local_managed_test_rows(second_ops), [
-    "{\"label\":\"one\",\"id\":1}",
-  ])
+  assert_eq(local_managed_test_rows(first_ops), relation_rows)
+  let expected_second = if assertion {
+    ["{\"label\":\"none\",\"id\":null}", "{\"label\":\"one\",\"id\":1}"]
+  } else {
+    ["{\"label\":\"one\",\"id\":1}"]
+  }
+  assert_eq(local_managed_test_rows(second_ops), expected_second)
   first_live.val = false
   @strategy.close_captured_task_output(run, 3)
   (first_ops.close)()
   ignore((first_ops.cleanup_refresh)())
   assert_false(@execution.managed_completed_output_available(first))
   assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(filtered))
+  assert_true(@execution.managed_completed_output_available(relation_output))
   second_live.val = false
-  filter_live.val = false
+  relation_live.val = false
   values_live.val = false
-  for (task, operations) in [(4, second_ops), (2, filter_ops), (1, values_ops)] {
+  for
+    (task, operations) in [(4, second_ops), (2, relation_ops), (1, values_ops)] {
     @strategy.close_captured_task_output(run, task)
     (operations.close)()
     ignore((operations.cleanup_refresh)())
@@ -357,6 +367,16 @@ test "standard Host splits zero-input values from Relation filter" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host splits zero-input values from Relation filter" {
+  run_standard_host_values_relation_step(false)
+}
+
+///|
+test "standard Host splits zero-input values from Relation assertion" {
+  run_standard_host_values_relation_step(true)
 }
 
 ///|
