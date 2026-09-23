@@ -13,6 +13,8 @@ pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String,
 
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
 
+pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -58,6 +60,8 @@ pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
 pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
+
+pub fn effect_preview_member_effect_id(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
 
@@ -503,6 +507,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
+  member_effect_ids : Array[String]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
   row_order : Array[Array[String]]
@@ -521,6 +526,17 @@ pub(all) enum EffectPreviewIdentityIssue {
   AuthoringIdentityMismatch
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub(all) enum EffectSetApplyReceiptBindingIssue {
+  SetReceipt(PublicationContractIssue)
+  MemberReceipt(Int, EffectApplyReceiptBindingIssue)
+  MemberCountMismatch
+  ForeignPreview
+  ForeignMember(Int)
+  DuplicateMember(Int)
+  ForeignEffectId(Int)
+  ForeignMemberReceipt(Int)
+} derive(@debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryConfirmSucceededRecord
