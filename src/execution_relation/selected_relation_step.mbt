@@ -61,7 +61,7 @@ pub fn execute_selected_relation_step(
       limits.rows.max_rows,
       control,
       output_budget,
-      { limit: limits.rows.operation_entries, live: 0, peak: 0, },
+      row_workspace(limits.rows.operation_entries),
       logical,
       identity_limits=Some(limits.rows.input_values),
     ) {

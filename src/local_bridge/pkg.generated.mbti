@@ -68,6 +68,8 @@ pub fn start_rows_to_vectors(@bounded_execution.Control, @lowering_relation.Prep
 
 pub fn start_vectors_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
 
+pub fn start_vectors_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
+
 pub fn vectors_to_rows_cleanup_pending(VectorsToRowsExecution) -> Bool
 
 // Errors

@@ -64,7 +64,7 @@ test "dependency set and byte integrity are checked independently" {
     @text_rank_profile.admit(bytes, fixture_cid(), duplicate, limits()),
     Err(DuplicateDependency(UnicodeData)),
   )
-  for i = 0; i < 7; i = i + 1 {
+  for i = 0; i < 8; i = i + 1 {
     let changed = blobs()
     let (kind, _) = changed[i]
     changed[i] = (kind, @utf8.encode("changed"))
@@ -112,7 +112,7 @@ test "profile and cumulative dependency byte limits are inclusive" {
     max_dependency_bytes: size,
     // Independently counted from the fixed JSON model: keys are not nodes,
     // root object depth is one and the deepest law arrays/objects are three.
-    max_nodes: 63,
+    max_nodes: 64,
     max_depth: 3,
   }
   assert_true(
@@ -135,7 +135,7 @@ test "profile and cumulative dependency byte limits are inclusive" {
   assert_rejection(
     @text_rank_profile.admit(bytes, fixture_cid(), blobs(), {
       ..exact,
-      max_nodes: 62,
+      max_nodes: 63,
     }),
     Err(BudgetExceeded),
   )

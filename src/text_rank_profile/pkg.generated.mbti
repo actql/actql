@@ -21,6 +21,7 @@ pub(all) enum Dependency {
   UnicodeData
   CompositionExclusions
   CaseFolding
+  DerivedNormalizationProps
   NormalizationTest
   License
   TokenizerVectors

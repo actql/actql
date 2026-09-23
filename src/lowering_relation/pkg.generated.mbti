@@ -699,6 +699,8 @@ pub fn nest_kernel_step(PreparedNestKernel) -> Int
 
 pub fn node_accepts_managed_carrier_view(PreparedNode, Int) -> Bool
 
+pub fn node_accepts_managed_relation_view(PreparedNode, Int) -> Bool
+
 pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_count(Prepared) -> Int
@@ -715,7 +717,11 @@ pub fn node_output_carrier(PreparedNode) -> @carrier_contract.Carrier
 
 pub fn node_output_schema(PreparedNode) -> @relation_schema.Schema
 
+pub fn node_prefers_fused_without_relation_consumer(PreparedNode) -> Bool
+
 pub fn node_relation_schema(PreparedNode) -> @relation_schema.Schema?
+
+pub fn node_supports_selected_managed_execution(PreparedNode) -> Bool
 
 pub fn node_values_row_count(PreparedNode) -> Int?
 

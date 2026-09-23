@@ -311,8 +311,10 @@ fn nfc_quick_check(value : String) -> Result[Bool, TextNormalizationError] {
       unit
     }
     if scalar > 0x7F &&
-      (lookup_int(nfc_qc_no_scalar_keys, scalar) is Some(_) ||
-      lookup_int(nfc_qc_maybe_scalar_keys, scalar) is Some(_)) {
+      (
+        lookup_int(nfc_qc_no_scalar_keys, scalar) is Some(_) ||
+        lookup_int(nfc_qc_maybe_scalar_keys, scalar) is Some(_)
+      ) {
       return Ok(false)
     }
     let current_class = canonical_combining_class(scalar)

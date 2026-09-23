@@ -95,6 +95,10 @@ pub fn graph_apply_cleanup_pending(GraphApplyExecution) -> Bool
 
 pub fn graph_apply_max_noninterruptible_value_nodes(GraphApplyExecution) -> Int
 
+pub fn graph_apply_private_entry_count(GraphApplyExecution) -> Int
+
+pub fn graph_apply_private_scratch_usage(GraphApplyExecution) -> (Int, Int, Int, Int)
+
 pub fn graph_apply_stopped(GraphApplyExecution) -> Bool
 
 pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
@@ -199,6 +203,8 @@ pub fn start_mean_views(@bounded_execution.Control, @lowering_relation.PreparedS
 
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
 
+pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
+
 pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ReachExecution, ReachIssue]
 
 pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ShortestExecution, ShortestIssue]
@@ -214,6 +220,8 @@ pub fn subgraph_max_noninterruptible_value_nodes(SubgraphExecution) -> Int
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
 pub fn traverse_private_entry_count(TraverseExecution) -> Int
+
+pub fn traverse_private_workspace_usage(TraverseExecution) -> (Int, Int)
 
 pub fn traverse_stopped(TraverseExecution) -> Bool
 
@@ -274,6 +282,8 @@ pub(all) enum GraphApplyIssue {
   GraphApplyWrongContract
   GraphApplyWrongTarget
   GraphApplyPrecondition
+  GraphApplyWorkspaceLimit
+  GraphApplyScratchBytesLimit
   GraphApplySnapshot(@bounded_graph_snapshot.Issue)
   GraphApplyOutput(@managed_graph_runtime.Issue)
   GraphApplyExecutionIssue(@bounded_execution.Issue)

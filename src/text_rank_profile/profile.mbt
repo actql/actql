@@ -3,6 +3,7 @@ pub(all) enum Dependency {
   UnicodeData
   CompositionExclusions
   CaseFolding
+  DerivedNormalizationProps
   NormalizationTest
   License
   TokenizerVectors
@@ -15,10 +16,11 @@ fn index(d : Dependency) -> Int {
     UnicodeData => 0
     CompositionExclusions => 1
     CaseFolding => 2
-    NormalizationTest => 3
-    License => 4
-    TokenizerVectors => 5
-    NumericVectors => 6
+    DerivedNormalizationProps => 3
+    NormalizationTest => 4
+    License => 5
+    TokenizerVectors => 6
+    NumericVectors => 7
   }
 }
 
@@ -28,6 +30,7 @@ fn dependencies() -> Array[Dependency] {
     UnicodeData,
     CompositionExclusions,
     CaseFolding,
+    DerivedNormalizationProps,
     NormalizationTest,
     License,
     TokenizerVectors,
@@ -126,10 +129,10 @@ pub fn admit(
     if bytes.length() > limits.max_profile_bytes {
       raise Stop(BudgetExceeded)
     }
-    if supplied.length() > 7 {
+    if supplied.length() > 8 {
       raise Stop(InvalidDependencySet)
     }
-    let slots : Array[Bytes?] = Array::make(7, None)
+    let slots : Array[Bytes?] = Array::make(8, None)
     let mut remaining = limits.max_dependency_bytes
     for (kind, data) in supplied {
       let i = index(kind)
@@ -191,8 +194,8 @@ pub fn admit(
       raise Stop(UnsupportedLaw)
     }
     let names = [
-      "UnicodeData.txt", "CompositionExclusions.txt", "CaseFolding.txt", "NormalizationTest.txt",
-      "LICENSE.txt",
+      "UnicodeData.txt", "CompositionExclusions.txt", "CaseFolding.txt", "DerivedNormalizationProps.txt",
+      "NormalizationTest.txt", "LICENSE.txt",
     ]
     let source_pins = decoded(
       @decode.closed_object(required(o, "unicode_source_sha256"), names),

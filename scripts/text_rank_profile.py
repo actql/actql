@@ -107,8 +107,8 @@ def moonbit_files():
     # Synthetic blobs test admission integrity, not Unicode provenance or
     # tokenizer/scorer conformance. Expected identities come from hashlib.
     body = json.loads(generate())
-    fixtures = ["UnicodeData", "CompositionExclusions", "CaseFolding", "NormalizationTest", "License", "TokenizerVectors", "NumericVectors"]
-    names = ["UnicodeData.txt", "CompositionExclusions.txt", "CaseFolding.txt", "NormalizationTest.txt", "LICENSE.txt"]
+    fixtures = ["UnicodeData", "CompositionExclusions", "CaseFolding", "DerivedNormalizationProps", "NormalizationTest", "License", "TokenizerVectors", "NumericVectors"]
+    names = ["UnicodeData.txt", "CompositionExclusions.txt", "CaseFolding.txt", "DerivedNormalizationProps.txt", "NormalizationTest.txt", "LICENSE.txt"]
     for kind, name in zip(fixtures, names):
         body["unicode_source_sha256"][name] = hashlib.sha256(kind.encode()).hexdigest()
     body["tokenizer_vectors_bytes_cid"] = byte_cid(b"TokenizerVectors")

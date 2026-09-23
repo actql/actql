@@ -12,7 +12,7 @@ class TextRankProfileTest(unittest.TestCase):
         value = json.loads(profile.generate())
         self.assertEqual(set(value["unicode_source_sha256"]), {
             "UnicodeData.txt", "CaseFolding.txt", "CompositionExclusions.txt",
-            "NormalizationTest.txt", "LICENSE.txt",
+            "DerivedNormalizationProps.txt", "NormalizationTest.txt", "LICENSE.txt",
         })
         for field, (name, _) in profile.VECTORS.items():
             self.assertEqual(value[field], profile.byte_cid((profile.ROOT / "portability/corpus" / name).read_bytes()))
