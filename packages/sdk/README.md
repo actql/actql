@@ -41,6 +41,13 @@ received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
 An empty JSONL record fails the attempt instead of silently omitting a row.
 
+The Client also caps each JSON control response at 1 MiB of wire bytes,
+including connection, submission, status, lookup and Host error bodies. It
+cancels an oversized delivery without treating a submit ACK as a known
+failure: `SubmissionUnknown` still carries the original request ID. This is
+a Client transport bound, separate from Result read limits and from the
+Host's Run resource accounting.
+
 The read limits use separate byte measures:
 
 | Limit | Measure |
