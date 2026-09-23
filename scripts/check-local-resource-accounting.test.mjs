@@ -138,6 +138,11 @@ test('resource completion cannot accept the synchronous providerless lane', () =
     /providerless managed execution still computes and copies synchronously/);
 });
 
+test('cross join pre-execution close is not in-flight evidence', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /RelA cross_join: in-flight Host cancellation evidence is missing/);
+});
+
 test('selected take needs both keyed and unkeyed resource branches', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&

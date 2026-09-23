@@ -22,10 +22,11 @@ readable coverage manifest is authoritative for individual operation status.
 | Resource accounting audit | Incomplete: all 68 operations are bound to profiles and checked production routes, but operation-specific exact/one-short/cancel/cleanup evidence is not yet complete | Bind executable boundary fixtures to every production route |
 | Ordinary Program integration | Open: Local standard Host fixtures do not prove the Distribution Run entry | Add a representative mixed Carrier-to-Relation Program through the Distribution-owned ordinary Run port, without a Local substitute |
 
-The fixed-SHA review in `03-local-family-closure.md` identifies a separate
-execution-lane blocker. The current managed driver still uses the providerless
-branch for supported sequences without a registered provider. That branch
-executes the entire checked sequence and copies its output synchronously, then
+The fixed-SHA review of `f878797f2fa07749622e6f15fb06da41d33c3f82`
+identifies a separate execution-lane blocker. The current managed driver
+still uses the providerless branch for supported sequences without a
+registered provider. It executes the entire checked sequence and copies
+its output synchronously, then
 reports one unit of resume work. The one-unit report is not a bound on pair,
 row, or copy work. Ordinary one-step filter, select, sort, and take have a
 registered bounded Relation provider; selected one-step row kernels use that
@@ -33,9 +34,11 @@ provider when their typed input view is applicable. Zero-input values,
 binary RelA operations such as cross join, and other unmatched multi-step
 Relation sequences can still reach the providerless branch. The existing
 cross-join cancellation fixture closes before execution and does not prove
-an in-flight stop. This remains a release blocker, independently of the
-operation-specific resource proof count below. The providerless lane must be
-replaced by admitted bounded execution or an explicitly isolated stoppable
+an in-flight stop. Its route evidence is explicitly classified as
+`managed_pre_execution_cancel_cleanup`; the completion gate requires a
+separate Host timer fixture. This remains a release blocker independently
+of the operation-specific resource proof count below. The providerless lane
+must use admitted bounded execution or an explicitly isolated stoppable
 physical lane; it must not be counted as quantum-bounded because it returns
 `work=1`. The strict resource-completion gate rejects this known synchronous
 compute-and-copy lane even if route evidence is added elsewhere. Its source
