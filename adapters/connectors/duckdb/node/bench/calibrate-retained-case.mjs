@@ -145,6 +145,22 @@ async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
       tasks, hostPhases: result.phases,
       workerPreparationDetails: result.report.preparation_diagnostics,
       usage: result.usage()};
+  } catch (error) {
+    // A failed execution can also make the worker's release command fail, so
+    // host.run may reject after receiving a complete diagnostic report. Only
+    // classify a mixed forced candidate when close has settled every owner.
+    const report = error?.exampleReport;
+    const selectedTasks = report?.explanation?.selection?.tasks;
+    if (candidate !== 'ordinary' && error?.examplePhase === 'release' &&
+        error?.cleanupHandle?.status?.()?.pending === false &&
+        Array.isArray(selectedTasks) && selectedTasks.length === taskCount &&
+        selectedTasks.some(task => task.capability !== candidate)) {
+      await writeFile(join(directory, `failed-${round}-${candidate}.json`),
+        serialize({caseId: selectedFixture.id, selection, report}));
+      throw Object.assign(new Error(`CalibrationCandidateMismatch:${candidate}`, {cause: error}),
+        {code: 'TrainingCandidateNotSelected'});
+    }
+    throw error;
   } finally {
     if (result) {
       const started = performance.now();

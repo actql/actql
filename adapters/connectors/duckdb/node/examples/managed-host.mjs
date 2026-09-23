@@ -88,6 +88,7 @@ export async function createManagedExampleHost(limits) {
           throw Object.assign(new AggregateError(errors, 'ManagedExampleCleanupPending'), {cleanupHandle});
         }
       };
+      let executedReport;
       try {
         finishPhase('custodySetupMs');
         channel = await host.start({entry: new URL('./managed-worker.mjs', import.meta.url), run,
@@ -102,6 +103,7 @@ export async function createManagedExampleHost(limits) {
         finishPhase('workerPreparationMs');
         phase = 'execute';
         const result = await channel.request({command: 'execute'}, signal);
+        executedReport = result.report;
         finishPhase('workerExecutionMs');
         phase = 'release';
         await channel.request({command: 'release'});
@@ -127,6 +129,7 @@ export async function createManagedExampleHost(limits) {
         try { await close(); } catch (failure) { releaseError = failure; }
         const failure = error instanceof Error ? error : new Error('ManagedExampleFailed', {cause: error});
         failure.examplePhase = phase;
+        failure.exampleReport = executedReport;
         if (releaseError || cleanupHandle.status().pending) failure.cleanupHandle = cleanupHandle;
         throw failure;
       }
