@@ -1256,8 +1256,15 @@ test('Salesforce target identities feed the common Effect Set preflight',
           operation === 'record' ? 1 : 2,
           operation === 'record' ? '' : 'External_Key__c',
           ['External_Key__c'], 2));
-      return checked(salesforceMoon.salesforcePrepareWriteTargetIdentity(
-        projection, operation === 'record' ? 1 : 2, value, 0, 128, 4096));
+      const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+        projection, Buffer.from('{"External_Key__c":"changed"}'),
+        1024, 32, 5));
+      const outbound = checked(
+        salesforceMoon.salesforcePrepareSingleWriteRequest(
+          body, 'v62.0', operation === 'record' ? 1 : 2,
+          value, 0, 256, 128, 1024));
+      return checked(salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
+        outbound, 4096));
     };
     const first = await target(setup, 'record', '001000000000001');
     const alias = await target(secondConnection, 'record',
@@ -1311,9 +1318,17 @@ test('Effect Set preflight uses observed external-ID matching rules',
           binding.resourceOrigin, binding.runInvocationCid,
           binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
           2, 'External_Key__c', ['Value__c'], 2));
-      const target = value => checked(
-        salesforceMoon.salesforcePrepareWriteTargetIdentity(
-          projection, 2, value, 0, 128, 4096));
+      const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+        projection, Buffer.from('{"Value__c":"changed"}'),
+        1024, 32, 5));
+      const target = value => {
+        const outbound = checked(
+          salesforceMoon.salesforcePrepareSingleWriteRequest(
+            body, 'v62.0', 2, value, 0, 256, 128, 1024));
+        return checked(
+          salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
+            outbound, 4096));
+      };
       const first = target(firstValue);
       const second = target(secondValue);
       const boundary = salesforceMoon.salesforceWriteTargetBoundaryCid(first);
