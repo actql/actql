@@ -26,8 +26,8 @@ readable coverage manifest is authoritative for individual operation status.
 - Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
   Vectors paths now connect to a Relation filter and two actual consumers in
   the standard Host. The fused prefix retains one checked owner and an exact
-  terminal output step. Selected derive, filter, select, and take without an
-  additional sort now use a bounded session. A multi-step checked sequence
+  terminal output step. Selected derive, filter, select, sort, and take now
+  use bounded sessions. A multi-step checked sequence
   can stop without publishing partial rows. Select validates every input
   field before projecting output columns one at a time. Take validates the
   complete input before copying the requested rows. Take requiring a key
@@ -56,6 +56,12 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
+  Checked Relation sort after a Carrier projection now has a selected task
+  and uses the bounded stable-index kernel. Direct quantum-one fixtures cover
+  output order, stable ties, and cancellation without partial publication.
+  A Node standard Host timer reaches this selected sort after Graph
+  construction, normalization, and node projection. Other selected Relation
+  fallback kernels remain synchronous and unverified for in-flight cancel.
 
 The bounded binding-row API now takes separate input and output value limits.
 This is a low-level source signature change, not a standard Host or wire

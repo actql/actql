@@ -31,6 +31,8 @@ fn bounded_binding_rows_receiver(
   filter? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
+  sort? : Bool = false,
+  sort_empty? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -41,6 +43,10 @@ fn bounded_binding_rows_receiver(
       "[" +
       (if take {
         "{\"take\":{\"count\":1,\"offset\":1},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if sort || sort_empty {
+        "{\"sort\":" +
+        (if sort_empty { "[]" } else { "[{\"id\":\"desc\"}]" }) +
+        ",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
@@ -88,6 +94,8 @@ fn bounded_binding_rows_fixture(
   filter? : Bool = false,
   select? : Bool = false,
   take? : Bool = false,
+  sort? : Bool = false,
+  sort_empty? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
@@ -98,13 +106,15 @@ fn bounded_binding_rows_fixture(
     filter~,
     select~,
     take~,
+    sort~,
+    sort_empty~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if select || take {
+    if select || take || sort || sort_empty {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 2L)]
@@ -134,6 +144,115 @@ fn bounded_binding_rows_fixture(
     10000,
   ).unwrap()
   (control, execution, input)
+}
+
+///|
+test "bounded selected sort preserves stable ties with one-work advances" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":3,\"left\":[2,1],\"right\":[4,3]},{\"id\":3,\"left\":[5,6],\"right\":[7,8]},{\"id\":2,\"left\":[9,10],\"right\":[11,12]}]",
+    sort=true,
+  )
+  let mut advances = 0
+  let mut completed : CompletedOutput? = None
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      BoundedBindingRowsFailed(_, ..) => fail("selected sort failed")
+      BoundedBindingRowsStopped(_, ..) => fail("selected sort stopped")
+    }
+  }
+  guard completed is Some(output) else { fail("selected sort did not finish") }
+  assert_true(advances > 4)
+  assert_eq(completed_row_count(output), 4)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(3.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(3.0)))
+  assert_true(completed_cell(output, 2, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 3, 0) is Some(Number(1.0)))
+  guard completed_cell(output, 0, 1) is Some(Captured(@admitted.Vector(first))) &&
+    completed_cell(output, 1, 1) is Some(Captured(@admitted.Vector(second))) else {
+    fail("stable tie vectors")
+  }
+  assert_eq(@admitted.elements(first), [2.0, 1.0])
+  assert_eq(@admitted.elements(second), [5.0, 6.0])
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected sort cancels after work without publishing rows" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",
+    sort=true,
+  )
+  for _ in 0..<20 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded selected empty sort reuses the input order" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",
+    sort_empty=true,
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 1000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("empty sort failed")
+    }
+  }
+  guard completed is Some(output) else { fail("empty sort did not finish") }
+  assert_eq(completed_row_count(output), 3)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(3.0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 2, 0) is Some(Number(2.0)))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded selected empty sort uses linear charged advances" {
+  let visits = []
+  for count in [8, 32] {
+    let rows = "[" +
+      Array::makei(count, index => {
+        "{\"id\":" + index.to_string() + ",\"left\":[1,2],\"right\":[3,4]}"
+      }).join(",") +
+      "]"
+    let (_, execution, _) = bounded_binding_rows_fixture(rows, sort_empty=true)
+    let mut advances = 0
+    let mut completed : CompletedOutput? = None
+    while completed is None && advances < 1000 {
+      advances += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+        _ => fail("empty sort scaling failed")
+      }
+    }
+    guard completed is Some(output) else { fail("empty sort did not finish") }
+    assert_eq(completed_row_count(output), count)
+    visits.push(advances)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
+  assert_true(visits[1] < visits[0] * 5)
 }
 
 ///|

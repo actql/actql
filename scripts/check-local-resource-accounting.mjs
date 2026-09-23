@@ -262,6 +262,16 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'RelA' && route.operation === 'sort') {
+    for (const role of [
+      'mixed_stage_sort_quantum_and_lifetime',
+      'selected_sort_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'cross_join') {
     for (const role of [
       'product_work_workspace_exact_one_short',
