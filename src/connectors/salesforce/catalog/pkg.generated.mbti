@@ -106,6 +106,8 @@ pub fn read_projection_soql(ReadProjection) -> String
 
 pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
 
+pub fn recheck_single_write_request(SingleWriteRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -124,7 +126,11 @@ pub fn single_write_request_body(SingleWriteRequest) -> String
 
 pub fn single_write_request_cid(SingleWriteRequest, String, Int) -> Result[String, WriteRequestIssue]
 
+pub fn single_write_request_grant_operation(SingleWriteRequest) -> String
+
 pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind
+
+pub fn single_write_request_matches_site_scope(SingleWriteRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn single_write_request_method(SingleWriteRequest) -> String
 
@@ -415,6 +421,7 @@ pub struct SingleWriteRequest {
   path : String
   body : String
   kind : WriteSingleKind
+  projection : WriteProjection
 }
 
 pub struct WriteBody {
