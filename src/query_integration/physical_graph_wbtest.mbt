@@ -474,6 +474,25 @@ test "physical DAG splits unary Relation steps after bounded values" {
 }
 
 ///|
+test "physical DAG splits a chain of bounded Relation Stages" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="chained_filter_sort_take",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG separates bounded values from distinct" {
   let program = query_checked_program_fixture(
     dag=true,
