@@ -4,6 +4,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {valueBodyContract} from './protocol-value-contracts.mjs';
 import {carrierBodyContract} from './carrier-schema.mjs';
 import {pushdownBodyContract} from './pushdown-contract.mjs';
+import {mappingContractBody} from './mapping-contract.mjs';
 
 export const sections = ['schema_snapshots','connector_capabilities','mapping_contracts','source_views','command_contracts','model_task_contracts','contract_registry','connector_catalogs'];
 const records = {type:'array',items:{type:'object'}};
@@ -41,6 +42,7 @@ const body = {
   value_contract_bodies:valueBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8'))),
   carrier_contract_bodies:carrierBodyContract(JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json','utf8')),JSON.parse(readFileSync('spec/contracts/actql-aoa.json','utf8'))),
   pushdown_contract_bodies:pushdownBodyContract(),
+  mapping_contract_bodies:mappingContractBody(),
   contract_bodies:{
     carrier_facts:{
       type:'object',additionalProperties:true,
