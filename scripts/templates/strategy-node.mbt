@@ -7499,12 +7499,13 @@ pub fn strategy_effect_set_frontier_from_ledger(
   keys : Array[Array[@effect.EffectDispatchKey]],
   expected_bases : Array[Array[@effect.EffectLedgerBasis]],
   heads : Array[Array[@effect.EffectLedgerEntry?]],
+  active_owners : Array[Array[Bool]],
   max_members : Int,
   max_rows : Int,
   max_work : Int,
 ) -> @effect.EffectSetFrontier raise NodeHostFailure {
   match @effect.effect_set_frontier_from_preview_ledger_entries(
-    preview, scopes, locators, keys, expected_bases, heads,
+    preview, scopes, locators, keys, expected_bases, heads, active_owners,
     max_members, max_rows, max_work,
   ) {
     Ok(value) => value

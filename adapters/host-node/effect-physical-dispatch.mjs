@@ -12,7 +12,8 @@ export async function captureClaimedEffectResponse({
   execute,
 }) {
   if (!ledger || typeof ledger.claimDispatch !== 'function' ||
-      typeof ledger.recordResponse !== 'function' || !claim ||
+      typeof ledger.recordResponse !== 'function' ||
+      typeof ledger.beginPhysicalFlight !== 'function' || !claim ||
       typeof requestCid !== 'string' ||
       requestCid !== claim.canonicalRequestCid ||
       typeof execute !== 'function') {
@@ -24,7 +25,10 @@ export async function captureClaimedEffectResponse({
   }
   // Any throw after the durable claim leaves a possible-dispatch fact. An
   // exact retry must reconcile it; it must never invoke execute again.
-  const physical = await execute();
+  const endFlight = ledger.beginPhysicalFlight(ownership.dispatching, claim);
+  let physical;
+  try { physical = await execute(); }
+  finally { endFlight(); }
   const observation = physical?.observation;
   if (typeof observation?.useCid !== 'string' ||
       !Number.isSafeInteger(observation.statusCode) ||
@@ -57,6 +61,7 @@ export async function captureClaimedEffectCollectionResponse({
 }) {
   if (!ledger || typeof ledger.claimDispatchBatch !== 'function' ||
       typeof ledger.recordBatchResponse !== 'function' ||
+      typeof ledger.beginPhysicalFlight !== 'function' ||
       !Array.isArray(claims) || claims.length === 0 ||
       typeof requestCid !== 'string' ||
       claims.some(claim => claim?.canonicalRequestCid !== requestCid) ||
@@ -69,7 +74,10 @@ export async function captureClaimedEffectCollectionResponse({
   }
   // A thrown/unknown physical result cannot authorize another send. The
   // durable batch claim remains available for reconciliation after restart.
-  const physical = await execute();
+  const endFlight = ledger.beginPhysicalFlight(ownership.dispatching, claims);
+  let physical;
+  try { physical = await execute(); }
+  finally { endFlight(); }
   const observation = physical?.observation;
   if (typeof observation?.useCid !== 'string' ||
       !Number.isSafeInteger(observation.statusCode) ||
