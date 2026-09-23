@@ -23,11 +23,12 @@ readable coverage manifest is authoritative for individual operation status.
 
 ## Current cross-operation review gaps
 
-- Mixed Carrier/Relation stages: the selected Graph, Events, and Vectors
-  projection paths now connect to subsequent Relation operations. The common
-  split still requires an audit of Carrier prefixes without standalone selected
-  providers and of in-flight cancellation in the Relation evaluator. These are
-  connection gaps, not new normative operations.
+- Mixed Carrier/Relation stages: selected and fused-prefix Graph, Events, and
+  Vectors paths now connect to a Relation filter and two actual consumers in
+  the standard Host. The fused prefix retains one checked owner and an exact
+  terminal output step. In-flight cancellation of the selected Relation
+  evaluator and cross-task failure/cleanup combinations remain unverified.
+  These are connection gaps, not new normative operations.
 - Resource accounting: the 68-operation gate now checks each production
   dispatch marker and entrypoint symbol as well as the family profile. It does
   not yet prove each operation's own exact, one-short, cancellation, and
@@ -49,6 +50,8 @@ close specific correctness and cleanup findings, not the shared blockers above.
 | `46ef37b72` | Graph mean skips properties of edges whose endpoints are not retained | Retained-versus-excluded edge regression and three-target Graph integration |
 | `82d505432` | Session validates global event identity before grouping and rejects empty input | Relation-input duplicate/empty regressions and three-target Events integration |
 | `1098d32bf` | Graft retains terminal nested-set cleanup responsibility | Terminal nested failure regression and three-target Graph integration |
+| `3880522c8` | Common DAG retains a fused Carrier prefix and selects later Relation steps | Typed physical split and generated-prefix boundary tests |
+| `9317ec2bb` | Graph, Events, and Vectors fused prefixes reach row consumers | Standard Host value, identity, two-consumer, and reclamation regressions |
 
 At source HEAD `1098d32bf`, the scoped SGA/Graph suite passed 140 tests per
 target and the TEA/Events suite passed 31 tests per target on JS, Wasm, and
@@ -56,6 +59,12 @@ native. `check:docs`, the generated public API gate, and
 `check:local-family-coverage` also passed locally at that HEAD. These results
 do not establish Linux CI, all 68 route-specific resource boundaries, or the
 remaining mixed-stage cancellation boundary.
+
+At source HEAD `9317ec2bb`, query integration plus the generated-sequence
+boundary tests passed 554/554 on each of JS, Wasm, and native. The public API
+gate also passed locally. The new fused-prefix fixtures establish the named
+Relation identity but do not replace publication retrieval or in-flight
+cancellation evidence. No Linux CI result is claimed for this HEAD.
 
 The following snapshot is generated from the authoritative manifest. It is
 checked by `check:local-family-coverage`; do not edit its counts by hand.
