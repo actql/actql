@@ -53,6 +53,13 @@ Seven alternating pairs at clean revision `c93402ffb` confirmed a substantial
 small-case timing gap on the current Node managed Host: median retained-minus-
 equivalent warm and cold intervals were 31.700 ms and 729.792 ms. The retained
 leg was still unqualified because its selection used an example estimate.
+One later resident-placement diagnostic at `2a1f8a3a0` still measured 27.005 ms
+warm and 703.239 ms fresh-process for the same registered narrow-100 case.
+The example prepared the Program in both parent and child; resident input
+identity reuse did not waive the new filter's consumer demand. The exact raw
+record and phase breakdown are in
+`benchmarks/retained-results/diagnostic-2026-09-24.md`. This remains diagnostic
+and does not establish a confidence interval or a qualified selection.
 The native materialized path separately rejected a registered 100,000-row
 numeric-64 case before dispatch under its 1 GiB retention ceiling. The raw
 records and exact scope are in the same diagnostic document. These failures
