@@ -276,6 +276,82 @@ fn command_fixture(connector : String) -> String {
 }
 
 ///|
+fn command_target_fixture(
+  connector : String,
+  id : String,
+  target : String,
+) -> String {
+  let before = "{\"command_id\":\"" +
+    id +
+    "\",\"connector_id\":\"" +
+    connector +
+    "\","
+  let after = "\"schema\":\"actql.command_contract/0.1\",\"target\":" +
+    target +
+    ",\"version\":\"external-1\"}"
+  let cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
+  before + "\"contract_cid\":\"" + cid + "\"," + after
+}
+
+///|
+test "selected Command target is exact Catalog evidence, not authority" {
+  let command = command_target_fixture(
+    "example", "command:crm.invoke.v1", "{\"cardinality\":\"single\",\"resource_kind\":\"crm/account\"}",
+  )
+  let catalog = catalog_fixture("example", [], commands=[command])
+  let registry = catalog_environment([catalog], [], commands=[command])
+  let contents = check_catalog_contents(registry, caps()).unwrap()
+  let selected = select_command_target(contents, "command:crm.invoke.v1", 2).unwrap()
+  assert_eq(command_target_id(selected), "command:crm.invoke.v1")
+  assert_eq(command_target_resource_kind(selected), "crm/account")
+  assert_true(
+    physical_equal(
+      command_target_catalog(selected),
+      catalog_at(contents, 0).unwrap(),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      member_environment(command_target_member(selected)),
+      contract_registry_environment(registry),
+    ),
+  )
+  assert_true(
+    select_command_target(contents, "command:crm.invoke.v1", 1)
+    is Err(WorkLimit),
+  )
+  assert_true(
+    select_command_target(contents, "command:crm.invoke.v1", -1)
+    is Err(InvalidLimit),
+  )
+  assert_true(
+    select_command_target(contents, "command:crm.other.v1", 2)
+    is Err(MissingCommand("command:crm.other.v1")),
+  )
+}
+
+///|
+test "Command target selection rejects incomplete target shape" {
+  for
+    target in [
+      "{}", "{\"cardinality\":\"single\",\"resource_kind\":\"\"}", "{\"cardinality\":\"other\",\"resource_kind\":\"crm/account\"}",
+      "{\"cardinality\":\"single\",\"max_items\":0,\"resource_kind\":\"crm/account\"}",
+      "{\"cardinality\":\"single\",\"extra\":true,\"resource_kind\":\"crm/account\"}",
+    ] {
+    let command = command_target_fixture(
+      "example", "command:crm.invoke.v1", target,
+    )
+    let catalog = catalog_fixture("example", [], commands=[command])
+    let registry = catalog_environment([catalog], [], commands=[command])
+    let contents = check_catalog_contents(registry, caps()).unwrap()
+    assert_true(
+      select_command_target(contents, "command:crm.invoke.v1", 2)
+      is Err(InvalidCommand("command:crm.invoke.v1")),
+    )
+  }
+}
+
+///|
 test "view and command copies preserve selectors ownership and their own self identities" {
   let view = view_fixture("example", "main")
   let command = command_fixture("example")
