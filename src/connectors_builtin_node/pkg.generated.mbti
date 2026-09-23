@@ -20,9 +20,28 @@ import {
   "actql/actql/remote_site_protocol",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
 }
 
 // Values
+pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
+
+pub fn client_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_caller_id(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_input_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_intent_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_parameters_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_program_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_request_relation(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity) -> Int
+
+pub fn client_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
+
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 
 pub fn duckdb_managed_capacity(@actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int]) -> (Int64, Int64)?
