@@ -337,6 +337,11 @@ JS, Wasm, and native tests. The Site must still obtain those observations under
 current authority, and the standard Host must invoke this check together with
 source, capability, approval, and whole-set preflight before its first send.
 This helper is not an apply permit and does not close SF-3.
+The generated Node Host bridge now exposes that same MoonBit check without
+reimplementing comparison rules in JavaScript. A two-member fixture verifies
+that observations are keyed by row CID rather than Preview member order and
+that one missing or stale member guard rejects the whole check. The standard
+Effectful Run caller and current Site observation producer remain open.
 
 ## Capability comparison with Smooth Cloud
 

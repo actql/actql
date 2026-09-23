@@ -176,6 +176,8 @@ pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String
 
 pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
 
+pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
+
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
 pub fn strategy_effect_row_recovery_action_from_entry(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry?, Bool) -> Int
@@ -1256,6 +1258,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect_application.EffectFootprintIssue)
   EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
+  EffectPreviewTargetGuard(@effect_application.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect_application.EffectCollectionBatchIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
