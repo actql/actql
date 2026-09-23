@@ -26,7 +26,7 @@
     "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
   },
   "shared_gaps": [
-    "mixed_carrier_relation_stage: selected Graph, Events, and Vectors bridge paths have three-target regressions; unselected Carrier prefixes and in-flight RelA cancellation still require common execution-boundary closure",
+    "mixed_carrier_relation_stage: selected and fused-prefix Graph, Events, and Vectors paths have three-target standard-Host regressions; in-flight Relation cancellation and cross-task failure cleanup still require common execution-boundary closure",
     "resource_accounting_boundaries: all 68 operations now bind to checked production routes, but exact/one-short/cancellation/cleanup fixtures are not yet operation-specific for every route"
   ],
   "shared_completed": [
