@@ -5,6 +5,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {runCapturedStrategy} from './entry.mjs';
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
@@ -96,3 +97,38 @@ test('durable request deduplication uses checked Program identity', async t => {
     authorityScopeCid: cid('a'), requestId: 'saved-request'}, moon)
     .ref.runDefinitionCid, cid('d'));
 });
+
+test('checked source-free Program executes through the standard Local Host',
+  async () => {
+    const {document, environment} = await checkedFixture();
+    const prepared = moon.clientProgramPrepareEffectFree(
+      document, 'json', environment);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    assert.equal(moon.clientProgramOpenSourceFreeLocalHost(
+      prepared, registry.replace('"REL.values"', '"REL.changed"'),
+      values, 1n, 0n, 0n, 0n), undefined);
+    assert.equal(moon.clientProgramOpenSourceFreeLocalHost(
+      prepared, registry, values, -1n, 0n, 0n, 0n), undefined);
+    const setup = moon.clientProgramOpenSourceFreeLocalHost(
+      prepared, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(setup);
+    const execution = await runCapturedStrategy(setup);
+    try {
+      assert.equal(execution.status, 'host-tasks-completed');
+      assert.deepEqual(execution.resultInventory.map(result => result.name),
+        ['answer']);
+      assert.equal(execution.completed.length, 1);
+      assert.equal(execution.completed[0].task, 0);
+      assert.equal(execution.completed[0].outputRows, 2);
+    } finally {
+      await execution.close();
+      assert.equal(execution.cleanupPending(), false);
+    }
+  });
