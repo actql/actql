@@ -17,7 +17,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
-import {captureSalesforceSingleEffectWrite,
+import {captureClaimedSalesforceSingleResponse,
+  captureSalesforceSingleEffectWrite,
   captureSalesforceCollectionEffectWrite} from
   '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
@@ -35,6 +36,63 @@ import {writeSalesforceContinueCollection} from
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+function admittedCreateRowFixture(effect, scope, rowCid, effectId, after) {
+  const authoring =
+    'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
+  const contentCid = `sha256:${createHash('sha256').update(canonicalJson({
+    value: after, version: 'actql-effect-content-row/0.1',
+  })).digest('hex')}`;
+  const correlation = {content_cid: contentCid, occurrence: 0};
+  const member = {
+    effect_id: effectId, effect_kind: 'create',
+    target: 'Test_Record__c', mapping: 'mapping:fixture',
+    resolved_mapping_contract_cid: cid('a'),
+    effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+    source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+    authority_scope_cid: cid('8'),
+    write_footprint: {
+      kind: 'collection', resource_identity_scheme_cid: cid('a'),
+      provider_namespace: 'salesforce', provider_boundary_cid: cid('a'),
+      resource_kind: 'Test_Record__c', provider_object_identity_cids: [],
+    },
+    count: 1, max_items: 1, required_permissions: ['write'],
+    approval: 'none', on_item_failure: 'halt',
+    changes: [{target_row_identity: correlation, before: {state: 'absent'},
+      after, row_preview_cid: rowCid, row_idempotency_key: cid('4')}],
+    row_order: [rowCid], effect_member_preview_cid: cid('a'),
+    executed: false,
+  };
+  const preview = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+    invocation_cid: cid('a'), run_identity_cid: cid('a'),
+    compiled_plan_cid: cid('a'), check_environment_cid: cid('a'),
+    authoring_context: {
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: cid('a'), annotations: [],
+      authoring_context_cid: authoring,
+    },
+    barrier_provenance_cids: [], model_derived: false,
+    model_task_contract_cids: [], model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [], effects: [member], executed: false,
+    effect_preview_cid: cid('a'),
+  };
+  member.effect_member_preview_cid = effect.derivePreviewIdentities(
+    canonicalJson(preview), 8192, 256, 12)[1];
+  preview.effect_preview_cid = effect.derivePreviewIdentities(
+    canonicalJson(preview), 8192, 256, 12)[0];
+  const key = effect.dispatchKey(scope, preview.effect_preview_cid,
+    canonicalJson(correlation), 128, 8, 3);
+  member.changes[0].row_idempotency_key = effect.dispatchKeyCid(key);
+  const wire = canonicalJson(preview);
+  return Object.freeze({
+    key, correlation, memberCid: member.effect_member_preview_cid,
+    admit: () => effect.admitPreviewIdentity(wire, cid('a'), authoring,
+      scope, [[key]], 8192, 256, 12),
+  });
+}
 const listBody = JSON.stringify({sobjects: [
   {name: 'Account', queryable: true, createable: false,
     updateable: false},
@@ -498,7 +556,7 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
           authorityScopeCid, callerRequestId: `exact-target-${name}`,
           maxEntryBytes: 4096});
         child.after(() => ledger.close());
-        const result = await captureSalesforceSingleEffectWrite({
+        const result = await captureClaimedSalesforceSingleResponse({
           ledger, claim, moon: salesforceMoon, request: outbound,
           currentObservation: catalog.observation,
           authorization: {...setup.writeUpsert, useId: 'exact-target-use'},
@@ -541,11 +599,14 @@ test('Host claim owns one local HTTPS write', async t => {
   const authorityScopeCid = cid('8');
   const scope = effect.logicalRequestScope(authorityScopeCid,
     'salesforce-business-request', 128);
-  const key = effect.dispatchKey(scope, cid('7'), '"row-1"', 32, 8, 3);
+  const rowPreviewCid = cid('3');
+  const preview = admittedCreateRowFixture(effect, scope, rowPreviewCid,
+    'CreateOne', {state: 'present', value: {External_Key__c: 'key-1'}});
+  const key = preview.key;
   const locator = effect.logicalItemLocator(scope, 'program-1', 'node-1',
-    'CreateOne', '{"row":"key-1"}', 64, 128, 8, 3);
+    'CreateOne', canonicalJson(preview.correlation), 64, 128, 8, 3);
   const basis = effect.ledgerBasis(scope, locator, key,
-    cid('6'), cid('5'), cid('4'), requestCid, cid('3'),
+    cid('6'), preview.memberCid, cid('4'), requestCid, cid('3'),
     'unavailable', cid('2'), cid('1'));
   const claim = {scope, locator, key, basis,
     intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
@@ -554,7 +615,9 @@ test('Host claim owns one local HTTPS write', async t => {
   const open = () => openEffectLedger({moon: commonMoon, root,
     authorityScopeCid, callerRequestId: 'salesforce-business-request',
     maxEntryBytes: 4096});
-  const options = {claim, moon: salesforceMoon, request: outbound,
+  const options = {claim, commonMoon, admittedPreview: preview.admit(),
+    memberIndex: 0, rowIndex: 0, rowPreviewCid,
+    moon: salesforceMoon, request: outbound,
     currentObservation: catalog.observation,
     authorization: {...setup.write, useId: 'effect-write-use'},
     credential: setup.credential,
@@ -566,6 +629,12 @@ test('Host claim owns one local HTTPS write', async t => {
     ...options, ledger: first,
     claim: {...claim, canonicalRequestCid: cid('9')},
   }), {code: 'InvalidEffectPhysicalDispatch'});
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first, rowPreviewCid: cid('9'),
+  }), {code: 'MoonBitHostFailure'});
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: first, rowIndex: 1,
+  }), {code: 'MoonBitHostFailure'});
   await assert.rejects(captureSalesforceSingleEffectWrite({
     ...options, ledger: first,
     authorization: {...options.authorization,
@@ -599,7 +668,7 @@ test('Host claim owns one local HTTPS write', async t => {
   const restarted = open();
   t.after(() => restarted.close());
   const retry = await captureSalesforceSingleEffectWrite({
-    ...options, ledger: restarted});
+    ...options, ledger: restarted, admittedPreview: preview.admit()});
   assert.equal(retry.claimed, false);
   assert.equal(retry.ownership.action, 3);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);

@@ -168,6 +168,14 @@ pub fn salesforce_single_write_request_grant_operation(
 }
 
 ///|
+#export_name("salesforceSingleWriteRequestEffectKind")
+pub fn salesforce_single_write_request_effect_kind(
+  request : @catalog.SingleWriteRequest,
+) -> String {
+  @catalog.single_write_request_effect_kind(request)
+}
+
+///|
 #export_name("salesforceSingleWriteRequestCid")
 pub fn salesforce_single_write_request_cid(
   request : @catalog.SingleWriteRequest,

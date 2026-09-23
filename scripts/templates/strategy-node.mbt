@@ -7672,6 +7672,26 @@ pub fn strategy_effect_collection_batch_admit(
 }
 
 ///|
+#export_name("strategyEffectMemberRowAdmit")
+pub fn strategy_effect_member_row_admit(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  effect_kind : String,
+  scope : @effect.LogicalRequestScope,
+  row_cid : String,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+) -> Bool raise NodeHostFailure {
+  match @effect.admit_effect_single_row(
+    preview, member_index, row_index, effect_kind, scope, row_cid, locator, key,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectCollectionBatch(issue)
+  }
+}
+
+///|
 #export_name("strategyEffectSetFrontierOutcome")
 pub fn strategy_effect_set_frontier_outcome(
   frontier : @effect.EffectSetFrontier,
