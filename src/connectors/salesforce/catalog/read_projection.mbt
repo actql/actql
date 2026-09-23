@@ -120,6 +120,11 @@ pub fn read_projection_observation(plan : ReadProjection) -> String {
 }
 
 ///|
+pub fn read_projection_resource(plan : ReadProjection) -> String {
+  plan.resource
+}
+
+///|
 /// Recheck the fields used by this historical plan against a newly observed
 /// Resource Catalog. The new sync occurrence and dispatch are independent;
 /// the connection, authority, and Site must still be exact. This does not
