@@ -12,7 +12,7 @@ fn limits() -> DescribeLimits {
 ///|
 fn described() -> Bytes {
   let body =
-    #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true},{"name":"Optional_Value__c","type":"string","nillable":true,"createable":true,"updateable":true,"filterable":true},{"name":"Read_Only__c","type":"datetime","nillable":false,"createable":false,"updateable":false,"filterable":true,"referenceTo":[]}]}
+    #|{"name":"ActQL_Test_Record__c","queryable":true,"createable":true,"updateable":true,"fields":[{"name":"External_Key__c","type":"string","nillable":false,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true,"sortable":true,"externalId":true,"unique":true},{"name":"Optional_Value__c","type":"string","nillable":true,"defaultedOnCreate":false,"createable":true,"updateable":true,"filterable":true},{"name":"Read_Only__c","type":"datetime","nillable":false,"createable":false,"updateable":false,"filterable":true,"referenceTo":[]}]}
   @utf8.encode(body)
 }
 
@@ -24,6 +24,8 @@ test "describe projection retains exact field permissions and unique external ID
   assert_eq(resource.fields.length(), 3)
   let key = described_field(resource, "External_Key__c").unwrap()
   assert_true(key.external_id && key.unique && !key.nullable)
+  assert_true(key.nullability_confirmed && key.default_on_create_confirmed)
+  assert_false(key.defaulted_on_create)
   assert_true(
     key.createable && key.updateable && key.filterable && key.sortable,
   )
@@ -59,6 +61,8 @@ test "missing capability flags cannot grant write or pushdown authority" {
   assert_false(resource.queryable || resource.createable || resource.updateable)
   let field = described_field(resource, "Name").unwrap()
   assert_true(field.nullable)
+  assert_false(field.nullability_confirmed)
+  assert_false(field.default_on_create_confirmed)
   assert_false(
     field.createable ||
     field.updateable ||

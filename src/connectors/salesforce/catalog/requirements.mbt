@@ -9,6 +9,8 @@ pub(all) enum ResourceRequirementIssue {
   ResourceNotUpdateable
   FieldNotCreateable(String)
   FieldNotUpdateable(String)
+  FieldConstraintUnconfirmed(String)
+  MissingRequiredCreateField(String)
   ExternalIdNotUnique(String)
 } derive(Eq, Debug)
 
@@ -61,6 +63,19 @@ pub fn require_create_fields(
   for field in fields {
     if !field.createable {
       return Err(FieldNotCreateable(field.name))
+    }
+  }
+  for field in resource.fields {
+    if !field.createable {
+      continue
+    }
+    if !field.nullability_confirmed || !field.default_on_create_confirmed {
+      return Err(FieldConstraintUnconfirmed(field.name))
+    }
+    if !field.nullable &&
+      !field.defaulted_on_create &&
+      !names.contains(field.name) {
+      return Err(MissingRequiredCreateField(field.name))
     }
   }
   Ok(fields)

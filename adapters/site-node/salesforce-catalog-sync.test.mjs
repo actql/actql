@@ -30,11 +30,12 @@ const listBody = JSON.stringify({sobjects: [
 ]});
 const accountBody = JSON.stringify({name: 'Account', queryable: true,
   createable: false, updateable: false,
-  fields: [{name: 'Id', type: 'id'}]});
+  fields: [{name: 'Id', type: 'id', nillable: false}]});
 const customBody = JSON.stringify({name: 'Test_Record__c', queryable: true,
   createable: true, updateable: true,
   fields: [{name: 'External_Key__c', type: 'string', externalId: true,
-    unique: true, createable: true, updateable: true}]});
+    unique: true, nillable: false, defaultedOnCreate: false,
+    createable: true, updateable: true}]});
 
 function openssl(root, ...arguments_) {
   execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
