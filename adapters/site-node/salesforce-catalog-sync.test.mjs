@@ -44,7 +44,8 @@ const accountBody = JSON.stringify({name: 'Account', queryable: true,
 const customBody = JSON.stringify({name: 'Test_Record__c', queryable: true,
   createable: true, updateable: true,
   fields: [{name: 'External_Key__c', type: 'string', externalId: true,
-    unique: true, nillable: false, defaultedOnCreate: false,
+    unique: true, caseSensitive: true, nillable: false,
+    defaultedOnCreate: false,
     createable: true, updateable: true}]});
 
 function openssl(root, ...arguments_) {
@@ -398,7 +399,8 @@ test('Salesforce request CID binds the exact HTTPS upsert request-target',
     const metadata = JSON.stringify({name: 'Test_Record__c',
       queryable: true, createable: true, updateable: true, fields: [
         {name: 'External_Key__c', type: 'string', externalId: true,
-          unique: true, nillable: false, defaultedOnCreate: false,
+          unique: true, caseSensitive: true, nillable: false,
+          defaultedOnCreate: false,
           createable: true, updateable: true},
         {name: 'Name', type: 'string', nillable: false,
           defaultedOnCreate: false, createable: true, updateable: true},
@@ -745,7 +747,8 @@ test('Site Collections use exact update and external-ID upsert authority',
     const metadata = JSON.stringify({name: 'Test_Record__c', queryable: true,
       createable: true, updateable: true, fields: [
         {name: 'External_Key__c', type: 'string', externalId: true,
-          unique: true, nillable: false, defaultedOnCreate: false,
+          unique: true, caseSensitive: true, nillable: false,
+          defaultedOnCreate: false,
           createable: true, updateable: true},
         {name: 'Name', type: 'string', nillable: false,
           defaultedOnCreate: false, createable: true, updateable: true},
@@ -808,6 +811,33 @@ test('Site Collections use exact update and external-ID upsert authority',
           'succeeded');
       });
     }
+  });
+
+test('Salesforce target aliases fail before a collection claim or HTTP write',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(
+      salesforceMoon.salesforcePrepareWriteProjection(
+        catalog.observation,
+        binding.tenant, binding.principal, binding.environment,
+        'connection-revision-a', binding.siteKey, binding.siteGeneration,
+        binding.connectorRegistration, binding.connectorRevision,
+        binding.resourceOrigin, binding.runInvocationCid,
+        binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+        1, '', ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"changed"}'),
+      1024, 32, 5));
+    const usesBefore = setup.journal.recover().length;
+    assert.throws(() => checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        [cid('1'), cid('2')], [body, body], [1, 1],
+        ['001000000000001', '001000000000001AAA'], [0, 0],
+        'v62.0', 256, 128, 1024, 64, 6, 200)));
+    assert.equal(setup.journal.recover().length, usesBefore);
+    assert.equal(setup.seen.filter(item => item.method === 'PATCH').length, 0);
   });
 
 test('CLI alias supplies only Site secret for the authorized HTTPS path',

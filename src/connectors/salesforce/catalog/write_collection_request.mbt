@@ -208,6 +208,44 @@ fn collection_target_key(
 }
 
 ///|
+/// A collection is one member on one bound connection and resource. This key
+/// is for overlap admission only; the separately retained target is sent on
+/// the wire without changing its spelling.
+fn collection_overlap_key(
+  projection : WriteProjection,
+  target : WriteTargetValue,
+  wire_target : String?,
+) -> Result[String?, WriteCollectionRequestIssue] {
+  match (projection.operation, target, wire_target) {
+    (WriteCreate, NoWriteTarget, None) => Ok(None)
+    (WriteUpdateById, RecordId(id), Some(_)) =>
+      match canonical_write_record_id(id) {
+        Some(value) => Ok(Some(value))
+        None => Err(InvalidTarget)
+      }
+    (WriteUpsertByExternalId(_), ExternalText(_), Some(value)) => {
+      guard projection.external_target is Some(field) else {
+        return Err(InvalidTarget)
+      }
+      match field.case_sensitive {
+        Some(true) => Ok(Some(value))
+        Some(false) => {
+          for character in value.iter() {
+            if character > '\u{7f}' {
+              return Err(InvalidTarget)
+            }
+          }
+          Ok(Some(value.to_lower()))
+        }
+        None => Err(InvalidTarget)
+      }
+    }
+    (WriteUpsertByExternalId(_), ExternalInt(_), Some(value)) => Ok(Some(value))
+    _ => Err(InvalidTarget)
+  }
+}
+
+///|
 fn emit_collection_record(
   writer : @encode.Writer,
   item : WriteCollectionItem,
@@ -362,7 +400,8 @@ pub fn prepare_continue_write_collection(
     return Err(CapacityExceeded)
   }
   let row_cids : Array[String] = []
-  let target_keys : Array[String?] = []
+  let wire_targets : Array[String?] = []
+  let overlap_keys : Array[String?] = []
   let mut remaining = limits.max_body_bytes
   for item in rows {
     let projection = item.body.projection
@@ -381,7 +420,12 @@ pub fn prepare_continue_write_collection(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    if target is Some(key) && target_keys.contains(Some(key)) {
+    let overlap = match
+      collection_overlap_key(projection, item.target, target) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if overlap is Some(key) && overlap_keys.contains(Some(key)) {
       return Err(DuplicateTarget)
     }
     let input_bytes = match
@@ -391,7 +435,8 @@ pub fn prepare_continue_write_collection(
     }
     remaining -= input_bytes
     row_cids.push(item.row_preview_cid)
-    target_keys.push(target)
+    wire_targets.push(target)
+    overlap_keys.push(overlap)
   }
   let writer = @encode.writer(
     limits.max_body_bytes,
@@ -417,7 +462,7 @@ pub fn prepare_continue_write_collection(
   }
   for index in 0..<rows.length() {
     match
-      emit_collection_record(writer, rows[index], target_keys[index], limits) {
+      emit_collection_record(writer, rows[index], wire_targets[index], limits) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }

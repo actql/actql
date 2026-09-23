@@ -174,18 +174,39 @@ pub fn single_write_request_cid(
 }
 
 ///|
-fn write_record_id_valid(id : String) -> Bool {
+fn canonical_write_record_id(id : String) -> String? {
   if id.length() != 15 && id.length() != 18 {
-    return false
+    return None
   }
   for character in id.iter() {
     if !((character >= 'A' && character <= 'Z') ||
       (character >= 'a' && character <= 'z') ||
       (character >= '0' && character <= '9')) {
-      return false
+      return None
     }
   }
-  true
+  let suffix = StringBuilder()
+  let alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
+  for block in 0..<3 {
+    let mut mask = 0
+    for offset in 0..<5 {
+      let character = id[block * 5 + offset]
+      if character >= 'A' && character <= 'Z' {
+        mask = mask | (1 << offset)
+      }
+    }
+    suffix.write_char(alphabet[mask].to_int().to_char().unwrap())
+  }
+  let canonical = id[:15].to_owned() + suffix.to_string()
+  if id.length() == 18 && id != canonical {
+    return None
+  }
+  Some(canonical)
+}
+
+///|
+fn write_record_id_valid(id : String) -> Bool {
+  canonical_write_record_id(id) is Some(_)
 }
 
 ///|
