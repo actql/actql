@@ -207,7 +207,12 @@ if (!Array.isArray(assuredPaths)) {
       entry.family === claim?.family &&
       entry.operation === claim?.operation);
     if (!route ||
-      !['entrypoint', 'ordinary_entrypoint', 'selected_entrypoint']
+      ![
+        'entrypoint',
+        'ordinary_entrypoint',
+        'selected_entrypoint',
+        'external_input_entrypoint',
+      ]
         .includes(claim?.path) ||
       route[claim.path] === undefined ||
       route.path_assurance?.[claim.path] === undefined ||
@@ -322,6 +327,11 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.ordinary_entrypoint !== undefined) {
     productionSources.push(['ordinary_entrypoint', route.ordinary_entrypoint]);
   }
+  if (route.external_input_entrypoint !== undefined) {
+    productionSources.push([
+      'external_input_entrypoint', route.external_input_entrypoint,
+    ]);
+  }
   for (const [role, value] of productionSources) {
     if (typeof value.path !== 'string' ||
       !value.path.startsWith('src/') ||
@@ -429,6 +439,7 @@ for (const [index, route] of routeEntries.entries()) {
     'entrypoint',
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+    ...(route.external_input_entrypoint ? ['external_input_entrypoint'] : []),
   ];
   const pathAssurance = route.path_assurance ?? {};
   const proofPaths = new Map();
