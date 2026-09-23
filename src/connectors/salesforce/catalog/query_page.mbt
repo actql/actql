@@ -16,23 +16,48 @@ pub(all) enum QueryPageIssue {
   MissingRequiredField(String)
   NullRequiredField(String)
   UnexpectedField(String)
+  ValueAdmission(String, @admitted.Issue)
 } derive(Eq, Debug)
-
-///|
-pub enum QueryCell {
-  Null
-  Value(@decode.Cursor)
-}
 
 ///|
 /// One bounded Salesforce query batch. This is provider observation material,
 /// not a typed Relation or a completed Acquisition receipt.
 pub struct QueryPage {
-  rows : Array[Array[QueryCell]]
+  rows : Array[Array[@admitted.CheckedValue]]
   done : Bool
   next_url : String?
   total_size : Int64
   response_sha256 : String
+}
+
+///|
+priv struct QueryValueBudget {
+  mut nodes : Int
+  mut text_bytes : Int
+  max_depth : Int
+}
+
+///|
+fn admit_query_cell(
+  cursor : @decode.Cursor,
+  contract : @contract.Contract,
+  field_name : String,
+  budget : QueryValueBudget,
+) -> Result[@admitted.CheckedValue, QueryPageIssue] {
+  let (checked, nodes, text) = match
+    @admitted.admit_usage(contract, cursor, {
+      max_nodes: budget.nodes,
+      max_depth: budget.max_depth,
+      max_text_bytes: budget.text_bytes,
+    }) {
+    Ok(result) => result
+    Err(@admitted.ValueIssue(@admitted.BudgetExceeded, ..)) =>
+      return Err(BudgetExceeded)
+    Err(issue) => return Err(ValueAdmission(field_name, issue))
+  }
+  budget.nodes -= nodes
+  budget.text_bytes -= text
+  Ok(checked)
 }
 
 ///|
@@ -101,7 +126,7 @@ pub fn project_query_page(
     return Err(BudgetExceeded)
   }
   let parsed = match
-    @source.parse_json_bytes(bytes, {
+    @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: limits.max_bytes,
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
@@ -158,6 +183,11 @@ pub fn project_query_page(
     }
   }
   let rows = []
+  let budget : QueryValueBudget = {
+    nodes: limits.max_nodes,
+    text_bytes: limits.max_bytes,
+    max_depth: limits.max_depth,
+  }
   for index in 0..<count {
     guard @decode.element_at(records_cursor, index) is Some(cursor) &&
       @decode.open_object(cursor) is Ok(record) &&
@@ -170,21 +200,29 @@ pub fn project_query_page(
       }
     }
     let cells = []
-    for field in plan.fields {
-      match @decode.field(record, field.name) {
-        Missing => {
+    for column in 0..<plan.fields.length() {
+      let field = plan.fields[column]
+      let contract = plan.contracts[column]
+      match @decode.lookup(record, field.name) {
+        None => {
           if !field.nullable {
             return Err(MissingRequiredField(field.name))
           }
-          cells.push(Null)
+          if budget.nodes == 0 {
+            return Err(BudgetExceeded)
+          }
+          budget.nodes -= 1
+          cells.push(@admitted.checked_null_value(contract).unwrap())
         }
-        ExplicitNull => {
-          if !field.nullable {
+        Some(value) => {
+          if @decode.is_null(value) && !field.nullable {
             return Err(NullRequiredField(field.name))
           }
-          cells.push(Null)
+          match admit_query_cell(value, contract, field.name, budget) {
+            Ok(checked) => cells.push(checked)
+            Err(issue) => return Err(issue)
+          }
         }
-        Present(value) => cells.push(Value(value))
       }
     }
     rows.push(cells)
@@ -195,6 +233,18 @@ pub fn project_query_page(
 ///|
 pub fn query_page_row_count(page : QueryPage) -> Int {
   page.rows.length()
+}
+
+///|
+pub fn query_page_cell(
+  page : QueryPage,
+  row : Int,
+  column : Int,
+) -> @admitted.CheckedValue? {
+  match page.rows.get(row) {
+    Some(values) => values.get(column)
+    None => None
+  }
 }
 
 ///|

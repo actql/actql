@@ -4,6 +4,7 @@ pub(all) enum ReadProjectionIssue {
   Requirement(ResourceRequirementIssue)
   EmptyProjection
   QueryLimit
+  UnsupportedReadType(String)
 } derive(Eq, Debug)
 
 ///|
@@ -14,7 +15,29 @@ pub struct ReadProjection {
   binding : CatalogObservationBinding
   resource : String
   fields : Array[FieldMetadata]
+  contracts : Array[@contract.Contract]
   soql : String
+}
+
+///|
+/// Only wire forms that have an exact, lossless ActQL scalar admission are
+/// enabled. Decimal and temporal types need explicit provider conversion.
+fn read_field_contract(field : FieldMetadata) -> @contract.Contract? {
+  let kind = match field.native_type {
+    "id"
+    | "reference"
+    | "string"
+    | "textarea"
+    | "email"
+    | "phone"
+    | "url"
+    | "picklist"
+    | "combobox" => @contract.StringType
+    "boolean" => @contract.BooleanType
+    "int" | "double" => @contract.NumberType
+    _ => return None
+  }
+  Some(@contract.primitive(kind, nullable=field.nullable))
 }
 
 ///|
@@ -36,6 +59,13 @@ pub fn prepare_read_projection(
   let fields = match require_read_fields(resource, field_names) {
     Ok(value) => value
     Err(issue) => return Err(Requirement(issue))
+  }
+  let contracts = []
+  for field in fields {
+    match read_field_contract(field) {
+      Some(value) => contracts.push(value)
+      None => return Err(UnsupportedReadType(field.name))
+    }
   }
   // All identifiers came from the bounded describe projection. Its API-name
   // grammar excludes SOQL punctuation; no caller text is interpolated here.
@@ -68,6 +98,7 @@ pub fn prepare_read_projection(
     binding: current,
     resource: resource.name,
     fields,
+    contracts,
     soql: sql.to_string(),
   })
 }
