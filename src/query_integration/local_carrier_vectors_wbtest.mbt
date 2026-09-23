@@ -618,6 +618,19 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
+    // Values and the asserted Relation remain live across the pool input.
+    ledger_limits=if relation_pool {
+      Some({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 134217728L,
+        execution_bytes: 134217728L,
+      })
+    } else {
+      None
+    },
     managed_publication=variant == "bridge_only" ||
       variant == "normalize_shared" ||
       variant == "score_shared" ||
@@ -641,13 +654,14 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
+  let vector_task = if relation_pool { 3 } else { 2 }
   let cleanup_attempts = Ref(0)
   let provider = delayed_cleanup_provider(
     @local_veca_provider.provider(
       carrier_vectors_storage_limits(),
       4096L,
       @execution.generated_sequence_capacity(
-        sequences[1],
+        sequences[vector_task - 1],
         limits.local_execution,
         limits.guards,
       ).unwrap(),
@@ -710,15 +724,38 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     values_live,
   )
   let values_rows = local_managed_test_rows(values_ops)
+  let (assertion_ops, vector_input, assertion_live) = if relation_pool {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [values],
+      [values_rows],
+      2,
+      live,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, values, None)
+  }
+  let vector_input_rows = if relation_pool {
+    local_managed_test_rows(assertion_ops.unwrap())
+  } else {
+    values_rows
+  }
   let vectors_live = Ref(true)
   let vector_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (vectors_ops, vectors) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [values_rows],
-    2,
+    vector_task,
+    [vector_input],
+    [vector_input_rows],
+    vector_task,
     vectors_live,
     obligations=vector_obligations,
   )
@@ -847,27 +884,27 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    vector_task + 1,
     [vectors],
     [vector_rows],
-    3,
+    vector_task + 1,
     first_live,
   )
   let second_live = Ref(true)
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    vector_task + 2,
     [vectors],
     [vector_rows],
-    4,
+    vector_task + 2,
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
   assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, vector_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -875,15 +912,21 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(vectors))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, vector_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   vectors_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, vector_task)
   (vectors_ops.close)()
   assert_false((vectors_ops.cleanup_refresh)())
   assert_true((vectors_ops.cleanup_refresh)())
   assert_eq(cleanup_attempts.val, 2)
+  if assertion_ops is Some(ops) {
+    assertion_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 2)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -1140,6 +1183,9 @@ test "standard Host composes Vectors projection and Relation take" {
 
 ///|
 fn run_standard_nearest_provider(variant : String) -> Unit raise {
+  let inferred = variant == "nearest_inferred"
+  let query_values_task = if inferred { 3 } else { 2 }
+  let nearest_task = if inferred { 5 } else { 3 }
   let (run, issuer) = captured_graph_fixture(
     local_carrier_vectors_chain=true,
     local_carrier_vectors_variant=variant,
@@ -1149,7 +1195,12 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
       attempts: 10,
       holdings: 20,
       transfer_bytes: 300000L,
-      retained_bytes: 64000000L,
+      // Both inferred inputs retain Values and assertion generations.
+      retained_bytes: if inferred {
+        134217728L
+      } else {
+        64000000L
+      },
       execution_bytes: 134217728L,
     }),
   )
@@ -1165,7 +1216,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     carrier_vectors_storage_limits(),
     4096L,
     @execution.generated_sequence_capacity(
-      sequences[3],
+      sequences[nearest_task - 1],
       limits.local_execution,
       limits.guards,
     ).unwrap(),
@@ -1219,7 +1270,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let candidates_obligations = @strategy.captured_next_managed_obligations(
     run, 10,
   ).unwrap()
-  let (candidates_ops, candidates) = run_local_managed_test_task(
+  let (candidate_values_ops, candidate_values) = run_local_managed_test_task(
     installed,
     run,
     1,
@@ -1227,31 +1278,94 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
     [],
     1,
     candidates_live,
-    obligations=candidates_obligations,
+    obligations=if inferred {
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap(),
+      )
+    } else {
+      candidates_obligations
+    },
   )
-  let candidate_rows = local_managed_test_rows(candidates_ops)
+  let candidate_values_rows = local_managed_test_rows(candidate_values_ops)
+  let (candidate_assert_ops, candidates, candidate_assert_live) = if inferred {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [candidate_values],
+      [candidate_values_rows],
+      2,
+      live,
+      obligations=candidates_obligations,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), candidate_values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, candidate_values, None)
+  }
+  let candidate_rows = if inferred {
+    local_managed_test_rows(candidate_assert_ops.unwrap())
+  } else {
+    candidate_values_rows
+  }
   let queries_live = Ref(true)
   let queries_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
-  let (queries_ops, queries) = run_local_managed_test_task(
+  let (query_values_ops, query_values) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    query_values_task,
     [],
     [],
-    2,
+    query_values_task,
     queries_live,
-    obligations=queries_obligations,
+    obligations=if inferred {
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(
+          @strategy.captured_dag_graph(run),
+          query_values_task,
+        ).unwrap(),
+      )
+    } else {
+      queries_obligations
+    },
   )
-  let query_rows = local_managed_test_rows(queries_ops)
+  let query_values_rows = local_managed_test_rows(query_values_ops)
+  let (query_assert_ops, queries, query_assert_live) = if inferred {
+    let live = Ref(true)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      4,
+      [query_values],
+      [query_values_rows],
+      4,
+      live,
+      obligations=queries_obligations,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    assert_eq(local_managed_test_rows(ops), query_values_rows)
+    (Some(ops), output, Some(live))
+  } else {
+    (None, query_values, None)
+  }
+  let query_rows = if inferred {
+    local_managed_test_rows(query_assert_ops.unwrap())
+  } else {
+    query_values_rows
+  }
   let nearest_live = Ref(true)
   let nearest_obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
   let (nearest_ops, nearest) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    nearest_task,
     [candidates, queries],
     [candidate_rows, query_rows],
-    3,
+    nearest_task,
     nearest_live,
     obligations=nearest_obligations,
   )
@@ -1314,10 +1428,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    nearest_task + 1,
     [nearest],
     [nearest_rows],
-    4,
+    nearest_task + 1,
     first_live,
     obligations=first_obligations,
   )
@@ -1326,10 +1440,10 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    5,
+    nearest_task + 2,
     [nearest],
     [nearest_rows],
-    5,
+    nearest_task + 2,
     second_live,
     obligations=second_obligations,
   )
@@ -1337,7 +1451,7 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   assert_eq(local_managed_test_rows(second_ops).length(), expected.length())
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, nearest_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -1345,21 +1459,33 @@ fn run_standard_nearest_provider(variant : String) -> Unit raise {
   assert_true(@execution.managed_completed_output_available(nearest))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
+  @strategy.close_captured_task_output(run, nearest_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   nearest_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, nearest_task)
   (nearest_ops.close)()
   (nearest_ops.cleanup_refresh)() |> ignore
+  if query_assert_ops is Some(ops) {
+    query_assert_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 4)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   queries_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (queries_ops.close)()
-  (queries_ops.cleanup_refresh)() |> ignore
+  @strategy.close_captured_task_output(run, query_values_task)
+  (query_values_ops.close)()
+  (query_values_ops.cleanup_refresh)() |> ignore
+  if candidate_assert_ops is Some(ops) {
+    candidate_assert_live.unwrap().val = false
+    @strategy.close_captured_task_output(run, 2)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   candidates_live.val = false
   @strategy.close_captured_task_output(run, 1)
-  (candidates_ops.close)()
-  (candidates_ops.cleanup_refresh)() |> ignore
+  (candidate_values_ops.close)()
+  (candidate_values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

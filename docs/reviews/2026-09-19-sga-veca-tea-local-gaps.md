@@ -74,13 +74,16 @@ also splits into bounded values and selected Relation tasks. The standard
 Host checks quantum-one progress, sorted/taken values, two consumers,
 independent release, and final reclamation. The Node Host checks timer
 cancellation after sort work has started, with no partial result published.
-`values` followed by a `where` row assertion now also splits across bounded
-providers. Its standard Host fixture checks quantum-one progress, two real
-consumers, independent release, and final reclamation. The Node Host timer
-fixture checks cancellation after assertion work begins, stop confirmation,
-nonpublication, and cleanup. Other multi-step sequences beginning with
-`values`, including identity-bearing `unique_by` assertions, and unmatched
-Relation sequences can still reach the providerless lane. A Node standard
+`values` followed by either a `where` or identity-bearing `unique_by` row
+assertion now also splits across bounded providers. Standard Host fixtures
+check quantum-one progress, two real consumers, independent release, and final
+reclamation. VecA Relation-pool and nearest fixtures retain the asserted
+identity across the split. Node Host timers check cancellation after each
+assertion's work begins, stop confirmation, nonpublication, and cleanup.
+These connection fixtures do not establish an exact combined-stage peak
+reservation for every assertion variant.
+Other multi-step sequences beginning with `values` and unmatched Relation
+sequences can still reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;
 it verifies delivered cancellation, observed stop, nonpublication of the
 cross-join output, and final reclamation. The independent left and right

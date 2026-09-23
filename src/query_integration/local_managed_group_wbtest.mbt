@@ -6,6 +6,7 @@ fn start_local_managed_test_task_operations(
   inputs : Array[@execution.ManagedCompletedOutput[Int]],
   rows : Array[Array[String]],
   obligations? : @execution.ManagedObligations,
+  require_provider? : Bool = false,
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
@@ -54,6 +55,9 @@ fn start_local_managed_test_task_operations(
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
   }
+  if require_provider {
+    assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
@@ -77,7 +81,23 @@ fn start_local_managed_test_task_operations(
     Err(Execution(Compute(_))) => fail("Local managed start compute failed")
     Err(Execution(Implementation(_))) =>
       fail("Local managed start implementation failed")
-    Err(Execution(Physical(_))) => fail("Local managed start physical failed")
+    Err(Execution(Physical(issue))) =>
+      fail(
+        "Local managed start physical failed: " +
+        (match issue {
+          @resources.InvalidLimits => "invalid limits"
+          @resources.PlanningLimit => "planning limit"
+          @resources.AttemptLimit => "attempt limit"
+          @resources.HoldingLimit => "holding limit"
+          @resources.TransferLimit => "transfer limit"
+          @resources.RetentionLimit => "retention limit"
+          @resources.ExecutionLimit => "execution limit"
+          @resources.ForeignOwner => "foreign owner"
+          @resources.ClosedReservation => "closed reservation"
+          @resources.ClosedHolding => "closed holding"
+          @resources.InvalidCharge => "invalid charge"
+        }),
+      )
     Err(Execution(ActivationNotAuthorized)) =>
       fail("Local managed start was not authorized")
     Err(Search(_)) => fail("Local managed start search failed")
@@ -128,6 +148,7 @@ fn run_local_managed_test_task(
   finalization_quantum? : Int = 16,
   execution_quantum? : Int = 0,
   execution_advances? : Ref[Int]? = None,
+  require_provider? : Bool = false,
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
@@ -143,6 +164,7 @@ fn run_local_managed_test_task(
     inputs,
     rows,
     obligations?,
+    require_provider~,
     carrier_inputs~,
     grant?,
   )

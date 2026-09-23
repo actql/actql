@@ -249,11 +249,15 @@ test "Local managed zero-input values feed two downstream Computes" {
 }
 
 ///|
-fn run_standard_host_values_relation_step(assertion : Bool) -> Unit raise {
+fn run_standard_host_values_relation_step(
+  assertion : Bool,
+  unique? : Bool = false,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_two_consumer_chain=true,
     local_values_two_consumer_filter=!assertion,
-    local_values_two_consumer_assert=assertion,
+    local_values_two_consumer_assert=assertion && !unique,
+    local_values_two_consumer_assert_unique=unique,
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -307,10 +311,11 @@ fn run_standard_host_values_relation_step(assertion : Bool) -> Unit raise {
     relation_live,
     execution_quantum=1,
     execution_advances=Some(relation_advances),
+    require_provider=true,
   )
   assert_true(relation_advances.val > 1)
   let relation_rows = local_managed_test_rows(relation_ops)
-  let expected = if assertion {
+  let expected = if assertion || unique {
     values_rows
   } else {
     ["{\"id\":1,\"label\":\"one\"}"]
@@ -337,7 +342,7 @@ fn run_standard_host_values_relation_step(assertion : Bool) -> Unit raise {
     second_live,
   )
   assert_eq(local_managed_test_rows(first_ops), relation_rows)
-  let expected_second = if assertion {
+  let expected_second = if assertion || unique {
     ["{\"label\":\"none\",\"id\":null}", "{\"label\":\"one\",\"id\":1}"]
   } else {
     ["{\"label\":\"one\",\"id\":1}"]
@@ -377,6 +382,11 @@ test "standard Host splits zero-input values from Relation filter" {
 ///|
 test "standard Host splits zero-input values from Relation assertion" {
   run_standard_host_values_relation_step(true)
+}
+
+///|
+test "standard Host splits zero-input values from unique assertion" {
+  run_standard_host_values_relation_step(false, unique=true)
 }
 
 ///|
