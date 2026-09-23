@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> @catalog.QueryRead raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_catalog_begin(@catalog.ResourceListing) -> @catalog.CatalogSync
 
 pub fn salesforce_catalog_cancel(@catalog.CatalogSync) -> Bool raise SalesforceCatalogBridgeIssue
@@ -36,7 +38,25 @@ pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, S
 
 pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_query_page_response_sha256(@catalog.QueryPage) -> String
+
+pub fn salesforce_query_page_row_count(@catalog.QueryPage) -> Int
+
+pub fn salesforce_query_read_accept_page(@catalog.QueryRead, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_query_read_complete(@catalog.QueryRead) -> Bool
+
+pub fn salesforce_query_read_interrupt(@catalog.QueryRead) -> Bool
+
+pub fn salesforce_query_read_next_path(@catalog.QueryRead) -> String?
+
+pub fn salesforce_query_read_page_count(@catalog.QueryRead) -> Int
+
+pub fn salesforce_query_read_row_count(@catalog.QueryRead) -> Int64
+
 pub fn salesforce_read_projection_observation_cid(@catalog.ReadProjection) -> String
+
+pub fn salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
 
@@ -46,6 +66,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Sync(@catalog.CatalogSyncIssue)
   Observation(@catalog.CatalogObservationIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
+  QueryRead(@catalog.QueryReadIssue)
   InvalidResource
 }
 
