@@ -168,55 +168,6 @@ fn header_text(source : @wire.Cursor) -> String raise EffectHeaderStop {
 }
 
 ///|
-fn effect_reference_char(unit : Int) -> Bool {
-  (unit >= 0x30 && unit <= 0x39) ||
-  (unit >= 0x41 && unit <= 0x5a) ||
-  (unit >= 0x61 && unit <= 0x7a) ||
-  unit == 0x2e ||
-  unit == 0x5f ||
-  unit == 0x2f ||
-  unit == 0x2d
-}
-
-///|
-fn effect_reference_alphanumeric(unit : Int) -> Bool {
-  (unit >= 0x30 && unit <= 0x39) ||
-  (unit >= 0x41 && unit <= 0x5a) ||
-  (unit >= 0x61 && unit <= 0x7a)
-}
-
-///|
-fn valid_effect_contract_ref(reference : String, command : Bool) -> Bool {
-  let prefix = if command { "command:" } else { "mapping:" }
-  if !reference.has_prefix(prefix) {
-    return false
-  }
-  let start = prefix.length()
-  let mut suffix = reference.length()
-  while suffix > start &&
-        reference[suffix - 1].to_int() >= 0x30 &&
-        reference[suffix - 1].to_int() <= 0x39 {
-    suffix -= 1
-  }
-  if suffix == reference.length() ||
-    suffix < start + 3 ||
-    reference[suffix - 2].to_int() != 0x2e ||
-    reference[suffix - 1].to_int() != 0x76 {
-    return false
-  }
-  let name_end = suffix - 2
-  if !command && !effect_reference_alphanumeric(reference[start].to_int()) {
-    return false
-  }
-  for index in start..<name_end {
-    if !effect_reference_char(reference[index].to_int()) {
-      return false
-    }
-  }
-  true
-}
-
-///|
 fn header_from(
   body : @wire.ObjectView,
   stage : Stage,
@@ -443,7 +394,12 @@ fn header_member(
     source,
   )
   let contract_ref = header_text(contract_source)
-  if !valid_effect_contract_ref(contract_ref, selected == "command") {
+  let valid_ref = if selected == "command" {
+    @contract_ref.valid_command_ref(contract_ref)
+  } else {
+    @contract_ref.valid_mapping_ref(contract_ref)
+  }
+  if !valid_ref {
     header_fail(contract_source, InvalidBody)
   }
   if selected == "command" {
