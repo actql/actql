@@ -30,6 +30,19 @@ pub fn with_nullability(value : Contract, nullable : Bool) -> Contract {
 }
 
 ///|
+/// The kind of a non-null value-level ResourceRef. This does not establish
+/// that the reference exists or that the caller may use its target.
+pub fn nonnull_resource_ref_kind(value : Contract) -> String? {
+  if value.nullable {
+    return None
+  }
+  match value.shape {
+    ResourceRef(resource_kind~) => Some(resource_kind)
+    _ => None
+  }
+}
+
+///|
 fn valid_size_bound(value : Int64?) -> Bool {
   match value {
     None => true
