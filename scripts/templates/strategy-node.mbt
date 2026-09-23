@@ -7408,6 +7408,60 @@ pub fn strategy_effect_dispatch_key_cid(key : @effect.EffectDispatchKey) -> Stri
 }
 
 ///|
+#export_name("strategyEffectLogicalItemLocator")
+pub fn strategy_effect_logical_item_locator(
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  effect_id : String,
+  item_correlation_wire : String,
+  max_name_bytes : Int,
+  max_item_bytes : Int,
+  max_item_nodes : Int,
+  max_item_depth : Int,
+) -> @effect.LogicalItemLocator raise NodeHostFailure {
+  match @effect.prepare_logical_item_locator(
+    scope, program_id, node_id, effect_id, item_correlation_wire,
+    max_name_bytes, max_item_bytes, max_item_nodes, max_item_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLogicalItemLocatorCid")
+pub fn strategy_effect_logical_item_locator_cid(
+  locator : @effect.LogicalItemLocator,
+) -> String {
+  @effect.logical_item_locator_cid(locator)
+}
+
+///|
+#export_name("strategyEffectApplyKey")
+pub fn strategy_effect_apply_key(
+  scope : @effect.LogicalRequestScope,
+  effect_preview_cid : String,
+  effect_id : String,
+  effect_member_preview_cid : String,
+  max_effect_bytes : Int,
+) -> @effect.EffectApplyKey raise NodeHostFailure {
+  match @effect.prepare_effect_apply_key(
+    scope, effect_preview_cid, effect_id, effect_member_preview_cid,
+    max_effect_bytes,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectApplyKeyCid")
+pub fn strategy_effect_apply_key_cid(key : @effect.EffectApplyKey) -> String {
+  @effect.effect_apply_key_cid(key)
+}
+
+///|
 #export_name("strategyEffectRowRecoveryAction")
 pub fn strategy_effect_row_recovery_action(
   expected_key : @effect.EffectDispatchKey,

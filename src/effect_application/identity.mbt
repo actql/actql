@@ -2,6 +2,10 @@
 pub(all) enum EffectIdentityIssue {
   InvalidAuthorityScope
   InvalidPreview
+  InvalidEffect
+  InvalidUnitNamespace
+  InvalidItemCorrelation
+  InvalidMemberPreview
   InvalidCallerRequest
   InvalidRowKey
   InvalidLimits
@@ -48,6 +52,40 @@ fn canonical_bounded_text(value : String, max_bytes : Int) -> Bool {
       normalized == value && @utf8.encode(value).length() <= max_bytes
     Err(_) => false
   }
+}
+
+///|
+fn effect_canonical_json_value(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, EffectIdentityIssue] {
+  if wire.is_empty() || @utf8.encode(wire).length() > max_bytes {
+    return Err(InvalidRowKey)
+  }
+  let parsed = match
+    @source.parse_json(wire, {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidRowKey)
+  }
+  let value = @json.from_source(parsed, max_nodes, max_depth, max_bytes) catch {
+    _ => return Err(InvalidRowKey)
+  }
+  if value is @json.Null {
+    return Err(InvalidRowKey)
+  }
+  let canonical = @json.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != wire {
+    return Err(InvalidRowKey)
+  }
+  Ok(value)
 }
 
 ///|
@@ -115,34 +153,12 @@ pub fn prepare_effect_dispatch_key(
   if !effect_cid_valid(effect_preview_cid) {
     return Err(InvalidPreview)
   }
-  if row_or_item_key_wire.is_empty() ||
-    @utf8.encode(row_or_item_key_wire).length() > max_key_bytes {
-    return Err(InvalidRowKey)
-  }
-  let parsed = match
-    @source.parse_json(row_or_item_key_wire, {
-      max_input_bytes: max_key_bytes,
-      max_nodes: max_key_nodes,
-      max_depth: max_key_depth,
-    }) {
+  let key = match
+    effect_canonical_json_value(
+      row_or_item_key_wire, max_key_bytes, max_key_nodes, max_key_depth,
+    ) {
     Ok(value) => value
-    Err(_) => return Err(InvalidRowKey)
-  }
-  let key = @json.from_source(
-    parsed, max_key_nodes, max_key_depth, max_key_bytes,
-  ) catch {
-    _ => return Err(InvalidRowKey)
-  }
-  if key is @json.Null {
-    return Err(InvalidRowKey)
-  }
-  let canonical_wire = @json.stringify_value(
-    key, max_key_bytes, max_key_nodes, max_key_depth,
-  ) catch {
-    _ => return Err(Encoding)
-  }
-  if canonical_wire != row_or_item_key_wire {
-    return Err(InvalidRowKey)
+    Err(issue) => return Err(issue)
   }
   let writer = @encode.hashing_writer(
     max_key_bytes + 320,
