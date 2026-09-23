@@ -414,6 +414,14 @@ pub fn salesforce_collection_write_request_grant_operation(
 }
 
 ///|
+#export_name("salesforceCollectionWriteRequestEffectKind")
+pub fn salesforce_collection_write_request_effect_kind(
+  request : @catalog.WriteCollectionRequest,
+) -> String {
+  @catalog.write_collection_request_effect_kind(request)
+}
+
+///|
 #export_name("salesforceCollectionWriteRequestRowCount")
 pub fn salesforce_collection_write_request_row_count(
   request : @catalog.WriteCollectionRequest,

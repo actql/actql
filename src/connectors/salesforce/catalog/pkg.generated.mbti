@@ -156,6 +156,8 @@ pub fn write_collection_request_body(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_cid(WriteCollectionRequest, String, Int) -> Result[String, WriteRequestIssue]
 
+pub fn write_collection_request_effect_kind(WriteCollectionRequest) -> String
+
 pub fn write_collection_request_grant_operation(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_matches_site_scope(WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool

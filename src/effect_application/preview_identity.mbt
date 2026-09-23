@@ -60,3 +60,104 @@ pub fn admit_effect_preview_apply_identity(
   }
   Ok(identity)
 }
+
+///|
+pub(all) enum EffectCollectionBatchIssue {
+  InvalidLimits
+  InvalidMember
+  ForeignKind
+  InvalidSlice
+  CapacityExceeded
+  ForeignRow(Int)
+  ForeignKey(Int)
+  ForeignLocator(Int)
+} derive(Eq, Debug)
+
+///|
+/// Bind a physical Collections slice to the admitted Preview's stable row
+/// order and derived keys. This does not replace whole-set preflight or the
+/// current authorization gate.
+pub fn admit_effect_collection_batch(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  first_row : Int,
+  effect_kind : String,
+  scope : LogicalRequestScope,
+  row_cids : Array[String],
+  locators : Array[LogicalItemLocator],
+  keys : Array[EffectDispatchKey],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, EffectCollectionBatchIssue] {
+  if max_rows < 1 || max_rows > 200 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  let count = row_cids.length()
+  if count < 1 ||
+    count > max_rows ||
+    locators.length() != count ||
+    keys.length() != count {
+    return Err(InvalidSlice)
+  }
+  let effect_id = match
+    @publication.effect_preview_member_effect_id(preview, member_index) {
+    Some(value) => value
+    None => return Err(InvalidMember)
+  }
+  if @publication.effect_preview_member_kind(preview, member_index) !=
+    Some(effect_kind) {
+    return Err(ForeignKind)
+  }
+  let total = @publication.effect_preview_row_count(preview, member_index).unwrap()
+  if first_row < 0 || first_row > total || count > total - first_row {
+    return Err(InvalidSlice)
+  }
+  if total > max_work - count {
+    return Err(CapacityExceeded)
+  }
+  let indices : Map[String, Int] = Map([])
+  for index in 0..<total {
+    let row = @publication.effect_preview_row_identity(
+      preview, member_index, index,
+    ).unwrap()
+    indices[row] = index
+  }
+  let preview_cid = @publication.effect_preview_semantic_identity(preview)
+  for offset in 0..<count {
+    let expected = @publication.effect_preview_ordered_row_identity(
+      preview,
+      member_index,
+      first_row + offset,
+    ).unwrap()
+    if row_cids[offset] != expected {
+      return Err(ForeignRow(offset))
+    }
+    let index = indices.get(expected).unwrap()
+    if keys[offset].logical_request_scope_cid != scope.cid ||
+      keys[offset].effect_preview_cid != preview_cid ||
+      @publication.effect_preview_row_key(preview, member_index, index) !=
+      Some(keys[offset].cid) {
+      return Err(ForeignKey(offset))
+    }
+    let locator = locators[offset]
+    if locator.logical_request_scope_cid != scope.cid ||
+      locator.effect_id != effect_id ||
+      @publication.effect_preview_row_correlation_wire(
+        preview, member_index, index,
+      ) !=
+      Some(locator.item_correlation_wire) ||
+      keys[offset].row_or_item_key_wire != locator.item_correlation_wire {
+      return Err(ForeignLocator(offset))
+    }
+    if offset > 0 &&
+      !effect_batch_rows_share_member(
+        locators[0],
+        keys[0],
+        locator,
+        keys[offset],
+      ) {
+      return Err(ForeignLocator(offset))
+    }
+  }
+  Ok(())
+}

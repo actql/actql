@@ -67,7 +67,11 @@ pub fn effect_preview_member_effect_id(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_identity(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_member_kind(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_ordered_row_identity(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_count(EffectPreviewIdentity, Int) -> Int?
 
@@ -518,8 +522,10 @@ pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
+  member_effect_kinds : Array[String]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
+  row_correlation_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
