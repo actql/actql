@@ -49,6 +49,25 @@ test('resource completion rejects every unassured operation', () => {
     /RelA filter: boundary assurance is missing/);
 });
 
+test('resource completion also rejects an unassured SGA route', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /SGA shortest_path: boundary assurance is missing/);
+});
+
+test('resource completion rejects borrowed proof roles on another route', () => {
+  assert.match(run(undefined, value => {
+    const path = value.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'shortest_path');
+    path.boundary_assurance = {
+      exact_limit: 'select_input_exact',
+      one_short_limit: 'select_input_one_short',
+      in_flight_cancel: 'select_in_flight_host_timer',
+      cleanup: 'select_cancel_cleanup',
+    };
+  }, ['--require-boundary-complete']),
+  /SGA shortest_path: full exact_limit lacks an executable fixture/);
+});
+
 test('resource gate rejects a false in-flight assurance', () => {
   assert.match(run(undefined, value => {
     const filter = value.routes.find(entry => entry.family === 'RelA' &&
@@ -339,6 +358,23 @@ test('resource gate rejects selection without its bounded product route', () => 
       entry.operation === 'select');
     delete selection.selected_entrypoint;
   }), /RelA select: bounded selected entrypoint is missing/);
+});
+
+test('resource gate rejects selection without ordinary quantum evidence', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.boundary_tests = selection.boundary_tests.filter(item =>
+      item.role !== 'ordinary_select_quantum_and_lifetime');
+  }), /RelA select: reviewed ordinary_select_quantum_and_lifetime fixture is missing/);
+});
+
+test('resource gate rejects selection without ordinary product route', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    delete selection.ordinary_entrypoint;
+  }), /RelA select: bounded ordinary entrypoint is missing/);
 });
 
 test('resource gate rejects selection without delivered Host cancellation', () => {

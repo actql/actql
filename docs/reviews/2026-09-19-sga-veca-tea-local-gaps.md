@@ -71,6 +71,10 @@ readable coverage manifest is authoritative for individual operation status.
   after measured work, then confirms stop without exposing a partial result. A
   separate ordinary filter fixture proves quantum-one execution and lifetime,
   but its exact/one-short and delivered-cancel proof roles are not yet bound.
+  Ordinary one-step select now uses the same bounded provider. A three-target
+  fixture preserves authored projection order through two downstream Computes,
+  including typed Decimal values, at quantum one. Its ordinary-route exact,
+  one-short, delivered-cancel, and cleanup assurance is still unregistered.
   A successful route gate does not establish boundary closure for the other 60
   operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
@@ -98,8 +102,9 @@ readable coverage manifest is authoritative for individual operation status.
   1,024-byte-per-key probe did not reach the managed sort task. The admitted
   stress case reports bounded-step work and maximum resume duration, then
   delivers a real timer cancellation after 70
-  quantum-one advances, and verifies stop and cleanup. A local run measured
-  0.529 ms maximum resume and 0.207 ms from cancellation delivery to stop.
+  quantum-one advances, and verifies stop and cleanup. Two local runs measured
+  0.529 and 0.477 ms maximum resume, and 0.207 and 0.100 ms from cancellation
+  delivery to stop, respectively.
   These are environment diagnostics, not a universal deadline or proof for
   every admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
