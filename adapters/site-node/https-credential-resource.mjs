@@ -94,6 +94,7 @@ export async function callHttpsCredentialResource({
   key,
   now = Date.now,
   maxResponseBytes = 1_048_576,
+  returnRejectedResponse = false,
   signal,
 }) {
   if (typeof control?.identity !== 'function' ||
@@ -101,7 +102,8 @@ export async function callHttpsCredentialResource({
       typeof journal?.authorize !== 'function' ||
       typeof journal?.finish !== 'function' ||
       typeof resolveSecret !== 'function' || typeof now !== 'function' ||
-      !text(useId) || !count(maxResponseBytes) || maxResponseBytes === 0) {
+      !text(useId) || !count(maxResponseBytes) || maxResponseBytes === 0 ||
+      typeof returnRejectedResponse !== 'boolean') {
     fail('InvalidRemoteCredentialCall');
   }
   const operation = operationFor(operations, scope);
@@ -144,12 +146,14 @@ export async function callHttpsCredentialResource({
     if (response.statusCode >= 300 && response.statusCode < 400) {
       fail('RemoteCredentialRedirectRejected');
     }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    const accepted = response.statusCode >= 200 && response.statusCode < 300;
+    if (!accepted && !returnRejectedResponse) {
       fail('RemoteCredentialResourceRejected');
     }
-    journal.finish(claimed.record.useCid, 'succeeded');
+    journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
     return Object.freeze({
       useCid: claimed.record.useCid,
+      accepted,
       statusCode: response.statusCode,
       headers: response.headers,
       body: response.body,
