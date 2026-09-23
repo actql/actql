@@ -78,6 +78,9 @@ async function fixture(t) {
       response.end('{"records":[1,2]}');
     } else if (request.url === '/redirect') {
       response.writeHead(302, {location: '/redirected'}).end();
+    } else if (request.url === '/limit') {
+      response.writeHead(429, {'content-type': 'application/json'});
+      response.end('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]');
     } else {
       response.writeHead(404).end();
     }
@@ -139,6 +142,7 @@ function scope(origin, operation = 'records:read') {
 const operations = Object.freeze(new Map([
   ['records:read', Object.freeze({method: 'GET', path: '/records'})],
   ['records:redirect', Object.freeze({method: 'GET', path: '/redirect'})],
+  ['records:limit', Object.freeze({method: 'GET', path: '/limit'})],
 ]));
 
 async function call(setup, grant, grantScope, useId, overrides = {}) {
@@ -204,6 +208,30 @@ test('redirect is rejected without forwarding the provider credential',
     );
     assert.equal(setup.requests(), 1);
     assert.equal(setup.redirected(), 0);
+  });
+
+test('scoped reads can inspect a rejected response without claiming success',
+  async t => {
+    const setup = await fixture(t);
+    const grantScope = scope(setup.origin, 'records:limit');
+    const grant = control.prepare(grantScope);
+    setup.journal.acceptGrant(setup.sign(grant), control);
+    const result = await call(setup, grant, grantScope, 'use-limit', {
+      returnRejectedResponse: true,
+    });
+    assert.equal(result.accepted, false);
+    assert.equal(result.statusCode, 429);
+    assert.equal(result.body.toString('utf8'),
+      '[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]');
+    assert.equal(setup.journal.inspect(result.useCid).outcome, 'failed');
+    assert.equal(setup.requests(), 1);
+    await assert.rejects(
+      call(setup, grant, grantScope, 'use-limit', {
+        returnRejectedResponse: true,
+      }),
+      {code: 'RemoteCredentialUseAlreadyClaimed'},
+    );
+    assert.equal(setup.requests(), 1);
   });
 
 test('resource operation attempt and revocation scope stop before HTTPS I/O',
