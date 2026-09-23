@@ -51,6 +51,11 @@ The standard Program checker still rejects nonempty Effects. A complete
 Mapping Contract body and its reference/permission/type admission must be
 specified and connected before lifting that rejection; an arbitrary member
 CID or a dynamic Salesforce describe is not a substitute.
+The Connector SDK now admits an Effect-only bundle under the same owned
+registration used for Acquisition and Compute. This is a registration
+boundary, not Effect execution authority or a standard Host caller. The
+Effect implementation remains absent from the product Run path described
+below.
 
 ## Required port and owners
 

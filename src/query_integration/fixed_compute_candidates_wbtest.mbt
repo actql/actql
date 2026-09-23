@@ -2,9 +2,14 @@
 test "registered fixed Compute candidates keep the same capture and Local execution budgets" {
   let registry = @connector.prepare_capability_registry(
     [
-      { name: "local", acquisition: false, fixed_compute: true, },
-      { name: "duckdb", acquisition: true, fixed_compute: true, },
-      { name: "source-only", acquisition: true, fixed_compute: false, },
+      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
+      { name: "duckdb", acquisition: true, fixed_compute: true, effect: false, },
+      {
+        name: "source-only",
+        acquisition: true,
+        fixed_compute: false,
+        effect: false,
+      },
     ],
     3,
     22,

@@ -288,7 +288,14 @@ test "common start checks every selected aggregate output ceiling" {
     dispatch_test_limits().capacity,
   ).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: "aggregate-limit-test", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "aggregate-limit-test",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()

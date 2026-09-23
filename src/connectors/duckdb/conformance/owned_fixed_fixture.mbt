@@ -78,8 +78,18 @@ fn owned_fixed_from_output(
     }).unwrap()
     let registry = @connector.prepare_capability_registry(
       [
-        { name: "local", acquisition: false, fixed_compute: true, },
-        { name: "duckdb", acquisition: true, fixed_compute: true, },
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+        {
+          name: "duckdb",
+          acquisition: true,
+          fixed_compute: true,
+          effect: false,
+        },
       ],
       2,
       11,

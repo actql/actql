@@ -14,7 +14,14 @@ fn synchronous_test_choice(
     common_fragment: None,
   }).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: "synchronous-test", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "synchronous-test",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()

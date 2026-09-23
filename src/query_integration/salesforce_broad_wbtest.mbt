@@ -44,6 +44,7 @@ fn salesforce_broad_plan(
     principal: "principal-a",
     environment: "test",
     connection_revision: "connection-a",
+    org_id: "00D000000000001EAA",
     site_key: "site-a",
     site_generation: 1,
     connector_registration: "salesforce",
@@ -122,7 +123,14 @@ test "Salesforce broad candidate binds the exact checked source and common choic
     is Err(InvalidInputSchema),
   )
   let registry = @connector.prepare_capability_registry(
-    [{ name: "salesforce", acquisition: true, fixed_compute: false, }],
+    [
+      {
+        name: "salesforce",
+        acquisition: true,
+        fixed_compute: false,
+        effect: false,
+      },
+    ],
     1,
     20,
   ).unwrap()
@@ -443,7 +451,14 @@ fn salesforce_issued_fixture(
     "crm/main",
   ).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: "salesforce", acquisition: true, fixed_compute: false, }],
+    [
+      {
+        name: "salesforce",
+        acquisition: true,
+        fixed_compute: false,
+        effect: false,
+      },
+    ],
     1,
     20,
   ).unwrap()

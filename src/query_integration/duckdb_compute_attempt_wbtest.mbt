@@ -120,7 +120,14 @@ fn fixed_compute_attempt_fixture(
     common_fragment: None,
   }).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: "duckdb", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "duckdb",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     6,
   ).unwrap()
