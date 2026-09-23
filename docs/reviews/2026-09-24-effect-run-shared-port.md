@@ -62,6 +62,12 @@ registration used for Acquisition and Compute. This is a registration
 boundary, not Effect execution authority or a standard Host caller. The
 Effect implementation remains absent from the product Run path described
 below.
+The checked Stage now has a bounded MoonBit comparison against an admitted
+private Preview identity. It checks the exact member set, effect kinds, and
+within-member failure policies, independent of Preview array order. This is
+one static inventory guard only: the normal Program checker still rejects
+Effects, and the Host has not yet bound that Preview to a Captured Run or
+admitted apply authority.
 
 ## Required port and owners
 
