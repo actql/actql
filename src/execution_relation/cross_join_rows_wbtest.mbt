@@ -274,6 +274,56 @@ test "cross join releases unpublished workspace after a bounded failure" {
 }
 
 ///|
+test "cross join exact and one-short work and workspace boundaries" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"left_rows\"},{\"values\":{\"schema\":{\"tag\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"tag\":{\"literal\":\"a\"}},{\"tag\":{\"literal\":\"b\"}}]},\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"cross_join\":{\"with\":\"right_rows\",\"select\":{\"id\":\"left.id\",\"tag\":\"right.tag\"}},\"as\":\"out\"}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 2)
+    is Some(@lower.CrossJoinStep(kernel)) else {
+    abort("cross join step")
+  }
+  let left = table_from_capture(
+    capture_values(owner, 0, max_rows=2, run_limits().input_values).unwrap(),
+  )
+  let right = table_from_capture(
+    capture_values(owner, 1, max_rows=2, run_limits().input_values).unwrap(),
+  )
+  // Each output field costs one base unit, its UTF-8 name, and one
+  // inspected source-column name pair: id=8 and tag=11. Four output
+  // pairs cost three work units each. The two metadata entries reserve
+  // three slots apiece; each output pair retains one row and two cells.
+  // The temporary metadata slots are released after the output is built.
+  for
+    (work_limit, workspace_limit, succeeds) in [
+      (31, 18, true),
+      (30, 18, false),
+      (31, 17, false),
+    ] {
+    let control = { remaining: work_limit, max_frames: 100, }
+    let workspace = { limit: workspace_limit, live: 0, peak: 0, }
+    let result = evaluate_cross_join_rows(
+      kernel,
+      left,
+      right,
+      4,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    if succeeds {
+      let output = result.unwrap()
+      assert_eq(output.rows.length(), 4)
+      assert_eq(control.remaining, 0)
+      assert_eq(workspace.live, 14)
+      assert_eq(workspace.peak, 18)
+    } else {
+      assert_true(result is Err(RowLimit))
+      assert_eq(workspace.live, 0)
+    }
+  }
+}
+
+///|
 test "cross join accepts every pair of retained input layouts" {
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"left_rows\"},{\"values\":{\"schema\":{\"tag\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"tag\":{\"literal\":\"a\"}},{\"tag\":{\"literal\":\"b\"}}]},\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"cross_join\":{\"with\":\"right_rows\",\"select\":{\"id\":\"left.id\",\"tag\":\"right.tag\"}},\"as\":\"out\"}]",

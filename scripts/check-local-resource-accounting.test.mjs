@@ -138,3 +138,12 @@ test('resource gate rejects a fixture connected to a foreign suite', () => {
       'moon:query_integration';
   }), /RelA take: boundary evidence must be suite-connected on all targets/);
 });
+
+test('resource gate rejects cross join without independent limits', () => {
+  assert.match(run(undefined, value => {
+    const join = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    join.boundary_tests = join.boundary_tests.filter(item =>
+      item.role !== 'product_work_workspace_exact_one_short');
+  }), /RelA cross_join: reviewed product_work_workspace_exact_one_short fixture is missing/);
+});

@@ -51,6 +51,11 @@ readable coverage manifest is authoritative for individual operation status.
   including overlap with the selected output row. These direct fixtures are
   paired with the standard Host route rather than substituted for it. A
   passing route gate alone is not completion evidence.
+  The RelA cross-join route now pairs an independently calculated 2-by-2
+  work/workspace exact-and-one-short kernel fixture with a managed
+  cancel-and-cleanup fixture. Its cancellation fixture closes the operation
+  before execution; it does not establish in-flight interruption of the
+  synchronous Cartesian-product loop.
 
 The bounded binding-row API now takes separate input and output value limits.
 This is a low-level source signature change, not a standard Host or wire
