@@ -287,7 +287,15 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-sort-wide-comparison"
         }
-      ]
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "selected_sort_workspace_exact",
+          "one_short_limit": "selected_sort_workspace_one_short",
+          "in_flight_cancel": "selected_sort_wide_comparison_host_timer",
+          "cleanup": "selected_sort_cancel_cleanup"
+        }
+      }
     },
     {
       "inventory": "rela",
@@ -355,7 +363,15 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-take"
         }
-      ]
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "key_completion_work_exact_one_short",
+          "one_short_limit": "key_completion_workspace_exact_one_short",
+          "in_flight_cancel": "selected_take_host_timer",
+          "cleanup": "mixed_stage_sort_cancel_and_cleanup"
+        }
+      }
     },
     {
       "inventory": "rela",
