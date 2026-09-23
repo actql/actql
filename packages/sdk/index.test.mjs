@@ -205,3 +205,31 @@ test('request lookup distinguishes retained Run, absence and malformed Host repl
     assert.deepEqual(requests.map(item => item.operation),
       ['connect', 'lookup-request', 'lookup-request', 'lookup-request']);
   });
+
+test('delivery attempt lookup accepts only the existing ledger result shape',
+  async t => {
+    let reply = {kind: 'found', attempt: {attempt_id: 'read-a'},
+      record: null, hostReleaseReceipt: null};
+    const requests = [];
+    mock.method(globalThis, 'fetch', async (url, init) => {
+      const operation = url.pathname.split('/').at(-1);
+      requests.push({operation, body: JSON.parse(init.body)});
+      if (operation === 'connect') return Response.json(profile);
+      if (operation === 'attach') return Response.json(admission);
+      return Response.json(reply);
+    });
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    const result = (await client.attach(ref)).result('answer');
+    assert.deepEqual(await result.deliveryAttempt('read-a'), reply);
+    reply = {kind: 'not_found'};
+    assert.deepEqual(await result.deliveryAttempt('read-b'), reply);
+    reply = {kind: 'found', attempt: null, record: null,
+      hostReleaseReceipt: null};
+    await assert.rejects(result.deliveryAttempt('read-c'),
+      {code: 'InvalidHostAttemptLookup'});
+    assert.deepEqual(requests.slice(2).map(item => item.body.attemptId),
+      ['read-a', 'read-b', 'read-c']);
+    assert(requests.slice(2).every(item =>
+      item.body.resultName === 'answer'));
+  });

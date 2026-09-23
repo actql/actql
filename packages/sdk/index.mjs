@@ -310,9 +310,31 @@ export async function connect(options) {
           if (typeof attemptId !== 'string' || !attemptId) {
             fail('InvalidReadAttempt');
           }
-          return (await runRequest('delivery-attempt', {
+          const response = await runRequest('delivery-attempt', {
             resultName: name, attemptId,
-          }, signal)).json();
+          }, signal);
+          let answer;
+          try { answer = await response.json(); }
+          catch (cause) {
+            throw new ClientError('InvalidHostAttemptLookup', {cause});
+          }
+          if (exact(answer, ['kind']) && answer.kind === 'not_found') {
+            return Object.freeze(answer);
+          }
+          if (exact(answer, ['kind', 'attempt', 'record',
+            'hostReleaseReceipt']) && answer.kind === 'found' &&
+              answer.attempt !== null &&
+              typeof answer.attempt === 'object' &&
+              !Array.isArray(answer.attempt) &&
+              (answer.record === null ||
+                typeof answer.record === 'object' &&
+                !Array.isArray(answer.record)) &&
+              (answer.hostReleaseReceipt === null ||
+                typeof answer.hostReleaseReceipt === 'object' &&
+                !Array.isArray(answer.hostReleaseReceipt))) {
+            return Object.freeze(answer);
+          }
+          fail('InvalidHostAttemptLookup');
         },
       });
     };
