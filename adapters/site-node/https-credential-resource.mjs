@@ -6,6 +6,27 @@ const fail = (code, cause) => {
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
 
+function exactRequestTarget(path) {
+  if (!text(path) || !path.startsWith('/') || path.startsWith('//') ||
+      path.includes('\\') || path.includes('#')) {
+    fail('InvalidRemoteCredentialOperation');
+  }
+  for (let index = 0; index < path.length; index++) {
+    const code = path.charCodeAt(index);
+    if (code < 0x21 || code > 0x7e) {
+      fail('InvalidRemoteCredentialOperation');
+    }
+    if (code === 0x25) {
+      if (index + 2 >= path.length ||
+          !/^[0-9A-Fa-f]{2}$/.test(path.slice(index + 1, index + 3))) {
+        fail('InvalidRemoteCredentialOperation');
+      }
+      index += 2;
+    }
+  }
+  return path;
+}
+
 function operationFor(operations, scope, maxRequestBytes) {
   if (!(operations instanceof Map) || !text(scope?.operation) ||
       !text(scope?.resourceOrigin)) {
@@ -15,8 +36,7 @@ function operationFor(operations, scope, maxRequestBytes) {
   if (operation === undefined || operation === null ||
       typeof operation !== 'object' ||
       !['GET', 'POST', 'PATCH'].includes(operation.method) ||
-      !text(operation.path) || !operation.path.startsWith('/') ||
-      operation.path.startsWith('//')) {
+      !text(operation.path)) {
     fail('UnsupportedRemoteCredentialOperation');
   }
   const mutation = operation.method !== 'GET';
@@ -26,28 +46,27 @@ function operationFor(operations, scope, maxRequestBytes) {
     fail('InvalidRemoteCredentialOperation');
   }
   let origin;
-  let target;
   try {
     origin = new URL(scope.resourceOrigin);
-    target = new URL(operation.path, origin);
   } catch (error) {
     fail('InvalidRemoteCredentialOperation', error);
   }
   if (origin.protocol !== 'https:' || origin.origin !== scope.resourceOrigin ||
-      target.origin !== origin.origin || target.username !== '' ||
-      target.password !== '') {
+      origin.username !== '' || origin.password !== '') {
     fail('InvalidRemoteCredentialOperation');
   }
   return Object.freeze({
     method: operation.method,
-    target,
+    hostname: origin.hostname,
+    port: origin.port || undefined,
+    path: exactRequestTarget(operation.path),
     body: mutation ? operation.body : undefined,
     requestBytes: mutation ? Buffer.byteLength(operation.body) : 0,
   });
 }
 
-function receive({target, method, body, requestBytes, secret, ca, cert, key, signal,
-  maxResponseBytes}) {
+function receive({hostname, port, path, method, body, requestBytes, secret,
+  ca, cert, key, signal, maxResponseBytes}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (handler, value) => {
@@ -55,7 +74,11 @@ function receive({target, method, body, requestBytes, secret, ca, cert, key, sig
       settled = true;
       handler(value);
     };
-    const request = httpsRequest(target, {
+    const request = httpsRequest({
+      protocol: 'https:',
+      hostname,
+      port,
+      path,
       method,
       ca,
       cert,
