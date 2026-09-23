@@ -148,6 +148,19 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   assert_eq(effect_preview_semantic_identity(admitted), preview_cid)
   assert_eq(effect_preview_member_identity(admitted, 0), Some(expected_member))
   assert_eq(effect_preview_member_identity(admitted, 1), None)
+  let footprint = effect_preview_member_footprint(admitted, 0).unwrap()
+  assert_eq(effect_preview_footprint_kind(footprint), "exact_targets")
+  assert_eq(effect_preview_footprint_provider_namespace(footprint), "provider")
+  assert_eq(effect_preview_footprint_provider_boundary_cid(footprint), a)
+  assert_eq(effect_preview_footprint_resource_identity_scheme_cid(footprint), a)
+  assert_eq(effect_preview_footprint_resource_kind(footprint), "Object")
+  assert_eq(effect_preview_footprint_target_count(footprint), 1)
+  assert_eq(
+    effect_preview_footprint_target_cid(footprint, 0),
+    Some(preview_identity_test_cid("1")),
+  )
+  assert_eq(effect_preview_footprint_target_cid(footprint, 1), None)
+  assert_true(effect_preview_member_footprint(admitted, 1) is None)
   assert_eq(effect_preview_row_identity(admitted, 0, 0), Some(row))
   assert_eq(effect_preview_ordered_row_identity(admitted, 0, 0), Some(row))
   assert_eq(effect_preview_row_identity(admitted, 0, 1), None)

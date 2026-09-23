@@ -18,6 +18,7 @@ pub struct EffectPreviewIdentity {
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
   member_failure_policies : Array[String]
+  member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
   row_indices : Array[Map[String, Int]]
@@ -25,6 +26,102 @@ pub struct EffectPreviewIdentity {
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
+}
+
+///|
+/// Retained semantic footprint from the admitted private Preview. This is
+/// evidence of what the Preview claims, not proof that a physical request
+/// targets these objects or that the complete Effect Set is safe to send.
+pub struct EffectPreviewFootprintIdentity {
+  kind : String
+  provider_namespace : String
+  provider_boundary_cid : String
+  resource_identity_scheme_cid : String
+  resource_kind : String
+  provider_object_identity_cids : Array[String]
+}
+
+///|
+pub fn effect_preview_footprint_kind(
+  value : EffectPreviewFootprintIdentity,
+) -> String {
+  value.kind
+}
+
+///|
+pub fn effect_preview_footprint_provider_namespace(
+  value : EffectPreviewFootprintIdentity,
+) -> String {
+  value.provider_namespace
+}
+
+///|
+pub fn effect_preview_footprint_provider_boundary_cid(
+  value : EffectPreviewFootprintIdentity,
+) -> String {
+  value.provider_boundary_cid
+}
+
+///|
+pub fn effect_preview_footprint_resource_identity_scheme_cid(
+  value : EffectPreviewFootprintIdentity,
+) -> String {
+  value.resource_identity_scheme_cid
+}
+
+///|
+pub fn effect_preview_footprint_resource_kind(
+  value : EffectPreviewFootprintIdentity,
+) -> String {
+  value.resource_kind
+}
+
+///|
+pub fn effect_preview_footprint_target_count(
+  value : EffectPreviewFootprintIdentity,
+) -> Int {
+  value.provider_object_identity_cids.length()
+}
+
+///|
+pub fn effect_preview_footprint_target_cid(
+  value : EffectPreviewFootprintIdentity,
+  index : Int,
+) -> String? {
+  value.provider_object_identity_cids.get(index)
+}
+
+///|
+fn retain_effect_preview_footprint(
+  effect : @json.CanonicalValue,
+) -> EffectPreviewFootprintIdentity? {
+  guard @json.object_field(effect, "write_footprint") is Some(footprint) &&
+    @json.object_field(footprint, "kind") is Some(@json.String(kind)) &&
+    @json.object_field(footprint, "provider_namespace")
+    is Some(@json.String(provider_namespace)) &&
+    @json.object_field(footprint, "provider_boundary_cid")
+    is Some(@json.String(provider_boundary_cid)) &&
+    @json.object_field(footprint, "resource_identity_scheme_cid")
+    is Some(@json.String(resource_identity_scheme_cid)) &&
+    @json.object_field(footprint, "resource_kind")
+    is Some(@json.String(resource_kind)) &&
+    @json.object_field(footprint, "provider_object_identity_cids")
+    is Some(@json.Array(frozen)) else {
+    return None
+  }
+  let provider_object_identity_cids : Array[String] = []
+  for item in @json.array_values(frozen) {
+    guard item is @json.String(cid) else { return None }
+    provider_object_identity_cids.push(cid)
+  }
+  Some({
+    kind,
+    provider_namespace,
+    provider_boundary_cid,
+    resource_identity_scheme_cid,
+    resource_kind,
+    provider_object_identity_cids,
+  })
 }
 
 ///|
@@ -295,6 +392,7 @@ pub fn admit_effect_preview_identity(
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
   let member_failure_policies : Array[String] = []
+  let member_footprints : Array[EffectPreviewFootprintIdentity] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
   let row_cids : Array[Array[String]] = []
   let row_indices : Array[Map[String, Int]] = []
@@ -321,6 +419,11 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_failure_policies.push(failure_policy)
+    let footprint = match retain_effect_preview_footprint(effect) {
+      Some(value) => value
+      None => return Err(InvalidMember)
+    }
+    member_footprints.push(footprint)
     let (member_keys, member_rows, member_order, member_correlations) = match
       effect_member_row_inventory(
         effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -400,6 +503,7 @@ pub fn admit_effect_preview_identity(
     member_effect_ids,
     member_effect_kinds,
     member_failure_policies,
+    member_footprints,
     row_keys,
     row_cids,
     row_indices,
@@ -447,6 +551,14 @@ pub fn effect_preview_member_failure_policy(
   index : Int,
 ) -> String? {
   value.member_failure_policies.get(index)
+}
+
+///|
+pub fn effect_preview_member_footprint(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> EffectPreviewFootprintIdentity? {
+  value.member_footprints.get(index)
 }
 
 ///|
