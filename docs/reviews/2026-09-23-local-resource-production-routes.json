@@ -835,6 +835,13 @@
           "fixture": "normalize rejects one node less than the required capacity"
         },
         {
+          "role": "normalize_one_short_edge_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize rejects one edge less than the required capacity"
+        },
+        {
           "role": "normalize_cancel_cleanup",
           "suite": "moon:local_sga",
           "targets": ["js", "wasm", "native"],
@@ -856,6 +863,13 @@
           "fixture": "normalize managed view rejects one node less than required"
         },
         {
+          "role": "normalize_view_one_short_edge_capacity",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize managed view rejects one edge less than required"
+        },
+        {
           "role": "normalize_view_cancel_cleanup",
           "suite": "moon:local_sga",
           "targets": ["js", "wasm", "native"],
@@ -865,6 +879,13 @@
       ],
       "environment_tests": [
         {
+          "role": "normalize_fused_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "normalize-fused-kernel"
+        },
+        {
           "role": "normalize_selected_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -873,6 +894,12 @@
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "normalize_exact_node_capacity",
+          "one_short_limit": "normalize_one_short_node_capacity",
+          "in_flight_cancel": "normalize_fused_in_flight_host_timer",
+          "cleanup": "normalize_cancel_cleanup"
+        },
         "selected_entrypoint": {
           "exact_limit": "normalize_view_exact_node_capacity",
           "one_short_limit": "normalize_view_one_short_node_capacity",

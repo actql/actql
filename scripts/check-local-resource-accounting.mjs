@@ -425,9 +425,11 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'normalize_exact_node_capacity',
       'normalize_one_short_node_capacity',
+      'normalize_one_short_edge_capacity',
       'normalize_cancel_cleanup',
       'normalize_view_exact_node_capacity',
       'normalize_view_one_short_node_capacity',
+      'normalize_view_one_short_edge_capacity',
       'normalize_view_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {

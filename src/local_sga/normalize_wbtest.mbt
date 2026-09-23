@@ -367,7 +367,7 @@ test "normalize accepts the exact node capacity" {
     sequence(owner),
     0,
     input,
-    { ..storage_limits(), max_nodes: 2, },
+    { ..storage_limits(), max_nodes: 2, max_edges: 1, },
     4096L,
     fn() { true },
   ).unwrap()
@@ -416,6 +416,32 @@ test "normalize rejects one node less than the required capacity" {
 }
 
 ///|
+test "normalize rejects one edge less than the required capacity" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    { ..storage_limits(), max_nodes: 2, max_edges: 0, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.EdgeLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
 test "normalize managed view accepts the exact node capacity" {
   let producer = source_owner()
   let source = source_graph(producer, Ref(true))
@@ -427,7 +453,7 @@ test "normalize managed view accepts the exact node capacity" {
     sequence(owner),
     0,
     view,
-    { ..storage_limits(), max_nodes: 2, },
+    { ..storage_limits(), max_nodes: 2, max_edges: 1, },
     4096L,
     fn() { true },
   ).unwrap()
@@ -474,6 +500,33 @@ test "normalize managed view rejects one node less than required" {
   assert_true(normalize_cleanup_pending(execution))
   assert_eq(cleanup_normalize(execution), Ok(true))
   assert_false(normalize_cleanup_pending(execution))
+}
+
+///|
+test "normalize managed view rejects one edge less than required" {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let view = @graph.producer_read_view(read).unwrap()
+  let execution = start_normalize_view(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    view,
+    { ..storage_limits(), max_nodes: 2, max_edges: 0, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(execution, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(execution, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.EdgeLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_stopped(execution))
+  assert_true(normalize_cleanup_pending(execution))
+  assert_eq(cleanup_normalize(execution), Ok(true))
 }
 
 ///|
