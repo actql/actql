@@ -41,3 +41,19 @@ those product-observation fields on Local's behalf. Formal acceptance needs a
 common observation from the Local implementation, plus training on separate
 workloads and the registered alternating pairs. The current fixed diagnostic
 estimate must not be relabeled as calibrated selection.
+
+At clean revision `fafb2517a`, a separate-source check trained on the registered
+low-selectivity narrow 100-row case and made an ordinary choice for the
+registered 1,000-row case. The training medians rounded up to Local
+`16 / 3 / 4` ms and DuckDB `20 / 10 / 9` ms. The held-out run selected resident
+DuckDB for all three tasks, verified independent Result CID
+`sha256:712ca1b9660ec74b203730a533cf188419ce28f8f6b0c8bae59080b7f75e8ac6`,
+confirmed release, and recorded 32.145 ms warm task time and 563.450 ms full
+Host cycle. The training and held-out sources were distinct DuckDB files;
+the latter file hash was
+`d8ebb89f597525d736ebbc5ade9451c899f68ce294cf7129d1094a2de1c47153`.
+The raw records are in the workspace scratch directory
+`actql-retained-calibration-d4KDNt`. This closes the same-case calibration
+defect in this diagnostic only. It does not prove that the estimate transfers
+to every workload, supply the missing Local work breakdown, or pass the formal
+paired timing gate.

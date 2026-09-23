@@ -64,6 +64,12 @@ scope and remaining Local accounting gap are recorded in
 `benchmarks/retained-results/calibration-diagnostic-2026-09-24.md`. Training
 used the same case and database as the later choice, so it is not independent
 held-out calibration and supplies no formal PERF-1 sample.
+The runner now also supports a distinct registered row-count case and source
+file for its ordinary choice. A 100-row training case followed by a 1,000-row
+evaluation case completed with independent identity and release checks at
+`fafb2517a`; see `benchmarks/retained-results/calibration-diagnostic-2026-09-24.md`.
+This removes same-case reuse from that diagnostic, while the Local work
+breakdown and formal sample qualification remain open.
 
 Seven alternating pairs at clean revision `c93402ffb` confirmed a substantial
 small-case timing gap on the current Node managed Host: median retained-minus-
