@@ -27,6 +27,7 @@ fn bounded_binding_rows_source(
 ///|
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
+  following_step? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -34,7 +35,13 @@ fn bounded_binding_rows_receiver(
   ).unwrap()
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\"}]",
+      "[{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}" +
+      (if following_step {
+        ",{\"select\":[\"score\"],\"from\":\"derived\"}"
+      } else {
+        ""
+      }) +
+      "]",
     ),
     [("rows", @pipeline.ProducedInput(producer))],
     None,
@@ -65,9 +72,10 @@ fn bounded_binding_rows_receiver(
 ///|
 fn bounded_binding_rows_fixture(
   rows : String,
+  following_step? : Bool = false,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(rows)
-  let receiver = bounded_binding_rows_receiver(source_owner)
+  let receiver = bounded_binding_rows_receiver(source_owner, following_step~)
   let sequence = prepared_sequence(receiver)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
@@ -77,6 +85,11 @@ fn bounded_binding_rows_fixture(
     100000,
     10000,
   ).unwrap()
+  let generated = if following_step {
+    select_generated_sequence_step(generated, 0).unwrap()
+  } else {
+    generated
+  }
   let bound = bind_completed_input(receiver, 0, source_owner, source).unwrap()
   let input = prepare_producer_read(receiver, bound, 100, 10000).unwrap()
   let control = @bounded.control()
@@ -276,6 +289,27 @@ test "bounded binding rows cancel without publishing partial output" {
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_false(bounded_binding_rows_cleanup_pending(execution))
   assert_true(producer_read_available(input))
+}
+
+///|
+test "selected binding rows stop within a larger checked sequence" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    following_step=true,
+  )
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsContinue(..)),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(producer_read_available(input))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_false(bounded_binding_rows_cleanup_pending(execution))
 }
 
 ///|

@@ -427,14 +427,15 @@ pub fn start_bounded_binding_rows(
   }
   let sequence = generated.sequence
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_count(sequence) == 1 &&
-    @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
-    producer_read_matches_operation_input(input, owner, 0, 0) &&
+  guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    generated_sequence_step_index_at(generated, 1) is None &&
+    @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
+    producer_read_matches_operation_input(input, owner, step, 0) &&
     producer_read_has_cell_access(input) &&
     producer_read_row_count(input) <= max_rows &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
-      @pipeline.Step(0),
+      @pipeline.Step(step),
     )
     is Some(output_schema) else {
     return Err(InvalidExecution)
@@ -505,7 +506,7 @@ pub fn start_bounded_binding_rows(
     binding_ordinals[binding.0] = index
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(0), max_rows, values) {
+    prepare_admitted_output(owner, @pipeline.Step(step), max_rows, values) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -522,7 +523,7 @@ pub fn start_bounded_binding_rows(
   let port = match
     prepare_trusted_output_port(
       generated_completion_preparation(generated),
-      @pipeline.Step(0),
+      @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
