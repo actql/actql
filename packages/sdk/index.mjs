@@ -400,8 +400,8 @@ export async function connect(options) {
       return submit('program', program, options);
     },
     attach: async (ref, {signal} = {}) => {
-      if (!validRef(ref)) fail('InvalidRunReference');
       const requested = Object.freeze({...ref});
+      if (!validRef(requested)) fail('InvalidRunReference');
       const admitted = await (await exchange('attach',
         {ref: requested}, signal)).json();
       if (!validRef(admitted?.ref)) fail('InvalidHostAdmission');
