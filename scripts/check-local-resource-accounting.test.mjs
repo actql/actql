@@ -165,3 +165,20 @@ test('resource gate rejects assertion without failure cleanup', () => {
       item.role !== 'assert_where_failure_cleanup');
   }), /RelA assert_rows: reviewed assert_where_failure_cleanup fixture is missing/);
 });
+
+test('resource gate rejects selection without exact admission evidence', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    selection.boundary_tests = selection.boundary_tests.filter(item =>
+      item.role !== 'select_input_exact');
+  }), /RelA select: reviewed select_input_exact fixture is missing/);
+});
+
+test('resource gate rejects selection without its bounded product route', () => {
+  assert.match(run(undefined, value => {
+    const selection = value.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'select');
+    delete selection.selected_entrypoint;
+  }), /RelA select: bounded selected entrypoint is missing/);
+});

@@ -193,7 +193,11 @@ for (const [index, route] of routeEntries.entries()) {
   }
   const dispatch = route.dispatch ?? {};
   const entrypoint = route.entrypoint ?? {};
-  for (const [role, value] of [['dispatch', dispatch], ['entrypoint', entrypoint]]) {
+  const productionSources = [['dispatch', dispatch], ['entrypoint', entrypoint]];
+  if (route.selected_entrypoint !== undefined) {
+    productionSources.push(['selected_entrypoint', route.selected_entrypoint]);
+  }
+  for (const [role, value] of productionSources) {
     if (typeof value.path !== 'string' ||
       !value.path.startsWith('src/') ||
       value.path.split('/').includes('..') ||
@@ -211,7 +215,7 @@ for (const [index, route] of routeEntries.entries()) {
       (typeof value.marker !== 'string' || !sourceText.includes(value.marker))) {
       fail(`${label}: dispatch marker does not reach production source`);
     }
-    if (role === 'entrypoint' &&
+    if (role !== 'dispatch' &&
       (typeof value.symbol !== 'string' ||
         !/^[a-z][a-z0-9_]*$/u.test(value.symbol) ||
         !new RegExp(`(?:^|\\n)(?:pub )?fn(?:\\[[^\\]]+\\])?\\s+${value.symbol}\\s*\\(`, 'u')
@@ -249,6 +253,22 @@ for (const [index, route] of routeEntries.entries()) {
     route.family === 'SGA' &&
     !boundaryRoles.has('exact_one_short_and_cancel_cleanup')) {
     fail(`${label}: reviewed exact/cancel boundary fixture is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'select') {
+    if (route.selected_entrypoint?.symbol !==
+      'selected_binding_rows_execution') {
+      fail(`${label}: bounded selected entrypoint is missing`);
+    }
+    for (const role of [
+      'select_mixed_stage_lifetime',
+      'select_input_exact',
+      'select_input_one_short',
+      'select_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: reviewed ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'take') {
     for (const role of [

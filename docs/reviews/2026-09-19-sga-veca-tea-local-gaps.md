@@ -56,9 +56,9 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Six of the 68 production routes currently bind operation-specific boundary
+  Seven of the 68 production routes currently bind operation-specific boundary
   fixtures. A successful route gate does not establish boundary closure for
-  the other 62 operations. Reused evidence must identify the shared product
+  the other 61 operations. Reused evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
   every route before this audit can be complete.
@@ -95,9 +95,11 @@ so its environment cancellation latency remains part of the shared gap.
 
 Selected Relation `select` now uses that bounded input admission and emits
 one projected field per resume step. The direct regression covers canonical
-output order, complete-input validation, one-node-short rejection, cancellation
-before publication, and cleanup. The Graph-to-Relation standard Host fixture
-continues through two consumers and formal publication on all three targets.
+output order, complete-input validation, exact admission at 16 value nodes,
+22 UTF-8 name bytes, and 38 value-work units, one-node-short rejection,
+cancellation before publication, and cleanup. The Graph-to-Relation standard
+Host fixture continues through two consumers and formal publication on all
+three targets.
 This does not close environment-delivered cancellation after the mixed-stage
 split.
 
