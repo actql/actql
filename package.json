@@ -103,6 +103,7 @@
     "generate:relation-join": "node scripts/check-relation-join.mjs --write"
   },
   "devDependencies": {
+    "@actql/client-wire": "file:packages/client-wire",
     "github-slugger": "2.0.0",
     "remark-parse": "11.0.0",
     "unified": "11.0.5",
