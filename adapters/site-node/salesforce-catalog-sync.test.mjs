@@ -1070,7 +1070,7 @@ test('Host custody binds one HTTPS Collections response to every row',
     }), {code: 'ForeignSalesforceEffectFootprint'});
     await assert.rejects(captureSalesforceCollectionEffectWrite({
       ...options, ledger: first, firstRow: 1,
-    }), {code: 'MoonBitHostFailure'});
+    }), {code: 'ForeignSalesforceEffectFootprint'});
     await assert.rejects(captureSalesforceCollectionEffectWrite({
       ...options, ledger: first,
       claims: [{...claims[0], locator: claims[1].locator}, claims[1]],
@@ -1110,6 +1110,155 @@ test('Host custody binds one HTTPS Collections response to every row',
       assert.deepEqual(restarted.response(
         effect.ledgerEntryCid(dispatching)).responseBytes,
       sent.physical.observation.body);
+    }
+  });
+
+test('Collections cannot swap two Preview targets before the send claim',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+      catalog.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', setup.orgId,
+      binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+      1, '', ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"changed"}'),
+      1024, 32, 5));
+    const rowCids = [cid('1'), cid('2')];
+    const targets = ['001000000000001', '001000000000002'];
+    const outbound = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        rowCids, [body, body], [1, 1], [...targets].reverse(), [0, 0],
+        'v62.0', 256, 128, 1024, 64, 6, 200));
+    const requestCid = checked(
+      salesforceMoon.salesforceCollectionWriteRequestCid(
+        outbound, binding.resourceOrigin, 4096));
+    const physicalTargets = rowCids.map((_, index) => checked(
+      salesforceMoon.salesforceCollectionWriteRequestTargetIdentity(
+        outbound, index, 4096)));
+    const effect = runtimeCore(commonMoon).effectApplicationControl;
+    const authorityScopeCid = cid('8');
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'swapped-target-business-request', 128);
+    const authoring =
+      'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
+    const member = {
+      effect_id: 'UpdateTwo', effect_kind: 'update',
+      target: 'Test_Record__c', mapping: 'mapping:fixture',
+      resolved_mapping_contract_cid: cid('a'),
+      effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+      source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+      authority_scope_cid: authorityScopeCid,
+      write_footprint: {
+        kind: 'exact_targets',
+        resource_identity_scheme_cid:
+          salesforceMoon.salesforceWriteTargetSchemeCid(physicalTargets[0]),
+        provider_namespace: 'salesforce',
+        provider_boundary_cid:
+          salesforceMoon.salesforceWriteTargetBoundaryCid(physicalTargets[0]),
+        resource_kind: 'Test_Record__c',
+        provider_object_identity_cids: physicalTargets.map(target =>
+          salesforceMoon.salesforceWriteTargetObjectCid(target)),
+      },
+      count: 2, max_items: 2, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'continue',
+      changes: rowCids.map((rowCid, index) => ({
+        target_row_identity: targets[index],
+        before: {state: 'present', value: {External_Key__c: 'old'}},
+        after: {state: 'present', value: {External_Key__c: 'changed'}},
+        row_preview_cid: rowCid,
+        row_idempotency_key: cid(index === 0 ? '4' : '5'),
+      })),
+      row_order: rowCids, effect_member_preview_cid: cid('a'),
+      executed: false,
+    };
+    const preview = {
+      version: 'actql-effect-preview/0.1', sensitivity: 'private',
+      retention_class: 'authority-evidence', encryption_required: true,
+      program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+      invocation_cid: cid('a'), run_identity_cid: cid('a'),
+      compiled_plan_cid: cid('a'), check_environment_cid: cid('a'),
+      authoring_context: {
+        version: 'actql-authoring-context/0.1',
+        program_definition_cid: cid('a'), annotations: [],
+        authoring_context_cid: authoring,
+      },
+      barrier_provenance_cids: [], model_derived: false,
+      model_task_contract_cids: [], model_invocation_evidence_cids: [],
+      model_response_artifact_cids: [], effects: [member], executed: false,
+      effect_preview_cid: cid('a'),
+    };
+    member.effect_member_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(preview), 8192, 256, 12)[1];
+    preview.effect_preview_cid = effect.derivePreviewIdentities(
+      canonicalJson(preview), 8192, 256, 12)[0];
+    const keys = targets.map(target => effect.dispatchKey(
+      scope, preview.effect_preview_cid, canonicalJson(target), 128, 8, 3));
+    member.changes.forEach((change, index) => {
+      change.row_idempotency_key = effect.dispatchKeyCid(keys[index]);
+    });
+    const admittedPreview = effect.admitPreviewIdentity(
+      canonicalJson(preview), cid('a'), authoring, scope, [keys],
+      8192, 256, 12);
+    const ordered = checked(
+      salesforceMoon.salesforcePrepareContinueWriteCollection(
+        rowCids, [body, body], [1, 1], targets, [0, 0],
+        'v62.0', 256, 128, 1024, 64, 6, 200));
+    assert.equal(checked(
+      salesforceMoon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
+        admittedPreview, 0, 0, ordered, 4096, 100_000)), true);
+    assert.equal(checked(
+      salesforceMoon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
+        admittedPreview, 0, 0, outbound, 4096, 100_000)), false);
+    const singleFirst = checked(
+      salesforceMoon.salesforcePrepareSingleWriteRequest(
+        body, 'v62.0', 1, targets[0], 0, 256, 128, 1024));
+    const singleSecond = checked(
+      salesforceMoon.salesforcePrepareSingleWriteRequest(
+        body, 'v62.0', 1, targets[1], 0, 256, 128, 1024));
+    assert.equal(checked(
+      salesforceMoon.salesforceSingleWriteRequestMatchesPreviewFootprint(
+        admittedPreview, 0, 0, singleFirst, 4096)), true);
+    assert.equal(checked(
+      salesforceMoon.salesforceSingleWriteRequestMatchesPreviewFootprint(
+        admittedPreview, 0, 0, singleSecond, 4096)), false);
+    const claims = rowCids.map((rowCid, index) => {
+      const locator = effect.logicalItemLocator(scope, 'program-1',
+        'node-1', 'UpdateTwo', canonicalJson(targets[index]),
+        64, 128, 8, 3);
+      const basis = effect.ledgerBasis(scope, locator, keys[index],
+        cid('6'), member.effect_member_preview_cid, cid('4'),
+        requestCid, cid('3'), 'unavailable', cid('2'), cid('1'));
+      return {scope, locator, key: keys[index], basis,
+        intentFingerprintCid: cid('4'), canonicalRequestCid: requestCid};
+    });
+    const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-swapped-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const ledger = openEffectLedger({moon: commonMoon, root,
+      authorityScopeCid, callerRequestId: 'swapped-target-business-request',
+      maxEntryBytes: 4096});
+    t.after(() => ledger.close());
+    const usesBefore = setup.journal.recover().length;
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ledger, claims, admittedPreview, memberIndex: 0, firstRow: 0,
+      commonMoon, moon: salesforceMoon, request: outbound,
+      currentObservation: catalog.observation,
+      authorization: {...setup.writeUpdate, useId: 'swapped-target-use'},
+      credential: setup.credential,
+      limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+        maxNodes: 64, maxDepth: 6, maxRows: 200},
+    }), {code: 'ForeignSalesforceEffectFootprint'});
+    assert.equal(setup.journal.recover().length, usesBefore);
+    assert.equal(setup.seen.filter(item => item.method === 'PATCH').length, 0);
+    for (const claim of claims) {
+      assert.equal(ledger.current(effect.logicalItemLocatorCid(claim.locator)),
+        undefined);
     }
   });
 
