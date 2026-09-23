@@ -16,9 +16,9 @@ pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
 
 pub fn effect_row_action_code(EffectRowAction) -> Int
 
-pub fn effect_row_recovery_action(EffectDispatchKey, String, EffectRowRecord?, Bool) -> EffectRowAction
+pub fn effect_row_recovery_action(LogicalItemLocator, String, EffectDispatchKey, String, EffectRowRecord?, Bool) -> EffectRowAction
 
-pub fn effect_row_recovery_action_from_store(EffectDispatchKey, String, String, String, Int, Bool) -> Int
+pub fn effect_row_recovery_action_from_store(LogicalItemLocator, String, EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
 
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
@@ -78,6 +78,8 @@ pub(all) enum EffectRowAction {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct EffectRowRecord {
+  logical_item_locator_cid : String
+  intent_fingerprint_cid : String
   dispatch_key_cid : String
   canonical_request_cid : String
   state : EffectRowState
