@@ -131,21 +131,29 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
       let mapping;
       let environment;
       let environmentCreated = false;
+      let environmentOpenMilliseconds = 0;
+      let importMilliseconds = 0;
       const imported = [];
       if (resident) {
         const binding = moon.strategyHostResourceBinding(task);
         if (binding == null) throw new Error('MissingResidentResourceBinding');
         environment = environments.get(binding);
         if (!environment) {
+          const openedAt = performance.now();
           environment = await openResidentStrategyEnvironment(moon.strategyHostRun(setup), index, limits);
+          environmentOpenMilliseconds = performance.now() - openedAt;
           environments.set(binding, environment);
           environmentCreated = true;
         }
         for (const [producer, bytes, entries, names] of checked(moon.strategyHostResidentInputs(setup, index))) {
           mapping = { maxEntries: Number(entries), maxNameBytes: Number(names) };
           if (!environment.hasTable(Number(producer))) {
+            const importedAt = performance.now();
             const result = await importResidentStrategyInput(environment, Number(producer), bytes, limits, mapping, signal);
-            imported.push(Object.freeze({producer: Number(producer), rows: result.importedRows, transport: result.usage}));
+            const milliseconds = performance.now() - importedAt;
+            importMilliseconds += milliseconds;
+            imported.push(Object.freeze({producer: Number(producer), rows: result.importedRows,
+              milliseconds, transport: result.usage}));
           }
           inputs.push(environment.table(Number(producer)));
         }
@@ -180,7 +188,8 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
           phases: result.diagnostics,
           outputRepresentation: options.managedOutput ? 'managed-column-file'
             : options.retainedOutput ? 'retained-file' : 'memory',
-          preparation: Object.freeze({environmentCreated, imports: Object.freeze(imported)}),
+          preparation: Object.freeze({environmentCreated, environmentOpenMilliseconds,
+            importMilliseconds, imports: Object.freeze(imported)}),
         }),
       });
     },
