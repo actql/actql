@@ -16,6 +16,7 @@ import {
   "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/program_check",
   "actql/actql/publication_payload",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
@@ -26,6 +27,16 @@ import {
 }
 
 // Values
+pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+
+pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
+
+pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
+
+pub fn client_program_result_name(@run_publication_host.PreparedClientProgram, Int) -> String?
+
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
