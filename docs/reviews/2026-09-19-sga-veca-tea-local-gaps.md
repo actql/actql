@@ -53,8 +53,11 @@ readable coverage manifest is authoritative for individual operation status.
   attempts. Family conformance registration selects the same task prefix used
   by dispatch; checking the entire authored sequence would reject these
   providers before execution. This proves one mixed path per Carrier, not
-  every formal branch or selected Relation fallback. Those remaining paths
-  are connection gaps, not new normative operations.
+  every formal branch. Separate Node timers also cancel the selected Relation
+  filter after each Carrier prefix has completed. These tests preserve the
+  prefix completion while rejecting the filter completion and reclaiming the
+  cancelled attempt. Other mixed branches remain connection gaps, not new
+  normative operations.
 - Ordinary single-step text, structured, and NULL filters now use the same
   bounded Relation provider as selected Carrier projections. Quantum-one
   standard Host fixtures retain two real consumers and final reclamation on

@@ -17,6 +17,12 @@
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
         "fixture": "subgraph-fused-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "subgraph-selected-filter"
       }
     },
     {
@@ -35,6 +41,12 @@
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
         "fixture": "dedupe-events-fused-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "dedupe-events-selected-filter"
       }
     },
     {
@@ -53,6 +65,12 @@
         "targets": ["node"],
         "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
         "fixture": "vector-normalize-fused-filter"
+      },
+      "selected_in_flight_cancel": {
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "vector-normalize-selected-filter"
       }
     }
   ],

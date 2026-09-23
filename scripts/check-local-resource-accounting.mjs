@@ -249,15 +249,20 @@ if (!Array.isArray(mixedPaths)) {
         .includes(`test "${host.fixture}"`)) {
       fail(`${label}: missing three-target standard Host consumer fixture`);
     }
-    const cancellation = mixed.in_flight_cancel ?? {};
     const nodeHost = 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
-    if (cancellation.suite !== 'node:duckdb_standard_host' ||
-      JSON.stringify(cancellation.targets) !== JSON.stringify(['node']) ||
-      cancellation.path !== nodeHost ||
-      typeof cancellation.fixture !== 'string' ||
-      !fs.readFileSync(path.join(root, nodeHost), 'utf8')
-        .includes(`name: '${cancellation.fixture}'`)) {
-      fail(`${label}: missing delivered in-flight cancellation fixture`);
+    for (const [scope, field] of [
+      ['prefix', 'in_flight_cancel'],
+      ['selected Relation', 'selected_in_flight_cancel'],
+    ]) {
+      const cancellation = mixed[field] ?? {};
+      if (cancellation.suite !== 'node:duckdb_standard_host' ||
+        JSON.stringify(cancellation.targets) !== JSON.stringify(['node']) ||
+        cancellation.path !== nodeHost ||
+        typeof cancellation.fixture !== 'string' ||
+        !fs.readFileSync(path.join(root, nodeHost), 'utf8')
+          .includes(`name: '${cancellation.fixture}'`)) {
+        fail(`${label}: missing delivered ${scope} cancellation fixture`);
+      }
     }
   }
   if (requireBoundaryComplete) {
