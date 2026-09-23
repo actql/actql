@@ -24,6 +24,13 @@ Distribution-owned ordinary Run port. The strict completion gate remains red.
 The simpler `values → distinct` Stage also selects two bounded tasks;
 three-target standard Host fixtures exercise two downstream Computes and
 reclamation, while the physical DAG fixture checks the actual split.
+An independent zero-input `values` Stage feeding an indexed Relation Stage
+now also selects separate bounded `sort` and `take` tasks. The standard
+Host runs two downstream Computes at quantum one, retains both consumer
+rights, releases them independently, and reclaims the final allocation.
+The Node Host delivers timer cancellation after positive work in this
+separate-Stage form and checks stop, nonpublication, and cleanup. This
+closes that checked route, not all providerless multi-step sequences.
 Imported full-join sources with keyed distinct now split on both sides;
 the managed join fixture advances each distinct within quantum one and
 retains both producer identities through the two-consumer join.

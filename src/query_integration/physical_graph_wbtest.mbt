@@ -433,6 +433,27 @@ test "physical DAG separates bounded values from sort and take" {
 }
 
 ///|
+test "physical DAG splits an indexed Relation input before take" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="separate_sort_take",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 6)
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  assert_eq(@strategy.graph_task_target(graph, 2), Some(@pipeline.Step(0)))
+  assert_eq(@strategy.graph_task_target(graph, 3), Some(@pipeline.Step(1)))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG separates bounded values from distinct" {
   let program = query_checked_program_fixture(
     dag=true,
