@@ -325,7 +325,7 @@ export function executionSiteCandidate({
     fail('ForeignExecutionSiteInstallation');
   if (!installed.placement.get(contribution)?.includes(site) ||
       contribution.registration !== registration ||
-      !Number.isSafeInteger(task) || task < 1 || registration == null ||
+      !Number.isSafeInteger(task) || task < 0 || registration == null ||
       !Array.isArray(inputs) || !duration(durationMilliseconds) ||
       !bytes(capacity?.retainedBytes) || !bytes(capacity?.executionBytes)) {
     fail('InvalidExecutionSiteCandidate');
@@ -382,7 +382,7 @@ export function executionSiteCandidate({
       executionBytes.push(0n);
       continue;
     }
-    if (input.task < 1) fail('InvalidExecutionSiteCandidate');
+    if (input.task < 0) fail('InvalidExecutionSiteCandidate');
     const shared = transfers.find(value =>
       sameInputOccurrence(value.input, input));
     const estimate = shared?.estimate ?? provider?.estimate(input.siteMaterial);

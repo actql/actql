@@ -522,9 +522,13 @@ export async function runInstalledStrategy(
     knownCleanupPending(),
     unconfirmedRelease.size !== 0 || unconfirmedSiteOperations.size !== 0,
   );
+  let firstTask = 1;
   try {
     const count = core.count(setup);
-    for (let step = 1; step < count; step++) {
+    if (core.nextTask?.(setup) === 0) firstTask = 0;
+    // Captured Acquisition starts at task one; a checked source-free root
+    // starts at task zero and uses the same managed task lifecycle.
+    for (let step = firstTask; step < count; step++) {
       signal?.throwIfAborted();
       for (const entry of installed.values()) {
         signal?.throwIfAborted();
@@ -1108,7 +1112,8 @@ export async function runInstalledStrategy(
     },
     output(task) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
-      if (!Number.isSafeInteger(task) || task < 1 || task >= core.count(setup)) {
+      if (!Number.isSafeInteger(task) ||
+          task < (firstTask === 0 ? 0 : 1) || task >= core.count(setup)) {
         throw new StrategyHostError('InvalidStrategyTask');
       }
       return core.output(setup, task);
