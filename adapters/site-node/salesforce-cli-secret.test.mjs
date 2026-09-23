@@ -40,16 +40,24 @@ test('CLI connection inspection exposes no secret and uses public arguments',
     assert.equal(calls[0][2].timeout, 1000);
   });
 
-test('Site resolver refreshes token but rejects alias retargeting', async () => {
+test('Site session reuses its exact binding and refreshes after expiry',
+  async () => {
   let tokenCalls = 0;
+  let displays = 0;
+  let currentTime = 0;
   const resolveSecret = resolver(async (_executable, args) => ({
     stdout: args[1] === 'auth'
       ? tokenJson(`token-${++tokenCalls}`)
-      : serialized(),
-  }));
+      : (displays++, serialized()),
+  }), {tokenReuseMs: 100, monotonicNow: () => currentTime});
   assert.equal(await resolveSecret(scope), 'token-1');
+  assert.equal(await resolveSecret(scope), 'token-1');
+  assert.equal(tokenCalls, 1);
+  assert.equal(displays, 2);
+  currentTime = 100;
   assert.equal(await resolveSecret(scope), 'token-2');
   assert.equal(tokenCalls, 2);
+  assert.equal(displays, 4);
   const changed = resolver(async () => ({stdout: serialized({
     id: '00D-OTHER',
   })}));
@@ -57,6 +65,67 @@ test('Site resolver refreshes token but rejects alias retargeting', async () => 
     code: 'SalesforceCliConnectionMismatch',
   });
 });
+
+test('concurrent uses share refresh and cancellation cannot cancel peers',
+  async () => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    let entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    let tokenCalls = 0;
+    const resolveSecret = resolver(async (_executable, args) => {
+      if (args[1] === 'auth') {
+        tokenCalls++;
+        entered();
+        await pending;
+        return {stdout: tokenJson('session-token')};
+      }
+      return {stdout: serialized()};
+    });
+    const cancellation = new AbortController();
+    const cancelled = resolveSecret(scope, cancellation.signal);
+    const active = resolveSecret(scope);
+    await started;
+    cancellation.abort();
+    await assert.rejects(cancelled, {code: 'SalesforceCliCancelled'});
+    release();
+    assert.equal(await active, 'session-token');
+    assert.equal(tokenCalls, 1);
+    assert.equal(await resolveSecret(scope), 'session-token');
+    assert.equal(tokenCalls, 1);
+  });
+
+test('credential invalidation is token-specific and refreshes on next use',
+  async () => {
+    let tokenCalls = 0;
+    const resolveSecret = resolver(async (_executable, args) => ({
+      stdout: args[1] === 'auth'
+        ? tokenJson(`token-${++tokenCalls}`) : serialized(),
+    }));
+    assert.equal(await resolveSecret(scope), 'token-1');
+    assert.equal(resolveSecret.invalidate('different-token'), false);
+    assert.equal(await resolveSecret(scope), 'token-1');
+    assert.equal(resolveSecret.invalidate('token-1'), true);
+    assert.equal(await resolveSecret(scope), 'token-2');
+    assert.equal(tokenCalls, 2);
+  });
+
+test('alias retarget affects refresh, not the active pinned session',
+  async () => {
+    let orgId = binding.orgId;
+    let currentTime = 0;
+    const resolveSecret = resolver(async (_executable, args) => ({
+      stdout: args[1] === 'auth' ? tokenJson('session-token')
+        : serialized({id: orgId}),
+    }), {tokenReuseMs: 100, monotonicNow: () => currentTime});
+    assert.equal(await resolveSecret(scope), 'session-token');
+    orgId = '00D-OTHER';
+    assert.equal(await resolveSecret(scope), 'session-token');
+    currentTime = 100;
+    await assert.rejects(resolveSecret(scope), {
+      code: 'SalesforceCliConnectionMismatch',
+    });
+  });
 
 test('scope mismatch fails before invoking the CLI', async () => {
   let calls = 0;
@@ -143,4 +212,7 @@ test('CLI process limits cannot be configured to unbounded values', () => {
   assert.throws(() => resolver(async () => ({stdout: serialized()}), {
     timeoutMs: 60_001,
   }), {code: 'SalesforceCliInvalidConfiguration'});
+  assert.throws(() => resolver(async () => ({stdout: serialized()}), {
+    tokenReuseMs: 300_001,
+  }), {code: 'SalesforceCliInvalidConnection'});
 });

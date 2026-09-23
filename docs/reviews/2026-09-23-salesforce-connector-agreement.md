@@ -84,11 +84,15 @@ solely for this comparison.
 
 The local Site may use an existing `sf org login web` session. Connection
 admission records the selected alias, org ID, username, and instance origin,
-without a token. Later credential uses call the public `sf org display` and
-`sf org auth show-access-token` interfaces, then check the alias binding again.
-The token stays in the Site credential adapter and is applied only after the
-existing operation grant and use claim. CLI credentials and refresh remain
-CLI-owned;
+without a token. A Site execution session uses the public `sf org display`
+and `sf org auth show-access-token` interfaces and checks the alias binding
+before and after token resolution. A successful token is reused only in that
+exact session for a bounded monotonic interval; concurrent refreshes join one
+flight. Retargeting the alias affects future sessions and the next refresh,
+not an already pinned session. A 401 invalidates the matching cached token
+without replaying the request. Every HTTP use still has its own grant claim
+and current authorization check. The token stays in the Site credential
+adapter. CLI credentials and refresh remain CLI-owned;
 ActQL never reads CLI private files or copies a refresh token. A changed token
 for the same exact binding is allowed, but it does not retry an uncertain
 Effect.
