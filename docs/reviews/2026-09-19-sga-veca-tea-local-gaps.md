@@ -64,14 +64,18 @@ readable coverage manifest is authoritative for individual operation status.
   cancel-and-cleanup fixture. Its cancellation fixture closes the operation
   before execution; it does not establish in-flight interruption of the
   synchronous Cartesian-product loop.
-  Eleven of the 68 production routes currently bind operation-specific boundary
+  Twelve of the 68 production routes currently bind operation-specific boundary
   fixtures. Graph normalization now has separate exact/one-short node-capacity
   and cancel/cleanup fixtures for its direct and managed-view starts on all
   three targets. One standard Host timer cancels the fused normalize after its
   80 graph-construction steps; another cancels the third selected task after
   measured work. The split task map binds that task to the managed-view
   normalize step. Both registered paths have four proof roles, making this
-  the first route with complete resource-boundary assurance. The selected RelA
+  the first route with complete resource-boundary assurance. Graph diagnostics
+  now pair independent four-row/three-row output and ten-slot/nine-slot
+  workspace boundaries with in-flight cancellation after charged work. A Node
+  standard Host timer reaches the same graph-bounds operation, giving its
+  direct entrypoint all four proof roles. The selected RelA
   filter route adds an independent exact/one-short
   input-admission pair alongside mixed-stage and cancel/cleanup fixtures. Its
   selected Graph-to-Relation path also receives a Node Host timer cancellation
@@ -92,8 +96,8 @@ readable coverage manifest is authoritative for individual operation status.
   cancellation, or cleanup roles is rejected. Reusing one fixture across
   different production paths requires a recorded reason and the same exact
   implementation entrypoint.
-  A successful route gate does not establish boundary closure for the other 67
-  operations, including 57 without operation-specific boundary records. Reused
+  A successful route gate does not establish boundary closure for the other 66
+  operations, including 56 without operation-specific boundary records. Reused
   evidence must identify the shared product
   implementation and cover exact, one-short, in-flight cancellation, and
   cleanup where applicable; the gate must reject a missing required role for
@@ -107,7 +111,8 @@ readable coverage manifest is authoritative for individual operation status.
   selected-path proof sets so one variant cannot borrow the other's bound or
   cancellation result. Each set includes real Host timer cancellation.
   Their ordinary or multi-step fallback paths are not covered by those
-  selected fixtures. Only graph normalization is currently marked whole-route
+  selected fixtures. Graph normalization and graph bounds are currently marked
+  whole-route
   complete; the completion command still intentionally fails. The ordinary
   resource command
   checks route identity and existing scoped evidence without claiming release

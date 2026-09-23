@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 11 with operation-specific boundary records, 1 with complete boundary assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 12 with operation-specific boundary records, 2 with complete boundary assurance, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -264,6 +264,14 @@ test('resource gate rejects normalization without fused Host cancellation', () =
     normalization.environment_tests = normalization.environment_tests.filter(
       item => item.role !== 'normalize_fused_in_flight_host_timer');
   }), /SGA normalize_graph: entrypoint in_flight_cancel lacks an executable fixture/);
+});
+
+test('resource gate rejects graph diagnostics without Host cancellation', () => {
+  assert.match(run(undefined, value => {
+    const bounds = value.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graph_bounds');
+    bounds.environment_tests = [];
+  }), /SGA graph_bounds: entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {

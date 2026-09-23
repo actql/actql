@@ -1036,6 +1036,46 @@
       "entrypoint": {
         "path": "src/local_sga/graph_bounds.mbt",
         "symbol": "start_graph_bounds"
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_bounds_output_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded graph diagnostics preserve row and identity order"
+        },
+        {
+          "role": "graph_bounds_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "graph diagnostics admit workspace before execution and clean cancel"
+        },
+        {
+          "role": "graph_bounds_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "graph diagnostics admit workspace before execution and clean cancel"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "graph_bounds_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "graph-bounds"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_bounds_output_exact_one_short",
+          "one_short_limit": "graph_bounds_workspace_exact_one_short",
+          "in_flight_cancel": "graph_bounds_host_timer",
+          "cleanup": "graph_bounds_cancel_cleanup"
+        }
       }
     },
     {

@@ -2928,10 +2928,14 @@ test "graph diagnostics admit workspace before execution and clean cancel" {
   )
   let control = @bounded.control()
   let execution = start(control, 10).unwrap()
+  assert_true(
+    @local_sga.advance_graph_bounds(execution, 1).unwrap()
+    is @local_sga.GraphBoundsContinue(progress=0L, work=1L),
+  )
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_graph_bounds(execution, 1).unwrap()
-    is @local_sga.GraphBoundsStopped(_, progress=0L, work=0L),
+    is @local_sga.GraphBoundsStopped(_, progress=0L, work=1L),
   )
   assert_true(@local_sga.graph_bounds_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_graph_bounds(execution), Ok(true))
