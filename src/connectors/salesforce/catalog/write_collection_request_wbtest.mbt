@@ -66,6 +66,7 @@ test "continue collection preserves row order and exact response mapping" {
     Ok(value) => value
     Err(InvalidLimits) => abort("unexpected invalid response limits")
     Err(BudgetExceeded) => abort("unexpected response budget exhaustion")
+    Err(UnexpectedStatus) => abort("unexpected HTTP status")
     Err(InvalidResponse) => abort("unexpected invalid response")
     Err(CountMismatch) => abort("unexpected response count mismatch")
   }

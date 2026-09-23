@@ -66,6 +66,8 @@ pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, Li
 
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
 
+pub fn project_write_collection_response_for_request(Int, Bytes, WriteCollectionRequest, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
 pub fn project_write_single_success(Int, Bytes, WriteSingleKind, WriteCollectionResponseLimits) -> Result[WriteSingleResponse, WriteSingleResponseIssue]
 
 pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
@@ -108,6 +110,8 @@ pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Uni
 
 pub fn recheck_single_write_request(SingleWriteRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
+pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -143,6 +147,12 @@ pub fn write_body_json(WriteBody) -> String
 pub fn write_body_projection(WriteBody) -> WriteProjection
 
 pub fn write_collection_request_body(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_cid(WriteCollectionRequest, String, Int) -> Result[String, WriteRequestIssue]
+
+pub fn write_collection_request_grant_operation(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_matches_site_scope(WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn write_collection_request_method(WriteCollectionRequest) -> String
 
@@ -461,6 +471,8 @@ pub struct WriteCollectionRequest {
   verb : String
   path : String
   body : String
+  kind : WriteCollectionKind
+  projection : WriteProjection
   row_preview_cids : Array[String]
 }
 
@@ -493,6 +505,7 @@ pub struct WriteCollectionResponse {
 pub(all) enum WriteCollectionResponseIssue {
   InvalidLimits
   BudgetExceeded
+  UnexpectedStatus
   InvalidResponse
   CountMismatch
 } derive(Eq, @debug.Debug)

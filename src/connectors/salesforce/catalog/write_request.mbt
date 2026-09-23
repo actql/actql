@@ -95,7 +95,35 @@ pub fn single_write_request_matches_site_scope(
   run_invocation_cid : String,
   dispatch_request_cid : String,
 ) -> Bool {
-  let binding = value.projection.binding
+  write_binding_matches_site_scope(
+    value.projection.binding,
+    tenant,
+    principal,
+    environment,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+  )
+}
+
+///|
+fn write_binding_matches_site_scope(
+  binding : CatalogObservationBinding,
+  tenant : String,
+  principal : String,
+  environment : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+) -> Bool {
   binding.tenant == tenant &&
   binding.principal == principal &&
   binding.environment == environment &&
