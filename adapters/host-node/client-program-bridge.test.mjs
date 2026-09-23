@@ -38,6 +38,8 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramResultCount(prepared), 1);
   assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
   assert.equal(moon.clientProgramResultName(prepared, 1), undefined);
+  const semanticsCid = moon.clientProgramSemanticsCid(prepared);
+  assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'saved-request', cid('b'));
   assert.ok(request);
@@ -55,6 +57,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
     moon.clientProgramRequestIdentity(
       yamlPrepared, cid('a'), 'saved-request', cid('b'))),
   programCid);
+  assert.equal(moon.clientProgramSemanticsCid(yamlPrepared), semanticsCid);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
   assert.equal(moon.clientProgramPrepareEffectFree(

@@ -15,6 +15,7 @@ import {
   "actql/actql/parameter_references" @parameters,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/program_references" @program_refs,
 }
 
 import {

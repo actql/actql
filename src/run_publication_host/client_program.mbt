@@ -51,6 +51,19 @@ pub fn prepared_client_identity(
 }
 
 ///|
+/// Return the semantic identity already sealed by the ordinary checker.
+/// Publication may use it to bind a Compiled Plan, but this identity alone
+/// does not authorize execution or attest to a physical executable plan.
+pub fn prepared_client_program_semantics_cid(
+  value : PreparedClientProgram,
+) -> String {
+  let source = @checked.source_identity(@strategy.graph_program(value.graph))
+  @program_refs.program_definition_semantics_cid(
+    @context.program_identity_definition(source),
+  )
+}
+
+///|
 pub fn prepared_client_graph(
   value : PreparedClientProgram,
 ) -> @strategy.CheckedDAG {
