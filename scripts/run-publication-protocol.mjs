@@ -98,6 +98,19 @@ const annotationKeywords = new Set([
   'default', 'deprecated', 'readOnly', 'writeOnly',
 ]);
 
+function requireKeywords(schema, type, allowed) {
+  for (const key of Object.keys(schema)) {
+    if (!annotationKeywords.has(key) && !allowed.includes(key)) {
+      throw new Error(`Unsupported ${type} publication schema keyword: ${key}`);
+    }
+  }
+}
+
+function matchesType(value, type) {
+  if (type === 'number') return typeof value === 'number' && Number.isFinite(value);
+  return inferredType(value) === type;
+}
+
 function inferredType(value) {
   if (value === null) return 'null';
   if (typeof value === 'string') return 'string';
@@ -148,11 +161,21 @@ function emitSchema(schema) {
     nodes.push('protocol_any_rule()');
     return nodes.length - 1;
   }
+  if (schema.const !== undefined && !matchesType(schema.const, schema.type)) {
+    throw new Error('Conflicting publication schema literal and type');
+  }
+  if (schema.enum !== undefined &&
+      (!Array.isArray(schema.enum) || schema.enum.length === 0 ||
+       schema.enum.some(value => !matchesType(value, schema.type)))) {
+    throw new Error('Conflicting publication schema enum and type');
+  }
   if (schema.type === 'null') {
+    requireKeywords(schema, 'null', ['type']);
     nodes.push('protocol_null_rule()');
     return nodes.length - 1;
   }
   if (schema.type === 'boolean') {
+    requireKeywords(schema, 'boolean', ['type', 'const', 'enum']);
     if (schema.enum !== undefined) {
       throw new Error('Boolean publication schema enum is unsupported');
     }
@@ -160,6 +183,9 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'string') {
+    requireKeywords(schema, 'string', [
+      'type', 'const', 'enum', 'pattern', 'format', 'minLength',
+    ]);
     const choices = schema.enum ?? [];
     nodes.push(
       `protocol_string_rule(${optionString(schema.const)}, ` +
@@ -169,6 +195,9 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'integer') {
+    requireKeywords(schema, 'integer', [
+      'type', 'const', 'enum', 'minimum', 'maximum',
+    ]);
     if (schema.enum !== undefined) {
       throw new Error('Integer publication schema enum is unsupported');
     }
@@ -184,10 +213,14 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'number') {
+    requireKeywords(schema, 'number', ['type']);
     nodes.push('protocol_number_rule()');
     return nodes.length - 1;
   }
   if (schema.type === 'array') {
+    requireKeywords(schema, 'array', [
+      'type', 'items', 'minItems', 'uniqueItems',
+    ]);
     const items = emitSchema(schema.items ?? {});
     nodes.push(
       `protocol_array_rule(${items}, ${schema.minItems ?? 0}, ` +
@@ -196,6 +229,10 @@ function emitSchema(schema) {
     return nodes.length - 1;
   }
   if (schema.type === 'object') {
+    requireKeywords(schema, 'object', [
+      'type', 'properties', 'required', 'additionalProperties',
+      'minProperties', 'propertyNames',
+    ]);
     const properties = Object.entries(schema.properties ?? {})
       .map(([name, child]) => [name, emitSchema(child)]);
     let additional = -2;
@@ -204,7 +241,11 @@ function emitSchema(schema) {
         typeof schema.additionalProperties === 'object') {
       additional = emitSchema(schema.additionalProperties);
     }
-    const forbidden = schema.propertyNames?.not?.pattern === '^actql_'
+    const names = schema.propertyNames;
+    const forbidden = names !== undefined &&
+      Object.keys(names).length === 1 &&
+      Object.keys(names.not ?? {}).length === 1 &&
+      names.not?.pattern === '^actql_'
       ? 'Some("actql_")'
       : 'None';
     if (schema.propertyNames !== undefined && forbidden === 'None') {
@@ -222,6 +263,8 @@ function emitSchema(schema) {
   }
   throw new Error(`Unsupported publication schema type: ${schema.type}`);
 }
+
+export {emitSchema};
 
 const roots = new Map();
 for (const [name, selection] of Object.entries(selected)) {
