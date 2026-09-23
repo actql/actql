@@ -31,6 +31,15 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     ledger_test_cid("2"),
   ).unwrap()
   let prepared = issue_prepared_effect_ledger_entry(basis, 4096, 64, 3).unwrap()
+  assert_false(
+    effect_ledger_entry_admits_dispatch(
+      prepared,
+      scope,
+      locator,
+      key,
+      ledger_test_cid("f"),
+    ),
+  )
   assert_eq(
     effect_ledger_entry_cid(prepared),
     "sha256:09517d06658bcea4c679a029de58d0cb4dbd512eb4d06473b2502acecd009dca",
@@ -45,6 +54,24 @@ test "typed Effect ledger issuance matches independent prepared identity" {
     3,
   ).unwrap()
   assert_true(effect_ledger_entry_follows(Some(prepared), dispatching))
+  assert_true(
+    effect_ledger_entry_admits_dispatch(
+      dispatching,
+      scope,
+      locator,
+      key,
+      ledger_test_cid("f"),
+    ),
+  )
+  assert_false(
+    effect_ledger_entry_admits_dispatch(
+      dispatching,
+      scope,
+      locator,
+      key,
+      ledger_test_cid("9"),
+    ),
+  )
   let unknown = issue_next_effect_ledger_entry(
     dispatching,
     "unknown",

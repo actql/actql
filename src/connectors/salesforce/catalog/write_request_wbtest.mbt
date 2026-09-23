@@ -34,6 +34,42 @@ test "single write request derives method and path from selected operation" {
     "/services/data/v66.0/sobjects/ActQL_Test_Record__c/",
   )
   assert_eq(single_write_request_body(created), "{\"External_Key__c\":\"one\"}")
+  assert_eq(
+    single_write_request_cid(created, "https://example.invalid", 1000).unwrap(),
+    "sha256:0d32fc3f2f382c1b843d6516f48a7015ab6cc0a144a804564d48accc4aaeeb39",
+  )
+  assert_true(
+    single_write_request_cid(created, "https://other.invalid", 1000).unwrap() !=
+    single_write_request_cid(created, "https://example.invalid", 1000).unwrap(),
+  )
+  let (observation, binding) = write_test_observation()
+  let plan = prepare_write_projection(
+    observation,
+    binding,
+    "ActQL_Test_Record__c",
+    WriteCreate,
+    ["External_Key__c"],
+    1,
+  ).unwrap()
+  let changed_body = prepare_write_body(
+    plan,
+    @utf8.encode("{\"External_Key__c\":\"two\"}"),
+    write_body_test_limits(),
+  ).unwrap()
+  let changed = prepare_single_write_request(
+    changed_body,
+    "v66.0",
+    NoWriteTarget,
+    write_request_test_limits(),
+  ).unwrap()
+  assert_true(
+    single_write_request_cid(changed, "https://example.invalid", 1000).unwrap() !=
+    single_write_request_cid(created, "https://example.invalid", 1000).unwrap(),
+  )
+  assert_true(
+    single_write_request_cid(created, "http://example.invalid", 1000)
+    is Err(InvalidOrigin),
+  )
   let updated = prepare_single_write_request(
     write_request_body(WriteUpdateById),
     "v66.0",

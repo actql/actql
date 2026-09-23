@@ -25,6 +25,8 @@ pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
 
+pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
+
 pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
 
 pub fn effect_ledger_entry_follows(EffectLedgerEntry?, EffectLedgerEntry) -> Bool

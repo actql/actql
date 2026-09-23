@@ -226,6 +226,60 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       ['Id'], 22)), {code: 'MoonBitHostFailure'});
   });
 
+test('Salesforce write bridge binds a checked Catalog to one REST request',
+  async t => {
+    const setup = await fixture(t);
+    const result = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+      result.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+      0, '', ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"key-1"}'),
+      1024, 32, 5));
+    const outbound = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+      body, 'v62.0', 0, '', 0, 256, 128, 1024));
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestMethod(outbound),
+      'POST');
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestPath(outbound),
+      '/services/data/v62.0/sobjects/Test_Record__c/');
+    assert.equal(salesforceMoon.salesforceSingleWriteRequestBody(outbound),
+      '{"External_Key__c":"key-1"}');
+    const requestCid = checked(salesforceMoon.salesforceSingleWriteRequestCid(
+      outbound, binding.resourceOrigin, 2048));
+    assert.match(requestCid, /^sha256:[0-9a-f]{64}$/);
+    assert.notEqual(requestCid, checked(
+      salesforceMoon.salesforceSingleWriteRequestCid(
+        outbound, 'https://other.invalid', 2048)));
+    const response = checked(salesforceMoon.salesforceProjectSingleWriteSuccess(
+      outbound, 201, Buffer.from(JSON.stringify({
+        id: 'a00123456789012', success: true, errors: [],
+      })), 1024, 32, 5));
+    const projectionResult = checked(
+      salesforceMoon.salesforceSingleWriteSuccessProjection(response));
+    assert.deepEqual([projectionResult[0], projectionResult[1]],
+      ['a00123456789012', 'created']);
+    assert.match(projectionResult[2], /^[0-9a-f]{64}$/);
+    assert.throws(() => checked(
+      salesforceMoon.salesforceProjectSingleWriteSuccess(
+        outbound, 200, Buffer.from(JSON.stringify({
+          id: 'a00123456789012', success: true, errors: [],
+        })), 1024, 32, 5)), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checked(salesforceMoon.salesforcePrepareWriteProjection(
+      result.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'foreign-connection', binding.siteKey, binding.siteGeneration,
+      binding.connectorRegistration, binding.connectorRevision,
+      binding.resourceOrigin, binding.runInvocationCid,
+      binding.dispatchRequestCid, 'catalog-sync-a', 'Test_Record__c',
+      0, '', ['External_Key__c'], 2)), {code: 'MoonBitHostFailure'});
+  });
+
 test('CLI alias supplies only Site secret for the authorized HTTPS path',
   async t => {
     const setup = await fixture(t);

@@ -87,7 +87,15 @@ pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, In
 
 pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String], Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_prepare_single_write_request(@catalog.WriteBody, String, Int, String, Int, Int, Int, Int) -> @catalog.SingleWriteRequest raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_prepare_write_body(@catalog.WriteProjection, Bytes, Int, Int, Int) -> @catalog.WriteBody raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_prepare_write_projection(@catalog.CatalogObservation, String, String, String, String, String, Int, String, String, String, String, String, String, String, Int, String, Array[String], Int) -> @catalog.WriteProjection raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_project_single_write_success(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_query_page_response_sha256(@catalog.QueryPage) -> String
 
@@ -115,12 +123,28 @@ pub fn salesforce_read_projection_soql(@catalog.ReadProjection) -> String
 
 pub fn salesforce_recheck_read_projection(@catalog.ReadProjection, @catalog.CatalogObservation) -> Unit raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_recheck_write_projection(@catalog.WriteProjection, @catalog.CatalogObservation) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_single_write_request_body(@catalog.SingleWriteRequest) -> String
+
+pub fn salesforce_single_write_request_cid(@catalog.SingleWriteRequest, String, Int) -> String raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_single_write_request_method(@catalog.SingleWriteRequest) -> String
+
+pub fn salesforce_single_write_request_path(@catalog.SingleWriteRequest) -> String
+
+pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
+
 // Errors
 pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)
   Sync(@catalog.CatalogSyncIssue)
   Observation(@catalog.CatalogObservationIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
+  WriteProjection(@catalog.WriteProjectionIssue)
+  WriteBody(@catalog.WriteBodyIssue)
+  WriteRequest(@catalog.WriteRequestIssue)
+  WriteSingleResponse(@catalog.WriteSingleResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@acquisition.ManagedQueryIssue)
   BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
