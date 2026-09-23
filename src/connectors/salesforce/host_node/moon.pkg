@@ -5,5 +5,9 @@ pkgtype(kind: "foreign_library")
 import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors/salesforce/acquisition",
+  "actql/actql/connectors/salesforce/host" @salesforce_host,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_query" @query,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/encode_core" @encode,
 }

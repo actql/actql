@@ -709,11 +709,21 @@ test('issued broad Site driver leaves completion to the Host verifier',
     const setup = await fixture(t);
     const plan = await queryProjection(setup);
     const attempt = Object.freeze({selected: true});
+    const hostRun = Object.freeze({owned: true});
     let read;
     let state = 'pending';
     let aborts = 0;
     const moon = {
       ...salesforceMoon,
+      salesforceBroadHostAttempt: selected => {
+        assert.equal(selected, hostRun);
+        return attempt;
+      },
+      salesforceBroadHostAbort: selected => {
+        assert.equal(selected, hostRun);
+        aborts += 1;
+        state = 'aborted';
+      },
       salesforceIssuedBroadPlan: selected => {
         assert.equal(selected, attempt);
         return plan;
@@ -745,17 +755,13 @@ test('issued broad Site driver leaves completion to the Host verifier',
         state = 'awaiting-cleanup';
         return {$tag: 1, _0: true};
       },
-      salesforceIssuedBroadAbort: () => {
-        aborts += 1;
-        state = 'aborted';
-      },
     };
     let enteredDescribe;
     const describeStarted = new Promise(resolve => { enteredDescribe = resolve; });
     let releaseDescribe;
     const describeGate = new Promise(resolve => { releaseDescribe = resolve; });
     const options = queryRequest(setup, plan, {
-      moon, attempt, maxCaptureRows: 3,
+      moon, hostRun, maxCaptureRows: 3,
       captureLimits: {maxNodes: 100, maxTextBytes: 1000,
         maxDepth: 10, maxWork: 1000},
     });
@@ -782,7 +788,7 @@ test('issued broad Site driver leaves completion to the Host verifier',
     }
     const result = await first;
     assert.equal(state, 'awaiting-cleanup');
-    assert.equal(result.attempt, attempt);
+    assert.equal(result.hostRun, hostRun);
     assert.equal(result.rowCount, 2n);
     assert.equal(result.pages.length, 2);
     assert.equal(Object.hasOwn(result, 'receipt'), false);
