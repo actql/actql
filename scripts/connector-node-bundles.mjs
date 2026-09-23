@@ -211,6 +211,9 @@ if (existsSync(join(root, 'src', bridgePackage,
   dependencies.set('actql/actql/check_environment', 'check_environment');
   dependencies.set('actql/actql/program_check', 'program_check');
   dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
+  dependencies.set('actql/actql/physical_cost', 'cost');
+  dependencies.set('actql/actql/canonical_json', 'identity');
+  dependencies.set('moonbitlang/core/json', 'json');
   dependencies.set('moonbitlang/core/encoding/utf8', 'utf8');
 }
 // A bridge package may also contain the handwritten Carrier adapter. Keep its
