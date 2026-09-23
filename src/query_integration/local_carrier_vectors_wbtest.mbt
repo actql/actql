@@ -209,12 +209,22 @@ fn local_carrier_vectors_program(variant? : String = "normalize") -> String {
     "{\"from\":\"pooled\",\"vectors\":true,\"as\":\"out\"}"
   } else if variant == "bridge_only" ||
     variant == "bridge_filter" ||
+    variant == "normalize_filter" ||
     variant == "bridge_select" ||
     variant == "bridge_derive" ||
     variant == "bridge_take" {
     "{\"from\":\"rows\",\"to_vectors\":{" +
     "\"id\":\"id\",\"vector\":\"embedding\"}," +
-    "\"as\":\"source\"},{\"from\":\"source\"," +
+    "\"as\":\"source\"}," +
+    (if variant == "normalize_filter" {
+      "{\"from\":\"source\",\"normalize_vectors\":true," +
+      "\"as\":\"normalized\"},"
+    } else {
+      ""
+    }) +
+    "{\"from\":\"" +
+    (if variant == "normalize_filter" { "normalized" } else { "source" }) +
+    "\"," +
     "\"vectors\":true,\"as\":" +
     (if variant != "bridge_only" { "\"projected\"}" } else { "\"out\"}" }) +
     (if variant != "bridge_only" {

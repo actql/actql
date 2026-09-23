@@ -231,9 +231,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       _ => false
     }
   }
-  let count = @lower.sequence_count(
-    @execution.generated_prepared_sequence(sequence),
-  )
+  let count = @execution.generated_sequence_step_count(sequence)
   if count < 1 || count > 4 {
     return false
   }
@@ -1925,10 +1923,7 @@ pub fn provider(
         max_value_bytes,
         selected_step,
         projection_step: selected_step.unwrap_or(
-          @lower.sequence_count(
-            @execution.generated_prepared_sequence(sequence),
-          ) -
-          1,
+          @execution.generated_sequence_step_count(sequence) - 1,
         ),
         construction_steps,
         kernel_step: selected_step.unwrap_or(construction_steps),
