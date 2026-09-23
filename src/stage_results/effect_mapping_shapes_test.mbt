@@ -1,13 +1,19 @@
 ///|
-fn effect_mapping_shape_fixture_with_rules(
+fn effect_mapping_shape_fixture_with_body(
   rules : String,
+  required_fields : String,
+  row_source : String,
 ) -> @environment.MappingContractShapes {
   let before = "{\"connector_manifest_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"conversions\":[],"
   let after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":" +
     rules +
     "," +
-    "\"primary_identity\":\"Id\",\"required_fields\":[],\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"," +
-    "\"row_mapping\":{\"Name\":{\"field\":\"name\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\"," +
+    "\"primary_identity\":\"Id\",\"required_fields\":" +
+    required_fields +
+    ",\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"," +
+    "\"row_mapping\":{\"Name\":{\"field\":\"" +
+    row_source +
+    "\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\"," +
     "\"target_schema\":{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"string\"}},\"nullable\":false,\"type\":\"object\"}," +
     "\"target_schema_identity\":\"sha256:bb7f22131b239944c4d7f01ddc3eaf675c34e38ca195527a90c6863668150e66\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
@@ -29,6 +35,13 @@ fn effect_mapping_shape_fixture_with_rules(
     { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
     100,
   ).unwrap()
+}
+
+///|
+fn effect_mapping_shape_fixture_with_rules(
+  rules : String,
+) -> @environment.MappingContractShapes {
+  effect_mapping_shape_fixture_with_body(rules, "[]", "amount")
 }
 
 ///|
