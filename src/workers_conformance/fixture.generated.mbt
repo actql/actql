@@ -1035,7 +1035,10 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
     variant == "normalize_filter_false" ||
     variant == "normalize_select" ||
     variant == "normalize_derive" ||
-    variant == "normalize_take" {
+    variant == "normalize_take" ||
+    variant == "normalize_sort" ||
+    variant == "normalize_assert" ||
+    variant == "normalize_unique" {
     "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
     "\"from\":\"normalized\",\"node_rows\":true," +
     "\"as\":\"projected\"},{" +
@@ -1046,6 +1049,12 @@ fn local_carrier_graph_program(variant? : String = "projection") -> String {
       "\"derive\":{\"copy\":\"id\"}"
     } else if variant == "normalize_take" {
       "\"take\":1"
+    } else if variant == "normalize_sort" {
+      "\"sort\":[{\"id\":\"desc\"}]"
+    } else if variant == "normalize_assert" {
+      "\"assert_rows\":{\"where\":\"id > 0\"}"
+    } else if variant == "normalize_unique" {
+      "\"assert_rows\":{\"unique_by\":[\"id\"]}"
     } else if variant == "normalize_filter_false" {
       "\"filter\":\"false\""
     } else {
