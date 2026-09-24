@@ -28,6 +28,7 @@
     {"family": "SGA", "operation": "degree", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
+    {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"}
   ],
