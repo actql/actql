@@ -3,6 +3,7 @@ package "actql/actql/physical_strategy"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/execution_authorization",
   "actql/actql/execution_query",
@@ -210,6 +211,8 @@ pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> 
 pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
 
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
 
@@ -633,6 +636,12 @@ type CapturedAnyResultBorrow
 type CapturedAnyResultOutputSet
 
 type CapturedDAG
+
+pub(all) enum CapturedEffectGuardIssue {
+  InvalidLimits
+  NotReady
+  Current(@effect_application.EffectPreviewTargetGuardIssue)
+} derive(@debug.Debug)
 
 type CapturedEffectInput
 

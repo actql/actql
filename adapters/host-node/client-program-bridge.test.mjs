@@ -343,6 +343,7 @@ test('admitted source-free Effect Run computes through the installed Host',
       assert.throws(() => checked(moon.clientProgramPinEffectSources(
         owned, 0)), {code: 'MoonBitHostFailure'});
       const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+      let previewInputs;
       try {
         assert.equal(moon.clientProgramEffectInputCount(inputs), 1);
         assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
@@ -368,12 +369,23 @@ test('admitted source-free Effect Run computes through the installed Host',
             owned, inputs, invocation, 0, foreignPreview.wire,
             foreignPreview.authoringCid, previewLimits)),
         {code: 'MoonBitHostFailure'});
-        const previewInputs = checked(
+        previewInputs = checked(
           moon.clientProgramBindEffectPreviewInputs(
             owned, inputs, invocation, 0, preview.wire,
             preview.authoringCid, previewLimits));
         assert.equal(moon.clientProgramEffectPreviewInputAt(
           previewInputs, 0), input);
+        assert.doesNotThrow(() => checked(
+          moon.clientProgramCheckEffectPreviewTargetGuards(
+            previewInputs, [], [], 0, 1)));
+        assert.throws(() => checked(
+          moon.clientProgramCheckEffectPreviewTargetGuards(
+            previewInputs, [cid('1')], [], 1, 2)),
+        {code: 'MoonBitHostFailure'});
+        assert.throws(() => checked(
+          moon.clientProgramCheckEffectPreviewTargetGuards(
+            previewInputs, [cid('1')], [cid('2')], 1, 2)),
+        {code: 'MoonBitHostFailure'});
         const other = moon.clientProgramOpenSourceFreeLocalEffectHost(
           bound, registry, values, 1n, 0n, 0n, 0n);
         assert.ok(other);
@@ -432,6 +444,10 @@ test('admitted source-free Effect Run computes through the installed Host',
       }
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
       assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), false);
+      assert.throws(() => checked(
+        moon.clientProgramCheckEffectPreviewTargetGuards(
+          previewInputs, [], [], 0, 1)),
+      {code: 'MoonBitHostFailure'});
     } finally {
       for (const result of storedResults?.results ?? []) {
         await result.prepared.release();
