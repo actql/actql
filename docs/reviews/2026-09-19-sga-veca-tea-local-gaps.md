@@ -980,8 +980,8 @@ same-sequence variants can still reach the providerless lane.
   in bounded steps; a long common prefix no longer occupies one resume.
   The same comparator serves the partition boundary in bounded top-k.
   Quantum-one fixtures verify pending comparisons, cancellation, and stable
-  ordering. A Node standard Host
-  stress case uses the maximum ten-column fixture schema and seven sort keys,
+  ordering. A Node standard Host stress case uses the maximum ten-column
+  fixture schema and seven sort keys,
   including six equal 660-byte text values (3,960 text bytes per row). The
   1,024-byte-per-key probe did not reach the managed sort task. The admitted
   stress case reports bounded-step work and maximum resume duration, then
@@ -993,10 +993,14 @@ same-sequence variants can still reach the providerless lane.
   These are environment diagnostics, not a universal deadline or proof for
   every admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
-  profiles exceed the accepted response behavior. The new comparison-step
-  fixture has not yet been repeated with a delivered Host timer; the earlier
-  timer evidence remains a separate product-path observation. This evidence is for the
-  selected bounded path. Ordinary one-step sort now also uses that bounded
+  profiles exceed the accepted response behavior. At `a9e05a272`, the same
+  standard Host fixture passed after the comparison-step change: 70
+  quantum-one advances preceded timer cancellation, the maximum observed
+  resume was 0.288 ms, and delivery-to-stop was 0.097 ms. The white-box
+  fixture separately proves that an equal long prefix yields inside the
+  comparison; the Host timer does not assert the exact active subphase.
+  This evidence is for the selected bounded path. Ordinary one-step sort
+  also uses that bounded
   provider, with quantum-one execution and two real downstream consumers
   verified on JS, Wasm, and native. The two paths still lack whole-operation
   boundary assurance until exact, one-short, in-flight cancellation, and
