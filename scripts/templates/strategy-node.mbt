@@ -810,6 +810,62 @@ pub fn strategy_issue_effect_free_captured_run(
 }
 
 ///|
+#export_name("strategyAdmitEffectComputationPreview")
+pub fn strategy_admit_effect_computation_preview(
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
+  match @publication.admit_effect_preview_identity(
+    preview_wire, run_identity_cid, authoring_context_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectfulCapturedRun")
+pub fn strategy_issue_effectful_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  if plan_names.length() != plan_wires.length() {
+    raise InvalidCommand
+  }
+  let plans : Array[(String, String)] = []
+  for index in 0..<plan_names.length() {
+    plans.push((plan_names[index], plan_wires[index]))
+  }
+  match @publication.issue_effectful_captured_run(
+    run_definition, invocation, definitions, artifacts, manifest, receipt,
+    snapshots, advances, authoring, models, preview, plans,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,
