@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 20 with operation-specific boundary records, 3 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 20 with operation-specific boundary records, 5 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
@@ -51,6 +51,13 @@ for (const operation of ['node_rows', 'edge_rows']) {
         entry.operation === operation);
       route.boundary_tests = [];
     }), new RegExp(`Bridge ${operation}: ${operation}_workspace_exact_one_short_and_kernel_cancel_cleanup fixture is missing`));
+  });
+  test(`${operation} loses delivered cancellation assurance when removed`, () => {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
+        entry.operation === operation);
+      route.environment_tests = [];
+    }), new RegExp(`Bridge ${operation}: delivered Bridge cancellation assurance is missing`));
   });
 }
 

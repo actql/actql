@@ -121,7 +121,8 @@ pub fn strategy_fixture_sga_subset(
   let task_sequences = fixture_task_sequences(f.graph, generated)
   let provider = @local_sga_provider.provider(
     {
-      max_input_rows: 100,
+      // The largest fixture has 100 declared nodes and 100 edge rows.
+      max_input_rows: 200,
       max_nodes: 100,
       max_edges: 100,
       max_value_bytes: 10000,

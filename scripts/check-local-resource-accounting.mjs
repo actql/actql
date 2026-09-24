@@ -997,6 +997,10 @@ for (const [index, route] of routeEntries.entries()) {
     if (!boundaryRoles.has(role)) {
       fail(`${label}: ${role} fixture is missing`);
     }
+    if (!environmentRoles.has(`${route.operation}_host_in_flight_cancel`) ||
+      route.path_assurance?.entrypoint === undefined) {
+      fail(`${label}: delivered Bridge cancellation assurance is missing`);
+    }
   }
 }
 
