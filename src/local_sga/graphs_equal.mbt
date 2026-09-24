@@ -29,6 +29,7 @@ priv struct GraphsEqualState {
   mut record : Int
   mut property : Int
   mut other : Int
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -74,6 +75,7 @@ pub enum GraphsEqualPoll {
 pub(all) enum GraphsEqualIssue {
   InvalidGraphsEqualKernel
   GraphsEqualInputUnavailable
+  GraphsEqualWorkLimit
   GraphsEqualComparison(@value.CompleteEqualityIssue)
   GraphsEqualStorage(@storage.Issue)
   GraphsEqualOutput(@execution.CaptureIssue)
@@ -255,6 +257,9 @@ fn graphs_equal_step(
       !@graph.producer_read_available(state.right_read) {
       return @bounded.Failed(GraphsEqualInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(GraphsEqualWorkLimit, progress, used)
+    }
     match state.phase {
       CompareCounts => {
         used += 1
@@ -278,7 +283,11 @@ fn graphs_equal_step(
           }
         }
       CompareNodeProperty =>
-        match compare_equal_node_property(state, quantum - used) {
+        match
+          compare_equal_node_property(
+            state,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok((_, work)) => used += work
           Err(issue) => {
             used += state.comparison_failure_work
@@ -297,7 +306,11 @@ fn graphs_equal_step(
           }
         }
       CompareEdgeProperty =>
-        match compare_equal_edge_property(state, quantum - used) {
+        match
+          compare_equal_edge_property(
+            state,
+            Int::min(quantum - used, state.control_work_remaining - used),
+          ) {
           Ok((_, work)) => used += work
           Err(issue) => {
             used += state.comparison_failure_work
@@ -344,11 +357,13 @@ fn graphs_equal_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
 ///|
 fn cleanup_graphs_equal_state(state : GraphsEqualState) -> Bool {
+  state.comparison = None
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -373,8 +388,13 @@ pub fn start_graphs_equal(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[GraphsEqualExecution, GraphsEqualIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(GraphsEqualWorkLimit)
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -439,6 +459,7 @@ pub fn start_graphs_equal(
     record: 0,
     property: 0,
     other: 0,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

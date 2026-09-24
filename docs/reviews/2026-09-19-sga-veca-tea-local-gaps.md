@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 41 |
+| Operation-specific boundary records | 42 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -47,6 +47,16 @@ one short before construction, and cancels after two type steps while sort
 scratch is still empty. Cleanup discards the private index and keeps the
 borrowed Graph available. This closes the avoidable edge-by-type scan for
 the registered matcher, not the remaining predicate and key-comparison bounds.
+
+The registered `graphs_equal` provider now passes its selected control-work
+ceiling into the bounded kernel. Two empty Graphs require exactly three
+control steps: count comparison, one Boolean output, and completion. A
+two-step ceiling fails before publication; cancellation after the first step
+reclaims the private result while preserving both borrowed Graph reads. A
+separate nonempty pair limits nested complete-value comparison to the
+remaining work quantum and fails at three charged steps. These fixtures do
+not yet establish an exact structural-workspace bound for every Graph value
+shape or a delivered Host cancellation for this operation.
 
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component

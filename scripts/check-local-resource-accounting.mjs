@@ -1302,6 +1302,11 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('match_edges_type_index_quantum_workspace_cancel')) {
     fail(`${label}: bounded type-index evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'graphs_equal' &&
+    (!boundaryRoles.has('graphs_equal_control_work_exact_one_short_and_cancel') ||
+      !boundaryRoles.has('graphs_equal_nested_value_work_ceiling'))) {
+    fail(`${label}: Graph equality control-work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

@@ -1421,6 +1421,7 @@ fn advance_execution(
                     value.limits.max_value_bytes,
                     value.limits.max_value_bytes,
                     value.inputs,
+                    control_work_limit=Some(value.limits.max_work),
                   ) {
                   Ok(execution) => GraphsEqualExecution(execution)
                   Err(_) => return fail_execution(value)

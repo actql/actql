@@ -3039,7 +3039,23 @@
       "entrypoint": {
         "path": "src/local_sga/graphs_equal.mbt",
         "symbol": "start_graphs_equal"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "graphs_equal_control_work_exact_one_short_and_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph equality enforces exact control work and cleans cancellation"
+        },
+        {
+          "role": "graphs_equal_nested_value_work_ceiling",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph equality bounds nested value comparison work"
+        }
+      ]
     },
     {
       "inventory": "families",

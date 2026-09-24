@@ -199,7 +199,7 @@ pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.Comple
 
 pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDiffExecution, GraphDiffIssue]
 
-pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphsEqualExecution, GraphsEqualIssue]
+pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphsEqualExecution, GraphsEqualIssue]
 
 pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchEdgesExecution, MatchEdgesIssue]
 
@@ -355,6 +355,7 @@ type GraphsEqualExecution
 pub(all) enum GraphsEqualIssue {
   InvalidGraphsEqualKernel
   GraphsEqualInputUnavailable
+  GraphsEqualWorkLimit
   GraphsEqualComparison(@value_admission.CompleteEqualityIssue)
   GraphsEqualStorage(@managed_graph_storage.Issue)
   GraphsEqualOutput(@execution_relation.CaptureIssue)

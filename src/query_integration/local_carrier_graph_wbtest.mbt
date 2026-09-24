@@ -1140,8 +1140,9 @@ fn carrier_graph_material_owner(
 }
 
 ///|
-fn carrier_graph_diff_owner(
+fn carrier_graph_binary_relation_owner(
   source : @lower.BoundPrepared,
+  operation : String,
 ) -> @lower.BoundPrepared {
   let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
     "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
@@ -1154,7 +1155,9 @@ fn carrier_graph_diff_owner(
       ",\"as\":\"left\"},{\"graph\":" +
       graph +
       ",\"as\":\"right\"},{\"from\":\"left\"," +
-      "\"graph_diff\":{\"with\":\"right\"}}]",
+      "\"" +
+      operation +
+      "\":{\"with\":\"right\"}}]",
     ),
     [
       (
@@ -1189,6 +1192,13 @@ fn carrier_graph_diff_owner(
     max_parameters=0,
     max_name_bytes=0,
   ).unwrap()
+}
+
+///|
+fn carrier_graph_diff_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  carrier_graph_binary_relation_owner(source, "graph_diff")
 }
 
 ///|
@@ -7608,6 +7618,189 @@ fn graph_relation_publication_cid(variant : String) -> String {
   } else {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   }
+}
+
+///|
+test "Graph equality enforces exact control work and cleans cancellation" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_binary_relation_owner(source_owner, "graphs_equal")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_builder), Ok(true))
+  let right_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
+  let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
+  let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
+  let start = fn(control, work) raise {
+    @local_sga.start_graphs_equal(
+      control,
+      task_test_completion(owner),
+      sequence,
+      2,
+      left_read,
+      right_read,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    ).unwrap()
+  }
+  // Empty Graphs require count comparison, one output, and completion.
+  let exact = start(@bounded.control(), 3)
+  assert_true(
+    @local_sga.advance_graphs_equal(exact, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  match @local_sga.advance_graphs_equal(exact, 1).unwrap() {
+    @local_sga.GraphsEqualContinue(progress=1L, work=2L) => ()
+    @local_sga.GraphsEqualContinue(progress~, work~) =>
+      fail("equality progress " + progress.to_string() + "/" + work.to_string())
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualWorkLimit, ..) =>
+      fail("equality work limit fired before output")
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualOutput(_), ..) =>
+      fail("equality output failed")
+    @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualCompletion(_), ..) =>
+      fail("equality completion failed")
+    @local_sga.GraphsEqualFailed(@local_sga.InvalidGraphsEqualKernel, ..) =>
+      fail("equality kernel rejected output")
+    @local_sga.GraphsEqualFailed(_, ..) => fail("equality failed before output")
+    _ => fail("equality second step did not continue")
+  }
+  let output = match @local_sga.advance_graphs_equal(exact, 1).unwrap() {
+    @local_sga.GraphsEqualComplete(output, progress=1L, work=3L) => output
+    _ => abort("exact Graph equality did not complete")
+  }
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Boolean(true)))
+  assert_eq(@local_sga.cleanup_graphs_equal(exact), Ok(true))
+  assert_true(@execution.completed_output_available(output))
+  let short = start(@bounded.control(), 2)
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=1L, work=2L),
+  )
+  assert_true(
+    @local_sga.advance_graphs_equal(short, 1).unwrap()
+    is @local_sga.GraphsEqualFailed(@local_sga.GraphsEqualWorkLimit, ..),
+  )
+  assert_true(@local_sga.graphs_equal_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_graphs_equal(short), Ok(true))
+  let control = @bounded.control()
+  let cancelled = start(control, 3)
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
+    is @local_sga.GraphsEqualStopped(_, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(cancelled), Ok(true))
+  assert_true(@graphs.producer_read_available(left_read))
+  assert_true(@graphs.producer_read_available(right_read))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Graph equality bounds nested value comparison work" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_binary_relation_owner(source_owner, "graphs_equal")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let left_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let left = finish_rows_to_graph(left_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(left_builder), Ok(true))
+  let right_builder = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    1,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let right = finish_rows_to_graph(right_builder)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
+  let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
+  let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
+  let execution = @local_sga.start_graphs_equal(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    left_read,
+    right_read,
+    1,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    1000,
+    1000,
+    [external],
+    control_work_limit=Some(3),
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_graphs_equal(execution, 100).unwrap()
+    is @local_sga.GraphsEqualFailed(
+      @local_sga.GraphsEqualWorkLimit,
+      progress=0L,
+      work=3L
+    ),
+  )
+  assert_eq(@local_sga.cleanup_graphs_equal(execution), Ok(true))
+  assert_true(@graphs.producer_read_available(left_read))
+  assert_true(@graphs.producer_read_available(right_read))
+  assert_true(@graphs.discard_completed(left))
+  assert_true(@graphs.discard_completed(right))
 }
 
 ///|

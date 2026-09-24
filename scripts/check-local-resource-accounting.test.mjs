@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 41 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 42 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('ranking loses bounded assembly evidence when its fixture is removed', () => {
@@ -80,6 +80,20 @@ test('edge matching loses bounded type-index evidence without its fixture', () =
     route.boundary_tests = route.boundary_tests.filter(item =>
       item.role !== 'match_edges_type_index_quantum_workspace_cancel');
   }), /SGA match_edges: bounded type-index evidence is missing/u);
+});
+
+test('Graph equality requires its control-work and nested comparison fixtures', () => {
+  for (const role of [
+    'graphs_equal_control_work_exact_one_short_and_cancel',
+    'graphs_equal_nested_value_work_ceiling',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'graphs_equal');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), /SGA graphs_equal: Graph equality control-work evidence is missing/u);
+  }
 });
 
 test('resource summary rejects stale route counts', () => {
