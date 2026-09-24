@@ -123,6 +123,40 @@ test "continue collection preserves row order and exact response mapping" {
       ),
     ),
   )
+  let applied = project_collection_effect_outcome_at(response, 0, 2000, 100, 8).unwrap()
+  assert_eq(
+    write_row_effect_projection_row_cid(applied),
+    collection_request_test_cid("1"),
+  )
+  assert_eq(
+    write_row_effect_projection_wire(applied),
+    "{\"result\":{\"created\":true,\"record_id\":\"a001\"},\"state\":\"applied\"}",
+  )
+  assert_eq(
+    write_row_effect_projection_response_sha256(applied),
+    @sha.hex(response_bytes),
+  )
+  let failed = project_collection_effect_outcome_at(response, 1, 2000, 100, 8).unwrap()
+  assert_eq(
+    write_row_effect_projection_row_cid(failed),
+    collection_request_test_cid("2"),
+  )
+  assert_eq(
+    write_row_effect_projection_wire(failed),
+    "{\"error\":{\"code\":\"SalesforceRowFailed\",\"details\":{\"errors\":[{\"fields\":[\"Name\"],\"message\":\"Missing Name\",\"status_code\":\"REQUIRED_FIELD_MISSING\"}]},\"message\":\"Salesforce row failed\"},\"state\":\"failed\"}",
+  )
+  assert_true(
+    project_collection_effect_outcome_at(count_only, 0, 2000, 100, 8)
+    is Err(InvalidResponse),
+  )
+  assert_true(
+    project_collection_effect_outcome_at(response, 2, 2000, 100, 8)
+    is Err(InvalidResponse),
+  )
+  assert_true(
+    project_collection_effect_outcome_at(response, 1, 16, 100, 8)
+    is Err(BudgetExceeded),
+  )
 }
 
 ///|

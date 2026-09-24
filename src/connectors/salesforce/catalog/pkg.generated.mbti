@@ -62,11 +62,15 @@ pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, S
 
 pub fn prepare_write_target_identity(WriteProjection, WriteTargetValue, Int, Int) -> Result[WriteTargetIdentity, WriteCollectionRequestIssue]
 
+pub fn project_collection_effect_outcome_at(WriteCollectionResponse, Int, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
+
 pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
 
 pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
 
 pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
+pub fn project_single_effect_outcome(WriteSingleResponse, String, Int, Int, Int) -> Result[WriteRowEffectProjection, WriteCollectionResponseIssue]
 
 pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
 
@@ -211,6 +215,12 @@ pub fn write_projection_observation(WriteProjection) -> String
 pub fn write_projection_operation(WriteProjection) -> WriteOperation
 
 pub fn write_projection_resource(WriteProjection) -> String
+
+pub fn write_row_effect_projection_response_sha256(WriteRowEffectProjection) -> String
+
+pub fn write_row_effect_projection_row_cid(WriteRowEffectProjection) -> String
+
+pub fn write_row_effect_projection_wire(WriteRowEffectProjection) -> String
 
 pub fn write_single_response_sha256(WriteSingleResponse) -> String
 
@@ -615,6 +625,12 @@ pub(all) struct WriteRequestLimits {
   max_path_bytes : Int
   max_target_bytes : Int
   max_body_bytes : Int
+}
+
+pub struct WriteRowEffectProjection {
+  row_preview_cid : String
+  outcome_wire : String
+  response_sha256 : String
 }
 
 pub(all) enum WriteRowResult {

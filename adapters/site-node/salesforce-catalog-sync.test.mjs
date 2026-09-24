@@ -758,6 +758,21 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(mutableLimits.maxDepth, 0);
   assert.equal(sent.claimed, true);
   assert.equal(sent.physical.kind, 'typed-success-response');
+  const sentOutcome = checked(salesforceMoon.salesforceProjectSingleEffectOutcome(
+    options.admittedPreview, 0, 0, outbound, sent.physical.response,
+    4096, 2048, 128, 8));
+  assert.equal(salesforceMoon.salesforceWriteEffectOutcomeRowCid(sentOutcome),
+    rowPreviewCid);
+  assert.deepEqual(JSON.parse(
+    salesforceMoon.salesforceWriteEffectOutcomeWire(sentOutcome)), {
+    result: {created: true, record_id: 'a00123456789012'},
+    state: 'applied',
+  });
+  assert.equal(salesforceMoon.salesforceWriteEffectOutcomeResponseSha256(
+    sentOutcome), sent.physical.result[2]);
+  assert.throws(() => checked(salesforceMoon.salesforceProjectSingleEffectOutcome(
+    foreignPreview.admit(), 0, 0, outbound, sent.physical.response,
+    4096, 2048, 128, 8)));
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
   assert.deepEqual(sent.response.responseBytes,
     Buffer.from(JSON.stringify({id: 'a00123456789012',
@@ -771,6 +786,13 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(retry.claimed, false);
   assert.equal(retry.ownership.action, 3);
   assert.equal(retry.recovered.kind, 'typed-success-response');
+  const recoveredOutcome = checked(
+    salesforceMoon.salesforceProjectSingleEffectOutcome(
+      options.admittedPreview, 0, 0, outbound, retry.recovered.response,
+      4096, 2048, 128, 8));
+  assert.equal(salesforceMoon.salesforceWriteEffectOutcomeWire(
+    recoveredOutcome), salesforceMoon.salesforceWriteEffectOutcomeWire(
+    sentOutcome));
   assert.deepEqual(retry.recovered.result, sent.physical.result);
   assert.deepEqual(retry.recovered.observation.body,
     sent.physical.observation.body);
@@ -1022,6 +1044,26 @@ test('Site Collections preserve exact row order and partial outcomes',
       result.result, 0)), cid('1'));
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
       result.result, 1)), cid('2'));
+    const applied = checked(salesforceMoon.salesforceProjectCollectionEffectOutcome(
+      result.result, 0, 2048, 128, 8));
+    const failed = checked(salesforceMoon.salesforceProjectCollectionEffectOutcome(
+      result.result, 1, 2048, 128, 8));
+    assert.equal(salesforceMoon.salesforceWriteEffectOutcomeRowCid(applied),
+      cid('1'));
+    assert.equal(salesforceMoon.salesforceWriteEffectOutcomeRowCid(failed),
+      cid('2'));
+    assert.deepEqual(JSON.parse(
+      salesforceMoon.salesforceWriteEffectOutcomeWire(applied)), {
+      result: {created: true, record_id: 'a00123456789012'},
+      state: 'applied',
+    });
+    assert.deepEqual(JSON.parse(
+      salesforceMoon.salesforceWriteEffectOutcomeWire(failed)), {
+      error: {code: 'SalesforceRowFailed',
+        details: {errors: [{fields: ['External_Key__c'],
+          message: 'Rejected field', status_code: 'INVALID_FIELD'}]},
+        message: 'Salesforce row failed'}, state: 'failed',
+    });
     assert.throws(() => checked(
       salesforceMoon.salesforceCollectionWriteResponseRowCid(
         result.result, 2)));
@@ -1287,6 +1329,24 @@ test('Host custody binds one HTTPS Collections response to every row',
       retry.recovered.result, 0)), rowCids[0]);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
       retry.recovered.result, 1)), rowCids[1]);
+    for (const index of [0, 1]) {
+      const original = checked(
+        salesforceMoon.salesforceProjectCollectionEffectOutcome(
+          sent.physical.result, index, 2048, 128, 8));
+      const recovered = checked(
+        salesforceMoon.salesforceProjectCollectionEffectOutcome(
+          retry.recovered.result, index, 2048, 128, 8));
+      assert.equal(
+        salesforceMoon.salesforceWriteEffectOutcomeRowCid(recovered),
+        rowCids[index]);
+      assert.equal(
+        salesforceMoon.salesforceWriteEffectOutcomeWire(recovered),
+        salesforceMoon.salesforceWriteEffectOutcomeWire(original));
+      assert.equal(
+        salesforceMoon.salesforceWriteEffectOutcomeResponseSha256(recovered),
+        createHash('sha256').update(sent.physical.observation.body)
+          .digest('hex'));
+    }
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
     assert.equal(setup.journal.recover().length, usesBeforeRetry);

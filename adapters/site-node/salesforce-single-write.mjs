@@ -33,6 +33,7 @@ export function projectSalesforceSingleObservation({
       limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
     return Object.freeze({
       kind: 'typed-success-response', observation,
+      response: projected,
       result: checked(moon.salesforceSingleWriteSuccessProjection(projected)),
     });
   } catch (cause) {

@@ -131,9 +131,13 @@ pub fn salesforce_prepare_write_projection(@catalog.CatalogObservation, String, 
 
 pub fn salesforce_prepare_write_target_identity(@catalog.WriteProjection, Int, String, Int, Int, Int) -> @catalog.WriteTargetIdentity raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_project_collection_effect_outcome(@catalog.WriteCollectionResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_project_collection_write_response(@catalog.WriteCollectionRequest, Int, Bytes, Int, Int, Int, Int) -> @catalog.WriteCollectionResponse raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_project_listing(Bytes, Int, Int, Int, Int, Int, Int) -> @catalog.ResourceListing raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_project_single_effect_outcome(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.SingleWriteRequest, @catalog.WriteSingleResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_project_single_write_success(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int) -> @catalog.WriteSingleResponse raise SalesforceCatalogBridgeIssue
 
@@ -192,6 +196,12 @@ pub fn salesforce_single_write_request_scope_matches(@catalog.SingleWriteRequest
 pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteRequest, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_write_effect_outcome_response_sha256(@catalog.WriteRowEffectProjection) -> String
+
+pub fn salesforce_write_effect_outcome_row_cid(@catalog.WriteRowEffectProjection) -> String
+
+pub fn salesforce_write_effect_outcome_wire(@catalog.WriteRowEffectProjection) -> String
 
 pub fn salesforce_write_target_boundary_cid(@catalog.WriteTargetIdentity) -> String
 
