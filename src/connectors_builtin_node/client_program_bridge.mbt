@@ -333,6 +333,18 @@ fn client_local_sequence_limits() -> @lower.SequenceLimits {
 }
 
 ///|
+/// Expose the Definition issued by the checked owner for Local compilation.
+/// Its body is private compilation material, not a public Client wire value.
+#export_name("clientProgramDefinitionJson")
+pub fn client_program_definition_json(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[String, @publication_host.ClientProgramDefinitionIssue] {
+  @publication_host.emit_prepared_client_program_definition(
+    prepared, 100000, 10000, 100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
