@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {assessPairedTiming} from './paired-assessment.mjs';
 import {retainedMatrix} from './fixtures.mjs';
+import {workloads} from './fixtures.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const registeredExperimentSha256 =
@@ -35,8 +36,9 @@ export function assessEquivalentSeries(fixture, pairs) {
   for (const [index, pair] of pairs.entries()) {
     const provenance = pair?.provenance;
     const native = pair?.productProfile === 'native-direct';
-    if (native && fixture.rows !== 100 && fixture.rows !== 1000) {
-      return incomplete(`native-profile-outside-small-cases:${index}`);
+    if (native && fixture.rows !== 100 && fixture.rows !== 1000 &&
+        fixture.workload !== workloads[0]) {
+      return incomplete(`native-profile-outside-selected-cases:${index}`);
     }
     if (pair?.index !== index || pair.caseId !== fixture.id ||
       pair.status !== 'diagnostic-completed' || pair.acceptanceEligible !== true ||

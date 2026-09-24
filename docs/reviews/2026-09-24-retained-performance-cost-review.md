@@ -502,8 +502,10 @@ silently change ordinary selection. This admission grants selection evidence
 only; it does not establish holding or matched Comparator equivalence.
 
 The registered matrix runner now selects the calibrated Native product for
-100- and 1,000-row cases and keeps the established Node product for larger
-cases. Native pair admission requires the same immutable source and Program,
+100- and 1,000-row cases and for the bounded low-selectivity acquisition
+profile at larger source sizes. Join and retained-reuse large cases keep the
+established Node product. Native pair admission requires the same immutable
+source and Program,
 exact acquisition evidence, every task's sealed rows CID and byte count,
 observed guard and comparison use, registered capacity bounds, and confirmed
 release on both legs. Native Local and the independent DuckDB assembly use

@@ -55,7 +55,7 @@ jobs:
           moon version --all
       - name: Run registered equivalent-obligations case
         env:
-          ACTQL_PERFORMANCE_PRODUCT_PROFILE: native-small
+          ACTQL_PERFORMANCE_PRODUCT_PROFILE: native-eligible
         run: node benchmarks/retained-results/run-equivalent-matrix.mjs "$RUNNER_TEMP/actql-equivalent-obligations" '${{ matrix.case.caseId }}'
       - name: Preserve raw pairs and calibration
         if: always()

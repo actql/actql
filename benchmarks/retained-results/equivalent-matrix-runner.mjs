@@ -2,7 +2,7 @@ import {execFile} from 'node:child_process';
 import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {join, resolve, sep} from 'node:path';
 import {promisify} from 'node:util';
-import {retainedCase, retainedMatrix} from './fixtures.mjs';
+import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
 import {assessEquivalentMatrix, formatEquivalentMatrix} from
   './equivalent-matrix-assessment.mjs';
 import {runMatchedEquivalentPair} from
@@ -78,7 +78,7 @@ const failure = error => Object.freeze({
   message: error?.message ?? String(error),
 });
 
-async function calibrateNativeSmall({checkout, outputDirectory, target, position}) {
+async function calibrateNativeSelected({checkout, outputDirectory, target, position}) {
   const training = retainedCase(target.workload, target.layout,
     target.rows === 100 ? 1000 : 100);
   const path = join(outputDirectory, `native-calibration-${position}.json`);
@@ -104,7 +104,7 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
       (caseId !== undefined && (typeof caseId !== 'string' || !caseId.length)) ||
       typeof calibrate !== 'function' || typeof runPair !== 'function' ||
       typeof inspect !== 'function' ||
-      !['node-managed', 'native-small'].includes(productProfile)) {
+      !['node-managed', 'native-eligible'].includes(productProfile)) {
     throw new TypeError('InvalidEquivalentMatrixRun');
   }
   const fixtures = retainedMatrix();
@@ -126,8 +126,9 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
   const records = [];
   const selected = caseId === undefined ? fixtures : fixtures.filter(value => value.id === caseId);
   for (const [position, fixture] of selected.entries()) {
-    const useNative = productProfile === 'native-small' &&
-      (fixture.rows === 100 || fixture.rows === 1000);
+    const useNative = productProfile === 'native-eligible' &&
+      (fixture.rows === 100 || fixture.rows === 1000 ||
+        fixture.workload === workloads[0]);
     const trainings = trainingFixtures(fixture);
     const record = {caseId: fixture.id, trainingCaseId: undefined,
       status: 'incomplete', trainingAttempts: [], pairs: []};
@@ -153,7 +154,7 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
       }
       if (!calibrated) throw new Error('NoFeasibleIndependentTrainingCase');
       record.calibrationDirectory = calibrated.directory;
-      const nativeProfile = useNative ? await calibrateNativeSmall({
+      const nativeProfile = useNative ? await calibrateNativeSelected({
         checkout: root, outputDirectory: destination, target: fixture,
         position}) : undefined;
       record.productProfile = useNative ? 'native-direct' : 'node-managed';

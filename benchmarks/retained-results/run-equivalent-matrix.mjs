@@ -12,7 +12,7 @@ const pin = JSON.parse(readFileSync(join(checkout, 'toolchain.json'), 'utf8'));
 const moonHome = join(checkout, '.toolchains', `moonbit-${pin.version}`);
 const productProfile = process.env.ACTQL_PERFORMANCE_PRODUCT_PROFILE ??
   'node-managed';
-if (!['node-managed', 'native-small'].includes(productProfile)) {
+if (!['node-managed', 'native-eligible'].includes(productProfile)) {
   throw new TypeError('InvalidPerformanceProductProfile');
 }
 // A clean source revision does not prove ignored _build modules are current.
@@ -20,8 +20,9 @@ if (!['node-managed', 'native-small'].includes(productProfile)) {
 execFileSync(join(moonHome, 'bin', 'moon'), ['build', '--target', 'js', '--release'],
   {cwd: checkout, stdio: 'inherit', env: {...process.env, MOON_HOME: moonHome,
     PATH: `${join(moonHome, 'bin')}:${process.env.PATH ?? ''}`}});
-if (productProfile === 'native-small' &&
-    (caseId === undefined || /\/(100|1000)$/.test(caseId))) {
+if (productProfile === 'native-eligible' &&
+    (caseId === undefined || /\/(100|1000)$/.test(caseId) ||
+      caseId.startsWith('native-acquisition-full-validation-low-selectivity/'))) {
   execFileSync(join(moonHome, 'bin', 'moon'),
     ['build', '--target', 'native', '--release',
       'src/cmd/native_retained_case_probe'],

@@ -25,7 +25,9 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
   selectionProfile}) {
   assert(fixture && native && equivalent && selectionProfile?.admitted === true,
     'IncompleteNativeEquivalentPair');
-  assert([100, 1000].includes(fixture.rows), 'NativeEquivalentOutsideSmallProfile');
+  assert([100, 1000].includes(fixture.rows) ||
+    fixture.workload === workloads[0],
+  'NativeEquivalentOutsideSelectedProfile');
   assert.equal(selectionProfile.targetCaseId, fixture.id);
   assert.equal(equivalent.status, 'diagnostic-completed');
   assert.equal(equivalent.comparator, 'independent-obligation-assembly');
@@ -88,7 +90,7 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
   return Object.freeze({
     version: 'actql-native-retained-equivalent-admission/0.1',
     accepted: true,
-    scope: 'one calibrated Native small case and independent execution',
+    scope: 'one calibrated Native selected case and independent execution',
     chargeBasis: 'profile-specific operation meters under registered bounds',
   });
 }
