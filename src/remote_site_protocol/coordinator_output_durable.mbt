@@ -310,6 +310,61 @@ pub fn durable_coordinator_output_record_poll_json(
 }
 
 ///|
+/// Re-admit a physical reply only against the Transfer request in this
+/// retained Output Plan. This is evidence, not proof of local payload custody.
+pub fn durable_coordinator_output_admit_transfer_reply_json(
+  durable : DurableCoordinatorOutputRecord,
+  reply : String,
+) -> Result[String, DispatchIssue] {
+  let record = match
+    @transfer.admit_remote_transfer_reply_json(
+      reply, durable.plan.transfer_request,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidDispatch)
+  }
+  if !@transfer.record_is_destination_committed(record) {
+    return Err(InvalidDispatch)
+  }
+  match @transfer.remote_transfer_reply_json(record) {
+    Ok(body) if body == reply => Ok(body)
+    _ => Err(InvalidDispatch)
+  }
+}
+
+///|
+/// The caller supplies an independently checked physical payload digest.
+/// Neither the Site reply nor its receipt establishes the local bytes alone.
+pub fn durable_coordinator_output_prepare_result_json(
+  durable : DurableCoordinatorOutputRecord,
+  reply : String,
+  payload_physical_digest : String,
+) -> Result[String, DispatchIssue] {
+  if durable_coordinator_output_admit_transfer_reply_json(durable, reply)
+    is Err(_) {
+    return Err(InvalidDispatch)
+  }
+  let record = match
+    @transfer.admit_remote_transfer_reply_json(
+      reply, durable.plan.transfer_request,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidDispatch)
+  }
+  let result = match
+    prepare_remote_output_result(
+      durable.output,
+      durable.plan.payload_request,
+      payload_physical_digest,
+      record,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  remote_output_result_json(result)
+}
+
+///|
 pub fn durable_coordinator_output_record_revision(
   durable : DurableCoordinatorOutputRecord,
 ) -> Int {

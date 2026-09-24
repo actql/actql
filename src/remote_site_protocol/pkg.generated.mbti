@@ -203,6 +203,10 @@ pub fn durable_coordinator_dispatch_record_revision(DurableCoordinatorDispatchRe
 
 pub fn durable_coordinator_dispatch_record_subject(DurableCoordinatorDispatchRecord) -> RemoteManagedOutputSubject?
 
+pub fn durable_coordinator_output_admit_transfer_reply_json(DurableCoordinatorOutputRecord, String) -> Result[String, DispatchIssue]
+
+pub fn durable_coordinator_output_prepare_result_json(DurableCoordinatorOutputRecord, String, String) -> Result[String, DispatchIssue]
+
 pub fn durable_coordinator_output_record_json(DurableCoordinatorOutputRecord) -> String
 
 pub fn durable_coordinator_output_record_poll_json(DurableCoordinatorOutputRecord) -> Result[String, DispatchIssue]

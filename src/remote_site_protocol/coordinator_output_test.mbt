@@ -182,3 +182,53 @@ test "Coordinator output transitions issue exact durable bodies" {
     remote_output_result_json(result),
   )
 }
+
+///|
+test "durable output binds Transfer reply before preparing Result" {
+  let (output, payload_request, transfer_request, committed) = output_result_fixture()
+  let subject = output_plan_subject(output, payload_request, transfer_request)
+  let plan = prepare_remote_output_plan(
+    output, subject, payload_request, transfer_request,
+  ).unwrap()
+  let durable = prepare_durable_coordinator_output_record(output, plan).unwrap()
+  let reply = @transfer.remote_transfer_reply_json(committed).unwrap()
+  assert_eq(
+    durable_coordinator_output_admit_transfer_reply_json(durable, reply),
+    Ok(reply),
+  )
+  let digest = cid(
+    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  )
+  let expected = prepare_remote_output_result(
+    output, payload_request, digest, committed,
+  ).unwrap()
+  assert_eq(
+    durable_coordinator_output_prepare_result_json(durable, reply, digest),
+    remote_output_result_json(expected),
+  )
+  let foreign = reply.replace(
+    old=@transfer.request_cid(transfer_request),
+    new=cid(
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    ),
+  )
+  assert_true(
+    durable_coordinator_output_admit_transfer_reply_json(durable, foreign)
+    is Err(InvalidDispatch),
+  )
+  let incomplete = @transfer.remote_transfer_reply_json(
+    @transfer.open_record(transfer_request),
+  ).unwrap()
+  assert_true(
+    durable_coordinator_output_admit_transfer_reply_json(durable, incomplete)
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    durable_coordinator_output_admit_transfer_reply_json(durable, "")
+    is Err(InvalidDispatch),
+  )
+  assert_true(
+    durable_coordinator_output_prepare_result_json(durable, reply, "missing")
+    is Err(InvalidDispatch),
+  )
+}

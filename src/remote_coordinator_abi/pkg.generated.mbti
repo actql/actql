@@ -18,6 +18,8 @@ pub fn coordinator_admit_durable_json(String) -> Result[@remote_site_protocol.Du
 
 pub fn coordinator_admit_durable_output_json(String, @remote_site_protocol.DurableCoordinatorDispatchRecord, String, Int, Int, Int64) -> Result[@remote_site_protocol.DurableCoordinatorOutputRecord, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_admit_output_transfer_reply_json(@remote_site_protocol.DurableCoordinatorOutputRecord, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_admit_response_json(String, @remote_site_protocol.DispatchRequest, Bool) -> Result[@remote_site_protocol.RemoteDispatchResponse, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_checked_output_intent_cid(CoordinatorCheckedOutputPlan) -> String
@@ -79,6 +81,8 @@ pub fn coordinator_prepare_dispatch(String, String, String, Int, String, String,
 pub fn coordinator_prepare_intent(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.CoordinatorDispatchIntentAdmission, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_output_intent(@remote_site_protocol.CoordinatorDispatchJournal, CoordinatorCheckedOutputPlan) -> Result[@remote_site_protocol.CoordinatorOutputAdmission, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_prepare_output_result_json(@remote_site_protocol.DurableCoordinatorOutputRecord, String, String) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_output_success_json(@remote_site_protocol.CoordinatorOutputRecord, String) -> Result[@remote_site_protocol.CoordinatorOutputTransition, @remote_site_protocol.DispatchIssue]
 

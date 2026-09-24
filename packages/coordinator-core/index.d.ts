@@ -119,6 +119,12 @@ export function restoreDurableOutput(journal: Journal,
 export function durableOutputRevision(durable: DurableOutputRecord): number;
 export function durableOutputJson(durable: DurableOutputRecord): string;
 export function durableOutputPollJson(durable: DurableOutputRecord): string;
+/** Binds a destination-committed reply to the retained Transfer request. */
+export function admitOutputTransferReplyJson(durable: DurableOutputRecord,
+  reply: string): string;
+/** The caller must independently verify local payload custody and digest. */
+export function prepareOutputResultJson(durable: DurableOutputRecord,
+  reply: string, payloadPhysicalDigest: string): string;
 export function prepareOutputUnknown(record: OutputRecord): OutputTransition;
 export function prepareOutputSuccessJson(record: OutputRecord,
   body: string): OutputTransition;

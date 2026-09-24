@@ -142,6 +142,11 @@ export const durableOutputRevision = owner.coordinatorDurableOutputRevision;
 export const durableOutputJson = owner.coordinatorDurableOutputJson;
 export const durableOutputPollJson = durable =>
   checked(owner.coordinatorDurableOutputPollJson(durable));
+export const admitOutputTransferReplyJson = (durable, reply) =>
+  checked(owner.coordinatorAdmitOutputTransferReplyJson(durable, reply));
+export const prepareOutputResultJson = (durable, reply,
+  payloadPhysicalDigest) => checked(owner.coordinatorPrepareOutputResultJson(
+    durable, reply, payloadPhysicalDigest));
 export const prepareOutputUnknown = record =>
   checked(owner.coordinatorPrepareOutputUnknown(record));
 export const prepareOutputSuccessJson = (record, body) =>

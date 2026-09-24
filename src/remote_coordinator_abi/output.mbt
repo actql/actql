@@ -216,6 +216,27 @@ pub fn coordinator_durable_output_poll_json(
 }
 
 ///|
+#export_name("coordinatorAdmitOutputTransferReplyJson")
+pub fn coordinator_admit_output_transfer_reply_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+  reply : String,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.durable_coordinator_output_admit_transfer_reply_json(durable, reply)
+}
+
+///|
+#export_name("coordinatorPrepareOutputResultJson")
+pub fn coordinator_prepare_output_result_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+  reply : String,
+  payload_physical_digest : String,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.durable_coordinator_output_prepare_result_json(
+    durable, reply, payload_physical_digest,
+  )
+}
+
+///|
 #export_name("coordinatorPrepareOutputUnknown")
 pub fn coordinator_prepare_output_unknown(
   record : @remote.CoordinatorOutputRecord,
