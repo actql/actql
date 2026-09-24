@@ -346,12 +346,17 @@ Effectful Run: computation receipt → Captured Run → Effect Preview
   → approval/apply/reconciliation receipts → final Run receipt
 ```
 
-<!-- requirement-block: capture-and-replay.an-artifact-must-not-require-a-future-artifact-s-cid-in -->
+<!-- requirement-block: capture-and-replay.an-artifact-must-not-require-a-future-artifact-s-cid-in capture-and-replay.effectful-final-run-receipt-binds-complete-prior-chain -->
 The computation receipt embedded in Captured Run contains no later Preview or
 apply CID. A final Run receipt is a new artifact referencing the earlier
 evidence, not a mutation of that captured receipt. The receipt schema may be
 shared, but its pre-effect and final instances have distinct CIDs. An artifact
 MUST NOT require a future artifact's CID in its own hash preimage.
+In 0.1, an Effectful final Run Receipt carries `effect_preview_cid`,
+`effect_set_apply_receipt_cid`, and `captured_run_cid` together. An Effect-free
+Receipt and an Effectful computation Receipt omit all three. Final admission
+MUST verify the exact checked Program kind and referenced Run chain; well-formed
+CID strings alone do not establish those bindings.
 
 <!-- requirement-block: capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt -->
 An Effect-free Run MUST use its single Run Receipt as the final receipt; it does

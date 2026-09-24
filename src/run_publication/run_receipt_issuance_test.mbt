@@ -208,6 +208,54 @@ test "Run Receipt issuer embeds exact admitted evidence and Result inventory" {
 }
 
 ///|
+test "Run Receipt final Effect references are all present or all absent" {
+  let chain = captured_run_test_chain()
+  let original = publication_contract_json(chain.receipt)
+  let body = @json.object_without_field(
+    captured_test_value(original),
+    "receipt_identity_cid",
+  ).unwrap()
+  let base = captured_test_wire(body)
+  let preview = "\"effect_preview_cid\":\"" + ordering_test_cid("1") + "\","
+  let applied = "\"effect_set_apply_receipt_cid\":\"" +
+    ordering_test_cid("2") +
+    "\","
+  let captured = "\"captured_run_cid\":\"" + ordering_test_cid("3") + "\","
+  for
+    prefix in [
+      preview,
+      applied,
+      captured,
+      preview + applied,
+      preview + captured,
+      applied + captured,
+    ] {
+    let incomplete = base.replace(
+      old="{\"aoa_ir_version\":",
+      new="{" + prefix + "\"aoa_ir_version\":",
+    )
+    assert_true(
+      seal_publication_contract("run_receipt", incomplete, 65536, 4096, 32)
+      is Err(_),
+    )
+  }
+  let final_body = base.replace(
+    old="{\"aoa_ir_version\":",
+    new="{" + preview + applied + captured + "\"aoa_ir_version\":",
+  )
+  let final_receipt = seal_publication_contract(
+    "run_receipt", final_body, 65536, 4096, 32,
+  ).unwrap()
+  assert_true(
+    publication_contract_identity(final_receipt) !=
+    publication_contract_identity(chain.receipt),
+  )
+  assert_true(
+    publication_contract_json(final_receipt).contains(ordering_test_cid("3")),
+  )
+}
+
+///|
 test "Run Receipt issuer rejects a foreign captured ObservationSet" {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)

@@ -505,7 +505,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
