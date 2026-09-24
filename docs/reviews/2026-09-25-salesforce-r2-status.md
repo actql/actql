@@ -31,8 +31,10 @@ or second execution state machine was added.
 
 ## Verification
 
-- Standard Client/Local Host tests: 13/13 (rerun after the split shared-pin
-  extension).
+- Standard Client/Local Host tests: 14/14 (rerun after selected-route
+  preflight was bound to the captured Preview).
+- Effect application and physical strategy: JS, Wasm, and native 56/56 each.
+- Tracked MoonBit public API check: passed.
 - Query integration: JS 556/556, Wasm 556/556, native 556/556.
 - MoonBit formatting and Node connector assembly: passed.
 - Isolated Connector addition gate: baseline and extended all-target checks,
