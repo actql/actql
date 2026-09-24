@@ -5,6 +5,16 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 
+`SGA.subgraph` now shares one workspace ceiling across its live selector
+arrays, unpublished Graph builder, and predicate evaluation. Previously,
+selector scratch and output storage could each consume the full ceiling.
+A fixed literal-selection fixture admits an independently calculated
+25-slot peak and rejects 24 slots before the final edge append. The route
+inventory binds these fixtures, kernel cancellation/cleanup, and the fused
+standard Host timer to the production entrypoint. This is one
+operation-specific boundary proof, not full work/workspace assurance for
+every subgraph variant.
+
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed
 two-row numeric-ID fixtures. They also check one field of bounded work before
@@ -185,7 +195,7 @@ closure conditions. The independent RowTable copy, external-input cross join,
 zero-input values, and external-input append now have bounded paths. The
 providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
-mapped operations and 20 with operation-specific boundary records. The
+mapped operations and 21 with operation-specific boundary records. The
 registered `SGA.graph_bounds` and `SGA.degree` entrypoints have exact and
 one-short work/workspace assurance. The ordinary and selected one-step filter
 and select paths now share their respective bounded evaluators and have

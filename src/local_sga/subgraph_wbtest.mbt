@@ -188,6 +188,77 @@ test "subgraph cancellation reclaims unpublished output" {
 }
 
 ///|
+test "subgraph admits exact combined selector and output workspace" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Three selection flags and two pairs of selector slots coexist with two
+  // five-slot nodes and one eight-slot labeled edge in the output builder.
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    None,
+    { ..storage_limits(), max_workspace_slots: 25, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut output : @graph.Completed? = None
+  for _ in 0..<64 {
+    if output is None {
+      match advance_subgraph(execution, 1).unwrap() {
+        SubgraphContinue(_) => ()
+        SubgraphComplete(value, ..) => output = Some(value)
+        SubgraphFailed(_, ..) =>
+          fail("exact selector and output workspace did not complete")
+        SubgraphStopped(_, ..) => fail("exact selector workspace stopped")
+      }
+    }
+  }
+  assert_true(output is Some(_))
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+}
+
+///|
+test "subgraph rejects one short combined selector and output workspace" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_subgraph(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    None,
+    { ..storage_limits(), max_workspace_slots: 24, },
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut failed = false
+  for _ in 0..<64 {
+    if !failed {
+      match advance_subgraph(execution, 1).unwrap() {
+        SubgraphContinue(_) => ()
+        SubgraphFailed(
+          SubgraphOutput(@graph.Storage(@storage.WorkspaceLimit)),
+          ..
+        ) => failed = true
+        SubgraphComplete(_, ..)
+        | SubgraphFailed(_, ..)
+        | SubgraphStopped(_, ..) =>
+          fail("one-short combined workspace was not enforced")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(subgraph_cleanup_pending(execution))
+  assert_eq(cleanup_subgraph(execution), Ok(true))
+}
+
+///|
 test "subgraph rejects every missing identity before materialization" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))
