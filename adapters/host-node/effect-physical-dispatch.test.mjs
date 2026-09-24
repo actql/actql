@@ -84,11 +84,16 @@ test('exact single claim reopens physical outcome custody without a send',
     } finally {
       physical.close();
     }
+    const applied = control.issueNextLedgerEntry(sent.ownership.dispatching,
+      'applied', cid('5'), 4096, 64, 4);
+    first.append(control.ledgerEntryWire(applied));
     first.close();
     const reopened = open();
     t.after(() => reopened.close());
     const outcome = reopened.readClaimedOutcome(claim);
     assert.equal(outcome.outcomeCid, cid('5'));
+    assert.equal(reopened.readClaimedResponse(claim).dispatchEntryCid,
+      control.ledgerEntryCid(sent.ownership.dispatching));
     assert.equal(outcome.responsePhysicalSha256,
       sent.response.responsePhysicalSha256);
     const authorized = await readAuthorizedEffectOutcomes({
@@ -148,11 +153,20 @@ test('exact Collections claim reopens distinct row outcome custody',
     } finally {
       physical.close();
     }
+    for (let index = 0; index < claims.length; index++) {
+      const terminal = control.issueNextLedgerEntry(
+        sent.ownership.dispatching[index],
+        index === 0 ? 'applied' : 'failed',
+        cid(index === 0 ? '5' : '6'), 4096, 64, 4);
+      first.append(control.ledgerEntryWire(terminal));
+    }
     first.close();
     const reopened = open();
     t.after(() => reopened.close());
     assert.deepEqual(reopened.readClaimedBatchOutcomes(claims)
       .map(outcome => outcome.outcomeCid), [cid('5'), cid('6')]);
+    assert.equal(reopened.readClaimedBatchResponse(claims).dispatchEntryCid,
+      control.ledgerEntryCid(sent.ownership.dispatching[0]));
     const authorized = await readAuthorizedEffectOutcomes({
       ledger: reopened, claims, batch: true, commonMoon: moon,
       expectedRequestCid: claims[0].canonicalRequestCid,
