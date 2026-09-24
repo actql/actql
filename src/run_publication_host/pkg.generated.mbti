@@ -39,6 +39,8 @@ pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, Str
 
 pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
 
+pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphAdmissionIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -105,6 +107,8 @@ pub fn client_values_fragment_output_contract_wire(ClientValuesFragmentNode) -> 
 
 pub fn client_values_fragment_wire(ClientValuesFragmentNode) -> String
 
+pub fn client_values_plan_graph_wire(ClientValuesPlanGraph) -> String
+
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -142,6 +146,8 @@ pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lo
 pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
+
+pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
@@ -458,6 +464,23 @@ pub(all) enum ClientValuesPipelineIssue {
   MissingTask
   Sequence(@lowering_relation.SequenceIssue)
   NotSingleValues
+  Encoding
+}
+
+pub struct ClientValuesPlanGraph {
+  wire : String
+}
+
+pub(all) enum ClientValuesPlanGraphAdmissionIssue {
+  Issue(ClientValuesPlanGraphIssue)
+  MismatchedGraph
+}
+
+pub(all) enum ClientValuesPlanGraphIssue {
+  InvalidLimits
+  UnsupportedGraph
+  Fragment(ClientValuesFragmentIssue)
+  Root(ClientDirectResultRootIssue)
   Encoding
 }
 

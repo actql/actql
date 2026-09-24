@@ -711,6 +711,48 @@ test "ordinary values document prepares one named Effect-free result" {
   ).unwrap()
   let root_wire = "{\"name\":\"answer\",\"ref\":{\"node_id\":\"values_0\",\"port\":\"values_0\"},\"role\":\"requested_result\"}"
   assert_eq(client_direct_result_root_wire(root), root_wire)
+  let graph_component = issue_prepared_client_values_plan_graph(
+    prepared, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    client_values_plan_graph_wire(graph_component),
+    "{\"data_edges\":[],\"nodes\":[" +
+    client_values_fragment_wire(fragment) +
+    "],\"root_refs\":[" +
+    root_wire +
+    "]}",
+  )
+  assert_eq(
+    client_values_plan_graph_wire(
+      admit_prepared_client_values_plan_graph(
+        prepared,
+        client_values_plan_graph_wire(graph_component),
+        aoa_limits,
+        10000,
+        1000,
+        20,
+      ).unwrap(),
+    ),
+    client_values_plan_graph_wire(graph_component),
+  )
+  assert_true(
+    admit_prepared_client_values_plan_graph(
+      prepared,
+      client_values_plan_graph_wire(graph_component).replace(
+        old="\"answer\"",
+        new="\"foreign\"",
+      ),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientValuesPlanGraphAdmissionIssue::MismatchedGraph),
+  )
+  assert_true(
+    issue_prepared_client_values_plan_graph(prepared, aoa_limits, 0, 1000, 20)
+    is Err(ClientValuesPlanGraphIssue::InvalidLimits),
+  )
   assert_eq(client_direct_result_root_name(root), "answer")
   assert_eq(
     client_direct_result_root_plan_cid(root),

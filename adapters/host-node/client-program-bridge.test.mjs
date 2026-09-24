@@ -456,6 +456,19 @@ test('Node ABI derives the checked named Result and request identity', async () 
     name: 'answer', ref: {node_id: 'values_0', port: 'values_0'},
     role: 'requested_result',
   });
+  const graph = checked(moon.clientProgramIssueLocalValuesPlanGraph(prepared));
+  assert.deepEqual(JSON.parse(moon.clientProgramLocalValuesPlanGraphWire(graph)), {
+    data_edges: [], nodes: [JSON.parse(fragmentWire)],
+    root_refs: [JSON.parse(directRootWire)],
+  });
+  assert.equal(moon.clientProgramLocalValuesPlanGraphWire(checked(
+    moon.clientProgramAdmitLocalValuesPlanGraph(prepared,
+      moon.clientProgramLocalValuesPlanGraphWire(graph)))),
+  moon.clientProgramLocalValuesPlanGraphWire(graph));
+  assert.throws(() => checked(moon.clientProgramAdmitLocalValuesPlanGraph(
+    prepared, moon.clientProgramLocalValuesPlanGraphWire(graph)
+      .replace('"answer"', '"foreign"'))),
+  {code: 'MoonBitHostFailure'});
   assert.equal(moon.clientProgramDirectValuesResultRootPlanCid(directRoot),
     moon.clientProgramResultPlanCid(resultPlan));
   assert.equal(moon.clientProgramDirectValuesResultRootRowContractCid(directRoot),
@@ -478,6 +491,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.ok(widePrepared);
   const wideResultPlan = checked(
     moon.clientProgramIssueResultPlan(widePrepared, 0));
+  assert.throws(() => checked(
+    moon.clientProgramIssueLocalValuesPlanGraph(widePrepared)),
+  {code: 'MoonBitHostFailure'});
   assert.notEqual(moon.clientProgramResultPlanCid(wideResultPlan),
     moon.clientProgramResultPlanCid(resultPlan));
   assert.throws(() => checked(moon.clientProgramAdmitResultPlan(
