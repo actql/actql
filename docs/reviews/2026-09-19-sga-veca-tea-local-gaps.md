@@ -12,9 +12,9 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 39 |
-| Four-role lifecycle assurance | 20 |
-| Full route work/workspace assurance | 20 |
-| Path-scoped work/workspace assurance | 45 |
+| Four-role lifecycle assurance | 21 |
+| Full route work/workspace assurance | 21 |
+| Path-scoped work/workspace assurance | 46 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2540,3 +2540,15 @@ then runs two downstream Computes with overlapping holdings, independent
 release, and final ledger reclamation. Query integration passes 604 tests on
 each of JS, Wasm, and native. This does not close the providerless synchronous
 fallback or the strict per-operation resource boundary gate.
+
+The session-assignment node now retains the registered fused Events provider
+when its checked sequence has no later Relation consumer. A Relation consumer
+still selects the bounded per-step handoff. Physical-DAG assertions distinguish
+these paths; portable standard-Host fixtures exercise the fused session and
+the separate Events-view session through two downstream Computes, publication
+identity, independent release, and final reclamation. The Node standard Host
+delivers timer cancellation after work begins in each path and observes stop
+and cleanup. Direct session-kernel fixtures independently enforce 44/43
+control-work and 22/21 peak-workspace boundaries. The resource gate now binds
+all three session source paths, but the providerless synchronous lane and the
+remaining operation-specific resource proofs still prevent full closure.

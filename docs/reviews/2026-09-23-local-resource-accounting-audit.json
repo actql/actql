@@ -34,6 +34,7 @@
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
+    {"family": "TEA", "operation": "session", "path": "entrypoint"},
     {"family": "TEA", "operation": "session", "path": "relation_entrypoint"},
     {"family": "TEA", "operation": "session", "path": "view_entrypoint"},
     {"family": "TEA", "operation": "time_series", "path": "entrypoint"},
