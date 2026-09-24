@@ -133,6 +133,8 @@ pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, 
 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
+pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
+
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
@@ -609,6 +611,12 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   MemberStateMismatch(Int)
   MemberOutcomeMismatch(Int)
   SetStatusMismatch
+} derive(@debug.Debug)
+
+pub(all) enum EffectfulFinalReceiptIssuanceIssue {
+  InvalidComputation
+  Encoding
+  References(EffectfulFinalReferenceIssue)
 } derive(@debug.Debug)
 
 pub(all) enum EffectfulFinalReferenceIssue {
