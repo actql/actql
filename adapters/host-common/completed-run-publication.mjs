@@ -296,6 +296,63 @@ export async function storeCompletedRunResultSet(options) {
   }
 }
 
+// Bind an already retained Effectful computation to its exact private
+// Preview. The prepared Store owners remain with the caller until the final
+// publication commit or an explicit release; issuing evidence is not commit.
+export function issueCompletedEffectfulComputationEvidence(options) {
+  if (!exactKeys(options, [
+    'execution', 'storedResults', 'control', 'admission', 'runDefinition',
+    'invocation', 'observation', 'normalizationJournal', 'authoringContext',
+    'receiptEvidence', 'captureEvidence', 'preview', 'plans',
+    'contractLimits',
+  ])) fail('InvalidCompletedEffectfulComputationOptions');
+  const {
+    execution, storedResults, control, admission, runDefinition,
+    invocation, observation, normalizationJournal, authoringContext,
+    receiptEvidence, captureEvidence, preview, plans, contractLimits,
+  } = options;
+  validateExecution(execution);
+  if (!exactKeys(storedResults, ['results', 'definitions', 'artifacts']) ||
+      !Array.isArray(storedResults.results) ||
+      storedResults.results.length !== execution.resultInventory.length ||
+      !Array.isArray(storedResults.definitions) ||
+      !Array.isArray(storedResults.artifacts) ||
+      !Array.isArray(plans) ||
+      !exactKeys(receiptEvidence, [
+        'bindings', 'sourceEvidence', 'modelEvidence',
+        'barrierAttemptReceiptCids',
+      ]) ||
+      !exactKeys(captureEvidence, [
+        'pendingSourceStateAdvances', 'modelEvidence',
+      ]) ||
+      !['issueResultManifest', 'issueEffectFreeRunReceipt',
+        'issueEffectfulCapturedRun'].every(name =>
+        typeof control?.[name] === 'function')) {
+    fail('InvalidCompletedEffectfulComputationOptions');
+  }
+  const definitions = storedResults.definitions;
+  const artifacts = storedResults.artifacts;
+  const manifest = control.issueResultManifest(
+    runDefinition, invocation, definitions, artifacts, contractLimits);
+  // The pre-effect Receipt uses the shared 0.1 body without final Effect
+  // references. It is not the final Effectful Run Receipt.
+  const receipt = control.issueEffectFreeRunReceipt({
+    admission, runDefinition, invocation, observation, definitions,
+    artifacts, manifest,
+  }, {normalizationJournal, ...receiptEvidence}, contractLimits);
+  const capturedRun = control.issueEffectfulCapturedRun({
+    runDefinition, invocation, definitions, artifacts, manifest, receipt,
+  }, {
+    snapshots: storedResults.results.map(value =>
+      value.publication.snapshot),
+    pendingSourceStateAdvances:
+      captureEvidence.pendingSourceStateAdvances,
+    authoringContext,
+    modelEvidence: captureEvidence.modelEvidence,
+  }, preview, plans, contractLimits);
+  return Object.freeze({manifest, computationReceipt: receipt, capturedRun});
+}
+
 export async function publishCompletedEffectFreeRun(options) {
   validateOptions(options);
   const {

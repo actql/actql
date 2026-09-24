@@ -80,6 +80,19 @@ targets, and a released pin. This is payload evidence only: it neither admits
 current target guards nor issues an apply permit, dispatches writes, or commits
 an Effectful Run. Prepared-output sinks must reclaim partial bytes on failure.
 
+The common publication coordinator now issues an Effectful computation
+Manifest, pre-effect Receipt, and Captured Run from a real retained Host
+Result set and an admitted private Preview. Its positive product fixture uses
+the same name for the Stage Result and declared Program Result, and rejects
+a Preview referring to a foreign Artifact. Issuance does not publish or
+release the prepared Store owners. The ordinary Effect fixture exposed a 0.1
+contract gap: an Effect may consume Stage Result `rows` while the published
+Program Result is `answer`. The current Captured Run issuer only looks for
+the Effect source Artifact in the published Result inventory by name.
+Changing the fixture's name would not resolve that general case. The exact
+Effect-source Artifact inventory and its Preview binding still need a
+coordinated contract correction before ordinary Effectful Run completion.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
