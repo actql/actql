@@ -339,7 +339,13 @@ The common pin also rejects a foreign Program owner and retains the backing
 allocation after the ordinary output port closes. It does not copy cells or
 authorize a write. Nonterminal Result targets and managed/resident outputs
 remain unsupported here until they have equally exact physical retention;
-the Host must not reacquire or rerun them as a fallback. Projection of the
-authored Result view, captured row identity, Preview and apply admission,
-multi-member Run execution, and final publication remain open under
-COMMON-SF-05.
+the Host must not reacquire or rerun them as a fallback. Captured row identity,
+Preview and apply admission, multi-member Run execution, and final publication
+remain open under COMMON-SF-05.
+
+The captured Effect input now starts the existing bounded Named Result view
+export with its retained checked occurrence. The exporter applies authored
+projection and order without copying a second table; a retained-output test
+streams after the ordinary task port closes and checks exact rows and release.
+This is still only an input-evidence path. No Effect Plan, row-to-payload proof,
+whole-set apply permit, or standard Host dispatch is issued by this export.

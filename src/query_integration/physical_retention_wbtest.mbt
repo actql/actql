@@ -126,6 +126,66 @@ test "checked Result pin rejects a foreign owner and retains its exact output" {
 }
 
 ///|
+test "checked Result view streams from a pin after its task port closes" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
+  let output = @strategy.captured_output_pin_materialized(pin)
+  @strategy.close_captured_task_output(run, task)
+  let preparation = @execution.start_completed_result_relation_export(
+    output,
+    occurrence,
+    {
+      max_fields: 10,
+      max_mapping_work: 100,
+      max_order_work: 1000,
+      max_workspace_entries: 20,
+    },
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    row_wire_limits(),
+    row_wire_limits(),
+    { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+    128,
+  ).unwrap()
+  while true {
+    let (done, _) = @execution.advance_completed_result_relation_export(
+      preparation, 1,
+    ).unwrap()
+    if done {
+      break
+    }
+  }
+  let stream = @execution.finish_completed_result_relation_export_preparation(
+    preparation,
+  ).unwrap()
+  let text = StringBuilder()
+  while @execution.next_completed_output_export(stream).unwrap() is Some(part) {
+    text.write_string(part)
+  }
+  let (receipt, tail) = @execution.finish_completed_relation_export(stream).unwrap()
+  text.write_string(tail)
+  assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
+  assert_eq(@execution.completed_relation_export_field_names(receipt), ["id"])
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(output))
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
 test "capture cleanup confirmation does not erase completed child retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)
