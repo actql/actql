@@ -20,6 +20,8 @@ pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewId
 
 pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
+pub fn check_effect_preview_apply_capabilities(@run_publication.EffectPreviewIdentity, Array[EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, EffectApplyCapabilityIssue]
+
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
@@ -27,6 +29,10 @@ pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
 pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn effect_apply_capability_idempotency_mode(EffectApplyCapabilityObservation) -> String
+
+pub fn effect_apply_capability_reconciliation_mode(EffectApplyCapabilityObservation) -> String
 
 pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
@@ -82,6 +88,10 @@ pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
 pub fn logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
+pub fn prepare_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[EffectApplyCapabilityObservation, EffectApplyCapabilityIssue]
+
+pub fn prepare_effect_apply_capability_observation(String, EffectApplyRoute, EffectMutationAtomicity, EffectFailureGranularity, Bool, Bool, EffectIdempotencySupport, EffectUnknownReconciliation) -> Result[EffectApplyCapabilityObservation, EffectApplyCapabilityIssue]
+
 pub fn prepare_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
 
 pub fn prepare_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
@@ -95,6 +105,28 @@ pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_req
 // Errors
 
 // Types and methods
+pub(all) enum EffectApplyCapabilityIssue {
+  InvalidEvidence
+  InvalidCode
+  InvalidLimits
+  InventoryMismatch
+  CapacityExceeded
+  ForeignEvidence(Int)
+  UnsupportedPolicy(Int)
+  UnknownWithoutReconciliation(Int)
+} derive(@debug.Debug)
+
+pub struct EffectApplyCapabilityObservation {
+  evidence_cid : String
+  route : EffectApplyRoute
+  atomicity : EffectMutationAtomicity
+  failure_granularity : EffectFailureGranularity
+  row_error_identity : Bool
+  request_order_preserved : Bool
+  idempotency : EffectIdempotencySupport
+  reconciliation : EffectUnknownReconciliation
+}
+
 pub struct EffectApplyKey {
   logical_request_scope_cid : String
   effect_preview_cid : String
@@ -102,6 +134,11 @@ pub struct EffectApplyKey {
   effect_member_preview_cid : String
   cid : String
 }
+
+pub(all) enum EffectApplyRoute {
+  SingleSerial
+  CollectionContinue
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectCollectionBatchIssue {
   InvalidLimits
@@ -122,6 +159,12 @@ pub struct EffectDispatchKey {
   cid : String
 }
 
+pub(all) enum EffectFailureGranularity {
+  PerItemFailure
+  WholeRequestFailure
+  UnknownFailureGranularity
+} derive(Eq, @debug.Debug)
+
 pub(all) enum EffectFootprintIssue {
   InvalidLimits
   InvalidMember
@@ -135,6 +178,12 @@ pub(all) enum EffectFootprintKind {
   ExactTargets
   Collection
   Opaque
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectIdempotencySupport {
+  NativeIdempotency
+  EmulatedIdempotency
+  UnavailableIdempotency
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectIdentityIssue {
@@ -227,6 +276,12 @@ pub(all) struct EffectMemberProgress {
   rows : Array[EffectItemProgress]
 }
 
+pub(all) enum EffectMutationAtomicity {
+  PerItem
+  ProviderBatchAtomic
+  UnknownAtomicity
+} derive(Eq, @debug.Debug)
+
 pub(all) enum EffectPreviewApplyIdentityIssue {
   Preview(@run_publication.EffectPreviewIdentityIssue)
   KeyInventoryMismatch
@@ -308,6 +363,12 @@ pub(all) enum EffectSetProgressIssue {
 pub(all) struct EffectTargetVersionObservation {
   row_preview_cid : String
   version_cid : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectUnknownReconciliation {
+  ExactReconciliation
+  ManualReconciliation
+  NoReconciliation
 } derive(Eq, @debug.Debug)
 
 pub struct LogicalItemLocator {
