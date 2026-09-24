@@ -57,6 +57,8 @@ pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, Dispatc
 
 pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
+pub fn advance_durable_coordinator_output_record(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
+
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
 
 pub fn commit_coordinator_dispatch_intent(CoordinatorDispatchIntentAdmission, Bool) -> Result[(DispatchAcceptance, CoordinatorDispatchIntentRecord), DispatchIssue]
@@ -120,6 +122,10 @@ pub fn coordinator_output_record_result_projection(CoordinatorOutputRecord) -> R
 pub fn coordinator_output_record_revision(CoordinatorOutputRecord) -> Int
 
 pub fn coordinator_output_record_status(CoordinatorOutputRecord) -> Array[String]
+
+pub fn coordinator_output_transition_durable_json(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[String, DispatchIssue]
+
+pub fn coordinator_output_transition_expected_revision(CoordinatorOutputTransition) -> Int
 
 pub fn coordinator_output_transition_key(CoordinatorOutputTransition) -> Array[String]
 
@@ -249,6 +255,8 @@ pub fn prepare_coordinator_output_intent(CoordinatorDispatchJournal, RemotePollO
 
 pub fn prepare_coordinator_output_success(CoordinatorOutputRecord, RemoteOutputResult) -> Result[CoordinatorOutputTransition, DispatchIssue]
 
+pub fn prepare_coordinator_output_success_json(CoordinatorOutputRecord, String) -> Result[CoordinatorOutputTransition, DispatchIssue]
+
 pub fn prepare_coordinator_output_unknown(CoordinatorOutputRecord) -> Result[CoordinatorOutputTransition, DispatchIssue]
 
 pub fn prepare_coordinator_response_observation(CoordinatorDispatchIntentRecord, RemoteDispatchResponse) -> Result[CoordinatorDispatchTransition, DispatchIssue]
@@ -258,6 +266,8 @@ pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
+
+pub fn prepare_durable_coordinator_output_record(RemotePollOutput, RemoteOutputPlan) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
 
 pub fn prepare_durable_execution_evidence(DispatchRecord, RemoteExecutionEvidence) -> Result[DispatchTransition, DispatchIssue]
 

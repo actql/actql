@@ -129,6 +129,17 @@ pub fn coordinator_output_admission_durable_json(
   output : RemotePollOutput,
   plan : RemoteOutputPlan,
 ) -> Result[String, DispatchIssue] {
+  match prepare_durable_coordinator_output_record(output, plan) {
+    Ok(value) => Ok(value.body)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn prepare_durable_coordinator_output_record(
+  output : RemotePollOutput,
+  plan : RemoteOutputPlan,
+) -> Result[DurableCoordinatorOutputRecord, DispatchIssue] {
   if !output_expected_inputs_valid(
       output,
       plan.payload_request,
@@ -136,7 +147,17 @@ pub fn coordinator_output_admission_durable_json(
     ) {
     return Err(InvalidDispatch)
   }
-  emit_durable_coordinator_output_record(output, plan, 0, 0, "")
+  match emit_durable_coordinator_output_record(output, plan, 0, 0, "") {
+    Ok(body) => Ok({
+      output,
+      plan,
+      revision: 0,
+      progress_code: 0,
+      result_json: "",
+      body,
+    })
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -285,4 +306,93 @@ pub fn durable_coordinator_output_record_revision(
   durable : DurableCoordinatorOutputRecord,
 ) -> Int {
   durable.revision
+}
+
+///|
+pub fn coordinator_output_transition_expected_revision(
+  transition : CoordinatorOutputTransition,
+) -> Int {
+  transition.record.revision
+}
+
+///|
+/// Issue the next exact durable body only for a transition prepared against
+/// the retained record represented by this durable body.
+pub fn coordinator_output_transition_durable_json(
+  durable : DurableCoordinatorOutputRecord,
+  transition : CoordinatorOutputTransition,
+) -> Result[String, DispatchIssue] {
+  match advance_durable_coordinator_output_record(durable, transition) {
+    Ok(value) => Ok(value.body)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn advance_durable_coordinator_output_record(
+  durable : DurableCoordinatorOutputRecord,
+  transition : CoordinatorOutputTransition,
+) -> Result[DurableCoordinatorOutputRecord, DispatchIssue] {
+  if coordinator_output_record_projection(transition.record) !=
+    transition.expected ||
+    transition.record.revision != durable.revision ||
+    transition.expected != [
+      durable.revision.to_string(),
+      durable.progress_code.to_string(),
+      if durable.result_json.is_empty() {
+        ""
+      } else {
+        let result = match
+          admit_remote_output_result_json(
+            durable.result_json,
+            durable.output,
+            durable.plan.payload_request,
+            durable.plan.transfer_request,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        remote_output_result_identity(result)
+      },
+    ] ||
+    !coordinator_output_matches(
+      transition.record,
+      durable.output,
+      durable.plan.payload_request,
+      durable.plan.transfer_request,
+    ) ||
+    transition.next[0] != (durable.revision + 1).to_string() ||
+    transition.next[1] !=
+    coordinator_output_progress_code(transition.next_progress).to_string() ||
+    transition.next[2] !=
+    coordinator_output_result_identity_or_empty(transition.next_result) {
+    return Err(StateCollision)
+  }
+  let result_json = match transition.next_result {
+    Some(value) => match remote_output_result_json(value) {
+      Ok(body) => body
+      Err(issue) => return Err(issue)
+    }
+    None => ""
+  }
+  let progress_code = coordinator_output_progress_code(
+    transition.next_progress,
+  )
+  match emit_durable_coordinator_output_record(
+      durable.output,
+      durable.plan,
+      durable.revision + 1,
+      progress_code,
+      result_json,
+    ) {
+    Ok(body) => Ok({
+      output: durable.output,
+      plan: durable.plan,
+      revision: durable.revision + 1,
+      progress_code,
+      result_json,
+      body,
+    })
+    Err(issue) => Err(issue)
+  }
 }

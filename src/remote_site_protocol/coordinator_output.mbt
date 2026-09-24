@@ -301,7 +301,8 @@ fn prepare_coordinator_output_transition(
 pub fn prepare_coordinator_output_unknown(
   record : CoordinatorOutputRecord,
 ) -> Result[CoordinatorOutputTransition, DispatchIssue] {
-  if record.progress == CoordinatorOutputSucceeded {
+  if record.progress == CoordinatorOutputSucceeded ||
+    record.revision >= 2147483647 {
     return Err(InvalidTransition)
   }
   Ok(
@@ -319,6 +320,7 @@ pub fn prepare_coordinator_output_success(
   result : RemoteOutputResult,
 ) -> Result[CoordinatorOutputTransition, DispatchIssue] {
   if record.progress == CoordinatorOutputSucceeded ||
+    record.revision >= 2147483647 ||
     !output_expected_inputs_valid(
       record.output,
       record.payload_request,
@@ -347,6 +349,26 @@ pub fn prepare_coordinator_output_success(
       )
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// Re-admit the physical Site result against this exact retained output
+/// occurrence before preparing a success transition.
+pub fn prepare_coordinator_output_success_json(
+  record : CoordinatorOutputRecord,
+  body : String,
+) -> Result[CoordinatorOutputTransition, DispatchIssue] {
+  let result = match
+    admit_remote_output_result_json(
+      body,
+      record.output,
+      record.payload_request,
+      record.transfer_request,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  prepare_coordinator_output_success(record, result)
 }
 
 ///|
