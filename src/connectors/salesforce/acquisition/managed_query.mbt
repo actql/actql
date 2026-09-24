@@ -13,7 +13,7 @@ pub(all) enum ManagedQueryIssue {
 /// physical adapter supplies bounded response bytes; MoonBit owns page order,
 /// value admission, row accounting, and the terminal handoff. Its receipt is
 /// provisional content evidence, not an Acquisition completion or permission.
-pub struct ManagedQuery {
+struct ManagedQuery {
   plan : @catalog.ReadProjection
   read : @catalog.QueryRead
   values : @execution.ManagedOutputValues

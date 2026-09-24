@@ -447,6 +447,14 @@ ordinary port closes; managed and Carrier-managed Results need representation-
 specific physical holding and generation proofs. No implicit copy, reread,
 or recomputation is accepted as a substitute.
 
+The Salesforce managed query handle is now opaque to callers outside its
+package. Its previous public fields exposed mutable query state and the
+internal managed-output owner, allowing an external package to construct or
+alter a query without the preparation boundary. This removes one SF-1 type
+leak, but the public acquisition functions still mention Host-only query,
+lowering, and execution types. The external facade and off-tree vertical
+fixture remain open; this change must not be counted as SPI closure.
+
 The common Result borrow now exposes its own liveness check. Effect Preview
 binding and lookup use that check, and the ordinary Effect input lookup no
 longer returns an input whose individual borrow was released while the set

@@ -366,6 +366,8 @@ test('Salesforce acquisition does not own Host candidate selection', () => {
   const hostApi = readFileSync(
     'src/connectors/salesforce/host/pkg.generated.mbti', 'utf8');
   assert.match(hostApi, /pub fn salesforce_broad_candidate\(/);
+  assert.match(providerApi, /^type ManagedQuery$/m);
+  assert.doesNotMatch(providerApi, /^pub struct ManagedQuery/m);
 });
 
 test('common DAG and Host have no transitive concrete connector dependency', () => {
