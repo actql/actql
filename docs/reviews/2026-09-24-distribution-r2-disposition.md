@@ -14,3 +14,9 @@ the review SHA is historical evidence, not the implementation base.
 The Local Values public path computes and reads an independently expected
 Named Result. That does not prove the Cloud-owned Site output path, active Run
 projection, or Linux CI at the current branch SHA.
+
+Local verification at `edc8362e773c0bfcdc18dbfa20377a366c11cf80`:
+`npm run check:connector-addition` passed. It checked the generated Client
+wire dependency, both isolated all-target assemblies, the third Connector on
+JS/Wasm/native, and the isolated standard Node Host. The gate retained its
+report and logs under `.artifacts/connector-addition-bLW52D/`.
