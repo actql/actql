@@ -433,9 +433,12 @@ test('resource completion cannot accept the synchronous providerless lane', () =
     /providerless managed execution still computes synchronously/);
 });
 
-test('resource completion rejects the selected synchronous fallback', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /selected Relation provider still computes unsupported rows synchronously/);
+test('selected Relation provider has no synchronous row fallback', () => {
+  const provider = readFileSync(join(
+    root, 'src/connectors/local/selected_relation_provider.mbt',
+  ), 'utf8');
+  assert.match(provider, /fn selected_binding_rows_supported\(/);
+  assert.doesNotMatch(provider, /@execution\.execute_selected_relation_step\(/);
 });
 
 test('cross join pre-execution close is not in-flight evidence', () => {

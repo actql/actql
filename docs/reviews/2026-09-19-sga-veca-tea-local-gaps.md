@@ -42,14 +42,14 @@ resource gate passes 112/112. These are local working-tree results, not
 fixed-SHA Linux CI. The preceding providerless whole-sequence compute remains
 synchronous and is still rejected by the strict completion gate.
 
-The selected Relation provider is a second synchronous lane. Its acceptance
-permits a selected one-step RowStep with a managed Relation input, but only
-the listed binding, assertion, distinct, sort, and limit bodies enter the
-bounded evaluator. Other accepted bodies can reach
-`execute_selected_relation_step()` in one resume. The strict resource gate
-now rejects this lane independently of the providerless driver. Neither
-moving the fallback nor reporting a smaller work delta would satisfy
-in-flight cancellation; unsupported selected bodies need bounded kernels.
+The selected Relation provider no longer retains a synchronous row fallback.
+The initial source inspection treated that branch as reachable, but the typed
+managed-view capability restricts selected RowSteps to the existing bounded
+binding, assertion, distinct, sort, and limit bodies. The provider now checks
+that same body set before acceptance and execution; any unsupported body is
+rejected rather than drained in one resume. The resource gate rejects a
+reintroduced synchronous call. This does not resolve the separate
+providerless whole-sequence lane or make unsupported operations bounded.
 
 The `node_rows` and `edge_rows` Bridge routes now bind their existing,
 independently calculated exact and one-short value-work and structural
