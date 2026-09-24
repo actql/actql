@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
+import {checked} from './runtime-result.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
@@ -941,6 +942,73 @@ test('portable control validates Receipt and Captured Run references',
     authoringContext,
     modelEvidence: [],
   }, limits);
+  const receiptBody = JSON.parse(receipt.wire);
+  const previewBody = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: receiptBody.program_semantics_cid,
+    program_definition_cid: receiptBody.program_definition_cid,
+    invocation_cid: invoked.identity, run_identity_cid: run.identity,
+    compiled_plan_cid: receiptBody.compiled_plan_cid,
+    check_environment_cid: receiptBody.check_environment_cid,
+    authoring_context: JSON.parse(authoringContext.wire),
+    barrier_provenance_cids: [], model_derived: false,
+    model_task_contract_cids: [], model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [],
+    effects: [{
+      effect_id: 'WriteOne', effect_kind: 'update', target: 'Object',
+      mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('9'),
+      effect_identity_cid: cid('9'), effect_plan_logical_cid: cid('9'),
+      source_result: 'answer', result_artifact_cid: artifact.identity,
+      preview_strength: 'full_diff', source_binding_cid: cid('9'),
+      capability_evidence_cid: cid('9'), authority_scope_cid: cid('9'),
+      write_footprint: {kind: 'exact_targets',
+        resource_identity_scheme_cid: cid('9'),
+        provider_namespace: 'provider', provider_boundary_cid: cid('9'),
+        resource_kind: 'Object', provider_object_identity_cids: [cid('1')]},
+      count: 0, max_items: 1, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'halt', changes: [], row_order: [],
+      effect_member_preview_cid: cid('1'), executed: false,
+    }],
+    executed: false, effect_preview_cid: cid('2'),
+  };
+  const previewWire = () => JSON.stringify(canonical(previewBody));
+  previewBody.effects[0].effect_member_preview_cid =
+    checked(moon.strategyEffectPreviewIdentities(previewWire(),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth))[1];
+  previewBody.effect_preview_cid =
+    checked(moon.strategyEffectPreviewIdentities(previewWire(),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth))[0];
+  assert.equal(previewBody.authoring_context.authoring_context_cid,
+    authoringContext.identity);
+  assert.equal(previewBody.authoring_context.program_definition_cid,
+    previewBody.program_definition_cid);
+  assert.equal(previewBody.run_identity_cid, run.identity);
+  assert.deepEqual(checked(moon.strategyEffectPreviewIdentities(previewWire(),
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth)),
+  [previewBody.effect_preview_cid,
+    previewBody.effects[0].effect_member_preview_cid]);
+  const preview = control.admitEffectComputationPreview(
+    previewWire(), run, authoringContext, limits);
+  const computationChain = {
+    runDefinition: run, invocation: invoked, definitions: [definition],
+    artifacts: [artifact], manifest, receipt,
+  };
+  const computationEvidence = {snapshots: [snapshot],
+    pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
+  const effectfulCaptured = control.issueEffectfulCapturedRun(
+    computationChain, computationEvidence, preview,
+    [{name: 'WriteOne', wire: '{}'}], limits);
+  assert.equal(effectfulCaptured.name, 'captured_run');
+  assert.deepEqual(Object.keys(JSON.parse(effectfulCaptured.wire)
+    .effect_context.effects), ['WriteOne']);
+  assert.throws(() => control.issueEffectfulCapturedRun(
+    computationChain, computationEvidence, preview, [], limits),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => control.issueEffectfulCapturedRun(
+    computationChain, computationEvidence, preview,
+    [{name: 'Foreign', wire: '{}'}], limits),
+  {code: 'MoonBitHostFailure'});
   const payloadWire = JSON.stringify(resultRows);
   const payloadBytes = Buffer.byteLength(payloadWire, 'utf8');
   const physicalCid = `sha256:${createHash('sha256')

@@ -1585,6 +1585,7 @@ function publicationControl(moon) {
   const admissionTokens = new WeakMap();
   const snapshotTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
+  const computationPreviewTokens = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -1856,6 +1857,53 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
+      )));
+    },
+    admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
+      issuanceLimits(limits, 'Effect computation Preview');
+      if (typeof wire !== 'string' ||
+          typeof authoring?.identity !== 'string') {
+        throw new TypeError('Invalid Effect computation Preview');
+      }
+      token(runDefinition);
+      evidenceToken(authoring);
+      const preview = checked(moon.strategyAdmitEffectComputationPreview(
+        wire, runDefinition.identity,
+        authoring.identity,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      ));
+      const owned = Object.freeze({kind: 'effect-computation-preview'});
+      computationPreviewTokens.set(owned, preview);
+      return owned;
+    },
+    issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
+      issuanceLimits(limits, 'Effectful Captured Run');
+      if (chain === null || typeof chain !== 'object' ||
+          evidence === null || typeof evidence !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          !Array.isArray(evidence.snapshots) ||
+          !Array.isArray(evidence.pendingSourceStateAdvances) ||
+          !Array.isArray(evidence.modelEvidence) ||
+          !Array.isArray(plans) ||
+          plans.some(value => !value || typeof value.name !== 'string' ||
+            typeof value.wire !== 'string')) {
+        throw new TypeError('Invalid Effectful Captured Run request');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(moon.strategyIssueEffectfulCapturedRun(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.receipt),
+        evidence.snapshots.map(snapshotToken),
+        evidence.pendingSourceStateAdvances.map(sourceAdvanceToken),
+        evidenceToken(evidence.authoringContext),
+        evidence.modelEvidence.map(evidenceToken), ownedPreview,
+        plans.map(value => value.name), plans.map(value => value.wire),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       )));
     },
     recordTransition(previous, next, uncommittedConfirmed) {
