@@ -22,6 +22,7 @@ fn construct_parsed(
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
+  effect_headers? : @syntax.EffectHeaders? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if !compile_limits_valid(limits.compilation) {
     raise InvalidLimits
@@ -52,5 +53,6 @@ fn construct_parsed(
     calendar=environment.calendar,
     text_rank=environment.text_rank,
     capacity_inputs=Some(inputs),
+    effect_headers~,
   )
 }

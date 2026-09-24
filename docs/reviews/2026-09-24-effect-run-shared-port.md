@@ -81,6 +81,13 @@ The checked Program now exposes its retained exact Environment owner, and the
 checker configuration exposes the originally supplied owner. This makes the
 future Program-to-Effect binding an ownership comparison, not a CID-only
 reconstruction. The ordinary checker still rejects nonempty Effects.
+An opaque `EffectComputationCandidate` now runs the ordinary computation check
+after collecting bounded, structurally valid Effect headers from that exact
+Program. It retains checked Stage Results, Environment and Catalog references
+without exposing an executable `CheckedProgram`. The ordinary `CheckOutcome`
+still rejects Effects; malformed headers, foreign owners, unrelated Bindings,
+and missing Mapping closure cannot escape through the candidate. This is a
+preparatory ownership bridge, not complete Effect checking or Run admission.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current

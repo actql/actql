@@ -129,6 +129,14 @@ pub fn diagnostic_location_source_path(DiagnosticLocation) -> String
 
 pub fn diagnostic_origin(CheckDiagnostic) -> DiagnosticOrigin?
 
+pub fn effect_computation_catalog_references(EffectComputationCandidate) -> @check_environment.CatalogReferences
+
+pub fn effect_computation_environment(EffectComputationCandidate) -> @check_environment.WireEnvironment
+
+pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.EffectHeaders
+
+pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
+
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
 pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> SourcePolicyOccurrence?
@@ -286,6 +294,10 @@ pub fn pivot_numeric_slots_demand(PivotNumericSlots) -> @pipeline_check_context.
 pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericSlots?
 
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
+
+pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
+
+pub fn prepare_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[@stage_results.EffectStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
@@ -776,6 +788,16 @@ pub struct DirectSourcePolicy {
   response_cid : String
   classification : @check_environment.DataClassification
   unknown_provenance : Bool
+}
+
+type EffectComputationCandidate
+
+pub(all) enum EffectComputationIssue {
+  InvalidLimits
+  InvalidProgram(@stage_syntax.SyntaxError)
+  Headers(@stage_syntax.EffectHeaderIssue)
+  MissingEffects
+  Computation(LocalConstructionFailure)
 }
 
 type EffectivePolicy
