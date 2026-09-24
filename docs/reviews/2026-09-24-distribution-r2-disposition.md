@@ -26,3 +26,12 @@ Its report is `.artifacts/connector-addition-P53uZY/connector-addition.json`:
 both isolated all-target assemblies, the independent third Connector on
 JS/Wasm/native, and the isolated standard Node Host passed. This run does not
 replace the missing packed-only standard Host installation test or Linux CI.
+
+At `78e6877ad4ee9c6a591d0f925fbe59586b115706`, the checked Values Site
+endpoint can open the retained output through the same manifest-preserving
+physical source binding as the standard native Site. The ordinary Values
+fixture reads the independent expected rows through that endpoint and rejects
+a foreign dispatch or Result intent before opening a reader. The native test,
+all-target check, public API check, native remote runtime gate and Cloud's
+local native mTLS smoke passed. This supplies the Site-side physical source;
+it does not transfer bytes to Cloud or publish a Named Result.
