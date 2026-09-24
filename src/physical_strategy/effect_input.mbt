@@ -205,6 +205,25 @@ pub fn captured_effect_inputs_count(value : CapturedEffectInputs) -> Int {
 }
 
 ///|
+/// Revoke the ordinary output port only while this checked Effect consumer
+/// already owns its pin. The caller cannot close a producer merely by naming
+/// a task or member before custody has been acquired.
+pub fn close_captured_effect_source_port(
+  value : CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  if !value.live {
+    return false
+  }
+  guard value.entries.get(member_index).bind(entry => entry) is Some(input) &&
+    captured_any_result_borrow_available(input.borrow) else {
+    return false
+  }
+  close_captured_task_output(value.run.captured, input.source.task)
+  true
+}
+
+///|
 pub fn captured_effect_input_at(
   value : CapturedEffectInputs,
   member_index : Int,
