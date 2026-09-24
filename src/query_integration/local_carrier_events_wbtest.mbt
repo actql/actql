@@ -1053,6 +1053,117 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
 }
 
 ///|
+test "Events to rows scans each source field once per record" {
+  let source_owner = @lower.bind_parameters(
+    @lower.prepare(
+      @pipeline.check(
+        input_cursor(
+          "[{\"values\":{\"schema\":{" +
+          "\"alpha\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"beta\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"gamma\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"event_id\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"occurred_at\":{\"type\":\"number\",\"nullable\":false}," +
+          "\"payload\":{\"type\":\"string\",\"nullable\":false}}," +
+          "\"rows\":[{\"alpha\":1,\"beta\":2,\"gamma\":3," +
+          "\"event_id\":7,\"occurred_at\":9," +
+          "\"payload\":\"x\"}]},\"as\":\"source\"}]",
+        ),
+        [],
+        None,
+        None,
+        {
+          max_steps: 10,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 100,
+        },
+      ).unwrap(),
+      {
+        max_nodes: 100,
+        max_references: 100,
+        max_work: 1000,
+        max_identifier_bytes: 1000,
+      },
+    ).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let source_input = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let builder = @records.prepare_output(
+    events_owner,
+    @pipeline.Step(0),
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let source_schema = @execution.producer_read_schema(source_input)
+  let fields = []
+  for column in 0..<6 {
+    let reversed = 5 - column
+    fields.push(
+      (
+        @schema.field_at(source_schema, reversed).unwrap().name,
+        @execution.producer_read_checked_cell(source_input, 0, reversed, {
+          max_nodes: 100,
+          max_depth: 10,
+          max_text_bytes: 1000,
+        }).unwrap(),
+      ),
+    )
+  }
+  @records.append_record(builder, fields).unwrap()
+  let events = @records.finish_output(builder).unwrap()
+  let projection_owner = carrier_events_projection_owner(events_owner)
+  let events_input = @records.prepare_producer_read(
+    projection_owner, 0, events_owner, events,
+  ).unwrap()
+  let projection = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    100,
+    1000,
+  ).unwrap()
+  let mut terminal = false
+  let mut polls = 0
+  while !terminal {
+    polls += 1
+    assert_true(polls < 25)
+    match @local_bridge.advance_events_to_rows(projection, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(rows, work~, ..) => {
+        // Six source probes, six required-field checks, one output append.
+        assert_eq(work, 13L)
+        assert_eq(@execution.completed_row_count(rows), 1)
+        assert_true(@execution.completed_cell(rows, 0, 0) is Some(Number(1.0)))
+        assert_true(@execution.completed_cell(rows, 0, 2) is Some(Number(7.0)))
+        terminal = true
+      }
+      _ => abort("Events projection failed")
+    }
+  }
+  assert_eq(@local_bridge.cleanup_events_to_rows(projection), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+  assert_true(@records.completed_available(events))
+  assert_true(@records.discard_completed(events))
+}
+
+///|
 test "rows to Events admits exact work and workspace and reclaims partial output" {
   let source_owner = carrier_events_source_owner()
   let source = carrier_events_source_output(source_owner)
