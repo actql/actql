@@ -371,6 +371,25 @@ pub fn effect_program_run_preview_owner(
 }
 
 ///|
+/// Check the entire admitted Effect Set footprint on the exact checked Run
+/// Preview owner. A caller-supplied member list cannot replace the retained
+/// inventory. Current authorization, target guards, captured values and
+/// payload equivalence are separate apply-admission obligations.
+pub fn check_effect_program_run_preview_footprints(
+  value : EffectProgramRunPreview,
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Result[Unit, @effect.EffectFootprintIssue] {
+  @effect.check_admitted_effect_preview_footprint_conflicts(
+    value.preview.preview,
+    max_members,
+    max_targets,
+    max_work,
+  )
+}
+
+///|
 pub fn bind_effect_program_static_preview(
   candidate : EffectProgramStaticCandidate,
   stage_index : Int,

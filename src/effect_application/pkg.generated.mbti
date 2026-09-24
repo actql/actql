@@ -15,6 +15,8 @@ pub fn admit_effect_preview_apply_identity(String, String, String, LogicalReques
 
 pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
 
+pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
