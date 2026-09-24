@@ -3559,6 +3559,18 @@ async function exerciseStrategyGraph(
     constructionProgress: 80,
     fields: ['group', 'embedding', 'member_count'],
   }, {
+    name: 'vector-pool-relation',
+    family: 'veca',
+    operation: 'pool',
+    relationPool: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['group', 'embedding', 'member_count'],
+  }, {
     name: 'vector-ranking-rrf',
     family: 'veca',
     operation: 'ranking',
@@ -4240,10 +4252,14 @@ async function exerciseStrategyGraph(
                   ),
                 },
                 as: 'out',
-              }],
+              }, ...(cancellationCase.relationPool ? [{
+                from: 'out',
+                assert_rows: {unique_by: ['id']},
+                as: 'keyed',
+              }] : [])],
               results: {
                 r: {
-                  from: 'out',
+                  from: cancellationCase.relationPool ? 'keyed' : 'out',
                   fields: cancellationCase.operation === 'pool'
                     ? ['id', 'group', 'embedding']
                     : ['id', 'embedding'],
@@ -4277,7 +4293,15 @@ async function exerciseStrategyGraph(
                   from: 'scored', vectors: true, as: 'out',
                 }]
                 : cancellationCase.operation === 'pool'
-                  ? [{
+                  ? cancellationCase.relationPool ? [{
+                    from: 'rows',
+                    pool_vectors: {
+                      vector: 'embedding', by: ['group'], method: 'sum',
+                    },
+                    as: 'pooled',
+                  }, {
+                    from: 'pooled', vectors: true, as: 'out',
+                  }] : [{
                     from: 'rows',
                     to_vectors: {id: 'id', vector: 'embedding'},
                     as: 'source',

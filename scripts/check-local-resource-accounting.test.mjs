@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 13 with four-role boundary evidence, 12 with full work\/workspace assurance, 35 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 14 with four-role boundary evidence, 13 with full work\/workspace assurance, 36 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -385,6 +385,9 @@ test('vector pooling retains its bounded production evidence', () => {
     delete pool.additional_dispatch;
   }), /VecA pool_vectors: Relation input entrypoint is missing/);
   for (const role of [
+    'pool_relation_work_exact_one_short',
+    'pool_relation_workspace_exact_one_short',
+    'pool_relation_kernel_cancel_cleanup',
     'pool_empty_work_exact_one_short',
     'pool_record_work_exact_one_short',
     'pool_workspace_exact',
@@ -404,7 +407,18 @@ test('vector pooling retains its bounded production evidence', () => {
     const pool = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
     pool.environment_tests = [];
-  }), /VecA pool_vectors: bounded Host cancellation assurance is missing/);
+  }), /VecA pool_vectors: direct and Relation Host cancellation assurances are required/);
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    pool.environment_tests = pool.environment_tests.filter(item =>
+      item.role !== 'pool_relation_host_in_flight_cancel');
+  }), /VecA pool_vectors: direct and Relation Host cancellation assurances are required/);
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    delete pool.resource_assurance.relation_entrypoint;
+  }), /VecA pool_vectors: direct and Relation work\/workspace assurances are required/);
   assert.match(run(undefined, routes => {
     const pool = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
