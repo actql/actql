@@ -326,6 +326,14 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     100,
   ).unwrap()
   let definition_cid = @publication.publication_contract_identity(definition)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    native_publication_cid("native-values-coordinator"),
+    "native-values-request-1",
+  ).unwrap()
+  let run_binding = @publication_host.bind_source_free_client_values_run(
+    prepared, compilation, admission, definition,
+  ).unwrap()
   let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let executor = @native_remote_values.install_native_remote_values_task_executor(
     prepared,
@@ -425,24 +433,34 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
     active_runtime,
   )
-  let dispatch = @remote.prepare_dispatch_request(
-    "native-values-coordinator",
-    definition_cid,
-    @publication_host.client_values_compilation_plan_node_id(compilation),
+  let dispatch = @publication_host.prepare_source_free_client_values_dispatch(
+    run_binding,
+    request,
     1,
     "native-values-dispatch-1",
-    "native-values-site",
-    1,
-    bundle_cid,
-    connector_registration,
-    connector_revision,
-    strategy_revision,
-    @remote.remote_input_binding_cid(input_binding),
-    native_publication_cid("native-values-obligations"),
-    @remote.remote_dispatch_budget_cid(budget),
-    issuer_capability,
-    operation_capability,
+    {
+      site_key: "native-values-site",
+      site_generation: 1,
+      runtime_bundle_cid: bundle_cid,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+      obligations_cid: native_publication_cid("native-values-obligations"),
+      budget_cid: @remote.remote_dispatch_budget_cid(budget),
+      evidence_issuer_capability_cid: issuer_capability,
+      grant_cid: operation_capability,
+    },
   ).unwrap()
+  assert_eq(
+    @remote.dispatch_request_task_scope(dispatch),
+    (
+      definition_cid,
+      @publication_host.client_values_compilation_plan_node_id(compilation),
+    ),
+  )
+  assert_true(
+    @remote.remote_input_binding_matches_dispatch(input_binding, dispatch),
+  )
   assert_native_remote_standard_output(
     runtime, journal, dispatch, input_binding, "[{\"id\":1},{\"id\":2}]",
   )
