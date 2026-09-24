@@ -420,3 +420,16 @@ binds each Effect source to the exact physical target, and passes that task to
 the common pin. A Carrier-segmented graph and a checked Effect source exercise
 the mapping separately; a connected segmented Effect Run fixture is still
 required. Managed/resident retention and the standard Effect Run remain open.
+
+The captured Named Result publication export now acquires the same checked
+consumer pin used by Effect input custody. Its pin remains live through the
+bounded export and durable replay, and `cancel` releases it exactly once.
+A captured-graph fixture retains one Result for an Effect-like consumer and
+publication independently: closing the ordinary task port and releasing the
+first consumer do not revoke the publication view or prematurely return its
+held bytes. A failed export preparation also releases its acquired pin.
+This closes the cell-backed shared-consumer lifetime gap, not all of SF-4.
+The standard Effectful Host still must acquire a nonterminal Result before its
+ordinary port closes; managed and Carrier-managed Results need representation-
+specific physical holding and generation proofs. No implicit copy, reread,
+or recomputation is accepted as a substitute.

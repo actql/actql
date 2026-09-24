@@ -321,25 +321,6 @@ pub fn captured_effect_run_source_at(
 }
 
 ///|
-/// Admit a checked source-free root to the same serial task lifecycle used by
-/// captured acquisitions. The root must have no external input or predecessor.
-pub fn open_source_free_dag(
-  graph : CheckedDAG,
-  ledger : @resources.Ledger,
-) -> Result[CapturedDAG, RunIssue] {
-  if graph_program_has_effects(graph) ||
-    graph.owners.is_empty() ||
-    graph.input_counts[0] != 0 ||
-    !graph.source_free_root ||
-    graph.data.any(edge => edge.consumer == 0) ||
-    graph.control.any(edge => edge.consumer == 0) ||
-    graph.supplied_slots.any(slot => slot.consumer == 0) {
-    return Err(UnsupportedGraph)
-  }
-  open_checked_dag(graph, None, ledger, [])
-}
-
-///|
 fn open_checked_dag(
   graph : CheckedDAG,
   source : @query.CapturedInputSource?,

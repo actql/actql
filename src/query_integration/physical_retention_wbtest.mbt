@@ -279,6 +279,74 @@ test "checked Result view streams from a pin after its task port closes" {
 }
 
 ///|
+test "publication and Effect borrow the same checked Result independently" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let effect_pin = @strategy.pin_captured_result_output(
+    run, task, occurrence, 2,
+  ).unwrap()
+  let publication = @publication_host.prepare_captured_result_publication_export(
+    run,
+    0,
+    native_publication_export_limits(),
+    max_pins=2,
+  ).unwrap()
+  @strategy.close_captured_task_output(run, task)
+  assert_true(@strategy.release_captured_output_pin(effect_pin))
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  let text = StringBuilder()
+  while publication.next().unwrap() is Some(chunk) {
+    text.write_string(chunk)
+  }
+  text.write_string(publication.finish().unwrap())
+  assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
+  publication.cancel()
+  publication.cancel()
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "failed captured Result export releases its checked consumer pin" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let limits = { ..native_publication_export_limits(), max_rows: 0, }
+  assert_true(
+    @publication_host.prepare_captured_result_publication_export(
+      run,
+      0,
+      limits,
+      max_pins=1,
+    )
+    is Err(_),
+  )
+  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
+  assert_true(@strategy.release_captured_output_pin(pin))
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
 test "capture cleanup confirmation does not erase completed child retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)
