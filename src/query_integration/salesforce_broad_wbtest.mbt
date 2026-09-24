@@ -91,23 +91,23 @@ fn salesforce_broad_requirement() -> @planning.QueryRequirement raise {
 test "Salesforce broad candidate binds the exact checked source and common choice" {
   let requirement = salesforce_broad_requirement()
   let plan = salesforce_broad_plan()
-  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+  let preparation = @salesforce_host.prepare_salesforce_broad_query(
     requirement, plan, "crm/main",
   ).unwrap()
   assert_true(
     physical_equal(
-      @salesforce_query.salesforce_broad_requirement(preparation),
+      @salesforce_host.salesforce_broad_requirement(preparation),
       requirement,
     ),
   )
   assert_true(
-    @salesforce_query.prepare_salesforce_broad_query(
+    @salesforce_host.prepare_salesforce_broad_query(
       requirement, plan, "foreign/instance",
     )
     is Err(ForeignSource),
   )
   assert_true(
-    @salesforce_query.prepare_salesforce_broad_query(
+    @salesforce_host.prepare_salesforce_broad_query(
       requirement,
       salesforce_broad_plan(resource="other"),
       "crm/main",
@@ -115,7 +115,7 @@ test "Salesforce broad candidate binds the exact checked source and common choic
     is Err(ForeignSource),
   )
   assert_true(
-    @salesforce_query.prepare_salesforce_broad_query(
+    @salesforce_host.prepare_salesforce_broad_query(
       requirement,
       salesforce_broad_plan(native_type="string"),
       "crm/main",
@@ -159,18 +159,18 @@ test "Salesforce broad candidate binds the exact checked source and common choic
 ///|
 test "Salesforce pushes an exact checked integer comparison and retains residual" {
   let requirement = salesforce_broad_requirement()
-  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+  let preparation = @salesforce_host.prepare_salesforce_broad_query(
     requirement,
     salesforce_broad_plan(filterable=true),
     "crm/main",
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
-      @salesforce_query.salesforce_broad_plan(preparation),
+      @salesforce_host.salesforce_broad_plan(preparation),
     ),
     "SELECT id FROM r WHERE id > 1",
   )
-  let query = @salesforce_query.begin_salesforce_broad_query(
+  let query = @salesforce_host.begin_salesforce_broad_query(
     preparation,
     "v62.0",
     {
@@ -185,13 +185,13 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_next_path(query)
+  let path = @salesforce_host.salesforce_broad_next_path(query)
     .unwrap()
     .unwrap()
   assert_eq(
     path, "/services/data/v62.0/query?q=SELECT%20id%20FROM%20r%20WHERE%20id%20%3E%201",
   )
-  @salesforce_query.accept_salesforce_broad_page(
+  @salesforce_host.accept_salesforce_broad_page(
     query,
     path,
     @utf8.encode(
@@ -201,8 +201,8 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     ),
   ).unwrap()
   |> ignore
-  let input = @salesforce_query.finish_salesforce_broad_query(query).unwrap()
-  let (completed, _) = @salesforce_query.execute_salesforce_broad_residual(
+  let input = @salesforce_host.finish_salesforce_broad_query(query).unwrap()
+  let (completed, _) = @salesforce_host.execute_salesforce_broad_residual(
     preparation,
     input,
     compute_test_limits(),
@@ -210,14 +210,14 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
   ).unwrap()
   let output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
   assert_eq(@execution.completed_row_count(output), 2)
-  let unfilterable = @salesforce_query.prepare_salesforce_broad_query(
+  let unfilterable = @salesforce_host.prepare_salesforce_broad_query(
     requirement,
     salesforce_broad_plan(),
     "crm/main",
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
-      @salesforce_query.salesforce_broad_plan(unfilterable),
+      @salesforce_host.salesforce_broad_plan(unfilterable),
     ),
     "SELECT id FROM r",
   )
@@ -228,19 +228,19 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
     2,
   ).unwrap()
   assert_true(
-    @salesforce_query.prepare_salesforce_broad_query(
+    @salesforce_host.prepare_salesforce_broad_query(
       requirement, supplied_filter, "crm/main",
     )
     is Err(UnexpectedPrefilter),
   )
-  let different_type = @salesforce_query.prepare_salesforce_broad_query(
+  let different_type = @salesforce_host.prepare_salesforce_broad_query(
     requirement,
     salesforce_broad_plan(native_type="double", filterable=true),
     "crm/main",
   ).unwrap()
   assert_eq(
     @salesforce_catalog.read_projection_soql(
-      @salesforce_query.salesforce_broad_plan(different_type),
+      @salesforce_host.salesforce_broad_plan(different_type),
     ),
     "SELECT id FROM r",
   )
@@ -248,12 +248,12 @@ test "Salesforce pushes an exact checked integer comparison and retains residual
 
 ///|
 test "Salesforce broad pages use checked input admission and Local residual" {
-  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+  let preparation = @salesforce_host.prepare_salesforce_broad_query(
     salesforce_broad_requirement(),
     salesforce_broad_plan(),
     "crm/main",
   ).unwrap()
-  let query = @salesforce_query.begin_salesforce_broad_query(
+  let query = @salesforce_host.begin_salesforce_broad_query(
     preparation,
     "v62.0",
     {
@@ -268,11 +268,11 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_next_path(query)
+  let path = @salesforce_host.salesforce_broad_next_path(query)
     .unwrap()
     .unwrap()
   assert_eq(path, "/services/data/v62.0/query?q=SELECT%20id%20FROM%20r")
-  @salesforce_query.accept_salesforce_broad_page(
+  @salesforce_host.accept_salesforce_broad_page(
     query,
     path,
     @utf8.encode(
@@ -282,11 +282,11 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     ),
   ).unwrap()
   |> ignore
-  let next = @salesforce_query.salesforce_broad_next_path(query)
+  let next = @salesforce_host.salesforce_broad_next_path(query)
     .unwrap()
     .unwrap()
   assert_eq(next, "/services/data/v62.0/query/01gABC")
-  @salesforce_query.accept_salesforce_broad_page(
+  @salesforce_host.accept_salesforce_broad_page(
     query,
     next,
     @utf8.encode(
@@ -296,13 +296,13 @@ test "Salesforce broad pages use checked input admission and Local residual" {
     ),
   ).unwrap()
   |> ignore
-  assert_true(@salesforce_query.salesforce_broad_complete(query))
-  let input = @salesforce_query.finish_salesforce_broad_query(query).unwrap()
+  assert_true(@salesforce_host.salesforce_broad_complete(query))
+  let input = @salesforce_host.finish_salesforce_broad_query(query).unwrap()
   assert_eq(@execution.captured_row_count(input), 3)
   assert_true(
-    @salesforce_query.finish_salesforce_broad_query(query) is Err(Closed),
+    @salesforce_host.finish_salesforce_broad_query(query) is Err(Closed),
   )
-  let (completed, _) = @salesforce_query.execute_salesforce_broad_residual(
+  let (completed, _) = @salesforce_host.execute_salesforce_broad_residual(
     preparation,
     input,
     compute_test_limits(),
@@ -311,8 +311,8 @@ test "Salesforce broad pages use checked input admission and Local residual" {
   let output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
   assert_eq(@execution.completed_row_count(output), 2)
   assert_true(
-    @salesforce_query.execute_salesforce_broad_residual(
-      @salesforce_query.prepare_salesforce_broad_query(
+    @salesforce_host.execute_salesforce_broad_residual(
+      @salesforce_host.prepare_salesforce_broad_query(
         salesforce_broad_requirement(),
         salesforce_broad_plan(),
         "crm/main",
@@ -327,7 +327,7 @@ test "Salesforce broad pages use checked input admission and Local residual" {
 
 ///|
 test "Salesforce broad capture failure and cancellation expose no partial input" {
-  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+  let preparation = @salesforce_host.prepare_salesforce_broad_query(
     salesforce_broad_requirement(),
     salesforce_broad_plan(),
     "crm/main",
@@ -339,7 +339,7 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     max_rows: 3,
     max_locator_units: 128,
   }
-  let limited = @salesforce_query.begin_salesforce_broad_query(
+  let limited = @salesforce_host.begin_salesforce_broad_query(
     preparation,
     "v62.0",
     limits,
@@ -348,11 +348,11 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     1,
     run_limits().input_values,
   ).unwrap()
-  let initial = @salesforce_query.salesforce_broad_next_path(limited)
+  let initial = @salesforce_host.salesforce_broad_next_path(limited)
     .unwrap()
     .unwrap()
   assert_true(
-    @salesforce_query.accept_salesforce_broad_page(
+    @salesforce_host.accept_salesforce_broad_page(
       limited,
       initial,
       @utf8.encode(
@@ -363,11 +363,11 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     )
     is Err(Capture(_)),
   )
-  assert_true(@salesforce_query.salesforce_broad_next_path(limited) is Ok(None))
+  assert_true(@salesforce_host.salesforce_broad_next_path(limited) is Ok(None))
   assert_true(
-    @salesforce_query.finish_salesforce_broad_query(limited) is Err(Closed),
+    @salesforce_host.finish_salesforce_broad_query(limited) is Err(Closed),
   )
-  let cancelled = @salesforce_query.begin_salesforce_broad_query(
+  let cancelled = @salesforce_host.begin_salesforce_broad_query(
     preparation,
     "v62.0",
     limits,
@@ -376,10 +376,10 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     3,
     run_limits().input_values,
   ).unwrap()
-  let first = @salesforce_query.salesforce_broad_next_path(cancelled)
+  let first = @salesforce_host.salesforce_broad_next_path(cancelled)
     .unwrap()
     .unwrap()
-  @salesforce_query.accept_salesforce_broad_page(
+  @salesforce_host.accept_salesforce_broad_page(
     cancelled,
     first,
     @utf8.encode(
@@ -389,14 +389,14 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     ),
   ).unwrap()
   |> ignore
-  assert_true(@salesforce_query.cancel_salesforce_broad_query(cancelled))
+  assert_true(@salesforce_host.cancel_salesforce_broad_query(cancelled))
   assert_true(
-    @salesforce_query.salesforce_broad_next_path(cancelled) is Ok(None),
+    @salesforce_host.salesforce_broad_next_path(cancelled) is Ok(None),
   )
   assert_true(
-    @salesforce_query.finish_salesforce_broad_query(cancelled) is Err(Closed),
+    @salesforce_host.finish_salesforce_broad_query(cancelled) is Err(Closed),
   )
-  let page_limited = @salesforce_query.begin_salesforce_broad_query(
+  let page_limited = @salesforce_host.begin_salesforce_broad_query(
     preparation,
     "v62.0",
     limits,
@@ -405,10 +405,10 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
     3,
     run_limits().input_values,
   ).unwrap()
-  let first_path = @salesforce_query.salesforce_broad_next_path(page_limited)
+  let first_path = @salesforce_host.salesforce_broad_next_path(page_limited)
     .unwrap()
     .unwrap()
-  @salesforce_query.accept_salesforce_broad_page(
+  @salesforce_host.accept_salesforce_broad_page(
     page_limited,
     first_path,
     @utf8.encode(
@@ -419,22 +419,22 @@ test "Salesforce broad capture failure and cancellation expose no partial input"
   ).unwrap()
   |> ignore
   assert_true(
-    @salesforce_query.salesforce_broad_next_path(page_limited) is Err(Query(_)),
+    @salesforce_host.salesforce_broad_next_path(page_limited) is Err(Query(_)),
   )
   assert_true(
-    @salesforce_query.finish_salesforce_broad_query(page_limited) is Err(Closed),
+    @salesforce_host.finish_salesforce_broad_query(page_limited) is Err(Closed),
   )
 }
 
 ///|
 priv struct SalesforceIssuedFixture {
   requirement : @planning.QueryRequirement
-  issuer : @salesforce_query.SalesforceBroadIssuer
+  issuer : @salesforce_host.SalesforceBroadIssuer
   choice : @planning.AcquisitionChoice
   candidate : @planning.PreparedAcquisition[
-    @salesforce_query.SalesforceBroadPreparation,
+    @salesforce_host.SalesforceBroadPreparation,
   ]
-  settled : Array[@salesforce_query.SalesforceBroadAttempt]
+  settled : Array[@salesforce_host.SalesforceBroadAttempt]
 }
 
 ///|
@@ -445,7 +445,7 @@ fn salesforce_issued_fixture(
     Some(value) => value
     None => salesforce_broad_requirement()
   }
-  let preparation = @salesforce_query.prepare_salesforce_broad_query(
+  let preparation = @salesforce_host.prepare_salesforce_broad_query(
     requirement,
     salesforce_broad_plan(),
     "crm/main",
@@ -485,8 +485,8 @@ fn salesforce_issued_fixture(
     evidence_body,
     query_capture_limits(),
   ).unwrap()
-  let settled : Array[@salesforce_query.SalesforceBroadAttempt] = []
-  let issuer = @salesforce_query.prepare_salesforce_broad_issuer(
+  let settled : Array[@salesforce_host.SalesforceBroadAttempt] = []
+  let issuer = @salesforce_host.prepare_salesforce_broad_issuer(
     contracts,
     requirement,
     "test-process",
@@ -499,13 +499,13 @@ fn salesforce_issued_fixture(
 ///|
 fn salesforce_issued_read(
   fixture : SalesforceIssuedFixture,
-) -> @salesforce_query.SalesforceBroadAttempt {
-  let attempt = @salesforce_query.prepare_issued_salesforce_broad_attempt(
+) -> @salesforce_host.SalesforceBroadAttempt {
+  let attempt = @salesforce_host.prepare_issued_salesforce_broad_attempt(
     fixture.issuer,
     fixture.choice,
     fixture.candidate,
   ).unwrap()
-  @salesforce_query.begin_issued_salesforce_broad_read(
+  @salesforce_host.begin_issued_salesforce_broad_read(
     attempt,
     "v62.0",
     {
@@ -520,10 +520,10 @@ fn salesforce_issued_read(
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+  let path = @salesforce_host.salesforce_broad_attempt_next_path(attempt)
     .unwrap()
     .unwrap()
-  @salesforce_query.accept_issued_salesforce_broad_page(
+  @salesforce_host.accept_issued_salesforce_broad_page(
     attempt,
     path,
     @utf8.encode(
@@ -533,12 +533,12 @@ fn salesforce_issued_read(
     ),
   ).unwrap()
   |> ignore
-  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
+  @salesforce_host.finish_issued_salesforce_broad_read(attempt).unwrap()
   attempt
 }
 
 ///|
-fn salesforce_completion_limits() -> @salesforce_query.SalesforceBroadCompletionLimits {
+fn salesforce_completion_limits() -> @salesforce_host.SalesforceBroadCompletionLimits {
   {
     execution: compute_test_limits(),
     guards: query_guard_physical(),
@@ -574,14 +574,14 @@ test "Salesforce Host owns exact selected capture and downstream liveness" {
     fixture.candidate,
     salesforce_completion_limits(),
   )
-  let settled : Array[@salesforce_query.SalesforceBroadAttempt] = []
+  let settled : Array[@salesforce_host.SalesforceBroadAttempt] = []
   let run = @salesforce_host.start_salesforce_broad_host(
     configuration,
     "test-host",
     attempt => settled.any(value => physical_equal(value, attempt)),
   ).unwrap()
   let attempt = @salesforce_host.salesforce_broad_host_attempt(run)
-  @salesforce_query.begin_issued_salesforce_broad_read(
+  @salesforce_host.begin_issued_salesforce_broad_read(
     attempt,
     "v62.0",
     {
@@ -596,10 +596,10 @@ test "Salesforce Host owns exact selected capture and downstream liveness" {
     3,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+  let path = @salesforce_host.salesforce_broad_attempt_next_path(attempt)
     .unwrap()
     .unwrap()
-  @salesforce_query.accept_issued_salesforce_broad_page(
+  @salesforce_host.accept_issued_salesforce_broad_page(
     attempt,
     path,
     @utf8.encode(
@@ -609,7 +609,7 @@ test "Salesforce Host owns exact selected capture and downstream liveness" {
     ),
   ).unwrap()
   |> ignore
-  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
+  @salesforce_host.finish_issued_salesforce_broad_read(attempt).unwrap()
   settled.push(attempt)
   let observation = @salesforce_host.complete_salesforce_broad_host(run).unwrap()
   let source = @salesforce_host.salesforce_broad_host_source(run, observation).unwrap()
@@ -640,25 +640,23 @@ test "Salesforce Host owns exact selected capture and downstream liveness" {
 ///|
 test "issued Salesforce read exposes only its active bounded page state" {
   let fixture = salesforce_issued_fixture()
-  let attempt = @salesforce_query.prepare_issued_salesforce_broad_attempt(
+  let attempt = @salesforce_host.prepare_issued_salesforce_broad_attempt(
     fixture.issuer,
     fixture.choice,
     fixture.candidate,
   ).unwrap()
-  assert_false(
-    @salesforce_query.salesforce_broad_attempt_read_complete(attempt),
-  )
+  assert_false(@salesforce_host.salesforce_broad_attempt_read_complete(attempt))
   assert_true(
-    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt)
+    @salesforce_host.salesforce_broad_attempt_read_row_count(attempt)
     is Err(InvalidState),
   )
   assert_eq(
     @salesforce_catalog.read_projection_soql(
-      @salesforce_query.salesforce_broad_attempt_plan(attempt),
+      @salesforce_host.salesforce_broad_attempt_plan(attempt),
     ),
     "SELECT id FROM r",
   )
-  @salesforce_query.begin_issued_salesforce_broad_read(
+  @salesforce_host.begin_issued_salesforce_broad_read(
     attempt,
     "v62.0",
     {
@@ -673,10 +671,10 @@ test "issued Salesforce read exposes only its active bounded page state" {
     1,
     run_limits().input_values,
   ).unwrap()
-  let path = @salesforce_query.salesforce_broad_attempt_next_path(attempt)
+  let path = @salesforce_host.salesforce_broad_attempt_next_path(attempt)
     .unwrap()
     .unwrap()
-  @salesforce_query.accept_issued_salesforce_broad_page(
+  @salesforce_host.accept_issued_salesforce_broad_page(
     attempt,
     path,
     @utf8.encode(
@@ -686,20 +684,18 @@ test "issued Salesforce read exposes only its active bounded page state" {
     ),
   ).unwrap()
   |> ignore
-  assert_true(@salesforce_query.salesforce_broad_attempt_read_complete(attempt))
+  assert_true(@salesforce_host.salesforce_broad_attempt_read_complete(attempt))
   assert_true(
-    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt) is Ok(1L),
+    @salesforce_host.salesforce_broad_attempt_read_row_count(attempt) is Ok(1L),
   )
-  @salesforce_query.finish_issued_salesforce_broad_read(attempt).unwrap()
-  assert_false(
-    @salesforce_query.salesforce_broad_attempt_read_complete(attempt),
-  )
+  @salesforce_host.finish_issued_salesforce_broad_read(attempt).unwrap()
+  assert_false(@salesforce_host.salesforce_broad_attempt_read_complete(attempt))
   assert_true(
-    @salesforce_query.salesforce_broad_attempt_read_row_count(attempt)
+    @salesforce_host.salesforce_broad_attempt_read_row_count(attempt)
     is Err(InvalidState),
   )
   assert_true(
-    @salesforce_query.complete_salesforce_broad_capture(
+    @salesforce_host.complete_salesforce_broad_capture(
       fixture.issuer,
       attempt,
       salesforce_completion_limits(),
@@ -713,14 +709,14 @@ test "Salesforce completion requires selected attempt and settled transport" {
   let fixture = salesforce_issued_fixture()
   let attempt = salesforce_issued_read(fixture)
   assert_true(
-    @salesforce_query.issue_salesforce_broad_records(
+    @salesforce_host.issue_salesforce_broad_records(
       attempt,
       query_material_limits(),
     )
     is Err(NotRetained),
   )
   assert_true(
-    @salesforce_query.complete_salesforce_broad_capture(
+    @salesforce_host.complete_salesforce_broad_capture(
       fixture.issuer,
       attempt,
       salesforce_completion_limits(),
@@ -729,14 +725,14 @@ test "Salesforce completion requires selected attempt and settled transport" {
   )
   let settled = salesforce_issued_read(fixture)
   fixture.settled.push(settled)
-  let observation = @salesforce_query.complete_salesforce_broad_capture(
+  let observation = @salesforce_host.complete_salesforce_broad_capture(
     fixture.issuer,
     settled,
     salesforce_completion_limits(),
   ).unwrap()
   let (expected, _) = query_observation_oracle(
     fixture.requirement,
-    @salesforce_query.salesforce_broad_attempt_identity(settled),
+    @salesforce_host.salesforce_broad_attempt_identity(settled),
     "[{\"id\":3},{\"id\":1},{\"id\":2}]",
     3,
     "[\"id\"]",
@@ -745,12 +741,12 @@ test "Salesforce completion requires selected attempt and settled transport" {
   )
   assert_eq(
     @encode.document_text(
-      @salesforce_query.salesforce_broad_observation_document(observation),
+      @salesforce_host.salesforce_broad_observation_document(observation),
     ),
     expected,
   )
   assert_eq(
-    @salesforce_query.salesforce_broad_observation_cid(observation),
+    @salesforce_host.salesforce_broad_observation_cid(observation),
     query_material_expected(expected),
   )
   let owner = @query.query_sequence_owner(
@@ -759,7 +755,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
     ),
   )
   let receiver = typed_receiver(owner, "[{\"select\":[\"id\"]}]")
-  let source = @salesforce_query.salesforce_broad_captured_source(
+  let source = @salesforce_host.salesforce_broad_captured_source(
     fixture.issuer,
     settled,
     observation,
@@ -773,7 +769,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
   )
   assert_eq(@query.captured_source_row_count(source), Some(2))
   let source_input = @query.bind_captured_source(source, receiver, 0).unwrap()
-  let input = @salesforce_query.bind_captured_salesforce_broad_input(
+  let input = @salesforce_host.bind_captured_salesforce_broad_input(
     fixture.issuer,
     settled,
     observation,
@@ -811,7 +807,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
   let foreign = salesforce_issued_read(fixture)
   fixture.settled.push(foreign)
   assert_true(
-    @salesforce_query.bind_captured_salesforce_broad_input(
+    @salesforce_host.bind_captured_salesforce_broad_input(
       fixture.issuer,
       foreign,
       observation,
@@ -821,9 +817,9 @@ test "Salesforce completion requires selected attempt and settled transport" {
     )
     is Err(UnauthorizedAttempt),
   )
-  @salesforce_query.abort_salesforce_broad_attempt(settled)
+  @salesforce_host.abort_salesforce_broad_attempt(settled)
   assert_true(
-    @salesforce_query.complete_salesforce_broad_capture(
+    @salesforce_host.complete_salesforce_broad_capture(
       fixture.issuer,
       settled,
       salesforce_completion_limits(),
@@ -833,7 +829,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
   fixture.settled.clear()
   assert_true(!@query.captured_source_available(source))
   assert_true(
-    @salesforce_query.bind_captured_salesforce_broad_input(
+    @salesforce_host.bind_captured_salesforce_broad_input(
       fixture.issuer,
       settled,
       observation,
@@ -846,9 +842,9 @@ test "Salesforce completion requires selected attempt and settled transport" {
   assert_true(
     @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
   )
-  @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  @salesforce_host.close_salesforce_broad_issuer(fixture.issuer)
   assert_true(
-    @salesforce_query.bind_captured_salesforce_broad_input(
+    @salesforce_host.bind_captured_salesforce_broad_input(
       fixture.issuer,
       settled,
       observation,
@@ -863,7 +859,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
     @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
   )
   assert_true(
-    @salesforce_query.salesforce_broad_captured_source(
+    @salesforce_host.salesforce_broad_captured_source(
       fixture.issuer,
       settled,
       observation,
@@ -871,7 +867,7 @@ test "Salesforce completion requires selected attempt and settled transport" {
     is Err(Unavailable),
   )
   assert_true(
-    @salesforce_query.prepare_issued_salesforce_broad_attempt(
+    @salesforce_host.prepare_issued_salesforce_broad_attempt(
       fixture.issuer,
       fixture.choice,
       fixture.candidate,
@@ -893,12 +889,12 @@ test "Salesforce captured source opens the checked DAG for downstream consumers"
   let fixture = salesforce_issued_fixture(requirement=Some(requirement))
   let attempt = salesforce_issued_read(fixture)
   fixture.settled.push(attempt)
-  let observation = @salesforce_query.complete_salesforce_broad_capture(
+  let observation = @salesforce_host.complete_salesforce_broad_capture(
     fixture.issuer,
     attempt,
     salesforce_completion_limits(),
   ).unwrap()
-  let source = @salesforce_query.salesforce_broad_captured_source(
+  let source = @salesforce_host.salesforce_broad_captured_source(
     fixture.issuer,
     attempt,
     observation,
@@ -923,7 +919,7 @@ test "Salesforce captured source opens the checked DAG for downstream consumers"
   assert_eq(@strategy.next_captured_task(run), Some(1))
   captured_graph_local(run, 1).unwrap()
   captured_graph_local(run, 2).unwrap()
-  @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  @salesforce_host.close_salesforce_broad_issuer(fixture.issuer)
   captured_graph_local(run, 3).unwrap()
   assert_true(@strategy.next_captured_task(run) is None)
   for (task, expected) in [(1, [3.0]), (2, [3.0, 2.0]), (3, [3.0])] {

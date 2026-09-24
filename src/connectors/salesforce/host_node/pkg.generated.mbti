@@ -2,7 +2,6 @@
 package "actql/actql/connectors/salesforce/host_node"
 
 import {
-  "actql/actql/connectors/salesforce/acquisition",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors/salesforce/host",
   "actql/actql/execution_query",
@@ -16,19 +15,19 @@ pub fn salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, In
 
 pub fn salesforce_broad_host_abort(@host.SalesforceBroadHostRun) -> Unit
 
-pub fn salesforce_broad_host_attempt(@host.SalesforceBroadHostRun) -> @acquisition.SalesforceBroadAttempt
+pub fn salesforce_broad_host_attempt(@host.SalesforceBroadHostRun) -> @host.SalesforceBroadAttempt
 
-pub fn salesforce_broad_host_bind(@host.SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise SalesforceCatalogBridgeIssue
+pub fn salesforce_broad_host_bind(@host.SalesforceBroadHostRun, @host.SalesforceBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_broad_host_close(@host.SalesforceBroadHostRun) -> Unit
 
-pub fn salesforce_broad_host_complete(@host.SalesforceBroadHostRun) -> @acquisition.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue
+pub fn salesforce_broad_host_complete(@host.SalesforceBroadHostRun) -> @host.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_broad_host_document(@acquisition.SalesforceBroadObservation) -> String
+pub fn salesforce_broad_host_document(@host.SalesforceBroadObservation) -> String
 
-pub fn salesforce_broad_host_open(@host.SalesforceBroadHostConfiguration, String, (@acquisition.SalesforceBroadAttempt) -> Bool) -> @host.SalesforceBroadHostRun raise SalesforceCatalogBridgeIssue
+pub fn salesforce_broad_host_open(@host.SalesforceBroadHostConfiguration, String, (@host.SalesforceBroadAttempt) -> Bool) -> @host.SalesforceBroadHostRun raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_broad_host_source(@host.SalesforceBroadHostRun, @acquisition.SalesforceBroadObservation) -> @execution_query.CapturedInputSource raise SalesforceCatalogBridgeIssue
+pub fn salesforce_broad_host_source(@host.SalesforceBroadHostRun, @host.SalesforceBroadObservation) -> @execution_query.CapturedInputSource raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_catalog_begin(@catalog.ResourceListing) -> @catalog.CatalogSync
 
@@ -86,39 +85,39 @@ pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollection
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
 
-pub fn salesforce_issued_broad_abort(@acquisition.SalesforceBroadAttempt) -> Unit
+pub fn salesforce_issued_broad_abort(@host.SalesforceBroadAttempt) -> Unit
 
-pub fn salesforce_issued_broad_accept_page(@acquisition.SalesforceBroadAttempt, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
+pub fn salesforce_issued_broad_accept_page(@host.SalesforceBroadAttempt, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_issued_broad_begin(@acquisition.SalesforceBroadAttempt, String, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
+pub fn salesforce_issued_broad_begin(@host.SalesforceBroadAttempt, String, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_issued_broad_complete(@acquisition.SalesforceBroadAttempt) -> Bool
+pub fn salesforce_issued_broad_complete(@host.SalesforceBroadAttempt) -> Bool
 
-pub fn salesforce_issued_broad_finish(@acquisition.SalesforceBroadAttempt) -> Bool raise SalesforceCatalogBridgeIssue
+pub fn salesforce_issued_broad_finish(@host.SalesforceBroadAttempt) -> Bool raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_issued_broad_next_path(@acquisition.SalesforceBroadAttempt) -> String? raise SalesforceCatalogBridgeIssue
+pub fn salesforce_issued_broad_next_path(@host.SalesforceBroadAttempt) -> String? raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_issued_broad_plan(@acquisition.SalesforceBroadAttempt) -> @catalog.ReadProjection
+pub fn salesforce_issued_broad_plan(@host.SalesforceBroadAttempt) -> @catalog.ReadProjection
 
-pub fn salesforce_issued_broad_row_count(@acquisition.SalesforceBroadAttempt) -> Int64 raise SalesforceCatalogBridgeIssue
+pub fn salesforce_issued_broad_row_count(@host.SalesforceBroadAttempt) -> Int64 raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_managed_query_accept_page(@acquisition.ManagedQuery, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
+pub fn salesforce_managed_query_accept_page(@host.ManagedQuery, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_managed_query_cancel(@acquisition.ManagedQuery) -> Bool
+pub fn salesforce_managed_query_cancel(@host.ManagedQuery) -> Bool
 
-pub fn salesforce_managed_query_complete(@acquisition.ManagedQuery) -> Bool
+pub fn salesforce_managed_query_complete(@host.ManagedQuery) -> Bool
 
-pub fn salesforce_managed_query_finish(@acquisition.ManagedQuery) -> @execution_relation.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue
+pub fn salesforce_managed_query_finish(@host.ManagedQuery) -> @execution_relation.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_managed_query_next_path(@acquisition.ManagedQuery) -> String? raise SalesforceCatalogBridgeIssue
+pub fn salesforce_managed_query_next_path(@host.ManagedQuery) -> String? raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_managed_query_row_count(@acquisition.ManagedQuery) -> Int64
+pub fn salesforce_managed_query_row_count(@host.ManagedQuery) -> Int64
 
 pub fn salesforce_prepare_catalog_observation(@catalog.CatalogSync, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String?], Array[String?], Int) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_continue_write_collection(Array[String], Array[@catalog.WriteBody], Array[Int], Array[String], Array[Int], String, Int, Int, Int, Int, Int, Int) -> @catalog.WriteCollectionRequest raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @acquisition.ManagedQuery raise SalesforceCatalogBridgeIssue
+pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @host.ManagedQuery raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String], Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
@@ -211,8 +210,8 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
-  ManagedQuery(@acquisition.ManagedQueryIssue)
-  BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
+  ManagedQuery(@host.ManagedQueryIssue)
+  BroadAttempt(@host.SalesforceBroadAttemptIssue)
   BroadHost(@host.SalesforceBroadHostIssue)
   InvalidResource
 }

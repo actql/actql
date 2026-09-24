@@ -3,7 +3,7 @@
 pub fn salesforce_broad_host_open(
   configuration : @salesforce_host.SalesforceBroadHostConfiguration,
   nonce : String,
-  verify : (@acquisition.SalesforceBroadAttempt) -> Bool,
+  verify : (@salesforce_host.SalesforceBroadAttempt) -> Bool,
 ) -> @salesforce_host.SalesforceBroadHostRun raise SalesforceCatalogBridgeIssue {
   match
     @salesforce_host.start_salesforce_broad_host(configuration, nonce, verify) {
@@ -16,7 +16,7 @@ pub fn salesforce_broad_host_open(
 #export_name("salesforceBroadHostAttempt")
 pub fn salesforce_broad_host_attempt(
   run : @salesforce_host.SalesforceBroadHostRun,
-) -> @acquisition.SalesforceBroadAttempt {
+) -> @salesforce_host.SalesforceBroadAttempt {
   @salesforce_host.salesforce_broad_host_attempt(run)
 }
 
@@ -24,7 +24,7 @@ pub fn salesforce_broad_host_attempt(
 #export_name("salesforceBroadHostComplete")
 pub fn salesforce_broad_host_complete(
   run : @salesforce_host.SalesforceBroadHostRun,
-) -> @acquisition.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue {
+) -> @salesforce_host.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue {
   match @salesforce_host.complete_salesforce_broad_host(run) {
     Ok(value) => value
     Err(issue) => raise BroadHost(issue)
@@ -35,7 +35,7 @@ pub fn salesforce_broad_host_complete(
 #export_name("salesforceBroadHostSource")
 pub fn salesforce_broad_host_source(
   run : @salesforce_host.SalesforceBroadHostRun,
-  observation : @acquisition.SalesforceBroadObservation,
+  observation : @salesforce_host.SalesforceBroadObservation,
 ) -> @query.CapturedInputSource raise SalesforceCatalogBridgeIssue {
   match @salesforce_host.salesforce_broad_host_source(run, observation) {
     Ok(value) => value
@@ -47,7 +47,7 @@ pub fn salesforce_broad_host_source(
 #export_name("salesforceBroadHostBind")
 pub fn salesforce_broad_host_bind(
   run : @salesforce_host.SalesforceBroadHostRun,
-  observation : @acquisition.SalesforceBroadObservation,
+  observation : @salesforce_host.SalesforceBroadObservation,
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> @execution.BoundProducerInput raise SalesforceCatalogBridgeIssue {
@@ -63,10 +63,10 @@ pub fn salesforce_broad_host_bind(
 ///|
 #export_name("salesforceBroadHostDocument")
 pub fn salesforce_broad_host_document(
-  observation : @acquisition.SalesforceBroadObservation,
+  observation : @salesforce_host.SalesforceBroadObservation,
 ) -> String {
   @encode.document_text(
-    @acquisition.salesforce_broad_observation_document(observation),
+    @salesforce_host.salesforce_broad_observation_document(observation),
   )
 }
 

@@ -312,6 +312,15 @@ still open.
 The five findings in the fixed-SHA review are assessed against the current product
 path, not treated as five unfixed defects at the reviewed SHA:
 
+The Salesforce Acquisition assembly now resides in its Host package rather
+than a provider-facing `acquisition` package. The provider `catalog` package
+retains Salesforce metadata, SOQL, page, and write semantics without importing
+Host custody or planning packages. Host owns the selected broad attempt,
+evidence issuance, capture, and managed output lifetime. This removes a
+misleading public package boundary; it is not a complete external Connector
+SPI. The Host API still exposes internal checked-owner types, so an off-tree
+Connector closure and a standard Effectful Run caller remain acceptance work.
+
 | Finding | Disposition | Product evidence |
 | --- | --- | --- |
 | COMMON-SF-01 | Addressed | The shared owned invocation context snapshots scalar scope and limits before I/O. Catalog and Query compare later authority with that binding; local HTTPS tests mutate the original scope during a request and reject a foreign continuation. |
