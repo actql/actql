@@ -27,6 +27,7 @@ fn construct_local(
   conversion_out? : Array[ProofConversion]? = None,
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  effect_headers? : @syntax.EffectHeaders? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -37,7 +38,11 @@ fn construct_local(
   if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
     raise InvalidLimits
   }
-  let declaration_work = audit_declarations(program, budget.work) catch {
+  let declaration_work = audit_declarations(
+    program,
+    budget.work,
+    effect_headers~,
+  ) catch {
     e => raise Source(e)
   }
   let work_limit = budget.work - declaration_work

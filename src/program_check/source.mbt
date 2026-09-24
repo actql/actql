@@ -34,7 +34,12 @@ pub suberror SourceFailure {
 fn audit_declarations(
   program : @syntax.Program,
   max_work : Int,
+  effect_headers? : @syntax.EffectHeaders? = None,
 ) -> Int raise SourceFailure {
+  if effect_headers is Some(headers) &&
+    !physical_equal(@syntax.effect_headers_owner(headers), program) {
+    raise UnsupportedEffects(@syntax.program_body(program))
+  }
   let mut remaining = max_work
   let charge = () => {
     if remaining <= 0 {
@@ -57,7 +62,9 @@ fn audit_declarations(
         for field in 0..<@decode.object_length(body).unwrap() {
           charge()
           let (key, declaration) = @decode.field_at(body, field).unwrap()
-          if key == "effects" && @decode.object_length(declaration) != Some(0) {
+          if key == "effects" &&
+            @decode.object_length(declaration) != Some(0) &&
+            effect_headers is None {
             raise UnsupportedEffects(declaration)
           }
         }
