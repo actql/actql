@@ -1,17 +1,15 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
-import {performance} from 'node:perf_hooks';
 import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
-import {managedCaseConfiguration} from './managed-configuration.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
-import {productAcquisitionMetadata} from
-  '../../adapters/connectors/duckdb/node/bench/equivalent-acquisition-metadata.mjs';
+import {prepareNativeDirectProduct, executeNativeDirectProduct,
+  admitNativeDirectProduct} from './native-direct-product.mjs';
 
 // Registered-case native product-path diagnostic. It now retains task output
 // independently; formal four-comparator acceptance remains a separate run.
@@ -61,19 +59,10 @@ const scratchRoot = resolve(process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(),
 await mkdir(scratchRoot, {recursive: true});
 const directory = await mkdtemp(join(scratchRoot, 'run-'));
 const run = promisify(execFile);
-const text = path => readFile(join(root, path), 'utf8');
 
 try {
-  const contracts = {
-    adoptedText: await text('adapters/connectors/duckdb/node/contracts/adopted-relation.json'),
-    query: await text('spec/contracts/actql-query-acquisition.json'),
-    evidence: await text('spec/contracts/actql-query-process-evidence.json'),
-    receipts: await text('spec/contracts/actql-query-two-receipt.json'),
-  };
   const database = options.has('source-database')
     ? resolve(options.get('source-database')) : join(directory, 'source.duckdb');
-  const retainedTaskRoot = join(directory, 'retained-task');
-  await mkdir(retainedTaskRoot);
   if (options.has('source-database')) {
     assert(existsSync(database), 'NativeMatchedSourceUnavailable');
   } else {
@@ -82,147 +71,25 @@ try {
       database, fixture.workload, fixture.layout, String(fixture.rows),
     ], {cwd: root, timeout: fixture.limits.timeoutMs});
   }
-  const {input, limits, finalTask} = managedCaseConfiguration(
-    fixture, contracts, database, directory,
-  );
-  assert.equal(finalTask, expectedTasks);
-  const adopted = JSON.parse(input.adoptedText);
-  const files = {
-    'program.json': input.programText,
-    'environment.json': input.environmentText,
-    'environment.cid': input.environmentCid,
-    'parameters.json': input.parameterText,
-    'registry.json': JSON.stringify(adopted.registry),
-    'values.json': JSON.stringify(adopted.values),
-    'fragment.json': JSON.stringify(adopted.fragment),
-    'query.json': input.query,
-    'evidence.json': input.evidence,
-    'two-receipt.json': input.receipts,
-  };
-  for (const [name, content] of Object.entries(files)) {
-    await writeFile(join(directory, name), content);
-  }
-  const libraryName = process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so';
-  const library = join(root, 'adapters/connectors/duckdb/node/node_modules/@duckdb',
-    `node-bindings-${process.platform}-${process.arch}`, libraryName);
-  assert(existsSync(library), `native DuckDB library unavailable: ${library}`);
-  const buildProfile = process.env.ACTQL_NATIVE_PROBE_PROFILE === 'debug'
-    ? 'debug' : 'release';
-  const binary = join(root, `_build/native/${buildProfile}/build/cmd/native_retained_case_probe`,
-    'native_retained_case_probe.exe');
-  assert(existsSync(binary), 'build src/cmd/native_retained_case_probe --target native --release first');
-  const expected = fixture.identity(); // Independent oracle remains outside the child timer.
-  const started = performance.now();
-  const data = input.dataProfile;
-  const {stdout} = await run(binary, [
-    '--application-root', directory,
-    '--database', database,
-    '--duckdb-library', library,
-    '--retained-task-root', retainedTaskRoot,
-    '--expected-cid', expected.rowsCid,
-    '--expected-tasks', String(finalTask),
-    '--native-ms', nativeMs,
-    '--local-eligible', String(localEligible),
-    '--local-task-ms', localRates?.join(',') ?? '-',
-    '--native-task-ms', nativeRates?.join(',') ?? '-',
-    '--source-rows', String(data.source_rows),
-    '--task-rows', String(data.task_rows),
-    '--columns', String(data.columns),
-    '--value-bytes', String(data.value_bytes),
-    '--wire-bytes', String(data.wire_bytes),
-    '--value-nodes', String(data.value_nodes),
-    '--text-bytes', String(data.text_bytes),
-    '--work', String(data.work),
-    '--entries', String(data.entries),
-    '--batch-bytes', String(data.batch_bytes),
-    '--planning-work', String(limits.planning_work),
-    '--transfer-cap', String(limits.transfer_bytes),
-    '--retained-cap', String(limits.retained_bytes),
-    '--execution-cap', String(limits.execution_bytes),
-  ], {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 1048576});
-  const elapsedMilliseconds = performance.now() - started;
-  const result = JSON.parse(stdout.trim().split('\n').at(-1));
-  const selections = stdout.split('\n').filter(line => line.startsWith('selection:'));
-  const taskIntervals = stdout.split('\n')
-    .filter(line => line.startsWith('task-elapsed-us:'))
-    .map(line => {
-      const match = /^task-elapsed-us:([1-9][0-9]*):(0|[1-9][0-9]*)$/.exec(line);
-      assert(match, 'InvalidNativeTaskInterval');
-      const elapsedMicroseconds = Number(match[2]);
-      assert(Number.isSafeInteger(elapsedMicroseconds));
-      return {task: Number(match[1]), elapsedMicroseconds,
-        elapsedMilliseconds: elapsedMicroseconds / 1000};
-    });
-  const taskUsages = stdout.split('\n')
-    .filter(line => line.startsWith('task-usage:'))
-    .map(line => {
-      const match = /^task-usage:([1-9][0-9]*):((?:0|[1-9][0-9]*):){5}(?:0|[1-9][0-9]*)$/.exec(line);
-      assert(match, 'InvalidNativeTaskUsage');
-      const [task, measurementWork, measurementBytes, measurementNodes,
-        comparisonWork, comparisonBytes, comparisonNodes] =
-        line.slice('task-usage:'.length).split(':').map(Number);
-      for (const value of [task, measurementWork, measurementBytes,
-        measurementNodes, comparisonWork, comparisonBytes, comparisonNodes]) {
-        assert(Number.isSafeInteger(value) && value >= 0, 'InvalidNativeTaskUsage');
-      }
-      return {task, measurementWork, measurementBytes, measurementNodes,
-        comparisonWork, comparisonBytes, comparisonNodes};
-    });
-  const taskHoldings = stdout.split('\n')
-    .filter(line => line.startsWith('task-holding:'))
-    .map(line => {
-      const match = /^task-holding:([1-9][0-9]*):(0|[1-9][0-9]*):(sha256:[0-9a-f]{64}):(0|[1-9][0-9]*)$/.exec(line);
-      assert(match, 'InvalidNativeTaskHolding');
-      const task = Number(match[1]);
-      const rows = Number(match[2]);
-      const bytes = Number(match[4]);
-      assert([task, rows, bytes].every(Number.isSafeInteger),
-        'InvalidNativeTaskHolding');
-      return {task, rows, rowsCid: match[3], bytes};
-    });
-  assert.equal(result.rows_cid, expected.rowsCid);
-  assert.equal(result.task_count, finalTask);
-  assert(Number.isSafeInteger(result.execution_us) && result.execution_us >= 0,
-    'InvalidNativeExecutionInterval');
-  assert(Number.isSafeInteger(result.cleanup_us) && result.cleanup_us >= 0,
-    'InvalidNativeCleanupInterval');
-  for (const key of ['planning_work', 'attempts', 'transferred_bytes',
-    'peak_retention_bytes']) {
-    assert(Number.isSafeInteger(result.usage?.[key]) && result.usage[key] >= 0,
-      `InvalidNativeLedgerUsage:${key}`);
-  }
-  for (const key of ['guard_work', 'guard_bytes', 'guard_nodes',
-    'comparison_work', 'comparison_bytes', 'comparison_nodes',
-    'comparison_rows']) {
-    assert(Number.isSafeInteger(result.acquisition?.[key]) &&
-      result.acquisition[key] >= 0, `InvalidNativeAcquisitionUsage:${key}`);
-  }
-  assert.equal(result.acquisition.comparison_rows, fixture.rows);
-  const acquisitionEvidenceMetadata = productAcquisitionMetadata(
-    fixture,
-    result.acquisition_evidence,
-  );
-  assert.deepEqual(taskIntervals.map(value => value.task),
-    Array.from({length: finalTask}, (_, index) => index + 1));
-  assert.deepEqual(taskUsages.map(value => value.task),
-    Array.from({length: finalTask}, (_, index) => index + 1));
-  assert.deepEqual(taskHoldings.map(value => value.task),
-    Array.from({length: finalTask}, (_, index) => index + 1));
-  assert.deepEqual(taskHoldings.map(value => value.rows),
-    fixture.workload === workloads[1]
-      ? [fixture.cardinalities.a, fixture.cardinalities.b,
-        fixture.cardinalities.join, fixture.cardinalities.count]
-      : [fixture.cardinalities.a, fixture.cardinalities.b,
-        fixture.cardinalities.c]);
-  assert.equal(taskHoldings.at(-1).rowsCid, expected.rowsCid);
+  const invocation = await prepareNativeDirectProduct({root, fixture,
+    database, directory, nativeMs, localRates, nativeRates});
+  assert.equal(invocation.finalTask, expectedTasks);
+  assert.equal(invocation.localEligible, localEligible);
+  const execution = await executeNativeDirectProduct(invocation,
+    {root, timeoutMs: fixture.limits.timeoutMs});
+  const admitted = admitNativeDirectProduct(fixture, invocation, execution);
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
     scope: registered ? 'registered-feasibility' : 'calibration-training',
-    elapsedMilliseconds,
-    executionMilliseconds: result.execution_us / 1000,
-    cleanupMilliseconds: result.cleanup_us / 1000,
-    taskIntervals, taskUsages, taskHoldings, selections, result,
-    acquisitionEvidenceMetadata,
+    elapsedMilliseconds: admitted.processCycleMs,
+    executionMilliseconds: admitted.executionMs,
+    cleanupMilliseconds: admitted.cleanupMs,
+    taskIntervals: admitted.taskIntervals,
+    taskUsages: admitted.taskUsages,
+    taskHoldings: admitted.taskHoldings,
+    selections: admitted.selections,
+    result: admitted.record,
+    acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
     sourceMode: options.has('source-database') ? 'existing' : 'generated',
     selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
