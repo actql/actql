@@ -87,3 +87,42 @@ all four comparator families and durable, replayable raw records.
 Performance work must preserve real validation, required identities,
 independent holding, cleanup, ordinary placement, and the original confidence
 and timing gates.
+
+## Execution placement after the retained-path review
+
+The objective is to minimize the live state and data movement of the whole
+task chain, not to maximize the fraction of tasks running in Native. Native
+versus Node identifies the Host realization; Local versus DuckDB identifies the
+compute provider; resident versus reimported identifies the data path. These
+are separate choices.
+
+Use a light, portable-capable Host profile when its admitted resource bound
+keeps the live state small, even if a bounded scan must validate a large source
+before capture. A small *final* result is not sufficient: join/count can hold a
+large intermediate result. For large retained or reused data, prefer an
+eligible provider that can keep an immutable representation available to later
+tasks. This must preserve each task's own completion, identity, retention,
+settlement, read authority, and cleanup obligations. Keeping a session open
+is not permission to fuse registered tasks or expose an uncompleted output.
+
+The saved Linux join diagnostic already selected DuckDB resident for every
+task and reported zero direct input scans. Its excess cost was concentrated in
+duplicated parent/worker preparation and the control and output-retention
+path; moving that case wholesale to the current Native Host made it slower.
+The next large-case change should remove redundant preparation and output
+handling while retaining the working resident path. Required logical-content
+identity cannot be bypassed merely to admit a managed candidate. See
+`2026-09-24-retained-performance-cost-review.md` for the measured phases and
+the current managed-profile limitation.
+
+Production placement must use registered capability, a safe bound on peak
+live state, data location and reusable representation, transfer/conversion
+cost, and preparation cost. A predicted small result cannot stand in for a
+resource bound. Workload-name and row-count switches in the matrix runner are
+only experiment routing. First close the ordinary light acquisition path;
+then close large join/reuse from retained output through the next consumer and
+cleanup as one implementation unit. Verify task semantics and actual scan,
+reimport, preparation, and encoded-byte counts during development. Run the
+unchanged paired performance assessment once the complete path is ready at a
+fixed revision; do not substitute task fusion or a conditional-CID profile for
+the registered comparison.
