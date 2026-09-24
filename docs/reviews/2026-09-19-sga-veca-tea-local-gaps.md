@@ -12,9 +12,9 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 22 |
-| Full route work/workspace assurance | 22 |
-| Path-scoped work/workspace assurance | 48 |
+| Four-role lifecycle assurance | 23 |
+| Full route work/workspace assurance | 23 |
+| Path-scoped work/workspace assurance | 49 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -39,6 +39,12 @@ view, name, ordinal, and row slots peak at fourteen. Exact limits succeed,
 and either one-short limit fails before completion while the borrowed input
 remains available. This is a path-scoped proof, not assurance for every
 supplied-input variant or the remaining synchronous fallback.
+The rows-to-Graph Bridge route now binds its independent nineteen-unit work
+and ten-slot workspace fixture to a Node standard-Host case that delivers
+timer cancellation after the Graph construction task reports work. The Host
+observes stop and final cleanup; a separate portable fixture checks both
+consumers. This completes the registered Bridge graph entrypoint's route
+assurance, without extending that proof to other Graph operations.
 ShortestPath now advances typed endpoint, edge, and weighted tie comparisons
 through the shared bounded key cursor. A quantum-one long-text fixture checks
 active cancellation, cleanup, and canonical output order on all three targets.

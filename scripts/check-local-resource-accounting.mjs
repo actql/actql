@@ -1484,6 +1484,12 @@ for (const [index, route] of routeEntries.entries()) {
       !boundaryRoles.has('graph_bridge_two_consumer_lifetime'))) {
     fail(`${label}: rows-to-Graph Bridge boundary evidence is missing`);
   }
+  if (route.family === 'Bridge' && route.operation === 'graph' &&
+    (!environmentRoles.has('graph_bridge_host_in_flight_cancel') ||
+      pathAssurance.entrypoint === undefined ||
+      resourceAssurance.entrypoint === undefined)) {
+    fail(`${label}: rows-to-Graph Bridge Host/resource assurance is missing`);
+  }
   if (route.family === 'Bridge' && route.operation === 'events' &&
     !environmentRoles.has('events_projection_host_in_flight_cancel')) {
     fail(`${label}: Events projection Host cancellation fixture is missing`);
