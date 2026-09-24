@@ -36,6 +36,26 @@ test('Client Host rejects missing authentication before touching state', async (
   assert.equal(authorized, 0);
 });
 
+test('installed preparation cannot disappear before Run acceptance', async () => {
+  let admissions = 0;
+  const handler = createClientHttpHandler({
+    authenticate: () => 'principal-a', authorizeConnection: () => true,
+    prepareSubmit: () => undefined,
+    submit: () => { admissions++; return undefined; },
+  });
+  await withServer(handler, async base => {
+    const response = await fetch(`${base}/actql/client/0.1/submit`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'local', owner: 'local',
+        runners: [], consentRefs: []}, requestId: 'saved-id', kind: 'aql',
+      input: {text: '{}', format: 'json'}, parameters: null}),
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+  });
+  assert.equal(admissions, 0);
+});
+
 test('Client Host rejects missing movement consent and oversized bodies', async () => {
   const handler = createClientHttpHandler({
     authenticate: () => 'principal-a',
