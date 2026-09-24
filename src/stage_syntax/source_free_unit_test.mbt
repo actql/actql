@@ -33,6 +33,7 @@ test "opaque binding inventory exposes names without invocation values" {
     format=Json,
   )
   assert_eq(program_binding_names(without), [])
+  assert_eq(program_parameter_names(without), [])
   let declared = parsed(
     (
       #|{"version":"actql/0.1","id":"p","bindings":{"target_file":{"type":"resource_ref","resource_kind":"example.file"}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"rows":[{"id":1}]},"as":"rows"}],"results":{"rows":{"from":"rows"}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
@@ -40,4 +41,11 @@ test "opaque binding inventory exposes names without invocation values" {
     format=Json,
   )
   assert_eq(program_binding_names(declared), ["target_file"])
+  let parameterized = parsed(
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"n":{"type":"number"},"label":{"type":"string"}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"rows":[{"id":1}]},"as":"rows"}],"results":{"rows":{"from":"rows"}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+    ),
+    format=Json,
+  )
+  assert_eq(program_parameter_names(parameterized), ["n", "label"])
 }

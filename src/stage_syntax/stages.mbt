@@ -46,6 +46,17 @@ pub fn program_binding_names(program : Program) -> Array[String] {
 }
 
 ///|
+/// Parameter declarations are public Program structure. Bound values remain
+/// separate invocation material and are not exposed by this accessor.
+pub fn program_parameter_names(program : Program) -> Array[String] {
+  let root = @wire.open_object(program.body).unwrap()
+  match @wire.lookup(root, "params") {
+    None => []
+    Some(parameters) => @wire.object_field_names(parameters).unwrap()
+  }
+}
+
+///|
 fn required(view : @wire.ObjectView, name : String) -> @wire.Cursor raise Abort {
   match @wire.required(view, name) {
     Ok(value) => value
