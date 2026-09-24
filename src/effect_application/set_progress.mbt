@@ -283,11 +283,20 @@ fn effect_set_frontier_from_ledger_entries(
           if !effect_ledger_entry_matches_basis(entry, bases[row_index]) {
             return Err(ForeignLedgerEntry(member_index, row_index))
           }
-          if active[row_index] && entry.state != Dispatching {
+          if active[row_index] &&
+            entry.state != Dispatching &&
+            entry.state != Unknown {
             return Err(InvalidHistory)
           }
           match entry.state {
             Dispatching =>
+              match sending_request {
+                None => sending_request = Some(entry.canonical_request_cid)
+                Some(cid) if cid != entry.canonical_request_cid =>
+                  return Err(InvalidHistory)
+                _ => ()
+              }
+            Unknown if active[row_index] =>
               match sending_request {
                 None => sending_request = Some(entry.canonical_request_cid)
                 Some(cid) if cid != entry.canonical_request_cid =>
@@ -304,12 +313,13 @@ fn effect_set_frontier_from_ledger_entries(
           }
           match entry.state {
             Prepared => ItemUnattempted
-            Dispatching =>
+            Dispatching | Unknown if active[row_index] =>
               if active[row_index] {
                 ItemSending
               } else {
                 ItemUnknown
               }
+            Dispatching => ItemUnknown
             Applied => ItemApplied
             Accepted => ItemAccepted
             Failed => ItemFailed

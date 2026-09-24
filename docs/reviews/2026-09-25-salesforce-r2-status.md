@@ -199,6 +199,10 @@ yet derived from the row observations, and the ordinary Host does not yet
 issue or durably commit member, set, or final Run Receipts through this gate.
 The progress reader now takes all member heads in one SQLite read snapshot,
 so concurrent writers cannot make one frontier from different revisions.
+An active physical call remains active by its logical row owner even if its
+durable head advances to `unknown` during settlement. The common frontier
+therefore does not open a later row of that member until the physical call
+actually settles; after settlement the unknown fact remains for reconciliation.
 
 The shared Effect apply Receipt admission now accepts a member with known
 applied or accepted rows and later unattempted rows as `partial_failure`.
