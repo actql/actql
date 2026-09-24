@@ -2719,6 +2719,71 @@ fn run_direct_ranking_provider(
 }
 
 ///|
+test "ranking detects an in-flight input loss before completion" {
+  let left = direct_ranking_owner()
+  let right = direct_ranking_owner()
+  let owner = direct_ranking_fusion_owner(left, right, "\"max\"")
+  let left_output = direct_ranking_output(left, [(1.0, 1.0, 0.75)])
+  let right_output = direct_ranking_output(right, [(1.0, 2.0, 0.5)])
+  let right_live = Ref(true)
+  let restricted = @execution.restrict_completed_output(right_output, fn() {
+    right_live.val
+  })
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, restricted).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let provider = @local_veca_provider.provider(
+    carrier_vectors_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let execution = @local_connector.start_managed_provider(
+    provider, generated, inputs, 10, 1000,
+  ).unwrap()
+  assert_true(
+    @local_connector.advance_managed_provider(execution, 1).unwrap()
+    is @local_connector.Continue(work=1L, ..),
+  )
+  right_live.val = false
+  let mut failed = false
+  for _ in 0..<4 {
+    if !failed {
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.Failed(_, ..) => failed = true
+        @local_connector.Complete(_, ..) =>
+          fail("ranking published after an input was lost")
+        @local_connector.CarrierComplete(_, ..) =>
+          fail("ranking returned a Carrier")
+        @local_connector.Stopped(..) => fail("ranking stopped without failure")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 fn run_direct_nullable_ranking_provider(
   policy : String,
   expected_scores : Array[Double],
