@@ -31,6 +31,8 @@ pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publica
 
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
+pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -303,6 +305,11 @@ pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
   Encoding
+}
+
+pub(all) enum ClientValuesFragmentAdmissionIssue {
+  Issue(ClientValuesFragmentIssue)
+  MismatchedNode
 }
 
 pub(all) enum ClientValuesFragmentIssue {

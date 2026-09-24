@@ -617,6 +617,35 @@ test "ordinary values document prepares one named Effect-free result" {
     pipeline +
     "}",
   )
+  assert_eq(
+    client_values_fragment_wire(
+      admit_prepared_client_values_fragment(
+        prepared,
+        0,
+        client_values_fragment_wire(fragment),
+        aoa_limits,
+        10000,
+        1000,
+        20,
+      ).unwrap(),
+    ),
+    client_values_fragment_wire(fragment),
+  )
+  assert_true(
+    admit_prepared_client_values_fragment(
+      prepared,
+      0,
+      client_values_fragment_wire(fragment).replace(
+        old="\"values_0\"",
+        new="\"values_1\"",
+      ),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientValuesFragmentAdmissionIssue::MismatchedNode),
+  )
   assert_true(
     issue_prepared_client_values_fragment(
       prepared, 1, aoa_limits, 10000, 1000, 20,
