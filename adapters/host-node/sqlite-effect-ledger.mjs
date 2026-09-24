@@ -234,6 +234,10 @@ export function openSqliteEffectLedger(root, {
       response_bytes, physical_sha256
     FROM effect_ledger_responses WHERE dispatch_entry_cid = ?
   `);
+  const readResponseLocators = database.prepare(`
+    SELECT dispatch_entry_cid FROM effect_ledger_responses
+    WHERE logical_item_locator_cid = ? LIMIT 2
+  `);
   const readDispatchEntry = database.prepare(`
     SELECT logical_item_locator_cid FROM effect_ledger_entries
     WHERE entry_cid = ?
@@ -242,6 +246,10 @@ export function openSqliteEffectLedger(root, {
     SELECT dispatch_entry_cid, batch_owner_cid, position,
       logical_item_locator_cid FROM effect_ledger_batch_members
     WHERE dispatch_entry_cid = ?
+  `);
+  const readBatchLocators = database.prepare(`
+    SELECT dispatch_entry_cid FROM effect_ledger_batch_members
+    WHERE logical_item_locator_cid = ? LIMIT 2
   `);
   const readBatchResponse = database.prepare(`
     SELECT batch_owner_cid, logical_request_scope_cid,
@@ -259,6 +267,10 @@ export function openSqliteEffectLedger(root, {
       logical_request_scope_cid, response_physical_sha256,
       outcome_cid, outcome_json, physical_sha256
     FROM effect_ledger_outcomes WHERE dispatch_entry_cid = ?
+  `);
+  const readOutcomeLocators = database.prepare(`
+    SELECT dispatch_entry_cid FROM effect_ledger_outcomes
+    WHERE logical_item_locator_cid = ? LIMIT 2
   `);
   const materialize = (row, scopeCid) => {
     if (row === undefined) fail('EffectLedgerEntryMissing');
@@ -375,6 +387,18 @@ export function openSqliteEffectLedger(root, {
     }
     return single ?? batch;
   };
+  const uniqueLocatorDispatch = (locatorCid, singles, batches) => {
+    const rows = [...singles.all(locatorCid), ...batches.all(locatorCid)];
+    if (rows.length > 1) fail('EffectLedgerIntegrityFailed');
+    return rows[0]?.dispatch_entry_cid;
+  };
+  const responseForLocator = locatorCid => {
+    active();
+    if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+    const dispatchCid = uniqueLocatorDispatch(locatorCid,
+      readResponseLocators, readBatchLocators);
+    return dispatchCid === undefined ? undefined : response(dispatchCid);
+  };
   const outcome = dispatchEntryCid => {
     active();
     if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
@@ -408,7 +432,21 @@ export function openSqliteEffectLedger(root, {
   return Object.freeze({
     current,
     response,
+    dispatchForLocator(locatorCid) {
+      active();
+      if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+      return uniqueLocatorDispatch(locatorCid,
+        readResponseLocators, readBatchLocators);
+    },
+    responseForLocator,
     outcome,
+    outcomeForLocator(locatorCid) {
+      active();
+      if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+      const rows = readOutcomeLocators.all(locatorCid);
+      if (rows.length > 1) fail('EffectLedgerIntegrityFailed');
+      return rows.length === 0 ? undefined : outcome(rows[0].dispatch_entry_cid);
+    },
     // This is physical custody, not semantic outcome admission. The common
     // MoonBit issuer must bind and classify the stored response before use.
     recordOutcome({logicalRequestScopeCid, logicalItemLocatorCid,

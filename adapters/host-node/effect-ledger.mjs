@@ -261,8 +261,8 @@ export function openEffectLedger({
       if (action === 8 || action === 9) {
         fail('EffectDispatchBindingMismatch');
       }
-      if (action !== 3) return undefined;
-      const row = physical.response(control.ledgerEntryCid(stored.entry));
+      if (action < 3 || action > 7) return undefined;
+      const row = physical.responseForLocator(locatorCid);
       if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
         fail('EffectLedgerScopeMismatch');
       }
@@ -277,7 +277,7 @@ export function openEffectLedger({
     readClaimedOutcome(claim) {
       const stored = ledger.readClaimedResponse(claim);
       if (stored === undefined) return undefined;
-      return physical.outcome(stored.dispatchEntryCid);
+      return physical.outcomeForLocator(stored.logicalItemLocatorCid);
     },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
@@ -309,22 +309,20 @@ export function openEffectLedger({
         if (action === 8 || action === 9) {
           fail('EffectDispatchBatchBindingMismatch');
         }
-        if (action !== 3) return undefined;
-        members.push({
-          logicalItemLocatorCid: locatorCid,
-          dispatchEntryCid: control.ledgerEntryCid(stored.entry),
-        });
+        if (action < 3 || action > 7) return undefined;
+        members.push({logicalItemLocatorCid: locatorCid});
       }
-      const row = physical.response(members[0].dispatchEntryCid);
+      const row = physical.responseForLocator(members[0].logicalItemLocatorCid);
       if (row === undefined) return undefined;
       if (row.logicalRequestScopeCid !== scopeCid ||
-          row.batchOwnerCid !== members[0].dispatchEntryCid ||
+          row.batchOwnerCid !== row.dispatchEntryCid ||
           row.batchPosition !== 0 || row.batchCount !== members.length ||
           row.batchMembers?.length !== members.length ||
           row.batchMembers.some((member, index) =>
             member.logicalItemLocatorCid !==
               members[index].logicalItemLocatorCid ||
-            member.dispatchEntryCid !== members[index].dispatchEntryCid)) {
+            member.dispatchEntryCid !== physical.dispatchForLocator(
+              members[index].logicalItemLocatorCid))) {
         fail('EffectCollectionResponseBindingMismatch');
       }
       return row;
