@@ -50,6 +50,8 @@ import {
   "actql/actql/capacity_policy" @policy,
   "actql/actql/capacity_law" @law,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
   "moonbitlang/core/encoding/utf8",
 }
 
@@ -60,8 +62,6 @@ import {
   "actql/actql/source_request_slots" @slots,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_evidence" @evidence,
-  "actql/actql/relation_schema" @schema,
-  "actql/actql/value_contract" @contract,
   "moonbitlang/core/debug",
   "actql/actql/sha256" @sha,
 } for "wbtest"
