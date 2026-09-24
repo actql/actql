@@ -214,3 +214,123 @@ test "Run Definition cannot outlive admitted preparation" {
     is Err(RunAdmissionInvalidLifetime),
   )
 }
+
+///|
+test "Run program binding rejects foreign checked identities" {
+  let template = admission_test_template()
+  let plan = admission_test_plan(admission_test_cid("1"))
+  let prepared = admission_test_prepared(template, plan, "allow")
+  let admission = admit_run_publication(
+    template,
+    prepared,
+    admission_test_authorization(prepared, "allowed", false),
+    plan,
+  ).unwrap()
+  let definition = issue_run_definition(
+    admission,
+    "scope",
+    "run",
+    admission_test_cid("b"),
+    "2026-09-18T00:00:00.000Z",
+    "2026-09-18T02:00:00.000Z",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      definition,
+      admission_test_cid("1"),
+      admission_test_cid("a"),
+      admission_test_cid("4"),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      definition,
+      admission_test_cid("f"),
+      admission_test_cid("a"),
+      admission_test_cid("4"),
+    )
+    is Err(RunProgramForeignPlan),
+  )
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      definition,
+      admission_test_cid("1"),
+      admission_test_cid("f"),
+      admission_test_cid("4"),
+    )
+    is Err(RunProgramForeignPlan),
+  )
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      definition,
+      admission_test_cid("1"),
+      admission_test_cid("a"),
+      admission_test_cid("f"),
+    )
+    is Err(RunProgramForeignTemplate),
+  )
+  let foreign_run = seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\"," +
+    "\"scope_id\":\"scope\",\"run_id\":\"run\"," +
+    "\"compiled_plan_cid\":\"" +
+    admission_test_cid("f") +
+    "\",\"invocation_template_cid\":\"" +
+    run_evidence_value_identity(template) +
+    "\",\"authorization_context_cid\":\"" +
+    admission_test_cid("8") +
+    "\",\"input_artifact_set_cid\":\"" +
+    admission_test_cid("b") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\"," +
+    "\"valid_until\":\"2026-09-18T02:00:00.000Z\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      foreign_run,
+      admission_test_cid("1"),
+      admission_test_cid("a"),
+      admission_test_cid("4"),
+    )
+    is Err(RunProgramForeignRun),
+  )
+  let outlived = seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\"," +
+    "\"scope_id\":\"scope\",\"run_id\":\"run\"," +
+    "\"compiled_plan_cid\":\"" +
+    publication_contract_identity(plan) +
+    "\",\"invocation_template_cid\":\"" +
+    run_evidence_value_identity(template) +
+    "\",\"authorization_context_cid\":\"" +
+    admission_test_cid("8") +
+    "\",\"input_artifact_set_cid\":\"" +
+    admission_test_cid("b") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\"," +
+    "\"valid_until\":\"2026-09-18T04:00:00.000Z\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  assert_true(
+    check_run_publication_program_binding(
+      admission,
+      outlived,
+      admission_test_cid("1"),
+      admission_test_cid("a"),
+      admission_test_cid("4"),
+    )
+    is Err(RunProgramInvalidLifetime),
+  )
+}

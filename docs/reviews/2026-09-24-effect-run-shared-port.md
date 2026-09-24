@@ -224,3 +224,10 @@ and Effect Plan logical-CID inventories to name the same exact members as the
 private Preview. This is inventory closure only. The synthetic plan values in
 the reference fixture do not prove AoA plan identities or replace the missing
 product Captured Run issuer.
+The checked Program now also retains an admitted Run Definition owner after
+MoonBit compares its exact Program Definition, Program semantics, Check
+Environment, Compiled Plan, Invocation Template, authorization context, and
+lifetime. Foreign Plan, Environment, Run, and outlived authority are rejected.
+This is not executable Effect authority: executable-plan content, concrete
+Invocation, captured Effect plans and values, current grants, and apply remain
+to be admitted on the same owner before the standard Host may dispatch.
