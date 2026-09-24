@@ -141,6 +141,41 @@ pub fn prepared_client_result_name(
 }
 
 ///|
+pub(all) enum ClientTaskAoAStepsIssue {
+  MissingTask
+  Sequence(@lower.SequenceIssue)
+  Encoding
+}
+
+///|
+/// Emit the bounded, parameter-bound AoA steps from the checked task owner.
+/// These bytes are compilation material, not an Executable Plan or Run grant.
+pub fn emit_prepared_client_task_aoa_steps(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientTaskAoAStepsIssue] {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingTask)
+  }
+  let sequence = match @lower.prepare_sequence(owner, limits) {
+    Ok(result) => result
+    Err(issue) => return Err(Sequence(issue))
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @lower.emit_sequence_steps(sequence, writer) catch {
+    _ => return Err(Encoding)
+  }
+  let steps = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(steps)
+}
+
+///|
 pub(all) enum ClientTaskSequenceIssue {
   MissingTask
   EmptyTask
