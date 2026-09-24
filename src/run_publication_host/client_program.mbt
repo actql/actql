@@ -253,7 +253,7 @@ pub(all) enum ClientPublicationLimitScope {
 pub(all) enum ClientPublicationLimitIssue {
   MissingPublication
   Encoding
-}
+} derive(Eq, Debug)
 
 ///|
 /// Emit the already checked publication limit for one Unit Result. Its
