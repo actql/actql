@@ -689,6 +689,24 @@ test('owned update Plan matches approved rows and rejects altered intent',
         moon.clientProgramBindEffectPreviewInputs(
           owned, inputs, invocation, 0, preview.wire,
           preview.authoringCid, previewLimits));
+      const checkCurrent = ({sources = [cid('c'), cid('c')],
+        contracts = [mappingCid, mappingCid],
+        capabilities = [cid('d'), cid('d')],
+        authorities = [cid('e'), cid('e')]} = {}) => checked(
+        moon.clientProgramCheckEffectPreviewCurrentBindings(
+          previewInputs, sources, contracts, capabilities, authorities,
+          2, 8));
+      assert.doesNotThrow(() => checkCurrent());
+      assert.throws(() => checkCurrent({capabilities: [cid('d')]}),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkCurrent({sources: [cid('c'), cid('f')]}),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkCurrent({contracts: [mappingCid, cid('f')]}),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkCurrent({capabilities: [cid('d'), cid('f')]}),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkCurrent({authorities: [cid('e'), cid('f')]}),
+      {code: 'MoonBitHostFailure'});
       const limits = moon.clientProgramEffectInputExportLimits(
         ...effectInputExportArgs(outputLimits));
       const planLimits = {
@@ -777,6 +795,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.equal(releasedChunks.length, 1);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.throws(() => checkCurrent(),
+      {code: 'MoonBitHostFailure'});
       assert.equal(moon.clientProgramEffectPlanProofMatches(
         verified.proof, previewInputs, 0), false);
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
