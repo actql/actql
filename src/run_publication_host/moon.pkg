@@ -21,6 +21,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/value_contract" @contract,
+  "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_results" @results,
   "actql/actql/order_key" @order,

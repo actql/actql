@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/logical_request_scope"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn prepare_scope_cid(String, String, Int) -> Result[String, ScopeIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum ScopeIssue {
+  InvalidLimits
+  InvalidAuthorityScope
+  InvalidCallerRequest
+  Encoding
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
