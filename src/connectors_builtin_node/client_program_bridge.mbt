@@ -745,6 +745,51 @@ pub fn client_program_local_values_output_schema_cid(
 }
 
 ///|
+/// The checked Values AoA Fragment node and full output row contract.
+/// Neither this node nor its type CID is an Executable Plan.
+#export_name("clientProgramIssueLocalValuesFragment")
+pub fn client_program_issue_local_values_fragment(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[
+  @publication_host.ClientValuesFragmentNode,
+  @publication_host.ClientValuesFragmentIssue,
+] {
+  @publication_host.issue_prepared_client_values_fragment(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramLocalValuesFragmentWire")
+pub fn client_program_local_values_fragment_wire(
+  value : @publication_host.ClientValuesFragmentNode,
+) -> String {
+  @publication_host.client_values_fragment_wire(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesFragmentOutputContractCid")
+pub fn client_program_local_values_fragment_output_contract_cid(
+  value : @publication_host.ClientValuesFragmentNode,
+) -> String {
+  @publication_host.client_values_fragment_output_contract_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesFragmentOutputContractWire")
+pub fn client_program_local_values_fragment_output_contract_wire(
+  value : @publication_host.ClientValuesFragmentNode,
+) -> String {
+  @publication_host.client_values_fragment_output_contract_wire(value)
+}
+
+///|
 /// Checked Result row type from the exact publication port, after its
 /// projection. This is private Plan material, not Run admission.
 #export_name("clientProgramIssueResultRowContract")
