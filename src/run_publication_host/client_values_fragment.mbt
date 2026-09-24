@@ -20,6 +20,12 @@ pub(all) enum ClientValuesFragmentIssue {
 }
 
 ///|
+pub(all) enum ClientValuesFragmentAdmissionIssue {
+  Issue(ClientValuesFragmentIssue)
+  MismatchedNode
+}
+
+///|
 pub fn client_values_fragment_wire(value : ClientValuesFragmentNode) -> String {
   value.wire
 }
@@ -133,4 +139,30 @@ pub fn issue_prepared_client_values_fragment(
   } catch {
     _ => Err(Encoding)
   }
+}
+
+///|
+/// Replan one saved Fragment from the checked Program before use.
+/// A canonical node from a different checked Values task is not admitted.
+/// This is only one component of saved Executable Plan admission.
+pub fn admit_prepared_client_values_fragment(
+  value : PreparedClientProgram,
+  task : Int,
+  saved_wire : String,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue] {
+  let issued = match
+    issue_prepared_client_values_fragment(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(node) => node
+    Err(issue) => return Err(Issue(issue))
+  }
+  if saved_wire != issued.wire {
+    return Err(MismatchedNode)
+  }
+  Ok(issued)
 }
