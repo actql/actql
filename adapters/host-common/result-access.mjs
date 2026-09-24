@@ -2,6 +2,8 @@
 // MoonBit owns grant and delivery semantics. This module keeps caller input
 // separate from Host-owned authorization and delegates physical effects.
 import {deliverPublishedResult} from './result-delivery.mjs';
+import {validDeliveryAttemptLookup} from
+  '../../packages/client-wire/index.mjs';
 
 const authorities = new WeakMap();
 const services = new WeakMap();
@@ -10,6 +12,36 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 const positive = value => Number.isSafeInteger(value) && value > 0;
+const indexKeyFields = [
+  'tenantId', 'authorityScopeCid', 'runDefinitionCid',
+];
+
+// Copy only the typed request fields before any authorization or Store await.
+// This leaves in-process grants and MoonBit handles on their original owners.
+function ownedResultRequest(input, delivery) {
+  const fields = [
+    'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
+    ...(delivery ? ['format'] : []),
+  ];
+  if (!exactKeys(input, fields) ||
+      !exactKeys(input.indexKey, indexKeyFields)) {
+    fail('InvalidResultAccessRequest');
+  }
+  const sourceKey = input.indexKey;
+  const indexKey = Object.freeze({
+    tenantId: sourceKey.tenantId,
+    authorityScopeCid: sourceKey.authorityScopeCid,
+    runDefinitionCid: sourceKey.runDefinitionCid,
+  });
+  return Object.freeze({
+    indexKey,
+    principalId: input.principalId,
+    purpose: input.purpose,
+    resultName: input.resultName,
+    attemptId: input.attemptId,
+    ...(delivery ? {format: input.format} : {}),
+  });
+}
 
 export class ResultAccessError extends Error {
   constructor(code, cause) {
@@ -112,13 +144,10 @@ export function installResultAccessService(configuration) {
   return service;
 }
 
-export async function inspectAuthorizedDeliveryAttempt(service, request) {
+export async function inspectAuthorizedDeliveryAttempt(service, input) {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
-  if (!exactKeys(request, [
-    'indexKey', 'principalId', 'purpose', 'resultName', 'attemptId',
-  ]) || !exactKeys(request.indexKey, [
-    'tenantId', 'authorityScopeCid', 'runDefinitionCid',
-  ]) || typeof request.indexKey.tenantId !== 'string' ||
+  const request = ownedResultRequest(input, false);
+  if (typeof request.indexKey.tenantId !== 'string' ||
       !request.indexKey.tenantId ||
       !cidPattern.test(request.indexKey.authorityScopeCid) ||
       !cidPattern.test(request.indexKey.runDefinitionCid) ||
@@ -135,14 +164,22 @@ export async function inspectAuthorizedDeliveryAttempt(service, request) {
     fail('ResultAttemptLookupUnavailable');
   }
   let allowed;
-  try { allowed = await authorize(Object.freeze({...request})); }
+  try { allowed = await authorize(request); }
   catch { fail('ResultAccessDenied'); }
   if (allowed !== true) fail('ResultAccessDenied');
   const found = await installed.store.lookupDeliveryAttempt(request);
   if (found === undefined) return Object.freeze({kind: 'not_found'});
-  return Object.freeze({kind: 'found',
+  const reply = Object.freeze({kind: 'found',
     attempt: found.attempt, record: found.record ?? null,
     hostReleaseReceipt: found.hostReleaseReceipt ?? null});
+  if (!validDeliveryAttemptLookup(reply, {
+    attemptId: request.attemptId,
+    runDefinitionCid: request.indexKey.runDefinitionCid,
+    resultName: request.resultName,
+  })) {
+    fail('InvalidDeliveryAttemptLookup');
+  }
+  return reply;
 }
 
 function validateRequest(request) {
@@ -192,11 +229,12 @@ function observedAt(now) {
 
 export async function deliverAuthorizedResult(
   service,
-  request,
+  input,
   sink,
   signal,
 ) {
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
+  const request = ownedResultRequest(input, true);
   validateRequest(request);
   if (sink === null || typeof sink !== 'object' ||
       typeof sink.write !== 'function' ||
@@ -212,7 +250,7 @@ export async function deliverAuthorizedResult(
     }
   };
   requireAction(0);
-  const indexKey = Object.freeze({...request.indexKey});
+  const indexKey = request.indexKey;
   let requestAuthorized = false;
   try {
     requestAuthorized = await installed.authority
