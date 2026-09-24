@@ -29,6 +29,8 @@ import {
 // Values
 pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
+pub fn client_program_admit_publication_binding_set(@run_publication_host.PreparedClientProgram, Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationBindingSetIssue]
+
 pub fn client_program_admit_publication_bytes_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
 
 pub fn client_program_admit_publication_rows_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
