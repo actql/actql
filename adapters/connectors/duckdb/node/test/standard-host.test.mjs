@@ -3604,6 +3604,18 @@ async function exerciseStrategyGraph(
     managedStarts: 3,
     completedTasks: [1, 2],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
+  }, {
+    name: 'vector-nearest-fused',
+    family: 'veca',
+    operation: 'nearest',
+    fusedNearest: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
     const teaFamily = cancellationCase.family === 'tea' ||
@@ -4158,14 +4170,27 @@ async function exerciseStrategyGraph(
                   candidates: {result: {stage: 'candidates', result: 'r'}},
                   queries: {result: {stage: 'queries', result: 'r'}},
                 },
-                steps: [{
-                  from: 'candidates',
+                steps: [
+                  ...(cancellationCase.fusedNearest ? [{
+                    from: 'candidates',
+                    to_vectors: {id: 'id', vector: 'embedding'},
+                    as: 'candidate_vectors',
+                  }, {
+                    from: 'queries',
+                    to_vectors: {id: 'id', vector: 'embedding'},
+                    as: 'query_vectors',
+                  }] : []), {
+                  from: cancellationCase.fusedNearest
+                    ? 'candidate_vectors' : 'candidates',
                   nearest: {
-                    queries: 'queries',
-                    candidate_id: 'id',
-                    candidate_vector: 'embedding',
-                    query_id: 'id',
-                    query_vector: 'embedding',
+                    queries: cancellationCase.fusedNearest
+                      ? 'query_vectors' : 'queries',
+                    ...(cancellationCase.fusedNearest ? {} : {
+                      candidate_id: 'id',
+                      candidate_vector: 'embedding',
+                      query_id: 'id',
+                      query_vector: 'embedding',
+                    }),
                     metric: 'dot',
                     k: cancellationCase.rows,
                   },
@@ -4473,6 +4498,7 @@ async function exerciseStrategyGraph(
     let cancellationDeliveredAt;
     let stopObservedAt;
     let managedStarts = 0;
+    let fusedNearestBridgeRows = 0n;
     const boundedValuesInputs = cancellationCase.family === 'interval' ||
       cancellationCase.family === 'asof';
     const constructionStarts = boundedValuesInputs ? [3, 4] : [2];
@@ -4570,6 +4596,12 @@ async function exerciseStrategyGraph(
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
+                  const nearestBridgesFinished =
+                    !cancellationCase.fusedNearest ||
+                    fusedNearestBridgeRows >= BigInt(cancellationCase.rows + 1);
+                  if (cancellationCase.fusedNearest && start === 3) {
+                    fusedNearestBridgeRows += observation?.progress ?? 0n;
+                  }
                   if (cancellationCase.sortStress && start === 5) {
                     maxSortResumeMs = Math.max(
                       maxSortResumeMs,
@@ -4588,7 +4620,7 @@ async function exerciseStrategyGraph(
                     setTimeout(() => graphCancellation.abort(), 0);
                   } else if (!cancellationCase.cancelDuringFinalization &&
                       cancellationCase.cancelOnManagedStart === start &&
-                      observation?.complete === false &&
+                      nearestBridgesFinished && observation?.complete === false &&
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
@@ -4636,6 +4668,10 @@ async function exerciseStrategyGraph(
         expectedManagedStarts,
         cancellationCase.name,
       );
+      if (cancellationCase.fusedNearest) {
+        assert(fusedNearestBridgeRows >=
+          BigInt(cancellationCase.rows + 1));
+      }
       assert(
         constructionProgress >= BigInt(cancellationCase.family === 'time-series'
           ? 0

@@ -1228,6 +1228,9 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: fused Relation input entrypoint is missing`);
     }
     for (const role of [
+      'nearest_direct_relation_work_exact_one_short',
+      'nearest_direct_relation_workspace_exact_one_short',
+      'nearest_direct_relation_cleanup',
       'nearest_work_exact',
       'nearest_work_one_short',
       'nearest_workspace_exact_one_short',
@@ -1243,8 +1246,13 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${role} fixture is missing`);
       }
     }
-    if (!environmentRoles.has('nearest_relation_host_in_flight_cancel')) {
-      fail(`${label}: Relation Host cancellation fixture is missing`);
+    if (!environmentRoles.has('nearest_relation_host_in_flight_cancel') ||
+      !environmentRoles.has('nearest_fused_relation_host_in_flight_cancel')) {
+      fail(`${label}: direct and fused Relation Host cancellation fixtures are required`);
+    }
+    if (route.path_assurance?.entrypoint === undefined ||
+      route.resource_assurance?.entrypoint === undefined) {
+      fail(`${label}: direct Relation resource assurance is missing`);
     }
     if (route.path_assurance?.relation_entrypoint === undefined ||
       route.resource_assurance?.relation_entrypoint === undefined) {

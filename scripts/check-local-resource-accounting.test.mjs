@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 11 with full work\/workspace assurance, 34 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 13 with four-role boundary evidence, 12 with full work\/workspace assurance, 35 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -424,6 +424,9 @@ test('nearest retains its fused Relation production entrypoint', () => {
     delete nearest.additional_dispatch;
   }), /VecA nearest: fused Relation input entrypoint is missing/);
   for (const role of [
+    'nearest_direct_relation_work_exact_one_short',
+    'nearest_direct_relation_workspace_exact_one_short',
+    'nearest_direct_relation_cleanup',
     'nearest_work_exact',
     'nearest_work_one_short',
     'nearest_workspace_exact_one_short',
@@ -446,7 +449,18 @@ test('nearest retains its fused Relation production entrypoint', () => {
     const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'nearest');
     nearest.environment_tests = [];
-  }), /VecA nearest: Relation Host cancellation fixture is missing/);
+  }), /VecA nearest: direct and fused Relation Host cancellation fixtures are required/);
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    nearest.environment_tests = nearest.environment_tests.filter(item =>
+      item.role !== 'nearest_fused_relation_host_in_flight_cancel');
+  }), /VecA nearest: direct and fused Relation Host cancellation fixtures are required/);
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    delete nearest.resource_assurance.entrypoint;
+  }), /VecA nearest: direct Relation resource assurance is missing/);
   assert.match(run(undefined, routes => {
     const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'nearest');
