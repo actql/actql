@@ -9,7 +9,7 @@ import {
 // Values
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
 
-pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
 pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String, Int, Int, Int) -> Result[PublicationContract, EffectApplyReceiptBindingIssue]
 

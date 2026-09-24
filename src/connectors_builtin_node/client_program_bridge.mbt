@@ -130,6 +130,14 @@ pub fn client_program_semantics_cid(
 }
 
 ///|
+#export_name("clientProgramCheckEnvironmentCid")
+pub fn client_program_check_environment_cid(
+  prepared : @publication_host.PreparedClientProgram,
+) -> String {
+  @publication_host.prepared_client_check_environment_cid(prepared)
+}
+
+///|
 /// Bind publication admission to the same opaque checked Program that the
 /// Host will execute. The returned handle is in-process authority, never a
 /// Client wire value.

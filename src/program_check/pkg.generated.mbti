@@ -104,6 +104,8 @@ pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
 
+pub fn checking_environment_cid(CheckEnvironment) -> String
+
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]

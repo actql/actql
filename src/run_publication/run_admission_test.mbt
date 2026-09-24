@@ -141,7 +141,7 @@ test "Run Definition is issued only from exact admitted allow authority" {
 }
 
 ///|
-test "checked Run admission binds Program, Values, and semantics" {
+test "checked Run admission binds Program, Values, semantics, and environment" {
   let template = admission_test_template()
   let plan = admission_test_plan(admission_test_cid("1"))
   let prepared = admission_test_prepared(template, plan, "allow")
@@ -155,10 +155,11 @@ test "checked Run admission binds Program, Values, and semantics" {
       admission_test_cid("1"),
       admission_test_cid("2"),
       admission_test_cid("a"),
+      admission_test_cid("4"),
     )
     is Ok(_),
   )
-  for changed in 0..<3 {
+  for changed in 0..<4 {
     let program = if changed == 0 {
       admission_test_cid("d")
     } else {
@@ -174,9 +175,15 @@ test "checked Run admission binds Program, Values, and semantics" {
     } else {
       admission_test_cid("a")
     }
+    let environment = if changed == 3 {
+      admission_test_cid("d")
+    } else {
+      admission_test_cid("4")
+    }
     assert_true(
       admit_checked_run_publication(
         template, prepared, authorization, plan, program, parameters, semantics,
+        environment,
       )
       is Err(RunAdmissionCheckedProgramMismatch),
     )
