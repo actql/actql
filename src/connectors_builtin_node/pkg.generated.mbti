@@ -157,6 +157,8 @@ pub fn client_program_effect_preview_input_at(@physical_strategy.CapturedEffectP
 
 pub fn client_program_effect_preview_input_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> ClientEffectPreviewInputLimits?
 
+pub fn client_program_effect_preview_ledger_identity(@physical_strategy.CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
+
 pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, @physical_strategy.CapturedEffectPlanIssue]
 
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String

@@ -1819,6 +1819,16 @@ pub fn client_program_bind_effect_preview_inputs(
 }
 
 ///|
+/// Supply durable Effect progress with the exact private Preview retained by
+/// this captured Run. Historical progress does not authorize another send.
+#export_name("clientProgramEffectPreviewLedgerIdentity")
+pub fn client_program_effect_preview_ledger_identity(
+  value : @strategy.CapturedEffectPreviewInputs,
+) -> @publication.EffectPreviewIdentity {
+  @strategy.captured_effect_preview_ledger_identity(value)
+}
+
+///|
 #export_name("clientProgramEffectPreviewInputAt")
 pub fn client_program_effect_preview_input_at(
   value : @strategy.CapturedEffectPreviewInputs,
