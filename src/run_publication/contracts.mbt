@@ -303,6 +303,13 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "receipt_cid",
         fields: [],
       })
+    "effect_row_outcome_receipt" =>
+      Some({
+        name,
+        version: "actql-effect-row-outcome-receipt/0.1",
+        identity: "receipt_cid",
+        fields: [],
+      })
     "effect_set_apply_receipt" =>
       Some({
         name,

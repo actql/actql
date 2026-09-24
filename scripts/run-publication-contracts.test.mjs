@@ -1,12 +1,46 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import {
   correctedContracts,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+
+test('independent Effect row Outcome Receipt 0.1 vector and schema pin', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const outcome = {result: {id: '001'}, state: 'applied'};
+  const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const body = {
+    credential_use_cid: `sha256:${'6'.repeat(64)}`,
+    dispatch_entry_cid: `sha256:${'5'.repeat(64)}`,
+    effect_member_preview_cid:
+      'sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6',
+    effect_preview_cid:
+      'sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409',
+    http_status_code: 201,
+    response_byte_count: 2,
+    response_physical_sha256:
+      '44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a',
+    row_preview_cid:
+      'sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8',
+    typed_outcome: outcome,
+    typed_outcome_cid:
+      'sha256:851bf9a054b70fc0435dd57569b77d0d21f16e090254b19b212602b00f171df0',
+    version: 'actql-effect-row-outcome-receipt/0.1',
+  };
+  assert.equal(hash(JSON.stringify(outcome)), body.typed_outcome_cid);
+  assert.equal(hash('{}').slice(7), body.response_physical_sha256);
+  assert.equal(hash(JSON.stringify(body)),
+    'sha256:0b54f40a3e03a7840f08737b5efd2380f006aea8c4161a6ffeea0af461fe076f');
+  const schema = registry.artifact_schemas.effect_row_outcome_receipt;
+  assert.deepEqual(schema.required.toSorted(),
+    [...Object.keys(body), 'receipt_cid'].toSorted());
+  assert.equal(registry.artifact_schema_cids.effect_row_outcome_receipt,
+    machineCid(schema));
+});
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 

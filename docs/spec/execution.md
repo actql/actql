@@ -1939,6 +1939,22 @@ failed   final structured failure is known
 unknown  transport ended without a provable provider outcome
 ```
 
+<!-- requirement-block: reconciliation.effect-row-outcome-receipt-binds-saved-response -->
+For a physically observed row, `actql-effect-row-outcome-receipt/0.1` binds
+the exact private Preview, member and row CIDs, the durable dispatch entry,
+credential-use CID, HTTP status, response byte count and physical SHA-256,
+and the complete typed provider outcome with its independently computed CID.
+Its `receipt_cid` is the CID of the complete canonical body without that
+self field. The response digest identifies the saved bounded HTTP bytes; it
+is not a logical Result CID. The common Host MUST verify that the saved
+response belongs to the exact dispatch, issue and durably retain this receipt,
+and admit its Preview, response and typed-outcome bindings before recording
+that CID as a terminal row Ledger `outcome_receipt_cid`. A response that was
+possibly sent but not saved and admitted remains `unknown` without a terminal
+Outcome Receipt. Shape validation or a matching current provider value alone
+does not prove the earlier attempt succeeded. Evidence viewing and replay
+require their own current authorization and never permit another send.
+
 <!-- requirement-block: reconciliation.a-completed-operation-must-not-be-cancelled reconciliation.an-expired-operation-must-not-be-applied-or-cancelled reconciliation.a-runtime-must-not-turn-transport-timeout-into-failed-or -->
 `accepted` binds the OperationRef, poll contract, cancellation capability,
 result schema, optional expiration, and reconciliation contract. `unknown`

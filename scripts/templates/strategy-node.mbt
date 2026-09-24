@@ -7927,6 +7927,120 @@ pub fn strategy_effect_member_row_admit(
 }
 
 ///|
+#export_name("strategyEffectPreviewMemberKind")
+pub fn strategy_effect_preview_member_kind(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+) -> String? {
+  @publication.effect_preview_member_kind(preview, member_index)
+}
+
+///|
+#export_name("strategyEffectPreviewOrderedRowCid")
+pub fn strategy_effect_preview_ordered_row_cid(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  @publication.effect_preview_ordered_row_identity(
+    preview, member_index, row_index,
+  )
+}
+
+///|
+#export_name("strategyIssueEffectRowOutcomeReceipt")
+pub fn strategy_issue_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  outcome_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match @publication.issue_effect_row_outcome_receipt(
+    preview, member_index, row_index, dispatch_entry_cid, credential_use_cid,
+    response_bytes, http_status_code, outcome_wire, max_response_bytes,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyAdmitEffectRowOutcomeReceipt")
+pub fn strategy_admit_effect_row_outcome_receipt(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match @publication.admit_effect_row_outcome_receipt(
+    preview, member_index, row_index, dispatch_entry_cid, credential_use_cid,
+    response_bytes, http_status_code, receipt_wire, max_response_bytes,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRowOutcomeReceiptTerminalState")
+pub fn strategy_effect_row_outcome_receipt_terminal_state(
+  receipt : @publication.PublicationContract,
+) -> String? {
+  @publication.effect_row_outcome_receipt_terminal_state(receipt)
+}
+
+///|
+#export_name("strategyIssueEffectRowReceiptTerminalEntry")
+pub fn strategy_issue_effect_row_receipt_terminal_entry(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  current : @effect.EffectLedgerEntry,
+  history : Array[@effect.EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  receipt_wire : String,
+  max_response_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match @effect.issue_effect_row_receipt_terminal_entry(
+    preview, member_index, row_index, scope, locator, key,
+    canonical_request_cid, current, history, dispatch_entry_cid, credential_use_cid,
+    response_bytes, http_status_code, receipt_wire, max_response_bytes,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyEffectSetFrontierOutcome")
 pub fn strategy_effect_set_frontier_outcome(
   frontier : @effect.EffectSetFrontier,

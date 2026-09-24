@@ -24,11 +24,19 @@ export function openEffectLedger({
   maxBatchRows = 1000,
   maxNodes = 64,
   maxDepth = 4,
+  maxOutcomeNodes = 512,
+  maxOutcomeDepth = 16,
   maxCallerBytes = 256,
 }) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {
     fail('InvalidEffectLedgerBatchLimit');
+  }
+  if (!Number.isSafeInteger(maxOutcomeNodes) ||
+      maxOutcomeNodes < 1 || maxOutcomeNodes > 4096 ||
+      !Number.isSafeInteger(maxOutcomeDepth) ||
+      maxOutcomeDepth < 1 || maxOutcomeDepth > 32) {
+    fail('InvalidEffectLedgerOutcomeLimit');
   }
   const control = runtimeCore(moon).effectApplicationControl;
   const scope = control.logicalRequestScope(
@@ -309,6 +317,99 @@ export function openEffectLedger({
         dispatchEntryCid: member.dispatchEntryCid,
         responsePhysicalSha256, outcomeCid, outcomeJson,
       });
+    },
+    // The common MoonBit issuer fixes the receipt semantics before SQLite
+    // retains it. The original response remains the sole physical observation.
+    recordAdmittedRowOutcome({claim, claims, batchRowIndex, preview,
+      memberIndex, previewRowIndex, outcomeWire}) {
+      if (!preview || !Number.isSafeInteger(memberIndex) ||
+          !Number.isSafeInteger(previewRowIndex) ||
+          typeof outcomeWire !== 'string') {
+        fail('InvalidEffectRowOutcomeReceipt');
+      }
+      const stored = claims === undefined
+        ? ledger.readClaimedResponse(claim)
+        : ledger.readClaimedBatchResponse(claims);
+      if (stored === undefined ||
+          (claims === undefined && batchRowIndex !== undefined) ||
+          (claims !== undefined &&
+            (!Number.isSafeInteger(batchRowIndex) || batchRowIndex < 0 ||
+              batchRowIndex >= claims.length))) {
+        fail('EffectPhysicalResponseNotOwned');
+      }
+      const ownedClaim = claims === undefined ? claim : claims[batchRowIndex];
+      const effectKind = control.previewMemberKind(preview, memberIndex);
+      const rowCid = control.previewOrderedRowCid(
+        preview, memberIndex, previewRowIndex);
+      if (effectKind === undefined || rowCid === undefined || !ownedClaim) {
+        fail('InvalidEffectRowOutcomeReceipt');
+      }
+      control.admitMemberRow(
+        preview, memberIndex, previewRowIndex, effectKind,
+        ownedClaim.scope, rowCid, ownedClaim.locator, ownedClaim.key);
+      const dispatchEntryCid = claims === undefined
+        ? stored.dispatchEntryCid
+        : stored.batchMembers[batchRowIndex].dispatchEntryCid;
+      const issued = control.issueRowOutcomeReceipt(
+        preview, memberIndex, previewRowIndex, dispatchEntryCid,
+        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+        outcomeWire, maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth);
+      control.admitRowOutcomeReceipt(
+        preview, memberIndex, previewRowIndex, dispatchEntryCid,
+        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+        issued.wire, maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth);
+      const custody = ledger.recordClaimedOutcome({
+        claim, claims, rowIndex: batchRowIndex,
+        responsePhysicalSha256: stored.responsePhysicalSha256,
+        outcomeCid: issued.identity, outcomeJson: issued.wire,
+      });
+      return Object.freeze({receipt: issued, custody});
+    },
+    // Commit only a previously retained and re-admitted row Receipt. This is
+    // a Store CAS of a MoonBit-selected state, not an HTTP response retry.
+    commitAdmittedRowOutcome({claim, claims, batchRowIndex, preview,
+      memberIndex, previewRowIndex}) {
+      const stored = claims === undefined
+        ? ledger.readClaimedResponse(claim)
+        : ledger.readClaimedBatchResponse(claims);
+      if (stored === undefined ||
+          (claims === undefined && batchRowIndex !== undefined) ||
+          (claims !== undefined &&
+            (!Number.isSafeInteger(batchRowIndex) || batchRowIndex < 0 ||
+              batchRowIndex >= claims.length))) {
+        fail('EffectPhysicalResponseNotOwned');
+      }
+      const ownedClaim = claims === undefined ? claim : claims[batchRowIndex];
+      const locatorCid = control.logicalItemLocatorCid(ownedClaim.locator);
+      const current = validateStored(physical.current(locatorCid));
+      const outcome = physical.outcomeForLocator(locatorCid);
+      if (current === undefined || outcome === undefined ||
+          outcome.responsePhysicalSha256 !== stored.responsePhysicalSha256) {
+        fail('EffectPhysicalOutcomeNotOwned');
+      }
+      const dispatchEntryCid = claims === undefined
+        ? stored.dispatchEntryCid
+        : stored.batchMembers[batchRowIndex].dispatchEntryCid;
+      const receipt = control.admitRowOutcomeReceipt(
+        preview, memberIndex, previewRowIndex, dispatchEntryCid,
+        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+        outcome.outcomeJson, maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth);
+      if (receipt.identity !== outcome.outcomeCid) {
+        fail('EffectPhysicalOutcomeCollision');
+      }
+      const terminal = control.issueRowReceiptTerminalEntry(
+        preview, memberIndex, previewRowIndex, ownedClaim.scope,
+        ownedClaim.locator, ownedClaim.key, ownedClaim.canonicalRequestCid,
+        current.entry, physical.history(locatorCid, maxEntries).map(row =>
+          validateStored(row).entry), dispatchEntryCid, stored.credentialUseCid,
+        stored.responseBytes, stored.statusCode, receipt.wire,
+        maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth);
+      return Object.freeze({receipt, transition: append(
+        control.ledgerEntryWire(terminal))});
     },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.

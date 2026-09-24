@@ -86,6 +86,8 @@ pub fn effect_set_frontier_ready_member(EffectSetFrontier, Int) -> Int
 
 pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
 
+pub fn issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
+
 pub fn issue_next_effect_ledger_entry(EffectLedgerEntry, String, String?, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
 pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
@@ -362,6 +364,12 @@ pub(all) enum EffectRowAction {
   RequestConflict
   InvalidRecord
 } derive(Eq, @debug.Debug)
+
+pub(all) enum EffectRowReceiptCommitIssue {
+  ForeignClaim
+  ForeignReceipt
+  InvalidTransition
+} derive(@debug.Debug)
 
 pub(all) struct EffectRowRecord {
   logical_item_locator_cid : String

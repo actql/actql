@@ -510,6 +510,120 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
 }
 
 ///|
+test "Effect row Outcome Receipt binds Preview, dispatch and saved bytes" {
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let preview = admit_effect_preview_identity(
+    preview_identity_test_wire(
+      preview_identity_test_cid("b"),
+      authoring,
+      preview_identity_test_cid("4"),
+      "001000000000001",
+      "sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6",
+      "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
+    ),
+    preview_identity_test_cid("b"),
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let response = Bytes::from_array([0x7B, 0x7D])
+  let first = issue_effect_row_outcome_receipt(
+    preview,
+    0,
+    0,
+    preview_identity_test_cid("5"),
+    preview_identity_test_cid("6"),
+    response,
+    201,
+    "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+    8192,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(first.name, "effect_row_outcome_receipt")
+  assert_eq(
+    first.identity,
+    "sha256:0b54f40a3e03a7840f08737b5efd2380f006aea8c4161a6ffeea0af461fe076f",
+  )
+  assert_eq(
+    contract_string(first, "row_preview_cid"),
+    effect_preview_row_identity(preview, 0, 0),
+  )
+  assert_eq(
+    contract_string(first, "response_physical_sha256"),
+    Some(@sha.hex(response)),
+  )
+  assert_true(
+    admit_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      first.wire,
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("7"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      first.wire,
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignResponse),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt(
+      preview,
+      0,
+      1,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      "{\"result\":{},\"state\":\"applied\"}",
+      8192,
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidRow),
+  )
+  let changed = issue_effect_row_outcome_receipt(
+    preview,
+    0,
+    0,
+    preview_identity_test_cid("5"),
+    preview_identity_test_cid("6"),
+    Bytes::from_array([0x5B, 0x5D]),
+    201,
+    "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+    8192,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(first.identity != changed.identity)
+}
+
+///|
 test "Effect Preview source and captured Artifact cannot be split" {
   let cid = preview_identity_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"

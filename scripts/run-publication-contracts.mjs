@@ -62,6 +62,36 @@ export function resultArtifactSchema() {
   };
 }
 
+export function effectRowOutcomeReceiptSchema(outcome) {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'version', 'effect_preview_cid', 'effect_member_preview_cid',
+      'row_preview_cid', 'dispatch_entry_cid', 'credential_use_cid',
+      'response_physical_sha256', 'response_byte_count', 'http_status_code',
+      'typed_outcome', 'typed_outcome_cid', 'receipt_cid',
+    ],
+    properties: {
+      version: {const: 'actql-effect-row-outcome-receipt/0.1'},
+      effect_preview_cid: clone(cid),
+      effect_member_preview_cid: clone(cid),
+      row_preview_cid: clone(cid),
+      dispatch_entry_cid: clone(cid),
+      credential_use_cid: clone(cid),
+      response_physical_sha256: {type: 'string', pattern: '^[0-9a-f]{64}$'},
+      response_byte_count: {type: 'integer', minimum: 0, maximum: 9007199254740991},
+      http_status_code: {type: 'integer', minimum: 100, maximum: 599},
+      typed_outcome: {
+        oneOf: outcome.oneOf.filter(branch =>
+          branch.properties?.state?.const !== 'unknown').map(clone),
+      },
+      typed_outcome_cid: clone(cid),
+      receipt_cid: clone(cid),
+    },
+  };
+}
+
 export function runStateSchema(previous) {
   const availability = {
     type: 'object',
@@ -254,6 +284,8 @@ export function correctedContracts(registry, cli) {
   next.artifact_schemas.result_manifest = manifest;
   next.artifact_schemas.run_receipt = receipt;
   next.artifact_schemas.run_state = state;
+  next.artifact_schemas.effect_row_outcome_receipt =
+    effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schemas[name] = replaceNested(schema, replacements);
   }

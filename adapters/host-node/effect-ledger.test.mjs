@@ -177,6 +177,56 @@ function admittedProgressFixture(firstPolicy = 'continue') {
   return {admitted, members: claims.map(rows => ({claims: rows})), claims};
 }
 
+test('saved response issues one exact terminal row Receipt before Ledger head',
+  async t => {
+    const root = await fixture(t);
+    const ledger = open(root);
+    const {admitted, claims} = admittedProgressFixture();
+    const claim = claims[0][0];
+    const sent = await captureClaimedEffectResponse({
+      ledger, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => ({observation: {
+        useCid: cid('4'), statusCode: 201,
+        body: Buffer.from('{"success":true}'),
+      }}),
+    });
+    assert.equal(ledger.readClaimedOutcome(claim), undefined);
+    assert.throws(() => ledger.recordAdmittedRowOutcome({
+      claim, preview: admitted, memberIndex: 0, previewRowIndex: 1,
+      outcomeWire: '{"result":{"id":"a001"},"state":"applied"}',
+    }), {code: 'MoonBitHostFailure'});
+    const recorded = ledger.recordAdmittedRowOutcome({
+      claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
+      outcomeWire: '{"result":{"id":"a001"},"state":"applied"}',
+    });
+    assert.equal(recorded.custody.created, true);
+    assert.equal(JSON.parse(recorded.receipt.wire).dispatch_entry_cid,
+      effect.ledgerEntryCid(sent.ownership.dispatching));
+    assert.equal(ledger.recordAdmittedRowOutcome({
+      claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
+      outcomeWire: '{"result":{"id":"a001"},"state":"applied"}',
+    }).custody.created, false);
+    const firstUnknown = effect.issueNextLedgerEntry(
+      sent.ownership.dispatching, 'unknown', '', 4096, 64, 4);
+    ledger.append(effect.ledgerEntryWire(firstUnknown));
+    const secondUnknown = effect.issueNextLedgerEntry(
+      firstUnknown, 'unknown', '', 4096, 64, 4);
+    ledger.append(effect.ledgerEntryWire(secondUnknown));
+    assert.equal(ledger.commitAdmittedRowOutcome({
+      claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
+    }).transition.created, true);
+    assert.equal(ledger.commitAdmittedRowOutcome({
+      claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
+    }).transition.created, false);
+    ledger.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.equal(restarted.readClaimedOutcome(claim).outcomeCid,
+      recorded.receipt.identity);
+    assert.equal(restarted.readClaimedOutcome(claim).outcomeJson,
+      recorded.receipt.wire);
+  });
+
 test('durable row heads determine multi-member progress after restart',
   async t => {
     const root = await fixture(t);
