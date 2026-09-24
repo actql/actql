@@ -471,6 +471,12 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('lag_empty_schema_workspace_exact_one_short')) {
     fail(`${label}: lag schema workspace evidence is missing`);
   }
+  for (const operation of ['row_window', 'except', 'intersect']) {
+    if (route.family === 'RelA' && route.operation === operation &&
+      !boundaryRoles.has(`${operation}_empty_schema_workspace_exact_one_short`)) {
+      fail(`${label}: empty schema workspace evidence is missing`);
+    }
+  }
   if (route.family === 'VecA' && route.operation === 'merge_rankings' &&
     !boundaryRoles.has('ranking_bounded_record_output_cancel_cleanup')) {
     fail(`${label}: bounded ranking assembly fixture is missing`);

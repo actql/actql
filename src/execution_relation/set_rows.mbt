@@ -1,4 +1,18 @@
 ///|
+/// Admit three simultaneously live schema arrays without multiplying beyond
+/// the remaining structural workspace.
+fn reserve_set_metadata(workspace : RowWorkspace, width : Int) -> Bool {
+  if width < 0 ||
+    workspace.limit < 0 ||
+    workspace.live < 0 ||
+    workspace.live > workspace.limit ||
+    width > (workspace.limit - workspace.live) / 3 {
+    return false
+  }
+  reserve_slots(workspace, width * 3)
+}
+
+///|
 /// Bounded sort-merge implementation of checked complete-row EXCEPT/INTERSECT.
 /// Sorting is private: survivors are always emitted in left logical order.
 fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
@@ -30,7 +44,7 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
   let width = @lower.set_kernel_field_count(kernel)
   if width != IndexedRows::column_count(left) ||
     width != IndexedRows::column_count(right) ||
-    !reserve_slots(workspace, width * 3) ||
+    !reserve_set_metadata(workspace, width) ||
     !spend_control(control, width) {
     return Err(RowLimit)
   }

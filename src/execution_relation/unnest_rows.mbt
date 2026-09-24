@@ -49,7 +49,8 @@ fn[T : RelationRows] evaluate_unnest_into(
   }
   let checked_output = @lower.kernel_output_schema(kernel)
   let output_width = @schema.field_count(checked_output)
-  if output_width != width + 1 + (if index_name is Some(_) { 1 } else { 0 }) {
+  let added = if index_name is Some(_) { 2 } else { 1 }
+  if output_width < added || output_width - added != width {
     return Err(InvalidRows)
   }
   for i = 0; i < output_width; i = i + 1 {

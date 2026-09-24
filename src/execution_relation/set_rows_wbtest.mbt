@@ -66,6 +66,58 @@ test "set operation passes the common kernel budget sweep" {
 }
 
 ///|
+test "set metadata checks multiplication before reserving storage" {
+  let exact = row_workspace(9)
+  assert_true(reserve_set_metadata(exact, 3))
+  assert_eq(exact.live, 9)
+  assert_eq(exact.peak, 9)
+
+  let short = row_workspace(8)
+  assert_false(reserve_set_metadata(short, 3))
+  assert_eq(short.live, 0)
+  assert_eq(short.peak, 0)
+
+  let overflow = row_workspace(2147483647)
+  assert_false(reserve_set_metadata(overflow, 2147483647))
+  assert_eq(overflow.live, 0)
+  assert_eq(overflow.peak, 0)
+}
+
+///|
+test "empty set operators admit exact schema workspace and reject one short" {
+  for operation in ["except", "intersect"] {
+    let generated = set_test_sequence(operation, "all", left="[]", right="[]")
+    let owner = generated_sequence_owner(generated)
+    guard @lower.sequence_step(prepared_sequence(owner), 2)
+      is Some(@lower.SetStep(kernel)) else {
+      fail("set kernel was not prepared")
+    }
+    let left = table_from_capture(
+      capture_values(owner, 0, max_rows=0, run_limits().input_values).unwrap(),
+    )
+    let right = table_from_capture(
+      capture_values(owner, 1, max_rows=0, run_limits().input_values).unwrap(),
+    )
+    // The three width-two metadata arrays require six slots; empty stable
+    // index arrays and the empty survivor set require none.
+    for (limit, succeeds) in [(6, true), (5, false)] {
+      let workspace = row_workspace(limit)
+      let result = evaluate_set_rows(
+        kernel,
+        left,
+        right,
+        0,
+        { remaining: 10000, max_frames: 100, },
+        value_budget(run_limits().output_values).unwrap(),
+        workspace,
+      )
+      assert_eq(result is Ok(_), succeeds)
+      assert_eq(workspace.peak, if succeeds { 6 } else { 0 })
+    }
+  }
+}
+
+///|
 fn set_keys(output : CompletedOutput) -> Array[Value] {
   let values = []
   for row in 0..<completed_row_count(output) {

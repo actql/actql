@@ -119,7 +119,7 @@ fn[T : RelationRows] evaluate_window_rows(
   let (start_field, end_field) = @lower.window_boundaries(window)
   let start_name = @schema.reference_name(start_field)
   let end_name = @schema.reference_name(end_field)
-  if output_width != width + 2 {
+  if output_width < 2 || output_width - 2 != width {
     return Err(InvalidRows)
   }
   let mut time_column = -1

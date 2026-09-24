@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 57 |
+| Operation-specific boundary records | 60 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -33,6 +33,16 @@ the input names. An empty-input fixture derives eleven simultaneously live
 slots from the checked partition/order terms and schema widths, and rejects
 one short. The route gate requires this fixture, but the record covers only
 schema workspace admission, not the complete lag path or its cancellation.
+Schema-width checks in `row_window`, `unpivot`, `unnest`, and `lag` now avoid
+overflowing additions. `unpivot` charges its column and keep counts
+separately. EXCEPT and INTERSECT admit their three fixed metadata arrays
+using division before multiplication; a fixed helper fixture checks extreme
+width rejection without allocation. A second fixture reaches both actual set
+operators with empty inputs and independently derived six-slot exact and
+one-short workspace limits. The route gate requires the window and both set
+fixtures. These are operation-specific structural boundaries, not complete
+work, in-flight cancellation, or cleanup assurance for those synchronous
+whole-sequence paths.
 
 The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
 use fixed control-work expectations of 354, 145, 160, and 116 units for their

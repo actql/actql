@@ -42,7 +42,8 @@ fn[T : RelationRows] evaluate_unpivot_into(
     !reserve_slots(workspace, columns) ||
     !reserve_slots(workspace, columns) ||
     !reserve_slots(workspace, keep) ||
-    !spend_control(control, columns + keep) {
+    !spend_control(control, columns) ||
+    !spend_control(control, keep) {
     return Err(RowLimit)
   }
   let column_ordinals : Array[Int] = []
@@ -73,7 +74,7 @@ fn[T : RelationRows] evaluate_unpivot_into(
   }
   let checked_output = @lower.kernel_output_schema(kernel)
   let output_width = @schema.field_count(checked_output)
-  if output_width != keep + 2 {
+  if output_width < 2 || output_width - 2 != keep {
     return Err(InvalidRows)
   }
   for i = 0; i < output_width; i = i + 1 {

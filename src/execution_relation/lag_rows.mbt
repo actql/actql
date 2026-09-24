@@ -115,7 +115,10 @@ fn[T : RelationRows] evaluate_lag_rows(
       )
     }
   }
-  let output_width = width + 1
+  let output_width = @schema.field_count(@lower.kernel_output_schema(kernel))
+  if output_width < 1 || output_width - 1 != width {
+    return Err(InvalidRows)
+  }
   if !reserve_slots(workspace, output_width) ||
     !spend_control(control, output_width) {
     return Err(RowLimit)

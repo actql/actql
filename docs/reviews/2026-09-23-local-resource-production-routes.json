@@ -1232,7 +1232,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "row_window_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_scale_wbtest.mbt",
+          "fixture": "empty row window reserves its output schema before allocation"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2249,7 +2258,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "except_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/set_rows_wbtest.mbt",
+          "fixture": "empty set operators admit exact schema workspace and reject one short"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2263,7 +2281,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "intersect_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/set_rows_wbtest.mbt",
+          "fixture": "empty set operators admit exact schema workspace and reject one short"
+        }
+      ]
     },
     {
       "inventory": "rela",
