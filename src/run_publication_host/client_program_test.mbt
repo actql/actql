@@ -76,6 +76,33 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(prepared_client_result_count(prepared), 1)
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
+  let result_row = issue_prepared_client_result_row_contract(
+    prepared, 0, 0, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(client_result_row_contract_name(result_row), "rows")
+  assert_eq(
+    client_result_row_contract_unit_cid(result_row),
+    @checked.unit_definition_cid(
+      @strategy.graph_program(prepared_client_graph(prepared)),
+      0,
+    ).unwrap(),
+  )
+  assert_eq(
+    client_result_row_contract_wire(result_row),
+    "{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}",
+  )
+  assert_eq(
+    client_result_row_contract_cid(result_row),
+    "sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c",
+  )
+  assert_true(
+    issue_prepared_client_result_row_contract(prepared, 0, 1, 10000, 1000, 20)
+    is Err(ClientResultRowContractIssue::MissingPublication),
+  )
+  assert_true(
+    issue_prepared_client_result_row_contract(prepared, 0, 0, 1, 1000, 20)
+    is Err(ClientResultRowContractIssue::Encoding(_)),
+  )
   assert_eq(
     @checked.unit_publication_count(
       @strategy.graph_program(prepared_client_graph(prepared)),
