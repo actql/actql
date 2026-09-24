@@ -27,6 +27,7 @@ import {
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
   "actql/actql/stage_results",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -115,6 +116,8 @@ pub fn client_program_effect_managed_input_begin(@physical_strategy.CapturedEffe
 pub fn client_program_effect_managed_input_cancel(ClientEffectManagedInputImport) -> Unit
 
 pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedResultRelationExportPreparation, ClientEffectManagedInputIssue]
+
+pub fn client_program_effect_plan_cid(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanIdentityIssue]
 
 pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
 
@@ -1504,6 +1507,11 @@ pub(all) enum ClientEffectManagedInputIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@execution_relation.CompletedExportIssue)
 }
+
+pub(all) enum ClientEffectPlanIdentityIssue {
+  Binding(@stage_results.EffectPlanBindingIssue)
+  Encoding
+} derive(@debug.Debug)
 
 pub(all) enum ClientEffectPreviewInputIssue {
   Identity(@run_publication.EffectPreviewIdentityIssue)

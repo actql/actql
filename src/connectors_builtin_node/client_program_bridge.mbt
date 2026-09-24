@@ -310,6 +310,53 @@ pub fn client_program_effect_environment_cid(
 }
 
 ///|
+pub(all) enum ClientEffectPlanIdentityIssue {
+  Binding(@effect_results.EffectPlanBindingIssue)
+  Encoding
+} derive(Debug)
+
+///|
+/// Derive one Result-correlated member's Plan identity from the checked
+/// static owner before a private Preview is authored. This is neither a
+/// captured input nor authority to apply the Effect.
+#export_name("clientProgramEffectPlanCid")
+pub fn client_program_effect_plan_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String?, ClientEffectPlanIdentityIssue] {
+  let candidate = @publication_host.prepared_client_effect_computation_candidate(
+    value,
+  )
+  let effects = @program_check.effect_program_static_effects(candidate)
+  let rules = @effect_results.effect_static_candidate_mapping_rules(effects)
+  let terminal = match
+    @effect_results.effect_plan_terminal_for_member(
+      rules, member_index, max_fields, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  match terminal {
+    None => Ok(None)
+    Some(terminal) =>
+      Ok(
+        Some(
+          @effect_results.effect_plan_pipeline_cid(
+            terminal, max_bytes, max_nodes, max_depth,
+          ),
+        ),
+      ) catch {
+        _ => Err(Encoding)
+      }
+  }
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,
