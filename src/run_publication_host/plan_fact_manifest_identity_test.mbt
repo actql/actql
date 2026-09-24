@@ -9,6 +9,21 @@ test "saved Plan fact manifest binds its canonical facts and self CID" {
     ",\"plan_fact_manifest_cid\":\"" +
     cid +
     "\",\"version\":\"actql-plan-fact-manifest/0.1\"}"
+  let encoded = match encode_plan_fact_manifest_identity(facts, 4096, 100, 10) {
+    Ok(value) => value
+    Err(_) => fail("expected manifest identity")
+  }
+  assert_eq(plan_fact_manifest_identity_cid(encoded), cid)
+  assert_eq(
+    check_plan_fact_manifest_identity(
+      plan_fact_manifest_identity_wire(encoded),
+      facts,
+      4096,
+      100,
+      10,
+    ),
+    Ok(cid),
+  )
   assert_eq(
     check_plan_fact_manifest_identity(manifest, facts, 4096, 100, 10),
     Ok(cid),
@@ -65,5 +80,13 @@ test "saved Plan fact manifest binds its canonical facts and self CID" {
   assert_eq(
     check_plan_fact_manifest_identity(manifest, facts, 10, 100, 10),
     Err(InvalidManifest),
+  )
+  assert_true(
+    encode_plan_fact_manifest_identity("{}", 4096, 100, 10)
+    is Err(InvalidPlanFacts),
+  )
+  assert_true(
+    encode_plan_fact_manifest_identity(facts, 10, 100, 10)
+    is Err(InvalidPlanFacts),
   )
 }

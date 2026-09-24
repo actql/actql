@@ -8,6 +8,27 @@ pub(all) enum PlanFactManifestIdentityIssue {
 } derive(Eq, Debug)
 
 ///|
+/// Canonical manifest identity. This value is not a checked fact set or Plan.
+pub struct PlanFactManifestIdentity {
+  wire : String
+  cid : String
+}
+
+///|
+pub fn plan_fact_manifest_identity_wire(
+  value : PlanFactManifestIdentity,
+) -> String {
+  value.wire
+}
+
+///|
+pub fn plan_fact_manifest_identity_cid(
+  value : PlanFactManifestIdentity,
+) -> String {
+  value.cid
+}
+
+///|
 fn parse_plan_identity_value(
   body : String,
   max_wire_bytes : Int,
@@ -28,6 +49,48 @@ fn parse_plan_identity_value(
   }
   Some(@canonical.from_source(source, max_nodes, max_depth, max_wire_bytes)) catch {
     _ => None
+  }
+}
+
+///|
+/// Canonically encode an already owner-assembled Plan fact array. The caller
+/// must separately prove that every required fact and consumer is present.
+pub fn encode_plan_fact_manifest_identity(
+  plan_facts_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidBudget)
+  }
+  guard parse_plan_identity_value(
+      plan_facts_wire, max_wire_bytes, max_nodes, max_depth,
+    )
+    is Some(plan_facts) else {
+    return Err(InvalidPlanFacts)
+  }
+  guard plan_facts is @canonical.Array(_) else { return Err(InvalidPlanFacts) }
+  let facts = @canonical.stringify_value(
+    plan_facts, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(InvalidPlanFacts)
+  }
+  let preimage = "{\"plan_facts\":" +
+    facts +
+    ",\"version\":\"actql-plan-fact-manifest/0.1\"}"
+  let cid = "sha256:" + @sha.hex(@utf8.encode(preimage))
+  let wire = "{\"plan_fact_manifest_cid\":\"" +
+    cid +
+    "\",\"plan_facts\":" +
+    facts +
+    ",\"version\":\"actql-plan-fact-manifest/0.1\"}"
+  match
+    check_plan_fact_manifest_identity(
+      wire, facts, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok({ wire, cid, })
+    Err(issue) => Err(issue)
   }
 }
 

@@ -68,9 +68,15 @@ pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering
 
 pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesPipelineIssue]
 
+pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
+
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
+
+pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
+
+pub fn plan_fact_manifest_identity_wire(PlanFactManifestIdentity) -> String
 
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy.CapturedDAG, PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?]) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
 
@@ -238,6 +244,11 @@ pub(all) enum ClientValuesPipelineIssue {
 }
 
 type ParsedClientPublicationBinding derive(Eq, @debug.Debug)
+
+pub struct PlanFactManifestIdentity {
+  wire : String
+  cid : String
+}
 
 pub(all) enum PlanFactManifestIdentityIssue {
   InvalidBudget
