@@ -47,6 +47,33 @@ The review's concrete measurement gaps remain separate work items:
 | Raw records exist only in a local scratch directory | Upload the fixed-revision raw pairs, calibration, and assessment as a replayable CI artifact. A report containing only hashes or a local path is insufficient. |
 | One comparator completes | Run and assess the other three registered comparator families independently. A single-comparator result is not whole-experiment acceptance. |
 
+The clean `f9b9dafe89daf73d8b537ba02bfebf627ac92721` local release run
+subsequently recorded all 27 registered equivalent-obligation cases. Its
+assessment is incomplete: 22 cases failed timing gates, three were
+indeterminate, and two had no qualified pairs because forced Local training
+failed. The raw diagnostic records and assessment are in the workspace's
+`.codex-scratch/equivalent-matrix-full-f9b9dafe8` directory; this local path
+is not a durable CI artifact and does not satisfy final evidence retention.
+
+For both `retained-large-output-downstream-reuse/text-1024` targets, the
+1000-row training run selected Local and failed in the first filter step with
+`SequenceRunIssue::Rows(0, RowLimit)`. A temporary, uncommitted diagnostic
+doubled only the example Host's cumulative text allowance and made that
+training run complete, so the original allowance is material to the failure.
+The diagnostic did not change the pinned fixture or establish that a larger
+allowance is acceptable. The temporary changes were restored. Investigate
+Local's per-stage value accounting and candidate admission under the registered
+ceiling; do not turn the widened diagnostic allowance into acceptance input.
+
+At clean `0597a1b2873d1592029a9bc311b26abf505fbf57`, the registered
+`fixed-join-count-shrinking-intermediate/numeric-64/10000` case still fails:
+the equivalent-obligations execution ratio has a 95% interval of 1.325–1.976
+against the 1.25 ceiling. A resident verifier change at this revision reuses
+one bounded row array per chunk, and its JS/Wasm/native adapter tests plus real
+DuckDB resident-profile test passed. The old/new timings were collected under
+different machine load, so the ratio difference does not establish the size of
+the optimization's effect.
+
 The manual `Registered performance matrix` workflow enumerates all 27 cases
 from the pinned fixture generator, measures them in bounded parallel Linux
 jobs at one revision, and aggregates the individually uploaded records. A
