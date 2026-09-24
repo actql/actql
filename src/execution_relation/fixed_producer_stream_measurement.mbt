@@ -67,32 +67,76 @@ pub fn attach_fixed_producer_stream_measurement(
 fn measure_fixed_producer_stream_row(
   measurement : FixedProducerMeasurement,
   values : Array[@admitted.Value],
+  encoded? : Array[(Int, Int)],
+  encoded_depth? : Int,
 ) -> Unit {
   // Preserve the first measurement failure for the completion phase. Physical
   // decoding/admission must still reject a later invalid chunk before a normal
   // result is exposed; moving the measurement does not authorize early success.
   if measurement.streamed_issue is None {
-    match
-      measure_input_values(
-        SingleAdmittedGuardRow::{ values, },
-        measurement.max_value_bytes,
-        Output,
-        measurement.budget,
-      ) {
-      Ok(_) => ()
-      Err(issue) =>
-        measurement.streamed_issue = Some(
-          match issue {
-            Measurement(phase, _, column, issue) =>
-              Measurement(phase, measurement.streamed_rows, column, issue)
-            ValueBytes(phase, _, column) =>
-              ValueBytes(phase, measurement.streamed_rows, column)
-            _ => issue
-          },
-        )
+    let reused = match (encoded, encoded_depth) {
+      (Some(usage), Some(depth)) =>
+        charge_encoded_stream_values(measurement, values.length(), usage, depth)
+      _ => false
+    }
+    if !reused {
+      match
+        measure_input_values(
+          SingleAdmittedGuardRow::{ values, },
+          measurement.max_value_bytes,
+          Output,
+          measurement.budget,
+        ) {
+        Ok(_) => ()
+        Err(issue) =>
+          measurement.streamed_issue = Some(
+            match issue {
+              Measurement(phase, _, column, issue) =>
+                Measurement(phase, measurement.streamed_rows, column, issue)
+              ValueBytes(phase, _, column) =>
+                ValueBytes(phase, measurement.streamed_rows, column)
+              _ => issue
+            },
+          )
+      }
     }
   }
   measurement.streamed_rows += 1
+}
+
+///|
+/// The retained encoder already emitted these exact checked values. Charge its
+/// per-value metrics only when the entire row fits; an uncertain rejection uses
+/// ordered measurement above to preserve the first failing column and charge.
+fn charge_encoded_stream_values(
+  measurement : FixedProducerMeasurement,
+  width : Int,
+  usage : Array[(Int, Int)],
+  depth : Int,
+) -> Bool {
+  let budget = measurement.budget
+  if depth > budget.depth ||
+    usage.length() >= budget.work ||
+    usage.length() != width {
+    return false
+  }
+  let mut bytes = 0
+  let mut nodes = 0
+  for (value_bytes, value_nodes) in usage {
+    if value_bytes < 0 ||
+      value_nodes < 0 ||
+      value_bytes > measurement.max_value_bytes ||
+      value_bytes > budget.bytes - bytes ||
+      value_nodes > budget.nodes - nodes {
+      return false
+    }
+    bytes += value_bytes
+    nodes += value_nodes
+  }
+  budget.work -= usage.length() + 1
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  true
 }
 
 ///|

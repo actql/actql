@@ -58,6 +58,53 @@ test "retained input measurement shares exact cell-backed budget through output"
 }
 
 ///|
+test "encoded output charging keeps ordered guard failure after input usage" {
+  let owner = capture_fixture()
+  let (source, _) = retained_fixture(owner, Ref(true))
+  let input = retained_scan_fixture(owner, source)
+  let measurement = prepare_streamed_fixed_producer_measurement(
+    [input],
+    Step(0),
+    max_rows=2,
+    max_value_bytes=100,
+    { max_work: 1000, max_bytes: 13, max_nodes: 1000, max_depth: 10, },
+  ).unwrap()
+  let scan = prepare_retained_producer_scan(
+    input,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  attach_retained_producer_measurement(measurement, scan).unwrap()
+  for row in ["{\"n\":1,\"s\":\"é\"}", "{\"n\":2,\"s\":\"😀\"}"] {
+    append_retained_producer_scan_wire(scan, row, retained_row_test_limits()).unwrap()
+    |> ignore
+  }
+  finish_retained_producer_scan(scan).unwrap() |> ignore
+  let output = prepare_admitted_output_stream(
+    producer_read_receiver(input),
+    Step(0),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    64,
+  ).unwrap()
+  attach_fixed_producer_stream_measurement(measurement, output).unwrap()
+  for row in 0..<2 {
+    let values = output_fixture_row(owner, row)
+    append_admitted_output_stream(output, 1, column => values.get(column)).unwrap()
+    |> ignore
+  }
+  let (receipt, _) = finish_admitted_output_stream(output).unwrap()
+  assert_true(
+    finish_fixed_producer_stream_measurement(measurement, receipt)
+    is Err(Measurement(Output, 1, 0, @encode.OutputLimit)),
+  )
+  assert_eq(measurement.initial.max_bytes - measurement.budget.bytes, 13)
+}
+
+///|
 test "retained input measurement failure cannot be replaced by unmeasured scan" {
   let owner = capture_fixture()
   for mode in 0..<3 {

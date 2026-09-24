@@ -14,6 +14,7 @@ struct AdmittedOutputStream {
   mut open : Bool
   mut reading : Bool
   mut measurement : FixedProducerMeasurement?
+  encoded_cell_usage : Array[(Int, Int)]
 }
 
 ///|
@@ -110,6 +111,7 @@ fn prepare_admitted_stream(
       open: true,
       reading: false,
       measurement: None,
+      encoded_cell_usage: Array::make(width, (0, 0)),
     })
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -189,16 +191,35 @@ fn append_output_stream_row(
     return Err(Closed)
   }
   let row = stream.buffer.rows[0]
-  if stream.measurement is Some(measurement) {
-    measure_fixed_producer_stream_row(measurement, row)
-  }
+  let measured = stream.measurement is Some(_)
   try {
     @encode.begin_object(stream.writer)
     for (name, column) in stream.order.columns {
       @encode.key(stream.writer, name)
+      let before = if measured {
+        Some(@encode.writer_progress(stream.writer))
+      } else {
+        None
+      }
       @admitted.emit_wire_value(row[column], stream.writer)
+      if before is Some(previous) {
+        let current = @encode.writer_progress(stream.writer)
+        stream.encoded_cell_usage[column] = (
+          current.0 - previous.0,
+          current.1 - previous.1,
+        )
+      }
     }
     @encode.end_object(stream.writer)
+    if stream.measurement is Some(measurement) {
+      let (_, _, peak) = @encode.writer_progress(stream.writer)
+      measure_fixed_producer_stream_row(
+        measurement,
+        row,
+        encoded=stream.encoded_cell_usage,
+        encoded_depth=peak - 2,
+      )
+    }
     Ok(
       if stream.retain_text {
         @encode.drain_hash_output(stream.writer)
@@ -207,7 +228,12 @@ fn append_output_stream_row(
       },
     )
   } catch {
-    issue => Err(Wire(Encoding(issue)))
+    issue => {
+      if stream.measurement is Some(measurement) {
+        measure_fixed_producer_stream_row(measurement, row)
+      }
+      Err(Wire(Encoding(issue)))
+    }
   }
 }
 

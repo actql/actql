@@ -246,6 +246,24 @@ encoding pass for successful retained acquisition results. Its product Host and
 three-target adapter regressions pass; the paired performance effect has not
 yet been measured.
 
+At clean revision `30e8d13d`, seven local paired observations of the same
+registered wide/reuse case yielded an execution ratio interval of 1.311–1.555.
+It still fails the 1.25 limit. The task traces showed about 1.6 seconds of
+output callback time for each of the three wide retained tasks in one pair,
+while the first resident import and two full input verifications also remained
+material costs. The interval is directional only; it does not isolate the
+output change from machine load or prove the final Linux result.
+
+The retained Compute output stream now records each checked cell's byte and
+node usage while emitting its required canonical retention bytes. When every
+value and the shared budget fit, it charges those exact per-cell quantities
+without constructing a second measurement writer for every cell. An output
+failure or any potentially failing guard uses the original ordered measurement
+to retain the first failing column, partial work charge, and error shape. This
+also leaves the output CID, retained bytes, and independent Store seal intact.
+The three-target execution-relation tests and real-DuckDB Host tests pass; a
+paired assessment at this later revision is still pending.
+
 The controller's preparation cannot simply be dropped: its independently
 checked task identities constrain the worker's completion claims before the
 attempt is accepted. A prepared artifact shared across that process boundary
