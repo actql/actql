@@ -174,6 +174,18 @@ test "checked Plan changes merge only same-owner literals and bounded rows" {
     effect_plan_row_intended_changes_wire(
       row,
       admitted,
+      0,
+      6,
+      expected.length(),
+      4,
+      2,
+    ).unwrap_err(),
+    WorkLimit,
+  )
+  assert_eq(
+    effect_plan_row_intended_changes_wire(
+      row,
+      admitted,
       1,
       6,
       expected.length() - 1,
