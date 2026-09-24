@@ -19,6 +19,7 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
+  "actql/actql/run_publication",
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
@@ -76,6 +77,8 @@ pub fn asof_search_limit_proof_count(AsOfSearchLimit, Int) -> Int
 pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.AsOfSearchCheck
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
+
+pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue]
 
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
@@ -139,11 +142,21 @@ pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.E
 
 pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
 
+pub fn effect_program_static_definition_cid(EffectProgramStaticCandidate) -> String
+
 pub fn effect_program_static_effects(EffectProgramStaticCandidate) -> @stage_results.EffectStaticCandidate
 
 pub fn effect_program_static_environment(EffectProgramStaticCandidate) -> @check_environment.WireEnvironment
 
 pub fn effect_program_static_headers(EffectProgramStaticCandidate) -> @stage_syntax.EffectHeaders
+
+pub fn effect_program_static_preview_candidate(EffectProgramStaticPreview) -> EffectProgramStaticCandidate
+
+pub fn effect_program_static_preview_identity(EffectProgramStaticPreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn effect_program_static_preview_stage(EffectProgramStaticPreview) -> Int
+
+pub fn effect_program_static_semantics_cid(EffectProgramStaticCandidate) -> String
 
 pub fn effect_program_static_stage_results(EffectProgramStaticCandidate) -> @stage_results.Checked
 
@@ -809,6 +822,19 @@ pub(all) enum EffectComputationIssue {
 }
 
 type EffectProgramStaticCandidate
+
+pub struct EffectProgramStaticPreview {
+  candidate : EffectProgramStaticCandidate
+  stage_index : Int
+  preview : @run_publication.EffectPreviewIdentity
+}
+
+pub(all) enum EffectProgramStaticPreviewIssue {
+  ForeignProgramDefinition
+  ForeignProgramSemantics
+  ForeignCheckEnvironment
+  Inventory(@stage_results.EffectPreviewStaticInventoryIssue)
+} derive(Eq, @debug.Debug)
 
 type EffectivePolicy
 

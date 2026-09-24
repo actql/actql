@@ -65,6 +65,8 @@ pub fn derive_effect_preview_row_identities(String, Int, Int, Int) -> Result[Arr
 
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
 
+pub fn effect_preview_check_environment_cid(EffectPreviewIdentity) -> String
+
 pub fn effect_preview_footprint_kind(EffectPreviewFootprintIdentity) -> String
 
 pub fn effect_preview_footprint_provider_boundary_cid(EffectPreviewFootprintIdentity) -> String
@@ -98,6 +100,10 @@ pub fn effect_preview_ordered_row_correlation_wire(EffectPreviewIdentity, Int, I
 pub fn effect_preview_ordered_row_identity(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_ordered_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_program_definition_cid(EffectPreviewIdentity) -> String
+
+pub fn effect_preview_program_semantics_cid(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 

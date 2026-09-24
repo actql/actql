@@ -70,6 +70,13 @@ within-member failure policies, independent of Preview array order. This is
 one static inventory guard only: the normal Program checker still rejects
 Effects, and the Host has not yet bound that Preview to a Captured Run or
 admitted apply authority.
+The static Preview boundary also checks each member's authored Mapping or
+Command reference and exact resolved Contract CID. The enclosing checked
+Program now binds that Preview to its own Program Definition, Program semantics,
+and Check Environment identities. A different Program, Environment, or
+resolved Contract cannot reuse the Preview as static evidence. The boundary
+does not establish the compiled Plan, Invocation, Captured Run, current grant,
+target guard, or apply permission; it is deliberately not an execution permit.
 The separate `EffectStaticCandidate` now combines Result binding, Mapping
 shape/rule/literal admission, and Command target/inline-input admission under
 one bounded work budget and one exact Environment owner. It rejects missing

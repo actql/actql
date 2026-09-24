@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/sha256" @sha,
+  "actql/actql/canonical_json" @json,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/numeric_reduction" @numeric,
@@ -31,6 +32,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/stage_results" @results,
+  "actql/actql/run_publication",
   "actql/actql/relation_results" @publication,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/program_references" @references,
