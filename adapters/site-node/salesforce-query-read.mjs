@@ -1,14 +1,11 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
+import {invocationBindingsMatch, ownInvocationAuthorization,
+  ownInvocationContext} from
+  '../host-common/owned-invocation-context.mjs';
 
 const operation = 'salesforce:query:read';
-const bindingKeys = Object.freeze([
-  'issuerAuthority', 'principal', 'tenant', 'environment',
-  'siteKey', 'siteGeneration', 'runtimeBundleCid',
-  'connectorRegistration', 'connectorRevision', 'resourceOrigin',
-  'runInvocationCid', 'taskAttempt', 'dispatchRequestCid',
-]);
 const count = value => Number.isSafeInteger(value) && value >= 0;
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -19,8 +16,8 @@ function validateAuthorization(authorization, originalScope) {
       authorization.useId.length === 0 || !authorization.grant ||
       !authorization.scope || authorization.scope.operation !== operation ||
       !count(authorization.scope.siteGeneration) ||
-      (originalScope && bindingKeys.some(
-        key => authorization.scope[key] !== originalScope[key]))) {
+      (originalScope && !invocationBindingsMatch(
+        authorization.scope, originalScope))) {
     fail('InvalidSalesforceQueryAuthorization');
   }
   return authorization.scope;
@@ -58,7 +55,11 @@ function validateRead({
     fail('InvalidSalesforceQueryRead');
   }
   validateLimits(limits);
-  const scope = validateAuthorization(initialAuthorization);
+  const context = ownInvocationContext({
+    authorization: initialAuthorization, credential, limits,
+    callbacks: {authorizationForPage, consumePage, callResource},
+  });
+  const scope = validateAuthorization(context.authorization);
   if (!moon.salesforceReadProjectionScopeMatches(
     plan, scope.tenant, scope.principal, scope.environment,
     scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
@@ -67,7 +68,9 @@ function validateRead({
   )) {
     fail('ForeignSalesforceQueryProjection');
   }
-  return scope;
+  return Object.freeze({...context,
+    refreshCatalog: Object.freeze({...refreshCatalog}),
+  });
 }
 
 async function recheckCurrentCatalog(options) {
@@ -107,9 +110,9 @@ async function driveQueryPages({
       const path = checked(owner.nextPath());
       if (path === undefined || path === null) break;
       signal?.throwIfAborted();
-      const authorization = pages.length === 0
+      const authorization = ownInvocationAuthorization(pages.length === 0
         ? initialAuthorization
-        : await authorizationForPage(path, pages.length);
+        : await authorizationForPage(path, pages.length));
       validateAuthorization(authorization, scope);
       signal?.throwIfAborted();
       const response = await callResource({
@@ -154,15 +157,26 @@ async function driveQueryPages({
 export async function readSalesforceQuery(options) {
   const {moon, plan, apiVersion, limits} = options;
   if (typeof apiVersion !== 'string') fail('InvalidSalesforceQueryRead');
-  const scope = validateRead(options);
-  const currentCatalog = await recheckCurrentCatalog(options);
+  const context = validateRead(options);
+  const currentCatalog = await recheckCurrentCatalog({
+    ...options, credential: context.credential,
+    refreshCatalog: context.refreshCatalog,
+    callResource: context.callbacks.callResource,
+  });
+  const ownedLimits = context.limits;
   const read = checked(moon.salesforceBeginQueryRead(
-    plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
-    limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
-    BigInt(limits.maxTotalRows),
+    plan, apiVersion, ownedLimits.maxBytes, ownedLimits.maxNodes,
+    ownedLimits.maxDepth, ownedLimits.maxRows,
+    ownedLimits.maxLocatorUnits, ownedLimits.maxPages,
+    BigInt(ownedLimits.maxTotalRows),
   ));
-  const result = await driveQueryPages({callResource: callHttpsCredentialResource,
-    ...options}, scope, {
+  const result = await driveQueryPages({
+    ...options, initialAuthorization: context.authorization,
+    authorizationForPage: context.callbacks.authorizationForPage,
+    consumePage: context.callbacks.consumePage,
+    callResource: context.callbacks.callResource,
+    credential: context.credential, limits: ownedLimits,
+  }, context.scope, {
     nextPath: () => moon.salesforceQueryReadNextPath(read),
     acceptPage: (path, body) => moon.salesforceQueryReadAcceptPage(read, path,
       body),
@@ -184,15 +198,26 @@ export async function readSalesforceManagedQuery(options) {
   if (typeof apiVersion !== 'string' || !values) {
     fail('InvalidSalesforceQueryRead');
   }
-  const scope = validateRead({consumePage: async () => {}, ...options});
-  const currentCatalog = await recheckCurrentCatalog(options);
+  const context = validateRead({consumePage: async () => {}, ...options});
+  const currentCatalog = await recheckCurrentCatalog({
+    ...options, credential: context.credential,
+    refreshCatalog: context.refreshCatalog,
+    callResource: context.callbacks.callResource,
+  });
+  const ownedLimits = context.limits;
   const query = checked(moon.salesforcePrepareManagedQuery(
-    plan, apiVersion, limits.maxBytes, limits.maxNodes, limits.maxDepth,
-    limits.maxRows, limits.maxLocatorUnits, limits.maxPages,
-    BigInt(limits.maxTotalRows), values,
+    plan, apiVersion, ownedLimits.maxBytes, ownedLimits.maxNodes,
+    ownedLimits.maxDepth, ownedLimits.maxRows,
+    ownedLimits.maxLocatorUnits, ownedLimits.maxPages,
+    BigInt(ownedLimits.maxTotalRows), values,
   ));
-  const result = await driveQueryPages({callResource: callHttpsCredentialResource,
-    consumePage: async () => {}, ...options}, scope, {
+  const result = await driveQueryPages({
+    ...options, initialAuthorization: context.authorization,
+    authorizationForPage: context.callbacks.authorizationForPage,
+    consumePage: async () => {},
+    callResource: context.callbacks.callResource,
+    credential: context.credential, limits: ownedLimits,
+  }, context.scope, {
     nextPath: () => moon.salesforceManagedQueryNextPath(query),
     acceptPage: (path, body) => moon.salesforceManagedQueryAcceptPage(
       query, path, body),
@@ -223,22 +248,30 @@ export async function readSalesforceIssuedBroad(options) {
   const attempt = moon.salesforceBroadHostAttempt(hostRun);
   const plan = moon.salesforceIssuedBroadPlan(attempt);
   const physical = {...options, plan, consumePage: async () => {}};
-  const scope = validateRead(physical);
+  const context = validateRead(physical);
   // Claim the exact attempt before the first await. A rejected duplicate
   // must not abort the owner that already holds this physical read.
   checked(moon.salesforceIssuedBroadBegin(
-    attempt, apiVersion, limits.maxBytes, limits.maxNodes,
-    limits.maxDepth, limits.maxRows, limits.maxLocatorUnits,
-    limits.maxPages, BigInt(limits.maxTotalRows), maxCaptureRows,
+    attempt, apiVersion, context.limits.maxBytes, context.limits.maxNodes,
+    context.limits.maxDepth, context.limits.maxRows,
+    context.limits.maxLocatorUnits, context.limits.maxPages,
+    BigInt(context.limits.maxTotalRows), maxCaptureRows,
     captureLimits.maxNodes, captureLimits.maxTextBytes,
     captureLimits.maxDepth, captureLimits.maxWork,
   ));
   try {
-    const currentCatalog = await recheckCurrentCatalog(physical);
+    const currentCatalog = await recheckCurrentCatalog({
+      ...physical, credential: context.credential,
+      refreshCatalog: context.refreshCatalog,
+      callResource: context.callbacks.callResource,
+    });
     const result = await driveQueryPages({
-      callResource: callHttpsCredentialResource,
       ...physical,
-    }, scope, {
+      initialAuthorization: context.authorization,
+      authorizationForPage: context.callbacks.authorizationForPage,
+      callResource: context.callbacks.callResource,
+      credential: context.credential, limits: context.limits,
+    }, context.scope, {
       nextPath: () => moon.salesforceIssuedBroadNextPath(attempt),
       acceptPage: (path, body) =>
         moon.salesforceIssuedBroadAcceptPage(attempt, path, body),

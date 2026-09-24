@@ -318,6 +318,38 @@ function request(setup, overrides = {}) {
   };
 }
 
+test('Catalog owns the original binding across the HTTPS response',
+  async t => {
+    const setup = await fixture(t);
+    const original = setup.list.scope;
+    const mutableScope = {...original};
+    const result = await syncSalesforceCatalog(request(setup, {
+      listAuthorization: {...setup.list, useId: 'mutable-list',
+        scope: mutableScope},
+      callResource: async call => {
+        const response = await callHttpsCredentialResource(call);
+        if (call.scope.operation === 'salesforce:catalog:list') {
+          mutableScope.tenant = 'tenant-b';
+          mutableScope.principal = 'principal-b';
+          mutableScope.siteGeneration = 5;
+          mutableScope.resourceOrigin = 'https://foreign.example.invalid';
+          mutableScope.runInvocationCid = cid('9');
+        }
+        return response;
+      },
+    }));
+    assert.equal(result.status, 'complete');
+    assert.equal(setup.seen.length, 3);
+    assert.equal(setup.journal.recover().length, 3);
+    assert.equal(checked(salesforceMoon.salesforceCatalogObservedResourceState(
+      result.observation, original.tenant, original.principal,
+      original.environment, 'connection-revision-a', setup.orgId,
+      original.siteKey, original.siteGeneration,
+      original.connectorRegistration, original.connectorRevision,
+      original.resourceOrigin, original.runInvocationCid,
+      original.dispatchRequestCid, 'catalog-sync-a', 'Account')), 1);
+  });
+
 test('Site HTTPS catalog sync completes with scoped credential uses',
   async t => {
     const setup = await fixture(t);
@@ -714,8 +746,16 @@ test('Host claim owns one local HTTPS write', async t => {
   }), {code: 'ForeignSalesforceEffectWrite'});
   assert.equal(first.current(effect.logicalItemLocatorCid(locator)), undefined);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 0);
+  const mutableLimits = {...options.limits};
   const sent = await captureSalesforceSingleEffectWrite({
-    ...options, ledger: first});
+    ...options, ledger: first, limits: mutableLimits,
+    callResource: async call => {
+      const response = await callHttpsCredentialResource(call);
+      mutableLimits.maxDepth = 0;
+      return response;
+    },
+  });
+  assert.equal(mutableLimits.maxDepth, 0);
   assert.equal(sent.claimed, true);
   assert.equal(sent.physical.kind, 'typed-success-response');
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
@@ -1203,9 +1243,16 @@ test('Host custody binds one HTTPS Collections response to every row',
     }), {code: 'MoonBitHostFailure'});
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 0);
+    const mutableLimits = {...options.limits};
     const sent = await captureSalesforceCollectionEffectWrite({
-      ...options, ledger: first,
+      ...options, ledger: first, limits: mutableLimits,
+      callResource: async call => {
+        const response = await callHttpsCredentialResource(call);
+        mutableLimits.maxDepth = 0;
+        return response;
+      },
     });
+    assert.equal(mutableLimits.maxDepth, 0);
     assert.equal(sent.claimed, true);
     assert.equal(sent.physical.kind, 'typed-row-response');
     assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
@@ -1931,6 +1978,35 @@ function queryRequest(setup, plan, overrides = {}) {
     ...overrides,
   };
 }
+
+test('Query continuation compares against its owned initial binding',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    const mutableScope = {...setup.query.scope};
+    const result = await readSalesforceQuery(queryRequest(setup, plan, {
+      initialAuthorization: {...setup.query, useId: 'mutable-query-initial',
+        scope: mutableScope},
+      callResource: async call => {
+        const response = await callHttpsCredentialResource(call);
+        if (call.scope.operation === 'salesforce:query:read' &&
+            call.useId === 'mutable-query-initial') {
+          mutableScope.tenant = 'tenant-b';
+          mutableScope.siteGeneration = 5;
+          mutableScope.runInvocationCid = cid('9');
+        }
+        return response;
+      },
+    }));
+    assert.equal(result.rowCount, 2n);
+    assert.equal(result.pages.length, 2);
+    assert.equal(setup.journal.inspect(result.pages[1].useCid).outcome,
+      'succeeded');
+    assert.deepEqual(setup.seen.slice(-2).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+      '/services/data/v62.0/query/01gABC-2000',
+    ]);
+  });
 
 test('Site HTTPS query follows the exact locator with bounded page delivery',
   async t => {

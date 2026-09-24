@@ -2,6 +2,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
+import {ownInvocationContext} from
+  '../host-common/owned-invocation-context.mjs';
 
 const count = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => {
@@ -43,7 +45,7 @@ export function projectSalesforceCollectionObservation({
 
 // One physical Collections call for rows of one admitted continue member.
 // This is not apply admission, a dispatch permit, or an Effect receipt.
-export async function writeSalesforceContinueCollection({
+export async function sendRawSalesforceContinueCollection({
   moon,
   request,
   currentObservation,
@@ -66,10 +68,12 @@ export async function writeSalesforceContinueCollection({
       !count(limits.maxRows) || limits.maxRows > 200) {
     fail('InvalidSalesforceCollectionWrite');
   }
-  const scope = authorization.scope;
+  const context = ownInvocationContext({authorization, credential, limits,
+    callbacks: {callResource}});
+  const scope = context.scope;
   const operation = moon.salesforceCollectionWriteRequestGrantOperation(request);
   const rowCount = moon.salesforceCollectionWriteRequestRowCount(request);
-  if (!count(rowCount) || rowCount > limits.maxRows) {
+  if (!count(rowCount) || rowCount > context.limits.maxRows) {
     fail('SalesforceCollectionRowLimitExceeded');
   }
   if (!matchesSalesforceCredentialOrg(credential,
@@ -85,16 +89,16 @@ export async function writeSalesforceContinueCollection({
   checked(moon.salesforceRecheckCollectionWriteRequest(
     request, currentObservation));
   signal?.throwIfAborted();
-  const response = await callResource({
-    ...credential,
-    ...authorization,
+  const response = await context.callbacks.callResource({
+    ...context.credential,
+    ...context.authorization,
     operations: new Map([[operation, Object.freeze({
       method: moon.salesforceCollectionWriteRequestMethod(request),
       path: moon.salesforceCollectionWriteRequestPath(request),
       body: moon.salesforceCollectionWriteRequestBody(request),
     })]]),
-    maxRequestBytes: limits.maxRequestBytes,
-    maxResponseBytes: limits.maxResponseBytes,
+    maxRequestBytes: context.limits.maxRequestBytes,
+    maxResponseBytes: context.limits.maxResponseBytes,
     returnRejectedResponse: true,
     signal,
   });
@@ -103,7 +107,13 @@ export async function writeSalesforceContinueCollection({
     statusCode: response.statusCode,
     body: response.body,
   });
+  return Object.freeze({observation, limits: context.limits});
+}
+
+export async function writeSalesforceContinueCollection(options) {
+  const raw = await sendRawSalesforceContinueCollection(options);
   return projectSalesforceCollectionObservation({
-    moon, request, observation, limits,
+    moon: options.moon, request: options.request,
+    observation: raw.observation, limits: raw.limits,
   });
 }
