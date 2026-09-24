@@ -4,8 +4,8 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 34 have operation-specific
-boundary records, 13 have all four lifecycle roles, and 9 have exact and
+The current local resource gate maps 68 routes: 35 have operation-specific
+boundary records, 12 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
@@ -2215,13 +2215,23 @@ bound to the production route. Metric, identity-width, and output-value work
 interactions remain outside full route resource assurance.
 
 The pooling kernel now enforces cumulative control work on both Vectors and
-Relation input paths. Independent fixtures count 1/0 work on empty input and
+Relation input paths. Vectors-input fixtures count 1/0 work on empty input and
 30/29 work for a single record, with zero-work admission rejected before
 output allocation. A four-record sort completes with 39 structural workspace
 slots and rejects 38 before allocation. Kernel cancellation, cleanup, and
-the delivered Host timer are bound to the Vectors production route. Composite
-keys, relation member identity encoding, and numeric reduction variants still
-need full route resource assurance.
+the delivered Host timer are bound to the Vectors production route. The
+Relation-input production entrypoint is separately registered with standard
+Host and composite-identity fixtures, but lacks exact and one-short resource,
+delivered cancellation, and cleanup proof for that path. Composite keys,
+relation member identity encoding, and numeric reduction variants still need
+full route resource assurance.
+
+The nearest-neighbor route now records the fused
+`start_nearest_inputs_with_relations` production entrypoint separately from
+`start_nearest_inputs`. Existing standard Host fixtures cover mixed Vectors and
+Relation inputs and inferred Relation roles. Neither entrypoint yet has
+operation-specific exact/one-short resource and delivered-cancellation proof,
+so this route is not counted as four-role or fully assured.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.

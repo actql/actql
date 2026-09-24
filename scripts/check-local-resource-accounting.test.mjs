@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 34 with operation-specific boundary records, 13 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -364,12 +364,24 @@ test('vector scoring retains its bounded production evidence', () => {
 });
 
 test('vector pooling retains its bounded production evidence', () => {
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    delete pool.relation_entrypoint;
+  }), /VecA pool_vectors: Relation input entrypoint is missing/);
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    delete pool.additional_dispatch;
+  }), /VecA pool_vectors: Relation input entrypoint is missing/);
   for (const role of [
     'pool_empty_work_exact_one_short',
     'pool_record_work_exact_one_short',
     'pool_workspace_exact',
     'pool_workspace_one_short',
     'pool_kernel_cancel_cleanup',
+    'pool_relation_host_two_consumers',
+    'pool_relation_composite_identity',
   ]) {
     assert.match(run(undefined, routes => {
       const pool = routes.routes.find(entry => entry.family === 'VecA' &&
@@ -383,6 +395,30 @@ test('vector pooling retains its bounded production evidence', () => {
       entry.operation === 'pool_vectors');
     pool.environment_tests = [];
   }), /VecA pool_vectors: bounded Host cancellation assurance is missing/);
+});
+
+test('nearest retains its fused Relation production entrypoint', () => {
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    delete nearest.relation_entrypoint;
+  }), /VecA nearest: fused Relation input entrypoint is missing/);
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    delete nearest.additional_dispatch;
+  }), /VecA nearest: fused Relation input entrypoint is missing/);
+  for (const role of [
+    'nearest_mixed_carrier_relation_host',
+    'nearest_relation_roles_host',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      nearest.boundary_tests = nearest.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {

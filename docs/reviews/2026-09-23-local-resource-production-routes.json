@@ -3691,10 +3691,34 @@
         "path": "src/local_veca_provider/vectors_pipeline.mbt",
         "marker": "@veca.start_nearest_inputs("
       },
+      "additional_dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_nearest_inputs_with_relations("
+      },
       "entrypoint": {
         "path": "src/local_veca/nearest.mbt",
         "symbol": "start_nearest_inputs"
-      }
+      },
+      "relation_entrypoint": {
+        "path": "src/local_veca/nearest.mbt",
+        "symbol": "start_nearest_inputs_with_relations"
+      },
+      "boundary_tests": [
+        {
+          "role": "nearest_mixed_carrier_relation_host",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host runs nearest with Vectors and Relation inputs"
+        },
+        {
+          "role": "nearest_relation_roles_host",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host completes nearest Relation roles"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -3705,9 +3729,17 @@
         "path": "src/local_veca_provider/vectors_pipeline.mbt",
         "marker": "@veca.start_pool("
       },
+      "additional_dispatch": {
+        "path": "src/local_veca_provider/vectors_pipeline.mbt",
+        "marker": "@veca.start_relation_pool("
+      },
       "entrypoint": {
         "path": "src/local_veca/pool.mbt",
         "symbol": "start_pool"
+      },
+      "relation_entrypoint": {
+        "path": "src/local_veca/pool.mbt",
+        "symbol": "start_relation_pool"
       },
       "boundary_tests": [
         {
@@ -3744,6 +3776,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/pool_wbtest.mbt",
           "fixture": "pool observes cancellation and reclaims partial output"
+        },
+        {
+          "role": "pool_relation_host_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host pools author-visible Relation input"
+        },
+        {
+          "role": "pool_relation_composite_identity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "standard Host encodes composite Relation pool identity"
         }
       ],
       "environment_tests": [
