@@ -7,7 +7,6 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
-import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {
   captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse,
@@ -59,7 +58,7 @@ async function collectionFixture(t) {
 
 test('exact single claim reopens physical outcome custody without a send',
   async t => {
-    const {root, open, claim} = await fixture(t);
+    const {open, claim} = await fixture(t);
     const first = open();
     let sends = 0;
     const sent = await captureClaimedEffectResponse({
@@ -71,19 +70,16 @@ test('exact single claim reopens physical outcome custody without a send',
       },
     });
     assert.equal(first.readClaimedOutcome(claim), undefined);
-    const physical = openSqliteEffectLedger(root, {authorityScopeCid});
-    try {
-      physical.recordOutcome({
-        logicalRequestScopeCid: first.scopeCid,
-        logicalItemLocatorCid: control.logicalItemLocatorCid(claim.locator),
-        dispatchEntryCid: control.ledgerEntryCid(sent.ownership.dispatching),
-        responsePhysicalSha256: sent.response.responsePhysicalSha256,
-        outcomeCid: cid('5'),
-        outcomeJson: '{"result":{"record_id":"a001"},"state":"applied"}',
-      });
-    } finally {
-      physical.close();
-    }
+    const retained = {
+      claim, responsePhysicalSha256: sent.response.responsePhysicalSha256,
+      outcomeCid: cid('5'),
+      outcomeJson: '{"result":{"record_id":"a001"},"state":"applied"}',
+    };
+    assert.throws(() => first.recordClaimedOutcome({
+      ...retained, responsePhysicalSha256: '0'.repeat(64),
+    }), {code: 'EffectPhysicalResponseNotOwned'});
+    assert.equal(first.recordClaimedOutcome(retained).created, true);
+    assert.equal(first.recordClaimedOutcome(retained).created, false);
     const applied = control.issueNextLedgerEntry(sent.ownership.dispatching,
       'applied', cid('5'), 4096, 64, 4);
     first.append(control.ledgerEntryWire(applied));
@@ -134,7 +130,7 @@ test('exact single claim reopens physical outcome custody without a send',
 
 test('exact Collections claim reopens distinct row outcome custody',
   async t => {
-    const {root, open, claims} = await collectionFixture(t);
+    const {open, claims} = await collectionFixture(t);
     const first = open();
     let sends = 0;
     const sent = await captureClaimedEffectCollectionResponse({
@@ -148,24 +144,20 @@ test('exact Collections claim reopens distinct row outcome custody',
     assert.deepEqual(first.readClaimedBatchOutcomes(claims),
       [undefined, undefined]);
     const stored = first.readClaimedBatchResponse(claims);
-    const physical = openSqliteEffectLedger(root, {authorityScopeCid});
-    try {
-      for (let index = 0; index < claims.length; index++) {
-        physical.recordOutcome({
-          logicalRequestScopeCid: first.scopeCid,
-          logicalItemLocatorCid: control.logicalItemLocatorCid(
-            claims[index].locator),
-          dispatchEntryCid: control.ledgerEntryCid(
-            sent.ownership.dispatching[index]),
-          responsePhysicalSha256: stored.responsePhysicalSha256,
-          outcomeCid: cid(index === 0 ? '5' : '6'),
-          outcomeJson: index === 0
-            ? '{"result":{"record_id":"a001"},"state":"applied"}'
-            : '{"error":{"code":"INVALID_FIELD","message":"Bad field"},"state":"failed"}',
-        });
-      }
-    } finally {
-      physical.close();
+    assert.throws(() => first.recordClaimedOutcome({
+      claims: [...claims].reverse(), rowIndex: 0,
+      responsePhysicalSha256: stored.responsePhysicalSha256,
+      outcomeCid: cid('5'), outcomeJson: '{"state":"applied"}',
+    }), {code: 'EffectCollectionResponseBindingMismatch'});
+    for (let index = 0; index < claims.length; index++) {
+      assert.equal(first.recordClaimedOutcome({
+        claims, rowIndex: index,
+        responsePhysicalSha256: stored.responsePhysicalSha256,
+        outcomeCid: cid(index === 0 ? '5' : '6'),
+        outcomeJson: index === 0
+          ? '{"result":{"record_id":"a001"},"state":"applied"}'
+          : '{"error":{"code":"INVALID_FIELD","message":"Bad field"},"state":"failed"}',
+      }).created, true);
     }
     for (let index = 0; index < claims.length; index++) {
       const terminal = control.issueNextLedgerEntry(
