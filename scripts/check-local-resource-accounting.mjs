@@ -472,6 +472,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('lag_empty_schema_workspace_exact_one_short')) {
     fail(`${label}: lag schema workspace evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'watermark_rows' &&
+    !boundaryRoles.has('watermark_fixed_work_workspace_exact_one_short')) {
+    fail(`${label}: independent watermark resource evidence is missing`);
+  }
   for (const operation of ['row_window', 'except', 'intersect']) {
     if (route.family === 'RelA' && route.operation === operation &&
       !boundaryRoles.has(`${operation}_empty_schema_workspace_exact_one_short`)) {

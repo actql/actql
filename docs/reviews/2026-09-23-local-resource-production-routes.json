@@ -1299,7 +1299,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "watermark_fixed_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/watermark_scale_wbtest.mbt",
+          "fixture": "watermark admits independently counted work and workspace"
+        }
+      ]
     },
     {
       "inventory": "rela",

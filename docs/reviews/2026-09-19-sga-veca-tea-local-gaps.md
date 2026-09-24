@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 60 |
+| Operation-specific boundary records | 61 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -20,6 +20,11 @@ and checked by `check:local-resource-accounting`.
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+The `watermark_rows` route now binds a fixed one-row fixture with independently
+calculated 24 units of control work and an eleven-slot workspace peak. Exact
+limits succeed and either one-short limit fails. This proves that evaluator's
+fixed mark-policy resource boundary, not its in-flight cancellation or every
+watermark variant.
 
 The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
 validate output schema names without first materializing the name array. They
