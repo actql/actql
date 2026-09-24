@@ -428,10 +428,8 @@ test('Node publication admission rejects evidence from another checked Program',
     journal.close(); // Lose the acceptance reply before using the Run ref.
     const restarted = openClientRequestJournal(path);
     t.after(() => restarted.close());
-    const retained = restarted.lookupDefinition({
-      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
-      requestId: 'saved-request',
-    }, moon, control);
+    const retained = restarted.resolveDefinition(identity,
+      {tenantId: 'tenant-a'}, moon, control);
     assert.equal(retained.runDefinition.wire, definition.wire);
     const changed = moon.clientProgramPrepareEffectFree(
       document.replace('"id": 2', '"id": 3'), 'json', environment);
@@ -443,6 +441,9 @@ test('Node publication admission rejects evidence from another checked Program',
     /Publication evidence differs from checked Program/u);
     const changedRequest = moon.clientProgramRequestIdentity(
       changed, cid('a'), 'saved-request', cid('b'));
+    assert.throws(() => restarted.resolveDefinition(changedRequest,
+      {tenantId: 'tenant-a'}, moon, control),
+    {code: 'ClientRequestIntentConflict'});
     assert.throws(() => restarted.acceptDefinition(changedRequest, {
       tenantId: 'tenant-a', runDefinition: definition,
       lookupExpiresAt: '2099-01-01T00:00:00.000Z',
@@ -595,10 +596,8 @@ test('checked Values Program publishes and reads its real Local Result',
       const reopened = openClientRequestJournal(journalDirectory);
       let ref;
       try {
-        const retained = reopened.lookupDefinition({
-          tenantId: 'tenant-a', authorityScopeCid: cid('a'),
-          requestId: 'published-values-request',
-        }, moon, control);
+        const retained = reopened.resolveDefinition(identity,
+          {tenantId: 'tenant-a'}, moon, control);
         assert.equal(retained.runDefinition.wire, plan.runDefinition.wire);
         ref = retained.ref;
       } finally {
