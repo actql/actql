@@ -5,7 +5,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 39 have operation-specific
-boundary records, 18 have all four lifecycle roles, and 17 have exact and
+boundary records, 20 have all four lifecycle roles, and 17 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 40 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
@@ -29,14 +29,16 @@ the reverse Bridge routes; those assurances remain open.
 The production `start_events_to_rows` entrypoint also admits the exact
 two-row/fourteen-node result and six-column metadata width, rejects each
 one-short bound, charges 26 projection steps, and stops and reclaims after
-the first scan step. This route has its own fixture; delivered Host timer
-cancellation and full work/workspace assurance remain open.
+the first scan step. The standard Node Host also delivers a timer cancel
+after the Bridge's construction prefix and verifies stop, nonpublication,
+and final cleanup. Full work/workspace assurance remains open.
 The registered `start_vectors_to_rows` path independently admits a two-row,
 two-column projection with ten value nodes and ten charged projection steps.
 It rejects one-short value-node and metadata-width bounds, and its private
 session stops and cleans up after scanning starts without invalidating the
-Vectors producer. Delivered Host cancellation and full work/workspace
-assurance for this route remain open.
+Vectors producer. The standard Node Host delivers a timer cancel after the
+Bridge construction prefix and verifies stop, nonpublication, and cleanup.
+Full work/workspace assurance for this route remains open.
 
 The registered rows-to-Events Bridge now has independently counted 32/31
 construction-work and 13/12 peak structural-workspace limits for two
