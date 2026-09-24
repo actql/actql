@@ -14,6 +14,7 @@ fn final_test_preview_wire(
   chain : CapturedRunTestChain,
   member_cid : String,
   preview_cid : String,
+  plan? : Bool = true,
 ) -> String {
   let receipt = publication_contract_json(chain.receipt)
   let value = captured_test_value(receipt)
@@ -43,6 +44,7 @@ fn final_test_preview_wire(
     cid +
     "\",\"effect_identity_cid\":\"" +
     cid +
+    (if plan { "\",\"effect_plan_logical_cid\":\"" + cid } else { "" }) +
     "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
     cid +
     "\",\"capability_evidence_cid\":\"" +
@@ -71,11 +73,14 @@ fn final_test_preview_wire(
 }
 
 ///|
-fn final_test_preview(chain : CapturedRunTestChain) -> EffectPreviewIdentity {
+fn final_test_preview(
+  chain : CapturedRunTestChain,
+  plan? : Bool = true,
+) -> EffectPreviewIdentity {
   let placeholder = ordering_test_cid("a")
   let (_, members) = match
     derive_effect_preview_identities(
-      final_test_preview_wire(chain, placeholder, placeholder),
+      final_test_preview_wire(chain, placeholder, placeholder, plan~),
       65536,
       4096,
       32,
@@ -98,13 +103,13 @@ fn final_test_preview(chain : CapturedRunTestChain) -> EffectPreviewIdentity {
       }
   }
   let (preview_cid, _) = derive_effect_preview_identities(
-    final_test_preview_wire(chain, members[0], placeholder),
+    final_test_preview_wire(chain, members[0], placeholder, plan~),
     65536,
     4096,
     32,
   ).unwrap()
   admit_effect_preview_identity(
-    final_test_preview_wire(chain, members[0], preview_cid),
+    final_test_preview_wire(chain, members[0], preview_cid, plan~),
     publication_contract_identity(chain.run),
     run_evidence_value_identity(chain.authoring),
     65536,
@@ -322,6 +327,10 @@ test "final Effectful Receipt references one exact prior chain" {
     publication_contract_identity(final_receipt) !=
     publication_contract_identity(chain.receipt),
   )
+  assert_eq(
+    effect_preview_member_plan_cid(preview, 0),
+    Some(ordering_test_cid("a")),
+  )
   let foreign_wire = final_wire.replace(
     old="\"captured_run_cid\":\"" +
       publication_contract_identity(captured) +
@@ -525,6 +534,7 @@ test "final Effectful Receipt requires exact captured plan inventories" {
         "{\"WriteOne\":{},\"Foreign\":{}}",
         "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}",
       ),
+      ("{\"WriteOne\":{}}", "{\"WriteOne\":\"" + ordering_test_cid("f") + "\"}"),
     ] {
     let captured = final_test_captured_with_plan_inventory(chain, plans, cids)
     let final_wire = final_test_receipt_wire(
@@ -549,4 +559,60 @@ test "final Effectful Receipt requires exact captured plan inventories" {
       is Err(ForeignEffectInventory),
     )
   }
+}
+
+///|
+test "final Effectful Receipt accepts no invented plan for a planless member" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain, plan=false)
+  assert_eq(effect_preview_member_plan_cid(preview, 0), None)
+  let captured = final_test_captured_with_plan_inventory(chain, "{}", "{}")
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  assert_true(
+    admit_effectful_final_receipt_references(
+      chain.run,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
+  let invented = final_test_captured_with_plan_inventory(
+    chain,
+    "{\"WriteOne\":{}}",
+    "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}",
+  )
+  let invented_final = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    invented,
+  )
+  assert_true(
+    admit_effectful_final_receipt_references(
+      chain.run,
+      chain.receipt,
+      invented,
+      preview,
+      set_wire,
+      member_wires,
+      invented_final,
+      65536,
+      4096,
+      32,
+    )
+    is Err(ForeignEffectInventory),
+  )
 }
