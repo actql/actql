@@ -186,6 +186,37 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
 }
 
 ///|
+fn final_test_reseal_captured_context(
+  captured : PublicationContract,
+  old : String,
+  new : String,
+) -> PublicationContract {
+  let value = captured_test_value(publication_contract_json(captured))
+  let context = @json.object_field(value, "effect_context").unwrap()
+  let context_body = @json.object_without_field(context, "effect_context_cid").unwrap()
+  let altered = captured_test_value(
+    captured_test_wire(context_body).replace(old~, new~),
+  )
+  let cid = @json.cid_value(altered, 65536, 4096, 32) catch {
+    _ => abort("Invalid altered Effect Context")
+  }
+  let complete = @json.object_with_string_field(
+    altered, "effect_context_cid", cid,
+  ).unwrap()
+  let captured_body = @json.object_without_field(value, "captured_run_cid").unwrap()
+  seal_publication_contract(
+    "captured_run",
+    captured_test_wire(captured_body).replace(
+      old=captured_test_wire(context),
+      new=captured_test_wire(complete),
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+}
+
+///|
 fn final_test_receipts(
   preview : EffectPreviewIdentity,
 ) -> (String, Array[String], String) {
@@ -614,5 +645,136 @@ test "final Effectful Receipt accepts no invented plan for a planless member" {
       32,
     )
     is Err(ForeignEffectInventory),
+  )
+}
+
+///|
+test "Effectful computation chain checks exact captured Result values" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    validate_effect_free_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceNotEffectFree),
+  )
+  let altered = final_test_reseal_captured_context(
+    captured, "\"value\":7", "\"value\":8",
+  )
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      altered,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceReferenceMismatch("captured_result_values")),
+  )
+}
+
+///|
+test "Effectful computation chain rejects a foreign captured plan" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured_with_plan_inventory(
+    chain,
+    "{\"WriteOne\":{}}",
+    "{\"WriteOne\":\"" + ordering_test_cid("f") + "\"}",
+  )
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceInventoryMismatch("captured_effects")),
+  )
+}
+
+///|
+test "Effect-free commit chain rejects self-identified substituted rows" {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let altered = final_test_reseal_captured_context(
+    captured, "\"value\":7", "\"value\":8",
+  )
+  assert_true(
+    validate_effect_free_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      altered,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceReferenceMismatch("captured_result_values")),
   )
 }
