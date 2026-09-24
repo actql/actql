@@ -136,7 +136,7 @@ priv enum IndependentRowCopyPhase {
 ///|
 priv struct IndependentRowCopyState {
   mut source : CompletedOutput?
-  mut source_rows : Table?
+  mut source_rows : CompletedTable?
   workspace : RowWorkspace
   mut names : Array[String]
   mut rows : Array[Array[Value]]
@@ -184,11 +184,11 @@ fn independent_row_copy_step(
     }
     match state.phase {
       CopyNames =>
-        if state.column < source_rows.names.length() {
+        if state.column < RelationRows::field_names(source_rows).length() {
           if !reserve_slots(state.workspace, 1) {
             return @bounded.Failed(Limit, progress, used)
           }
-          state.names.push(source_rows.names[state.column])
+          state.names.push(RelationRows::field_names(source_rows)[state.column])
           state.column += 1
           used += 1
         } else {
@@ -196,8 +196,9 @@ fn independent_row_copy_step(
           state.phase = BeginRow
         }
       BeginRow =>
-        if state.row < source_rows.rows.length() {
-          if source_rows.rows[state.row].length() != state.names.length() {
+        if state.row < IndexedRows::row_count(source_rows) {
+          if IndexedRows::row_width(source_rows, state.row) !=
+            state.names.length() {
             return @bounded.Failed(UnsupportedRepresentation, progress, used)
           }
           if !reserve_slots(state.workspace, 1) {
@@ -218,7 +219,9 @@ fn independent_row_copy_step(
           if !reserve_slots(state.workspace, 1) {
             return @bounded.Failed(Limit, progress, used)
           }
-          row_values.push(source_rows.rows[state.row][state.column])
+          row_values.push(
+            IndexedRows::read_cell(source_rows, state.row, state.column),
+          )
           state.column += 1
           used += 1
         } else {
@@ -240,12 +243,14 @@ fn independent_row_copy_step(
       }
       FinishCopy => {
         let table : CompletedTable = RowTable({
-          owner: source_rows.owner,
-          id: source_rows.id,
+          owner: RelationRows::checked_owner(source_rows),
+          id: RelationRows::relation_id(source_rows),
           names: state.names,
           rows: state.rows,
         })
-        let prepared = @lower.bound_preparation(source_rows.owner)
+        let prepared = @lower.bound_preparation(
+          RelationRows::checked_owner(source_rows),
+        )
         let completion : CompletedSequence = {
           ..source.completion,
           result_identity: Ref(()),
@@ -305,10 +310,11 @@ pub fn start_bounded_independent_row_copy(
   if !completed_output_available(output) {
     return Err(Unavailable)
   }
-  guard output.table is Some(RowTable(source)) else {
+  guard output.table is Some(source) else {
     return Err(UnsupportedRepresentation)
   }
-  if source.rows.length() > max_rows || source.names.length() > max_columns {
+  if IndexedRows::row_count(source) > max_rows ||
+    IndexedRows::column_count(source) > max_columns {
     return Err(Limit)
   }
   let workspace = row_workspace(max_entries)

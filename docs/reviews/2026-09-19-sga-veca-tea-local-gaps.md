@@ -26,6 +26,19 @@ The Workers fixture was refreshed from the pinned generator. These changes
 close the review's binary input and stale-fixture findings, not the strict
 68-route resource assurance or the providerless synchronous lane.
 
+The providerless driver's independent relocation now advances through the
+same bounded row-copy session for RowTable, selected NumberTable, selected
+ColumnTable, and AdmittedTable sources. The copy reads logical row order from
+the immutable indexed view, reserves each destination entry before append,
+and transfers custody only after completion. A fixed fixture checks all four
+layouts at quantum one, exact and one-short workspace, source revocation
+after completion, and final cleanup. It passes on JS, Wasm, and native (6/6
+per target). Affected managed values, unary, and group integration tests pass
+44/44 per target; the broad Node standard Host test passes 1/1. The normal
+resource gate passes 112/112. These are local working-tree results, not
+fixed-SHA Linux CI. The preceding providerless whole-sequence compute remains
+synchronous and is still rejected by the strict completion gate.
+
 At source SHA `a389a4d356ac92ab6e5257d26263dcbc18914dfd`, the
 execution-relation and query-integration suites passed 1,447/1,447 on each
 of JS, Wasm, and native. The family coverage gate passed its 6 tests and the
@@ -129,8 +142,8 @@ identifies a separate execution-lane blocker. The current managed driver
 still uses the providerless branch for supported sequences without a
 registered provider. It still executes the entire checked sequence
 synchronously and reports one unit of resume work for that execution.
-RowTable output relocation now uses a separate bounded session, while other
-output representations retain synchronous independent copy. The one-unit
+All cell-accessible output representations now use a separate bounded
+independent copy session. The one-unit
 execution report is not a bound on pair or row work. Ordinary one-step filter,
 select, sort, and take have a
 registered bounded Relation provider; selected one-step row kernels use that
@@ -205,7 +218,8 @@ of the operation-specific resource proof count below. The providerless lane
 must use admitted bounded execution or an explicitly isolated stoppable
 physical lane; it must not be counted as quantum-bounded because execution
 still returns `work=1`. Direct copy and managed driver fixtures confirm
-quantum-one RowTable relocation, exact and one-short row/column and structural
+quantum-one relocation across all cell-accessible table layouts, exact and
+one-short row/column and structural
 workspace admission, source-loss rejection between resumes, and cancellation
 after copy work starts. Each destination container entry is reserved before
 append against the existing Site execution-capacity allowance; completed
@@ -214,14 +228,14 @@ The standard Node Host runs the split values/distinct/cross-join sequence and
 delivers a timer cancel after the second distinct task reports work. It checks
 stop, rejects the partial distinct output, and reclaims the attempt. This
 proves delivery during the selected distinct kernel, not the remaining
-providerless sequences or every output-copy representation.
+providerless compute sequences.
 The strict resource-completion gate
 still rejects the providerless
 lane even if route evidence is added elsewhere. Its source
 check is a blocker guard, not a positive proof that a replacement is bounded.
 
 The review of `f878797f2fa07749622e6f15fb06da41d33c3f82` separates three
-closure conditions. The independent RowTable copy, external-input cross join,
+closure conditions. The independent output copy, external-input cross join,
 zero-input values, and external-input append now have bounded paths. The
 providerless compute call still runs an unmatched whole checked sequence in
 one resume; it remains a release blocker. The normal route gate reports 68
