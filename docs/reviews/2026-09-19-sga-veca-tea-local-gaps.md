@@ -38,6 +38,16 @@ removal of either fixture. These cases establish control-work admission for
 the tested variants, not complete work/workspace or lifecycle assurance for
 every match variant and predicate path.
 
+The edge matcher now builds its authored type filter over charged bounded
+steps, one occurrence per quantum-one advance, then uses a typed string index
+instead of rescanning every type for every edge. Repeated authored types retain
+their source representation but do not duplicate selected edges. A fixed
+three-edge fixture admits the two-type index at 12 structural slots, rejects
+one short before construction, and cancels after two type steps while sort
+scratch is still empty. Cleanup discards the private index and keeps the
+borrowed Graph available. This closes the avoidable edge-by-type scan for
+the registered matcher, not the remaining predicate and key-comparison bounds.
+
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component
 vectors require 28/27 construction-work units and 10/9 peak structural slots.

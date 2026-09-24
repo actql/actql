@@ -139,6 +139,8 @@ pub fn match_edges_scratch_slots(MatchEdgesExecution) -> Int
 
 pub fn match_edges_stopped(MatchEdgesExecution) -> Bool
 
+pub fn match_edges_type_probes(MatchEdgesExecution) -> Int
+
 pub fn match_nodes_cleanup_pending(MatchNodesExecution) -> Bool
 
 pub fn match_nodes_max_noninterruptible_value_bytes(MatchNodesExecution) -> Int

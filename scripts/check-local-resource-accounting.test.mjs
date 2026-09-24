@@ -73,6 +73,15 @@ test('graph matching loses control work evidence when either fixture is removed'
   }
 });
 
+test('edge matching loses bounded type-index evidence without its fixture', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'match_edges');
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'match_edges_type_index_quantum_workspace_cancel');
+  }), /SGA match_edges: bounded type-index evidence is missing/u);
+});
+
 test('resource summary rejects stale route counts', () => {
   const gaps = readFileSync(join(
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',

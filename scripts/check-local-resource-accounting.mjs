@@ -1298,6 +1298,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has(`${route.operation}_control_work_exact_one_short`)) {
     fail(`${label}: match control work evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'match_edges' &&
+    !boundaryRoles.has('match_edges_type_index_quantum_workspace_cancel')) {
+    fail(`${label}: bounded type-index evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

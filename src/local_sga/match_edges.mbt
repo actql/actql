@@ -1,5 +1,6 @@
 ///|
 priv enum MatchEdgesPhase {
+  InitializeTypes
   InitializeScratch
   SelectEdges
   PreparePredicate
@@ -29,6 +30,10 @@ priv struct MatchEdgesState {
   accepted : Ref[Bool]
   port : @execution.TrustedOutputPort[Unit]
   mut phase : MatchEdgesPhase
+  type_count : Int?
+  mut type_cursor : Int
+  mut type_index : Map[String, Bool]
+  type_probes : Ref[Int]
   mut source_index : Int
   select_all : Bool
   predicate : @lower.Expression?
@@ -66,6 +71,7 @@ struct MatchEdgesExecution {
   mut token : @bounded.Token?
   accepted : Ref[Bool]
   scratch_slots : Ref[Int]
+  type_probes : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -270,22 +276,15 @@ fn compare_selected_edges(
 
 ///|
 fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
-  match @lower.graph_match_type_count(state.prepared) {
+  state.type_probes.val += 1
+  match state.type_count {
     None => true
     Some(0) => false
-    Some(count) =>
+    Some(_) =>
       match @storage.edge_label(state.source, edge) {
         Some(Some(label)) =>
           match label.value {
-            @value.Text(text) => {
-              for index in 0..<count {
-                if @lower.graph_match_type_at(state.prepared, index) ==
-                  Some(text) {
-                  return true
-                }
-              }
-              false
-            }
+            @value.Text(text) => state.type_index.contains(text)
             _ => false
           }
         _ => false
@@ -362,6 +361,21 @@ fn match_edges_step(
       return @bounded.Failed(MatchEdgesWorkLimit, progress, used)
     }
     match state.phase {
+      InitializeTypes => {
+        let count = state.type_count.unwrap_or(0)
+        if state.type_cursor < count {
+          used += 1
+          guard @lower.graph_match_type_at(state.prepared, state.type_cursor)
+            is Some(name) else {
+            return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
+          }
+          state.type_index[name] = true
+          state.type_cursor += 1
+          progress += 1
+        } else {
+          state.phase = InitializeScratch
+        }
+      }
       InitializeScratch => {
         if state.scratch.length() == state.scratch_count {
           state.phase = SelectEdges
@@ -590,6 +604,7 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
+  state.type_index = Map([])
   state.scratch_slots.val = 0
   state.values = []
   state.predicate_input.clear()
@@ -633,6 +648,7 @@ pub fn start_match_edges(
     None
   }
   let count = @storage.edge_count(source)
+  let type_count = @lower.graph_match_type_count(prepared)
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
@@ -650,7 +666,8 @@ pub fn start_match_edges(
     limits.max_depth >= 0 &&
     limits.max_work >= 0 &&
     match_edges_workspace(count, width) is Some(workspace) &&
-    checked_match_edges_add(workspace, predicate_fields)
+    checked_match_edges_add(workspace, predicate_fields) is Some(base_workspace) &&
+    checked_match_edges_add(base_workspace, type_count.unwrap_or(0))
     is Some(fixed_workspace) &&
     fixed_workspace <= max_workspace_slots else {
     return Err(MatchEdgesWorkspaceLimit)
@@ -670,6 +687,7 @@ pub fn start_match_edges(
   let live = Ref(true)
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
+  let type_probes = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port(
       preparation,
@@ -701,7 +719,11 @@ pub fn start_match_edges(
     live,
     accepted,
     port,
-    phase: InitializeScratch,
+    phase: InitializeTypes,
+    type_count,
+    type_cursor: 0,
+    type_index: Map([]),
+    type_probes,
     source_index: 0,
     select_all,
     predicate,
@@ -743,6 +765,7 @@ pub fn start_match_edges(
     token: Some(token),
     accepted,
     scratch_slots,
+    type_probes,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -759,6 +782,11 @@ pub fn match_edges_max_noninterruptible_value_nodes(
 /// Structural scratch entries retained by the bounded initialization phase.
 pub fn match_edges_scratch_slots(value : MatchEdgesExecution) -> Int {
   value.scratch_slots.val
+}
+
+///|
+pub fn match_edges_type_probes(value : MatchEdgesExecution) -> Int {
+  value.type_probes.val
 }
 
 ///|
