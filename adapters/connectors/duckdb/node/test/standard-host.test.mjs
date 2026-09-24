@@ -3437,6 +3437,7 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 40,
+    cancelOnManagedStart: 3,
     managedStarts: 3,
     completedTasks: [1, 2],
     fields: [
