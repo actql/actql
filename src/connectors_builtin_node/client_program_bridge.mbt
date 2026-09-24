@@ -286,6 +286,30 @@ pub fn client_program_effect_preparation_issue_code(
 }
 
 ///|
+#export_name("clientProgramEffectDefinitionCid")
+pub fn client_program_effect_definition_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_definition_cid(value)
+}
+
+///|
+#export_name("clientProgramEffectSemanticsCid")
+pub fn client_program_effect_semantics_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_semantics_cid(value)
+}
+
+///|
+#export_name("clientProgramEffectEnvironmentCid")
+pub fn client_program_effect_environment_cid(
+  value : @publication_host.PreparedClientEffectComputation,
+) -> String {
+  @publication_host.prepared_client_effect_computation_environment_cid(value)
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,
@@ -414,6 +438,24 @@ pub fn client_program_admit_publication(
   match
     @publication_host.admit_prepared_client_run_publication(
       prepared, template, invocation, authorization, plan,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+/// Keep the Effect closure paired with the exact admitted Run. The returned
+/// owner is still compute-only: it grants neither Preview nor apply.
+#export_name("clientProgramBindEffectRun")
+pub fn client_program_bind_effect_run(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+) -> @publication_host.PreparedClientEffectRun? {
+  match
+    @publication_host.bind_prepared_client_effect_run(
+      prepared, admission, definition,
     ) {
     Ok(value) => Some(value)
     Err(_) => None
@@ -1198,27 +1240,11 @@ fn reject_client_local_run(
 }
 
 ///|
-/// Assemble an installed Local realization from the checked task owners.
-/// The two registry bodies are independently validated against the selected
-/// engine pins; caller-provided names or CIDs cannot install an extension.
-/// This opens only an in-memory task owner. Client request and Run admission
-/// must finish before the Host invokes it or starts physical work.
-#export_name("clientProgramOpenSourceFreeLocalHost")
-pub fn client_program_open_source_free_local_host(
-  prepared : @publication_host.PreparedClientProgram,
+fn client_local_contracts(
   registry_body : String,
   values_body : String,
-  fixed_ms : Int64,
-  per_row_ms : Int64,
-  per_wire_byte_ms : Int64,
-  per_pair_ms : Int64,
-) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
-  if registry_body.length() > 100000 ||
-    values_body.length() > 100000 ||
-    fixed_ms < 0L ||
-    per_row_ms < 0L ||
-    per_wire_byte_ms < 0L ||
-    per_pair_ms < 0L {
+) -> @execution.RegisteredRelationContracts? {
+  if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
   }
   let registry_value = @identity.from_json(
@@ -1237,14 +1263,41 @@ pub fn client_program_open_source_free_local_host(
   ) catch {
     _ => return None
   }
-  let contracts = match
+  match
     @execution.admit_relation_registry(registry_value, values_value, {
       max_body_bytes: 100000,
       max_body_nodes: 10000,
       max_body_depth: 100,
     }) {
-    Ok(value) => value
-    Err(_) => return None
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+/// Assemble an installed Local realization from the checked task owners.
+/// The two registry bodies are independently validated against the selected
+/// engine pins; caller-provided names or CIDs cannot install an extension.
+/// This opens only an in-memory task owner. Client request and Run admission
+/// must finish before the Host invokes it or starts physical work.
+#export_name("clientProgramOpenSourceFreeLocalHost")
+pub fn client_program_open_source_free_local_host(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  if fixed_ms < 0L ||
+    per_row_ms < 0L ||
+    per_wire_byte_ms < 0L ||
+    per_pair_ms < 0L {
+    return None
+  }
+  guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
+    return None
   }
   let run = match
     @publication_host.open_prepared_source_free_client_run(prepared, {
@@ -1276,6 +1329,21 @@ pub fn client_program_open_source_free_local_host(
     }
     generated.push(sequence)
   }
+  client_program_configure_local_host(
+    run, graph, generated, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+  )
+}
+
+///|
+fn client_program_configure_local_host(
+  run : @strategy.CapturedDAG,
+  graph : @strategy.CheckedDAG,
+  generated : Array[@execution.GeneratedSequence],
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
@@ -1419,5 +1487,108 @@ pub fn client_program_open_source_free_local_host(
     ) {
     Ok(value) => Some(value)
     Err(_) => reject_client_local_run(run)
+  }
+}
+
+///|
+/// Keep the exact captured Effect Run beside its installed compute Host.
+/// The Host cannot later reconstruct this owner from a graph or CID alone.
+struct ClientLocalEffectHost {
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]
+  run : @strategy.CapturedEffectRunDAG
+}
+
+///|
+#export_name("clientProgramLocalEffectHostRuntime")
+pub fn client_program_local_effect_host_runtime(
+  value : ClientLocalEffectHost,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  value.host
+}
+
+///|
+#export_name("clientProgramLocalEffectHostRun")
+pub fn client_program_local_effect_host_run(
+  value : ClientLocalEffectHost,
+) -> @strategy.CapturedEffectRunDAG {
+  value.run
+}
+
+///|
+#export_name("clientProgramLocalEffectSourceCount")
+pub fn client_program_local_effect_source_count(
+  value : ClientLocalEffectHost,
+) -> Int {
+  @strategy.captured_effect_run_source_count(value.run)
+}
+
+///|
+/// Compute-only opening for an admitted source-free Effect Run. It preserves
+/// the captured Effect owner; physical mutation still requires Preview and
+/// apply admission after the checked computation settles.
+#export_name("clientProgramOpenSourceFreeLocalEffectHost")
+pub fn client_program_open_source_free_local_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+) -> ClientLocalEffectHost? {
+  if fixed_ms < 0L ||
+    per_row_ms < 0L ||
+    per_wire_byte_ms < 0L ||
+    per_pair_ms < 0L {
+    return None
+  }
+  guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
+    return None
+  }
+  let run = match
+    @publication_host.open_prepared_source_free_client_effect_run(prepared, {
+      planning_work: 100000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 500000L,
+      retained_bytes: 200000000L,
+      execution_bytes: 268435456L,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let captured = @strategy.captured_effect_run_dag(run)
+  let computation = @publication_host.prepared_client_effect_run_computation(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_run_graph(
+    @publication_host.prepared_client_effect_run_graph(prepared),
+  )
+  let generated = []
+  for task in 0..<@strategy.graph_task_count(graph) {
+    let sequence = match
+      @publication_host.prepare_client_effect_task_sequence(
+        computation,
+        task,
+        contracts,
+        [],
+        client_local_sequence_limits(),
+        100000,
+        10000,
+      ) {
+      Ok(value) => value
+      Err(_) => {
+        ignore(reject_client_local_run(captured))
+        return None
+      }
+    }
+    generated.push(sequence)
+  }
+  match
+    client_program_configure_local_host(
+      captured, graph, generated, fixed_ms, per_row_ms, per_wire_byte_ms, per_pair_ms,
+    ) {
+    Some(host) => Some({ host, run, })
+    None => None
   }
 }

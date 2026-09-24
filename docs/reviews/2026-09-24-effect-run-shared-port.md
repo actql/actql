@@ -542,3 +542,14 @@ to a public submit or apply permit. A Node fixture checks exact Mapping
 resolution and confirms that the public Effect-free submit still rejects the
 Effectful document. Standard multi-member execution, durable apply, and final
 publication remain open.
+
+The source-free Effect Run can now bind that prepared computation to the
+admitted exact Run Definition and open the same installed Local Host as an
+Effect-free computation. Shared task lowering and Local module configuration
+avoid a second physical execution path. The Host owner retains its captured
+Effect Run beside the ordinary compute handle; a foreign Program cannot bind
+to the admission. A Node product fixture executes a Values-to-Effect
+computation through the installed Host and checks the retained Effect source
+inventory. This is compute-only evidence. It does not yet issue the Captured
+Run, pin the completed source through Preview, authorize a write, or publish
+the final Effectful Receipt. The public submit remains Effect-free.

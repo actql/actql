@@ -10,7 +10,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {runCapturedStrategy, runPublishedCapturedStrategy} from './entry.mjs';
+import {runCapturedInternalStrategy, runCapturedStrategy,
+  runPublishedCapturedStrategy} from './entry.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -148,6 +149,63 @@ test('internal Client bridge retains Effect closure without public apply',
       document, 'json', environment, '{', []);
     assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidParameters),
       'supplied_syntax');
+  });
+
+test('admitted source-free Effect Run computes through the installed Host',
+  async () => {
+    const {document, environment} = await effectFixture();
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const evidence = publicationEvidence(
+      moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+      moon.clientProgramEffectSemanticsCid(prepared),
+      moon.clientProgramEffectEnvironmentCid(prepared));
+    const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+    const definition = checked(moon.strategyIssueRunDefinition(
+      admission, 'tenant-a-scope', 'effect-compute', cid('c'),
+      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+      100000, 10000, 64));
+    const bound = moon.clientProgramBindEffectRun(
+      prepared, admission, definition);
+    assert.ok(bound);
+    const foreignDocument = JSON.parse(document);
+    foreignDocument.id = 'foreign-effect-compute';
+    const foreignOutcome =
+      moon.clientProgramPrepareEffectComputationWithParameters(
+        JSON.stringify(foreignDocument), 'json', environment, undefined, []);
+    const foreign = moon.clientProgramEffectPreparationReady(foreignOutcome);
+    assert.ok(foreign);
+    assert.equal(moon.clientProgramBindEffectRun(
+      foreign, admission, definition), undefined);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    assert.equal(moon.clientProgramOpenSourceFreeLocalEffectHost(
+      bound, registry.replace('"REL.values"', '"REL.changed"'),
+      values, 1n, 0n, 0n, 0n), undefined);
+    const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+      bound, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(owned);
+    assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
+    const execution = await runCapturedInternalStrategy(
+      moon.clientProgramLocalEffectHostRuntime(owned));
+    try {
+      assert.equal(execution.status, 'host-tasks-completed');
+      assert.equal(execution.completed.length, 1);
+      assert.equal(execution.completed[0].outputRows, 2);
+      assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
+    } finally {
+      await execution.close();
+      assert.equal(execution.cleanupPending(), false);
+    }
   });
 
 test('private Plan binding uses the escaped checked Unit Result name', async () => {
