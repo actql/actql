@@ -350,6 +350,16 @@ before the transaction commits. This avoids another full semantic decode and
 rehash of a trusted immutable copy; the fixed Host, Store and physical Appender
 remain the explicit trust boundary. The 27-case gate remains outstanding.
 
+At clean `e1432a428`, one registered wide/reuse case passed the unchanged
+equivalent-obligations timing limit. Seven alternating pairs for
+`retained-large-output-downstream-reuse/numeric-64/10000` gave a 95% execution
+ratio interval of 0.742–1.213 against the 1.25 limit. The first resident import
+used one SQL statement and took 0.17–0.69 seconds across those observations.
+This is a local one-case result, not a Linux or full-matrix acceptance result;
+the other 26 cases were not measured at this revision. The raw series and
+assessment are in the workspace scratch directory
+`.codex-scratch/perf-equivalent-wide-e1432a42`.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall
