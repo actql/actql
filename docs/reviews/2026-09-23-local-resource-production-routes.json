@@ -2663,6 +2663,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "sparse and zero-hop path selectors are independent of resume quantum"
+        },
+        {
+          "role": "node_emit_control_work_ceiling",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "homogeneous traversal enforces minimum depth and cancellation"
         }
       ]
     },
@@ -2752,7 +2759,16 @@
       "entrypoint": {
         "path": "src/local_sga/reach.mbt",
         "symbol": "start_reach"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "reach_prefix_work_workspace_active_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "reach preserves direction depth bounds and cancellation"
+        }
+      ]
     },
     {
       "inventory": "families",

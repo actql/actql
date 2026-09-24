@@ -1312,6 +1312,14 @@ for (const [index, route] of routeEntries.entries()) {
       !boundaryRoles.has('components_nonempty_work_ceiling_and_active_cancel'))) {
     fail(`${label}: components boundary evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'reach' &&
+    !boundaryRoles.has('reach_prefix_work_workspace_active_cancel')) {
+    fail(`${label}: reach control-work evidence is missing`);
+  }
+  if (route.family === 'SGA' && route.operation === 'traverse' &&
+    !boundaryRoles.has('node_emit_control_work_ceiling')) {
+    fail(`${label}: node-emitting traversal work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

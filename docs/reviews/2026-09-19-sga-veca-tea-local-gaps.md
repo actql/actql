@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 43 |
+| Operation-specific boundary records | 44 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -66,6 +66,16 @@ when resumed with a large quantum, and confirms cancellation after the first
 private node initialization clears the scratch arrays. These fixtures do not
 establish exact work/workspace bounds for every nonempty topology or delivered
 Host cancellation for both modes.
+
+The shared `reach` and node-emitting `traverse` state now spends a selected
+control-work ceiling across resumes. A four-node/four-edge reach fixture
+admits 66 structural slots and rejects 65 before execution. One initialization
+step is admitted with one work unit; a larger quantum cannot perform a second
+step after that ceiling. Cancellation after the first private step reclaims
+the partial state. The node-emitting traversal wrapper reaches the same work
+limit rather than bypassing the shared state. This is prefix evidence, not an
+exact full-route work proof for every reach direction, predicate, or path
+traversal.
 
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component

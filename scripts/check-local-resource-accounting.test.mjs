@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 43 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 44 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('ranking loses bounded assembly evidence when its fixture is removed', () => {
@@ -107,6 +107,22 @@ test('components requires empty and nonempty boundary fixtures', () => {
       route.boundary_tests = route.boundary_tests.filter(item =>
         item.role !== role);
     }), /SGA components: components boundary evidence is missing/u);
+  }
+});
+
+test('reach and node traversal require shared control-work evidence', () => {
+  for (const [operation, role, diagnostic] of [
+    ['reach', 'reach_prefix_work_workspace_active_cancel',
+      /SGA reach: reach control-work evidence is missing/u],
+    ['traverse', 'node_emit_control_work_ceiling',
+      /SGA traverse: node-emitting traversal work evidence is missing/u],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), diagnostic);
   }
 });
 

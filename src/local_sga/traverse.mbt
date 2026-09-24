@@ -153,6 +153,7 @@ pub fn start_traverse(
     max_entries,
     max_name_bytes,
     inputs,
+    limits.max_work,
   )
   .map(inner => ({ kernel: TraverseNodes(inner), } : TraverseExecution))
   .map_err(issue => TraverseReachIssue(issue))

@@ -3978,6 +3978,44 @@ test "reach preserves direction depth bounds and cancellation" {
   assert_true(@local_sga.reach_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_reach(cancelled), Ok(true))
   assert_false(@local_sga.reach_cleanup_pending(cancelled))
+  // Four nodes, four edges, and four output fields admit 66 slots.
+  let start = fn(control, workspace, work) raise {
+    @local_sga.start_reach(
+      control,
+      task_test_completion(owner),
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    )
+  }
+  assert_true(
+    start(@bounded.control(), 65, 1) is Err(@local_sga.ReachWorkspaceLimit),
+  )
+  let limited = start(@bounded.control(), 66, 1).unwrap()
+  assert_true(
+    @local_sga.advance_reach(limited, 100).unwrap()
+    is @local_sga.ReachFailed(@local_sga.ReachWorkLimit, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_reach(limited), Ok(true))
+  let active_control = @bounded.control()
+  let active = start(active_control, 66, 10000).unwrap()
+  assert_true(
+    @local_sga.advance_reach(active, 1).unwrap()
+    is @local_sga.ReachContinue(progress=0L, work=1L),
+  )
+  assert_true(@bounded.request_cancel(active_control))
+  assert_true(
+    @local_sga.advance_reach(active, 1).unwrap()
+    is @local_sga.ReachStopped(_, progress=0L, work=1L),
+  )
+  assert_eq(@local_sga.cleanup_reach(active), Ok(true))
   assert_true(@graphs.discard_completed(graph))
 }
 
@@ -4057,6 +4095,28 @@ test "homogeneous traversal enforces minimum depth and cancellation" {
   assert_true(@local_sga.traverse_cleanup_pending(cancelled))
   assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
   assert_false(@local_sga.traverse_cleanup_pending(cancelled))
+  let limited = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1, },
+    100,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_traverse(limited, 100).unwrap()
+    is @local_sga.TraverseFailed(
+      @local_sga.TraverseReachIssue(@local_sga.ReachWorkLimit),
+      progress=0L,
+      work=1L
+    ),
+  )
+  assert_eq(@local_sga.cleanup_traverse(limited), Ok(true))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
 }

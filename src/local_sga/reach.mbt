@@ -119,6 +119,7 @@ priv struct ReachState {
   mut merge_index : Int
   mut copy_index : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -145,6 +146,7 @@ pub(all) enum ReachIssue {
   ReachStartMissing
   ReachOutputLimit
   ReachWorkspaceLimit
+  ReachWorkLimit
   ReachPredicate(@execution.EvalIssueKind)
   ReachKeyOrder(@value.KeyOrderIssue)
   ReachGraph(@storage.Issue)
@@ -529,6 +531,9 @@ fn reach_step(
     if !@graph.producer_read_available(state.input) ||
       !reach_starts_available(state) {
       return @bounded.Failed(ReachInputUnavailable, progress, used)
+    }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ReachWorkLimit, progress, used)
     }
     match state.phase {
       InitializeStartSelection =>
@@ -1204,6 +1209,7 @@ fn reach_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1261,8 +1267,12 @@ fn start_reach_state(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit : Int,
 ) -> Result[ReachExecution, ReachIssue] {
   let owner = @lower.sequence_owner(sequence)
+  if control_work_limit < 0 {
+    return Err(ReachWorkLimit)
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -1428,6 +1438,7 @@ fn start_reach_state(
     merge_index: 0,
     copy_index: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1461,6 +1472,7 @@ pub fn start_reach(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[ReachExecution, ReachIssue] {
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphReachStep(prepared)) &&
@@ -1490,6 +1502,7 @@ pub fn start_reach(
     max_entries,
     max_name_bytes,
     inputs,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 
