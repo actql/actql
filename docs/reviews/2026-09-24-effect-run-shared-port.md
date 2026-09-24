@@ -268,4 +268,6 @@ complete merely because the adapters and these broad paths share procedures.
 The shared registration pins the trusted transport verifier before execution;
 attempt selection, issuer liveness, exact retained rows, foreign records, and
 one-shot capture are exercised by the Salesforce and DuckDB broad integration
-fixtures. The query integration suite passes 546/546 on JS, Wasm, and native.
+fixtures. A combined fixture also checks independent provider issuers and
+capture after one issuer closes. The original query integration suite passed
+546/546 on JS, Wasm, and native; the combined fixture adds one case.
