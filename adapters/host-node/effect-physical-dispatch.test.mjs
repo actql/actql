@@ -138,6 +138,51 @@ test('foreign collection request identity fails before any row claim',
     }
   });
 
+test('collection custody keeps original row binding across caller edits',
+  async t => {
+    const {open, claims} = await collectionFixture(t);
+    const original = claims.map(claim => ({...claim}));
+    const ledger = open();
+    t.after(() => ledger.close());
+    let entered;
+    let release;
+    const started = new Promise(resolve => { entered = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    let sends = 0;
+    const body = Buffer.from('[{"success":true},{"success":false}]');
+    const execute = async () => {
+      sends += 1;
+      entered();
+      await gate;
+      return {observation: {useCid: cid('4'), statusCode: 200, body}};
+    };
+    const pending = captureClaimedEffectCollectionResponse({
+      ledger, claims, requestCid: cid('f'), execute,
+    });
+    await started;
+    claims.reverse();
+    claims.splice(0, 1);
+    claims[0] = {...claims[0], canonicalRequestCid: cid('9')};
+    release();
+    const sent = await pending;
+    assert.equal(sent.claimed, true);
+    assert.equal(sends, 1);
+    const stored = ledger.response(control.ledgerEntryCid(
+      sent.ownership.dispatching[0]));
+    assert.deepEqual(stored.batchMembers.map(member =>
+      member.logicalItemLocatorCid), original.map(claim =>
+      control.logicalItemLocatorCid(claim.locator)));
+    ledger.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const retry = await captureClaimedEffectCollectionResponse({
+      ledger: restarted, claims: original, requestCid: cid('f'), execute,
+    });
+    assert.equal(retry.claimed, false);
+    assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.equal(sends, 1);
+  });
+
 test('one durable claim captures the physical response without resending',
   async t => {
     const {open, claim} = await fixture(t);
@@ -214,4 +259,46 @@ test('foreign request identity is rejected before a durable claim',
     assert.equal(calls, 0);
     assert.equal(ledger.current(control.logicalItemLocatorCid(claim.locator)),
       undefined);
+  });
+
+test('single custody keeps original binding across caller edits',
+  async t => {
+    const {open, claim} = await fixture(t);
+    const original = {...claim};
+    const ledger = open();
+    t.after(() => ledger.close());
+    let entered;
+    let release;
+    const started = new Promise(resolve => { entered = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    let sends = 0;
+    const execute = async () => {
+      sends += 1;
+      entered();
+      await gate;
+      return {observation: {useCid: cid('4'), statusCode: 201,
+        body: Buffer.from('{"success":true}')}};
+    };
+    const pending = captureClaimedEffectResponse({
+      ledger, claim, requestCid: cid('f'), execute,
+    });
+    await started;
+    claim.canonicalRequestCid = cid('9');
+    claim.scope = control.logicalRequestScope(authorityScopeCid,
+      'foreign-request', 32);
+    release();
+    const sent = await pending;
+    assert.equal(sent.claimed, true);
+    assert.equal(sends, 1);
+    assert.deepEqual(sent.response.responseBytes,
+      Buffer.from('{"success":true}'));
+    ledger.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const retry = await captureClaimedEffectResponse({
+      ledger: restarted, claim: original, requestCid: cid('f'), execute,
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(retry.ownership.action, 3);
+    assert.equal(sends, 1);
   });
