@@ -695,7 +695,7 @@ test('admitted source-free Effect Run computes through the installed Host',
             version: 'actql-normalization-journal/0.1',
             rule_catalog_cid: cid('1'), entries: [],
           }), publicationLimits);
-        const computation = issueCompletedEffectfulComputationEvidence({
+        const captureOptions = {
           execution, storedResults, control, admission: runAdmission,
           runDefinition: runDefinitionContract,
           invocation: invocationContract,
@@ -708,7 +708,12 @@ test('admitted source-free Effect Run computes through the installed Host',
             modelEvidence: []},
           preview: admittedPreview, plans: [],
           contractLimits: publicationLimits,
-        });
+        };
+        const computation = issueCompletedEffectfulComputationEvidence(
+          captureOptions);
+        assert.throws(() => issueCompletedEffectfulComputationEvidence({
+          ...captureOptions, storedResults: {...storedResults},
+        }), {code: 'InvalidCompletedEffectfulComputationOptions'});
         assert.equal(computation.manifest.name, 'result_manifest');
         assert.equal(computation.computationReceipt.name, 'run_receipt');
         assert.equal(computation.capturedRun.name, 'captured_run');
@@ -721,18 +726,8 @@ test('admitted source-free Effect Run computes through the installed Host',
             foreignArtifactPreview.wire, runDefinitionContract,
             authoringContext, publicationLimits);
         assert.throws(() => issueCompletedEffectfulComputationEvidence({
-          execution, storedResults, control, admission: runAdmission,
-          runDefinition: runDefinitionContract,
-          invocation: invocationContract,
-          observation: control.admitRunEvidence('observation_set',
-            moon.strategyRunEvidenceJson(observation), publicationLimits),
-          normalizationJournal, authoringContext,
-          receiptEvidence: {bindings: [], sourceEvidence: [],
-            modelEvidence: [], barrierAttemptReceiptCids: []},
-          captureEvidence: {pendingSourceStateAdvances: [],
-            modelEvidence: []},
+          ...captureOptions,
           preview: foreignAdmittedPreview, plans: [],
-          contractLimits: publicationLimits,
         }), {code: 'MoonBitHostFailure'});
         const previewLimits = moon.clientProgramEffectPreviewInputLimits(
           20000, 1000, 20, 1000, 100, 20000, 1000, 20,
@@ -779,6 +774,9 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.ok(other);
         const otherExecution = await runCapturedEffectComputation(other);
         try {
+          assert.throws(() => issueCompletedEffectfulComputationEvidence({
+            ...captureOptions, execution: otherExecution,
+          }), {code: 'InvalidCompletedEffectfulComputationOptions'});
           assert.throws(() => checked(
             moon.clientProgramBindEffectPreviewInputs(
               other, inputs, invocation, 0, preview.wire,
