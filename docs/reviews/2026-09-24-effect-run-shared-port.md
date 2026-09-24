@@ -255,6 +255,11 @@ stores exact bounded response bytes before Salesforce projection. Single and
 Collections responses can be read after restart without a second send. Local
 HTTPS and SQLite tests cover the mutation and crash-adjacent ordering cases;
 they are not live Salesforce-org tests.
+The projection callback now receives only the stored response, never the
+ephemeral transport result. Salesforce uses limits owned before the HTTP
+await. This keeps new-response interpretation on the same evidence boundary
+as read-only recovery; the common bridge test rejects a second callback
+argument for both single and Collections sends.
 
 The common adapter now assembles scoped credential calls and owns exact
 evidence-read authorization, claim verification, and Ledger lookup. Provider

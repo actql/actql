@@ -66,7 +66,9 @@ test('single raw response is durable before provider projection', async t => {
   };
   await assert.rejects(captureClaimedEffectResponse({
     ledger: first, claim, requestCid: cid('f'), execute,
-    projectStored: stored => {
+    projectStored: (...args) => {
+      assert.equal(args.length, 1);
+      const [stored] = args;
       assert.deepEqual(stored.responseBytes, body);
       throw new Error('projection failed');
     },
@@ -132,7 +134,9 @@ test('collection raw response is durable before provider projection',
     };
     await assert.rejects(captureClaimedEffectCollectionResponse({
       ledger: first, claims, requestCid: cid('f'), execute,
-      projectStored: stored => {
+      projectStored: (...args) => {
+        assert.equal(args.length, 1);
+        const [stored] = args;
         assert.deepEqual(stored.responseBytes, body);
         throw new Error('projection failed');
       },
