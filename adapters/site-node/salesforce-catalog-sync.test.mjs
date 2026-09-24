@@ -17,6 +17,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
+import {readAuthorizedEffectTerminalOutcome} from
+  '../host-node/effect-response-recovery.mjs';
 import {captureClaimedSalesforceSingleResponse,
   captureSalesforceSingleEffectWrite,
   captureSalesforceCollectionEffectWrite,
@@ -1368,6 +1370,16 @@ test('Host custody binds one HTTPS Collections response to every row',
     const restarted = open();
     t.after(() => restarted.close());
     const usesBeforeRetry = setup.journal.recover().length;
+    for (const index of [0, 1]) {
+      const terminal = await readAuthorizedEffectTerminalOutcome({
+        ledger: restarted, claims, batch: true, batchRowIndex: index,
+        commonMoon, expectedRequestCid: requestCid,
+        preview: admittedPreview, memberIndex: 0, previewRowIndex: index,
+        authorizeEvidenceRead: async () => true,
+      });
+      assert.equal(terminal.receipt.identity,
+        sent.outcomeReceipts[index].identity);
+    }
     const withoutEvidence = await captureSalesforceCollectionEffectWrite({
       ...options, ledger: restarted, admittedPreview: admitPreview()});
     assert.deepEqual(withoutEvidence.ownership.actions, [5, 7]);

@@ -102,3 +102,29 @@ export async function readAuthorizedEffectOutcomes(options) {
   const outcomes = read.call(ledger, ownedClaims);
   return Object.freeze({outcomes, binding});
 }
+
+// Member aggregation consumes only terminal receipts re-admitted from the
+// exact saved dispatch and response. An evidence-view grant is required even
+// when the caller also holds current mutation authority.
+export async function readAuthorizedEffectTerminalOutcome(options) {
+  const {ledger, claims, batch = false, batchRowIndex, preview,
+    memberIndex, previewRowIndex} = options;
+  const ownedClaims = batch && Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims)
+    : !batch && claims ? snapshotEffectDispatchClaim(claims) : undefined;
+  const {stored, binding} = await readAuthorizedEffectResponse({
+    ...options, claims: ownedClaims,
+  });
+  if (stored === undefined) return Object.freeze({receipt: undefined,
+    binding});
+  if (typeof ledger.readAdmittedTerminalOutcome !== 'function') {
+    fail('InvalidEffectTerminalOutcomeRead');
+  }
+  const receipt = ledger.readAdmittedTerminalOutcome({
+    ...(batch ? {claims: ownedClaims, batchRowIndex} : {
+      claim: ownedClaims,
+    }),
+    preview, memberIndex, previewRowIndex,
+  });
+  return Object.freeze({receipt, binding});
+}
