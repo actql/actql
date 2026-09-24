@@ -484,6 +484,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('dedupe_empty_keyed_work_workspace_exact_one_short')) {
     fail(`${label}: independent dedupe resource evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'nest' &&
+    !boundaryRoles.has('nest_empty_work_workspace_independent_exact_one_short')) {
+    fail(`${label}: independent empty nest resource evidence is missing`);
+  }
   if (route.family === 'RelA' && route.operation === 'top_k_by') {
     if (route.selected_entrypoint?.symbol !==
         'selected_binding_rows_execution' ||

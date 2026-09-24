@@ -1489,7 +1489,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "nest_empty_work_workspace_independent_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/nest_scale_wbtest.mbt",
+          "fixture": "empty nest observes the exact metadata workspace boundary"
+        }
+      ]
     },
     {
       "inventory": "rela",

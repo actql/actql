@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 64 |
+| Operation-specific boundary records | 65 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -44,6 +44,13 @@ while the selected partitioned task is executing and observes stop and final
 cleanup. Exact and one-short resource limits for this route and unselected
 synchronous sequences remain unproved. The partition comparison within one
 resume step still needs its own maximum-width responsiveness evidence.
+
+The `nest` route binds an independently counted empty-input fixture. Its one
+key, one child projection, and three-field output require 98 control units;
+the peak structural workspace is thirteen slots. Exact budgets succeed and
+either one-short limit fails. This proves the empty correlation and metadata
+path only; nonempty nesting, Host-delivered cancellation, and the providerless
+whole-sequence route remain outside full assurance.
 
 The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
 validate output schema names without first materializing the name array. They
