@@ -539,6 +539,18 @@ test "ordinary values document prepares one named Effect-free result" {
     client_values_aoa_identity_cid(aoa),
     "sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723",
   )
+  assert_eq(
+    emit_prepared_client_values_unit_source(
+      prepared, 0, aoa_limits, 10000, 1000, 20,
+    ).unwrap(),
+    "{\"id\":\"source\",\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":1},{\"id\":2}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}],\"version\":\"actql/0.1\"}",
+  )
+  assert_true(
+    emit_prepared_client_values_unit_source(
+      prepared, 1, aoa_limits, 10000, 1000, 20,
+    )
+    is Err(UnsupportedSource),
+  )
   assert_true(
     admit_prepared_client_values_aoa_identity(
       prepared,
