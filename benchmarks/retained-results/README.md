@@ -424,6 +424,13 @@ timeout, failed pair or missing case into a passing sample. It covers only the
 equivalent-obligations comparator; baseline and raw-engine comparisons remain
 separate requirements of the registered experiment.
 
+For Linux artifacts on an unmerged branch, dispatch the existing `CI` workflow
+at that branch with `performance_matrix=true`. It calls the matrix workflow at
+the same revision and skips the ordinary CI jobs. Normal push and pull-request
+CI keep their existing gates. The matrix preserves failed or incomplete case
+records and a whole-matrix assessment as artifacts; its workflow result is not
+a performance pass when any registered gate fails.
+
 The statistic is the ratio of paired arithmetic means for ratios, or their
 difference for absolute overhead. A reproducible seeded bootstrap resamples whole
 pairs and reports a two-sided percentile interval. Its upper endpoint must meet
