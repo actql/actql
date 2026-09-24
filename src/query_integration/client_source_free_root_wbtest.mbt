@@ -579,9 +579,54 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     let server = @native_https_server.open(
       "127.0.0.1", 0, cert, key, ca, 262144, 262144, 4,
     ).unwrap()
-    let https_site = @native_values_https.open_native_remote_values_https_site(
-      server, endpoint, peer,
-    ).unwrap()
+    let (https_site, direct_output) = match
+      @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN") {
+      Some(origin) => {
+        let http_path = @env.get_env_var(
+          "ACTQL_TEST_NATIVE_VALUES_HTTP_LIBRARY",
+        ).unwrap()
+        let client_cert = @env.get_env_var(
+          "ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_CERT",
+        ).unwrap()
+        let client_key = @env.get_env_var(
+          "ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_KEY",
+        ).unwrap()
+        let outbound = @native_http.load_library(http_path).unwrap()
+        let client = outbound
+          .create_client(ca, client_cert, client_key, 65536L, 1000, 10000)
+          .unwrap()
+        let transfer_journal = @native_transfer_journal.open_journal(
+          sqlite,
+          root_path + "/values-transfer.sqlite3",
+          262144L,
+          4,
+          10000,
+          1048576L,
+        ).unwrap()
+        let site = @native_values_https.open_native_remote_values_https_site_with_direct_output(
+          server,
+          endpoint,
+          peer,
+          {
+            client,
+            transfer_journal,
+            destination_origin: origin,
+            max_chunk_bytes: 1048576,
+            max_chunks: 4,
+            max_manifest_bytes: 10000,
+            max_referenced_bytes: 1048576L,
+          },
+        ).unwrap()
+        (site, Some((client, transfer_journal)))
+      }
+      None =>
+        (
+          @native_values_https.open_native_remote_values_https_site(
+            server, endpoint, peer,
+          ).unwrap(),
+          None,
+        )
+    }
     let ready = @utf8.encode(
       https_site.port().to_string() +
       "\n" +
@@ -601,12 +646,19 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       is Some(_) {
       7
     } else {
-      7
+      8
     }
     for _ in 0..<requests {
       assert_true(https_site.poll(30000).unwrap())
     }
     assert_true(https_site.close())
+    match direct_output {
+      Some((client, transfer_journal)) => {
+        assert_true(client.close())
+        assert_true(transfer_journal.close())
+      }
+      None => ()
+    }
   }
   let reply = endpoint.dispatch_json(body, second_cid).unwrap()
   let accepted = @remote.admit_remote_dispatch_response_json(

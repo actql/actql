@@ -7,10 +7,17 @@ import {request as httpsRequest} from 'node:https';
 import {isAbsolute, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
+import {startHttpsDirectTransferReceiver} from
+  '../adapters/site-node/https-direct-transfer.mjs';
+import {openSqliteTransferJournal} from
+  '../adapters/site-node/sqlite-transfer-journal.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
+const evidenceCid = value =>
+  `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const scratchParent = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchParent !== 'string' || scratchParent.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -87,11 +94,68 @@ function sendValuesSiteRequest(tls, port, path, body, cid) {
   });
 }
 
-async function testValuesHttps(tls, environment) {
+async function testValuesHttps(tls, environment, transferControl) {
+  const externalDriver = process.env.ACTQL_TEST_NATIVE_VALUES_DRIVER;
+  const destinationAttempts = [];
+  const destinationStore = externalDriver === undefined ?
+    await createLocalRetainedStore({
+      parentDirectory: root, capacityBytes: 1048576,
+      maxFrameBytes: 1048576, maxEntries: 4, maxReadersPerBody: 2,
+    }) : undefined;
+  const destinationJournal = destinationStore === undefined ? undefined :
+    openSqliteTransferJournal(join(root, 'values-direct-journal'), {
+      destinationSiteKey: 'values-store', destinationSiteGeneration: 1,
+      maxChunks: 4, maxManifestBytes: 10000,
+      maxReferencedBytes: 1048576n,
+    });
+  const destination = destinationStore === undefined ||
+    destinationJournal === undefined ? undefined :
+    await startHttpsDirectTransferReceiver({
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')),
+      ca: tls.ca,
+      sourceAuthorities: new Map([[tls.peer, {
+        siteKey: 'native-values-site', siteGeneration: 1,
+      }]]),
+      destinationSiteKey: 'values-store',
+      destinationSiteGeneration: 1,
+      control: transferControl,
+      journal: destinationJournal,
+      store: destinationStore,
+      authorize: ({request, peer, phase}) => {
+        destinationAttempts.push({phase, peer,
+          requestCid: transferControl.identity(request)});
+        const projection = transferControl.requestProjection(request);
+        return peer.sourceSite === 'native-values-site' &&
+          peer.sourceSiteGeneration === 1 &&
+          projection[10] === evidenceCid('values-source-grant') &&
+          projection[11] === evidenceCid('values-destination-grant') &&
+          projection[12] === evidenceCid('values-route-capability');
+      },
+      maxControlBytes: 131072, maxManifestBytes: 10000,
+      maxChunks: 4, maxReferencedBytes: 1048576n,
+      maxFrameBytes: 1048576,
+    });
+  if (destination !== undefined) {
+    const probe = await sendValuesSiteRequest(tls, destination.port,
+      '/v1/ready', '{}', 'probe');
+    assert.equal(probe.status, 404);
+  }
   const child = spawn(moon, [
     'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
     '--target', 'native',
-  ], {cwd: repositoryRoot, env: environment, stdio: ['ignore', 'pipe', 'pipe']});
+  ], {cwd: repositoryRoot, env: destination === undefined ? environment : {
+    ...environment,
+    ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN: destination.origin,
+    ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_CERT:
+      join(root, 'coordinator.crt'),
+    ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_KEY:
+      join(root, 'coordinator.key'),
+    ACTQL_TEST_NATIVE_VALUES_HTTP_LIBRARY:
+      process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
+      (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' :
+        'libcurl.so.4'),
+  }, stdio: ['ignore', 'pipe', 'pipe']});
   let stdout = '';
   let stderr = '';
   child.stdout.setEncoding('utf8');
@@ -125,7 +189,6 @@ async function testValuesHttps(tls, environment) {
       throw new Error('invalid native Values Site port');
     }
     const path = '/v1/sites/native-values-site/generations/1/dispatches';
-    const externalDriver = process.env.ACTQL_TEST_NATIVE_VALUES_DRIVER;
     if (externalDriver !== undefined) {
       if (!isAbsolute(externalDriver)) {
         throw new Error('native Values driver path must be absolute');
@@ -182,16 +245,59 @@ async function testValuesHttps(tls, environment) {
     assert.equal(planned.version, 'actql-remote-output-plan/0.1');
     assert.equal(planned.dispatch_request_cid, cid);
     assert.equal(planned.subject_cid, status.subject.cid);
-    const absentDestination = await sendValuesSiteRequest(tls, port,
+    const sent = await sendValuesSiteRequest(tls, port,
       `${path}/outputs/execute`, outputPlan, cid);
-    assert.equal(absentDestination.status, 404);
+    if (sent.status !== 200) {
+      throw new Error(`Site direct output failed: ${sent.body}; ` +
+        `destination attempts: ${JSON.stringify(destinationAttempts)}; ` +
+        `store: ${JSON.stringify(destinationStore.status())}`);
+    }
+    const transfer = transferControl.admitJson(
+      planned.transfer_request_json, planned.physical_manifest_json,
+      planned.transfer_request_cid, planned.physical_manifest_cid,
+      {maxChunks: 4, maxManifestBytes: 10000,
+        maxReferencedBytes: 1048576n},
+    );
+    const committed = transferControl.admitReplyJson(sent.body, transfer);
+    assert.equal(transferControl.recordIsDestinationCommitted(committed), true);
+    assert.equal(destinationStore.status().holdings, 2);
+    const writes = destinationAttempts.filter(value =>
+      value.phase === 'write').length;
+    assert.ok(writes > 0);
+    const replayed = await sendValuesSiteRequest(tls, port,
+      `${path}/outputs/execute`, outputPlan, cid);
+    assert.equal(replayed.status, 200);
+    assert.equal(replayed.body, sent.body);
+    assert.equal(destinationStore.status().holdings, 2);
+    assert.equal(destinationAttempts.filter(value =>
+      value.phase === 'write').length, writes);
+    const transferred = [];
+    const claim = await destination.consume(planned.transfer_request_cid,
+      () => true, async (index, frame) => {
+        (transferred[index] ??= []).push(Buffer.from(frame));
+      });
+    assert.equal(claim.destinationReceiptCid.startsWith('sha256:'), true);
+    assert.equal(Buffer.concat(transferred.flat()).toString('utf8'),
+      '[{"id":1},{"id":2}]');
+    assert.equal(await destination.release(planned.transfer_request_cid), true);
     await exited;
-    process.stdout.write('Native Values mTLS dispatch and query passed.\n');
+    process.stdout.write('Native Values mTLS dispatch and direct output passed.\n');
   } catch (error) {
+    if (child.exitCode === null) child.kill('SIGTERM');
+    try { await exited; } catch {}
     throw new Error(`native Values HTTPS exchange failed: ${stdout}\n${stderr}`,
       {cause: error});
   } finally {
     if (child.exitCode === null) child.kill('SIGTERM');
+    if (destination !== undefined) {
+      try { await destination.close(); }
+      catch (error) {
+        if (error?.code !== 'RemoteTransferCleanupPending') throw error;
+      }
+    }
+    destinationJournal?.close();
+    destinationStore?.close();
+    if (destinationStore !== undefined) await destinationStore.cleanup();
   }
 }
 
@@ -320,7 +426,7 @@ try {
     ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY: join(root, 'server.key'),
     ACTQL_TEST_NATIVE_VALUES_HTTPS_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_VALUES_HTTPS_PEER: valuesTls.peer,
-  });
+  }, runtimeCore(moonModule).remoteTransferControl);
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_agent/native_test',
     '--target', 'native',
