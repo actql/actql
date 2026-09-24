@@ -65,6 +65,35 @@ pub fn prepared_client_program_semantics_cid(
 }
 
 ///|
+pub(all) enum ClientProgramDefinitionIssue {
+  Encoding
+}
+
+///|
+/// Emit the Program Definition sealed by the checker, not a reconstruction
+/// from the caller's document. This is private compilation material and does
+/// not authorize a Run or establish an Executable Plan.
+pub fn emit_prepared_client_program_definition(
+  value : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientProgramDefinitionIssue] {
+  let source = @checked.source_identity(@strategy.graph_program(value.graph))
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @program_refs.emit_program_definition(
+    @context.program_identity_definition(source),
+    writer,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
 pub fn prepared_client_check_environment_cid(
   value : PreparedClientProgram,
 ) -> String {

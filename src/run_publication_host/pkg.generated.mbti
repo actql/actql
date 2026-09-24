@@ -34,6 +34,8 @@ pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
+pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientProgramDefinitionIssue]
+
 pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskAoAStepsIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
@@ -67,6 +69,10 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
+pub(all) enum ClientProgramDefinitionIssue {
+  Encoding
+}
+
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String
   parameter_values_cid : String
