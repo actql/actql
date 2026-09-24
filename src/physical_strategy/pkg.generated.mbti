@@ -2,6 +2,7 @@
 package "actql/actql/physical_strategy"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/connector_sdk",
   "actql/actql/effect_application",
   "actql/actql/encode_core",
@@ -53,6 +54,8 @@ pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_rel
 pub fn borrow_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
+
+pub fn cancel_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Unit
 
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -208,6 +211,8 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
+
 pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
 
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
@@ -287,6 +292,8 @@ pub fn execute_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, 
 pub fn expand_internal_carrier_tasks(CheckedDAG, Int, Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
+
+pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[Unit, CapturedEffectPlanVerifyIssue]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 
@@ -375,6 +382,8 @@ pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssu
 pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
+
+pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
 
@@ -641,6 +650,19 @@ pub(all) enum CapturedEffectPlanIssue {
   ForeignBinding
   Plan(@stage_results.EffectPlanBindingIssue)
 } derive(@debug.Debug)
+
+type CapturedEffectPlanVerifier
+
+pub(all) enum CapturedEffectPlanVerifyIssue {
+  InvalidMember
+  MissingPlan
+  NotReady
+  PreviewMismatch
+  SelectorEncoding
+  Plan(CapturedEffectPlanIssue)
+  Row(@stage_results.EffectPlanRowIssue)
+  Changes(@stage_results.EffectPlanChangeIssue)
+}
 
 type CapturedEffectPreviewInputs
 

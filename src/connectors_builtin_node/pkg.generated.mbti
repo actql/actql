@@ -117,7 +117,27 @@ pub fn client_program_effect_managed_input_cancel(ClientEffectManagedInputImport
 
 pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedResultRelationExportPreparation, ClientEffectManagedInputIssue]
 
+pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_cancel(ClientEffectPlanCursor) -> Unit
+
+pub fn client_program_effect_plan_cancel_import(ClientEffectPlanImport) -> Unit
+
+pub fn client_program_effect_plan_cancel_preparation(ClientEffectPlanPreparation) -> Bool
+
 pub fn client_program_effect_plan_cid(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanIdentityIssue]
+
+pub fn client_program_effect_plan_finish(ClientEffectPlanCursor) -> Result[(@execution_relation.CompletedRelationExportReceipt, String), ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_append(ClientEffectPlanImport, String) -> Result[Unit, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_begin(@physical_strategy.CapturedEffectPreviewInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int], @run_publication_host.PublicationOutputExportLimits, Int, Int) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_import_finish(ClientEffectPlanImport) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_next(ClientEffectPlanCursor, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_ready(ClientEffectPlanPreparation) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
 
@@ -1508,10 +1528,25 @@ pub(all) enum ClientEffectManagedInputIssue {
   Export(@execution_relation.CompletedExportIssue)
 }
 
+type ClientEffectPlanCursor
+
 pub(all) enum ClientEffectPlanIdentityIssue {
   Binding(@stage_results.EffectPlanBindingIssue)
   Encoding
 } derive(@debug.Debug)
+
+type ClientEffectPlanImport
+
+type ClientEffectPlanPreparation
+
+pub(all) enum ClientEffectPlanStreamIssue {
+  InvalidMember
+  NotReady
+  Closed
+  Plan(@physical_strategy.CapturedEffectPlanVerifyIssue)
+  Import(ClientEffectManagedInputIssue)
+  Export(@execution_relation.CompletedExportIssue)
+}
 
 pub(all) enum ClientEffectPreviewInputIssue {
   Identity(@run_publication.EffectPreviewIdentityIssue)

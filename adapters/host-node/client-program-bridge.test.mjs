@@ -8,6 +8,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {exportPinnedEffectInput} from './effect-input-export.mjs';
+import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -190,7 +191,9 @@ async function effectFixture({splitSource = false,
 }
 
 function effectInputPreview(prepared, evidence, definition, invocation,
-  mappingCid, artifactCid) {
+  mappingCid, artifactCid, writeKind = 'create',
+  approvedValues = [], targetRows = approvedValues.map((_, index) =>
+    index + 1)) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -211,7 +214,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     model_derived: false, model_task_contract_cids: [],
     model_invocation_evidence_cids: [], model_response_artifact_cids: [],
     effects: [{
-      effect_id: 'save', effect_kind: 'create',
+      effect_id: 'save', effect_kind: writeKind,
       target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
       resolved_mapping_contract_cid: mappingCid,
       effect_identity_cid: cid('a'), source_result: 'rows',
@@ -223,12 +226,36 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         provider_namespace: 'salesforce', provider_boundary_cid: cid('0'),
         resource_kind: 'Account', provider_object_identity_cids: [],
       },
-      count: 0, max_items: 2, required_permissions: ['write'],
-      approval: 'none', on_item_failure: 'halt', changes: [], row_order: [],
+      count: approvedValues.length, max_items: 2,
+      required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'halt',
+      changes: approvedValues.map((value, index) => ({
+        target_row_identity: targetRows[index],
+        target_guard: {state: 'version', version_cid: cid('6')},
+        intended_changes: {state: 'present', value: {Name: value}},
+        before: {state: 'present', value: {Name: 0}},
+        after: {state: 'present', value: {Name: value}},
+        row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
+      })),
+      row_order: [],
       effect_member_preview_cid: cid('1'), executed: false,
     }],
     executed: false, effect_preview_cid: cid('2'),
   };
+  if (writeKind !== 'create') {
+    preview.effects[0].effect_plan_logical_cid = checked(
+      moon.clientProgramEffectPlanCid(prepared, 0, 10, 100,
+        20000, 1000, 20));
+  }
+  if (approvedValues.length > 0) {
+    const rows = checked(moon.strategyEffectPreviewRowIdentities(
+      canonicalJson(preview), 20000, 1000, 20))[0];
+    preview.effects[0].changes.forEach((change, index) => {
+      change.row_preview_cid = rows[index];
+      change.row_idempotency_key = cid(String(index + 7));
+    });
+    preview.effects[0].row_order = rows;
+  }
   preview.effects[0].effect_member_preview_cid =
     checked(moon.strategyEffectPreviewIdentities(canonicalJson(preview),
       20000, 1000, 20))[1];
@@ -527,6 +554,186 @@ test('admitted source-free Effect Run computes through the installed Host',
           previewInputs, [], [], 0, 1)),
       {code: 'MoonBitHostFailure'});
     } finally {
+      for (const result of storedResults?.results ?? []) {
+        await result.prepared.release();
+      }
+      await store.close();
+      await execution.close();
+      assert.equal(execution.cleanupPending(), false);
+    }
+  });
+
+test('owned update Plan matches approved rows and rejects altered intent',
+  async t => {
+    const {document, environment, mappingCid} = await effectFixture({
+      writeKind: 'update',
+    });
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const evidence = publicationEvidence(
+      moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+      moon.clientProgramEffectSemanticsCid(prepared),
+      moon.clientProgramEffectEnvironmentCid(prepared));
+    const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+    const definition = checked(moon.strategyIssueRunDefinition(
+      admission, 'tenant-a-scope', 'update-effect-compute', cid('c'),
+      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+      100000, 10000, 64));
+    const observation = checked(moon.strategyRunEvidenceSeal(
+      'observation_set', JSON.stringify({
+        version: 'actql-observation-set/0.1',
+        invocation_template_cid: moon.strategyRunEvidenceIdentity(
+          evidence[0]),
+        source_evidence_cids: [], captured_input_artifact_cids: [],
+        consistency: 'no_external_sources', capture_started_at: null,
+        capture_completed_at: null,
+        replayability: {materialized: false, availability_evidence_cids: []},
+        data_policy_cid: cid('d'),
+      }), 100000, 10000, 64));
+    const invocation = checked(moon.strategyIssueRunInvocation(
+      evidence[0], observation, 100000, 10000, 64));
+    const bound = moon.clientProgramBindEffectRun(
+      prepared, admission, definition);
+    assert.ok(bound);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+      bound, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(owned);
+    const execution = await runCapturedInternalStrategy(
+      moon.clientProgramLocalEffectHostRuntime(owned));
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname, 'update-plan-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const control = runtimeCore(moon).publicationControl;
+    const store = await openLocalPublicationStore({
+      directory, storeAuthorityCid: cid('7'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: outputLimits.maxWireBytes,
+      maxObjects: 100, maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, control);
+    let storedResults, inputs;
+    try {
+      assert.equal(execution.status, 'host-tasks-completed');
+      const retention = control.seal('result_retention_policy',
+        JSON.stringify({
+          version: 'actql-result-retention-policy/0.1',
+          retention_contract_cid: cid('e'),
+          effective_data_policy_cid: cid('d'),
+          available_until: '2026-09-24T01:00:00.000Z',
+          delete_by: '2026-09-24T02:00:00.000Z',
+          extension_ceiling_at: '2026-09-24T03:00:00.000Z',
+          metadata_retention_policy_cid: cid('f'),
+          metadata_delete_by: '2026-09-24T04:00:00.000Z',
+          clock_contract_cid: cid('0'),
+        }), publicationLimits);
+      storedResults = await storeCompletedRunResultSet({
+        execution, store, control,
+        runDefinition: control.admit('run_definition',
+          moon.strategyPublicationContractJson(definition),
+          publicationLimits),
+        invocation: control.admit('run_invocation',
+          moon.strategyPublicationContractJson(invocation),
+          publicationLimits),
+        results: [{retention, evidenceContext: {
+          computationContractCid: cid('2'), inputRelationCids: [],
+          scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'),
+          authorityScopeCid: cid('a'),
+        }}],
+        outputLimits, contractLimits: publicationLimits,
+      });
+      inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+      const preview = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        storedResults.artifacts[0].identity, 'update', [1, 2]);
+      const previewLimits = moon.clientProgramEffectPreviewInputLimits(
+        20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+        1, 2, 100, 100);
+      const previewInputs = checked(
+        moon.clientProgramBindEffectPreviewInputs(
+          owned, inputs, invocation, 0, preview.wire,
+          preview.authoringCid, previewLimits));
+      const limits = moon.clientProgramEffectInputExportLimits(
+        ...effectInputExportArgs(outputLimits));
+      const planLimits = {
+        maxFields: 10, maxWork: 100, maxBytes: 20000,
+        maxNodes: 1000, maxDepth: 20, maxUtf16Units: 20000,
+      };
+      const chunks = [];
+      const verified = await verifyPinnedEffectPlan({
+        moon, execution, previewInputs, previewIndex: 0, limits,
+        planLimits,
+        onChunk: async chunk => { chunks.push(chunk); },
+      });
+      assert.deepEqual(JSON.parse(chunks.join('')), [{id: 1}, {id: 2}]);
+      assert.match(verified.logicalCid, /^sha256:[0-9a-f]{64}$/);
+      const altered = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        storedResults.artifacts[0].identity, 'update', [1, 99]);
+      const alteredInputs = checked(moon.clientProgramBindEffectPreviewInputs(
+        owned, inputs, invocation, 0, altered.wire,
+        altered.authoringCid, previewLimits));
+      const partial = [];
+      await assert.rejects(verifyPinnedEffectPlan({
+        moon, execution, previewInputs: alteredInputs, previewIndex: 0,
+        limits, planLimits,
+        onChunk: async chunk => { partial.push(chunk); },
+      }), {code: 'MoonBitHostFailure'});
+      assert.equal(partial.length, 1);
+      const swapped = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        storedResults.artifacts[0].identity, 'update', [1, 2], [2, 1]);
+      const swappedInputs = checked(moon.clientProgramBindEffectPreviewInputs(
+        owned, inputs, invocation, 0, swapped.wire,
+        swapped.authoringCid, previewLimits));
+      const swappedChunks = [];
+      await assert.rejects(verifyPinnedEffectPlan({
+        moon, execution, previewInputs: swappedInputs, previewIndex: 0,
+        limits, planLimits,
+        onChunk: async chunk => { swappedChunks.push(chunk); },
+      }), {code: 'MoonBitHostFailure'});
+      assert.deepEqual(swappedChunks, []);
+      const omitted = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        storedResults.artifacts[0].identity, 'update');
+      const omittedInputs = checked(moon.clientProgramBindEffectPreviewInputs(
+        owned, inputs, invocation, 0, omitted.wire,
+        omitted.authoringCid, previewLimits));
+      const omittedChunks = [];
+      await assert.rejects(verifyPinnedEffectPlan({
+        moon, execution, previewInputs: omittedInputs, previewIndex: 0,
+        limits, planLimits,
+        onChunk: async chunk => { omittedChunks.push(chunk); },
+      }), {code: 'MoonBitHostFailure'});
+      assert.deepEqual(omittedChunks, []);
+      assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+      const releasedChunks = [];
+      await assert.rejects(verifyPinnedEffectPlan({
+        moon, execution, previewInputs, previewIndex: 0,
+        limits, planLimits,
+        onChunk: async chunk => {
+          releasedChunks.push(chunk);
+          if (releasedChunks.length === 1) {
+            assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+          }
+        },
+      }), {code: 'MoonBitHostFailure'});
+      assert.equal(releasedChunks.length, 1);
+      assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+    } finally {
+      if (inputs !== undefined) {
+        moon.clientProgramReleaseEffectInputs(inputs);
+      }
       for (const result of storedResults?.results ?? []) {
         await result.prepared.release();
       }
