@@ -1,0 +1,162 @@
+///|
+/// In-process JS ABI for the common durable Coordinator dispatch owner.
+/// Durable bytes cross the adapter boundary; opaque handles remain local.
+#export_name("coordinatorCreateJournal")
+pub fn coordinator_create_journal(
+  authority : String,
+) -> Result[@remote.CoordinatorDispatchJournal, @remote.DispatchIssue] {
+  @remote.create_coordinator_dispatch_journal(authority)
+}
+
+///|
+/// A Host must supply the exact already-authorized Run, Site and budget CIDs.
+/// This operation only creates the shared dispatch identity.
+#export_name("coordinatorPrepareDispatch")
+pub fn coordinator_prepare_dispatch(
+  coordinator_authority : String,
+  run_definition_cid : String,
+  task_key : String,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  input_binding_cid : String,
+  obligations_cid : String,
+  budget_cid : String,
+  evidence_issuer_capability_cid : String,
+  grant_cid : String,
+) -> Result[@remote.DispatchRequest, @remote.DispatchIssue] {
+  @remote.prepare_dispatch_request(
+    coordinator_authority, run_definition_cid, task_key, task_attempt, dispatch_id,
+    site_key, site_generation, runtime_bundle_cid, connector_registration, connector_revision,
+    strategy_revision, input_binding_cid, obligations_cid, budget_cid, evidence_issuer_capability_cid,
+    grant_cid,
+  )
+}
+
+///|
+#export_name("coordinatorDispatchCid")
+pub fn coordinator_dispatch_cid(request : @remote.DispatchRequest) -> String {
+  @remote.dispatch_request_identity(request)
+}
+
+///|
+#export_name("coordinatorDispatchJson")
+pub fn coordinator_dispatch_json(
+  request : @remote.DispatchRequest,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.dispatch_request_json(request)
+}
+
+///|
+#export_name("coordinatorPrepareIntent")
+pub fn coordinator_prepare_intent(
+  journal : @remote.CoordinatorDispatchJournal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.CoordinatorDispatchIntentAdmission, @remote.DispatchIssue] {
+  @remote.prepare_coordinator_dispatch_intent(journal, request)
+}
+
+///|
+#export_name("coordinatorAdmissionDurableJson")
+pub fn coordinator_admission_durable_json(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_dispatch_admission_durable_json(admission)
+}
+
+///|
+/// Commit the in-process owner only after physical compare-and-swap succeeds.
+#export_name("coordinatorCommitIntent")
+pub fn coordinator_commit_intent(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+) -> Result[@remote.CoordinatorDispatchIntentRecord, @remote.DispatchIssue] {
+  match @remote.commit_coordinator_dispatch_intent(admission, true) {
+    Ok((_, record)) => Ok(record)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("coordinatorAdmitDurableJson")
+pub fn coordinator_admit_durable_json(
+  body : String,
+) -> Result[@remote.DurableCoordinatorDispatchRecord, @remote.DispatchIssue] {
+  @remote.admit_durable_coordinator_dispatch_record(@utf8.encode(body))
+}
+
+///|
+#export_name("coordinatorRestoreDurable")
+pub fn coordinator_restore_durable(
+  journal : @remote.CoordinatorDispatchJournal,
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> Result[@remote.CoordinatorDispatchIntentRecord, @remote.DispatchIssue] {
+  @remote.restore_durable_coordinator_dispatch_record(journal, durable)
+}
+
+///|
+#export_name("coordinatorDurableRevision")
+pub fn coordinator_durable_revision(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> Int {
+  @remote.durable_coordinator_dispatch_record_revision(durable)
+}
+
+///|
+#export_name("coordinatorDurableDispatchCid")
+pub fn coordinator_durable_dispatch_cid(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> String {
+  @remote.durable_coordinator_dispatch_record_request_identity(durable)
+}
+
+///|
+/// A lost transport response is unknown, not failed or safe to resubmit
+/// under a different dispatch identity.
+#export_name("coordinatorPrepareUnknown")
+pub fn coordinator_prepare_unknown(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Result[@remote.CoordinatorDispatchTransition, @remote.DispatchIssue] {
+  @remote.prepare_coordinator_outcome_unknown(record)
+}
+
+///|
+#export_name("coordinatorTransitionExpectedRevision")
+pub fn coordinator_transition_expected_revision(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Int {
+  @remote.coordinator_dispatch_transition_expected_revision(transition)
+}
+
+///|
+#export_name("coordinatorTransitionDurableJson")
+pub fn coordinator_transition_durable_json(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_dispatch_transition_durable_json(durable, transition)
+}
+
+///|
+/// Called only after the next durable body was atomically persisted.
+#export_name("coordinatorCommitTransition")
+pub fn coordinator_commit_transition(
+  transition : @remote.CoordinatorDispatchTransition,
+) -> Result[Unit, @remote.DispatchIssue] {
+  match @remote.commit_coordinator_dispatch_transition(transition, true) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("coordinatorRecordStateCodes")
+pub fn coordinator_record_state_codes(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Array[String] {
+  @remote.coordinator_dispatch_record_state_codes(record)
+}
