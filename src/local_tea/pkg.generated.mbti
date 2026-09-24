@@ -58,7 +58,7 @@ pub fn start_session_view(@bounded_execution.Control, @lowering_relation.Prepare
 
 pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 
-pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[WatermarkExecution, WatermarkIssue]
+pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[WatermarkExecution, WatermarkIssue]
 
 pub fn time_series_cleanup_pending(TimeSeriesExecution) -> Bool
 
@@ -165,6 +165,7 @@ pub(all) enum WatermarkIssue {
   InvalidRecord(Int)
   InvalidTime(Int)
   WorkspaceLimit
+  ControlWorkLimit
   Output(@managed_record_runtime.Issue)
   Execution(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)

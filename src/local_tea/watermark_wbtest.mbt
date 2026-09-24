@@ -224,6 +224,7 @@ fn source_events(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
   timestamp_clock : Bool,
+  empty? : Bool = false,
 ) -> @records.Completed {
   let output = @records.prepare_output(
     owner,
@@ -241,12 +242,14 @@ fn source_events(
   } else {
     [number(9.0), number(10.0), number(11.0)]
   }
-  for index in 0..<3 {
-    @records.append_record(output, [
-      (@schema.Unqualified("event_id"), number(index.to_double() + 1.0)),
-      (@schema.Unqualified("occurred_at"), times[index]),
-      (@schema.Unqualified("payload"), text("p" + index.to_string())),
-    ]).unwrap()
+  if !empty {
+    for index in 0..<3 {
+      @records.append_record(output, [
+        (@schema.Unqualified("event_id"), number(index.to_double() + 1.0)),
+        (@schema.Unqualified("occurred_at"), times[index]),
+        (@schema.Unqualified("payload"), text("p" + index.to_string())),
+      ]).unwrap()
+    }
   }
   @records.finish_output(output).unwrap()
 }
@@ -436,4 +439,174 @@ test "watermark retains completed output custody until stop cleanup" {
   assert_true(watermark_cleanup_pending(execution))
   assert_eq(cleanup_watermark(execution), Ok(true))
   assert_false(watermark_cleanup_pending(execution))
+}
+
+///|
+test "watermark admits exact control work across resumes" {
+  // Each retained record takes begin, three reads, classify, and commit.
+  // A dropped record omits commit. Final completion costs one step.
+  for (policy, exact, retained) in [("mark", 19, 3), ("drop", 18, 2)] {
+    for timestamp_clock in [false, true] {
+      let producer = producer_owner(timestamp_clock)
+      let source = source_events(producer, Ref(true), timestamp_clock)
+      let owner = watermark_owner(producer, policy)
+      for (limit, accepted) in [(exact, true), (exact - 1, false)] {
+        let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+        let execution = start_watermark(
+          @bounded.control(),
+          sequence(owner),
+          0,
+          read,
+          limits(),
+          4096L,
+          fn() { true },
+          control_work_limit=Some(limit),
+        ).unwrap()
+        let mut terminal = false
+        let mut charged = 0L
+        for _ in 0..<24 {
+          if !terminal {
+            match advance_watermark(execution, 1).unwrap() {
+              Continue(work~, ..) => {
+                assert_true(work >= charged && work - charged <= 1L)
+                charged = work
+              }
+              Complete(output, work~, ..) => {
+                assert_true(work >= charged && work - charged <= 1L)
+                charged = work
+                assert_true(accepted)
+                assert_eq(
+                  @storage.record_count(
+                    @records.completed_storage(output).unwrap(),
+                  ),
+                  retained,
+                )
+                assert_true(@records.discard_completed(output))
+                terminal = true
+              }
+              Failed(ControlWorkLimit, work~, ..) => {
+                assert_true(work >= charged && work - charged <= 1L)
+                charged = work
+                assert_false(accepted)
+                assert_true(watermark_cleanup_pending(execution))
+                terminal = true
+              }
+              _ => fail("unexpected watermark work result")
+            }
+          }
+        }
+        assert_true(terminal)
+        assert_eq(charged, limit.to_int64())
+        assert_eq(cleanup_watermark(execution), Ok(true))
+        assert_true(@records.producer_read_available(read))
+      }
+      assert_true(@records.discard_completed(source))
+    }
+  }
+}
+
+///|
+test "watermark admits exact retained workspace" {
+  // Each retained six-field record costs eight storage slots, including
+  // structural overhead. Dropping the first leaves two retained records.
+  for (policy, workspace, retained) in [("mark", 24, 3), ("drop", 16, 2)] {
+    for timestamp_clock in [false, true] {
+      let producer = producer_owner(timestamp_clock)
+      let source = source_events(producer, Ref(true), timestamp_clock)
+      let owner = watermark_owner(producer, policy)
+      for (slots, accepted) in [(workspace, true), (workspace - 1, false)] {
+        let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+        let execution = start_watermark(
+          @bounded.control(),
+          sequence(owner),
+          0,
+          read,
+          limits(workspace=slots),
+          4096L,
+          fn() { true },
+        ).unwrap()
+        let mut terminal = false
+        for _ in 0..<24 {
+          if !terminal {
+            match advance_watermark(execution, 1).unwrap() {
+              Continue(..) => ()
+              Complete(output, ..) => {
+                assert_true(accepted)
+                assert_eq(
+                  @storage.record_count(
+                    @records.completed_storage(output).unwrap(),
+                  ),
+                  retained,
+                )
+                assert_true(@records.discard_completed(output))
+                terminal = true
+              }
+              Failed(Output(@records.Storage(@storage.WorkspaceLimit)), ..) => {
+                assert_false(accepted)
+                assert_true(watermark_cleanup_pending(execution))
+                terminal = true
+              }
+              _ => fail("unexpected watermark workspace result")
+            }
+          }
+        }
+        assert_true(terminal)
+        assert_eq(cleanup_watermark(execution), Ok(true))
+        assert_true(@records.producer_read_available(read))
+      }
+      assert_true(@records.discard_completed(source))
+    }
+  }
+}
+
+///|
+test "empty watermark completes at one charged finish step" {
+  for policy in ["mark", "drop"] {
+    for timestamp_clock in [false, true] {
+      let producer = producer_owner(timestamp_clock)
+      let source = source_events(
+        producer,
+        Ref(true),
+        timestamp_clock,
+        empty=true,
+      )
+      let owner = watermark_owner(producer, policy)
+      let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+      assert_true(
+        start_watermark(
+          @bounded.control(),
+          sequence(owner),
+          0,
+          read,
+          limits(),
+          4096L,
+          fn() { true },
+          control_work_limit=Some(0),
+        )
+        is Err(ControlWorkLimit),
+      )
+      let execution = start_watermark(
+        @bounded.control(),
+        sequence(owner),
+        0,
+        read,
+        limits(),
+        4096L,
+        fn() { true },
+        control_work_limit=Some(1),
+      ).unwrap()
+      match advance_watermark(execution, 1).unwrap() {
+        Complete(output, progress=0L, work=1L) => {
+          assert_eq(
+            @storage.record_count(@records.completed_storage(output).unwrap()),
+            0,
+          )
+          assert_true(@records.discard_completed(output))
+        }
+        _ => fail("empty watermark did not finish in one charged step")
+      }
+      assert_eq(cleanup_watermark(execution), Ok(true))
+      assert_true(@records.discard_completed(source))
+    }
+  }
 }
