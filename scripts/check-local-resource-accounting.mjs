@@ -490,6 +490,10 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'TEA' && route.operation === 'session' &&
+    !boundaryRoles.has('session_incremental_initialization_cancel_cleanup')) {
+    fail(`${label}: session_incremental_initialization_cancel_cleanup fixture is missing`);
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -528,6 +532,10 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'TEA' && route.operation === 'dedupe_events' &&
     !environmentRoles.has('dedupe_host_timer')) {
     fail(`${label}: dedupe_host_timer fixture is missing`);
+  }
+  if (route.family === 'TEA' && route.operation === 'session' &&
+    !environmentRoles.has('session_host_timer')) {
+    fail(`${label}: session_host_timer fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {

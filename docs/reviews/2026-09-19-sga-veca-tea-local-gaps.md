@@ -4,7 +4,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 25 have operation-specific
+The current local resource gate maps 68 routes: 26 have operation-specific
 boundary records, 8 have all four lifecycle roles, and 7 have exact and
 one-short work/workspace assurance across every production path. Another 26
 paths have path-scoped work/workspace evidence. Strict completion remains red.
@@ -132,6 +132,16 @@ covered on JS, Wasm, and native. The existing standard Host watermark timer
 delivers in-flight cancellation after positive work and checks stop and
 cleanup. The single watermark production entrypoint is assured; this does
 not discharge the other TEA operations or the providerless synchronous lane.
+
+Session assignment also no longer constructs its records-by-terms cells and
+three full record arrays during `start`. The kernel admits the checked scratch
+width first, then builds one cell or one record tuple per resume step. An
+eight-record quantum-one fixture checks exact and one-short initialization
+workspace, entry counts after each poll, cancellation before load, and
+cleanup; pre-cancelled execution builds no entries. The existing standard
+Host session timer case supplies delivered in-flight cancellation evidence.
+This does not yet establish full session sort, grouping, identity, and output
+work/workspace assurance on every production path.
 
 Event deduplication no longer constructs its records-by-terms cell matrix or
 two full index arrays in `start`. The checked scratch ceiling remains an

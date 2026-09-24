@@ -1,5 +1,7 @@
 ///|
 priv enum SessionPhase {
+  InitializeCells
+  InitializeRecords
   LoadBegin
   LoadField
   LoadTerm
@@ -43,6 +45,7 @@ priv struct SessionState {
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
   records : Int
+  cell_count : Int
   keys : Int
   terms : Int
   gap : Int64
@@ -62,6 +65,8 @@ priv struct SessionState {
   mut times : Array[Int64]
   mut source_order : Array[Int]
   mut target_order : Array[Int]
+  initialized_cells : Ref[Int]
+  initialized_records : Ref[Int]
   mut sort_identity : Bool
   mut identity_scan : Int
   mut width : Int
@@ -146,6 +151,8 @@ struct SessionExecution {
   session : @bounded.Session[SessionState, @records.Completed, SessionIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_bytes : Int
+  initialized_cells : Ref[Int]
+  initialized_records : Ref[Int]
 }
 
 ///|
@@ -191,11 +198,35 @@ fn session_checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
+fn session_initialize_step(state : SessionState) -> Unit {
+  match state.phase {
+    InitializeCells =>
+      if state.cells.length() < state.cell_count {
+        state.cells.push(None)
+        state.initialized_cells.val += 1
+      } else {
+        state.phase = InitializeRecords
+      }
+    InitializeRecords =>
+      if state.times.length() < state.records {
+        state.times.push(0L)
+        state.source_order.push(state.source_order.length())
+        state.target_order.push(0)
+        state.initialized_records.val += 1
+      } else {
+        state.phase = LoadBegin
+      }
+    _ => ()
+  }
+}
+
+///|
 fn session_scratch(records : Int, terms : Int) -> Int? {
   guard session_checked_multiply(records, terms) is Some(cells) &&
     session_checked_multiply(records, 3) is Some(indices) &&
     session_checked_add(cells, indices) is Some(fixed) &&
-    session_checked_add(fixed, terms + 1) is Some(total) else {
+    session_checked_add(terms, 1) is Some(metadata) &&
+    session_checked_add(fixed, metadata) is Some(total) else {
     return None
   }
   Some(total)
@@ -799,6 +830,10 @@ fn session_step(
     }
     used += 1
     let outcome = match state.phase {
+      InitializeCells | InitializeRecords => {
+        session_initialize_step(state)
+        Ok(())
+      }
       LoadBegin | LoadField | LoadTerm | LoadVerify => session_load_step(state)
       SortBeginPass
       | SortBeginRun
@@ -886,7 +921,10 @@ fn start_session_with_source(
   available : () -> Bool,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
-  let terms = keys.length() + 2
+  guard session_checked_add(keys.length(), 2) is Some(terms) &&
+    session_checked_multiply(records, terms) is Some(cell_count) else {
+    return Err(SessionWorkspaceLimit)
+  }
   guard records <= limits.max_input_records &&
     records <= limits.max_records &&
     session_scratch(records, terms) is Some(scratch) &&
@@ -914,12 +952,15 @@ fn start_session_with_source(
     Ok(value) => value
     Err(issue) => return Err(SessionOutput(issue))
   }
+  let initialized_cells = Ref(0)
+  let initialized_records = Ref(0)
   let state : SessionState = {
     source,
     output: Some(output),
     limits,
     prepared: event,
     records,
+    cell_count,
     keys: keys.length(),
     terms,
     gap,
@@ -930,15 +971,17 @@ fn start_session_with_source(
     start_contract,
     end_contract,
     id_contract,
-    phase: LoadBegin,
+    phase: InitializeCells,
     record: 0,
     field: 0,
     term: 0,
     current: None,
-    cells: Array::make(records * terms, None),
-    times: Array::make(records, 0L),
-    source_order: Array::makei(records, index => index),
-    target_order: Array::make(records, 0),
+    cells: [],
+    times: [],
+    source_order: [],
+    target_order: [],
+    initialized_cells,
+    initialized_records,
     sort_identity: false,
     identity_scan: 0,
     width: 1,
@@ -972,7 +1015,15 @@ fn start_session_with_source(
     session,
     token: Some(token),
     max_noninterruptible_value_bytes: limits.max_value_bytes,
+    initialized_cells,
+    initialized_records,
   })
+}
+
+///|
+/// Diagnostic counts for scratch entries built by bounded resume steps.
+pub fn session_initialization_progress(value : SessionExecution) -> (Int, Int) {
+  (value.initialized_cells.val, value.initialized_records.val)
 }
 
 ///|

@@ -3080,7 +3080,25 @@
       "entrypoint": {
         "path": "src/local_tea/session.mbt",
         "symbol": "start_session"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "session_incremental_initialization_cancel_cleanup",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/session_wbtest.mbt",
+          "fixture": "session scratch initialization advances within the resume quantum"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "session_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session"
+        }
+      ]
     },
     {
       "inventory": "families",
