@@ -49,6 +49,7 @@ function fixture({seal = async () => {}, cleanup = async () => {}} = {}) {
     execute: () => {events.push('execute'); return ok();},
     settle: () => {events.push('settle'); return ok();},
     complete: () => {assert(bound); events.push('complete'); return ok();},
+    guard_usage: () => [0, 0, 0],
     close: () => {events.push('task-close');},
   };
   const moon = {...portableRuntime,
