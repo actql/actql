@@ -47,8 +47,10 @@ fails the resource gate. The existing exact/one-short work fixture measures
 its expected budget from the implementation itself, so it is not promoted
 to independent full-run work assurance. A separate empty-input fixture now
 uses 46 independently counted field-probe units at startup and rejects 45
-before execution, while preserving stop and cleanup. Full-run work and
-workspace exact/one-short evidence remain open.
+before execution, while preserving stop and cleanup. A separate five-row,
+two-pattern fixture independently counts the 29-slot startup metadata and
+58-slot full-run workspace peak; exact and one-short limits preserve cleanup.
+Independent full-run work assurance remains open.
 
 The direct one-record session fixture now independently counts ten scratch
 slots and twelve temporary emission slots. It completes with 22 workspace
@@ -66,14 +68,14 @@ structural metadata dimensions before resolving fields or constructing the
 metadata arrays. Each fixed fixture admits 14 structural entries, rejects 13
 with zero available resolver work, then stops and cleans up the admitted
 execution. The fixtures pass on JS, Wasm, and native. They establish the
-start-time metadata preflight, not exact/one-short work or workspace limits
-through every resume path or full route assurance for either join.
+start-time metadata preflight. Fixed full-run work and workspace proofs are
+bound to both production routes, but other join modes still need evidence.
 The existing ordinary Node standard-Host timer cases for both joins have
 now been linked to their production routes and rerun. They deliver a real
 cancel after positive managed work, confirm stop and nonpublication, and
 reclaim held and reserved resources. The resource checker rejects removal
 of either route's timer evidence. This closes the delivered-cancellation
-evidence gap for these paths, not their remaining work/workspace assurance.
+evidence gap for the tested paths, not every formal join mode.
 The fixed join fixtures now also complete at the independently counted peak
 workspace boundaries: interval at 18 entries and as-of at 21 entries.
 One-short limits (17 and 20) fail during output construction with RowLimit,

@@ -556,6 +556,7 @@ for (const [index, route] of routeEntries.entries()) {
       'sequence_in_flight_cancel_cleanup',
       'sequence_output_limit_cleanup',
       'sequence_startup_work_independent_exact_one_short',
+      'sequence_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
