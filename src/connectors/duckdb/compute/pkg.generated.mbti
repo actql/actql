@@ -51,6 +51,8 @@ pub fn duckdb_compute_attempt_plan(DuckDBComputeAttempt) -> @adapter.FixedComput
 
 pub fn duckdb_compute_demand_usage(DuckDBComputeAttempt) -> @adapter.FixedComputeDemandUsage?
 
+pub fn duckdb_compute_input_demand_column(DuckDBComputeAttempt, Int) -> Int?
+
 pub fn duckdb_compute_input_file_sql(DuckDBComputeAttempt, Int, @execution_relation.RowWireLimits, Int, Int) -> (String, String)?
 
 pub fn duckdb_compute_inputs_ready(DuckDBComputeAttempt) -> Bool
@@ -68,6 +70,8 @@ pub fn duckdb_managed_candidate_unsupported(DuckDBComputeCandidateIssue) -> Bool
 pub fn[T] duckdb_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], String, @adapter.NativeQueryLimits, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedManagedCompute[T, @adapter.ManagedFixedQuery[T]], DuckDBComputeCandidateIssue]
 
 pub fn duckdb_managed_stream_scratch_capacity(DuckDBComputeLimits, @adapter.TransportColumnLimits, ManagedStreamScratchFacts) -> Int64?
+
+pub fn duckdb_resident_demand_scan_sql(DuckDBResidentRead, Int, Int) -> Result[String, @adapter.NativeQueryIssue]
 
 pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @adapter.ResidentQuery
 
@@ -113,6 +117,8 @@ pub fn[T] managed_input_duckdb_demand_usage(ManagedInputDuckDBCompletion[T]) -> 
 
 pub fn[T] managed_input_duckdb_output_values(ManagedInputDuckDBCompletion[T]) -> @execution_relation.ManagedOutputValues
 
+pub fn prepare_duckdb_compute_input_demand_physical(DuckDBComputeAttempt, Int, Array[(String, @adapter.PhysicalType)]) -> Result[@adapter.PhysicalResult, DuckDBComputeIssue]
+
 pub fn prepare_duckdb_compute_input_physical(DuckDBComputeAttempt, Int, Array[(String, @adapter.PhysicalType)]) -> Result[@adapter.PhysicalResult, DuckDBComputeIssue]
 
 pub fn prepare_duckdb_dispatch_candidate(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.NativeQueryLimits, @execution_relation.FixedJoinValidationLimits, Int64?, Int) -> Result[DuckDBDispatchPreparation, DuckDBComputeCandidateIssue]
@@ -144,6 +150,8 @@ pub fn start_duckdb_compute_attempt(@connector_sdk.FixedComputeChoice, @connecto
 pub fn[T] verified_managed_duckdb_compute_material(ManagedDuckDBComputeOutput, @execution_relation.ManagedRetainedOutput[T]) -> @execution_relation.ManagedRetainedOutput[T]?
 
 pub fn verify_duckdb_compute_input_chunk(DuckDBComputeAttempt, Int, @adapter.PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
+
+pub fn verify_duckdb_compute_input_demand_chunk(DuckDBComputeAttempt, Int, @adapter.PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, DuckDBComputeIssue]
 
 pub fn verify_managed_duckdb_compute_output(ManagedDuckDBComputeOutput) -> Result[Unit, DuckDBComputeIssue]
 

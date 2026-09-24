@@ -613,10 +613,32 @@ async function runHostCompute(
       const {wire, maxFrameBytes} = retainedInputContract(material, input);
       beginInputStream(port, wire, maxFrameBytes);
       const identityReused = checked(moon.computeHostResidentInputReuse(run, resident.inputs, port));
-      if (identityReused && moon.computeHostInputValuesReuse(run, port)) {
+      const demandColumn = moon.computeHostInputDemandColumn(run, port);
+      const demandSql = demandColumn == null ? undefined :
+        moon.residentInputDemandScanSql(resident.inputs, port, demandColumn, limits.maxSqlBytes);
+      if (identityReused && (demandColumn == null || demandSql != null) &&
+          moon.computeHostInputValuesReuse(run, port)) {
         signal?.throwIfAborted();
+        if (demandSql != null) {
+          let physical;
+          const begin = fields => physical ??= checked(moon.computeHostInputDemandPhysicalBegin(
+            run, port, fieldsFrame(fields)));
+          const fields = await session.command(demandSql, [], chunk => {
+            signal?.throwIfAborted();
+            begin(chunk.fields);
+            const text = JSON.stringify(chunk.columns);
+            semantic.nativeSemanticRows += chunk.rowCount;
+            semantic.nativeSemanticCells += chunk.rowCount;
+            semantic.nativeSemanticBytes += Buffer.byteLength(text);
+            semantic.jsMaterializedCells += chunk.rowCount;
+            checked(moon.computeHostInputDemandPhysicalAccept(run, port, physical,
+              rows(chunk.rowCount), text));
+          });
+          begin(fields);
+        }
         checked(moon.computeHostInputStreamFinish(run, port));
-        return Object.freeze({identityReused, valuesReused: true});
+        return Object.freeze({identityReused, valuesReused: true,
+          demandColumnScan: demandSql != null});
       }
       let physical;
       const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));

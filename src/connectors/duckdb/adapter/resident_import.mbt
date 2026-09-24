@@ -41,6 +41,70 @@ pub fn resident_import_scan_sql(
 }
 
 ///|
+/// Read only the source column required by a new comparison after the exact
+/// resident generation has supplied reusable admission and measurement evidence.
+/// This SQL is a physical optimization; it does not assert that those obligations
+/// were discharged. The receiving attempt checks that separately.
+pub fn resident_import_demand_scan_sql(
+  imported : ResidentImport,
+  input : @execution.ProducerRead,
+  column : Int,
+  max_sql_bytes : Int,
+) -> Result[String, NativeQueryIssue] {
+  if !resident_import_available(imported) ||
+    !@execution.producer_read_available(input) {
+    return Err(InputUnavailable)
+  }
+  if max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  let source = @execution.producer_storage_schema(imported.storage)
+  for index in 0..<@schema.field_count(source) {
+    if @schema.reference_name(@schema.field_at(source, index).unwrap().name).to_lower() ==
+      "rowid" {
+      return Err(UnsupportedField)
+    }
+  }
+  let mapping = match
+    @execution.producer_storage_projection(
+      imported.storage,
+      input,
+      max_sql_bytes,
+    ) {
+    Ok(value) => value
+    Err(@execution.ProducerUnavailable) => return Err(InputUnavailable)
+    Err(@execution.Limit) => return Err(Limit)
+    Err(_) => return Err(UnsupportedShape)
+  }
+  guard mapping.get(column) is Some(source_column) else {
+    return Err(UnsupportedShape)
+  }
+  let sql = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  let receiver = @execution.producer_read_schema(input)
+  try {
+    sql_text(sql, "SELECT ")
+    sql_identifier(
+      sql,
+      @schema.reference_name(
+        @schema.field_at(source, source_column).unwrap().name,
+      ),
+    )
+    sql_text(sql, " AS ")
+    sql_identifier(
+      sql,
+      @schema.reference_name(@schema.field_at(receiver, column).unwrap().name),
+    )
+    sql_text(sql, " FROM main.")
+    sql_identifier(sql, imported.table)
+    sql_text(sql, " ORDER BY rowid")
+    Ok(sql.builder.to_string())
+  } catch {
+    TextLimit => Err(Limit)
+    BadIdentifier => Err(InvalidIdentifier)
+  }
+}
+
+///|
 pub fn resident_import_available(value : ResidentImport) -> Bool {
   @execution.producer_storage_available(value.storage)
 }

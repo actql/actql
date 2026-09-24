@@ -14,6 +14,103 @@ struct FixedImportDemand {
 }
 
 ///|
+/// The receiver column required by a new comparison. The resident read plan
+/// maps it to the stored source column; this alone grants no reuse.
+pub fn fixed_import_demand_column(stream : FixedImportStream) -> Int? {
+  stream.demand.map(value => value.column)
+}
+
+///|
+/// A one-column physical receiver for a comparison on a reused immutable
+/// material. The ordinary full scan remains the fallback when reuse fails.
+pub fn prepare_fixed_import_reused_demand_physical(
+  stream : FixedImportStream,
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  metadata_work : Int,
+) -> Result[PhysicalResult, FixedImportStreamIssue] {
+  guard stream.values_reused &&
+    stream.demand is Some(demand) &&
+    stream.demand_physical is None &&
+    demand.state.rows == 0 else {
+    return Err(Demand(InvalidState))
+  }
+  let source = @execution.producer_read_schema(stream.owner.input)
+  let field = @schema.field_at(source, demand.column).unwrap()
+  let schema = match
+    @schema.from_fields(
+      [(field.name, field.contract)],
+      max_fields=1,
+      max_name_bytes=metadata_work,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Physical(MetadataLimit))
+  }
+  let physical = match
+    prepare_physical_result(
+      schema,
+      fields,
+      {
+        max_rows: stream.rows,
+        max_cells: stream.rows,
+        max_nodes: limits.max_nodes,
+        max_text_bytes: limits.max_text_bytes,
+      },
+      metadata_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  stream.demand_physical = Some(physical)
+  Ok(physical)
+}
+
+///|
+pub fn verify_fixed_import_reused_demand_chunk(
+  stream : FixedImportStream,
+  physical : PhysicalResult,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[Unit, FixedImportStreamIssue] {
+  guard stream.values_reused &&
+    stream.demand is Some(demand) &&
+    stream.demand_physical is Some(bound) &&
+    physical_equal(bound, physical) &&
+    rows >= 0 &&
+    rows <= stream.rows - stream.demand_read_rows else {
+    return Err(Demand(InvalidState))
+  }
+  if !@execution.retained_producer_scan_reuse_current(stream.scan) {
+    @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+    return Err(Content(Unavailable))
+  }
+  let batch = match admit_physical_chunk(physical, rows, columns) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+      return Err(Physical(issue))
+    }
+  }
+  for row in 0..<rows {
+    if demand.issue is None {
+      let cell = physical_batch_cell(batch, row, 0).unwrap()
+      match
+        accumulate_comparison_demand(
+          demand.state,
+          demand.budget,
+          Admitted(cell.value),
+          demand.rhs,
+        ) {
+        Ok(_) => ()
+        Err(issue) => demand.issue = Some(issue)
+      }
+    }
+  }
+  stream.demand_read_rows += rows
+  Ok(())
+}
+
+///|
 pub fn attach_fixed_import_demand(
   stream : FixedImportStream,
   compute : FixedCompute,

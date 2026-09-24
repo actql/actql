@@ -60,3 +60,20 @@ pub fn duckdb_resident_scan_sql(
   }
   @duckdb.resident_import_scan_sql(read.imported, max_bytes)
 }
+
+///|
+pub fn duckdb_resident_demand_scan_sql(
+  read : DuckDBResidentRead,
+  column : Int,
+  max_bytes : Int,
+) -> Result[String, @duckdb.NativeQueryIssue] {
+  if !@execution.producer_read_available(read.input) {
+    return Err(InputUnavailable)
+  }
+  @duckdb.resident_import_demand_scan_sql(
+    read.imported,
+    read.input,
+    column,
+    max_bytes,
+  )
+}

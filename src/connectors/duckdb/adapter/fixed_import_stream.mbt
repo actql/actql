@@ -7,6 +7,9 @@ struct FixedImportStream {
   scan : @execution.RetainedProducerScan
   mut rows : Int
   mut demand : FixedImportDemand?
+  mut values_reused : Bool
+  mut demand_physical : PhysicalResult?
+  mut demand_read_rows : Int
 }
 
 ///|
@@ -18,16 +21,18 @@ pub fn reuse_fixed_import_identity(
 }
 
 ///|
-/// Value-preserving resident access only; a new comparison demand still needs
-/// its own evaluation. Missing evidence preserves the ordinary scanning path.
+/// Reuse all value admission while leaving a new comparison demand to a
+/// separate, ordered scan of its one required column. Missing evidence preserves
+/// the ordinary full scanning path.
 pub fn reuse_fixed_import_values(stream : FixedImportStream) -> Bool {
-  if stream.rows != 0 || stream.demand is Some(_) {
+  if stream.rows != 0 {
     return false
   }
   if !@execution.reuse_retained_scan_values(stream.scan) {
     return false
   }
   stream.rows = @execution.producer_read_row_count(stream.owner.input)
+  stream.values_reused = true
   true
 }
 
@@ -112,7 +117,15 @@ pub fn prepare_fixed_import_stream(
     wire,
     max_batch_bytes,
   )
-  .map(scan => FixedImportStream::{ owner, scan, rows: 0, demand: None, })
+  .map(scan => FixedImportStream::{
+    owner,
+    scan,
+    rows: 0,
+    demand: None,
+    values_reused: false,
+    demand_physical: None,
+    demand_read_rows: 0,
+  })
   .map_err(issue => Content(issue))
 }
 
@@ -193,6 +206,12 @@ fn finish_fixed_import_row(
 pub fn finish_fixed_import_stream(
   stream : FixedImportStream,
 ) -> Result[@execution.VerifiedProducerScan, FixedImportStreamIssue] {
+  if stream.values_reused &&
+    stream.demand is Some(_) &&
+    stream.demand_read_rows != stream.rows {
+    @execution.cancel_retained_producer_scan(stream.scan) |> ignore
+    return Err(Demand(InvalidState))
+  }
   let verified = match @execution.finish_retained_producer_scan(stream.scan) {
     Ok(verified) => verified
     Err(issue) => return Err(Content(issue))

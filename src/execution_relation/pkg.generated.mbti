@@ -818,6 +818,8 @@ pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) 
 
 pub fn[T] retained_producer_payload(RetainedOutputHandle[T], ProducerRead) -> T?
 
+pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
+
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
 
 pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool

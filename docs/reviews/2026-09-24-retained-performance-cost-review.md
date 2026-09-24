@@ -8,9 +8,12 @@ separates costs that can be removed from obligations that must remain.
 ## Measured diagnostic boundary
 
 A local macOS arm64 diagnostic used the existing 10,000-row, 64-column retained
-reuse fixture and the ordinary managed Host. This is a cost attribution probe,
-not a paired Linux acceptance result. Each of its three DuckDB tasks used the
-`verified-file-native-read` input representation. The task did not use the
+reuse fixture and the ordinary managed Host, but forced the fresh DuckDB
+candidate with synthetic one-millisecond estimates. It did not exercise the
+resident realization selected by the registered paired assessment. This is a
+cost attribution probe, not a paired Linux acceptance result. Each of its
+three DuckDB tasks used the `verified-file-native-read` input representation.
+The task did not use the
 Node Appender (`appendedRows = 0`). Each task admitted 640,000 input cells and
 640,000 output cells. In one faster local run, input admission took about
 0.54–0.59 seconds per task, output admission about 0.49–0.50 seconds, and
@@ -64,6 +67,25 @@ per-cell text-length pass and the generic decoder's continuation stack. Its
 cursor usage and failures are compared with generic raw admission on JS,
 Wasm and native. JSON parsing and the subsequent ActQL value admission remain;
 this is not a claim of zero-copy transport or a timing pass.
+
+The registered retained-reuse record shows a different path: all four tasks
+selected `duckdb-resident`. The first and join tasks scanned the full resident
+input, while the filter task also scanned every stored column because the new
+comparison demand prevented whole-input value reuse. That repeated an
+immutable 64-column validation to obtain one demanded field. The receiving
+stream now reuses exact live generation value and measurement evidence when
+its limits permit, then reads only the filter column in original `rowid` order.
+The new demand is measured and charged separately. If evidence, SQL projection,
+or bounds are unavailable, the original full scan remains in place. This does
+not skip a fresh join or the output's own admission and retention.
+
+The product Host regression for 10,000 rows and 64 columns completed with the
+same final rows CID. Its filter task reported one reused input and one demand
+column scan, zero full input scans, and 650,000 native semantic cells: 10,000
+input cells plus the unchanged 640,000-cell output. The first and join tasks
+still scanned full inputs. The resident data-profile suite passed, including
+the 10,000-row case. These are path and correctness observations; timing under
+this machine load is not an acceptance result.
 
 At clean revision `c1ffb07a4`, the unchanged local registered narrow/100
 runner completed seven qualified equivalent-obligations pairs. Its warm

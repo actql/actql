@@ -32,6 +32,19 @@ fn retained_scan_reuse_available(value : RetainedScanReuse) -> Bool {
 }
 
 ///|
+/// Recheck the exact resident proof while an independently demanded column is
+/// read. A receipt copied at admission cannot keep a revoked lease alive.
+pub fn retained_producer_scan_reuse_current(
+  scan : RetainedProducerScan,
+) -> Bool {
+  scan.open &&
+  (match scan.reuse {
+    Some(value) => retained_scan_reuse_available(value)
+    None => false
+  })
+}
+
+///|
 /// Insufficient encoding limits retain the ordinary verification path, preserving
 /// its failure ordering. Reuse cannot waive any configured content limit.
 pub fn reuse_retained_scan_identity(

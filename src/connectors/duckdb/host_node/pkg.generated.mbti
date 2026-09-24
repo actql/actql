@@ -67,6 +67,12 @@ pub fn compute_host_import_batch(ComputeNodeRun, Int, Int, Int, Int) -> (Int, St
 
 pub fn compute_host_import_count(ComputeNodeRun) -> Int
 
+pub fn compute_host_input_demand_column(ComputeNodeRun, Int) -> Int?
+
+pub fn compute_host_input_demand_physical_accept(ComputeNodeRun, Int, @adapter.PhysicalResult, Int, String) -> Unit raise NodeHostFailure
+
+pub fn compute_host_input_demand_physical_begin(ComputeNodeRun, Int, String) -> @adapter.PhysicalResult raise NodeHostFailure
+
 pub fn compute_host_input_file_plan(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int, Int) -> NativeFileInputPlan? raise NodeHostFailure
 
 pub fn compute_host_input_file_plan_reuse(NativeFileInputPlan, ComputeNodeRun, Int, () -> Bool) -> Bool
@@ -412,6 +418,8 @@ pub fn resident_import_stream_cancel(@adapter.ResidentImportStream) -> Unit
 pub fn resident_import_stream_finish(@adapter.ResidentImportStream) -> Unit raise NodeHostFailure
 
 pub fn resident_import_table_name(@driver.DuckDBResidentTable) -> String raise NodeHostFailure
+
+pub fn resident_input_demand_scan_sql(@driver.DuckDBResidentInputs, Int, Int, Int) -> String?
 
 pub fn resident_input_scan_sql(@driver.DuckDBResidentInputs, Int, Int) -> String?
 

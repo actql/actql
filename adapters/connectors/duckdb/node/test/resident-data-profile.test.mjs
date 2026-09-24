@@ -65,9 +65,18 @@ test('explicit data profiles select resident reuse with independent retained out
         assert.deepEqual(result.report.completed.map(task => task.preparation.imports.length),
           [1, ...Array(config.finalTask - 1).fill(0)]);
         assert(result.report.completed.every(task => task.outputRepresentation === 'retained-file'));
-        assert(result.report.completed.every(task => task.phases.directInputScans >= 1));
         assert(result.report.completed.every(task =>
-          task.phases.reusedInputIdentities === task.phases.directInputScans));
+          task.phases.directInputScans + task.phases.reusedInputValues >= 1));
+        assert(result.report.completed.every(task =>
+          task.phases.reusedInputIdentities ===
+            task.phases.directInputScans + task.phases.reusedInputValues));
+        if (fixture.workload === workloads[2] && fixture.layout === 'numeric-64') {
+          const filtered = result.report.completed[1].phases;
+          assert.equal(filtered.reusedInputValues, 1);
+          assert.equal(filtered.demandColumnScans, 1);
+          assert.equal(filtered.directInputScans, 0);
+          assert.equal(filtered.nativeSemanticCells, fixture.rows * 65);
+        }
       } finally {
         await result?.close();
         if (result) assert.equal(result.cleanupHandle.status().pending, false);

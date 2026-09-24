@@ -161,6 +161,8 @@ pub fn fixed_import_column_count(FixedImport) -> Int
 
 pub fn fixed_import_create_sql(FixedImport) -> String
 
+pub fn fixed_import_demand_column(FixedImportStream) -> Int?
+
 pub fn fixed_import_file_sql(FixedImportStream, Int, Int) -> (String, String)?
 
 pub fn fixed_import_input(FixedImport) -> @execution_relation.ProducerRead
@@ -365,6 +367,8 @@ pub fn prepare_fixed_import(@execution_relation.ProducerRead, String, Int, Int, 
 
 pub fn prepare_fixed_import_physical(FixedImportStream, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, FixedImportStreamIssue]
 
+pub fn prepare_fixed_import_reused_demand_physical(FixedImportStream, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, FixedImportStreamIssue]
+
 pub fn prepare_fixed_import_stream(FixedImport, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[FixedImportStream, FixedImportStreamIssue]
 
 pub fn prepare_fixed_join_compute(FixedJoinInputs, Int) -> Result[FixedCompute, NativeQueryIssue]
@@ -435,6 +439,8 @@ pub fn resident_import_column_count(ResidentImport) -> Int
 
 pub fn resident_import_create_sql(ResidentImport) -> String
 
+pub fn resident_import_demand_scan_sql(ResidentImport, @execution_relation.ProducerRead, Int, Int) -> Result[String, NativeQueryIssue]
+
 pub fn resident_import_drop_sql(ResidentImport, Int) -> Result[String, NativeQueryIssue]
 
 pub fn resident_import_insert_sql(ResidentImport) -> String
@@ -480,6 +486,8 @@ pub fn validate_fixed_compute_join(FixedCompute) -> Result[@execution_relation.F
 pub fn validate_fixed_join_preflight(FixedJoinInputs) -> Result[@execution_relation.FixedJoinValidation, @execution_relation.RowIssue]
 
 pub fn verify_fixed_import_chunk(FixedImportStream, PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedImportStreamIssue]
+
+pub fn verify_fixed_import_reused_demand_chunk(FixedImportStream, PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedImportStreamIssue]
 
 pub fn verify_fixed_import_values(FixedImportStream, Array[@value_admission.CheckedValue]) -> Result[Unit, FixedImportStreamIssue]
 
