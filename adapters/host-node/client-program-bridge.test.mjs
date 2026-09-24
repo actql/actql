@@ -64,6 +64,35 @@ async function checkedFixture() {
   return {document, environment};
 }
 
+test('private Plan binding uses the escaped checked Unit Result name', async () => {
+  const {document, environment} = await checkedFixture();
+  const renamed = JSON.parse(document);
+  renamed.stages[0].results['a~/b'] = renamed.stages[0].results.rows;
+  delete renamed.stages[0].results.rows;
+  renamed.results.answer.from.result = 'a~/b';
+  const prepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(renamed), 'json', environment);
+  assert.ok(prepared);
+  const body = checked(
+    moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
+  const binding = JSON.parse(body);
+  assert.deepEqual([
+    binding.target.unit_definition_cid,
+    binding.target.result_name,
+    binding.subject_ref,
+    binding.resolved_limit_cid,
+    binding.binding_cid,
+  ], [
+    'sha256:20cfb6440b10bee12f7647df2286cb63eca491c608df0ecbf1c13c21089eeb43',
+    'a~/b',
+    'unit:sha256:20cfb6440b10bee12f7647df2286cb63eca491c608df0ecbf1c13c21089eeb43#/results/a~0~1b/rows',
+    'sha256:ee1d282f8b184e1f2202d5a70bf411a1a097fafe06b99e2ba87520206be820fc',
+    'sha256:8b311359a8abfa4ef16ac3237daef1bdcc26ba8d753107afa074cab36feac400',
+  ]);
+  assert.doesNotThrow(() => checked(
+    moon.clientProgramAdmitPublicationRowsBinding(prepared, 0, 0, body)));
+});
+
 // Test-only evidence isolates checked Program binding. Product admission must
 // derive every other evidence CID from its real compiler and Host authority.
 function publicationEvidence(program, parameters, semantics,
@@ -285,6 +314,78 @@ test('Node ABI derives the checked named Result and request identity', async () 
         hashWithoutSelf(witness, 'witness_cid'));
     }
   }
+  const rowsBindingBody = checked(
+    moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
+  const bytesBindingBody = checked(
+    moon.clientProgramPublicationBytesBindingJson(prepared, 0, 0));
+  const rowsBinding = JSON.parse(rowsBindingBody);
+  const bytesBinding = JSON.parse(bytesBindingBody);
+  assert.deepEqual([
+    rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
+    rowsBinding.binding_cid, bytesBinding.binding_cid,
+  ], [
+    'sha256:d1dce9ccb30a076ebe729616043a663dddb85ba29c8de3f8f964bd8c71fbf1c0',
+    'sha256:4cdf56db345268d69b01d9b3216a5fbc8f8a7c648e8ae9176dde762f1d64e8b3',
+    'sha256:bd732ffbc9c3a523e3dffbb6e1ffd28a9696e12779ca32f099de040cd0d2cee2',
+    'sha256:33d623c5108cff887acbb28ef6b7fda20615a217b7d55e8bd898b2e10f65da3f',
+  ]);
+  for (const [binding, limit, measure] of [
+    [rowsBinding, rowsLimit, 'rows'],
+    [bytesBinding, bytesLimit, 'bytes'],
+  ]) {
+    assert.deepEqual(binding, {
+      binding_cid: binding.binding_cid,
+      effective_max: limit.effective_max,
+      resolved_limit_cid: limit.resolved_limit_cid,
+      subject_ref: `${unit}#/results/rows/${measure}`,
+      target: {
+        kind: 'result_publication', measure, result_name: 'rows',
+        unit_definition_cid: unit.slice('unit:'.length),
+      },
+      unit: measure,
+      version: 'actql-execution-limit-binding/0.1',
+    });
+    assert.equal(binding.binding_cid, hashWithoutSelf(binding, 'binding_cid'));
+    assert.notEqual(binding.binding_cid, hashWithoutSelf({
+      ...binding, target: {...binding.target, result_name: 'answer'},
+    }, 'binding_cid'));
+  }
+  const admitRows = body => checked(
+    moon.clientProgramAdmitPublicationRowsBinding(prepared, 0, 0, body));
+  const admitBytes = body => checked(
+    moon.clientProgramAdmitPublicationBytesBinding(prepared, 0, 0, body));
+  assert.doesNotThrow(() => admitRows(rowsBindingBody));
+  assert.doesNotThrow(() => admitBytes(bytesBindingBody));
+  assert.doesNotThrow(() => admitRows(JSON.stringify({
+    version: rowsBinding.version,
+    target: rowsBinding.target,
+    unit: rowsBinding.unit,
+    subject_ref: rowsBinding.subject_ref,
+    resolved_limit_cid: rowsBinding.resolved_limit_cid,
+    effective_max: rowsBinding.effective_max,
+    binding_cid: rowsBinding.binding_cid,
+  })));
+  const wrongPort = {
+    ...rowsBinding,
+    target: {...rowsBinding.target, result_name: 'answer'},
+  };
+  wrongPort.binding_cid = hashWithoutSelf(wrongPort, 'binding_cid');
+  for (const invalid of [
+    JSON.stringify(wrongPort),
+    JSON.stringify({...rowsBinding, target: {
+      ...rowsBinding.target, unit_definition_cid: cid('f'),
+    }}),
+    JSON.stringify({...rowsBinding, resolved_limit_cid: cid('f')}),
+    JSON.stringify({...rowsBinding, binding_cid: cid('f')}),
+    JSON.stringify({...rowsBinding, unknown: true}),
+    rowsBindingBody.replace('"unit":"rows","version"',
+      '"unit":"rows","unit":"rows","version"'),
+  ]) assert.throws(() => admitRows(invalid), {code: 'MoonBitHostFailure'});
+  assert.throws(() => admitBytes(rowsBindingBody),
+    {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(
+    moon.clientProgramPublicationRowsBindingJson(prepared, 0, 1)),
+  {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramPublicationRowsLimitJson(prepared, 0, 1)),
   {code: 'MoonBitHostFailure'});
@@ -320,6 +421,12 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(checked(
     moon.clientProgramPublicationBytesLimitJson(yamlPrepared, 0, 0)),
   bytesLimitBody);
+  assert.equal(checked(
+    moon.clientProgramPublicationRowsBindingJson(yamlPrepared, 0, 0)),
+  rowsBindingBody);
+  assert.equal(checked(
+    moon.clientProgramPublicationBytesBindingJson(yamlPrepared, 0, 0)),
+  bytesBindingBody);
   assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
   assert.equal(checked(
     moon.clientProgramLocalValuesPipelineJson(yamlPrepared, 0)), pipeline);

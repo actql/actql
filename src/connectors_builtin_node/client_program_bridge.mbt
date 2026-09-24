@@ -417,6 +417,86 @@ pub fn client_program_publication_bytes_limit_json(
 }
 
 ///|
+/// Private Plan material binds the checked Unit Result row ceiling to its port.
+#export_name("clientProgramPublicationRowsBindingJson")
+pub fn client_program_publication_rows_binding_json(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+) -> Result[String, @publication_host.ClientPublicationBindingIssue] {
+  @publication_host.emit_prepared_client_publication_binding(
+    prepared,
+    unit,
+    index,
+    @publication_host.Rows,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+/// Private Plan material binds the byte ceiling independently from rows.
+#export_name("clientProgramPublicationBytesBindingJson")
+pub fn client_program_publication_bytes_binding_json(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+) -> Result[String, @publication_host.ClientPublicationBindingIssue] {
+  @publication_host.emit_prepared_client_publication_binding(
+    prepared,
+    unit,
+    index,
+    @publication_host.Bytes,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+/// Check a saved row binding against the current checked Unit Result port.
+#export_name("clientProgramAdmitPublicationRowsBinding")
+pub fn client_program_admit_publication_rows_binding(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+  body : String,
+) -> Result[Unit, @publication_host.ClientPublicationBindingAdmissionIssue] {
+  @publication_host.admit_prepared_client_publication_binding(
+    prepared,
+    unit,
+    index,
+    @publication_host.Rows,
+    body,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+/// Check a saved byte binding independently from the row measurement.
+#export_name("clientProgramAdmitPublicationBytesBinding")
+pub fn client_program_admit_publication_bytes_binding(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+  body : String,
+) -> Result[Unit, @publication_host.ClientPublicationBindingAdmissionIssue] {
+  @publication_host.admit_prepared_client_publication_binding(
+    prepared,
+    unit,
+    index,
+    @publication_host.Bytes,
+    body,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
