@@ -383,6 +383,33 @@ test('Node ABI derives the checked named Result and request identity', async () 
     'sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c');
   assert.match(moon.clientProgramResultRowContractUnitCid(resultRow),
     /^sha256:[0-9a-f]{64}$/u);
+  const resultPlan = checked(moon.clientProgramIssueResultPlan(prepared, 0));
+  const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
+  assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
+  assert.equal(moon.clientProgramResultPlanCid(resultPlan),
+    'sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68');
+  assert.equal(moon.clientProgramResultPlanRowContractCid(resultPlan),
+    moon.clientProgramResultRowContractCid(resultRow));
+  assert.deepEqual(JSON.parse(resultPlanWire), {
+    version: 'actql-result-plan/0.1', result_name: 'answer',
+    unit_definition_cid:
+      'sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d',
+    unit_result_name: 'rows', unit_result_ordinal: 0,
+    projection: [{input: 'id', output: 'id', value_contract_cid:
+      'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
+    order: {strategy: 'inherited', terms: []},
+    typed_output_port: {carrier: 'relation', name: 'rows',
+      row_contract_cid: moon.clientProgramResultRowContractCid(resultRow)},
+    result_plan_logical_cid: moon.clientProgramResultPlanCid(resultPlan),
+  });
+  assert.equal(moon.clientProgramResultPlanWire(checked(
+    moon.clientProgramAdmitResultPlan(prepared, 0, resultPlanWire))),
+  resultPlanWire);
+  assert.throws(() => checked(moon.clientProgramAdmitResultPlan(
+    prepared, 0, resultPlanWire.replace('"result_name":"answer"',
+      '"result_name":"foreign"'))), {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(moon.clientProgramIssueResultPlan(prepared, 1)),
+    {code: 'MoonBitHostFailure'});
   const wider = JSON.parse(document);
   const wideValues = wider.stages[0].steps[0].values;
   wideValues.schema.hidden = {nullable: false, type: 'string'};
@@ -391,6 +418,12 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const widePrepared = moon.clientProgramPrepareEffectFree(
     JSON.stringify(wider), 'json', environment);
   assert.ok(widePrepared);
+  const wideResultPlan = checked(
+    moon.clientProgramIssueResultPlan(widePrepared, 0));
+  assert.notEqual(moon.clientProgramResultPlanCid(wideResultPlan),
+    moon.clientProgramResultPlanCid(resultPlan));
+  assert.throws(() => checked(moon.clientProgramAdmitResultPlan(
+    widePrepared, 0, resultPlanWire)), {code: 'MoonBitHostFailure'});
   const wideOutputSchema = checked(
     moon.clientProgramIssueLocalValuesOutputSchema(widePrepared, 0));
   assert.notEqual(moon.clientProgramLocalValuesOutputSchemaCid(
