@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_values_host_abi"
+
+import {
+  "actql/actql/decode_core",
+  "actql/actql/program_check",
+  "actql/actql/run_publication_host",
+  "actql/actql/source_value",
+}
+
+// Values
+pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
+
+pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+
+pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
+
+pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+// Errors
+
+// Types and methods
+pub(all) enum ClientValuesHostCompilationIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientValuesCompilationIssue)
+}
+
+pub(all) enum ClientValuesHostPreparationIssue {
+  InvalidFormat
+  SuppliedSyntax(@source_value.ParseError)
+  SuppliedAdmission(@decode_core.Issue)
+  Program(@run_publication_host.ClientProgramPreparationIssue)
+}
+
+// Type aliases
+
+// Traits
