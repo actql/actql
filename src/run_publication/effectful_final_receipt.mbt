@@ -14,6 +14,13 @@ pub(all) enum EffectfulFinalReferenceIssue {
 } derive(Debug)
 
 ///|
+pub(all) enum EffectfulFinalReceiptIssuanceIssue {
+  InvalidComputation
+  Encoding
+  References(EffectfulFinalReferenceIssue)
+} derive(Debug)
+
+///|
 /// Admit the immutable reference closure of one Effectful final Receipt.
 /// This is not a checked Program-kind proof, apply permit, physical outcome
 /// admission, or durable Run commit. The standard Host must establish those
@@ -165,4 +172,93 @@ pub fn admit_effectful_final_receipt_references(
     return Err(ChangedComputationEvidence)
   }
   Ok(final_receipt)
+}
+
+///|
+/// Derive the final Receipt body from the admitted computation Receipt.
+/// The three later references are inserted only after their closure has been
+/// admitted. This does not grant apply authority or commit publication.
+pub fn issue_effectful_final_run_receipt(
+  run_definition : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue] {
+  if computation_receipt.name != "run_receipt" {
+    return Err(InvalidComputation)
+  }
+  let set = match
+    admit_effect_set_apply_receipt_references(
+      preview, set_receipt_wire, member_receipt_wires, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(References(SetReceipt(issue)))
+  }
+  let body = match
+    @json.object_without_field(
+      computation_receipt.value,
+      "receipt_identity_cid",
+    ) {
+    Some(value) => value
+    None => return Err(InvalidComputation)
+  }
+  let body = match
+    @json.object_with_string_field(
+      body,
+      "effect_preview_cid",
+      preview.semantic_cid,
+    ) {
+    Some(value) => value
+    None => return Err(InvalidComputation)
+  }
+  let body = match
+    @json.object_with_string_field(
+      body,
+      "effect_set_apply_receipt_cid",
+      set.identity,
+    ) {
+    Some(value) => value
+    None => return Err(InvalidComputation)
+  }
+  let body = match
+    @json.object_with_string_field(
+      body,
+      "captured_run_cid",
+      captured_run.identity,
+    ) {
+    Some(value) => value
+    None => return Err(InvalidComputation)
+  }
+  let wire = @json.stringify_value(body, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let issued = match
+    seal_publication_contract(
+      "run_receipt", wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(References(FinalReceipt(issue)))
+  }
+  match
+    admit_effectful_final_receipt_references(
+      run_definition,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      issued.wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(References(issue))
+  }
 }
