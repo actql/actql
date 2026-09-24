@@ -228,6 +228,19 @@ test('Node ABI derives the checked named Result and request identity', async () 
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
     {code: 'MoonBitHostFailure'});
+  const semanticDocument = checked(
+    moon.clientProgramSemanticDocumentJson(prepared));
+  assert.deepEqual(JSON.parse(semanticDocument), JSON.parse(document));
+  const annotated = JSON.parse(document);
+  annotated.meta = {note: 'root'};
+  annotated.stages[0].meta = {note: 'stage'};
+  annotated.stages[0].steps[0].meta = {note: 'step'};
+  const annotatedPrepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(annotated), 'json', environment);
+  assert.ok(annotatedPrepared);
+  assert.equal(checked(
+    moon.clientProgramSemanticDocumentJson(annotatedPrepared)),
+  semanticDocument);
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const definition = checked(moon.clientProgramDefinitionJson(prepared));
@@ -295,6 +308,8 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramSemanticsCid(yamlPrepared), semanticsCid);
   assert.equal(checked(moon.clientProgramDefinitionJson(yamlPrepared)),
     definition);
+  assert.equal(checked(
+    moon.clientProgramSemanticDocumentJson(yamlPrepared)), semanticDocument);
   assert.equal(checked(moon.clientProgramSemanticsJson(yamlPrepared)),
     semantics);
   assert.equal(checked(moon.clientProgramStageSemanticsJson(yamlPrepared, 0)),

@@ -333,6 +333,17 @@ fn client_local_sequence_limits() -> @lower.SequenceLimits {
 }
 
 ///|
+/// Private Plan material from the checked parser, without authoring metadata.
+#export_name("clientProgramSemanticDocumentJson")
+pub fn client_program_semantic_document_json(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[String, @publication_host.ClientIdentityMaterialIssue] {
+  @publication_host.emit_prepared_client_semantic_program(
+    prepared, 100000, 10000, 100,
+  )
+}
+
+///|
 /// Expose the Definition issued by the checked owner for Local compilation.
 /// Its body is private compilation material, not a public Client wire value.
 #export_name("clientProgramDefinitionJson")
