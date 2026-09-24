@@ -92,6 +92,54 @@ test "ordinary values document prepares one named Effect-free result" {
     identity.parameter_values_cid,
     "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
   )
+  let aoa_limits : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let steps = emit_prepared_client_task_aoa_steps(
+    prepared, 0, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    steps, "[{\"id\":\"values_0\",\"in\":[],\"op\":\"REL.values\",\"params\":{\"rows\":[{\"id\":1},{\"id\":2}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}]",
+  )
+  assert_true(
+    emit_prepared_client_task_aoa_steps(
+      prepared, 1, aoa_limits, 10000, 1000, 20,
+    )
+    is Err(MissingTask),
+  )
+  assert_true(
+    emit_prepared_client_task_aoa_steps(
+      prepared,
+      0,
+      aoa_limits,
+      steps.length() - 1,
+      1000,
+      20,
+    )
+    is Err(Encoding),
+  )
+  assert_true(
+    emit_prepared_client_task_aoa_steps(
+      prepared,
+      0,
+      { ..aoa_limits, max_rows: 0, },
+      10000,
+      1000,
+      20,
+    )
+    is Err(Sequence(_)),
+  )
   assert_eq(
     identity.program_definition_cid,
     @strategy.graph_program_definition_cid(prepared_client_graph(prepared)),
@@ -109,6 +157,10 @@ test "ordinary values document prepares one named Effect-free result" {
     prepared_client_check_environment_cid(prepared),
   )
   assert_eq(prepared_client_program_semantics_cid(spaced), semantics_cid)
+  assert_eq(
+    emit_prepared_client_task_aoa_steps(spaced, 0, aoa_limits, 10000, 1000, 20).unwrap(),
+    steps,
+  )
   let changed = prepare_effect_free_client_program(
     document.replace(old="\"id\":2", new="\"id\":3"),
     Json,
@@ -121,6 +173,10 @@ test "ordinary values document prepares one named Effect-free result" {
     identity.program_definition_cid,
   )
   assert_true(prepared_client_program_semantics_cid(changed) != semantics_cid)
+  assert_true(
+    emit_prepared_client_task_aoa_steps(changed, 0, aoa_limits, 10000, 1000, 20).unwrap() !=
+    steps,
+  )
   assert_eq(
     prepared_client_identity(changed).parameter_values_cid,
     identity.parameter_values_cid,
@@ -334,4 +390,40 @@ test "ordinary values document prepares one named Effect-free result" {
     fail("supplied Parameter diagnostic was discarded")
   }
   assert_eq(@checked.diagnostic_origin(diagnostic), Some(SuppliedValues))
+  let bound_values = document
+    .replace(
+      old="\"id\":\"client-values\"",
+      new="\"id\":\"client-bound-values\",\"params\":{\"n\":{\"type\":\"number\"}}",
+    )
+    .replace(old="\"id\":2", new="\"id\":{\"$param\":\"n\"}")
+  for
+    (supplied_body, expected_steps) in [
+      ("{\"n\":2}", steps),
+      ("{\"n\":3}", steps.replace(old="{\"id\":2}", new="{\"id\":3}")),
+    ] {
+    let supplied = @decode.admit(
+      @source.parse_json(supplied_body, {
+        max_input_bytes: 100,
+        max_nodes: 10,
+        max_depth: 10,
+      }).unwrap(),
+      {
+        max_nodes: 10,
+        max_depth: 10,
+        max_string_bytes: 100,
+        max_total_string_bytes: 100,
+      },
+    ).unwrap()
+    let bound = prepare_effect_free_client_program(
+      bound_values,
+      Json,
+      selected,
+      Some(supplied),
+      limits,
+    ).unwrap()
+    assert_eq(
+      emit_prepared_client_task_aoa_steps(bound, 0, aoa_limits, 10000, 1000, 20).unwrap(),
+      expected_steps,
+    )
+  }
 }
