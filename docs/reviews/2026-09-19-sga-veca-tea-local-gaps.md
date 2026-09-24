@@ -20,6 +20,17 @@ and checked by `check:local-resource-accounting`.
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+The review of `0e8e0ada` found a binary input scan cleanup gap. The shared
+scan cleanup, Append/CrossJoin wiring, retained-frame assertions, borrowed
+input checks, and standard Host input-admission cancellation were already
+landed at `9bd948e80` and its preceding binary-admission changes. The
+review's route-wide assurance and Distribution-owned ordinary Run checks
+remain separate completion conditions; the scan fix does not discharge them.
+ShortestPath now advances typed endpoint, edge, and weighted tie comparisons
+through the shared bounded key cursor. A quantum-one long-text fixture checks
+active cancellation, cleanup, and canonical output order on all three targets.
+This proves key comparison responsiveness for that fixture, not full
+ShortestPath resource assurance or the providerless sequence path.
 The ordinary partitioned `top_k_by` route now binds a fixed two-row,
 one-partition fixture to its bounded evaluator: work 56 and peak workspace
 23 pass, while work 55 and workspace 22 fail before publication. Quantum-one

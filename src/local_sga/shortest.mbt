@@ -114,6 +114,8 @@ priv struct ShortestState {
   mut best_path_overrange : Bool
   mut weighted_copy_at : Int
   mut weighted_compare_at : Int
+  mut key_component : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   degree : Array[Int]
   start : Array[Int]
   cursor : Array[Int]
@@ -418,11 +420,11 @@ fn shortest_prepare_nearest_output(state : ShortestState) -> Bool {
 }
 
 ///|
-fn shortest_compare_edge_identities(
+fn shortest_compare_edge_identities_step(
   state : ShortestState,
   left : Int,
   right : Int,
-) -> Result[Int, ShortestIssue] {
+) -> Result[Int?, ShortestIssue] {
   guard @storage.edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
     @storage.edge_endpoints(state.source, right)
@@ -435,15 +437,23 @@ fn shortest_compare_edge_identities(
     @storage.edge_label(state.source, right) is Some(right_label) else {
     return Err(ShortestInputUnavailable)
   }
-  match shortest_compare_values(left_source_id, right_source_id) {
-    Err(issue) => Err(issue)
-    Ok(order) if order != 0 => Ok(order)
-    Ok(_) =>
-      match shortest_compare_values(left_target_id, right_target_id) {
-        Err(issue) => Err(issue)
-        Ok(order) if order != 0 => Ok(order)
-        Ok(_) => shortest_compare_optional_values(left_label, right_label)
+  let pair = match state.key_component {
+    0 => Some((left_source_id, right_source_id))
+    1 => Some((left_target_id, right_target_id))
+    2 =>
+      match (left_label, right_label) {
+        (None, None) => return shortest_finish_key_component(state, 0, true)
+        (None, Some(_)) => return shortest_finish_key_component(state, -1, true)
+        (Some(_), None) => return shortest_finish_key_component(state, 1, true)
+        (Some(a), Some(b)) => Some((a, b))
       }
+    _ => None
+  }
+  guard pair is Some((a, b)) else { return Err(ShortestInputUnavailable) }
+  match shortest_compare_values_step(state, a, b) {
+    Ok(Some(order)) =>
+      shortest_finish_key_component(state, order, state.key_component == 2)
+    other => other
   }
 }
 
@@ -498,16 +508,16 @@ fn shortest_endpoint_nodes(
 }
 
 ///|
-fn shortest_compare_nodes(
+fn shortest_compare_nodes_step(
   state : ShortestState,
   left : Int,
   right : Int,
-) -> Result[Int, ShortestIssue] {
+) -> Result[Int?, ShortestIssue] {
   guard @storage.node_identity(state.source, left) is Some(left_id) &&
     @storage.node_identity(state.source, right) is Some(right_id) else {
     return Err(ShortestInputUnavailable)
   }
-  shortest_compare_values(left_id, right_id)
+  shortest_compare_values_step(state, left_id, right_id)
 }
 
 ///|
@@ -539,73 +549,99 @@ fn shortest_emit_endpoint_node(state : ShortestState, take_left : Bool) -> Unit 
 }
 
 ///|
-fn shortest_compare_values(
+fn shortest_compare_values_step(
+  state : ShortestState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
-) -> Result[Int, ShortestIssue] {
-  @value.compare_key_values(left, right).map_err(issue => {
-    ShortestKeyOrder(issue)
-  })
-}
-
-///|
-fn shortest_compare_optional_values(
-  left : @value.CheckedValue?,
-  right : @value.CheckedValue?,
-) -> Result[Int, ShortestIssue] {
-  match (left, right) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(left), Some(right)) => shortest_compare_values(left, right)
+) -> Result[Int?, ShortestIssue] {
+  let comparison = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let value = match @value.start_bounded_key_comparison(left, right) {
+        Ok(value) => value
+        Err(issue) => return Err(ShortestKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(comparison, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      Err(ShortestKeyOrder(issue))
+    }
   }
 }
 
 ///|
-fn shortest_compare_edges(
+fn shortest_finish_key_component(
+  state : ShortestState,
+  order : Int,
+  last : Bool,
+) -> Result[Int?, ShortestIssue] {
+  if order != 0 || last {
+    state.key_component = 0
+    Ok(Some(order))
+  } else {
+    state.key_component += 1
+    Ok(None)
+  }
+}
+
+///|
+fn shortest_compare_edges_step(
   state : ShortestState,
   left_at : Int,
   right_at : Int,
-) -> Result[Int, ShortestIssue] {
+) -> Result[Int?, ShortestIssue] {
   let left_node = state.neighbor[left_at]
   let right_node = state.neighbor[right_at]
   guard @storage.node_identity(state.source, left_node) is Some(left_id) &&
     @storage.node_identity(state.source, right_node) is Some(right_id) else {
     return Err(ShortestInputUnavailable)
   }
-  match shortest_compare_values(left_id, right_id) {
-    Err(issue) => Err(issue)
-    Ok(order) if order != 0 => Ok(order)
-    Ok(_) => {
-      let left_edge = state.edge[left_at]
-      let right_edge = state.edge[right_at]
-      guard @storage.edge_endpoints(state.source, left_edge)
-        is Some((left_source, left_target)) &&
-        @storage.edge_endpoints(state.source, right_edge)
-        is Some((right_source, right_target)) &&
-        @storage.node_identity(state.source, left_source)
-        is Some(left_source_id) &&
-        @storage.node_identity(state.source, right_source)
-        is Some(right_source_id) &&
-        @storage.node_identity(state.source, left_target)
-        is Some(left_target_id) &&
-        @storage.node_identity(state.source, right_target)
-        is Some(right_target_id) &&
-        @storage.edge_label(state.source, left_edge) is Some(left_label) &&
-        @storage.edge_label(state.source, right_edge) is Some(right_label) else {
-        return Err(ShortestInputUnavailable)
-      }
-      match shortest_compare_values(left_source_id, right_source_id) {
-        Err(issue) => Err(issue)
-        Ok(order) if order != 0 => Ok(order)
-        Ok(_) =>
-          match shortest_compare_values(left_target_id, right_target_id) {
-            Err(issue) => Err(issue)
-            Ok(order) if order != 0 => Ok(order)
-            Ok(_) => shortest_compare_optional_values(left_label, right_label)
-          }
-      }
+  if state.key_component == 0 {
+    return match shortest_compare_values_step(state, left_id, right_id) {
+      Ok(Some(order)) => shortest_finish_key_component(state, order, false)
+      other => other
     }
+  }
+  let left_edge = state.edge[left_at]
+  let right_edge = state.edge[right_at]
+  guard @storage.edge_endpoints(state.source, left_edge)
+    is Some((left_source, left_target)) &&
+    @storage.edge_endpoints(state.source, right_edge)
+    is Some((right_source, right_target)) &&
+    @storage.node_identity(state.source, left_source) is Some(left_source_id) &&
+    @storage.node_identity(state.source, right_source) is Some(right_source_id) &&
+    @storage.node_identity(state.source, left_target) is Some(left_target_id) &&
+    @storage.node_identity(state.source, right_target) is Some(right_target_id) &&
+    @storage.edge_label(state.source, left_edge) is Some(left_label) &&
+    @storage.edge_label(state.source, right_edge) is Some(right_label) else {
+    return Err(ShortestInputUnavailable)
+  }
+  let pair = match state.key_component {
+    1 => Some((left_source_id, right_source_id))
+    2 => Some((left_target_id, right_target_id))
+    3 =>
+      match (left_label, right_label) {
+        (None, None) => return shortest_finish_key_component(state, 0, true)
+        (None, Some(_)) => return shortest_finish_key_component(state, -1, true)
+        (Some(_), None) => return shortest_finish_key_component(state, 1, true)
+        (Some(a), Some(b)) => Some((a, b))
+      }
+    _ => None
+  }
+  guard pair is Some((a, b)) else { return Err(ShortestInputUnavailable) }
+  match shortest_compare_values_step(state, a, b) {
+    Ok(Some(order)) =>
+      shortest_finish_key_component(state, order, state.key_component == 3)
+    other => other
   }
 }
 
@@ -956,12 +992,13 @@ fn shortest_step(
         if state.sort_left_at < state.sort_middle &&
           state.sort_right_at < state.sort_right {
           match
-            shortest_compare_nodes(
+            shortest_compare_nodes_step(
               state,
               nodes[state.sort_left_at],
               nodes[state.sort_right_at],
             ) {
-            Ok(order) => shortest_emit_endpoint_node(state, order <= 0)
+            Ok(Some(order)) => shortest_emit_endpoint_node(state, order <= 0)
+            Ok(None) => ()
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else if state.sort_left_at < state.sort_middle {
@@ -1202,12 +1239,13 @@ fn shortest_step(
         if state.sort_left_at < state.sort_middle &&
           state.sort_right_at < state.sort_right {
           match
-            shortest_compare_edges(
+            shortest_compare_edges_step(
               state,
               state.sort_left_at,
               state.sort_right_at,
             ) {
-            Ok(order) => shortest_emit_sorted_edge(state, order <= 0)
+            Ok(Some(order)) => shortest_emit_sorted_edge(state, order <= 0)
+            Ok(None) => ()
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else if state.sort_left_at < state.sort_middle {
@@ -1426,11 +1464,13 @@ fn shortest_step(
           guard state.pair_best_nodes.get(index) is Some(other) else {
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
           }
-          match shortest_compare_nodes(state, state.path_nodes[index], other) {
+          match
+            shortest_compare_nodes_step(state, state.path_nodes[index], other) {
             Err(issue) => return @bounded.Failed(issue, progress, used)
-            Ok(order) if order < 0 => shortest_begin_weighted_copy(state)
-            Ok(order) if order > 0 => state.phase = BacktrackWeightedPath
-            Ok(_) => state.weighted_compare_at += 1
+            Ok(Some(order)) if order < 0 => shortest_begin_weighted_copy(state)
+            Ok(Some(order)) if order > 0 => state.phase = BacktrackWeightedPath
+            Ok(Some(_)) => state.weighted_compare_at += 1
+            Ok(None) => ()
           }
           used += 1
         }
@@ -1443,15 +1483,16 @@ fn shortest_step(
             return @bounded.Failed(ShortestInputUnavailable, progress, used)
           }
           match
-            shortest_compare_edge_identities(
+            shortest_compare_edge_identities_step(
               state,
               state.path_edges[index],
               other,
             ) {
             Err(issue) => return @bounded.Failed(issue, progress, used)
-            Ok(order) if order < 0 => shortest_begin_weighted_copy(state)
-            Ok(order) if order > 0 => state.phase = BacktrackWeightedPath
-            Ok(_) => state.weighted_compare_at += 1
+            Ok(Some(order)) if order < 0 => shortest_begin_weighted_copy(state)
+            Ok(Some(order)) if order > 0 => state.phase = BacktrackWeightedPath
+            Ok(Some(_)) => state.weighted_compare_at += 1
+            Ok(None) => ()
           }
           used += 1
         }
@@ -1770,6 +1811,8 @@ fn shortest_step(
 
 ///|
 fn cleanup_shortest_state(state : ShortestState) -> Bool {
+  state.key_comparison = None
+  state.key_component = 0
   if state.predicate_execution is Some(execution) {
     @execution.cancel_predicate_expression(execution) |> ignore
     state.predicate_execution = None
@@ -2020,6 +2063,8 @@ pub fn start_shortest(
     best_path_overrange: false,
     weighted_copy_at: 0,
     weighted_compare_at: 0,
+    key_component: 0,
+    key_comparison: None,
     degree: [],
     start: [],
     cursor: [],

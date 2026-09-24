@@ -4825,6 +4825,114 @@ test "scalar shortest path uses canonical identity ties" {
 }
 
 ///|
+test "shortest endpoint ordering yields across long typed identities" {
+  let prefix = "s".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"second\",\"weight\":1}," +
+    "{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"first\",\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  let endpoints = "{\"ids\":[\"" + second + "\",\"" + first + "\"]}"
+  let owner = carrier_graph_shortest_owner_with_endpoints(
+    source_owner,
+    endpoints,
+    endpoints,
+    1,
+    selection=",\"selection\":\"each_pair\"",
+    max_output_rows=4,
+  )
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 10000,
+    max_depth: 10,
+    max_work: 20000,
+  }
+  let control = @bounded.control()
+  let cancelled = @local_sga.start_shortest(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    limits,
+    200,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  for _ in 0..<200 {
+    assert_true(
+      @local_sga.advance_shortest(cancelled, 1).unwrap()
+      is @local_sga.ShortestContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_shortest(cancelled, 1).unwrap()
+    is @local_sga.ShortestStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_shortest(cancelled), Ok(true))
+  assert_true(@graphs.completed_available(graph))
+  let completed = @local_sga.start_shortest(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    4,
+    limits,
+    200,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let output = finish_shortest(completed).unwrap()
+  assert_eq(@local_sga.cleanup_shortest(completed), Ok(true))
+  assert_eq(@execution.completed_row_count(output), 2)
+  let first_row = @execution.completed_output_row_wire(output, 0, 2000, 100, 10).unwrap()
+  let second_row = @execution.completed_output_row_wire(
+    output, 1, 2000, 100, 10,
+  ).unwrap()
+  assert_true(first_row.contains("\"source_id\":\"" + first + "\""))
+  assert_true(second_row.contains("\"source_id\":\"" + second + "\""))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "weighted shortest path preserves cost hop and identity order" {
   let cheaper = "[{\"id\":1,\"src\":1,\"dst\":2," +
     "\"node_name\":\"one\",\"weight\":10},{\"id\":2," +

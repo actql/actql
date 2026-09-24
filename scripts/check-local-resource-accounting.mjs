@@ -1374,6 +1374,7 @@ for (const [index, route] of routeEntries.entries()) {
       'shortest_workspace_exact_one_short',
       'shortest_value_preallocation_rejection',
       'shortest_kernel_cancel_cleanup',
+      'shortest_long_typed_identity_cancel_cleanup',
       'shortest_standard_host_consumers',
     ]) {
       if (!boundaryRoles.has(role)) {

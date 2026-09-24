@@ -2988,6 +2988,13 @@
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
+          "role": "shortest_long_typed_identity_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "shortest endpoint ordering yields across long typed identities"
+        },
+        {
           "role": "shortest_standard_host_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

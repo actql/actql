@@ -1339,6 +1339,15 @@ test('shortest path cannot lose its kernel cancellation evidence', () => {
   }), /SGA shortest_path: reviewed shortest_kernel_cancel_cleanup fixture is missing/);
 });
 
+test('shortest path cannot lose long-key cancellation evidence', () => {
+  assert.match(run(undefined, routes => {
+    const shortest = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'shortest_path');
+    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
+      item.role !== 'shortest_long_typed_identity_cancel_cleanup');
+  }), /SGA shortest_path: reviewed shortest_long_typed_identity_cancel_cleanup fixture is missing/);
+});
+
 test('resource completion cannot accept the synchronous providerless lane', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /providerless managed execution still computes synchronously/);
