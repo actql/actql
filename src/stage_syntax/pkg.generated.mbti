@@ -3,6 +3,7 @@ package "actql/actql/stage_syntax"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -38,6 +39,8 @@ pub fn effect_headers_owner(EffectHeaders) -> Program
 pub fn effect_headers_work(EffectHeaders) -> Int
 
 pub fn effect_names(Stage) -> Array[String]
+
+pub fn emit_metadata_stripped_program(Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn export_at(Program, Int) -> (String, String, String)?
 
