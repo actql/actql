@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/remote_transfer_abi"
+
+import {
+  "actql/actql/remote_transfer",
+}
+
+// Values
+pub fn transfer_active_at(@remote_transfer.RemoteTransferRequest, Int64) -> Bool
+
+pub fn transfer_admit_durable_json(String, Int, Int, Int64) -> Result[@remote_transfer.DurableRemoteTransferRecord, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_admit_envelope_json(String, String, String, Int, Int, Int64) -> Result[@remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_chunk_byte_lengths(@remote_transfer.RemoteTransferRequest) -> Array[Int64]
+
+pub fn transfer_chunk_cids(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn transfer_commit_transition(@remote_transfer.RemoteTransferTransition) -> Result[@remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_direct_progress(@remote_transfer.RemoteTransferRecord) -> Int
+
+pub fn transfer_durable_request_cid(@remote_transfer.DurableRemoteTransferRecord) -> String
+
+pub fn transfer_durable_revision(@remote_transfer.DurableRemoteTransferRecord) -> Int
+
+pub fn transfer_open_record(@remote_transfer.RemoteTransferRequest) -> @remote_transfer.RemoteTransferRecord
+
+pub fn transfer_prepare_cleanup(@remote_transfer.RemoteTransferRecord, Bool, Bool, Bool) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_prepare_destination_commit(@remote_transfer.RemoteTransferRecord) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_prepare_failure(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_prepare_source_settled(@remote_transfer.RemoteTransferRecord, Bool, Bool) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_prepare_start(@remote_transfer.RemoteTransferRecord) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_prepare_unknown(@remote_transfer.RemoteTransferRecord) -> Result[@remote_transfer.RemoteTransferTransition, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_record_durable_json(@remote_transfer.RemoteTransferRecord) -> Result[String, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_record_is_destination_committed(@remote_transfer.RemoteTransferRecord) -> Bool
+
+pub fn transfer_record_request(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferRequest
+
+pub fn transfer_record_revision(@remote_transfer.RemoteTransferRecord) -> Int
+
+pub fn transfer_reply_json(@remote_transfer.RemoteTransferRecord) -> Result[String, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_request_cid(@remote_transfer.RemoteTransferRequest) -> String
+
+pub fn transfer_request_journal_key(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn transfer_request_projection(@remote_transfer.RemoteTransferRequest) -> Array[String]
+
+pub fn transfer_restore_durable(@remote_transfer.DurableRemoteTransferRecord) -> Result[@remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_transition_durable_json(@remote_transfer.RemoteTransferTransition) -> Result[String, @remote_transfer.RemoteTransferIssue]
+
+pub fn transfer_transition_expected_revision(@remote_transfer.RemoteTransferTransition) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

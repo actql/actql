@@ -74,6 +74,8 @@ jobs:
         run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
+      - name: Test portable Remote Transfer owner package
+        run: npm run check:transfer-core
       - name: Test distribution Client wire, Host and packed Node assembly
         env:
           TMPDIR: ${{ github.workspace }}/_build
