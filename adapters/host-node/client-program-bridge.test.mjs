@@ -215,6 +215,13 @@ test('Node ABI derives the checked named Result and request identity', async () 
     {code: 'MoonBitHostFailure'});
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
+  const definition = checked(moon.clientProgramDefinitionJson(prepared));
+  assert.deepEqual(JSON.parse(definition), {
+    id: 'client-values', program_semantics_cid: semanticsCid,
+    version: 'actql-program-definition/0.1',
+  });
+  assert.equal(`sha256:${createHash('sha256').update(definition)
+    .digest('hex')}`, programCid);
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'saved-request', cid('b'));
   assert.ok(request);
@@ -233,6 +240,8 @@ test('Node ABI derives the checked named Result and request identity', async () 
       yamlPrepared, cid('a'), 'saved-request', cid('b'))),
   programCid);
   assert.equal(moon.clientProgramSemanticsCid(yamlPrepared), semanticsCid);
+  assert.equal(checked(moon.clientProgramDefinitionJson(yamlPrepared)),
+    definition);
   assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
