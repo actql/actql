@@ -8,6 +8,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
+import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -1265,12 +1266,19 @@ test('public Values submit computes and reads its real Local Result',
             maxRetainedValueBytes: 4096, maxRows: 100,
             maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
         }),
-        attach: async ({ref: requested, principalId}) => {
-          await inspectAuthorizedRunState(stateService, {
-            indexKey: requested, principalId, purpose: 'inspect',
-          });
-          return {ref: requested, durability: 'durable', revision: 0};
-        },
+        attach: installNodeClientRunAttach({
+          journal: lookupJournal, requestControl: moon,
+          publicationControl: control,
+          authorizedScope: ({principalId}) => principalId ===
+            'principal-after-restart' ? {tenantId: 'tenant-a',
+              authorityScopeCid: cid('a')} : undefined,
+          authorizeRun: async ({principalId, ref: requested}) => {
+            await inspectAuthorizedRunState(stateService, {
+              indexKey: requested, principalId, purpose: 'inspect',
+            });
+            return true;
+          },
+        }),
         lookupRequest: installNodeClientRequestLookup({
           journal: lookupJournal, control: moon,
           authorizedScope: ({principalId}) => principalId ===
