@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:1895f20b5b383cfd038398402563f52ca7fe8fb904037bf4b1f066f2a3d14ea5",
+  "artifact_registry_cid": "sha256:b266436b488322a3968cad1d7e3c461b214e3e93e03419e49449c7d4006b4613",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10681,7 +10681,7 @@
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:496a8d9d57fb426e228c8796222b7974eb1667f004502f97c4683ecc03b412a8",
+    "executable_plan": "sha256:c2002906ae8133abb606cce66e5f35ce0f591fbe63979d74d57b16778c77e966",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
     "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
@@ -10703,7 +10703,7 @@
     "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
+    "plan_document": "sha256:49283eb8a3e6c8b35e1aff11b0b121724f4d56f3d00a46093e15b8b9e46102ce",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
@@ -14014,6 +14014,35 @@
                         "enum": [
                           "nodes",
                           "edges"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "kind",
+                      "unit_definition_cid",
+                      "result_name",
+                      "measure"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "result_publication"
+                      },
+                      "unit_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "result_name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "measure": {
+                        "enum": [
+                          "rows",
+                          "bytes"
                         ]
                       }
                     }
@@ -42145,6 +42174,35 @@
                             "enum": [
                               "nodes",
                               "edges"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "unit_definition_cid",
+                          "result_name",
+                          "measure"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "result_publication"
+                          },
+                          "unit_definition_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "result_name": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "measure": {
+                            "enum": [
+                              "rows",
+                              "bytes"
                             ]
                           }
                         }

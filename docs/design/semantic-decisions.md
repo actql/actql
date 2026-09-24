@@ -122,6 +122,23 @@ ActQL permits non-string typed IDs and fixes a distinct complete Delta record
 shape. The implementation therefore uses the common typed-value order and
 graph-contract identity rather than converting IDs to strings.
 
+## Result publication limit binding in an Executable Plan
+
+The language already requires every Result publication limit to bind to the
+actual Unit Result port and its `rows` or `bytes` measurement. The previous
+Executable Plan schema only offered barrier, AoA step/output, and input
+preflight targets. None identifies a Result publication port, and an AoA output
+byte limit has a different measurement subject. This was a machine-schema gap,
+not a new publication rule.
+
+The `result_publication` target carries the Unit Definition CID, authored
+Result name, and measurement. The checker must compare those fields with the
+resolved limit's escaped `subject_ref` and the checked Unit port before issuing
+or accepting a Plan. This clarification changes the Executable Plan and Plan
+Document schema CIDs. It does not change Unit Definition identity or permit a
+schema-valid Plan to run without that semantic validation. Issuance and
+validation remain implementation work.
+
 ## Canonical group null placement
 
 The normative owner is [group](../spec/language.md#group). Its final output uses
