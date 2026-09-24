@@ -65,7 +65,8 @@ pub fn prepared_client_program_semantics_cid(
 }
 
 ///|
-pub(all) enum ClientProgramDefinitionIssue {
+pub(all) enum ClientIdentityMaterialIssue {
+  MissingStage
   Encoding
 }
 
@@ -78,13 +79,66 @@ pub fn emit_prepared_client_program_definition(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[String, ClientProgramDefinitionIssue] {
+) -> Result[String, ClientIdentityMaterialIssue] {
   let source = @checked.source_identity(@strategy.graph_program(value.graph))
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
   @program_refs.emit_program_definition(
     @context.program_identity_definition(source),
+    writer,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
+/// Emit the annotation-free Program Semantics behind the checked Definition.
+/// Its CID is already bound into that Definition, and no Host input may
+/// replace the stage inventory or semantic references here.
+pub fn emit_prepared_client_program_semantics(
+  value : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientIdentityMaterialIssue] {
+  let source = @checked.source_identity(@strategy.graph_program(value.graph))
+  let definition = @context.program_identity_definition(source)
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @program_refs.emit_program_semantics(
+    @program_refs.program_definition_semantics(definition),
+    writer,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
+/// Emit one checked Stage Semantics body by its declared stage ordinal.
+pub fn emit_prepared_client_stage_semantics(
+  value : PreparedClientProgram,
+  stage : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientIdentityMaterialIssue] {
+  let source = @checked.source_identity(@strategy.graph_program(value.graph))
+  guard @context.program_identity_stage_at(source, stage) is Some(stage_owner) else {
+    return Err(MissingStage)
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @program_refs.emit_stage_semantics(
+    @program_refs.stage_definition_semantics(
+      @context.stage_identity_definition(stage_owner),
+    ),
     writer,
   ) catch {
     _ => return Err(Encoding)
