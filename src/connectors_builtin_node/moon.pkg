@@ -29,6 +29,8 @@ import {
   "actql/actql/check_environment",
   "actql/actql/program_check",
   "actql/actql/stage_syntax",
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
   "actql/actql/physical_cost" @cost,
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",

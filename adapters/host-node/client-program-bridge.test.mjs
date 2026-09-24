@@ -233,6 +233,72 @@ test('Node ABI derives the checked named Result and request identity', async () 
   undefined);
 });
 
+test('Node ABI binds separately supplied Parameters through the shared checker',
+  async t => {
+    const {environment} = await checkedFixture();
+    const [json, yaml] = await Promise.all([
+      readFile(new URL('parameter-values.json', fixture), 'utf8'),
+      readFile(new URL('parameter-values.yaml', fixture), 'utf8'),
+    ]);
+    const prepare = (document, format, parameters) =>
+      moon.clientProgramPrepareEffectFreeWithParameters(
+        document, format, environment, parameters);
+    const issue = outcome => moon.clientProgramPreparationIssueCode(outcome);
+    const ready = outcome => moon.clientProgramPreparationReady(outcome);
+    assert.equal(issue(prepare(json, 'json', undefined)), 'needs_inputs');
+    assert.equal(issue(prepare(json, 'json', '{"n":"bad"}')),
+      'check_rejected');
+    assert.equal(issue(prepare(json, 'json', '{"n":null}')),
+      'check_rejected');
+    assert.equal(issue(prepare(json, 'json', '{"n":2')),
+      'supplied_syntax');
+    assert.equal(issue(prepare(json, 'json', `{"n":"${'x'.repeat(65536)}"}`)),
+      'supplied_syntax');
+    assert.equal(issue(prepare(json, 'auto', '{"n":2}')),
+      'invalid_format');
+    const supplied = ready(prepare(json, 'json', '{"n":2}'));
+    const repeated = ready(prepare(json, 'json', '{"n":2}'));
+    const yamlSupplied = ready(prepare(yaml, 'yaml', '{"n":2}'));
+    const changed = ready(prepare(json, 'json', '{"n":3}'));
+    for (const value of [supplied, repeated, yamlSupplied, changed]) {
+      assert.ok(value);
+      assert.equal(moon.clientProgramResultName(value, 0), 'answer');
+    }
+    const identity = value => moon.clientProgramRequestIdentity(
+      value, cid('a'), 'parameter-request', cid('b'));
+    const first = identity(supplied);
+    const same = identity(repeated);
+    const yamlIdentity = identity(yamlSupplied);
+    const other = identity(changed);
+    assert.equal(moon.clientRequestProgramCid(first),
+      moon.clientRequestProgramCid(yamlIdentity));
+    assert.equal(moon.clientProgramSemanticsCid(supplied),
+      moon.clientProgramSemanticsCid(yamlSupplied));
+    assert.equal(moon.clientRequestParametersCid(first),
+      moon.clientRequestParametersCid(yamlIdentity));
+    assert.equal(moon.clientRequestIntentCid(first),
+      moon.clientRequestIntentCid(same));
+    assert.notEqual(moon.clientRequestParametersCid(first),
+      moon.clientRequestParametersCid(other));
+    assert.notEqual(moon.clientRequestIntentCid(first),
+      moon.clientRequestIntentCid(other));
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'parameters-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const admission = {tenantId: 'tenant-a', runDefinitionCid: cid('c'),
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
+    assert.equal(journal.accept(first, admission, moon).inserted, true);
+    assert.equal(journal.accept(same, admission, moon).inserted, false);
+    assert.throws(() => journal.accept(other, admission, moon),
+      {code: 'ClientRequestIntentConflict'});
+    const withDefault = json.replace('"n": {"type": "number"}',
+      '"n": {"type": "number", "default": 5}');
+    assert.notEqual(withDefault, json);
+    assert.ok(ready(prepare(withDefault, 'json', undefined)));
+  });
+
 test('Node publication admission rejects evidence from another checked Program',
   async t => {
     const {document, environment} = await checkedFixture();

@@ -36,18 +36,60 @@ pub fn client_program_check_environment(
 }
 
 ///|
-/// Explicit JSON or YAML only. This conservative installed-Host profile
-/// bounds checking and lowering independently of physical Run capacity.
-#export_name("clientProgramPrepareEffectFree")
-pub fn client_program_prepare_effect_free(
+/// Preserve the shared checker's typed failure across the in-process Host ABI.
+/// A wire adapter may project it to a public error, but must not recheck the
+/// Program or infer missing inputs from an absent prepared handle.
+pub(all) enum ClientProgramBridgeIssue {
+  InvalidFormat
+  SuppliedSyntax(@source.ParseError)
+  SuppliedAdmission(@decode.Issue)
+  Preparation(@publication_host.ClientProgramPreparationIssue)
+}
+
+///|
+pub(all) enum ClientProgramBridgeOutcome {
+  Prepared(@publication_host.PreparedClientProgram)
+  Rejected(ClientProgramBridgeIssue)
+}
+
+///|
+/// Explicit JSON or YAML only. Supplied Parameter Values are a separately
+/// bounded JSON body; they never modify the checked Program document.
+#export_name("clientProgramPrepareEffectFreeWithParameters")
+pub fn client_program_prepare_effect_free_with_parameters(
   document : String,
   format : String,
   environment : @program_check.CheckEnvironment,
-) -> @publication_host.PreparedClientProgram? {
+  parameters : String?,
+) -> ClientProgramBridgeOutcome {
   let selected = match format {
     "json" => @stage_syntax.Json
     "yaml" => @stage_syntax.Yaml
-    _ => return None
+    _ => return Rejected(InvalidFormat)
+  }
+  let supplied = match parameters {
+    None => None
+    Some(body) => {
+      let parsed = match
+        @source.parse_json_bytes(
+          @utf8.encode(body),
+          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          source_path="Client Parameters",
+        ) {
+        Ok(value) => value
+        Err(issue) => return Rejected(SuppliedSyntax(issue))
+      }
+      match
+        @decode.admit(parsed, {
+          max_nodes: 8192,
+          max_depth: 64,
+          max_string_bytes: 65536,
+          max_total_string_bytes: 65536,
+        }) {
+        Ok(value) => Some(value)
+        Err(issue) => return Rejected(SuppliedAdmission(issue))
+      }
+    }
   }
   let limits : @publication_host.ClientProgramPreparationLimits = {
     checking: {
@@ -102,15 +144,82 @@ pub fn client_program_prepare_effect_free(
   }
   match
     @publication_host.prepare_effect_free_client_program(
+      document, selected, environment, supplied, limits,
+    ) {
+    Ok(value) => Prepared(value)
+    Err(issue) => Rejected(Preparation(issue))
+  }
+}
+
+///|
+#export_name("clientProgramPreparationReady")
+pub fn client_program_preparation_ready(
+  outcome : ClientProgramBridgeOutcome,
+) -> @publication_host.PreparedClientProgram? {
+  match outcome {
+    Prepared(value) => Some(value)
+    Rejected(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramPreparationIssue")
+pub fn client_program_preparation_issue(
+  outcome : ClientProgramBridgeOutcome,
+) -> ClientProgramBridgeIssue? {
+  match outcome {
+    Prepared(_) => None
+    Rejected(issue) => Some(issue)
+  }
+}
+
+///|
+#export_name("clientProgramPreparationIssueCode")
+pub fn client_program_preparation_issue_code(
+  outcome : ClientProgramBridgeOutcome,
+) -> String? {
+  match outcome {
+    Prepared(_) => None
+    Rejected(issue) =>
+      Some(
+        match issue {
+          InvalidFormat => "invalid_format"
+          SuppliedSyntax(_) => "supplied_syntax"
+          SuppliedAdmission(_) => "supplied_admission"
+          Preparation(owner) =>
+            match owner {
+              Syntax(_) => "program_syntax"
+              EffectNotSupported(_) => "effect_not_supported"
+              NeedsInputs(_) => "needs_inputs"
+              Check(_) => "check_rejected"
+              MissingCheckedStage(_) => "missing_checked_stage"
+              MissingStageIdentity(_) => "missing_stage_identity"
+              Lowering(_) => "lowering_rejected"
+              Binding(_) => "binding_rejected"
+              Graph(_) => "graph_rejected"
+            }
+        },
+      )
+  }
+}
+
+///|
+/// Retain the original no-Parameter convenience ABI for existing installed
+/// hosts. New submit paths must use the typed preparation entry above.
+#export_name("clientProgramPrepareEffectFree")
+pub fn client_program_prepare_effect_free(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+) -> @publication_host.PreparedClientProgram? {
+  client_program_preparation_ready(
+    client_program_prepare_effect_free_with_parameters(
       document,
-      selected,
+      format,
       environment,
       None,
-      limits,
-    ) {
-    Ok(value) => Some(value)
-    Err(_) => None
-  }
+    ),
+  )
 }
 
 ///|
