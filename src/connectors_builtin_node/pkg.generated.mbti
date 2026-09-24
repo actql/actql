@@ -43,6 +43,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
+
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
 pub fn client_program_local_values_pipeline_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesPipelineIssue]
@@ -62,6 +64,10 @@ pub fn client_program_prepare_effect_free_with_parameters(String, String, @progr
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
 pub fn client_program_publication_bytes_limit_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationLimitIssue]
+
+pub fn client_program_publication_plan_fact_bindings(@run_publication_host.ClientPublicationPlanFacts) -> Array[String]
+
+pub fn client_program_publication_plan_fact_limits(@run_publication_host.ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_program_publication_rows_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
