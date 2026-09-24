@@ -145,6 +145,39 @@ test "canonical large-integers" {
 }
 
 ///|
+test "Invocation Bindings no declared bindings" {
+  let input = @json.parse([
+    "{\"version\":\"actql-invocation-bindings/0.1\",\"bindings\":{}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 3, 2, 57)
+  assert_eq(@canonical_json.cid_value(value, 57, 3, 2), "sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f")
+  assert_eq(@canonical_json.measure_value(value, 57, 3, 2), 57)
+  assert_eq(@canonical_json.stringify_value(value, 57, 3, 2), "{\"bindings\":{},\"version\":\"actql-invocation-bindings/0.1\"}")
+}
+
+///|
+test "Invocation Bindings two verified reference identities" {
+  let input = @json.parse([
+    "{\"version\":\"actql-invocation-bindings/0.1\",\"bindings\":{\"target_file\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"asset\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 5, 2, 226)
+  assert_eq(@canonical_json.cid_value(value, 226, 5, 2), "sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea")
+  assert_eq(@canonical_json.measure_value(value, 226, 5, 2), 226)
+  assert_eq(@canonical_json.stringify_value(value, 226, 5, 2), "{\"bindings\":{\"asset\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"target_file\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-invocation-bindings/0.1\"}")
+}
+
+///|
+test "Bound Invocation Template complete preimage" {
+  let input = @json.parse([
+    "{\"version\":\"actql-bound-invocation-template/0.1\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"parameter_values_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"invocation_bindings_cid\":\"sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea\",\"check_environment_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"grammar_manifest_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"required_profile_contracts\":[{\"profile_id\":\"text\",\"contract_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"}],\"barrier_contract_manifest_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"source_evidence\":\"unbound\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 13, 3, 816)
+  assert_eq(@canonical_json.cid_value(value, 816, 13, 3), "sha256:a629cb6398d69cb18fe6d4bdb3d7453b4072190ca43255f3970b7e2eb69742bf")
+  assert_eq(@canonical_json.measure_value(value, 816, 13, 3), 816)
+  assert_eq(@canonical_json.stringify_value(value, 816, 13, 3), "{\"barrier_contract_manifest_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"check_environment_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"grammar_manifest_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"invocation_bindings_cid\":\"sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea\",\"parameter_values_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"required_profile_contracts\":[{\"contract_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile_id\":\"text\"}],\"source_evidence\":\"unbound\",\"version\":\"actql-bound-invocation-template/0.1\"}")
+}
+
+///|
 test "Effect Preview row guarded update with approved field change" {
   let input = @json.parse([
     "{\"version\":\"actql-effect-preview-row/0.1\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"invocation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_identity_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"resolved_contract_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation\":\"update\",\"target_row_identity\":\"001000000000001\",\"preview_strength\":\"full_diff\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"intended_changes\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}},\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}},\"after\":{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}}",
@@ -2027,6 +2060,16 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/para
   let value = @canonical_json.from_json(input, 638, 14, 9630)
   assert_eq(@canonical_json.cid_value(value, 9630, 638, 14), "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3")
   assert_eq(@canonical_json.measure_value(value, 9630, 638, 14), 9630)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invocation_bindings" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-invocation-bindings-0.1.json\",\"title\":\"actql-invocation-bindings-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"bindings\",\"invocation_bindings_cid\"],\"properties\":{\"version\":{\"const\":\"actql-invocation-bindings/0.1\"},\"bindings\":{\"type\":\"object\",\"propertyNames\":{\"pattern\":\"^[A-Za-z_][A-Za-z0-9_]*$\"},\"additionalProperties\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}},\"invocation_bindings_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 23, 4, 577)
+  assert_eq(@canonical_json.cid_value(value, 577, 23, 4), "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41")
+  assert_eq(@canonical_json.measure_value(value, 577, 23, 4), 577)
 }
 
 ///|

@@ -4765,6 +4765,27 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
     ),
     AllOfRule([1592, 1600, 1664]),
     AllOfRule([1586, 1665]),
+    protocol_string_rule(Some("actql-invocation-bindings/0.1"), [], 0, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_named_object_rule([], [], 1668, 0, None, 7),
+    protocol_object_rule(
+      [("version", 1667), ("bindings", 1669)],
+      ["version", "bindings"],
+      -1,
+      0,
+      None,
+    ),
+    protocol_string_rule(Some("actql-invocation-bindings/0.1"), [], 0, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_named_object_rule([], [], 1672, 0, None, 7),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_object_rule(
+      [("version", 1671), ("bindings", 1673), ("invocation_bindings_cid", 1674)],
+      ["version", "bindings", "invocation_bindings_cid"],
+      -1,
+      0,
+      None,
+    ),
   ]
 }
 
@@ -4803,6 +4824,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("effect_set_apply_receipt", true) => Some(1485)
     ("effect_reconciliation_receipt", false) => Some(1575)
     ("effect_reconciliation_receipt", true) => Some(1666)
+    ("invocation_bindings", false) => Some(1670)
+    ("invocation_bindings", true) => Some(1675)
     _ => None
   }
 }

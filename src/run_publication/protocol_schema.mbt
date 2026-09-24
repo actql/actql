@@ -10,7 +10,7 @@ priv enum ProtocolSchemaRule {
   NumberRule
   IntegerRule(Int64?, Int64?)
   ArrayRule(Int, Int, Bool)
-  ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?)
+  ObjectRule(Array[(String, Int)], Array[String], Int, Int, String?, Int)
   OneOfRule(Array[Int])
   AnyOfRule(Array[Int])
   AllOfRule(Array[Int])
@@ -84,6 +84,22 @@ fn protocol_object_rule(
 ) -> ProtocolSchemaRule {
   ObjectRule(
     properties, required, additional, min_properties, forbidden_property_prefix,
+    0,
+  )
+}
+
+///|
+fn protocol_named_object_rule(
+  properties : Array[(String, Int)],
+  required : Array[String],
+  additional : Int,
+  min_properties : Int,
+  forbidden_property_prefix : String?,
+  property_name_pattern : Int,
+) -> ProtocolSchemaRule {
+  ObjectRule(
+    properties, required, additional, min_properties, forbidden_property_prefix,
+    property_name_pattern,
   )
 }
 
@@ -133,6 +149,29 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
     4 => valid_digest(value)
     5 => value.has_prefix("$")
     6 => value.has_prefix("command:")
+    7 =>
+      if value.length() == 0 {
+        false
+      } else {
+        let first = value[0].to_int()
+        if !((first >= 65 && first <= 90) ||
+          (first >= 97 && first <= 122) ||
+          first == 95) {
+          false
+        } else {
+          let mut valid = true
+          for index = 1; index < value.length(); index = index + 1 {
+            let char = value[index].to_int()
+            if !((char >= 65 && char <= 90) ||
+              (char >= 97 && char <= 122) ||
+              (char >= 48 && char <= 57) ||
+              char == 95) {
+              valid = false
+            }
+          }
+          valid
+        }
+      }
     _ => false
   }
 }
@@ -236,7 +275,8 @@ fn validate_protocol_node(
       required,
       additional,
       min_properties,
-      forbidden_property_prefix
+      forbidden_property_prefix,
+      property_name_pattern
     ) =>
       match object_fields(value) {
         Ok(fields) => {
@@ -249,6 +289,9 @@ fn validate_protocol_node(
             }
           }
           for (name, child) in fields {
+            if !protocol_string_pattern(name, property_name_pattern) {
+              return false
+            }
             if forbidden_property_prefix
               .map(prefix => name.has_prefix(prefix))
               .unwrap_or(false) {

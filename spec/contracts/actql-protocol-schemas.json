@@ -10672,10 +10672,11 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:ddf9e6e94f1b7d53b0000bb9ea976c755c5169ff1e3f64b6269eae6b9d7ab962",
+  "artifact_registry_cid": "sha256:9901c924804d067d78c0e4ceb87b97d43b738a3f25f0ce8375796e5acb605733",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
+    "invocation_bindings": "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
     "source_evidence": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6",
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
@@ -11827,6 +11828,37 @@
               }
             }
           ]
+        }
+      }
+    },
+    "invocation_bindings": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-invocation-bindings-0.1.json",
+      "title": "actql-invocation-bindings-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "bindings",
+        "invocation_bindings_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-invocation-bindings/0.1"
+        },
+        "bindings": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "invocation_bindings_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     },

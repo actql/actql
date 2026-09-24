@@ -1,0 +1,45 @@
+{
+  "version": "actql-invocation-bindings-vectors/0.1",
+  "cases": [
+    {
+      "id": "no declared bindings",
+      "declarations": {},
+      "bindings": {},
+      "expected_canonical_bytes": "{\"bindings\":{},\"version\":\"actql-invocation-bindings/0.1\"}",
+      "expected_cid": "sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f"
+    },
+    {
+      "id": "two verified reference identities",
+      "declarations": {
+        "target_file": {"type": "resource_ref", "resource_kind": "example.file"},
+        "asset": {"type": "artifact_ref", "media_type": "application/json"}
+      },
+      "bindings": {
+        "target_file": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "asset": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expected_canonical_bytes": "{\"bindings\":{\"asset\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"target_file\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-invocation-bindings/0.1\"}",
+      "expected_cid": "sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea"
+    }
+  ],
+  "template": {
+    "body": {
+      "version": "actql-bound-invocation-template/0.1",
+      "program_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "parameter_values_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "invocation_bindings_cid": "sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea",
+      "check_environment_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "grammar_manifest_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "required_profile_contracts": [
+        {
+          "profile_id": "text",
+          "contract_cid": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ],
+      "barrier_contract_manifest_cid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "source_evidence": "unbound"
+    },
+    "expected_canonical_bytes": "{\"barrier_contract_manifest_cid\":\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"check_environment_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"grammar_manifest_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"invocation_bindings_cid\":\"sha256:a52895ac22695e62f09fe66296752ebdf8737aa43d0c3088d14a355cce53b4ea\",\"parameter_values_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"required_profile_contracts\":[{\"contract_cid\":\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"profile_id\":\"text\"}],\"source_evidence\":\"unbound\",\"version\":\"actql-bound-invocation-template/0.1\"}",
+    "expected_cid": "sha256:a629cb6398d69cb18fe6d4bdb3d7453b4072190ca43255f3970b7e2eb69742bf"
+  }
+}
