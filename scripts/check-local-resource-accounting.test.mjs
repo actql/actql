@@ -255,10 +255,11 @@ test('Graph equality requires its work and long-comparison fixtures', () => {
   }
 });
 
-test('components requires empty and nonempty boundary fixtures', () => {
+test('components requires empty, nonempty, and long-key boundary fixtures', () => {
   for (const role of [
     'components_empty_exact_work_workspace_cancel_cleanup',
     'components_nonempty_work_ceiling_and_active_cancel',
+    'components_long_text_minimum_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&

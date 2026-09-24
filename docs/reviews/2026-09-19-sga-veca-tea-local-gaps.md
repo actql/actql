@@ -1827,7 +1827,12 @@ row order. A real timer delivers cancellation during strong-component work;
 the bounded kernel reports stop, no component result is completed, and retry
 cleanup releases all holdings and reservations. Direct portable tests cover
 the same cancellation boundary for weak and strong execution. `components`
-is complete. Commit `235f8b41` connects the first bounded `traverse` variant:
+is complete. Its component-minimum and result-order comparisons now use the
+shared bounded typed-key cursor. A long common-prefix identity fixture covers
+quantum-one cancellation during representative selection, cleanup, and the
+canonical order of both weak and strong results. This strengthens bounded
+execution evidence without claiming strict assurance for every SGA route.
+Commit `235f8b41` connects the first bounded `traverse` variant:
 a literal singleton start, one homogeneous directional hop rule, node output,
 finite minimum and maximum hop counts, and the resolved output guard. The
 registered provider rejects other variants before execution. The implemented

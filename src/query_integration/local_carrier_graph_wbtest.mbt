@@ -4115,6 +4115,106 @@ test "weak and strong components preserve canonical identities and bounds" {
 }
 
 ///|
+test "weak and strong components yield during long minimum comparisons" {
+  let prefix = "m".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let rows = "[{\"id\":\"" +
+    second +
+    "\",\"src\":\"" +
+    second +
+    "\",\"dst\":\"" +
+    first +
+    "\",\"node_name\":\"second\"," +
+    "\"weight\":1},{\"id\":\"" +
+    first +
+    "\",\"src\":\"" +
+    first +
+    "\",\"dst\":\"" +
+    second +
+    "\",\"node_name\":\"first\"," +
+    "\"weight\":2}]"
+  let source_owner = carrier_graph_source_owner_with_rows(rows, text_id=true)
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(control) raise {
+      @local_sga.start_components(
+        control,
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        2,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        39,
+        1000,
+        1000,
+        [external],
+      )
+    }
+    let control = @bounded.control()
+    let cancelled = start(control).unwrap()
+    for _ in 0..<90 {
+      assert_true(
+        @local_sga.advance_components(cancelled, 1).unwrap()
+        is @local_sga.ComponentsContinue(..),
+      )
+    }
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, ..),
+    )
+    assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+    let completed = start(@bounded.control()).unwrap()
+    let output = finish_components(completed).unwrap()
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_true(
+      @execution.completed_cell(output, 0, 0) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, 0) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 0, 2) is Some(Text(id)) && id == first,
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, 2) is Some(Text(id)) && id == second,
+    )
+    assert_eq(@local_sga.cleanup_components(completed), Ok(true))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "reach preserves direction depth bounds and cancellation" {
   for
     (direction, depth, rows, expected_nodes) in [

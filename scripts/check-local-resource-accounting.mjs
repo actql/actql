@@ -1407,7 +1407,8 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'SGA' && route.operation === 'components' &&
     (!boundaryRoles.has('components_empty_exact_work_workspace_cancel_cleanup') ||
-      !boundaryRoles.has('components_nonempty_work_ceiling_and_active_cancel'))) {
+      !boundaryRoles.has('components_nonempty_work_ceiling_and_active_cancel') ||
+      !boundaryRoles.has('components_long_text_minimum_cancel_cleanup'))) {
     fail(`${label}: components boundary evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'reach' &&

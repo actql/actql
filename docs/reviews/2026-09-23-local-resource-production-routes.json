@@ -2996,6 +2996,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "weak and strong components preserve canonical identities and bounds"
+        },
+        {
+          "role": "components_long_text_minimum_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "weak and strong components yield during long minimum comparisons"
         }
       ]
     },
