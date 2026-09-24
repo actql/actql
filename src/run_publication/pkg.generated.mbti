@@ -87,6 +87,10 @@ pub fn effect_preview_footprint_target_cid(EffectPreviewFootprintIdentity, Int) 
 
 pub fn effect_preview_footprint_target_count(EffectPreviewFootprintIdentity) -> Int
 
+pub fn effect_preview_member_authority_scope_cid(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_capability_evidence_cid(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
 
 pub fn effect_preview_member_effect_id(EffectPreviewIdentity, Int) -> String?
@@ -105,7 +109,11 @@ pub fn effect_preview_member_plan_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_resolved_contract(EffectPreviewIdentity, Int) -> EffectPreviewResolvedContract?
 
+pub fn effect_preview_member_resolved_contract_cid(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_member_result_artifact_cid(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_source_binding_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_source_result(EffectPreviewIdentity, Int) -> String?
 
@@ -598,6 +606,9 @@ pub struct EffectPreviewIdentity {
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
+  member_source_binding_cids : Array[String]
+  member_capability_evidence_cids : Array[String]
+  member_authority_scope_cids : Array[String]
   member_effect_plan_cids : Array[String?]
   member_source_results : Array[String?]
   member_result_artifact_cids : Array[String?]

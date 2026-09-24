@@ -220,6 +220,8 @@ pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Resu
 
 pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
 
+pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
+
 pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
 
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
@@ -648,6 +650,17 @@ type CapturedAnyResultBorrow
 type CapturedAnyResultOutputSet
 
 type CapturedDAG
+
+pub(all) enum CapturedEffectCurrentBindingIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  InventoryMismatch
+  ForeignSource(Int)
+  ForeignContract(Int)
+  ForeignCapability(Int)
+  ForeignAuthority(Int)
+} derive(@debug.Debug)
 
 pub(all) enum CapturedEffectGuardIssue {
   InvalidLimits

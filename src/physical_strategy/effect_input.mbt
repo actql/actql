@@ -297,6 +297,78 @@ pub fn check_captured_effect_preview_target_guards(
 }
 
 ///|
+pub(all) enum CapturedEffectCurrentBindingIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  InventoryMismatch
+  ForeignSource(Int)
+  ForeignContract(Int)
+  ForeignCapability(Int)
+  ForeignAuthority(Int)
+} derive(Debug)
+
+///|
+/// Compare all currently observed source, resolved Contract, capability, and
+/// authority bindings against the same private Preview and captured input.
+/// The Site must establish current observations under authenticated authority;
+/// matching caller-supplied CIDs alone never grant an apply permit.
+pub fn check_captured_effect_preview_current_bindings(
+  value : CapturedEffectPreviewInputs,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectCurrentBindingIssue] {
+  if max_members < 1 || max_members > 1000 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  let identity = @checked.effect_program_run_preview_identity(value.preview)
+  let count = @publication.effect_preview_member_count(identity)
+  if count < 1 ||
+    count > max_members ||
+    source_binding_cids.length() != count ||
+    resolved_contract_cids.length() != count ||
+    capability_evidence_cids.length() != count ||
+    authority_scope_cids.length() != count {
+    return Err(InventoryMismatch)
+  }
+  if count > max_work / 4 {
+    return Err(CapacityExceeded)
+  }
+  for index in 0..<count {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return Err(NotReady)
+    }
+    if @publication.effect_preview_member_source_binding_cid(identity, index) !=
+      Some(source_binding_cids[index]) {
+      return Err(ForeignSource(index))
+    }
+    if @publication.effect_preview_member_resolved_contract_cid(identity, index) !=
+      Some(resolved_contract_cids[index]) {
+      return Err(ForeignContract(index))
+    }
+    if @publication.effect_preview_member_capability_evidence_cid(
+        identity, index,
+      ) !=
+      Some(capability_evidence_cids[index]) {
+      return Err(ForeignCapability(index))
+    }
+    if @publication.effect_preview_member_authority_scope_cid(identity, index) !=
+      Some(authority_scope_cids[index]) {
+      return Err(ForeignAuthority(index))
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn release_captured_effect_preview_inputs(
   value : CapturedEffectPreviewInputs,
 ) -> Bool {
