@@ -37,6 +37,15 @@ const batchResponseDigest = (row, members) => {
   }
   return hash.update(row.response_bytes).digest('hex');
 };
+const outcomeDigest = row => createHash('sha256')
+  .update('actql-effect-physical-outcome/0.1\0')
+  .update(`${row.logical_item_locator_cid}|${row.dispatch_entry_cid}|`)
+  .update(`${row.logical_request_scope_cid}|`)
+  .update(`${row.response_physical_sha256}|${row.outcome_cid}|`)
+  .update(row.outcome_json)
+  .digest('hex');
+const sha256Hex = value => typeof value === 'string' &&
+  /^[0-9a-f]{64}$/.test(value);
 
 function transaction(database, action) {
   database.exec('BEGIN IMMEDIATE');
@@ -140,6 +149,17 @@ export function openSqliteEffectLedger(root, {
           FOREIGN KEY (dispatch_entry_cid)
             REFERENCES effect_ledger_entries (entry_cid)
         ) STRICT;
+        CREATE TABLE IF NOT EXISTS effect_ledger_outcomes (
+          dispatch_entry_cid TEXT PRIMARY KEY NOT NULL,
+          logical_item_locator_cid TEXT NOT NULL,
+          logical_request_scope_cid TEXT NOT NULL,
+          response_physical_sha256 TEXT NOT NULL,
+          outcome_cid TEXT NOT NULL UNIQUE,
+          outcome_json TEXT NOT NULL,
+          physical_sha256 TEXT NOT NULL,
+          FOREIGN KEY (dispatch_entry_cid)
+            REFERENCES effect_ledger_entries (entry_cid)
+        ) STRICT;
       `);
       const metadata = database.prepare(
         'SELECT value FROM effect_ledger_metadata WHERE key = ?',
@@ -171,13 +191,16 @@ export function openSqliteEffectLedger(root, {
       (SELECT COUNT(*) FROM effect_ledger_entries) +
       (SELECT COUNT(*) FROM effect_ledger_responses) +
       (SELECT COUNT(*) FROM effect_ledger_batch_responses) +
-      (SELECT COUNT(*) FROM effect_ledger_batch_members) AS entries,
+      (SELECT COUNT(*) FROM effect_ledger_batch_members) +
+      (SELECT COUNT(*) FROM effect_ledger_outcomes) AS entries,
       (SELECT COALESCE(SUM(LENGTH(CAST(entry_json AS BLOB))), 0)
         FROM effect_ledger_entries) +
       (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
         FROM effect_ledger_responses) +
       (SELECT COALESCE(SUM(LENGTH(response_bytes)), 0)
-        FROM effect_ledger_batch_responses) AS bytes,
+        FROM effect_ledger_batch_responses) +
+      (SELECT COALESCE(SUM(LENGTH(CAST(outcome_json AS BLOB))), 0)
+        FROM effect_ledger_outcomes) AS bytes,
       MAX(
         (SELECT COALESCE(MAX(LENGTH(response_bytes)), 0)
           FROM effect_ledger_responses),
@@ -230,6 +253,12 @@ export function openSqliteEffectLedger(root, {
     SELECT dispatch_entry_cid, batch_owner_cid, position,
       logical_item_locator_cid FROM effect_ledger_batch_members
     WHERE batch_owner_cid = ? ORDER BY position ASC
+  `);
+  const readOutcome = database.prepare(`
+    SELECT dispatch_entry_cid, logical_item_locator_cid,
+      logical_request_scope_cid, response_physical_sha256,
+      outcome_cid, outcome_json, physical_sha256
+    FROM effect_ledger_outcomes WHERE dispatch_entry_cid = ?
   `);
   const materialize = (row, scopeCid) => {
     if (row === undefined) fail('EffectLedgerEntryMissing');
@@ -289,6 +318,7 @@ export function openSqliteEffectLedger(root, {
       credentialUseCid: row.credential_use_cid,
       statusCode: row.status_code,
       responseBytes: Buffer.from(row.response_bytes),
+      responsePhysicalSha256: row.physical_sha256,
     });
   };
   const materializeBatchResponse = dispatchEntryCid => {
@@ -325,6 +355,7 @@ export function openSqliteEffectLedger(root, {
       credentialUseCid: row.credential_use_cid,
       statusCode: row.status_code,
       responseBytes: Buffer.from(row.response_bytes),
+      responsePhysicalSha256: row.physical_sha256,
       batchOwnerCid: row.batch_owner_cid,
       batchPosition: member.position,
       batchCount: row.member_count,
@@ -344,9 +375,102 @@ export function openSqliteEffectLedger(root, {
     }
     return single ?? batch;
   };
+  const outcome = dispatchEntryCid => {
+    active();
+    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+    const row = readOutcome.get(dispatchEntryCid);
+    if (row === undefined) return undefined;
+    const observed = response(dispatchEntryCid);
+    if (!cid(row.dispatch_entry_cid) ||
+        !cid(row.logical_item_locator_cid) ||
+        !cid(row.logical_request_scope_cid) ||
+        !sha256Hex(row.response_physical_sha256) ||
+        !cid(row.outcome_cid) ||
+        typeof row.outcome_json !== 'string' ||
+        Buffer.byteLength(row.outcome_json) > maxEntryBytes ||
+        !sha256Hex(row.physical_sha256) ||
+        outcomeDigest(row) !== row.physical_sha256 ||
+        observed?.logicalItemLocatorCid !== row.logical_item_locator_cid ||
+        observed.logicalRequestScopeCid !== row.logical_request_scope_cid ||
+        observed.responsePhysicalSha256 !==
+          row.response_physical_sha256) {
+      fail('EffectLedgerIntegrityFailed');
+    }
+    return Object.freeze({
+      dispatchEntryCid: row.dispatch_entry_cid,
+      logicalItemLocatorCid: row.logical_item_locator_cid,
+      logicalRequestScopeCid: row.logical_request_scope_cid,
+      responsePhysicalSha256: row.response_physical_sha256,
+      outcomeCid: row.outcome_cid,
+      outcomeJson: row.outcome_json,
+    });
+  };
   return Object.freeze({
     current,
     response,
+    outcome,
+    // This is physical custody, not semantic outcome admission. The common
+    // MoonBit issuer must bind and classify the stored response before use.
+    recordOutcome({logicalRequestScopeCid, logicalItemLocatorCid,
+      dispatchEntryCid, responsePhysicalSha256, outcomeCid, outcomeJson}) {
+      active();
+      if (!cid(logicalRequestScopeCid) ||
+          !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
+          !sha256Hex(responsePhysicalSha256) || !cid(outcomeCid) ||
+          typeof outcomeJson !== 'string' ||
+          Buffer.byteLength(outcomeJson) > maxEntryBytes) {
+        fail('InvalidEffectPhysicalOutcome');
+      }
+      return transaction(database, () => {
+        const observed = response(dispatchEntryCid);
+        if (observed?.logicalItemLocatorCid !== logicalItemLocatorCid ||
+            observed.logicalRequestScopeCid !== logicalRequestScopeCid ||
+            observed.responsePhysicalSha256 !== responsePhysicalSha256) {
+          fail('EffectPhysicalResponseNotOwned');
+        }
+        const existing = outcome(dispatchEntryCid);
+        if (existing !== undefined) {
+          if (existing.outcomeCid !== outcomeCid ||
+              existing.outcomeJson !== outcomeJson) {
+            fail('EffectPhysicalOutcomeCollision');
+          }
+          return Object.freeze({outcome: existing, created: false});
+        }
+        const currentUsage = usage.get();
+        const bytes = Buffer.byteLength(outcomeJson);
+        if (currentUsage.entries >= maxEntries ||
+            currentUsage.bytes > maxStoredBytes - bytes) {
+          fail('EffectLedgerCapacityExceeded');
+        }
+        const record = {
+          logical_item_locator_cid: logicalItemLocatorCid,
+          dispatch_entry_cid: dispatchEntryCid,
+          logical_request_scope_cid: logicalRequestScopeCid,
+          response_physical_sha256: responsePhysicalSha256,
+          outcome_cid: outcomeCid,
+          outcome_json: outcomeJson,
+        };
+        try {
+          database.prepare(`
+            INSERT INTO effect_ledger_outcomes (
+              dispatch_entry_cid, logical_item_locator_cid,
+              logical_request_scope_cid, response_physical_sha256,
+              outcome_cid, outcome_json, physical_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).run(dispatchEntryCid, logicalItemLocatorCid,
+            logicalRequestScopeCid, responsePhysicalSha256, outcomeCid,
+            outcomeJson, outcomeDigest(record));
+        } catch (error) {
+          if (error.code === 'ERR_SQLITE_ERROR' &&
+              (error.errcode === 2067 || error.errcode === 1555)) {
+            fail('EffectPhysicalOutcomeCollision');
+          }
+          throw error;
+        }
+        return Object.freeze({outcome: outcome(dispatchEntryCid),
+          created: true});
+      });
+    },
     recordResponse({logicalRequestScopeCid, logicalItemLocatorCid,
       dispatchEntryCid, credentialUseCid, statusCode, responseBytes}) {
       active();
