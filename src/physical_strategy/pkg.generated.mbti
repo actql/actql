@@ -64,6 +64,10 @@ pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
 pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
 
+pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -143,6 +147,20 @@ pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program
 pub fn checked_effect_run_graph(CheckedEffectRunDAG) -> CheckedDAG
 
 pub fn checked_effect_run_owner(CheckedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+
+pub fn checked_effect_run_source_at(CheckedEffectRunDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn checked_effect_run_source_count(CheckedEffectRunDAG) -> Int
+
+pub fn checked_effect_source_at(CheckedEffectComputationDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn checked_effect_source_count(CheckedEffectComputationDAG) -> Int
+
+pub fn checked_effect_source_member(CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_source_occurrence(CheckedEffectSourcePort) -> @execution_relation.ManagedResultOccurrence
+
+pub fn checked_effect_source_stage(CheckedEffectSourcePort) -> Int
 
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
@@ -495,6 +513,8 @@ type CheckedEffectComputationDAG
 
 type CheckedEffectRunDAG
 
+type CheckedEffectSourcePort
+
 pub(all) struct CheckedTaskIdentity {
   task : Int
   program_definition_cid : String
@@ -541,6 +561,7 @@ pub struct DataEdge {
 pub(all) enum GraphIssue {
   InvalidLimits
   EffectGraphOwnerRequired
+  ForeignEffectSource(Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
