@@ -284,7 +284,7 @@ fn NativeRemoteStandardBoundRun::release(
 ///|
 priv struct NativeRemoteStandardOutputOwner {
   output_export : @publication_host.PublicationOutputExport
-  bound : NativeRemoteStandardBoundRun
+  release_run : () -> Bool
   mut export_cancelled : Bool
   mut released : Bool
 }
@@ -312,17 +312,25 @@ priv struct NativeRemoteStandardManifestReaderState {
 }
 
 ///|
+fn remote_standard_release_failure(
+  release_run : () -> Bool,
+  code : String,
+) -> @runtime.NativeRemotePhysicalExecution {
+  if release_run() {
+    @runtime.prepare_native_remote_failure(code, false, false, true, () => true).unwrap()
+  } else {
+    @runtime.prepare_native_remote_failure(code, false, true, false, () => {
+      release_run()
+    }).unwrap()
+  }
+}
+
+///|
 fn remote_standard_failure(
   bound : NativeRemoteStandardBoundRun,
   code : String,
 ) -> @runtime.NativeRemotePhysicalExecution {
-  if bound.release() {
-    @runtime.prepare_native_remote_failure(code, false, false, true, () => true).unwrap()
-  } else {
-    @runtime.prepare_native_remote_failure(code, false, true, false, () => {
-      bound.release()
-    }).unwrap()
-  }
+  remote_standard_release_failure(() => bound.release(), code)
 }
 
 ///|
@@ -379,7 +387,7 @@ fn NativeRemoteStandardOutputOwner::release(
     self.output_export.cancel()
     self.export_cancelled = true
   }
-  if self.bound.release() {
+  if (self.release_run)() {
     self.released = true
     true
   } else {
@@ -606,6 +614,39 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => return remote_standard_failure(bound, "output-export-prepare")
   }
+  prepare_native_remote_standard_output_from_export(
+    request,
+    expected_task,
+    output_export,
+    () => bound.release(),
+    limits,
+    budget,
+  )
+}
+
+///|
+/// Package an admitted output export for the native Site runtime. Its caller
+/// must bind the export to the exact checked task before entering this API.
+/// The output owner retains its Compute and bridge cleanup callback until the
+/// runtime has finished every reader and manifest observation. This shared
+/// path derives manifest, measurement, generation and replay identities for
+/// standard tasks and source-free Local Values alike.
+pub fn prepare_native_remote_standard_output_from_export(
+  request : @remote.DispatchRequest,
+  expected_task : Int,
+  output_export : @publication_host.PublicationOutputExport,
+  release_run : () -> Bool,
+  limits : NativeRemoteStandardTaskLimits,
+  budget : @remote.RemoteDispatchBudget,
+) -> @runtime.NativeRemotePhysicalExecution {
+  if expected_task < 0 ||
+    limits.max_manifest_bytes < 1 ||
+    limits.max_retained_bytes < 0L ||
+    limits.output_export.max_batch_bytes < 1 ||
+    limits.output_export.max_batch_bytes > 1048575 {
+    output_export.cancel()
+    return remote_standard_release_failure(release_run, "output-configuration")
+  }
   let chunk_cids : Array[String] = []
   let chunk_byte_lengths : Array[Int64] = []
   let chunk_row_counts : Array[Int] = []
@@ -628,7 +669,9 @@ fn execute_native_remote_standard_task(
       Ok(None) => break
       Err(_) => {
         output_export.cancel()
-        return remote_standard_failure(bound, "output-export-read")
+        return remote_standard_release_failure(
+          release_run, "output-export-read",
+        )
       }
     }
   }
@@ -636,7 +679,9 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-export-finish")
+      return remote_standard_release_failure(
+        release_run, "output-export-finish",
+      )
     }
   }
   let final_chunk = match pending_chunk {
@@ -651,61 +696,71 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-content-identity")
+      return remote_standard_release_failure(
+        release_run, "output-content-identity",
+      )
     }
   }
   let content_bytes = match output_export.content_bytes() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-content-size")
+      return remote_standard_release_failure(release_run, "output-content-size")
     }
   }
   let mut physical_bytes = 0L
   for length in chunk_byte_lengths {
     if length < 0L || length > 1048576L {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-manifest-chunk")
+      return remote_standard_release_failure(
+        release_run, "output-manifest-chunk",
+      )
     }
     physical_bytes += length
   }
   if physical_bytes != content_bytes.to_int64() {
     output_export.cancel()
-    return remote_standard_failure(bound, "output-manifest-size")
+    return remote_standard_release_failure(release_run, "output-manifest-size")
   }
   let row_count = match output_export.row_count() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-row-count")
+      return remote_standard_release_failure(release_run, "output-row-count")
     }
   }
   let result_schema_cid = match output_export.result_schema_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-schema-identity")
+      return remote_standard_release_failure(
+        release_run, "output-schema-identity",
+      )
     }
   }
   let logical_view_cid = match output_export.logical_relation_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-view-identity")
+      return remote_standard_release_failure(
+        release_run, "output-view-identity",
+      )
     }
   }
   let codec_cid = match output_export.codec_contract_cid() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-codec-identity")
+      return remote_standard_release_failure(
+        release_run, "output-codec-identity",
+      )
     }
   }
   let measured = match output_export.measurement() {
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-measurement")
+      return remote_standard_release_failure(release_run, "output-measurement")
     }
   }
   let measurement = match
@@ -724,7 +779,9 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-measurement-admission")
+      return remote_standard_release_failure(
+        release_run, "output-measurement-admission",
+      )
     }
   }
   let retained_bytes = content_bytes.to_int64()
@@ -732,7 +789,7 @@ fn execute_native_remote_standard_task(
   if retained_bytes > limits.max_retained_bytes ||
     retained_bytes > admitted_retained {
     output_export.cancel()
-    return remote_standard_failure(bound, "output-capacity")
+    return remote_standard_release_failure(release_run, "output-capacity")
   }
   let manifest = match
     @manifest.admit(
@@ -751,7 +808,7 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(_) => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-manifest")
+      return remote_standard_release_failure(release_run, "output-manifest")
     }
   }
   let material_generation = match
@@ -759,12 +816,12 @@ fn execute_native_remote_standard_task(
     Some(value) => value
     None => {
       output_export.cancel()
-      return remote_standard_failure(bound, "output-generation")
+      return remote_standard_release_failure(release_run, "output-generation")
     }
   }
   let owner : NativeRemoteStandardOutputOwner = {
     output_export,
-    bound,
+    release_run,
     export_cancelled: false,
     released: false,
   }
@@ -788,10 +845,24 @@ fn execute_native_remote_standard_task(
       () => owner.release(),
     ) {
     Ok(value) => value
-    Err(_) => {
-      ignore(owner.release())
-      remote_standard_failure(bound, "output-runtime-admission")
-    }
+    Err(_) =>
+      if owner.release() {
+        @runtime.prepare_native_remote_failure(
+          "output-runtime-admission",
+          false,
+          false,
+          true,
+          () => true,
+        ).unwrap()
+      } else {
+        @runtime.prepare_native_remote_failure(
+          "output-runtime-admission",
+          false,
+          true,
+          false,
+          () => owner.release(),
+        ).unwrap()
+      }
   }
 }
 

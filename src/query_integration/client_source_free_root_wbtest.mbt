@@ -178,6 +178,50 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_eq(text.to_string(), "[{\"id\":1},{\"id\":2}]")
   assert_eq(result.result_fields().unwrap(), ["id"])
   result_owner.close()
+  let site_result_owner = execution
+    .prepare_result_export(0, row_limits, 100, 10000, export_limits)
+    .unwrap()
+  let site_budget = @remote.prepare_remote_dispatch_budget(1L, 1L).unwrap()
+  let site_cid = "sha256:" + @sha.hex(@utf8.encode("source-free-site"))
+  let site_request = @remote.prepare_dispatch_request(
+    "source-free-coordinator",
+    site_cid,
+    "values_0",
+    1,
+    "source-free-site-budget",
+    "native-site",
+    1,
+    site_cid,
+    "local",
+    "local/1",
+    "strategy/1",
+    site_cid,
+    site_cid,
+    @remote.remote_dispatch_budget_cid(site_budget),
+    site_cid,
+    site_cid,
+  ).unwrap()
+  let releases = [0]
+  let site_output = @native_remote_standard.prepare_native_remote_standard_output_from_export(
+    site_request,
+    0,
+    site_result_owner.output_export(),
+    () => {
+      site_result_owner.close()
+      releases[0] += 1
+      true
+    },
+    {
+      output_export: export_limits,
+      max_manifest_bytes: 10000,
+      max_retained_bytes: 100000L,
+    },
+    site_budget,
+  )
+  assert_true(
+    site_output is @native_remote_runtime.NativeRemoteExecutionFailed(_),
+  )
+  assert_eq(releases[0], 1)
   assert_true(execution.close())
   assert_true(execution.rows() is Err(@client_local_host.MissingOutput))
   assert_true(
