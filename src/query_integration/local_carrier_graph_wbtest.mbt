@@ -3514,6 +3514,98 @@ test "total degree counts both self-loop incidences" {
 }
 
 ///|
+test "empty components admit exact work and workspace and reclaim cancellation" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(control, workspace, work) raise {
+      @local_sga.start_components(
+        control,
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        0,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 1000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      )
+    }
+    // Fifteen slots per node, two per edge, three fields, two fixed slots.
+    assert_true(
+      start(@bounded.control(), 4, 2)
+      is Err(@local_sga.ComponentsWorkspaceLimit),
+    )
+    let exact = start(@bounded.control(), 5, 2).unwrap()
+    assert_true(
+      @local_sga.advance_components(exact, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    let output = match @local_sga.advance_components(exact, 1).unwrap() {
+      @local_sga.ComponentsComplete(output, progress=0L, work=2L) => output
+      _ => abort("exact empty components did not complete")
+    }
+    assert_eq(@execution.completed_row_count(output), 0)
+    assert_eq(@local_sga.cleanup_components(exact), Ok(true))
+    assert_true(@execution.completed_output_available(output))
+    let short = start(@bounded.control(), 5, 1).unwrap()
+    assert_true(
+      @local_sga.advance_components(short, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(
+      @local_sga.advance_components(short, 1).unwrap()
+      is @local_sga.ComponentsFailed(@local_sga.ComponentsWorkLimit, ..),
+    )
+    assert_eq(@local_sga.cleanup_components(short), Ok(true))
+    let control = @bounded.control()
+    let cancelled = start(control, 5, 2).unwrap()
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_components(cancelled, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, progress=0L, work=1L),
+    )
+    assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "weak and strong components preserve canonical identities and bounds" {
   let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -3615,6 +3707,53 @@ test "weak and strong components preserve canonical identities and bounds" {
     assert_true(@local_sga.components_cleanup_pending(cancelled))
     assert_eq(@local_sga.cleanup_components(cancelled), Ok(true))
     assert_false(@local_sga.components_cleanup_pending(cancelled))
+    let limited = @local_sga.start_components(
+      @bounded.control(),
+      completion,
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(1),
+    ).unwrap()
+    assert_true(
+      @local_sga.advance_components(limited, 100).unwrap()
+      is @local_sga.ComponentsFailed(
+        @local_sga.ComponentsWorkLimit,
+        progress=0L,
+        work=1L
+      ),
+    )
+    assert_eq(@local_sga.cleanup_components(limited), Ok(true))
+    let active_control = @bounded.control()
+    let active = @local_sga.start_components(
+      active_control,
+      completion,
+      sequence,
+      1,
+      @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+      4,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      73,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    assert_true(
+      @local_sga.advance_components(active, 1).unwrap()
+      is @local_sga.ComponentsContinue(progress=0L, work=1L),
+    )
+    assert_true(@bounded.request_cancel(active_control))
+    assert_true(
+      @local_sga.advance_components(active, 1).unwrap()
+      is @local_sga.ComponentsStopped(_, progress=0L, work=1L),
+    )
+    assert_eq(@local_sga.cleanup_components(active), Ok(true))
     assert_true(@graphs.discard_completed(graph))
     assert_true(@execution.completed_output_available(output))
   }

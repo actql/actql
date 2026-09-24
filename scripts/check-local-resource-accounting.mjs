@@ -1307,6 +1307,11 @@ for (const [index, route] of routeEntries.entries()) {
       !boundaryRoles.has('graphs_equal_nested_value_work_ceiling'))) {
     fail(`${label}: Graph equality control-work evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'components' &&
+    (!boundaryRoles.has('components_empty_exact_work_workspace_cancel_cleanup') ||
+      !boundaryRoles.has('components_nonempty_work_ceiling_and_active_cancel'))) {
+    fail(`${label}: components boundary evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

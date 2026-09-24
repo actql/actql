@@ -67,6 +67,7 @@ priv struct ComponentsState {
   mut candidate : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -100,6 +101,7 @@ pub(all) enum ComponentsIssue {
   ComponentsInputUnavailable
   ComponentsOutputLimit
   ComponentsWorkspaceLimit
+  ComponentsWorkLimit
   ComponentsKeyOrder(@value.KeyOrderIssue)
   ComponentsOutput(@execution.CaptureIssue)
   ComponentsCompletion(@execution.TrustedOutputIssue)
@@ -344,6 +346,9 @@ fn components_step(
     }
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(ComponentsInputUnavailable, progress, used)
+    }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ComponentsWorkLimit, progress, used)
     }
     match state.phase {
       InitializeNodes =>
@@ -664,6 +669,7 @@ fn components_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -711,8 +717,13 @@ pub fn start_components(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[ComponentsExecution, ComponentsIssue] {
   let owner = @lower.sequence_owner(sequence)
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(ComponentsWorkLimit)
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -818,6 +829,7 @@ pub fn start_components(
     candidate: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 42 |
+| Operation-specific boundary records | 43 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -57,6 +57,15 @@ separate nonempty pair limits nested complete-value comparison to the
 remaining work quantum and fails at three charged steps. These fixtures do
 not yet establish an exact structural-workspace bound for every Graph value
 shape or a delivered Host cancellation for this operation.
+
+The registered weak and strong `components` kernels now enforce the selected
+control-work ceiling. Empty Graphs require five structural workspace slots
+and two charged steps in either mode; four slots or one work step fail before
+completion. A separate four-node fixture rejects a one-step work ceiling even
+when resumed with a large quantum, and confirms cancellation after the first
+private node initialization clears the scratch arrays. These fixtures do not
+establish exact work/workspace bounds for every nonempty topology or delivered
+Host cancellation for both modes.
 
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component

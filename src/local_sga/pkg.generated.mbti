@@ -183,7 +183,7 @@ pub fn shortest_stopped(ShortestExecution) -> Bool
 
 pub fn shortest_value_item_attempts(ShortestExecution) -> Int
 
-pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ComponentsExecution, ComponentsIssue]
+pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
 
@@ -243,6 +243,7 @@ pub(all) enum ComponentsIssue {
   ComponentsInputUnavailable
   ComponentsOutputLimit
   ComponentsWorkspaceLimit
+  ComponentsWorkLimit
   ComponentsKeyOrder(@value_admission.KeyOrderIssue)
   ComponentsOutput(@execution_relation.CaptureIssue)
   ComponentsCompletion(@execution_relation.TrustedOutputIssue)
