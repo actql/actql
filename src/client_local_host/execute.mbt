@@ -20,6 +20,46 @@ pub(all) enum LocalValuesExecutionIssue {
 }
 
 ///|
+/// A failed physical Values occurrence retains only its cleanup owner.
+/// Retrying cleanup cannot reopen the kernel or repeat Compute.
+pub struct LocalValuesExecutionFailure {
+  issue : LocalValuesExecutionIssue
+  cleanup : () -> Bool
+  mut cleaned : Bool
+}
+
+///|
+pub fn local_values_execution_failure_issue(
+  failure : LocalValuesExecutionFailure,
+) -> LocalValuesExecutionIssue {
+  failure.issue
+}
+
+///|
+pub fn local_values_execution_failure_cleanup_pending(
+  failure : LocalValuesExecutionFailure,
+) -> Bool {
+  !failure.cleaned
+}
+
+///|
+pub fn retry_local_values_execution_failure_cleanup(
+  failure : LocalValuesExecutionFailure,
+) -> Bool {
+  if !failure.cleaned {
+    failure.cleaned = (failure.cleanup)()
+  }
+  failure.cleaned
+}
+
+///|
+fn failed_local_values_execution(
+  issue : LocalValuesExecutionIssue,
+) -> LocalValuesExecutionFailure {
+  { issue, cleanup: () => true, cleaned: true, }
+}
+
+///|
 fn stop_local_values_run(run : @strategy.CapturedDAG) -> Unit {
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
@@ -30,10 +70,18 @@ fn stop_local_values_run(run : @strategy.CapturedDAG) -> Unit {
 fn reject_local_values_operations(
   run : @strategy.CapturedDAG,
   operations : @local_driver.LocalManagedDispatchOperations[Int],
-) -> Unit {
+  issue : LocalValuesExecutionIssue,
+) -> LocalValuesExecutionFailure {
   (operations.close)()
-  (operations.cleanup_refresh)() |> ignore
   stop_local_values_run(run)
+  let cleanup = fn() {
+    match (operations.settle)() {
+      Err(_) => false
+      Ok(_) => (operations.cleanup_refresh)()
+    }
+  }
+  let cleaned = cleanup()
+  { issue, cleanup, cleaned, }
 }
 
 ///|
@@ -44,9 +92,9 @@ pub fn execute_source_free_values(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   finalization_quantum : Int,
   max_finalization_rounds : Int,
-) -> Result[LocalValuesExecution, LocalValuesExecutionIssue] {
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
-    return Err(InvalidLimits)
+    return Err(failed_local_values_execution(InvalidLimits))
   }
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -55,14 +103,14 @@ pub fn execute_source_free_values(
   if @strategy.graph_task_count(graph) != 1 ||
     @strategy.next_captured_task(run) != Some(0) {
     stop_local_values_run(run)
-    return Err(UnsupportedGraph)
+    return Err(failed_local_values_execution(UnsupportedGraph))
   }
   guard @builtin.configured_local_module(
       @builtin.configured_host_modules(setup),
     ) is Some(installed) &&
     @strategy.graph_task_owner(graph, 0) is Some(owner) else {
     stop_local_values_run(run)
-    return Err(MissingLocalModule)
+    return Err(failed_local_values_execution(MissingLocalModule))
   }
   let empty : Array[@execution.ManagedCompletedOutput[Int]] = []
   let prepared = match
@@ -72,29 +120,27 @@ pub fn execute_source_free_values(
     Ok(Some(value)) => value
     Ok(None) => {
       stop_local_values_run(run)
-      return Err(UnsupportedGraph)
+      return Err(failed_local_values_execution(UnsupportedGraph))
     }
     Err(issue) => {
       stop_local_values_run(run)
-      return Err(Driver(issue))
+      return Err(failed_local_values_execution(Driver(issue)))
     }
   }
   let operations = match @local_driver.start_local_managed_dispatch_node(prepared) {
     Ok(value) => value
     Err(issue) => {
       stop_local_values_run(run)
-      return Err(Driver(issue))
+      return Err(failed_local_values_execution(Driver(issue)))
     }
   }
   if !operations.inputs.is_empty() {
-    reject_local_values_operations(run, operations)
-    return Err(UnsupportedGraph)
+    return Err(reject_local_values_operations(run, operations, UnsupportedGraph))
   }
   match (operations.execute)() {
     Ok(_) => ()
     Err(issue) => {
-      reject_local_values_operations(run, operations)
-      return Err(Driver(issue))
+      return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
   let available = Ref(true)
@@ -104,8 +150,7 @@ pub fn execute_source_free_values(
     ) {
     Ok(_) => ()
     Err(issue) => {
-      reject_local_values_operations(run, operations)
-      return Err(Driver(issue))
+      return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
   let mut complete = false
@@ -115,8 +160,7 @@ pub fn execute_source_free_values(
       Ok(value) => value
       Err(issue) => {
         available.val = false
-        reject_local_values_operations(run, operations)
-        return Err(Driver(issue))
+        return Err(reject_local_values_operations(run, operations, Driver(issue)))
       }
     }
     if progress.complete {
@@ -129,15 +173,13 @@ pub fn execute_source_free_values(
   }
   if !complete {
     available.val = false
-    reject_local_values_operations(run, operations)
-    return Err(FinalizationLimit)
+    return Err(reject_local_values_operations(run, operations, FinalizationLimit))
   }
   match (operations.settle)() {
     Ok(_) => ()
     Err(issue) => {
       available.val = false
-      reject_local_values_operations(run, operations)
-      return Err(Driver(issue))
+      return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
   let completed = match
@@ -147,8 +189,7 @@ pub fn execute_source_free_values(
     Ok(value) => value
     Err(issue) => {
       available.val = false
-      reject_local_values_operations(run, operations)
-      return Err(Driver(issue))
+      return Err(reject_local_values_operations(run, operations, Driver(issue)))
     }
   }
   Ok({ run, operations, completed, available, })

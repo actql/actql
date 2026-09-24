@@ -112,7 +112,10 @@ pub fn install_native_remote_values_task_executor(
           limits.max_finalization_rounds,
         ) {
         Ok(value) => value
-        Err(_) => return values_failure("values-execution", () => false)
+        Err(failure) =>
+          return values_failure("values-execution", () => {
+            @local.retry_local_values_execution_failure_cleanup(failure)
+          })
       }
       let result = match
         execution.prepare_result_export(

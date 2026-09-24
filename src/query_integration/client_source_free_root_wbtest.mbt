@@ -113,9 +113,35 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     @builtin.configured_host_driver(setup),
   )
   let ledger = @strategy.captured_dag_ledger(run)
+  let invalid = @client_local_host.execute_source_free_values(setup, 0, 1000).unwrap_err()
   assert_true(
-    @client_local_host.execute_source_free_values(setup, 0, 1000)
-    is Err(@client_local_host.InvalidLimits),
+    @client_local_host.local_values_execution_failure_issue(invalid)
+    is @client_local_host.InvalidLimits,
+  )
+  assert_false(
+    @client_local_host.local_values_execution_failure_cleanup_pending(invalid),
+  )
+  let limited_setup = @client_local_host.open_source_free_local_host(
+    prepared,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+  ).unwrap()
+  let limited = @client_local_host.execute_source_free_values(
+    limited_setup, 1, 1,
+  ).unwrap_err()
+  assert_true(
+    @client_local_host.local_values_execution_failure_issue(limited)
+    is @client_local_host.FinalizationLimit,
+  )
+  assert_false(
+    @client_local_host.local_values_execution_failure_cleanup_pending(limited),
+  )
+  assert_true(
+    @client_local_host.retry_local_values_execution_failure_cleanup(limited),
   )
   let execution = @client_local_host.execute_source_free_values(setup, 16, 1000).unwrap()
   assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
