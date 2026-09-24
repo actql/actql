@@ -292,6 +292,13 @@ pub fn captured_effect_input_member_index(value : CapturedEffectInput) -> Int {
 }
 
 ///|
+/// The producer Task selected by the checked graph expansion. The logical
+/// Stage remains on the source occurrence and must not index physical output.
+pub fn captured_effect_input_task(value : CapturedEffectInput) -> Int {
+  value.source.task
+}
+
+///|
 /// The checked occurrence retains its authored Result projection and order.
 pub fn captured_effect_input_occurrence(
   value : CapturedEffectInput,
