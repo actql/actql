@@ -7,7 +7,8 @@ import {projectSalesforceCollectionObservation,
 import {matchesSalesforceCredentialOrg} from
   '../site-node/salesforce-credential-binding.mjs';
 import {captureClaimedEffectResponse,
-  captureClaimedEffectCollectionResponse} from './effect-physical-dispatch.mjs';
+  captureClaimedEffectCollectionResponse,
+  snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const fail = code => {
@@ -130,13 +131,15 @@ export async function captureSalesforceCollectionEffectWrite({
   callResource,
 }) {
   const scope = authorization?.scope;
+  const ownedClaims = Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims) : undefined;
   const count = moon && request &&
     moon.salesforceCollectionWriteRequestRowCount(request);
   if (!commonMoon || !moon || !request || !currentObservation || !scope ||
       !authorization.grant || !credential || !limits ||
       !admittedPreview ||
-      !Array.isArray(claims) || claims.length === 0 ||
-      !Number.isSafeInteger(count) || count !== claims.length ||
+      !ownedClaims || ownedClaims.length === 0 ||
+      !Number.isSafeInteger(count) || count !== ownedClaims.length ||
       !Number.isSafeInteger(memberIndex) ||
       !Number.isSafeInteger(firstRow) ||
       !Number.isSafeInteger(maxBindingWork) || maxBindingWork < 1 ||
@@ -179,11 +182,12 @@ export async function captureSalesforceCollectionEffectWrite({
   const effect = runtimeCore(commonMoon).effectApplicationControl;
   effect.admitCollectionBatch(
     admittedPreview, memberIndex, firstRow,
-    moon.salesforceCollectionWriteRequestEffectKind(request), claims[0].scope,
-    rowCids, claims.map(claim => claim.locator),
-    claims.map(claim => claim.key), limits.maxRows, maxBindingWork);
+    moon.salesforceCollectionWriteRequestEffectKind(request),
+    ownedClaims[0].scope, rowCids,
+    ownedClaims.map(claim => claim.locator),
+    ownedClaims.map(claim => claim.key), limits.maxRows, maxBindingWork);
   const captured = await captureClaimedEffectCollectionResponse({
-    ledger, claims, requestCid,
+    ledger, claims: ownedClaims, requestCid,
     execute: () => writeSalesforceContinueCollection({
       moon, request, currentObservation, authorization, credential,
       limits, signal, callResource,
@@ -194,12 +198,12 @@ export async function captureSalesforceCollectionEffectWrite({
     return captured;
   }
   let response;
-  for (let index = 0; index < claims.length; index++) {
-    const locatorCid = effect.logicalItemLocatorCid(claims[index].locator);
+  for (let index = 0; index < ownedClaims.length; index++) {
+    const locatorCid = effect.logicalItemLocatorCid(ownedClaims[index].locator);
     const entry = ledger.currentAdmitted(locatorCid);
     if (!entry || !effect.ledgerEntryAdmitsDispatch(
-        entry, claims[index].scope, claims[index].locator,
-        claims[index].key, requestCid)) {
+        entry, ownedClaims[index].scope, ownedClaims[index].locator,
+        ownedClaims[index].key, requestCid)) {
       return captured;
     }
     const dispatchEntryCid = effect.ledgerEntryCid(entry);
@@ -215,8 +219,8 @@ export async function captureSalesforceCollectionEffectWrite({
   }
   if (response.batchOwnerCid !== response.dispatchEntryCid ||
       response.batchPosition !== 0 ||
-      response.batchCount !== claims.length ||
-      response.batchMembers.length !== claims.length) {
+      response.batchCount !== ownedClaims.length ||
+      response.batchMembers.length !== ownedClaims.length) {
     fail('EffectCollectionResponseBindingMismatch');
   }
   const recovered = projectSalesforceCollectionObservation({
