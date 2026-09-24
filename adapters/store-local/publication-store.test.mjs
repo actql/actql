@@ -290,11 +290,16 @@ async function prepareCommit(
   attempt,
   invocationValue,
   retentionPolicyCid = cids.policy,
+  preparedSchema = false,
 ) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
   );
-  await store.putSemantic(resultSchemaWire, cids.schema);
+  const schema = preparedSchema
+    ? await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, request.run_definition_cid,
+    )
+    : await store.putSemantic(resultSchemaWire, cids.schema);
   const payload = Buffer.from('fixture durable Result payload', 'utf8');
   const writer = store.createPreparedObjectWriter(payload.byteLength);
   await writer.append(payload);
@@ -341,6 +346,7 @@ async function prepareCommit(
     ])],
     binding,
     prepared: physical.prepared,
+    schemaPrepared: schema.prepared,
   };
 }
 
@@ -424,6 +430,281 @@ test('prepared payload holdings reclaim only the final uncommitted owner',
       store.verifyObject(digest('payload')),
       code('PublicationObjectMissing'),
     );
+  });
+
+test('prepared Result schemas retain independent owners and shared bytes',
+  async t => {
+    const {store} = await fixture(t);
+    const first = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.run,
+    );
+    const second = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.result,
+    );
+    assert.equal(store.status().storedBytes,
+      Buffer.byteLength(resultSchemaWire));
+    assert.equal(store.status().objectCount, 1);
+    assert.equal(await first.prepared.release(), true);
+    assert.equal(second.prepared.status().pending, true);
+    assert.equal(store.status().objectCount, 1);
+    assert.equal((await store.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+    assert.equal(await second.prepared.release(), true);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+    await assert.rejects(store.readSemanticBytes(cids.schema),
+      code('PublicationContractMissing'));
+  });
+
+test('prepared schema release preserves an existing semantic owner',
+  async t => {
+    const {store} = await fixture(t);
+    await store.putSemantic(resultSchemaWire, cids.schema);
+    const prepared = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.run,
+    );
+    assert.equal(prepared.created, false);
+    assert.equal(await prepared.prepared.release(), true);
+    assert.equal(store.status().objectCount, 1);
+    assert.equal((await store.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+  });
+
+test('restart reclaims an unpublished prepared Result schema', async t => {
+  const directory = await mkdtemp(join(
+    tmpdir(), 'actql-publication-schema-crash-',
+  ));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const configuration = {
+    directory,
+    storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+  };
+  const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+  const controlUrl = new URL(
+    '../host-common/publication-contract-control.fixture.mjs',
+    import.meta.url,
+  ).href;
+  const child = await runStoreChild(`
+    import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+    import {createPublicationContractControlFixture} from
+      ${JSON.stringify(controlUrl)};
+    const store = await openLocalPublicationStore(
+      ${JSON.stringify(configuration)},
+      createPublicationContractControlFixture(),
+    );
+    await store.putPreparedResultSchema(
+      ${JSON.stringify(resultSchemaWire)}, ${JSON.stringify(cids.schema)},
+      ${JSON.stringify(cids.run)},
+    );
+  `);
+  assert.equal(child.exitCode, 0, child.stderr);
+  const reopened = await openLocalPublicationStore(
+    configuration, contractControl,
+  );
+  t.after(async () => { await reopened.close(); });
+  assert.equal(reopened.status().storedBytes, 0);
+  assert.equal(reopened.status().objectCount, 0);
+  await assert.rejects(reopened.readSemanticBytes(cids.schema),
+    code('PublicationContractMissing'));
+});
+
+test('restart resumes schema cleanup after alias unlink before sync',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-schema-unlink-crash-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024,
+      maxObjectBytes: 64 * 1024,
+      maxObjects: 100,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+    const controlUrl = new URL(
+      '../host-common/publication-contract-control.fixture.mjs',
+      import.meta.url,
+    ).href;
+    const child = await runStoreChild(`
+      import {open} from 'node:fs/promises';
+      import {join} from 'node:path';
+      import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+      import {createPublicationContractControlFixture} from
+        ${JSON.stringify(controlUrl)};
+      const configuration = ${JSON.stringify(configuration)};
+      let armed = false;
+      const durability = Object.freeze({async syncDirectory(path) {
+        if (armed && path === join(configuration.directory, 'contracts')) {
+          process.exit(43);
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      }});
+      const store = await openLocalPublicationStore(
+        configuration, createPublicationContractControlFixture(),
+        durability,
+      );
+      const schema = await store.putPreparedResultSchema(
+        ${JSON.stringify(resultSchemaWire)}, ${JSON.stringify(cids.schema)},
+        ${JSON.stringify(cids.run)},
+      );
+      armed = true;
+      await schema.prepared.release();
+    `);
+    assert.equal(child.exitCode, 43, child.stderr);
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal(reopened.status().storedBytes, 0);
+    assert.equal(reopened.status().objectCount, 0);
+    await assert.rejects(reopened.readSemanticBytes(cids.schema),
+      code('PublicationContractMissing'));
+  });
+
+test('prepared schema cleanup retains capacity across sync failure',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-schema-sync-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let failContractSync = false;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (failContractSync && path === join(directory, 'contracts')) {
+          failContractSync = false;
+          const error = new Error('injected contract sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore({
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+      maxObjects: 10,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    }, contractControl, durability);
+    const schema = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.run,
+    );
+    failContractSync = true;
+    await assert.rejects(schema.prepared.release(), code('EIO'));
+    assert.equal(schema.prepared.status().pending, true);
+    assert.equal(store.status().storedBytes,
+      Buffer.byteLength(resultSchemaWire));
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    assert.equal((await schema.prepared.retry()).pending, false);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(await store.close(), true);
+  });
+
+test('schema preparation failure keeps exact retryable cleanup custody',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-schema-prepare-fault-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let failContractSync = false;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (failContractSync && path === join(directory, 'contracts')) {
+          failContractSync = false;
+          const error = new Error('injected contract sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore({
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+      maxObjects: 10,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    }, contractControl, durability);
+    failContractSync = true;
+    let failure;
+    try {
+      await store.putPreparedResultSchema(
+        resultSchemaWire, cids.schema, cids.run,
+      );
+    } catch (error) { failure = error; }
+    assert.equal(failure?.cleanupPending, true);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(await store.close(), true);
+  });
+
+test('schema cleanup retry never deletes a replacement allocation',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-publication-schema-replacement-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let failObjectSync = false;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (failObjectSync && path === join(directory, 'objects')) {
+          failObjectSync = false;
+          const error = new Error('injected object sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore({
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 1024,
+      maxObjects: 10,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    }, contractControl, durability);
+    const old = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.run,
+    );
+    failObjectSync = true;
+    await assert.rejects(old.prepared.release(), code('EIO'));
+    const replacement = await store.putSemantic(resultSchemaWire, cids.schema);
+    assert.equal(replacement.created, true);
+    assert.equal((await old.prepared.retry()).pending, false);
+    assert.equal(store.status().storedBytes,
+      Buffer.byteLength(resultSchemaWire));
+    assert.equal(store.status().objectCount, 1);
+    assert.equal((await store.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+    assert.equal(await store.close(), true);
   });
 
 test('prepared payload cleanup retains ownership and capacity until retry',
@@ -1209,6 +1490,82 @@ test('public index is invisible before commit and survives a lost response',
     assert.equal((await reopened.latestRecord(
       attempt.publication_attempt_cid,
     )).state, 'succeeded');
+  });
+
+test('durable commit adopts prepared schema without deleting shared bytes',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue, cids.policy, true,
+    );
+    const otherRun = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.result,
+    );
+    assert.equal(prepared.schemaPrepared.status().pending, true);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    const committed = await store.commitIndex(
+      wire(entry), prepared.required, prepared.evidence,
+    );
+    assert.equal(committed.committed, true);
+    assert.equal(prepared.schemaPrepared.status().pending, false);
+    assert.equal(otherRun.prepared.status().pending, true);
+    assert.equal(await otherRun.prepared.release(), true);
+    assert.equal((await store.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+    const before = store.status().storedBytes;
+    await store.close();
+    const reopened = await openLocalPublicationStore(
+      configuration, contractControl,
+    );
+    t.after(async () => { await reopened.close(); });
+    assert.equal(reopened.status().storedBytes, before);
+    assert.equal((await reopened.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+    assert.deepEqual(await reopened.inspectCommittedIndex(
+      indexKeyFor(request),
+    ), entry);
+  });
+
+test('metadata retirement preserves a second Run prepared schema owner',
+  async t => {
+    const {store} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(
+      resultDefinition(), invocationValue.invocation_cid,
+    );
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(
+      store, request, attempt, invocationValue, cids.policy, true,
+    );
+    const otherRun = await store.putPreparedResultSchema(
+      resultSchemaWire, cids.schema, cids.result,
+    );
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(wire(entry), prepared.required,
+      prepared.evidence);
+    assert.equal(otherRun.prepared.status().pending, true);
+    const result = await store.retireCommittedResult(
+      indexKeyFor(request), request.inventory[0].result_definition_cid,
+    );
+    assert.equal(result.cleanup.status().pending, false);
+    const metadata = await store.retireCommittedPublicationMetadata(
+      indexKeyFor(request), '2026-09-18T04:00:00.000Z',
+    );
+    assert.equal(metadata.cleanup.status().pending, false);
+    assert.equal((await store.readSemanticBytes(cids.schema)).toString(),
+      resultSchemaWire);
+    await otherRun.prepared.release();
+    await assert.rejects(store.readSemanticBytes(cids.schema),
+      code('PublicationContractMissing'));
   });
 
 test('durable Result retirement blocks new reads and waits for active readers',

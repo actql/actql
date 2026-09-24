@@ -235,6 +235,7 @@ export async function openLocalPublicationStore(
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
   const custodyDirectory = resolve(root, 'prepared-custody');
+  const preparedSchemasDirectory = resolve(root, 'prepared-schemas');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
@@ -248,7 +249,8 @@ export async function openLocalPublicationStore(
   const deletionsDirectory = resolve(root, 'deletions');
   const clocksDirectory = resolve(root, 'clocks');
   for (const directory of [root, objectsDirectory, contractsDirectory,
-    stagingDirectory, custodyDirectory, attemptsDirectory, deliveriesDirectory,
+    stagingDirectory, custodyDirectory, preparedSchemasDirectory,
+    attemptsDirectory, deliveriesDirectory,
     manifestReadsDirectory, indexesDirectory, retentionExtensionsDirectory,
     metadataInventoriesDirectory, metadataDeletionsDirectory,
     physicalHoldingsDirectory, physicalHoldingDeletionsDirectory,
@@ -317,6 +319,17 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(custodyDirectory);
+  for (const name of await readdir(preparedSchemasDirectory)) {
+    const path = resolve(preparedSchemasDirectory, name);
+    if (/^\.staging-[0-9a-f-]{36}\.json$/u.test(name)) {
+      await unlink(path);
+      continue;
+    }
+    if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
+      fail('InvalidPublicationPreparedSchema');
+    }
+  }
+  await syncDirectory(preparedSchemasDirectory);
 
   for (const name of await readdir(deliveriesDirectory)) {
     const path = resolve(deliveriesDirectory, name);
@@ -435,8 +448,15 @@ export async function openLocalPublicationStore(
   let reservedObjects = 0;
   let closed = false;
   const preparedObjects = new Map();
+  const preparedSchemas = new Map();
   const preparedObjectOwners = new WeakMap();
   const reclaimableCustodies = new Map();
+  let semanticCommitBusy = Promise.resolve();
+  const withSemanticCommit = operation => {
+    const flight = semanticCommitBusy.then(operation);
+    semanticCommitBusy = flight.catch(() => {});
+    return flight;
+  };
   const durablyConfirmedIndexes = new Map();
   const durablyConfirmedClocks = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
@@ -454,6 +474,8 @@ export async function openLocalPublicationStore(
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const custodyPath = token => resolve(custodyDirectory, `${token}.json`);
+  const preparedSchemaPath = token =>
+    resolve(preparedSchemasDirectory, `${token}.json`);
   const contractPath = cid => resolve(contractsDirectory, `${cidHex(cid)}.json`);
   const publicationAttemptPath = cid =>
     resolve(attemptsDirectory, cidHex(cid));
@@ -1520,6 +1542,279 @@ export async function openLocalPublicationStore(
     }
   };
 
+  const parsePreparedSchema = bytes => {
+    let value;
+    try { value = JSON.parse(bytes.toString('utf8')); }
+    catch (error) { fail('InvalidPublicationPreparedSchema', error); }
+    if (!exactKeys(value, [
+      'version', 'semantic_cid', 'physical_cid', 'byte_count', 'removable',
+      'run_definition_cid', 'device', 'inode',
+    ]) || value.version !== 'actql-local-prepared-schema/0.1' ||
+        !cidPattern.test(value.semantic_cid) ||
+        !cidPattern.test(value.physical_cid) ||
+        value.semantic_cid !== value.physical_cid ||
+        !cidPattern.test(value.run_definition_cid) ||
+        !quantity(value.byte_count) ||
+        typeof value.removable !== 'boolean' ||
+        ![value.device, value.inode].every(part => part === null ||
+          (typeof part === 'string' && /^(0|[1-9][0-9]*)$/u.test(part))) ||
+        (value.device === null) !== (value.inode === null)) {
+      fail('InvalidPublicationPreparedSchema');
+    }
+    return Object.freeze(value);
+  };
+
+  const releasePreparedSchema = (group, holder) => {
+    if (!holder.active) return Promise.resolve(false);
+    if (holder.releasing !== undefined) return holder.releasing;
+    const flight = withSemanticCommit(async () => {
+      if (!holder.active) return false;
+      if (group.unconfirmedPhysical !== undefined) {
+        await syncDirectory(objectsDirectory);
+        storedBytes -= group.unconfirmedPhysical.bytes;
+        objectCount--;
+        for (const custody of reclaimableCustodies.values()) {
+          if (custody.record.material_generation_cid ===
+                group.record.physical_cid &&
+              custody.record.device === group.unconfirmedPhysical.device &&
+              custody.record.inode === group.unconfirmedPhysical.inode) {
+            custody.accounted = false;
+          }
+        }
+        group.unconfirmedPhysical = undefined;
+        group.generationRetired = true;
+      }
+      if (group.pendingAliasSync) {
+        await syncDirectory(contractsDirectory);
+        group.pendingAliasSync = false;
+      }
+      if (group.holders.size === 1 && group.removable &&
+          !await metadataContractHasLiveReference(
+            group.record.semantic_cid, undefined,
+          )) {
+        const semanticPath = contractPath(group.record.semantic_cid);
+        const physicalPath = objectPath(group.record.physical_cid);
+        let physical;
+        try { physical = await lstat(physicalPath); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        let semantic;
+        try { semantic = await lstat(semanticPath); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        if (semantic !== undefined) {
+          if (physical === undefined || !semantic.isFile() ||
+              !physical.isFile() ||
+              semantic.size !== group.record.byte_count ||
+              physical.size !== group.record.byte_count ||
+              semantic.dev !== physical.dev ||
+              semantic.ino !== physical.ino) {
+            fail('PublicationContractCorrupt');
+          }
+          if (group.generation !== undefined &&
+              (group.generation.device !== String(physical.dev) ||
+                group.generation.inode !== String(physical.ino))) {
+            group.generationRetired = true;
+          }
+          if (!group.generationRetired) {
+            group.generation = {
+              device: String(physical.dev), inode: String(physical.ino),
+            };
+            await unlink(semanticPath);
+            group.pendingAliasSync = true;
+            await syncDirectory(contractsDirectory);
+            group.pendingAliasSync = false;
+          }
+        }
+        if (!group.generationRetired && physical !== undefined &&
+            group.generation !== undefined &&
+            String(physical.dev) === group.generation.device &&
+            String(physical.ino) === group.generation.inode &&
+            physical.nlink <= 2 &&
+            !(preparedObjects.get(group.record.physical_cid)?.holders.size > 0) &&
+            !await materialHasLiveReference(group.record.physical_cid)) {
+          const remaining = await lstat(physicalPath);
+          if (remaining.nlink === 1) {
+            await unlink(physicalPath);
+            group.unconfirmedPhysical = {
+              bytes: group.record.byte_count,
+              device: String(remaining.dev),
+              inode: String(remaining.ino),
+            };
+            await syncDirectory(objectsDirectory);
+            storedBytes -= group.unconfirmedPhysical.bytes;
+            objectCount--;
+            for (const custody of reclaimableCustodies.values()) {
+              if (custody.record.material_generation_cid ===
+                    group.record.physical_cid &&
+                  custody.record.device === group.unconfirmedPhysical.device &&
+                  custody.record.inode === group.unconfirmedPhysical.inode) {
+                custody.accounted = false;
+              }
+            }
+            group.unconfirmedPhysical = undefined;
+          }
+        }
+      }
+      try { await unlink(holder.path); }
+      catch (error) { if (error?.code !== 'ENOENT') throw error; }
+      await syncDirectory(preparedSchemasDirectory);
+      group.holders.delete(holder);
+      holder.active = false;
+      if (group.holders.size === 0) {
+        preparedSchemas.delete(group.record.semantic_cid);
+      }
+      return true;
+    });
+    holder.releasing = flight.catch(error => {
+      holder.errors.push(error);
+      throw error;
+    }).finally(() => { holder.releasing = undefined; });
+    return holder.releasing;
+  };
+
+  const preparedSchemaHandle = (group, holder) => Object.freeze({
+    status: () => Object.freeze({
+      pending: holder.active,
+      errors: Object.freeze([...holder.errors]),
+    }),
+    release: () => releasePreparedSchema(group, holder),
+    async retry() {
+      if (holder.active) await releasePreparedSchema(group, holder);
+      return Object.freeze({
+        pending: holder.active,
+        errors: Object.freeze([...holder.errors]),
+      });
+    },
+  });
+
+  const adoptPreparedSchemas = async (cids, runDefinitionCid) => {
+    for (const cid of new Set(cids)) {
+      const group = preparedSchemas.get(cid);
+      if (group === undefined) continue;
+      const adopted = [...group.holders].filter(holder =>
+        holder.runDefinitionCid === runDefinitionCid);
+      for (const holder of adopted) {
+        try { await unlink(holder.path); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+      }
+      await syncDirectory(preparedSchemasDirectory);
+      for (const holder of adopted) {
+        holder.active = false;
+        group.holders.delete(holder);
+      }
+      if (group.holders.size === 0) preparedSchemas.delete(cid);
+    }
+  };
+
+  const putPreparedResultSchema = (wire, semanticCid, runDefinitionCid) =>
+    withSemanticCommit(async () => {
+      active();
+      if (typeof wire !== 'string' ||
+          Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationSemanticWire');
+      }
+      cidHex(semanticCid);
+      cidHex(runDefinitionCid);
+      const bytes = Buffer.from(wire, 'utf8');
+      const physicalCid = `sha256:${createHash('sha256')
+        .update(bytes).digest('hex')}`;
+      if (semanticCid !== physicalCid) {
+        fail('PublicationObjectIdentityMismatch');
+      }
+      let group = preparedSchemas.get(semanticCid);
+      if (group === undefined) {
+        let existing;
+        try { existing = await lstat(contractPath(semanticCid)); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        group = {
+          record: Object.freeze({
+            version: 'actql-local-prepared-schema/0.1',
+            semantic_cid: semanticCid,
+            physical_cid: physicalCid,
+            byte_count: bytes.byteLength,
+            removable: existing === undefined,
+            run_definition_cid: runDefinitionCid,
+            device: null,
+            inode: null,
+          }),
+          removable: existing === undefined,
+          holders: new Set(),
+          unconfirmedPhysical: undefined,
+          pendingAliasSync: false,
+          generation: undefined,
+          generationRetired: false,
+        };
+        preparedSchemas.set(semanticCid, group);
+      }
+      const token = randomUUID();
+      const holder = {
+        path: preparedSchemaPath(token), active: true,
+        releasing: undefined, errors: [], runDefinitionCid,
+      };
+      const record = Object.freeze({
+        ...group.record, run_definition_cid: runDefinitionCid,
+      });
+      group.holders.add(holder);
+      const prepared = preparedSchemaHandle(group, holder);
+      try {
+        await writeExclusive(holder.path,
+          Buffer.from(JSON.stringify(record), 'utf8'));
+        await syncDirectory(preparedSchemasDirectory);
+        const stored = await putSemantic(wire, semanticCid);
+        const physical = await lstat(objectPath(physicalCid));
+        const semantic = await lstat(contractPath(semanticCid));
+        if (!physical.isFile() || !semantic.isFile() ||
+            physical.dev !== semantic.dev ||
+            physical.ino !== semantic.ino ||
+            physical.size !== bytes.byteLength) {
+          fail('PublicationPreparedSchemaGenerationMismatch');
+        }
+        const generation = {
+          device: String(physical.dev), inode: String(physical.ino),
+        };
+        if (group.generation !== undefined &&
+            (group.generation.device !== generation.device ||
+              group.generation.inode !== generation.inode)) {
+          fail('PublicationPreparedSchemaGenerationMismatch');
+        }
+        const staged = resolve(preparedSchemasDirectory,
+          `.staging-${randomUUID()}.json`);
+        await writeExclusive(staged, Buffer.from(JSON.stringify({
+          ...record, ...generation,
+        }), 'utf8'));
+        await rename(staged, holder.path);
+        await syncDirectory(preparedSchemasDirectory);
+        group.generation = generation;
+        return Object.freeze({...stored, prepared});
+      } catch (error) {
+        // The marker remains durable if either physical or alias cleanup
+        // cannot be confirmed. The caller can retry without resending data.
+        const failure = new PublicationStoreError(
+          typeof error?.code === 'string'
+            ? error.code : 'PublicationPreparedSchemaFailed', error,
+        );
+        failure.cleanupPending = true;
+        failure.cleanupHandle = Object.freeze({
+          status: () => Object.freeze({
+            pending: prepared.status().pending ||
+              error?.cleanupHandle?.status()?.pending === true,
+            errors: Object.freeze([
+              ...prepared.status().errors,
+              ...(error?.cleanupHandle?.status()?.errors ?? []),
+            ]),
+          }),
+          async retry() {
+            if (prepared.status().pending) await prepared.retry();
+            if (error?.cleanupHandle?.status()?.pending === true) {
+              await error.cleanupHandle.retry();
+            }
+            return this.status();
+          },
+        });
+        failure.primaryFailure = error;
+        throw failure;
+      }
+    });
+
   const admitContract = (name, wire) => {
     if (typeof name !== 'string' || typeof wire !== 'string' ||
         Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
@@ -2394,7 +2689,7 @@ export async function openLocalPublicationStore(
     return true;
   };
 
-  const commitIndex = async (
+  const commitIndexInternal = async (
     suppliedWire,
     requiredObjectCids,
     suppliedEvidence,
@@ -2480,6 +2775,9 @@ export async function openLocalPublicationStore(
         fail('InvalidPublicationMetadataInventoryStore');
       }
       await adoptPreparedObjects(boundPhysicalCids);
+      await adoptPreparedSchemas(
+        inventorySemanticCids, entry.run_definition_cid,
+      );
       return Object.freeze({
         entry: existingCommit,
         committed: false,
@@ -2512,6 +2810,9 @@ export async function openLocalPublicationStore(
         keyHash, entry.public_index_entry_cid,
       );
       await adoptPreparedObjects(boundPhysicalCids);
+      await adoptPreparedSchemas(
+        inventorySemanticCids, entry.run_definition_cid,
+      );
       return Object.freeze({entry, committed: true, idempotent: false});
     } catch (error) {
       let existing;
@@ -2533,6 +2834,9 @@ export async function openLocalPublicationStore(
       catch (reconciliation) {
         throw commitCustodyFailure(error, custody, reconciliation);
       }
+      await adoptPreparedSchemas(
+        inventorySemanticCids, entry.run_definition_cid,
+      );
       return Object.freeze({
         entry: existing,
         committed: installed,
@@ -2540,6 +2844,11 @@ export async function openLocalPublicationStore(
       });
     }
   };
+
+  // A prepared schema cannot be retired between commit evidence validation
+  // and installation of the inventory that acquires its durable ownership.
+  const commitIndex = (...args) =>
+    withSemanticCommit(() => commitIndexInternal(...args));
 
   const consumeObject = async (cid, accept) => {
     active();
@@ -3073,12 +3382,13 @@ export async function openLocalPublicationStore(
     return false;
   };
 
-  const reclaimMetadataContract = async (
+  const reclaimMetadataContractInternal = async (
     excludedPublicIndexEntryCid,
     object,
     unconfirmedObjects,
   ) => {
-    if (await metadataContractHasLiveReference(
+    if (preparedSchemas.get(object.semantic_cid)?.holders.size > 0 ||
+        await metadataContractHasLiveReference(
       object.semantic_cid, excludedPublicIndexEntryCid,
     )) return;
     const semanticPath = contractPath(object.semantic_cid);
@@ -3123,6 +3433,9 @@ export async function openLocalPublicationStore(
       objectCount--;
     }
   };
+
+  const reclaimMetadataContract = (...args) =>
+    withSemanticCommit(() => reclaimMetadataContractInternal(...args));
 
   const materialHasLiveReference = async materialCid => {
     for (const name of await readdir(physicalHoldingsDirectory)) {
@@ -3566,6 +3879,57 @@ export async function openLocalPublicationStore(
       recovered.push(record.material_generation_cid);
     }
     return Object.freeze(recovered);
+  };
+
+  const recoverPreparedSchemas = async () => {
+    await syncDirectory(contractsDirectory);
+    await syncDirectory(objectsDirectory);
+    const recovered = [];
+    for (const name of await readdir(preparedSchemasDirectory)) {
+      if (!custodyNamePattern.test(name)) {
+        fail('InvalidPublicationPreparedSchema');
+      }
+      const path = resolve(preparedSchemasDirectory, name);
+      const record = parsePreparedSchema(await readBounded(
+        path, configuration.maxObjectBytes,
+      ));
+      let group = preparedSchemas.get(record.semantic_cid);
+      if (group === undefined) {
+        group = {
+          record, removable: record.removable,
+          holders: new Set(), unconfirmedPhysical: undefined,
+          pendingAliasSync: false,
+          generation: record.device === null ? undefined : {
+            device: record.device, inode: record.inode,
+          },
+          generationRetired: false,
+        };
+        preparedSchemas.set(record.semantic_cid, group);
+      } else if (group.record.physical_cid !== record.physical_cid ||
+          group.record.byte_count !== record.byte_count ||
+          group.removable !== record.removable ||
+          (group.generation !== undefined && record.device !== null &&
+            (group.generation.device !== record.device ||
+              group.generation.inode !== record.inode))) {
+        fail('InvalidPublicationPreparedSchema');
+      }
+      if (record.device !== null) {
+        group.generation = {
+          device: record.device, inode: record.inode,
+        };
+      }
+      const holder = {
+        path, active: true, releasing: undefined, errors: [],
+        runDefinitionCid: record.run_definition_cid,
+      };
+      group.holders.add(holder);
+      recovered.push({group, holder});
+    }
+    for (const {group, holder} of recovered) {
+      await releasePreparedSchema(group, holder);
+    }
+    return Object.freeze(recovered.map(({group}) =>
+      group.record.semantic_cid));
   };
 
   const createUncommittedMetadataCleanup = async inventory => {
@@ -4108,6 +4472,10 @@ export async function openLocalPublicationStore(
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.
   await recoverPreparedCustodies();
+  await recoverPreparedSchemas();
+  // A crash between semantic alias creation and physical-custody handoff
+  // leaves both records. Revisit physical custody after alias reclamation.
+  await recoverPreparedCustodies();
 
   // A retiring Transfer holding is unavailable before physical reclamation.
   // Recovery resumes the exact durable cleanup without treating an absent
@@ -4143,6 +4511,7 @@ export async function openLocalPublicationStore(
     recoverPhysicalHoldingDeletions,
     putBytes,
     putSemantic,
+    putPreparedResultSchema,
     putPublicationContract,
     verifyObject,
     observeTrustedClock,
@@ -4157,6 +4526,7 @@ export async function openLocalPublicationStore(
     retireCommittedResult,
     retireCommittedPublicationMetadata,
     recoverPreparedCustodies,
+    recoverPreparedSchemas,
     retireUncommittedPublication,
     recoverUncommittedPublications,
     recoverRetiredResults,
@@ -4213,6 +4583,7 @@ export async function openLocalPublicationStore(
     close() {
       closed = true;
       if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
+          preparedSchemas.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
           pendingMetadataDeletions.size !== 0 ||
