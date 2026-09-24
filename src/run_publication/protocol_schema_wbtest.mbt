@@ -18,7 +18,7 @@ fn protocol_test_find_property(
   field : String,
 ) -> Int? {
   match nodes[index] {
-    ObjectRule(properties, _, _, _, _) =>
+    ObjectRule(properties, _, _, _, _, _) =>
       protocol_property_schema(properties, field)
     AllOfRule(children) | OneOfRule(children) | AnyOfRule(children) => {
       for child in children {
@@ -51,6 +51,7 @@ fn protocol_test_accepts(
 test "all generated Run evidence versions are exact" {
   let cases = [
     ("result_plan", "actql-result-plan/0.1"),
+    ("invocation_bindings", "actql-invocation-bindings/0.1"),
     ("bound_invocation_template", "actql-bound-invocation-template/0.1"),
     ("prepared_invocation", "actql-prepared-invocation/0.1"),
     ("run_authorization", "actql-run-authorization/0.1"),
@@ -74,6 +75,23 @@ test "all generated Run evidence versions are exact" {
       protocol_test_accepts(nodes, index, "\"" + version + "-wrong\""),
     )
   }
+}
+
+///|
+test "Invocation Binding names are exact declared identifiers" {
+  let (nodes, index) = protocol_test_property_node("invocation_bindings", [
+    "bindings",
+  ])
+  assert_true(
+    protocol_test_accepts(
+      nodes, index, "{\"target_file\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+    ),
+  )
+  assert_false(
+    protocol_test_accepts(
+      nodes, index, "{\"bad-name\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+    ),
+  )
 }
 
 ///|

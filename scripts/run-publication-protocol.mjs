@@ -74,6 +74,10 @@ const selected = Object.freeze({
     schema: 'effect_reconciliation_receipt',
     identity: 'reconciliation_receipt_cid',
   }),
+  invocation_bindings: Object.freeze({
+    schema: 'invocation_bindings',
+    identity: 'invocation_bindings_cid',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);
@@ -101,6 +105,7 @@ function patternTag(schema) {
     case '^[0-9a-f]{64}$': return 4;
     case '^\\$': return 5;
     case '^command:': return 6;
+    case '^[A-Za-z_][A-Za-z0-9_]*$': return 7;
     default:
       throw new Error(`Unsupported publication schema pattern: ${schema.pattern}`);
   }
@@ -347,16 +352,22 @@ function emitSchema(schema, assumedType) {
       names.not?.pattern === '^actql_'
       ? 'Some("actql_")'
       : 'None';
-    if (schema.propertyNames !== undefined && forbidden === 'None') {
+    const namePattern = names?.pattern === '^[A-Za-z_][A-Za-z0-9_]*$'
+      ? 7 : 0;
+    if (schema.propertyNames !== undefined && forbidden === 'None' &&
+        namePattern === 0) {
       throw new Error('Unsupported publication propertyNames rule');
     }
     const propertyText = properties
       .map(([name, index]) => `(${moonString(name)}, ${index})`)
       .join(', ');
+    const constructor = namePattern === 0
+      ? 'protocol_object_rule' : 'protocol_named_object_rule';
+    const extra = namePattern === 0 ? '' : `, ${namePattern}`;
     nodes.push(
-      `protocol_object_rule([${propertyText}], ` +
+      `${constructor}([${propertyText}], ` +
       `${stringArray(schema.required ?? [])}, ${additional}, ` +
-      `${schema.minProperties ?? 0}, ${forbidden})`,
+      `${schema.minProperties ?? 0}, ${forbidden}${extra})`,
     );
     return nodes.length - 1;
   }

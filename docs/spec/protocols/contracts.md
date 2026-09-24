@@ -1150,7 +1150,7 @@ artifact and MUST NOT pass the public Plan Document boundary.
 
 ### Parameter values and bound template
 
-The parameter and bound-template artifacts are respectively:
+The parameter, invocation-binding, and bound-template artifacts are respectively:
 
 Values are the effective typed map after applying missing-only literal defaults
 once. Nullable explicit null is a value; absent without default remains missing.
@@ -1179,10 +1179,29 @@ its array binding evidence requires the registered shared row-kernel extension.
 <!-- normative-code: envelope -->
 ```text
 {version:"actql-parameter-values/0.1", values, parameter_values_cid}
+{version:"actql-invocation-bindings/0.1", bindings,
+ invocation_bindings_cid}
 {version:"actql-bound-invocation-template/0.1",
- program_definition_cid, parameter_values_cid, check_environment_cid,
+ program_definition_cid, parameter_values_cid, invocation_bindings_cid,
+ check_environment_cid, grammar_manifest_cid, required_profile_contracts,
+ barrier_contract_manifest_cid,
  source_evidence:"unbound", bound_invocation_template_cid}
 ```
+
+<!-- requirement-block: bound-template-wire.invocation-bindings-identity bound-template-wire.invocation-bindings-closure bound-template-wire.invocation-bindings-authority bound-template-wire.bound-template-full-preimage -->
+The `actql-invocation-bindings/0.1` CID MUST hash the canonical JSON of
+`{version:"actql-invocation-bindings/0.1", bindings}`, excluding only its own
+`invocation_bindings_cid`; `bindings` maps each declared opaque binding name to
+its verified ResourceRef `identity_cid` or ArtifactRef `artifact_ref_cid`, and
+contains no Parameter Values. Its keys MUST be exactly the declared binding
+names, so the empty map is valid only when the Program declares no opaque
+bindings. A reference identity CID alone grants no authority: before issuing an
+Executable Plan, the Host MUST verify the reference issuer, declared type and
+kind, request-slot compatibility, and current usage authorization. The Bound
+Invocation Template CID MUST hash canonical JSON of every schema-required member
+shown above except `bound_invocation_template_cid`, including
+`invocation_bindings_cid`, the grammar and barrier manifest CIDs, and the
+required profile contracts.
 
 <a id="parameter-value-projection"></a>
 
@@ -1514,6 +1533,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invocation_bindings sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:16c6535a631ceba7edda8cc842d78009df47930ee545da2a63f9a4b99a3ebb6e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5

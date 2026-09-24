@@ -112,6 +112,23 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  const invocation = read('portability/corpus/invocation-bindings.json');
+  assert.equal(invocation.version, 'actql-invocation-bindings-vectors/0.1');
+  for (const binding of invocation.cases) {
+    result.push({
+      id: 'Invocation Bindings ' + binding.id,
+      value: {version: 'actql-invocation-bindings/0.1',
+        bindings: binding.bindings},
+      cid: binding.expected_cid,
+      text: binding.expected_canonical_bytes,
+    });
+  }
+  result.push({
+    id: 'Bound Invocation Template complete preimage',
+    value: invocation.template.body,
+    cid: invocation.template.expected_cid,
+    text: invocation.template.expected_canonical_bytes,
+  });
   const previewRows = read('portability/corpus/effect-preview-row.json');
   assert.equal(previewRows.version, 'actql-effect-preview-row-vectors/0.1');
   for (const row of previewRows.cases) {
