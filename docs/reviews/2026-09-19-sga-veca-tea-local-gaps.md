@@ -2205,3 +2205,13 @@ bidirectional traversal, a minimum-zero bound, and an explicit empty edge-type
 set. Together with the literal, Relation-backed, predicate-selected, and
 patterned lifecycle evidence above, every classified `traverse` layer and
 formal branch is connected. `traverse` is complete.
+
+The checked physical splitter now also handles multiple independent
+zero-input Relation branches within one Stage when every operation supports
+selected managed execution and no external input representation is required.
+Each branch retains its exact operation edge and Result occurrence. A standard
+Host fixture executes both branches through bounded values and row providers,
+then runs two downstream Computes with overlapping holdings, independent
+release, and final ledger reclamation. Query integration passes 604 tests on
+each of JS, Wasm, and native. This does not close the providerless synchronous
+fallback or the strict per-operation resource boundary gate.
