@@ -123,6 +123,8 @@ pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
 
+pub fn captured_result_borrow_available(CapturedResultBorrow) -> Bool
+
 pub fn captured_result_borrow_occurrence(CapturedResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_result_borrow_output(CapturedResultBorrow) -> @execution_relation.CompletedOutput

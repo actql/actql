@@ -155,9 +155,7 @@ pub fn bind_captured_effect_preview_inputs(
   for index in indexes {
     if index is Some(index) {
       guard inputs.entries.get(index).bind(value => value) is Some(input) &&
-        @execution.completed_output_available(
-          captured_effect_input_output(input),
-        ) else {
+        captured_result_borrow_available(input.borrow) else {
         return Err(NotReady)
       }
     }
@@ -186,9 +184,7 @@ pub fn captured_effect_preview_input_at(
       index.bind(index => value.inputs.entries.get(index).bind(entry => entry))
     })
   input.bind(input => {
-    if @execution.completed_output_available(
-        captured_effect_input_output(input),
-      ) {
+    if captured_result_borrow_available(input.borrow) {
       Some(input)
     } else {
       None
@@ -213,11 +209,19 @@ pub fn captured_effect_input_at(
   value : CapturedEffectInputs,
   member_index : Int,
 ) -> CapturedEffectInput? {
-  if value.live {
-    value.entries.get(member_index).bind(entry => entry)
-  } else {
-    None
+  if !value.live {
+    return None
   }
+  value.entries
+  .get(member_index)
+  .bind(entry => entry)
+  .bind(input => {
+    if captured_result_borrow_available(input.borrow) {
+      Some(input)
+    } else {
+      None
+    }
+  })
 }
 
 ///|

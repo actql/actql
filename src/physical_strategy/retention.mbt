@@ -95,6 +95,14 @@ pub fn captured_result_borrow_output(
 }
 
 ///|
+/// A retained Result is usable only while its own consumer pin and the
+/// producer completion are both live. Another consumer's pin cannot revive
+/// this borrow after release.
+pub fn captured_result_borrow_available(borrow : CapturedResultBorrow) -> Bool {
+  @execution.completed_output_available(captured_result_borrow_output(borrow))
+}
+
+///|
 pub fn release_captured_result_borrow(borrow : CapturedResultBorrow) -> Bool {
   release_captured_output_pin(borrow.pin)
 }

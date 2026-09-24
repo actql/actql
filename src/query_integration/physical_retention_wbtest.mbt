@@ -230,6 +230,7 @@ test "checked Result view streams from a borrow after its task port closes" {
   let borrow = @strategy.borrow_captured_result_output(run, task, occurrence, 1).unwrap()
   let output = @strategy.captured_result_borrow_output(borrow)
   @strategy.close_captured_task_output(run, task)
+  assert_true(@strategy.captured_result_borrow_available(borrow))
   let preparation = @strategy.start_captured_result_borrow_export(
     borrow,
     {
@@ -265,6 +266,7 @@ test "checked Result view streams from a borrow after its task port closes" {
   assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
   assert_eq(@execution.completed_relation_export_field_names(receipt), ["id"])
   assert_true(@strategy.release_captured_result_borrow(borrow))
+  assert_false(@strategy.captured_result_borrow_available(borrow))
   assert_false(@execution.completed_output_available(output))
   @execution.cancel_completed_relation_export_receipt(receipt)
   for index in 0..<@strategy.graph_task_count(graph) {
@@ -298,6 +300,7 @@ test "publication and Effect borrow the same checked Result independently" {
     max_pins=2,
   ).unwrap()
   @strategy.close_captured_task_output(run, task)
+  assert_true(@strategy.captured_result_borrow_available(effect_borrow))
   let effect_view = @strategy.start_captured_result_borrow_export(
     effect_borrow,
     {
@@ -334,6 +337,7 @@ test "publication and Effect borrow the same checked Result independently" {
   ).unwrap()
   effect_text.write_string(effect_tail)
   assert_true(@strategy.release_captured_result_borrow(effect_borrow))
+  assert_false(@strategy.captured_result_borrow_available(effect_borrow))
   assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   let text = StringBuilder()
   while publication.next().unwrap() is Some(chunk) {
