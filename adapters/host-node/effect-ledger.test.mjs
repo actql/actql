@@ -12,6 +12,8 @@ import {canonicalJson} from
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {readAuthorizedEffectTerminalOutcome} from
+  './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const authorityScopeCid = cid('a');
@@ -206,6 +208,12 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
       claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
       outcomeWire: '{"result":{"id":"a001"},"state":"applied"}',
     }).custody.created, false);
+    const terminalRead = {ledger, claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      preview: admitted, memberIndex: 0, previewRowIndex: 0};
+    await assert.rejects(readAuthorizedEffectTerminalOutcome({
+      ...terminalRead, authorizeEvidenceRead: async () => true,
+    }), {code: 'EffectRowOutcomeNotTerminal'});
     const firstUnknown = effect.issueNextLedgerEntry(
       sent.ownership.dispatching, 'unknown', '', 4096, 64, 4);
     ledger.append(effect.ledgerEntryWire(firstUnknown));
@@ -242,6 +250,19 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
       recorded.receipt.identity);
     assert.equal(restarted.readClaimedOutcome(claim).outcomeJson,
       recorded.receipt.wire);
+    await assert.rejects(readAuthorizedEffectTerminalOutcome({
+      ...terminalRead, ledger: restarted,
+      authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    const observedTerminal = await readAuthorizedEffectTerminalOutcome({
+      ...terminalRead, ledger: restarted,
+      authorizeEvidenceRead: async () => true,
+    });
+    assert.equal(observedTerminal.receipt.identity, recorded.receipt.identity);
+    await assert.rejects(readAuthorizedEffectTerminalOutcome({
+      ...terminalRead, ledger: restarted, previewRowIndex: 1,
+      authorizeEvidenceRead: async () => true,
+    }), {code: 'MoonBitHostFailure'});
   });
 
 test('durable row heads determine multi-member progress after restart',
