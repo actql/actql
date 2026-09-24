@@ -626,7 +626,11 @@ fn prepare_client_task_sequence_graph(
   if count == 0 {
     return Err(EmptyTask)
   }
-  guard @lower.node_at(@lower.bound_preparation(owner), count - 1) is Some(last) else {
+  let selected = @strategy.graph_task_selected_step(graph, task)
+  let last_step = selected.unwrap_or(count - 1)
+  guard last_step >= 0 &&
+    last_step < count &&
+    @lower.node_at(@lower.bound_preparation(owner), last_step) is Some(last) else {
     return Err(EmptyTask)
   }
   match
