@@ -58,6 +58,15 @@ pub fn admit_checked_run_publication(
 }
 
 ///|
+pub(all) enum RunProgramBindingIssue {
+  RunProgramWrongDefinition
+  RunProgramForeignPlan
+  RunProgramForeignTemplate
+  RunProgramForeignRun
+  RunProgramInvalidLifetime
+} derive(Eq, Debug)
+
+///|
 /// Admit the exact authority that permits a Run to start. A syntactically
 /// valid deny decision or an unapproved review never becomes execution
 /// authority.
@@ -146,6 +155,56 @@ pub fn run_publication_authorization(
   admission : RunPublicationAdmission,
 ) -> RunEvidenceValue {
   admission.authorization
+}
+
+///|
+/// Bind an admitted Run to the exact checked Program identities supplied by
+/// its owner. This closes the Plan, Template, and Run references; it does not
+/// prove that execution or Effect application has occurred.
+pub fn check_run_publication_program_binding(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  program_definition_cid : String,
+  program_semantics_cid : String,
+  check_environment_cid : String,
+) -> Result[Unit, RunProgramBindingIssue] {
+  if run_definition.name != "run_definition" {
+    return Err(RunProgramWrongDefinition)
+  }
+  if contract_string(admission.compiled_plan, "program_definition_cid") !=
+    Some(program_definition_cid) ||
+    contract_string(admission.compiled_plan, "program_semantics_cid") !=
+    Some(program_semantics_cid) {
+    return Err(RunProgramForeignPlan)
+  }
+  if contract_string_from_value(
+      admission.template.value,
+      "program_definition_cid",
+    ) !=
+    Some(program_definition_cid) ||
+    contract_string_from_value(
+      admission.template.value,
+      "check_environment_cid",
+    ) !=
+    Some(check_environment_cid) {
+    return Err(RunProgramForeignTemplate)
+  }
+  if contract_string(run_definition, "compiled_plan_cid") !=
+    Some(admission.compiled_plan_cid) ||
+    contract_string(run_definition, "invocation_template_cid") !=
+    Some(admission.template.identity) ||
+    contract_string(run_definition, "authorization_context_cid") !=
+    Some(admission.authorization_context_cid) {
+    return Err(RunProgramForeignRun)
+  }
+  guard contract_string(run_definition, "created_at") is Some(created_at) &&
+    contract_string(run_definition, "valid_until") is Some(valid_until) else {
+    return Err(RunProgramInvalidLifetime)
+  }
+  if created_at >= valid_until || valid_until > admission.expires_at {
+    return Err(RunProgramInvalidLifetime)
+  }
+  Ok(())
 }
 
 ///|

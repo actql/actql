@@ -185,6 +185,108 @@ fn public_effect_preview_for_static(
 }
 
 ///|
+fn public_effect_run_fixture(
+  candidate : @program_check.EffectProgramStaticCandidate,
+  semantics_cid? : String? = None,
+  environment_cid? : String? = None,
+) -> (
+  @run_publication.RunPublicationAdmission,
+  @run_publication.PublicationContract,
+) {
+  let cid = "sha256:" + "a".repeat(64)
+  let definition = @program_check.effect_program_static_definition_cid(
+    candidate,
+  )
+  let semantics = semantics_cid.unwrap_or(
+    @program_check.effect_program_static_semantics_cid(candidate),
+  )
+  let environment = environment_cid.unwrap_or(
+    @environment.cid(
+      @program_check.effect_program_static_environment(candidate),
+    ),
+  )
+  let template = @run_publication.seal_run_evidence_value(
+    "bound_invocation_template",
+    "{\"version\":\"actql-bound-invocation-template/0.1\"," +
+    "\"program_definition_cid\":\"" +
+    definition +
+    "\",\"parameter_values_cid\":\"" +
+    cid +
+    "\",\"invocation_bindings_cid\":\"" +
+    cid +
+    "\",\"check_environment_cid\":\"" +
+    environment +
+    "\",\"grammar_manifest_cid\":\"" +
+    cid +
+    "\",\"required_profile_contracts\":[]," +
+    "\"barrier_contract_manifest_cid\":\"" +
+    cid +
+    "\",\"source_evidence\":\"unbound\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  let plan = @run_publication.seal_publication_contract(
+    "compiled_plan",
+    "{\"version\":\"actql-compiled-plan/0.1\"," +
+    "\"compiler_version\":\"fixture\",\"aoa_ir_version\":\"fixture\"," +
+    "\"executable_plan_cid\":\"" +
+    cid +
+    "\",\"program_definition_cid\":\"" +
+    definition +
+    "\",\"program_semantics_cid\":\"" +
+    semantics +
+    "\",\"aoa_contract_cid\":\"" +
+    cid +
+    "\",\"aoa_logical_cid\":\"" +
+    cid +
+    "\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  let prepared = @run_publication.seal_run_evidence_value(
+    "prepared_invocation",
+    "{\"version\":\"actql-prepared-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @run_publication.run_evidence_value_identity(template) +
+    "\",\"compiled_plan_cid\":\"" +
+    @run_publication.publication_contract_identity(plan) +
+    "\",\"execution_context_cid\":\"" +
+    cid +
+    "\",\"host_policy_cid\":\"" +
+    cid +
+    "\",\"policy_decision\":\"allow\"," +
+    "\"expires_at\":\"2026-09-25T03:00:00.000Z\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  let authorization = @run_publication.seal_run_evidence_value(
+    "run_authorization",
+    "{\"version\":\"actql-run-authorization/0.1\"," +
+    "\"prepared_invocation_cid\":\"" +
+    @run_publication.run_evidence_value_identity(prepared) +
+    "\",\"execution_context_cid\":\"" +
+    cid +
+    "\",\"host_policy_cid\":\"" +
+    cid +
+    "\",\"decision\":\"allowed\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  let admission = @run_publication.admit_run_publication(
+    template, prepared, authorization, plan,
+  ).unwrap()
+  let run = @run_publication.issue_run_definition(
+    admission, "scope", "run", cid, "2026-09-24T00:00:00.000Z", "2026-09-25T02:00:00.000Z",
+    16384, 128, 8,
+  ).unwrap()
+  (admission, run)
+}
+
+///|
 test "checked Program retains its exact admitted Environment owner" {
   let (_, source, configured, evidence, limits) = public_input_fixture()
   let checked = public_checked(
@@ -474,6 +576,50 @@ test "Effect computation candidate closes the exact Mapping environment" {
     ),
   )
   assert_eq(@program_check.effect_program_static_preview_stage(bound), 1)
+  let (run_admission, run_definition) = public_effect_run_fixture(
+    static_candidate,
+  )
+  let run_owner = @program_check.bind_effect_program_static_run(
+    static_candidate, run_admission, run_definition,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_static_candidate(run_owner),
+      static_candidate,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_admission(run_owner),
+      run_admission,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_definition(run_owner),
+      run_definition,
+    ),
+  )
+  let (foreign_plan_admission, foreign_plan_run) = public_effect_run_fixture(
+    static_candidate,
+    semantics_cid=Some("sha256:" + "f".repeat(64)),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_run(
+      static_candidate, foreign_plan_admission, foreign_plan_run,
+    )
+    is Err(Binding(@run_publication.RunProgramForeignPlan)),
+  )
+  let (foreign_env_admission, foreign_env_run) = public_effect_run_fixture(
+    static_candidate,
+    environment_cid=Some("sha256:" + "f".repeat(64)),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_run(
+      static_candidate, foreign_env_admission, foreign_env_run,
+    )
+    is Err(Binding(@run_publication.RunProgramForeignTemplate)),
+  )
   assert_true(
     physical_equal(
       @program_check.effect_program_static_preview_candidate(bound),
