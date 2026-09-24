@@ -1573,6 +1573,10 @@ formal Named Result publication path on JS, Wasm, and native. Independent
 release and retryable cleanup return execution, retention, and held-byte
 ledgers to zero. `apply_graph_delta` is complete.
 Reach retains its typed start identity, direction, and finite depth.
+Its two stable output-ordering phases now resume typed identity comparisons
+one bounded unit at a time. A long common-prefix fixture checks quantum-one
+cancel, cleanup, and canonical output ordering. This is direct kernel evidence,
+not a proof of the providerless synchronous sequence or full route assurance.
 Subgraph retains explicit, predicate, and Relation selectors as distinct typed
 forms and preserves its optional edge predicate.
 Traverse retains homogeneous and patterned hops, selector form, predicates,
@@ -1701,6 +1705,10 @@ the formal Graph-to-Relation Bridge to two overlapping consumers and formal
 Effect-free publication. At `309d5111`, a real Node timer delivers
 cancellation during mean work and verifies kernel observation, stop,
 cleanup, and a zero final ledger. This closes `mean_graphs`.
+Node and edge stable sorts now resume long typed identity comparisons between
+work quanta. A three-target direct kernel fixture cancels during a long node
+comparison and checks cleanup, then verifies canonical node and edge order.
+The fixture does not establish the providerless synchronous path.
 
 At `1b7dbec3`, `subtract_graphs` executes the property-free structural
 variant over two immutable internal Graph generations. The bounded kernel

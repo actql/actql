@@ -1,9 +1,30 @@
 ///|
-fn mean_source_owner() -> @lower.BoundPrepared {
+fn mean_source_owner(text_id? : Bool = false) -> @lower.BoundPrepared {
+  let contract = if text_id {
+    let empty = @carrier.rows(
+      [],
+      field_set=@carrier.Closed,
+      max_fields=0,
+      max_name_bytes=0,
+    ).unwrap()
+    @carrier.graph(
+      @contract.primitive(@contract.StringType, nullable=false),
+      empty,
+      empty,
+      labels=None,
+      max_labels=0,
+      max_label_bytes=0,
+      label_contract=Some(
+        @contract.primitive(@contract.StringType, nullable=true),
+      ),
+    ).unwrap()
+  } else {
+    empty_graph_contract()
+  }
   bind(
     @pipeline.check_carriers(
       cursor("[{\"from\":\"g\",\"normalize_graph\":true}]"),
-      [("g", empty_graph_contract())],
+      [("g", contract)],
       None,
       None,
       {
@@ -93,6 +114,44 @@ fn mean_graph(
     ).unwrap()
   }
   @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_text_graph(
+  owner : @lower.BoundPrepared,
+  nodes : Array[String],
+  edges : Array[(String, String)],
+) -> @graph.Completed {
+  let output = @graph.prepare_output(
+    owner,
+    @pipeline.Step(0),
+    @storage.DeclaredNodes,
+    storage_limits(),
+    1000000L,
+    fn() { true },
+  ).unwrap()
+  for identity in nodes {
+    @graph.append_node(output, mean_long_text(identity), []).unwrap()
+  }
+  for (source, target) in edges {
+    @graph.append_edge(
+      output,
+      mean_long_text(source),
+      mean_long_text(target),
+      Some(text("edge", nullable=true)),
+      [],
+    ).unwrap()
+  }
+  @graph.finish_output(output).unwrap()
+}
+
+///|
+fn mean_long_text(value : String) -> @value.CheckedValue {
+  @value.admit(
+    @contract.primitive(@contract.StringType, nullable=false),
+    cursor("\"" + value + "\""),
+    { max_nodes: 1, max_depth: 1, max_text_bytes: 1000, },
+  ).unwrap()
 }
 
 ///|
@@ -227,6 +286,65 @@ test "graph mean retains exact support in canonical identity order" {
   assert_true(mean_stopped(execution))
   assert_true(mean_cleanup_pending(execution))
   assert_eq(cleanup_mean(execution), Ok(true))
+}
+
+///|
+test "graph mean yields during long typed identity sorting" {
+  let prefix = "m".repeat(160)
+  let first = prefix + "a"
+  let second = prefix + "b"
+  let third = prefix + "c"
+  let first_owner = mean_source_owner(text_id=true)
+  let second_owner = mean_source_owner(text_id=true)
+  let owner = mean_owner(first_owner, second_owner)
+  let first_graph = mean_text_graph(first_owner, [third, second, first], [
+    (first, third),
+    (first, second),
+  ])
+  let second_graph = mean_text_graph(second_owner, [], [])
+  let limits = mean_scale_limits(20)
+  let views = mean_views(
+    owner, first_owner, second_owner, first_graph, second_graph,
+  )
+  let start = fn(control) {
+    start_mean_views(
+      control,
+      sequence(owner),
+      0,
+      views,
+      limits,
+      1000000L,
+      4096,
+      fn() { true },
+    )
+  }
+  let control = @bounded.control()
+  let cancelled = start(control).unwrap()
+  for _ in 0..<90 {
+    assert_true(advance_mean(cancelled, 1).unwrap() is MeanContinue(_))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_mean(cancelled, 1).unwrap() is MeanStopped(_))
+  assert_eq(cleanup_mean(cancelled), Ok(true))
+  let completed = start(@bounded.control()).unwrap()
+  let output = finish_mean(completed)
+  let storage = @graph.completed_storage(output).unwrap()
+  assert_eq(@storage.node_count(storage), 3)
+  assert_eq(@storage.edge_count(storage), 2)
+  let expected = [first, second, third]
+  for index in 0..<expected.length() {
+    assert_true(
+      match @storage.node_identity(storage, index) {
+        Some(actual) =>
+          @value.compare_key_values(actual, mean_long_text(expected[index]))
+          is Ok(0)
+        None => false
+      },
+    )
+  }
+  assert_eq(@storage.edge_endpoints(storage, 0), Some((0, 1)))
+  assert_eq(@storage.edge_endpoints(storage, 1), Some((0, 2)))
+  assert_eq(cleanup_mean(completed), Ok(true))
 }
 
 ///|

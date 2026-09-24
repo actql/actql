@@ -117,6 +117,7 @@ priv struct ReachState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut values : Array[@value.CheckedValue]
   mut control_work_remaining : Int
@@ -326,18 +327,38 @@ fn emit_start_merge(state : ReachState, take_left : Bool) -> Unit {
 }
 
 ///|
-fn compare_reach_nodes(
+fn compare_reach_nodes_step(
   state : ReachState,
   left : Int,
   right : Int,
-) -> Result[Int, ReachIssue] {
+) -> Result[Int?, ReachIssue] {
   guard @storage.node_identity(state.source, left) is Some(left_value) &&
     @storage.node_identity(state.source, right) is Some(right_value) else {
     return Err(ReachInputUnavailable)
   }
-  @value.compare_key_values(left_value, right_value).map_err(issue => {
-    ReachKeyOrder(issue)
-  })
+  let comparison = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let value = match
+        @value.start_bounded_key_comparison(left_value, right_value) {
+        Ok(value) => value
+        Err(issue) => return Err(ReachKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(comparison, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      Err(ReachKeyOrder(issue))
+    }
+  }
 }
 
 ///|
@@ -811,12 +832,13 @@ fn reach_step(
       CompareStartMerge => {
         used += 1
         match
-          compare_reach_nodes(
+          compare_reach_nodes_step(
             state,
             state.start_nodes[state.left_index],
             state.start_nodes[state.right_index],
           ) {
-          Ok(order) => emit_start_merge(state, order <= 0)
+          Ok(Some(order)) => emit_start_merge(state, order <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -1125,12 +1147,13 @@ fn reach_step(
       CompareMerge => {
         used += 1
         match
-          compare_reach_nodes(
+          compare_reach_nodes_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(order) => emit_reach_merge(state, order <= 0)
+          Ok(Some(order)) => emit_reach_merge(state, order <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -1238,6 +1261,7 @@ fn cleanup_reach_state(state : ReachState) -> Bool {
   state.start_selected.clear()
   state.start_nodes.clear()
   state.start_scratch.clear()
+  state.key_comparison = None
   state.predicate_input.clear()
   state.predicate_execution = None
   state.values = []
@@ -1436,6 +1460,7 @@ fn start_reach_state(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
+    key_comparison: None,
     copy_index: 0,
     values: [],
     control_work_remaining: control_work_limit,

@@ -1412,7 +1412,8 @@ for (const [index, route] of routeEntries.entries()) {
     fail(`${label}: components boundary evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'reach' &&
-    !boundaryRoles.has('reach_prefix_work_workspace_active_cancel')) {
+    (!boundaryRoles.has('reach_prefix_work_workspace_active_cancel') ||
+      !boundaryRoles.has('reach_long_text_sort_cancel_cleanup'))) {
     fail(`${label}: reach control-work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'traverse' &&
@@ -1425,7 +1426,8 @@ for (const [index, route] of routeEntries.entries()) {
     fail(`${label}: Graph diff tail-work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'mean_graphs' &&
-    !boundaryRoles.has('mean_empty_work_exact_one_short_and_cleanup')) {
+    (!boundaryRoles.has('mean_empty_work_exact_one_short_and_cleanup') ||
+      !boundaryRoles.has('mean_long_text_sort_cancel_cleanup'))) {
     fail(`${label}: Graph mean cumulative-work evidence is missing`);
   }
   if (route.family === 'SGA') {

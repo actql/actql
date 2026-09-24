@@ -274,6 +274,8 @@ test('reach and node traversal require shared control-work evidence', () => {
   for (const [operation, role, diagnostic] of [
     ['reach', 'reach_prefix_work_workspace_active_cancel',
       /SGA reach: reach control-work evidence is missing/u],
+    ['reach', 'reach_long_text_sort_cancel_cleanup',
+      /SGA reach: reach control-work evidence is missing/u],
     ['traverse', 'node_emit_control_work_ceiling',
       /SGA traverse: traversal work evidence is missing/u],
     ['traverse', 'path_emit_control_work_ceiling',
@@ -297,11 +299,17 @@ test('Graph diff requires the output-tail work fixture', () => {
 });
 
 test('Graph mean requires its cumulative-work fixture', () => {
-  assert.match(run(undefined, routes => {
-    const route = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'mean_graphs');
-    route.boundary_tests = [];
-  }), /SGA mean_graphs: Graph mean cumulative-work evidence is missing/u);
+  for (const role of [
+    'mean_empty_work_exact_one_short_and_cleanup',
+    'mean_long_text_sort_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'mean_graphs');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), /SGA mean_graphs: Graph mean cumulative-work evidence is missing/u);
+  }
 });
 
 test('structural Graph modes each require a reached work fixture', () => {
