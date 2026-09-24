@@ -42,6 +42,53 @@ struct CheckedDAG {
 }
 
 ///|
+/// A physical computation graph paired with its exact checked Effect closure.
+/// The graph accessor supplies computation only; it never discharges Preview
+/// or apply obligations or turns this Program into an Effect-free Run.
+pub struct CheckedEffectComputationDAG {
+  candidate : @checked.EffectProgramStaticCandidate
+  graph : CheckedDAG
+}
+
+///|
+pub fn prepare_checked_effect_computation_dag(
+  candidate : @checked.EffectProgramStaticCandidate,
+  owners : Array[@lower.BoundPrepared],
+  max_tasks : Int,
+  max_work : Int,
+) -> Result[CheckedEffectComputationDAG, GraphIssue] {
+  match
+    prepare_checked_dag(
+      @checked.effect_program_static_checked_computation(candidate),
+      owners,
+      max_tasks,
+      max_work,
+    ) {
+    Ok(graph) => Ok({ candidate, graph, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn checked_effect_computation_graph(
+  value : CheckedEffectComputationDAG,
+) -> CheckedDAG {
+  value.graph
+}
+
+///|
+pub fn checked_effect_computation_owner(
+  value : CheckedEffectComputationDAG,
+) -> @checked.EffectProgramStaticCandidate {
+  value.candidate
+}
+
+///|
+pub fn graph_program_has_effects(graph : CheckedDAG) -> Bool {
+  @checked.checked_program_has_effects(graph.program)
+}
+
+///|
 /// Exact checked root export. An authored alias and its ResultPort form one
 /// publication occurrence; graph terminality is not publication evidence.
 priv struct CheckedResultOccurrence {

@@ -237,3 +237,12 @@ Foreign Run, Plan, Invocation, or Invocation Template is rejected. The
 ObservationSet closure and Captured Run's Effect Plan and Result holding proofs
 are still outstanding;
 this Preview binding is not an apply permit.
+
+The static Effect candidate can now prepare its exact checked computation DAG
+through the ordinary physical planner while retaining the Effect owner. The
+graph carries the Program's structural Effect flag. The standard Effect-free
+Host publication entry rejects this graph before Compute, and the shared
+captured-DAG identity admission rejects Effect-free Result publication for it.
+The task-only computation entry does not grant apply authority. This is a
+preparatory physical bridge, not a completed Effectful Run, Preview admission,
+or standard Host multi-effect path.

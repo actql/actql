@@ -2791,6 +2791,7 @@ export function runtimeCore(moon) {
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
+    programHasEffects: moon.strategyHostHasEffects,
     resultInventory(value) {
       const names = moon.strategyHostResultNames(value);
       if (!Array.isArray(names)) throw new TypeError('Invalid Result inventory');
