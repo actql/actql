@@ -1236,7 +1236,7 @@ pub fn client_program_open_source_free_local_host(
   per_pair_ms : Int64,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   @client_local_host.open_source_free_local_host(
-    prepared, registry_body, values_body, fixed_ms, per_row_ms,
-    per_wire_byte_ms, per_pair_ms,
+    prepared, registry_body, values_body, fixed_ms, per_row_ms, per_wire_byte_ms,
+    per_pair_ms,
   )
 }

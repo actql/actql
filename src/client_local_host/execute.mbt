@@ -107,7 +107,8 @@ pub fn execute_source_free_values(
   }
   guard @builtin.configured_local_module(
       @builtin.configured_host_modules(setup),
-    ) is Some(installed) &&
+    )
+    is Some(installed) &&
     @strategy.graph_task_owner(graph, 0) is Some(owner) else {
     stop_local_values_run(run)
     return Err(failed_local_values_execution(MissingLocalModule))
@@ -115,7 +116,10 @@ pub fn execute_source_free_values(
   let empty : Array[@execution.ManagedCompletedOutput[Int]] = []
   let prepared = match
     @local_driver.prepare_local_managed_dispatch(
-      installed, empty, @execution.process_managed_obligations(owner), 0L,
+      installed,
+      empty,
+      @execution.process_managed_obligations(owner),
+      0L,
     ) {
     Ok(Some(value)) => value
     Ok(None) => {
@@ -127,7 +131,8 @@ pub fn execute_source_free_values(
       return Err(failed_local_values_execution(Driver(issue)))
     }
   }
-  let operations = match @local_driver.start_local_managed_dispatch_node(prepared) {
+  let operations = match
+    @local_driver.start_local_managed_dispatch_node(prepared) {
     Ok(value) => value
     Err(issue) => {
       stop_local_values_run(run)
@@ -135,23 +140,23 @@ pub fn execute_source_free_values(
     }
   }
   if !operations.inputs.is_empty() {
-    return Err(reject_local_values_operations(run, operations, UnsupportedGraph))
+    return Err(
+      reject_local_values_operations(run, operations, UnsupportedGraph),
+    )
   }
   match (operations.execute)() {
     Ok(_) => ()
-    Err(issue) => {
+    Err(issue) =>
       return Err(reject_local_values_operations(run, operations, Driver(issue)))
-    }
   }
   let available = Ref(true)
   match
-    (operations.prepare_finalization)(
-      0, operations.storage_bytes, fn() { available.val },
-    ) {
+    (operations.prepare_finalization)(0, operations.storage_bytes, fn() {
+      available.val
+    }) {
     Ok(_) => ()
-    Err(issue) => {
+    Err(issue) =>
       return Err(reject_local_values_operations(run, operations, Driver(issue)))
-    }
   }
   let mut complete = false
   for _ in 0..<max_finalization_rounds {
@@ -160,7 +165,9 @@ pub fn execute_source_free_values(
       Ok(value) => value
       Err(issue) => {
         available.val = false
-        return Err(reject_local_values_operations(run, operations, Driver(issue)))
+        return Err(
+          reject_local_values_operations(run, operations, Driver(issue)),
+        )
       }
     }
     if progress.complete {
@@ -173,7 +180,9 @@ pub fn execute_source_free_values(
   }
   if !complete {
     available.val = false
-    return Err(reject_local_values_operations(run, operations, FinalizationLimit))
+    return Err(
+      reject_local_values_operations(run, operations, FinalizationLimit),
+    )
   }
   match (operations.settle)() {
     Ok(_) => ()
@@ -183,9 +192,7 @@ pub fn execute_source_free_values(
     }
   }
   let completed = match
-    (operations.complete)(
-      0, operations.storage_bytes, fn() { available.val },
-    ) {
+    (operations.complete)(0, operations.storage_bytes, fn() { available.val }) {
     Ok(value) => value
     Err(issue) => {
       available.val = false
