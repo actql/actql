@@ -242,6 +242,15 @@ pub fn object_fields(
 }
 
 ///|
+/// Inspect an admitted object's width without copying its field inventory.
+pub fn object_field_count(value : CanonicalValue) -> Int? {
+  match value {
+    Object(fields) => Some(fields.values.length())
+    _ => None
+  }
+}
+
+///|
 pub fn object_field(value : CanonicalValue, name : String) -> CanonicalValue? {
   match value {
     Object(fields) => {

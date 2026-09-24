@@ -22,6 +22,8 @@ pub fn measure_value(CanonicalValue, Int, Int, Int) -> Int raise @encode_core.En
 
 pub fn object_field(CanonicalValue, String) -> CanonicalValue?
 
+pub fn object_field_count(CanonicalValue) -> Int?
+
 pub fn object_fields(CanonicalValue) -> Array[(String, CanonicalValue)]?
 
 pub fn object_with_string_field(CanonicalValue, String, String) -> CanonicalValue?
