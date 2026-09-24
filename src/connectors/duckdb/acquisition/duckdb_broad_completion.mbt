@@ -17,7 +17,7 @@ pub fn complete_duckdb_broad_capture(
   attempt : DuckDBBroadAttempt,
   limits : DuckDBBroadCompletionLimits,
 ) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue] {
-  if !issuer.live {
+  if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
   guard attempt.authority is Some(authority) &&
@@ -27,7 +27,7 @@ pub fn complete_duckdb_broad_capture(
   if attempt.state is Captured(_) {
     return Err(AlreadyCaptured)
   }
-  if !(issuer.transport_matches)(attempt) {
+  if !@planning.query_evidence_transport_matches(issuer.registration, attempt) {
     abort_duckdb_broad_attempt(attempt)
     return Err(UnverifiedTransport)
   }

@@ -1,7 +1,7 @@
 ///|
 /// Bounded canonical material only. This handle cannot issue evidence, publish
-/// capture, or supply consumer input. Its owning connector separately verifies
-/// the exact live attempt, retained values and issued-set identity.
+/// capture, or supply consumer input. QueryEvidenceCustody verifies the exact
+/// live issuer and attempt, retained rows, transport and issued-set identity.
 struct QueryRecordArtifacts {
   requirement : QueryRequirement
   payload : QueryRecordPayload

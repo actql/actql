@@ -52,21 +52,13 @@ priv struct SalesforceBroadRetention {
 
 ///|
 struct SalesforceBroadIssuer {
-  _contracts : @planning.QueryEvidenceContracts
-  requirement : @planning.QueryRequirement
-  name : String
-  mut transport_matches : (SalesforceBroadAttempt) -> Bool
-  attempts : @planning.IssuerCounter
-  mut live : Bool
+  registration : @planning.QueryEvidenceRegistration[SalesforceBroadAttempt]
 }
-
-///|
-let salesforce_issuer_serial : @planning.IssuerCounter = @planning.issuer_counter()
 
 ///|
 priv struct SalesforceBroadAuthority {
   issuer : SalesforceBroadIssuer
-  number : String
+  token : @planning.QueryEvidenceAttemptAuthority[SalesforceBroadAttempt]
 }
 
 ///|
@@ -80,14 +72,21 @@ struct SalesforceBroadAttempt {
 struct SalesforceBroadRecords {
   authority : SalesforceBroadAuthority
   retention : SalesforceBroadRetention
-  artifacts : @planning.QueryRecordArtifacts
+  issued : @planning.QueryEvidenceIssued[
+    SalesforceBroadIssuer,
+    SalesforceBroadAttempt,
+    SalesforceBroadRetention,
+  ]
 }
 
 ///|
 struct SalesforceBroadObservation {
   records : SalesforceBroadRecords
-  document : @encode.EncodedDocument
-  cid : String
+  captured : @planning.QueryEvidenceCaptured[
+    SalesforceBroadIssuer,
+    SalesforceBroadAttempt,
+    SalesforceBroadRetention,
+  ]
 }
 
 ///|
@@ -110,24 +109,12 @@ pub fn prepare_salesforce_broad_issuer(
   max_nonce_chars : Int,
   transport_matches : (SalesforceBroadAttempt) -> Bool,
 ) -> Result[SalesforceBroadIssuer, SalesforceEvidenceIssue] {
-  if max_nonce_chars < 0 {
-    return Err(InvalidLimits)
-  }
-  if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
-    return Err(IdentifierLimit)
-  }
-  guard @planning.reserve_issuer_number(salesforce_issuer_serial)
-    is Some(serial) else {
-    return Err(IdentifierExhausted)
-  }
-  Ok({
-    _contracts: contracts,
-    requirement,
-    name: process_nonce + "/salesforce-issuer/" + serial.to_string(),
+  @planning.register_query_evidence_issuer(
+    contracts, requirement, process_nonce, max_nonce_chars, "salesforce-issuer",
     transport_matches,
-    attempts: @planning.issuer_counter(),
-    live: true,
-  })
+  )
+  .map(registration => { registration, })
+  .map_err(salesforce_custody_issue)
 }
 
 ///|
@@ -136,31 +123,29 @@ pub fn prepare_issued_salesforce_broad_attempt(
   choice : @planning.AcquisitionChoice,
   candidate : @planning.PreparedAcquisition[SalesforceBroadPreparation],
 ) -> Result[SalesforceBroadAttempt, SalesforceEvidenceIssue] {
-  if !issuer.live {
-    return Err(IssuerClosed)
+  let (preparation, token) = match
+    @planning.reserve_selected_query_evidence_attempt(
+      issuer.registration,
+      choice,
+      candidate,
+      preparation => preparation.requirement,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(salesforce_custody_issue(issue))
   }
-  guard @planning.acquisition_choice_payload(choice, candidate)
-    is Some(preparation) else {
-    return Err(NotSelected)
-  }
-  if !physical_equal(issuer.requirement, preparation.requirement) {
-    return Err(UnauthorizedAttempt)
-  }
-  guard @planning.reserve_issuer_number(issuer.attempts) is Some(number) else {
-    return Err(IdentifierExhausted)
-  }
-  Ok({
-    preparation,
-    authority: { issuer, number: number.to_string(), },
-    state: Pending,
-  })
+  Ok({ preparation, authority: { issuer, token, }, state: Pending, })
 }
 
 ///|
 pub fn salesforce_broad_attempt_identity(
   attempt : SalesforceBroadAttempt,
 ) -> (String, String) {
-  (attempt.authority.issuer.name, attempt.authority.number)
+  (
+    @planning.query_evidence_registration_name(
+      attempt.authority.issuer.registration,
+    ),
+    @planning.query_evidence_attempt_number(attempt.authority.token),
+  )
 }
 
 ///|
@@ -192,8 +177,7 @@ pub fn salesforce_broad_attempt_read_row_count(
 
 ///|
 pub fn close_salesforce_broad_issuer(issuer : SalesforceBroadIssuer) -> Unit {
-  issuer.live = false
-  issuer.transport_matches = _ => false
+  @planning.close_query_evidence_registration(issuer.registration)
 }
 
 ///|
@@ -351,25 +335,22 @@ pub fn retain_salesforce_broad_attempt(
 }
 
 ///|
-fn salesforce_retention_matches(
-  retained : SalesforceBroadRetention,
-  attempt : SalesforceBroadAttempt,
-) -> Bool {
-  let current = match attempt.state {
-    Retained(value) => value
-    EvidenceIssued(value) => value.retention
-    Captured(value) => value.records.retention
-    _ => return false
+fn salesforce_custody_issue(
+  issue : @planning.QueryEvidenceCustodyIssue,
+) -> SalesforceEvidenceIssue {
+  match issue {
+    InvalidLimits => InvalidLimits
+    InvalidIdentity => IdentifierLimit
+    IdentifierExhausted => IdentifierExhausted
+    IssuerClosed => IssuerClosed
+    NotSelected => NotSelected
+    ForeignRequirement => UnauthorizedAttempt
+    ForeignOwner => UnauthorizedAttempt
+    ForeignRetention | ForeignRecords => ForeignRecords
+    UnverifiedTransport => UnverifiedTransport
+    AlreadyCaptured => AlreadyCaptured
+    Artifact(issue) => Artifact(issue)
   }
-  physical_equal(current, retained) &&
-  @execution.row_wire_matches_captured(
-    retained.measured.scan,
-    retained.completion.scan,
-  ) &&
-  @execution.row_wire_matches_output(
-    retained.measured.output,
-    retained.completion.output,
-  )
 }
 
 ///|
@@ -378,21 +359,18 @@ pub fn issue_salesforce_broad_records(
   limits : @planning.QueryMaterialLimits,
 ) -> Result[SalesforceBroadRecords, SalesforceEvidenceIssue] {
   let authority = attempt.authority
-  if !authority.issuer.live {
+  if !@planning.query_evidence_registration_live(authority.issuer.registration) {
     return Err(IssuerClosed)
   }
   guard attempt.state is Retained(retained) else { return Err(NotRetained) }
   if !physical_equal(
-      authority.issuer.requirement,
+      @planning.query_evidence_registration_requirement(
+        authority.issuer.registration,
+      ),
       attempt.preparation.requirement,
-    ) ||
-    !salesforce_retention_matches(retained, attempt) {
+    ) {
     abort_salesforce_broad_attempt(attempt)
     return Err(UnauthorizedAttempt)
-  }
-  if !(authority.issuer.transport_matches)(attempt) {
-    abort_salesforce_broad_attempt(attempt)
-    return Err(UnverifiedTransport)
   }
   guard @lower.preparation_input_schema(
       @lower.bound_preparation(attempt.preparation.owner),
@@ -403,23 +381,26 @@ pub fn issue_salesforce_broad_records(
     return Err(Artifact(@planning.InvalidRetainedLayout))
   }
   match
-    @planning.build_query_record_artifacts(
-      attempt.preparation.requirement,
-      retained.measured.scan,
-      retained.measured.output,
+    @planning.issue_query_evidence(
+      authority.issuer.registration,
+      authority.token,
+      authority.issuer,
+      attempt,
+      retained,
+      retained.measured,
+      retained.completion.scan,
+      retained.completion.output,
       schema,
-      authority.issuer.name,
-      authority.number,
       limits,
     ) {
-    Ok(artifacts) => {
-      let records = { authority, retention: retained, artifacts, }
+    Ok(issued) => {
+      let records = { authority, retention: retained, issued, }
       attempt.state = EvidenceIssued(records)
       Ok(records)
     }
     Err(issue) => {
       abort_salesforce_broad_attempt(attempt)
-      Err(Artifact(issue))
+      Err(salesforce_custody_issue(issue))
     }
   }
 }
@@ -430,7 +411,7 @@ pub fn verify_salesforce_broad_records(
   attempt : SalesforceBroadAttempt,
   records : SalesforceBroadRecords,
 ) -> Result[Unit, SalesforceEvidenceIssue] {
-  if !issuer.live {
+  if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
   if !physical_equal(issuer, attempt.authority.issuer) ||
@@ -444,14 +425,24 @@ pub fn verify_salesforce_broad_records(
   }
   guard current is Some(current) &&
     physical_equal(current, records) &&
-    physical_equal(issuer.requirement, attempt.preparation.requirement) &&
-    salesforce_retention_matches(records.retention, attempt) else {
+    physical_equal(
+      @planning.query_evidence_registration_requirement(issuer.registration),
+      attempt.preparation.requirement,
+    ) else {
     return Err(ForeignRecords)
   }
-  if !(issuer.transport_matches)(attempt) {
-    return Err(UnverifiedTransport)
+  match
+    @planning.verify_query_evidence_issued(
+      records.issued,
+      issuer.registration,
+      records.authority.token,
+      issuer,
+      attempt,
+      records.retention,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(salesforce_custody_issue(issue))
   }
-  Ok(())
 }
 
 ///|
@@ -459,7 +450,7 @@ pub fn salesforce_broad_record_at(
   records : SalesforceBroadRecords,
   index : Int,
 ) -> (@encode.EncodedDocument, String)? {
-  @planning.query_record_artifact_at(records.artifacts, index)
+  @planning.query_evidence_record_at(records.issued, index)
 }
 
 ///|
@@ -476,15 +467,24 @@ pub fn capture_salesforce_broad_query(
   if attempt.state is Captured(_) {
     return Err(AlreadyCaptured)
   }
-  match @planning.build_query_observation_artifact(records.artifacts, limits) {
-    Ok((document, cid, _, _)) => {
-      let observation = { records, document, cid, }
+  match
+    @planning.capture_query_evidence(
+      records.issued,
+      issuer.registration,
+      records.authority.token,
+      issuer,
+      attempt,
+      records.retention,
+      limits,
+    ) {
+    Ok(captured) => {
+      let observation = { records, captured, }
       attempt.state = Captured(observation)
       Ok(observation)
     }
     Err(issue) => {
       abort_salesforce_broad_attempt(attempt)
-      Err(Artifact(issue))
+      Err(salesforce_custody_issue(issue))
     }
   }
 }
@@ -493,14 +493,14 @@ pub fn capture_salesforce_broad_query(
 pub fn salesforce_broad_observation_cid(
   observation : SalesforceBroadObservation,
 ) -> String {
-  observation.cid
+  @planning.query_evidence_capture_cid(observation.captured)
 }
 
 ///|
 pub fn salesforce_broad_observation_document(
   observation : SalesforceBroadObservation,
 ) -> @encode.EncodedDocument {
-  observation.document
+  @planning.query_evidence_capture_document(observation.captured)
 }
 
 ///|
@@ -519,6 +519,18 @@ pub fn bind_captured_salesforce_broad_input(
   guard attempt.state is Captured(actual) && physical_equal(actual, observation) else {
     return Err(ForeignObservation)
   }
+  match
+    @planning.verify_query_evidence_captured(
+      observation.captured,
+      issuer.registration,
+      observation.records.authority.token,
+      issuer,
+      attempt,
+      observation.records.retention,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(salesforce_custody_issue(issue))
+  }
   @execution.bind_live_completed_input(
     receiver,
     input_index,
@@ -528,7 +540,16 @@ pub fn bind_captured_salesforce_broad_input(
       verify_salesforce_broad_records(issuer, attempt, observation.records)
       is Ok(_) &&
       attempt.state is Captured(actual) &&
-      physical_equal(actual, observation)
+      physical_equal(actual, observation) &&
+      @planning.verify_query_evidence_captured(
+        observation.captured,
+        issuer.registration,
+        observation.records.authority.token,
+        issuer,
+        attempt,
+        observation.records.retention,
+      )
+      is Ok(_)
     },
   ).map_err(issue => Consumer(issue))
 }
@@ -541,13 +562,13 @@ pub fn complete_salesforce_broad_capture(
   attempt : SalesforceBroadAttempt,
   limits : SalesforceBroadCompletionLimits,
 ) -> Result[SalesforceBroadObservation, SalesforceEvidenceIssue] {
-  if !issuer.live {
+  if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
   if !physical_equal(issuer, attempt.authority.issuer) {
     return Err(UnauthorizedAttempt)
   }
-  if !(issuer.transport_matches)(attempt) {
+  if !@planning.query_evidence_transport_matches(issuer.registration, attempt) {
     abort_salesforce_broad_attempt(attempt)
     return Err(UnverifiedTransport)
   }

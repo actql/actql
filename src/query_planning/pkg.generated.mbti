@@ -35,11 +35,17 @@ pub fn build_query_observation_artifact(QueryRecordArtifacts, QueryEvidenceLimit
 
 pub fn build_query_record_artifacts(QueryRequirement, @execution_relation.RowWireIdentity, @execution_relation.RowWireIdentity, @relation_schema.Schema, String, String, QueryMaterialLimits) -> Result[QueryRecordArtifacts, QueryArtifactIssue]
 
+pub fn[I, A, R] capture_query_evidence(QueryEvidenceIssued[I, A, R], QueryEvidenceRegistration[A], QueryEvidenceAttemptAuthority[A], I, A, R, QueryEvidenceLimits) -> Result[QueryEvidenceCaptured[I, A, R], QueryEvidenceCustodyIssue]
+
 pub fn choose_acquisition_candidate(@connector_sdk.CapabilityRegistry, QueryRequirement, Array[AcquisitionCandidate], Array[Int]?, Int) -> Result[AcquisitionSelection, QueryPlanningIssue]
+
+pub fn[A] close_query_evidence_registration(QueryEvidenceRegistration[A]) -> Unit
 
 pub fn emit_query_output(QueryOutputIdentity, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_query_snapshot((String, String)?, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn[I, A, R] issue_query_evidence(QueryEvidenceRegistration[A], QueryEvidenceAttemptAuthority[A], I, A, R, MeasuredQueryRows, @execution_relation.CapturedRows, @execution_relation.CompletedOutput, @relation_schema.Schema, QueryMaterialLimits) -> Result[QueryEvidenceIssued[I, A, R], QueryEvidenceCustodyIssue]
 
 pub fn issuer_counter() -> IssuerCounter
 
@@ -59,7 +65,25 @@ pub fn query_artifact_request_matches(QueryMaterialBudget, QueryRequirement) -> 
 
 pub fn query_artifact_spend_work(QueryMaterialBudget, Int) -> Bool
 
+pub fn[A] query_evidence_attempt_number(QueryEvidenceAttemptAuthority[A]) -> String
+
+pub fn[I, A, R] query_evidence_capture_cid(QueryEvidenceCaptured[I, A, R]) -> String
+
+pub fn[I, A, R] query_evidence_capture_document(QueryEvidenceCaptured[I, A, R]) -> @encode_core.EncodedDocument
+
+pub fn[I, A, R] query_evidence_capture_usage(QueryEvidenceCaptured[I, A, R]) -> (Int, Int)
+
 pub fn query_evidence_contract_usage(QueryEvidenceContracts) -> (Int, Int)
+
+pub fn[I, A, R] query_evidence_record_at(QueryEvidenceIssued[I, A, R], Int) -> (@encode_core.EncodedDocument, String)?
+
+pub fn[A] query_evidence_registration_live(QueryEvidenceRegistration[A]) -> Bool
+
+pub fn[A] query_evidence_registration_name(QueryEvidenceRegistration[A]) -> String
+
+pub fn[A] query_evidence_registration_requirement(QueryEvidenceRegistration[A]) -> QueryRequirement
+
+pub fn[A] query_evidence_transport_matches(QueryEvidenceRegistration[A], A) -> Bool
 
 pub fn query_material_cids(QueryMaterial) -> (String, String, String)
 
@@ -99,7 +123,15 @@ pub fn query_two_receipt_contract_cid(QueryTwoReceiptContract) -> String
 
 pub fn query_two_receipt_contract_usage(QueryTwoReceiptContract) -> (Int, Int)
 
+pub fn[A] register_query_evidence_issuer(QueryEvidenceContracts, QueryRequirement, String, Int, String, (A) -> Bool) -> Result[QueryEvidenceRegistration[A], QueryEvidenceCustodyIssue]
+
 pub fn reserve_issuer_number(IssuerCounter) -> Int?
+
+pub fn[A, P] reserve_selected_query_evidence_attempt(QueryEvidenceRegistration[A], AcquisitionChoice, PreparedAcquisition[P], (P) -> QueryRequirement) -> Result[(P, QueryEvidenceAttemptAuthority[A]), QueryEvidenceCustodyIssue]
+
+pub fn[I, A, R] verify_query_evidence_captured(QueryEvidenceCaptured[I, A, R], QueryEvidenceRegistration[A], QueryEvidenceAttemptAuthority[A], I, A, R) -> Result[Unit, QueryEvidenceCustodyIssue]
+
+pub fn[I, A, R] verify_query_evidence_issued(QueryEvidenceIssued[I, A, R], QueryEvidenceRegistration[A], QueryEvidenceAttemptAuthority[A], I, A, R) -> Result[Unit, QueryEvidenceCustodyIssue]
 
 // Errors
 
@@ -135,6 +167,19 @@ pub(all) enum QueryArtifactIssue {
   Encoding(@encode_core.EncodeFailure)
 }
 
+pub struct QueryEvidenceAttemptAuthority[A] {
+  registration : QueryEvidenceRegistration[A]
+  number : String
+}
+
+pub struct QueryEvidenceCaptured[I, A, R] {
+  issued : QueryEvidenceIssued[I, A, R]
+  document : @encode_core.EncodedDocument
+  cid : String
+  bytes : Int
+  nodes : Int
+}
+
 pub(all) enum QueryEvidenceContractIssue {
   InvalidLimits
   AcquisitionBodyLimit
@@ -145,10 +190,41 @@ pub(all) enum QueryEvidenceContractIssue {
 
 type QueryEvidenceContracts
 
+type QueryEvidenceCustody[I, A, R]
+
+pub(all) enum QueryEvidenceCustodyIssue {
+  InvalidLimits
+  InvalidIdentity
+  IdentifierExhausted
+  IssuerClosed
+  NotSelected
+  ForeignRequirement
+  ForeignOwner
+  ForeignRetention
+  UnverifiedTransport
+  ForeignRecords
+  AlreadyCaptured
+  Artifact(QueryArtifactIssue)
+}
+
+pub struct QueryEvidenceIssued[I, A, R] {
+  owner : QueryEvidenceCustody[I, A, R]
+  artifacts : QueryRecordArtifacts
+}
+
 pub(all) struct QueryEvidenceLimits {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+}
+
+pub struct QueryEvidenceRegistration[A] {
+  _contracts : QueryEvidenceContracts
+  requirement : QueryRequirement
+  name : String
+  attempts : IssuerCounter
+  mut live : Bool
+  mut transport_matches : (A) -> Bool
 }
 
 pub(all) struct QueryLogicalGuards {
