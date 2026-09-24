@@ -11487,6 +11487,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/bound-template-wire.grammar-manifest-identity",
+      "statement_sha256": "15c47ee8a0358f5a4fdf425e695c0b24f183d05ebeab169468213c2bac7d6326",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "bound-template-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/bound-template-wire.barrier-manifest-identity",
+      "statement_sha256": "2dc2ba2f0d7fea5418c2c70815a4874a8813a9bc80c6d0e4528620a8d5ec57f9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "bound-template-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/bound-template-wire.compilation-manifest-admission",
+      "statement_sha256": "0969e8bf13a9b8c98c1b2a79fffe68ef01091d517ca6ff6ab74d028bc72189ef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "bound-template-wire",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/bound-template-wire.parameter-projection",
       "statement_sha256": "45bf479b358ba69ded439ed8552459d7eb54a83a667d209c05465c11bcaaaff3",
       "status": "pending",

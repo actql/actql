@@ -1203,6 +1203,34 @@ shown above except `bound_invocation_template_cid`, including
 `invocation_bindings_cid`, the grammar and barrier manifest CIDs, and the
 required profile contracts.
 
+<!-- requirement-block: bound-template-wire.grammar-manifest-identity -->
+The pinned `actql-grammar-manifest/0.1` MUST be a separate identity from the
+Program source grammar. Its closed `operations` array is the complete
+author-visible vocabulary in the language specification, sorted by code point.
+The manifest also binds the Program source schema CID, the complete expression
+contract CID, the raw UTF-8 expression EBNF SHA-256, and the SHA-256 of the
+UTF-8 language section starting at `<a id="expression-text"></a>` and ending
+immediately before `<a id="predicates"></a>`. That section contains the
+expression syntax, decoding and printer rules. The manifest CID hashes the
+canonical JSON of every member except `grammar_manifest_cid`.
+
+<!-- requirement-block: bound-template-wire.barrier-manifest-identity bound-template-wire.compilation-manifest-admission -->
+The pinned `actql-barrier-contract-manifest/0.1` MUST close over every registered
+`*_barrier` contract in the production-profile registry. Each entry binds its
+name and exact schema CID, sorted by name; the manifest also binds the full
+registry CID. Its CID hashes the canonical JSON of every member except
+`barrier_contract_manifest_cid`. A Plan containing a barrier outside this
+registered set cannot use this manifest as evidence for that barrier. Both
+manifest bodies and their schema pins MUST be verified before issuing an
+Executable Plan; a bare source-grammar CID or an invented placeholder CID is
+not a manifest.
+
+<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:8545024d32a770e6056edd4eb28cb42c75339b090d6234d7004d87671cb47b66 -->
+<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:fce1a3d02d7f99742b001b700c6f103a4aa08237de0c9417bab20ea8931eb700 -->
+<!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:7b3f095cbf7beda05c3baea6e74ccb7877dc123f0e9292c8729a280163d036a3 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3 -->
+
 <a id="parameter-value-projection"></a>
 
 #### Parameter value identity projection

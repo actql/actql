@@ -453,6 +453,36 @@
           "version": "actql-check-environment-contract/0.1"
         },
         {
+          "path": "spec/contracts/actql-compilation-manifests.json",
+          "pointer": "",
+          "cid": "sha256:8545024d32a770e6056edd4eb28cb42c75339b090d6234d7004d87671cb47b66",
+          "version": "actql-compilation-manifests/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-compilation-manifests.json",
+          "pointer": "/schemas/grammar_manifest",
+          "cid": "sha256:fce1a3d02d7f99742b001b700c6f103a4aa08237de0c9417bab20ea8931eb700",
+          "version": "actql-compilation-manifests/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-compilation-manifests.json",
+          "pointer": "/schemas/barrier_contract_manifest",
+          "cid": "sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342",
+          "version": "actql-compilation-manifests/0.1"
+        },
+        {
+          "path": "spec/manifests/actql-grammar-0.1.json",
+          "pointer": "",
+          "cid": "sha256:7b3f095cbf7beda05c3baea6e74ccb7877dc123f0e9292c8729a280163d036a3",
+          "version": "actql-grammar-manifest/0.1"
+        },
+        {
+          "path": "spec/manifests/actql-barrier-contracts-0.1.json",
+          "pointer": "",
+          "cid": "sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3",
+          "version": "actql-barrier-contract-manifest/0.1"
+        },
+        {
           "path": "spec/contracts/actql-local-relation-snapshot.json",
           "pointer": "",
           "cid": "sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5",
