@@ -592,7 +592,30 @@ pub fn prepare_client_task_sequence(
   max_work : Int,
   max_entries : Int,
 ) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+  prepare_client_task_sequence_graph(
+    value.graph,
+    task,
+    contracts,
+    contexts,
+    limits,
+    max_work,
+    max_entries,
+  )
+}
+
+///|
+/// One lowering path for Effect-free and Effectful checked computations.
+/// The caller must retain the graph's original checked Program owner.
+fn prepare_client_task_sequence_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  contracts : @execution.RegisteredRelationContracts,
+  contexts : Array[@execution.FragmentRuntimeContext],
+  limits : @lower.SequenceLimits,
+  max_work : Int,
+  max_entries : Int,
+) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
   let sequence = match @lower.prepare_sequence(owner, limits) {

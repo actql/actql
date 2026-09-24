@@ -146,6 +146,8 @@ pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @loweri
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
 
+pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
+
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
@@ -157,6 +159,8 @@ pub fn prepare_all_captured_result_publication_exports(@physical_strategy.Captur
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
+pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
@@ -172,9 +176,13 @@ pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
 
+pub fn prepared_client_effect_computation_definition_cid(PreparedClientEffectComputation) -> String
+
 pub fn prepared_client_effect_computation_environment_cid(PreparedClientEffectComputation) -> String
 
 pub fn prepared_client_effect_computation_graph(PreparedClientEffectComputation) -> @physical_strategy.CheckedEffectComputationDAG
+
+pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComputation) -> String
 
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
 
