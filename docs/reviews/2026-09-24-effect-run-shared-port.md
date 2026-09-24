@@ -412,3 +412,11 @@ SF-4 (managed and nonterminal Result borrowing), and SF-5 (standard multi-
 member Effect Run) remain open. The existing `CapturedEffectPreviewInputs`
 binding is a private input identity guard, not apply authority. No local
 fixture or this shared CID migration is live Salesforce verification.
+
+The SF-4 audit also found that Effect source pins used the authored Stage
+index as a physical task index. Carrier segmentation can move a Stage's Result
+Step to another task. The checked graph now retains the Stage-to-task mapping,
+binds each Effect source to the exact physical target, and passes that task to
+the common pin. A Carrier-segmented graph and a checked Effect source exercise
+the mapping separately; a connected segmented Effect Run fixture is still
+required. Managed/resident retention and the standard Effect Run remain open.

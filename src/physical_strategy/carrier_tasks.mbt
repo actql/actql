@@ -306,6 +306,7 @@ pub fn expand_internal_carrier_tasks(
   Ok({
     program: graph.program,
     owners,
+    stage_tasks,
     targets,
     input_counts,
     selected_steps,

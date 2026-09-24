@@ -182,6 +182,8 @@ pub fn checked_effect_source_occurrence(CheckedEffectSourcePort) -> @execution_r
 
 pub fn checked_effect_source_stage(CheckedEffectSourcePort) -> Int
 
+pub fn checked_effect_source_task(CheckedEffectSourcePort) -> Int
+
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
 pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
@@ -255,6 +257,8 @@ pub fn graph_result_name(CheckedDAG, Int) -> String?
 pub fn graph_result_occurrence(CheckedDAG, Int) -> @execution_relation.ManagedResultOccurrence?
 
 pub fn graph_result_task(CheckedDAG, Int) -> Int?
+
+pub fn graph_stage_target_task(CheckedDAG, Int, @pipeline_typing.Target) -> Int?
 
 pub fn graph_task_count(CheckedDAG) -> Int
 
@@ -614,6 +618,7 @@ pub(all) enum GraphIssue {
   InvalidLimits
   EffectGraphOwnerRequired
   ForeignEffectSource(Int)
+  UnsupportedEffectSource(Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)

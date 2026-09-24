@@ -95,6 +95,16 @@ test "physical DAG segments Carrier-only internal operation edges" {
   }
   assert_eq(selected.length(), 3)
   assert_eq(selected.map(pair => pair.1), [0, 1, 2])
+  for (task, step) in selected {
+    assert_eq(
+      @strategy.graph_stage_target_task(physical, 2, @pipeline.Step(step)),
+      Some(task),
+    )
+  }
+  assert_eq(
+    @strategy.graph_stage_target_task(physical, 2, @pipeline.Step(3)),
+    None,
+  )
   let operation_edges = []
   for edge in 0..<@strategy.graph_data_count(physical) {
     let value = @strategy.graph_data_at(physical, edge).unwrap()

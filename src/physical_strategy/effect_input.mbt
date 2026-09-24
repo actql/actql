@@ -43,7 +43,7 @@ pub fn pin_captured_effect_sources(
       if source.member_index != index {
         return Err(ForeignCandidate)
       }
-      requests.push((source.stage, source.occurrence))
+      requests.push((source.task, source.occurrence))
     }
     sources.push(source)
   }
@@ -249,7 +249,7 @@ pub fn pin_captured_effect_source(
   let pin = match
     pin_captured_result_output(
       run.captured,
-      source.stage,
+      source.task,
       source.occurrence,
       max_pins,
     ) {
