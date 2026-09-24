@@ -45,7 +45,9 @@
     {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "to_events", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "to_vectors", "path": "entrypoint"}
+    {"family": "Bridge", "operation": "events", "path": "entrypoint"},
+    {"family": "Bridge", "operation": "to_vectors", "path": "entrypoint"},
+    {"family": "Bridge", "operation": "vectors", "path": "entrypoint"}
   ],
   "required_facets": [
     "admission_before_allocation",
