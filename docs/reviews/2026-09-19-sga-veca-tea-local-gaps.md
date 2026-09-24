@@ -21,8 +21,11 @@ record scan for every output column. It scans each demanded source field once,
 retains only admitted output names, then verifies output fields in schema order.
 The six-field reversed-storage fixture completes in 13 charged steps: six
 source probes, six checks, and one append. It preserves result order and
-avoids reading fields after all demanded names are found. Exact/one-short
-workspace and output-value proofs for the reverse Bridge routes remain open.
+avoids reading fields after all demanded names are found. The same direct
+Events-view fixture admits seven output value nodes and six schema entries,
+rejects each one-short bound, and stops and reclaims after scanning begins.
+It does not establish exact workspace or all production-route work limits for
+the reverse Bridge routes; those assurances remain open.
 
 The registered rows-to-Events Bridge now has independently counted 32/31
 construction-work and 13/12 peak structural-workspace limits for two
