@@ -63,42 +63,24 @@ pub fn install_native_remote_values_task_executor(
     limits.bridge_max_name_bytes < 1 {
     return Err(InvalidLimits)
   }
-  let identity = @host.prepared_client_identity(prepared)
-  if @publication.check_run_publication_program_binding(
-      admission,
-      run_definition,
-      identity.program_definition_cid,
-      @host.prepared_client_program_semantics_cid(prepared),
-      @host.prepared_client_check_environment_cid(prepared),
-    )
-    is Err(_) ||
-    @publication.run_publication_compiled_plan_cid(admission) !=
-    @publication.publication_contract_identity(
-      @host.client_values_compilation_compiled_plan(compilation),
-    ) ||
-    @publication.run_publication_template_cid(admission) !=
-    @publication.run_evidence_value_identity(
-      @host.client_values_compilation_template(compilation),
+  let checked = match
+    @host.bind_source_free_client_values_run(
+      prepared, compilation, admission, run_definition,
     ) {
-    return Err(ForeignRun)
-  }
-  let graph = @host.prepared_client_graph(prepared)
-  if @strategy.graph_task_count(graph) != 1 ||
-    @strategy.graph_task_input_count(graph, 0) != Some(0) ||
-    @host.prepared_client_result_count(prepared) != 1 ||
-    @host.client_values_compilation_result_names(compilation) !=
-    [@host.prepared_client_result_name(prepared, 0).unwrap()] {
-    return Err(UnsupportedProgram)
+    Ok(value) => value
+    Err(@host.ClientValuesRunBindingIssue::ForeignRun) => return Err(ForeignRun)
+    Err(@host.ClientValuesRunBindingIssue::UnsupportedProgram) =>
+      return Err(UnsupportedProgram)
   }
   // This adapter has no physical input. An opaque binding identity cannot
   // smuggle a source or a local file into an Effect-free Values task.
   if @remote.remote_input_binding_body(input_binding) != "{}" {
     return Err(InvalidInputBinding)
   }
-  let run_definition_cid = @publication.publication_contract_identity(
-    run_definition,
+  let run_definition_cid = @host.client_values_run_binding_definition_cid(
+    checked,
   )
-  let task_key = @host.client_values_compilation_plan_node_id(compilation)
+  let task_key = @host.client_values_run_binding_task_key(checked)
   let binding_cid = @remote.remote_input_binding_cid(input_binding)
   let executor = @runtime.install_native_remote_task_executor(
     run_definition_cid,

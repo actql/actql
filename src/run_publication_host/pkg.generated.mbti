@@ -51,6 +51,8 @@ pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @l
 
 pub fn admit_source_free_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
@@ -152,6 +154,12 @@ pub fn client_values_fragment_output_contract_wire(ClientValuesFragmentNode) -> 
 pub fn client_values_fragment_wire(ClientValuesFragmentNode) -> String
 
 pub fn client_values_plan_graph_wire(ClientValuesPlanGraph) -> String
+
+pub fn client_values_run_binding_definition_cid(ClientValuesRunBinding) -> String
+
+pub fn client_values_run_binding_result_name(ClientValuesRunBinding) -> String
+
+pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
@@ -623,6 +631,13 @@ pub(all) enum ClientValuesPlanGraphIssue {
   Fragment(ClientValuesFragmentIssue)
   Root(ClientDirectResultRootIssue)
   Encoding
+}
+
+type ClientValuesRunBinding
+
+pub(all) enum ClientValuesRunBindingIssue {
+  ForeignRun
+  UnsupportedProgram
 }
 
 pub(all) enum ClientValuesUnitSourceIssue {

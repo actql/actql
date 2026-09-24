@@ -142,6 +142,41 @@ test "native Values task installation binds the checked Run before Compute" {
     10000,
     100,
   ).unwrap()
+  let checked = @host.bind_source_free_client_values_run(
+    prepared, compilation, admission, definition,
+  ).unwrap()
+  assert_eq(
+    @host.client_values_run_binding_definition_cid(checked),
+    @publication.publication_contract_identity(definition),
+  )
+  assert_eq(@host.client_values_run_binding_task_key(checked), "values_0")
+  assert_eq(@host.client_values_run_binding_result_name(checked), "answer")
+  let foreign_definition = @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\"," +
+    "\"scope_id\":\"site-values-scope\"," +
+    "\"run_id\":\"site-values-foreign\"," +
+    "\"input_artifact_set_cid\":\"sha256:" +
+    "c".repeat(64) +
+    "\",\"created_at\":\"2026-09-25T00:00:00.000Z\"," +
+    "\"valid_until\":\"2027-01-01T00:00:00.000Z\"," +
+    "\"compiled_plan_cid\":\"sha256:" +
+    "f".repeat(64) +
+    "\",\"invocation_template_cid\":\"" +
+    @publication.run_evidence_value_identity(template) +
+    "\",\"authorization_context_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\"}",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  assert_true(
+    @host.bind_source_free_client_values_run(
+      prepared, compilation, admission, foreign_definition,
+    )
+    is Err(@host.ClientValuesRunBindingIssue::ForeignRun),
+  )
   let binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
   let limits : NativeRemoteValuesTaskLimits = {
     finalization_quantum: 16,

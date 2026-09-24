@@ -3,7 +3,6 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/client_local_host" @local,
   "actql/actql/execution_relation" @execution,
-  "actql/actql/physical_strategy" @strategy,
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_runtime" @runtime,
