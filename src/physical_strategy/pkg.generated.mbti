@@ -16,6 +16,7 @@ import {
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
+  "actql/actql/stage_results",
   "moonbitlang/core/debug",
 }
 
@@ -107,6 +108,8 @@ pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
+
+pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
@@ -646,6 +649,13 @@ pub(all) enum CapturedEffectGuardIssue {
 type CapturedEffectInput
 
 type CapturedEffectInputs
+
+pub(all) enum CapturedEffectPlanIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  Plan(@stage_results.EffectPlanBindingIssue)
+} derive(@debug.Debug)
 
 type CapturedEffectPreviewInputs
 

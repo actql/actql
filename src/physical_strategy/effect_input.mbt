@@ -197,6 +197,69 @@ pub fn captured_effect_preview_input_at(
 }
 
 ///|
+pub(all) enum CapturedEffectPlanIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  Plan(@results.EffectPlanBindingIssue)
+} derive(Debug)
+
+///|
+/// Recover the checked Plan for a Preview member from the same captured Run
+/// that owns its pinned Result. The caller cannot substitute a rule, Result
+/// name, or physical producer. Row evaluation and apply remain separate.
+pub fn captured_effect_preview_plan_terminal(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[@results.EffectPlanTerminal?, CapturedEffectPlanIssue] {
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  if max_fields < 0 || max_work < 0 {
+    return Err(Plan(@results.EffectPlanBindingIssue::InvalidLimits))
+  }
+  guard value.source_indexes.get(preview_index) is Some(source_index) else {
+    return Err(InvalidMember)
+  }
+  guard source_index is Some(member_index) else { return Ok(None) }
+  guard captured_effect_preview_input_at(value, preview_index) is Some(input) else {
+    return Err(NotReady)
+  }
+  let static_candidate = @checked.effect_program_run_static_candidate(
+    value.inputs.run.checked.run,
+  )
+  let effects = @checked.effect_program_static_effects(static_candidate)
+  guard @results.effect_result_binding_at(
+      @results.effect_static_candidate_results(effects),
+      member_index,
+    )
+    is Some(binding) &&
+    input.source.member_index == member_index else {
+    return Err(ForeignBinding)
+  }
+  if @syntax.effect_header_kind(@results.effect_result_binding_header(binding)) ==
+    "command" {
+    return Ok(None)
+  }
+  let rules = @results.effect_static_candidate_mapping_rules(effects)
+  let terminal = match
+    @results.effect_plan_terminal_for_member(
+      rules, member_index, max_fields, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
+  }
+  if terminal is Some(terminal) &&
+    @results.effect_plan_terminal_source_result(terminal) !=
+    @execution.managed_result_occurrence_name(input.source.occurrence) {
+    return Err(ForeignBinding)
+  }
+  Ok(terminal)
+}
+
+///|
 pub(all) enum CapturedEffectGuardIssue {
   InvalidLimits
   NotReady

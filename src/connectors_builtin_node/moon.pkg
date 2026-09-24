@@ -40,4 +40,5 @@ import {
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/execution_authorization" @authorization,
   "moonbitlang/core/debug",
+  "actql/actql/stage_results" @effect_results,
 }
