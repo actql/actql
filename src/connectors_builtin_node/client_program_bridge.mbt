@@ -1979,6 +1979,15 @@ pub fn client_program_admit_effect_risk_acceptance_body(
 }
 
 ///|
+/// The unsigned canonical payload CID used by detached authentication.
+#export_name("clientProgramEffectRiskUnsignedPayloadCid")
+pub fn client_program_effect_risk_unsigned_payload_cid(
+  body : @effect.EffectRiskAcceptanceBody,
+) -> String {
+  @effect.effect_risk_acceptance_unsigned_payload_cid(body)
+}
+
+///|
 /// Compare Host-verified risk facts with the same live captured Preview.
 /// The Host must first verify their authentication and current authority.
 #export_name("clientProgramCheckEffectRiskAcceptanceBody")

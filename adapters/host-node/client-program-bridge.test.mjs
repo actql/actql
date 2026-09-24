@@ -779,6 +779,13 @@ test('owned update Plan matches approved rows and rejects altered intent',
           wire, 8192, 256, 12));
       const risk = admittedRisk(riskFor(
         ['effect_scope_approved', 'partial_application_accepted']));
+      const unsignedRisk = JSON.parse(riskFor(
+        ['effect_scope_approved', 'partial_application_accepted']));
+      delete unsignedRisk.self_cid;
+      delete unsignedRisk.authentication_evidence_cid;
+      assert.equal(moon.clientProgramEffectRiskUnsignedPayloadCid(risk),
+        `sha256:${createHash('sha256')
+          .update(canonicalJson(unsignedRisk)).digest('hex')}`);
       const checkRisk = (body, {
         projection = cid('a'), authority = cid('e'), policy = cid('a'),
         validity = cid('a'), issuer = cid('a'), authentication = cid('a'),
