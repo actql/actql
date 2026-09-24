@@ -280,8 +280,17 @@ limits retain the original ordered scan and first failure. The value summary is
 not a substitute for new comparison or join demand. A real standard-Host count
 fixture now reuses values at all three consumers without another full scan,
 including a projected input. The exact first-consumer and tighter-ceiling
-regressions pass on all three MoonBit targets. Formal paired timing after this
-change remains to be measured.
+regressions pass on all three MoonBit targets.
+
+At clean revision `f83d2968`, the registered wide/reuse case completed seven
+local paired observations with an execution ratio interval of 1.251–1.332.
+The limit is 1.25, so the case still fails; the one-case run cannot establish
+the full 27-case result. All three tasks reported reused input values, zero
+full input scans, and one narrow comparison-demand scan each. The input
+verification intervals fell to about 8–15 milliseconds per task in those
+observations. First resident import remained about 0.85–1.04 seconds and wide
+output callbacks about 0.7–1.0 seconds each. These measured residuals, plus
+the separate small-case startup gap, set the next optimization priorities.
 
 The controller's preparation cannot simply be dropped: its independently
 checked task identities constrain the worker's completion claims before the
