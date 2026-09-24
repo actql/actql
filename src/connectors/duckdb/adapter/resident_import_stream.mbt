@@ -53,6 +53,21 @@ pub fn append_resident_import_stream(
 }
 
 ///|
+/// Scalar staging uses the same exact retained-content verifier as the typed
+/// importer. It avoids materializing physical parameters when the bounded
+/// native appender checks the corresponding scalar row.
+pub fn append_resident_import_scalar_stream(
+  stream : ResidentImportStream,
+  row : String,
+  limits : @execution.RetainedRowDecodeLimits,
+) -> Result[Unit, FixedImportStreamIssue] {
+  match @execution.append_retained_storage_scan_wire(stream.scan, row, limits) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Content(issue))
+  }
+}
+
+///|
 /// Check the native staging table against the same retained-content stream
 /// used by the row importer. Physical parsing alone is never import evidence.
 pub fn prepare_resident_import_physical(

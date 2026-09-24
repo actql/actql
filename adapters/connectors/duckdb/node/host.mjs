@@ -209,9 +209,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       const material = checked(moon.residentImportMaterial(table));
       const scalarNames = material != null && boundedTransport(limits) && limits.threads === 1
         ? moon.residentImportScalarNames(table)?._0 : undefined;
-      const scalarScanSql = scalarNames == null ? undefined
-        : moon.residentImportScanSql(table, limits.maxSqlBytes);
-      const scalarStaging = scalarScanSql != null && scalarNames?.length === columns;
+      const scalarStaging = scalarNames?.length === columns;
       nativeScalarStaging = scalarStaging;
       const appender = material != null && limits.threads === 1
         ? await session.openResidentAppender(checked(moon.residentImportTableName(table)), columns)
@@ -264,6 +262,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
                   (type.id === 'VARCHAR' && typeof value === 'string')) return value;
               throw new DuckDBTransportError('InvalidScalarImportRow');
             });
+            checked(moon.residentImportScalarAppend(stream, row, decode));
             appender.appendScalars(values);
             if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
               appender.flush();
@@ -287,24 +286,6 @@ export async function importResidentStrategyInput(environment, producer, tableBy
           signal?.throwIfAborted();
           await batch?.finish();
           appender?.finish();
-          if (scalarStaging) {
-            const transport = {max_bytes: limits.maxTransportBytes,
-              max_nodes: Math.min(2147483647, limits.maxCells + limits.maxColumns * 2),
-              max_columns: columns, max_rows: limits.maxChunkRows,
-              max_text_bytes: limits.maxTransportBytes};
-            const physicalLimits = {max_rows: count, max_cells: count * columns,
-              max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes};
-            let physical;
-            const fields = await session.command(scalarScanSql, [], chunk => {
-              signal?.throwIfAborted();
-              physical ??= checked(moon.residentImportPhysicalBegin(stream,
-                fieldsFrame(chunk.fields), physicalLimits, wire.max_order_work, transport));
-              checked(moon.residentImportPhysicalAccept(stream, physical,
-                rows(chunk.rowCount), JSON.stringify(chunk.columns), transport));
-            });
-            physical ??= checked(moon.residentImportPhysicalBegin(stream,
-              fieldsFrame(fields), physicalLimits, wire.max_order_work, transport));
-          }
           checked(moon.residentImportStreamFinish(stream));
         } finally {
           frames.cancel();

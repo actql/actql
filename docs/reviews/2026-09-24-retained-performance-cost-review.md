@@ -325,6 +325,16 @@ Re-enabling external access or leaving it open would weaken the existing
 session boundary. The new staging path is a correctness-checked implementation
 candidate, not yet a performance acceptance result.
 
+The scalar staging path now verifies each retained row through the same MoonBit
+content scan used by the typed importer before appending it. It finishes the
+exact receipt after the Store read and native Appender finish, before the
+resident table is committed. This removes the additional full DuckDB table
+readback and its physical-result conversion. The physical adapter remains the
+trusted in-process conversion boundary, as it is in the typed importer; the
+Store digest, ordered row admission, exact receipt and later consumer checks
+remain required. The real-DuckDB standard Host and three-target adapter tests
+pass. Performance at this later revision is not yet an acceptance result.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall

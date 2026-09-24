@@ -8164,8 +8164,8 @@ async function exerciseStrategyGraph(
       assert.equal(imported.importedRows, 3);
       assert.equal(imported.batchRows, batchedImport ? 2 : 1);
       assert.equal(imported.nativeScalarStaging, Boolean(retainedSource && batchedImport));
-      assert.equal(imported.usage.statements, retainedSource ? (batchedImport ? 2 : 1) : batchedImport ? 3 : 4);
-      assert.equal(imported.usage.preparations, retainedSource ? (batchedImport ? 2 : 1) : batchedImport ? 3 : 2,
+      assert.equal(imported.usage.statements, retainedSource ? 1 : batchedImport ? 3 : 4);
+      assert.equal(imported.usage.preparations, retainedSource ? 1 : batchedImport ? 3 : 2,
         'retained rows use a typed appender; other imports prepare bounded INSERT shapes');
       if (retainedSource) {
         assert.equal(imported.usage.appendedRows, 3);

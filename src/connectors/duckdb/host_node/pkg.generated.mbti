@@ -411,6 +411,8 @@ pub fn resident_import_physical_accept(@adapter.ResidentImportStream, @adapter.P
 
 pub fn resident_import_physical_begin(@adapter.ResidentImportStream, String, @adapter.PhysicalResultLimits, Int, @adapter.TransportColumnLimits) -> @adapter.PhysicalResult raise NodeHostFailure
 
+pub fn resident_import_scalar_append(@adapter.ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise NodeHostFailure
+
 pub fn resident_import_scalar_names(@driver.DuckDBResidentTable) -> Array[String]?
 
 pub fn resident_import_scan_sql(@driver.DuckDBResidentTable, Int) -> String?

@@ -87,6 +87,19 @@ pub fn resident_import_stream_append(
 }
 
 ///|
+#export_name("residentImportScalarAppend")
+pub fn resident_import_scalar_append(
+  stream : @duckdb.ResidentImportStream,
+  row : String,
+  limits : @execution.RetainedRowDecodeLimits,
+) -> Unit raise NodeHostFailure {
+  match @duckdb.append_resident_import_scalar_stream(stream, row, limits) {
+    Ok(_) => ()
+    Err(issue) => raise Compute(InputStream(issue))
+  }
+}
+
+///|
 #export_name("residentImportStreamFinish")
 pub fn resident_import_stream_finish(
   stream : @duckdb.ResidentImportStream,
