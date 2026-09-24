@@ -2052,6 +2052,41 @@ fn direct_rows_to_vectors_owner(
 }
 
 ///|
+fn direct_vectors_projection_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"id\"," +
+        "\"vector\":\"embedding\"}},{\"vectors\":true}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 test "rows to Vectors admits exact work and workspace and reclaims partial output" {
   let source_owner = direct_nearest_relation_owner(
     "[{\"id\":1,\"embedding\":[1,2]}," + "{\"id\":2,\"embedding\":[3,4]}]",
@@ -2151,6 +2186,146 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     is @local_bridge.Stopped(_, ..),
   )
   assert_eq(@local_bridge.cleanup_rows_to_vectors(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "Vectors projection production entrypoint enforces value and width limits" {
+  let source_owner = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,2]},{\"id\":2,\"embedding\":[3,4]}]",
+  )
+  let source = direct_nearest_relation_output(source_owner)
+  let owner = direct_vectors_projection_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let encoding = @local_bridge.start_rows_to_vectors(
+    @bounded.control(),
+    sequence,
+    0,
+    external,
+    carrier_vectors_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut vectors = None
+  for _ in 0..<40 {
+    if vectors is Some(_) {
+      break
+    }
+    match @local_bridge.advance_rows_to_vectors(encoding, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, ..) => vectors = Some(output)
+      _ => abort("rows-to-Vectors setup failed")
+    }
+  }
+  let vectors = vectors.unwrap()
+  assert_eq(@local_bridge.cleanup_rows_to_vectors(encoding), Ok(true))
+  let projection_input = @records.prepare_step_read(owner, 1, 0, vectors).unwrap()
+  let exact = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<20 {
+    if exact_done {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(exact, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, work~, ..) => {
+        assert_eq(work, 10L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        assert_true(
+          @execution.completed_output_matches_inputs(output, [external]),
+        )
+        exact_done = true
+      }
+      _ => abort("exact Vectors projection failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(exact), Ok(true))
+  let one_short_width = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    1,
+    1000,
+    [external],
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 9, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<20 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Vectors projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_vectors_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_vectors_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_vectors_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(cancelled), Ok(true))
+  assert_true(@records.completed_available(vectors))
+  assert_true(@records.discard_completed(vectors))
   assert_true(@execution.completed_output_available(source))
 }
 
