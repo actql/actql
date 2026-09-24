@@ -3478,6 +3478,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
           "fixture": "bounded sequence output-limit failure reclaims all scratch"
+        },
+        {
+          "role": "sequence_startup_work_independent_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence startup charges independently counted field probes"
         }
       ],
       "environment_tests": [

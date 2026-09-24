@@ -49,6 +49,7 @@ test('sequence retains product cancellation and cleanup evidence', () => {
     'sequence_quantum_one_output_and_cleanup',
     'sequence_in_flight_cancel_cleanup',
     'sequence_output_limit_cleanup',
+    'sequence_startup_work_independent_exact_one_short',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'TEA' &&
