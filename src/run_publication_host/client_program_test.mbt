@@ -530,6 +530,74 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     pipeline, "{\"output\":\"values_0\",\"sources\":{},\"steps\":[{\"id\":\"values_0\",\"in\":[],\"op\":\"REL.values\",\"params\":{\"rows\":[{\"id\":1},{\"id\":2}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}],\"version\":\"aoa-pipeline/0.1\"}",
   )
+  let aoa = issue_prepared_client_values_aoa_identity(
+    prepared, 0, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(client_values_aoa_identity_wire(aoa), pipeline)
+  // Independently hashed from the specified one-step AoA body.
+  assert_eq(
+    client_values_aoa_identity_cid(aoa),
+    "sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723",
+  )
+  assert_true(
+    admit_prepared_client_values_aoa_identity(
+      prepared,
+      0,
+      pipeline,
+      client_values_aoa_identity_cid(aoa),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_values_aoa_identity(
+      prepared,
+      0,
+      pipeline.replace(
+        old="{\"output\":\"values_0\",\"sources\":{}",
+        new="{\"sources\":{},\"output\":\"values_0\"",
+      ),
+      client_values_aoa_identity_cid(aoa),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_values_aoa_identity(
+      prepared,
+      0,
+      pipeline.replace(old="\"id\":2", new="\"id\":3"),
+      client_values_aoa_identity_cid(aoa),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Err(PipelineMismatch),
+  )
+  assert_true(
+    admit_prepared_client_values_aoa_identity(
+      prepared, 0, pipeline, "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      aoa_limits, 10000, 1000, 20,
+    )
+    is Err(CidMismatch),
+  )
+  assert_true(
+    issue_prepared_client_values_aoa_identity(
+      prepared, 1, aoa_limits, 10000, 1000, 20,
+    )
+    is Err(
+      ClientValuesAoAIdentityIssue::Pipeline(
+        ClientValuesPipelineIssue::MissingTask
+      )
+    ),
+  )
   assert_true(
     emit_prepared_client_values_pipeline(
       prepared, 1, aoa_limits, 10000, 1000, 20,

@@ -28,6 +28,8 @@ pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array
 
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
+pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -52,6 +54,10 @@ pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
+pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
+
+pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
+
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -71,6 +77,8 @@ pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowerin
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
+
+pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
@@ -234,6 +242,25 @@ pub(all) enum ClientTaskSequenceIssue {
   EmptyTask
   Sequence(@lowering_relation.SequenceIssue)
   Generated(@execution_relation.SequenceRunIssue)
+}
+
+pub(all) enum ClientValuesAoAAdmissionIssue {
+  CheckedPipeline(ClientValuesAoAIdentityIssue)
+  InvalidPipeline
+  PipelineMismatch
+  CidMismatch
+  Encoding
+}
+
+pub struct ClientValuesAoAIdentity {
+  wire : String
+  cid : String
+}
+
+pub(all) enum ClientValuesAoAIdentityIssue {
+  Pipeline(ClientValuesPipelineIssue)
+  NoncanonicalPipeline
+  Encoding
 }
 
 pub(all) enum ClientValuesPipelineIssue {
