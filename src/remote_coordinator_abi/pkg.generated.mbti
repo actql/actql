@@ -30,6 +30,8 @@ pub fn coordinator_durable_request(@remote_site_protocol.DurableCoordinatorDispa
 
 pub fn coordinator_durable_revision(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Int
 
+pub fn coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
+
 pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_poll_query_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]

@@ -25,6 +25,7 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
   assert.throws(() => checked(moon.coordinatorPollDispatchJson(
     request, '{}', 1024)), {code: 'MoonBitHostFailure'});
   const admission = checked(moon.coordinatorPrepareIntent(journal, request));
+  assert.equal(moon.coordinatorIntentIsNew(admission), true);
   const initialBody = checked(moon.coordinatorAdmissionDurableJson(admission));
   const initial = checked(moon.coordinatorAdmitDurableJson(initialBody));
   assert.equal(moon.coordinatorDurableRevision(initial), 0);
@@ -50,6 +51,7 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
     moon.coordinatorRecordStateCodes(record));
 
   const duplicate = checked(moon.coordinatorPrepareIntent(restarted, request));
+  assert.equal(moon.coordinatorIntentIsNew(duplicate), false);
   assert.equal(checked(moon.coordinatorCommitIntent(duplicate)), restored);
   const reply = JSON.stringify({
     version: 'actql-remote-dispatch-response/0.1',

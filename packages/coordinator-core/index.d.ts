@@ -37,6 +37,7 @@ export function pollDispatchJson(request: DispatchRequest,
 export function pollQueryJson(request: DispatchRequest): string;
 export function prepareIntent(journal: Journal,
   request: DispatchRequest): IntentAdmission;
+export function intentIsNew(admission: IntentAdmission): boolean;
 export function admissionDurableJson(admission: IntentAdmission): string;
 /** Call only after the exact admission body was durably persisted. */
 export function commitIntent(admission: IntentAdmission): IntentRecord;
