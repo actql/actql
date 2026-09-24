@@ -161,6 +161,10 @@ from projected Result fields and same-owner admitted literals, with bounded
 work, fields and output. A foreign literal owner and an incomplete change
 inventory are rejected. It still cannot authorize apply: the row must come
 from the live captured Result cursor and match the private Preview exactly.
+The admitted private Preview now exposes the complete intended-changes body
+in both member and dispatch order. It retains only the state alongside the
+existing canonical value, avoiding a second persistent copy of each payload.
+The captured-row cursor and equality check are still required before apply.
 The Node Host bridge can now issue the final Effectful Receipt from the same
 opaque Preview and an exact computation chain. MoonBit checks the complete
 computation and set/member receipt reference closure before returning it;
