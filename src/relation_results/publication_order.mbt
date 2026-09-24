@@ -42,6 +42,26 @@ pub fn publication_term_at(p : PublicationOrder, i : Int) -> PublicationTerm? {
 }
 
 ///|
+pub fn publication_term_field(term : PublicationTerm) -> @schema.FieldName {
+  term.field
+}
+
+///|
+pub fn publication_term_direction(term : PublicationTerm) -> Direction {
+  term.direction
+}
+
+///|
+pub fn publication_term_nulls(term : PublicationTerm) -> NullPlacement {
+  term.nulls
+}
+
+///|
+pub fn publication_term_authored(term : PublicationTerm) -> Bool {
+  term.authored
+}
+
+///|
 pub fn publication_inherited_order(
   p : PublicationOrder,
 ) -> @pipeline.LogicalOrder? {
