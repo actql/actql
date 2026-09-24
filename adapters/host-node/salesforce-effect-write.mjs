@@ -165,14 +165,14 @@ export async function captureClaimedSalesforceSingleResponse({
       limits: context.limits, signal,
       callResource: context.callbacks.callResource,
     }),
-    projectStored: (stored, raw) => projectSalesforceSingleObservation({
+    projectStored: stored => projectSalesforceSingleObservation({
       moon, request,
       observation: Object.freeze({
         useCid: stored.credentialUseCid,
         statusCode: stored.statusCode,
         body: stored.responseBytes,
       }),
-      limits: raw.limits,
+      limits: context.limits,
     }),
   });
   const stored = captured.ownership?.response;
@@ -314,14 +314,14 @@ export async function captureSalesforceCollectionEffectWrite({
       limits: context.limits, signal,
       callResource: context.callbacks.callResource,
     }),
-    projectStored: (stored, raw) => projectSalesforceCollectionObservation({
+    projectStored: stored => projectSalesforceCollectionObservation({
       moon, request,
       observation: Object.freeze({
         useCid: stored.credentialUseCid,
         statusCode: stored.statusCode,
         body: stored.responseBytes,
       }),
-      limits: raw.limits,
+      limits: context.limits,
     }),
   });
   if (captured.claimed ||
