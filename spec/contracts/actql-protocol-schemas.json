@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:8b3b81d53cb133c35aad5367249a4f183b0b86a1dd00e41fde559e350e40c740",
+  "artifact_registry_cid": "sha256:ac02a345ea3987fb1e2dc8d375fe7b3651c3caa9ff13ff9140368bdf604c1d24",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10689,7 +10689,7 @@
     "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
     "effect_set_apply_receipt": "sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf",
     "effect_reconciliation_receipt": "sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4",
-    "run_receipt": "sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0",
+    "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -10706,7 +10706,7 @@
     "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
-    "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
+    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -38847,8 +38847,50 @@
             "independent_snapshots",
             "shared_snapshot"
           ]
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_set_apply_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "captured_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "effect_preview_cid",
+            "effect_set_apply_receipt_cid",
+            "captured_run_cid"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "effect_preview_cid"
+                ]
+              },
+              {
+                "required": [
+                  "effect_set_apply_receipt_cid"
+                ]
+              },
+              {
+                "required": [
+                  "captured_run_cid"
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     "runtime_error": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -71477,8 +71519,50 @@
                 "independent_snapshots",
                 "shared_snapshot"
               ]
+            },
+            "effect_preview_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "effect_set_apply_receipt_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "captured_run_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
-          }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "effect_preview_cid",
+                "effect_set_apply_receipt_cid",
+                "captured_run_cid"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "effect_preview_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "effect_set_apply_receipt_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "captured_run_cid"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
         },
         "effect_context": {
           "type": "object",
