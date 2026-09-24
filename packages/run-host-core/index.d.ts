@@ -83,6 +83,17 @@ export function requestRelation(requested: RequestIdentity,
 export function admitRun(prepared: PreparedProgram,
   compilation: ValuesCompilation, preparedInvocationWire: string,
   authorizationWire: string): RunAdmission;
+// Call only after the Host has made its current authorization decision.
+export function issueAllowedRun(prepared: PreparedProgram,
+  compilation: ValuesCompilation, policy: Readonly<{
+    executionContextCid: string;
+    hostPolicyCid: string;
+    expiresAt: string;
+  }>): Readonly<{
+    admission: RunAdmission;
+    preparedInvocationWire: string;
+    authorizationWire: string;
+  }>;
 export function issueRunDefinition(admission: RunAdmission, scopeId: string,
   runId: string, inputArtifactSetCid: string, createdAt: string,
   validUntil: string): RunDefinition;

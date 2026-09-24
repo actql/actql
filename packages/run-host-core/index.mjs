@@ -186,6 +186,34 @@ export function admitRun(prepared, compilation, preparedInvocationWire,
   return handle(admissions, {value, prepared}, 'run-admission');
 }
 
+// Host authorization must precede this call. These owner-issued wires bind
+// the selected policy context to the exact checked Values compilation.
+export function issueAllowedRun(prepared, compilation, {
+  executionContextCid, hostPolicyCid, expiresAt,
+}) {
+  if ([executionContextCid, hostPolicyCid, expiresAt]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const compiled = requireHandle(compilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const issued = checked(owner.clientValuesHostIssueAllowedRun(
+    requireHandle(preparations, prepared), compiled.value,
+    executionContextCid, hostPolicyCid, expiresAt),
+  'RunHostAdmissionRejected');
+  return Object.freeze({
+    admission: handle(admissions, {
+      value: owner.clientValuesHostAllowedRunAdmission(issued), prepared,
+    }, 'run-admission'),
+    preparedInvocationWire:
+      owner.clientValuesHostAllowedRunPreparedWire(issued),
+    authorizationWire:
+      owner.clientValuesHostAllowedRunAuthorizationWire(issued),
+  });
+}
+
 export function issueRunDefinition(admission, scopeId, runId,
   inputArtifactSetCid, createdAt, validUntil) {
   if ([scopeId, runId, inputArtifactSetCid, createdAt, validUntil]

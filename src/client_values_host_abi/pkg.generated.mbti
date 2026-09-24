@@ -18,6 +18,12 @@ pub fn client_values_host_admit_run_definition(String) -> Result[@run_publicatio
 
 pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_allowed_run_admission(ClientValuesHostAllowedRun) -> @run_publication.RunPublicationAdmission
+
+pub fn client_values_host_allowed_run_authorization_wire(ClientValuesHostAllowedRun) -> String
+
+pub fn client_values_host_allowed_run_prepared_wire(ClientValuesHostAllowedRun) -> String
+
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
@@ -27,6 +33,8 @@ pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesC
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
@@ -65,6 +73,12 @@ pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompil
 // Errors
 
 // Types and methods
+pub struct ClientValuesHostAllowedRun {
+  prepared_wire : String
+  authorization_wire : String
+  admission : @run_publication.RunPublicationAdmission
+}
+
 pub(all) enum ClientValuesHostCompilationIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Compilation(@run_publication_host.ClientValuesCompilationIssue)

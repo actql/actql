@@ -5,7 +5,7 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRequestFields, admitRun, compileValues,
-  checkRunBinding, issueRunDefinition, prepare, prepareRequest,
+  checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
@@ -175,6 +175,25 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
     prepared, compilation, evidence(p, 'prepared_invocation_cid'),
     evidence(a, 'run_authorization_cid'));
   const admission = admit();
+  const issued = issueAllowedRun(prepared, compilation, {
+    executionContextCid: contextCid, hostPolicyCid: policyCid,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+  });
+  assert.deepEqual(JSON.parse(issued.preparedInvocationWire),
+    JSON.parse(evidence(preparedBody, 'prepared_invocation_cid')));
+  assert.deepEqual(JSON.parse(issued.authorizationWire),
+    JSON.parse(evidence(authorizationBody, 'run_authorization_cid')));
+  assert.deepEqual(privateRunDefinition(issueRunDefinition(issued.admission,
+    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z')),
+  privateRunDefinition(issueRunDefinition(admission,
+    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z')));
+  assert.throws(() => issueAllowedRun(prepared, compilation, {
+    executionContextCid: `sha256:${'0'.repeat(64)}`,
+    hostPolicyCid: 'not-a-cid',
+    expiresAt: '2099-01-01T00:00:00.000Z',
+  }), {code: 'RunHostAdmissionRejected'});
   const definition = privateRunDefinition(issueRunDefinition(admission,
     'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z'));

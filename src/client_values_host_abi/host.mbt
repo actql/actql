@@ -317,6 +317,100 @@ pub(all) enum ClientValuesHostRunAdmissionIssue {
 }
 
 ///|
+/// Host policy remains external. Once the Host has authorized this exact
+/// caller, the shared owner issues and checks both linked evidence values.
+pub struct ClientValuesHostAllowedRun {
+  prepared_wire : String
+  authorization_wire : String
+  admission : @publication.RunPublicationAdmission
+}
+
+///|
+#export_name("clientValuesHostIssueAllowedRun")
+pub fn client_values_host_issue_allowed_run(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
+  let template = @host.client_values_compilation_template(compilation)
+  let plan = @host.client_values_compilation_compiled_plan(compilation)
+  let prepared_value = match
+    @publication.seal_run_evidence_value(
+      "prepared_invocation",
+      "{\"version\":\"actql-prepared-invocation/0.1\"," +
+      "\"invocation_template_cid\":\"" +
+      @publication.run_evidence_value_identity(template) +
+      "\",\"compiled_plan_cid\":\"" +
+      @publication.publication_contract_identity(plan) +
+      "\",\"execution_context_cid\":\"" +
+      execution_context_cid +
+      "\",\"host_policy_cid\":\"" +
+      host_policy_cid +
+      "\",\"policy_decision\":\"allow\",\"expires_at\":\"" +
+      expires_at +
+      "\"}",
+      100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Prepared(issue))
+  }
+  let authorization = match
+    @publication.seal_run_evidence_value(
+      "run_authorization",
+      "{\"version\":\"actql-run-authorization/0.1\"," +
+      "\"prepared_invocation_cid\":\"" +
+      @publication.run_evidence_value_identity(prepared_value) +
+      "\",\"execution_context_cid\":\"" +
+      execution_context_cid +
+      "\",\"host_policy_cid\":\"" +
+      host_policy_cid +
+      "\",\"decision\":\"allowed\"}",
+      100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Authorization(issue))
+  }
+  let admission = match
+    @host.admit_prepared_client_run_publication(
+      prepared, template, prepared_value, authorization, plan,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  Ok({
+    prepared_wire: @publication.run_evidence_value_json(prepared_value),
+    authorization_wire: @publication.run_evidence_value_json(authorization),
+    admission,
+  })
+}
+
+///|
+#export_name("clientValuesHostAllowedRunPreparedWire")
+pub fn client_values_host_allowed_run_prepared_wire(
+  value : ClientValuesHostAllowedRun,
+) -> String {
+  value.prepared_wire
+}
+
+///|
+#export_name("clientValuesHostAllowedRunAuthorizationWire")
+pub fn client_values_host_allowed_run_authorization_wire(
+  value : ClientValuesHostAllowedRun,
+) -> String {
+  value.authorization_wire
+}
+
+///|
+#export_name("clientValuesHostAllowedRunAdmission")
+pub fn client_values_host_allowed_run_admission(
+  value : ClientValuesHostAllowedRun,
+) -> @publication.RunPublicationAdmission {
+  value.admission
+}
+
+///|
 /// The Host supplies current policy and authorization evidence. The common
 /// owner admits those values against this exact checked Program and compiler
 /// output before any durable Run Definition can be issued.
