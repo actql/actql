@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 19 with full work\/workspace assurance, 42 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 20 with full work\/workspace assurance, 43 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Events projection loses its boundary evidence when the fixture is removed', () => {
@@ -348,6 +348,25 @@ test('subgraph false-edge bounds must remain bound to its route', () => {
     subgraph.boundary_tests = subgraph.boundary_tests.filter(item =>
       item.role !== 'subgraph_false_edge_work_workspace_exact_one_short');
   }), /SGA subgraph: false-edge work\/workspace fixture is missing/);
+});
+
+test('subgraph product resource proof cannot be silently unbound', () => {
+  for (const dimension of ['work', 'workspace']) {
+    for (const limit of ['exact_limit', 'one_short_limit']) {
+      assert.match(run(undefined, routes => {
+        const subgraph = routes.routes.find(entry =>
+          entry.family === 'SGA' && entry.operation === 'subgraph');
+        delete subgraph.resource_assurance.entrypoint[dimension][limit];
+      }), new RegExp(
+        `SGA subgraph: entrypoint operation ${dimension} needs exact and one-short proofs`,
+      ));
+    }
+  }
+  assert.match(run(manifest => {
+    manifest.assured_production_paths = manifest.assured_production_paths
+      .filter(claim => claim.family !== 'SGA' ||
+        claim.operation !== 'subgraph');
+  }), /assured production claims differ from resource-assured routes/);
 });
 
 test('vector normalization retains its bounded production evidence', () => {
