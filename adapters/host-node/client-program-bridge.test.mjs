@@ -116,6 +116,13 @@ test('binding set covers every checked Unit Result port', async () => {
   assert.deepEqual(moon.clientProgramPublicationPlanFactLimits(issued), limits);
   assert.deepEqual(moon.clientProgramPublicationPlanFactBindings(issued),
     bindings);
+  const entries = limits.map(body =>
+    `{"kind":"resolved_limit","value":${body}}`);
+  assert.deepEqual(moon.clientProgramPublicationPlanFactEntries(issued),
+    entries);
+  assert.doesNotThrow(() => checked(
+    moon.clientProgramAdmitPublicationFactEntries(prepared,
+      entries.toReversed())));
   assert.equal(new Set(bindings.map(body => JSON.parse(body).binding_cid))
     .size, 4);
   assert.equal(new Set(limits.map(body => JSON.parse(body).resolved_limit_cid))
@@ -129,6 +136,10 @@ test('binding set covers every checked Unit Result port', async () => {
   assert.doesNotThrow(() => admitFacts(
     limits.toReversed(), bindings.toReversed()));
   for (const omitted of [0, 1, 2, 3]) {
+    assert.throws(() => checked(
+      moon.clientProgramAdmitPublicationFactEntries(prepared,
+        entries.filter((_, index) => index !== omitted))),
+    {code: 'MoonBitHostFailure'});
     assert.throws(() => admitFacts(
       limits.filter((_, index) => index !== omitted), bindings),
     {code: 'MoonBitHostFailure'});
@@ -373,6 +384,14 @@ test('Node ABI derives the checked named Result and request identity', async () 
     [rowsLimitBody, bytesLimitBody]);
   assert.deepEqual(moon.clientProgramPublicationPlanFactBindings(issuedFacts),
     [rowsBindingBody, bytesBindingBody]);
+  const factEntries = [rowsLimitBody, bytesLimitBody].map(body =>
+    `{"kind":"resolved_limit","value":${body}}`);
+  assert.deepEqual(moon.clientProgramPublicationPlanFactEntries(issuedFacts),
+    factEntries);
+  assert.throws(() => checked(
+    moon.clientProgramAdmitPublicationFactEntries(prepared,
+      [factEntries[0], factEntries[0]])),
+  {code: 'MoonBitHostFailure'});
   const rowsBinding = JSON.parse(rowsBindingBody);
   const bytesBinding = JSON.parse(bytesBindingBody);
   assert.deepEqual([
