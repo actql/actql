@@ -150,6 +150,13 @@ separate nonempty pair limits nested complete-value comparison to the
 remaining work quantum and fails at three charged steps. These fixtures do
 not yet establish an exact structural-workspace bound for every Graph value
 shape or a delivered Host cancellation for this operation.
+The shared complete-value equality cursor now splits UTF-8 admission and
+UTF-16 comparison for Text, Date, Timestamp, object names, decimal digits,
+and reference identities across charged steps. The Graph equality kernel
+stops after 50 quantum-one steps inside a 512-character property comparison,
+cleans the unpublished result, and preserves both Graph reads. This covers
+the previously hidden long-string scan, but does not supply the missing
+structural-workspace proof for all Graph shapes.
 
 The registered weak and strong `components` kernels now enforce the selected
 control-work ceiling. Empty Graphs require five structural workspace slots

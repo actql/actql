@@ -1392,7 +1392,8 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'SGA' && route.operation === 'graphs_equal' &&
     (!boundaryRoles.has('graphs_equal_control_work_exact_one_short_and_cancel') ||
-      !boundaryRoles.has('graphs_equal_nested_value_work_ceiling'))) {
+      !boundaryRoles.has('graphs_equal_nested_value_work_ceiling') ||
+      !boundaryRoles.has('graphs_equal_long_text_quantum_cancel_cleanup'))) {
     fail(`${label}: Graph equality control-work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'components' &&

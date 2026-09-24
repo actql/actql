@@ -229,10 +229,11 @@ test('edge matching loses bounded type-index evidence without its fixture', () =
   }), /SGA match_edges: bounded type-index evidence is missing/u);
 });
 
-test('Graph equality requires its control-work and nested comparison fixtures', () => {
+test('Graph equality requires its work and long-comparison fixtures', () => {
   for (const role of [
     'graphs_equal_control_work_exact_one_short_and_cancel',
     'graphs_equal_nested_value_work_ceiling',
+    'graphs_equal_long_text_quantum_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&

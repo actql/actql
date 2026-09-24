@@ -3360,6 +3360,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph equality bounds nested value comparison work"
+        },
+        {
+          "role": "graphs_equal_long_text_quantum_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph equality stops during a long property comparison"
         }
       ]
     },
