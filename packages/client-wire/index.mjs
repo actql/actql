@@ -5,7 +5,7 @@ import {validDeliveryAttempt, validDeliveryRecord,
 import {clientHostOperations, clientHostRequestKeys,
   validAdmissionShape, validConnectionShape, validLookupFoundShape,
   validLookupNotFoundShape, validLookupUnknownShape, validProfileShape,
-  validRunRefShape} from './client-host.generated.js';
+  validRunRefShape, validRunStateShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
@@ -16,6 +16,12 @@ const boundedText = (value, maximum = 256) => typeof value === 'string' &&
   !/[\u0000-\u001f\u007f]/u.test(value);
 export function validRunRef(value) {
   return validRunRefShape(value);
+}
+
+// This is one existing Engine-owned Run-state component. The public Client
+// snapshot must also carry publication, cancellation and physical stop facts.
+export function validRunState(value) {
+  return validRunStateShape(value);
 }
 
 export function validClientConnection(value) {

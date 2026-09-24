@@ -12,7 +12,7 @@ const sources = [
 const allowed = new Set(['$schema', '$id', 'title', 'type',
   'additionalProperties', 'required', 'properties', 'items', 'uniqueItems',
   'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
-  'if', 'then']);
+  'if', 'then', 'not', 'oneOf', 'minItems', 'minProperties', 'propertyNames']);
 
 export function project(schema) {
   if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
@@ -22,35 +22,51 @@ export function project(schema) {
     if (!allowed.has(key)) throw new Error(`UnsupportedPublicationSchema:${key}`);
   }
   if (schema.type !== undefined &&
-      !['object', 'array', 'string', 'integer'].includes(schema.type)) {
+      !['object', 'array', 'string', 'integer', 'boolean'].includes(schema.type)) {
     throw new Error(`UnsupportedPublicationType:${schema.type}`);
   }
   if (schema.uniqueItems && schema.items?.type !== 'string') {
     throw new Error('UnsupportedPublicationUniqueItems');
   }
   const result = {};
-  for (const key of ['type', 'additionalProperties', 'required',
+  for (const key of ['type', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
-    'maximum']) {
+    'maximum', 'minItems', 'minProperties']) {
     if (Object.hasOwn(schema, key)) result[key] = schema[key];
+  }
+  if (Object.hasOwn(schema, 'additionalProperties')) {
+    result.additionalProperties = typeof schema.additionalProperties ===
+      'object' ? project(schema.additionalProperties) :
+      schema.additionalProperties;
   }
   if (schema.properties) result.properties = Object.fromEntries(
     Object.entries(schema.properties).map(([key, value]) =>
       [key, project(value)]));
   if (schema.items) result.items = project(schema.items);
   if (schema.allOf) result.allOf = schema.allOf.map(project);
+  if (schema.oneOf) result.oneOf = schema.oneOf.map(project);
   if (schema.if) result.if = project(schema.if);
   if (schema.then) result.then = project(schema.then);
+  if (schema.not) result.not = project(schema.not);
+  if (schema.propertyNames) result.propertyNames = project(schema.propertyNames);
   return result;
 }
 
 export function typeOf(schema) {
+  if (schema.oneOf) return schema.oneOf.map(typeOf).join(' | ');
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');
   if (schema.type === 'string') return 'string';
   if (schema.type === 'integer') return 'number';
+  if (schema.type === 'boolean') return 'boolean';
   if (schema.type === 'array') return `readonly ${typeOf(schema.items)}[]`;
   if (schema.type === 'object') {
+    if (schema.additionalProperties &&
+        typeof schema.additionalProperties === 'object' &&
+        !schema.properties) {
+      return `Readonly<Record<string, ${typeOf(
+        schema.additionalProperties)}>>`;
+    }
     const required = new Set(schema.required ?? []);
     return `Readonly<{${Object.entries(schema.properties ?? {}).map(
       ([key, value]) => `\n  ${key}${required.has(key) ? '' : '?'}: ${typeOf(value)};`
@@ -61,25 +77,40 @@ export function typeOf(schema) {
 
 export function structuralValidatorSource() {
   return `function valid(value, schema) {\n` +
+`  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;\n` +
+`  if (schema.not && valid(value, schema.not)) return false;\n` +
 `  if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;\n` +
 `  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
 `  if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;\n` +
 `  if (schema.enum && !schema.enum.includes(value)) return false;\n` +
-`  if (schema.type === 'string') return typeof value === 'string' &&\n` +
-`    (schema.minLength === undefined || [...value].length >= schema.minLength) &&\n` +
-`    (schema.maxLength === undefined || value.length <= schema.maxLength) &&\n` +
-`    (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));\n` +
+`  if (typeof value === 'string' &&\n` +
+`      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||\n` +
+`        (schema.maxLength !== undefined && value.length > schema.maxLength) ||\n` +
+`        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))\n` +
+`    return false;\n` +
+`  if (schema.type === 'string') return typeof value === 'string';\n` +
 `  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
 `    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
 `    (schema.maximum === undefined || value <= schema.maximum);\n` +
+`  if (schema.type === 'boolean') return typeof value === 'boolean';\n` +
 `  if (schema.type === 'array') return Array.isArray(value) &&\n` +
+`    (schema.minItems === undefined || value.length >= schema.minItems) &&\n` +
 `    value.every(item => valid(item, schema.items)) &&\n` +
 `    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
 `  if (schema.type === 'object' || schema.properties || schema.required) {\n` +
 `    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
 `    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
+`    if (schema.minProperties !== undefined &&\n` +
+`        Object.keys(value).length < schema.minProperties) return false;\n` +
+`    if (schema.propertyNames && Object.keys(value).some(key =>\n` +
+`        !valid(key, schema.propertyNames))) return false;\n` +
 `    if (schema.additionalProperties === false &&\n` +
 `        Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;\n` +
+`    if (schema.additionalProperties &&\n` +
+`        typeof schema.additionalProperties === 'object' &&\n` +
+`        Object.entries(value).some(([key, item]) =>\n` +
+`          !Object.hasOwn(schema.properties ?? {}, key) &&\n` +
+`          !valid(item, schema.additionalProperties))) return false;\n` +
 `    return Object.entries(schema.properties ?? {}).every(([key, field]) =>\n` +
 `      !Object.hasOwn(value, key) || valid(value[key], field));\n` +
 `  }\n` +
