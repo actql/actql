@@ -399,7 +399,7 @@ test('shortest path cannot lose its kernel cancellation evidence', () => {
 
 test('resource completion cannot accept the synchronous providerless lane', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /providerless managed execution still computes and copies synchronously/);
+    /providerless managed execution still computes synchronously/);
 });
 
 test('cross join pre-execution close is not in-flight evidence', () => {

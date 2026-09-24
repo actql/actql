@@ -1016,38 +1016,22 @@ pub fn[T] start_local_managed_dispatch(
           execution_finished.val = true
           return Err(Execution(ForeignCandidate))
         }
-        if @execution.completed_output_has_row_table(output) {
-          let control = @bounded.control()
-          // Execution capacity reserves 256 bytes per structural slot.
-          // Clamp before converting the site allowance to the workspace unit.
-          let copy_entries = if setup.capacity.execution_bytes / 256L >
-            2147483647L {
-            2147483647
-          } else {
-            (setup.capacity.execution_bytes / 256L).to_int()
-          }
-          let copy = match
-            @execution.start_bounded_independent_row_copy(
-              control,
-              output,
-              setup.execution.rows.max_rows,
-              setup.imports.wire.max_columns,
-              copy_entries,
-            ) {
-            Ok(value) => value
-            Err(issue) => {
-              execution_finished.val = true
-              return Err(ManagedCopy(issue))
-            }
-          }
-          row_copy_execution.val = Some(copy)
-          return Ok({ complete: false, progress: 0L, work: 1L, })
+        let control = @bounded.control()
+        // Execution capacity reserves 256 bytes per structural slot.
+        // Clamp before converting the site allowance to the workspace unit.
+        let copy_entries = if setup.capacity.execution_bytes / 256L >
+          2147483647L {
+          2147483647
+        } else {
+          (setup.capacity.execution_bytes / 256L).to_int()
         }
-        let independent = match
-          @execution.copy_completed_output_independent(
+        let copy = match
+          @execution.start_bounded_independent_row_copy(
+            control,
             output,
             setup.execution.rows.max_rows,
             setup.imports.wire.max_columns,
+            copy_entries,
           ) {
           Ok(value) => value
           Err(issue) => {
@@ -1055,16 +1039,8 @@ pub fn[T] start_local_managed_dispatch(
             return Err(ManagedCopy(issue))
           }
         }
-        ordinary.val = Some(independent)
-        execution_finished.val = true
-        for bridge in bridges {
-          @execution.close_managed_producer_bridge(bridge)
-        }
-        Ok({
-          complete: true,
-          progress: @execution.completed_row_count(independent).to_int64(),
-          work: 1L,
-        })
+        row_copy_execution.val = Some(copy)
+        Ok({ complete: false, progress: 0L, work: 1L, })
       }
     }
   }
