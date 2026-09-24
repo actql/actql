@@ -271,6 +271,35 @@ test "final Effectful Receipt references one exact prior chain" {
     4096,
     32,
   ).unwrap()
+  let issued = issue_effectful_final_run_receipt(
+    chain.run,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    member_wires,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(issued),
+    publication_contract_identity(final_receipt),
+  )
+  assert_true(
+    issue_effectful_final_run_receipt(
+      chain.run,
+      issued,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      65536,
+      4096,
+      32,
+    )
+    is Err(InvalidComputation),
+  )
   assert_true(
     publication_contract_identity(final_receipt) !=
     publication_contract_identity(chain.receipt),
