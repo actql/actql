@@ -9,6 +9,7 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
+import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -1095,6 +1096,14 @@ test('public Values submit computes and reads its real Local Result',
           'principal-before-restart' ? {tenantId: 'tenant-a',
             authorityScopeCid: cid('a')} : undefined,
       });
+      const startRun = installNodeClientRunStart({
+        journal, requestControl: moon, publicationControl: control,
+        authorizeRunStart: ({tenantId, principalId, connection, ref}) =>
+          tenantId === 'tenant-a' &&
+          principalId === 'principal-before-restart' &&
+          connection.mode === 'local' && connection.owner === 'local' &&
+          ref.authorityScopeCid === cid('a'),
+      });
       let issues = 0;
       let computes = 0;
       const submitServer = createServer(createClientHttpHandler({
@@ -1114,7 +1123,8 @@ test('public Values submit computes and reads its real Local Result',
         prepareSubmit: installNodeClientProgramPreparation({
           moon, environment}),
         lookupRequest,
-        submit: async ({preparedProgram, requestId}) => {
+        submit: async ({preparedProgram, requestId, principalId,
+          connection}) => {
           const requested = moon.clientProgramRequestIdentity(
             preparedProgram, cid('a'), requestId, cid('b'));
           const accepted = await journal.admitOrLookupDefinition(requested, {
@@ -1126,7 +1136,10 @@ test('public Values submit computes and reads its real Local Result',
               return plan.runDefinition;
             },
           }, moon, control);
-          if (accepted.inserted) {
+          const start = await startRun({identity: requested,
+            tenantId: 'tenant-a', principalId, connection});
+          assert.deepEqual(start.ref, accepted.ref);
+          if (start.kind === 'reserved') {
             const setup = moon.clientProgramOpenSourceFreeLocalHost(
               preparedProgram, registry, values, 1n, 0n, 0n, 0n);
             assert.ok(setup);
@@ -1134,8 +1147,8 @@ test('public Values submit computes and reads its real Local Result',
             published = await runPublishedCapturedStrategy(setup,
               {store, plan});
           }
-          return {ref: accepted.ref, durability: accepted.durability,
-            revision: accepted.revision};
+          return {ref: start.ref, durability: start.durability,
+            revision: start.revision};
         },
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
@@ -1179,6 +1192,11 @@ test('public Values submit computes and reads its real Local Result',
           const repeated = await client.aql(document, {format: 'json',
             requestId: 'published-values-request'});
           assert.deepEqual(repeated.ref, submitted.ref);
+          const changed = document.replace('"id": 2', '"id": 3');
+          assert.notEqual(changed, document);
+          await assert.rejects(client.aql(changed, {format: 'json',
+            requestId: 'published-values-request'}),
+          {code: 'ClientRequestIntentConflict'});
           const found = await client.lookupRequest('published-values-request');
           assert.deepEqual(found.ref, submitted.ref);
           assert.equal(found.durability, 'durable');

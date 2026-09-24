@@ -7,6 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
@@ -166,6 +167,74 @@ test('Run Definition and request acceptance survive one atomic restart',
     assert.equal(repeated.runDefinition.wire, definition.wire);
     assert.equal(restarted.lookupDefinition({...key, tenantId: 'tenant-b'},
       moon, publicationControl), undefined);
+  });
+
+test('one durable Run dispatch reservation survives an unknown start',
+  async t => {
+    const path = await directory(t);
+    const first = openClientRequestJournal(path);
+    const definition = runDefinition('reserved-run');
+    first.acceptDefinition(identity(), {tenantId: 'tenant-a',
+      runDefinition: definition, lookupExpiresAt: expires},
+    moon, publicationControl);
+    first.close(); // The Run is accepted, but no dispatch was reserved.
+
+    const restarted = openClientRequestJournal(path);
+    const deniedStart = installNodeClientRunStart({journal: restarted,
+      requestControl: moon, publicationControl,
+      authorizeRunStart: () => false});
+    await assert.rejects(deniedStart({identity: identity(),
+      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+    {code: 'ClientRunStartDenied'});
+    assert.throws(() => restarted.reserveDispatch(identity(), {
+      tenantId: 'tenant-b', currentAuthorization: true,
+    }, moon, publicationControl), {code: 'ClientRunStartDenied'});
+    const start = installNodeClientRunStart({journal: restarted,
+      requestControl: moon, publicationControl,
+      authorizeRunStart: ({ref}) => ref.runDefinitionCid ===
+        definition.identity});
+    const reserved = await start({identity: identity(),
+      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}});
+    assert.equal(reserved.kind, 'reserved');
+    assert.equal(reserved.revision, 1);
+    assert.equal(reserved.ref.runDefinitionCid, definition.identity);
+    assert.equal(restarted.reserveDispatch(identity(), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl).kind, 'reconcile');
+    restarted.close(); // Physical work may or may not have started.
+
+    const recovered = openClientRequestJournal(path);
+    t.after(() => recovered.close());
+    const repeated = recovered.reserveDispatch(identity(), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl);
+    assert.equal(repeated.kind, 'reconcile');
+    assert.equal(repeated.revision, 1);
+    const changed = {...fixture, parameterValuesCid: cid('c')};
+    changed.intentFingerprintCid = hashCanonical({
+      caller_input_intent_cid: changed.callerInputIntentCid,
+      parameter_values_cid: changed.parameterValuesCid,
+      program_definition_cid: changed.programDefinitionCid,
+      version: 'actql-logical-request-intent/0.1',
+    });
+    const recoveredDeniedStart = installNodeClientRunStart({journal: recovered,
+      requestControl: moon, publicationControl,
+      authorizeRunStart: () => false});
+    const recoveredStart = installNodeClientRunStart({journal: recovered,
+      requestControl: moon, publicationControl,
+      authorizeRunStart: () => true});
+    await assert.rejects(recoveredDeniedStart({identity: identity(changed),
+      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+    {code: 'ClientRunStartDenied'});
+    await assert.rejects(recoveredStart({identity: identity(changed),
+      tenantId: 'tenant-a', principalId: 'principal-a', connection: {}}),
+    {code: 'ClientRequestIntentConflict'});
+    assert.throws(() => recovered.reserveDispatch(identity(changed), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl), {code: 'ClientRequestIntentConflict'});
+    assert.equal(recovered.lookup({tenantId: 'tenant-a',
+      authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon)
+      .revision, 1);
   });
 
 test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
@@ -335,10 +404,52 @@ test('existing journal schema migrates without inventing Run authority',
       version: 'actql-logical-request/0.1',
     });
     assert.ok(identity(next));
+    const nextDefinition = runDefinition('new-run');
     assert.equal(migrated.acceptDefinition(identity(next), {
-      tenantId: 'tenant-a', runDefinition: runDefinition('new-run'),
+      tenantId: 'tenant-a', runDefinition: nextDefinition,
       lookupExpiresAt: expires,
     }, moon, publicationControl).inserted, true);
+    assert.equal(migrated.reserveDispatch(identity(next), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl).kind, 'reserved');
+  });
+
+test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
+  async t => {
+    const path = await directory(t);
+    const definition = runDefinition('legacy-run');
+    const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+    database.exec(`CREATE TABLE client_requests (
+      authority_scope_cid TEXT NOT NULL,
+      caller_request_id TEXT NOT NULL,
+      logical_request_scope_cid TEXT NOT NULL UNIQUE,
+      intent_fingerprint_cid TEXT NOT NULL,
+      program_definition_cid TEXT NOT NULL,
+      parameter_values_cid TEXT NOT NULL,
+      caller_input_intent_cid TEXT NOT NULL,
+      tenant_id TEXT NOT NULL,
+      run_definition_cid TEXT NOT NULL UNIQUE,
+      run_definition_wire TEXT,
+      revision INTEGER NOT NULL CHECK (revision >= 0),
+      lookup_expires_at TEXT NOT NULL,
+      PRIMARY KEY (authority_scope_cid, caller_request_id)
+    ) STRICT`);
+    database.prepare(`INSERT INTO client_requests VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      fixture.authorityScopeCid, fixture.requestId,
+      fixture.logicalRequestScopeCid, fixture.intentFingerprintCid,
+      fixture.programDefinitionCid, fixture.parameterValuesCid,
+      fixture.callerInputIntentCid, 'tenant-a', definition.identity,
+      definition.wire, 0, expires);
+    database.close();
+    const migrated = openClientRequestJournal(path);
+    t.after(() => migrated.close());
+    const start = migrated.reserveDispatch(identity(), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl);
+    assert.equal(start.kind, 'reconcile');
+    assert.equal(start.revision, 0);
+    assert.equal(start.ref.runDefinitionCid, definition.identity);
   });
 
 test('the atomic key rejects changed intent and keeps the original Run',

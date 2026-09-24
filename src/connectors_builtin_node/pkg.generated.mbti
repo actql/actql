@@ -184,6 +184,8 @@ pub fn client_request_relation(@run_publication_host.ClientRequestIdentity, @run
 
 pub fn client_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_run_start_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Int
+
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure
 
 pub fn duckdb_managed_capacity(@actql/actql/connectors/duckdb/driver.ManagedStrategyComputeHostConfiguration[Int]) -> (Int64, Int64)?

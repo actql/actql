@@ -62,6 +62,31 @@ test('installed preparation cannot disappear before Run acceptance', async () =>
   assert.equal(admissions, 0);
 });
 
+test('Run start denial and changed request intent keep distinct HTTP errors',
+  async () => {
+    let code = 'ClientRunStartDenied';
+    const handler = createClientHttpHandler({
+      authenticate: () => 'principal-a', authorizeConnection: () => true,
+      submit: () => { throw Object.assign(new Error(code), {code}); },
+    });
+    await withServer(handler, async base => {
+      const send = () => fetch(`${base}/actql/client/0.1/submit`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'local', owner: 'local',
+          runners: [], consentRefs: []}, requestId: 'saved-id', kind: 'aql',
+        input: {text: '{}', format: 'json'}, parameters: null}),
+      });
+      const denied = await send();
+      assert.equal(denied.status, 403);
+      assert.deepEqual(await denied.json(), {code: 'ClientRunStartDenied'});
+      code = 'ClientRequestIntentConflict';
+      const conflict = await send();
+      assert.equal(conflict.status, 409);
+      assert.deepEqual(await conflict.json(),
+        {code: 'ClientRequestIntentConflict'});
+    });
+  });
+
 test('Client Host rejects missing movement consent and oversized bodies', async () => {
   const handler = createClientHttpHandler({
     authenticate: () => 'principal-a',

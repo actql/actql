@@ -122,6 +122,7 @@ const columns = `authority_scope_cid, caller_request_id,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
   tenant_id, run_definition_cid, run_definition_wire, revision,
   lookup_expires_at`;
+const selectColumns = `${columns}, dispatch_reserved`;
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -159,6 +160,8 @@ export function openClientRequestJournal(directory, {
         run_definition_wire TEXT,
         revision INTEGER NOT NULL CHECK (revision >= 0),
         lookup_expires_at TEXT NOT NULL,
+        dispatch_reserved INTEGER NOT NULL DEFAULT 0
+          CHECK (dispatch_reserved IN (0, 1)),
         PRIMARY KEY (authority_scope_cid, caller_request_id)
       ) STRICT;
     `);
@@ -168,6 +171,21 @@ export function openClientRequestJournal(directory, {
       database.exec('ALTER TABLE client_requests ADD COLUMN '
         + 'run_definition_wire TEXT');
     }
+    if (!fields.some(field => field.name === 'dispatch_reserved')) {
+      // An older journal may already have dispatched its accepted Runs.
+      // Migration must never reinterpret them as safe to start again.
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        database.exec('ALTER TABLE client_requests ADD COLUMN '
+          + 'dispatch_reserved INTEGER NOT NULL DEFAULT 0 '
+          + 'CHECK (dispatch_reserved IN (0, 1))');
+        database.exec('UPDATE client_requests SET dispatch_reserved = 1');
+        database.exec('COMMIT');
+      } catch (error) {
+        database.exec('ROLLBACK');
+        throw error;
+      }
+    }
     if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
@@ -176,9 +194,9 @@ export function openClientRequestJournal(directory, {
   const ensureOpen = () => {
     if (closed) fail('ClientRequestJournalClosed');
   };
-  const select = database.prepare(`SELECT ${columns} FROM client_requests
+  const select = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE authority_scope_cid = ? AND caller_request_id = ?`);
-  const selectRef = database.prepare(`SELECT ${columns} FROM client_requests
+  const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE tenant_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`);
   const selectRun = database.prepare(`SELECT run_definition_cid
@@ -186,6 +204,10 @@ export function openClientRequestJournal(directory, {
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
   const insert = database.prepare(`INSERT INTO client_requests (${columns})
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const reserve = database.prepare(`UPDATE client_requests
+    SET dispatch_reserved = 1, revision = revision + 1
+    WHERE authority_scope_cid = ? AND caller_request_id = ? AND
+      dispatch_reserved = 0`);
 
   const acceptRecord = (identity, {tenantId, runDefinitionCid,
     runDefinitionWire, revision = 0, lookupExpiresAt}, control) => {
@@ -396,6 +418,54 @@ export function openClientRequestJournal(directory, {
       const runDefinition = await issueDefinition();
       return journal.acceptDefinition(identity, {tenantId, runDefinition,
         lookupExpiresAt}, requestControl, publicationControl);
+    },
+    // One physical transaction applies the common MoonBit start decision.
+    // A committed reservation records possible dispatch before any work. A
+    // later caller must reconcile that Run rather than run Compute again.
+    reserveDispatch(identity, {tenantId, currentAuthorization},
+      requestControl, publicationControl) {
+      ensureOpen();
+      if (!text(tenantId) || typeof currentAuthorization !== 'boolean' ||
+          typeof requestControl?.clientRunStartAction !== 'function') {
+        fail('InvalidClientRunStart');
+      }
+      const fields = checkedIdentity(identity, requestControl);
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = select.get(fields.authorityScopeCid, fields.requestId);
+        if (row === undefined || row.tenant_id !== tenantId) {
+          fail('ClientRunStartDenied');
+        }
+        const retained = retainedIdentity(row, requestControl);
+        const definition = retainedRunDefinition(row, publicationControl,
+          maxRunDefinitionWireBytes);
+        const action = requestControl.clientRunStartAction(identity, retained,
+          definition, row.run_definition_cid, row.dispatch_reserved === 1,
+          currentAuthorization);
+        if (action === 0) {
+          if (reserve.run(fields.authorityScopeCid, fields.requestId)
+            .changes !== 1) {
+            fail('ClientRequestJournalCorrupt');
+          }
+          database.exec('COMMIT');
+          return Object.freeze({kind: 'reserved',
+            ...admission({...row, revision: Number(row.revision) + 1})});
+        }
+        if (action === 1) {
+          database.exec('COMMIT');
+          return Object.freeze({kind: 'reconcile', ...admission(row)});
+        }
+        fail(action === 3 ? 'ClientRequestIntentConflict' :
+          action === 5 ? 'ClientRunStartDenied' :
+          'ClientRequestJournalCorrupt');
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) { fail('ClientRunStartUnknown', rollback); }
+        if (typeof error?.code === 'string' &&
+            (error.code.startsWith('ClientRequest') ||
+              error.code.startsWith('ClientRun'))) throw error;
+        fail('ClientRunStartUnknown', error);
+      }
     },
     close() {
       if (closed) return;
