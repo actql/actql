@@ -59,6 +59,18 @@ acceptance result; cache warmup, filesystem policy, and the remaining checking
 cost must remain visible in cold-run reports. See the [Node 22 module compile
 cache contract](https://nodejs.org/download/release/v22.17.0/docs/api/module.html#module-compile-cache).
 
+At clean revision `2d931055a`, the unchanged local registered one-case runner
+completed seven alternating qualified pairs for
+`native-acquisition-full-validation-low-selectivity/narrow/100`. The 95%
+interval was 22.823–24.353 milliseconds of warm overhead against the 10 ms
+limit, and 529.610–535.367 milliseconds of cold overhead against the 100 ms
+limit. The result is a timing failure, not an incomplete obligation check.
+The other 26 cases and three other comparator families were not measured at
+this revision. The raw one-case assessment is retained in the workspace at
+`.codex-scratch/perf-equivalent-small-2d931`; it is not a durable CI artifact.
+The compile cache is a useful reduction, but it does not close the fixed-cost
+gap. Full application preparation remains duplicated across processes.
+
 ## Next changes to test independently
 
 1. Separate immutable application preparation from per-run parameter,
