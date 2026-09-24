@@ -1198,12 +1198,18 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+    if (route.relation_entrypoint?.symbol !== 'start_relation_pool' ||
+      route.additional_dispatch?.marker !== '@veca.start_relation_pool(') {
+      fail(`${label}: Relation input entrypoint is missing`);
+    }
     for (const role of [
       'pool_empty_work_exact_one_short',
       'pool_record_work_exact_one_short',
       'pool_workspace_exact',
       'pool_workspace_one_short',
       'pool_kernel_cancel_cleanup',
+      'pool_relation_host_two_consumers',
+      'pool_relation_composite_identity',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -1212,6 +1218,22 @@ for (const [index, route] of routeEntries.entries()) {
     if (!environmentRoles.has('pool_host_in_flight_cancel') ||
       pathAssurance.entrypoint === undefined) {
       fail(`${label}: bounded Host cancellation assurance is missing`);
+    }
+  }
+  if (route.family === 'VecA' && route.operation === 'nearest') {
+    if (route.relation_entrypoint?.symbol !==
+        'start_nearest_inputs_with_relations' ||
+      route.additional_dispatch?.marker !==
+        '@veca.start_nearest_inputs_with_relations(') {
+      fail(`${label}: fused Relation input entrypoint is missing`);
+    }
+    for (const role of [
+      'nearest_mixed_carrier_relation_host',
+      'nearest_relation_roles_host',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
     }
   }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
