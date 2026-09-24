@@ -143,6 +143,14 @@ Host session timer case supplies delivered in-flight cancellation evidence.
 This does not yet establish full session sort, grouping, identity, and output
 work/workspace assurance on every production path.
 
+VecA ranking input admission now indexes exact physical receiving ports once
+and validates each authored input position once, rather than comparing every
+read with every position. Repeated RRF occurrences still append the same
+material separately at each logical position; the existing standard Host
+repeated-input fixture is a semantic regression, not full ranking resource
+assurance. The binding pass is O(P + E) expected for P physical reads and E
+logical input edges, excluding the cost of exact binding checks.
+
 Event deduplication no longer constructs its records-by-terms cell matrix or
 two full index arrays in `start`. The checked scratch ceiling remains an
 admission condition, but cells and paired indices are appended within bounded
