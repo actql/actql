@@ -639,6 +639,12 @@ The selected large join and reuse paths already use DuckDB resident inputs:
 the saved 10,000-row product reports have zero direct input scans and reuse
 input values across tasks. Repeated input import is therefore not the cause
 of those failures; the first import and each required output holding remain.
+The million-row narrow reuse record likewise reports zero direct input scans
+in all three tasks. Each task still emits two million rows to its required
+holding; their output callbacks total about 20.4 seconds in one product pair.
+This is a substantially larger measured target than later-task reimport, but
+the callback includes required admission and encoding, not just removable
+overhead.
 In one narrow join pair, parent manifest preparation took 384 ms, process
 startup 175 ms, worker preparation 460 ms, and worker execution 937 ms against
 a 375 ms comparator. In one narrow reuse pair the corresponding figures were
@@ -674,3 +680,10 @@ roughly 19 and 17 ms of drain time and 27 and 24 ms of total output storage
 time. The observed 325 ms preparation wall interval still dominated those
 output costs. These counters guide the next change; they are not a performance
 pass or a substitute for the registered assessment.
+
+The batched receiver now takes each canonical row's exact byte delta from the
+writer that already encoded and hashed it. A row held at a frame boundary
+keeps that measured length with its provisional text. This removes a separate
+UTF-8 scan of every encoded output row without changing the frame ceiling,
+canonical bytes, identity, or holding barrier. It does not remove the required
+output encoding and is not yet an end-to-end speedup claim.

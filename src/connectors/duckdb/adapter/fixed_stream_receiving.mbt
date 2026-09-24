@@ -83,6 +83,20 @@ pub fn receive_fixed_compute_stream_chunk(
 pub fn drain_fixed_compute_stream_row(
   value : FixedComputeReceiving,
 ) -> Result[String?, FixedComputeReceivingIssue] {
+  match drain_fixed_compute_stream_row_measured(value, false) {
+    Ok(Some((text, _))) => Ok(Some(text))
+    Ok(None) => Ok(None)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// The batched Host path obtains the canonical writer's exact byte delta.
+/// It does not need to scan each already encoded UTF-8 row a second time.
+fn drain_fixed_compute_stream_row_measured(
+  value : FixedComputeReceiving,
+  measure_bytes : Bool,
+) -> Result[(String, Int)?, FixedComputeReceivingIssue] {
   guard value.open && value.stream is Some(stream) else {
     return Err(InvalidState)
   }
@@ -90,11 +104,19 @@ pub fn drain_fixed_compute_stream_row(
     abort_fixed_compute_receiving(value)
     return Err(InputUnavailable)
   }
-  if value.pending_text is Some(text) {
+  if value.pending_text is Some((text, length)) {
     value.pending_text = None
-    return Ok(Some(text))
+    return Ok(Some((text, if measure_bytes { length } else { 0 })))
   }
   guard value.pending is Some(batch) else { return Ok(None) }
+  let before = if measure_bytes {
+    match @execution.admitted_output_stream_progress(stream) {
+      Some((bytes, _, _)) => bytes
+      None => return Err(InvalidState)
+    }
+  } else {
+    0
+  }
   let row = value.pending_row
   match
     @execution.append_admitted_output_stream(
@@ -108,7 +130,15 @@ pub fn drain_fixed_compute_stream_row(
         value.pending = None
         value.pending_row = 0
       }
-      Ok(Some(text))
+      let bytes = if measure_bytes {
+        match @execution.admitted_output_stream_progress(stream) {
+          Some((total, _, _)) if total >= before => total - before
+          _ => return Err(InvalidState)
+        }
+      } else {
+        0
+      }
+      Ok(Some((text, bytes)))
     }
     Err(issue) => {
       abort_fixed_compute_receiving(value)
@@ -136,22 +166,19 @@ pub fn drain_fixed_compute_stream_batch(
   let mut bytes = 0
   let mut rows = 0
   while rows < max_rows {
-    match drain_fixed_compute_stream_row(value) {
+    match drain_fixed_compute_stream_row_measured(value, true) {
       Err(issue) => return Err(issue)
       Ok(None) => break
-      Ok(Some(text)) => {
-        let length = match @scalar.admit_utf8_length(text, max_bytes) {
-          Ok(length) => length
-          Err(_) => {
-            if rows == 0 {
-              return Ok(Some(text))
-            }
-            value.pending_text = Some(text)
-            break
+      Ok(Some((text, length))) => {
+        if length > max_bytes {
+          if rows == 0 {
+            return Ok(Some(text))
           }
+          value.pending_text = Some((text, length))
+          break
         }
         if length > max_bytes - bytes {
-          value.pending_text = Some(text)
+          value.pending_text = Some((text, length))
           break
         }
         output.write_string(text)

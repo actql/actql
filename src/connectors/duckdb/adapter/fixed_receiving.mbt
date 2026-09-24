@@ -8,7 +8,7 @@ struct FixedComputeReceiving {
   mut stream : @execution.AdmittedOutputStream?
   mut pending : PhysicalBatch?
   mut pending_row : Int
-  mut pending_text : String?
+  mut pending_text : (String, Int)?
   stream_chunk_rows : Int
   stream_batch_bytes : Int
   mut open : Bool
