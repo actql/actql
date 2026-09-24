@@ -41,6 +41,8 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
+pub fn bind_captured_effect_preview_inputs(CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
+
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
@@ -70,6 +72,10 @@ pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relat
 pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
+
+pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
@@ -162,6 +168,8 @@ pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Resu
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
 
 pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
+
+pub fn checked_effect_preview_source_indexes(CheckedEffectRunDAG, @program_check.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
 
 pub fn checked_effect_run_graph(CheckedEffectRunDAG) -> CheckedDAG
 
@@ -403,6 +411,8 @@ pub fn release_captured_effect_input(CapturedEffectInput) -> Bool
 
 pub fn release_captured_effect_inputs(CapturedEffectInputs) -> Bool
 
+pub fn release_captured_effect_preview_inputs(CapturedEffectPreviewInputs) -> Bool
+
 pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
@@ -555,6 +565,8 @@ type CapturedDAG
 type CapturedEffectInput
 
 type CapturedEffectInputs
+
+type CapturedEffectPreviewInputs
 
 type CapturedEffectRunDAG
 
@@ -776,6 +788,7 @@ pub(all) enum RunIssue {
   NotReady
   Stopped
   ForeignCandidate
+  PreviewWorkLimit
   MissingOutput
   Capture(@execution_query.CapturedSourceIssue)
   Binding(@execution_relation.ProducerBindingIssue)

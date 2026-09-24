@@ -99,6 +99,7 @@ pub(all) enum RunIssue {
   NotReady
   Stopped
   ForeignCandidate
+  PreviewWorkLimit
   MissingOutput
   Capture(@query.CapturedSourceIssue)
   Binding(@execution.ProducerBindingIssue)
