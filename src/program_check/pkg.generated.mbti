@@ -391,6 +391,8 @@ pub fn publication_proof_at(PublicationExecution, Int) -> ReidentifiedStep?
 
 pub fn publication_proof_count(PublicationExecution) -> Int
 
+pub fn publication_result_name(PublicationExecution) -> String
+
 pub fn publication_rows(PublicationExecution) -> @capacity_witness.LimitClaim
 
 pub fn publication_selection(PublicationExecution) -> @pipeline_check_context.PublicationRowLimit
