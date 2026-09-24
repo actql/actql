@@ -148,6 +148,8 @@ pub fn command_target_work(CommandTarget) -> Int
 
 pub fn compiler_aoa_contract_cid() -> String
 
+pub fn compiler_aoa_ir_version_token() -> String
+
 pub fn compiler_barrier_contract_manifest_cid() -> String
 
 pub fn compiler_barrier_contract_manifest_wire() -> String
@@ -155,6 +157,8 @@ pub fn compiler_barrier_contract_manifest_wire() -> String
 pub fn compiler_grammar_manifest_cid() -> String
 
 pub fn compiler_grammar_manifest_wire() -> String
+
+pub fn compiler_version_token() -> String
 
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
 

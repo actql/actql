@@ -24,3 +24,13 @@ pub fn compiler_barrier_contract_manifest_wire() -> String {
 pub fn compiler_aoa_contract_cid() -> String {
   "sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d"
 }
+
+///|
+pub fn compiler_version_token() -> String {
+  "actql-moonbit-0.0.1"
+}
+
+///|
+pub fn compiler_aoa_ir_version_token() -> String {
+  "aoa-pipeline:0.1"
+}

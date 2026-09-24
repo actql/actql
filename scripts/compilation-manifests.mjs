@@ -119,7 +119,16 @@ function checkOrWrite(path, body, write) {
 
 export function verifyCompilationManifests(write = false) {
   const values = expectedCompilationManifests();
-  const aoaContractCid = machineCid(read('spec/contracts/actql-aoa.json'));
+  const aoaContract = read('spec/contracts/actql-aoa.json');
+  const aoaContractCid = machineCid(aoaContract);
+  const moduleVersion = readFileSync('moon.mod', 'utf8')
+    .match(/^version = "([A-Za-z0-9._+:-]+)"$/m)?.[1];
+  assert.ok(moduleVersion);
+  const compilerVersion = `actql-moonbit-${moduleVersion}`;
+  const aoaIrVersion = aoaContract.pipeline_ir_version.replace('/', ':');
+  const versionToken = /^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$/;
+  assert.match(compilerVersion, versionToken);
+  assert.match(aoaIrVersion, versionToken);
   checkOrWrite(grammarPath, values.grammar, write);
   checkOrWrite(barrierPath, values.barrier, write);
   checkOrWrite(contractPath, values.contract, write);
@@ -135,6 +144,10 @@ export function verifyCompilationManifests(write = false) {
     `  ${JSON.stringify(canonicalText(values.barrier))}`, '}', '',
     '///|', 'pub fn compiler_aoa_contract_cid() -> String {',
     `  ${JSON.stringify(aoaContractCid)}`, '}', '',
+    '///|', 'pub fn compiler_version_token() -> String {',
+    `  ${JSON.stringify(compilerVersion)}`, '}', '',
+    '///|', 'pub fn compiler_aoa_ir_version_token() -> String {',
+    `  ${JSON.stringify(aoaIrVersion)}`, '}', '',
   ].join('\n');
   if (write) writeFileSync(moonPath, moon);
   assert.equal(readFileSync(moonPath, 'utf8'), moon,
