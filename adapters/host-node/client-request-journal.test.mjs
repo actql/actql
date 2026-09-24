@@ -129,6 +129,19 @@ test('Run Definition and request acceptance survive one atomic restart',
       publicationControl);
     assert.equal(retained.ref.runDefinitionCid, definition.identity);
     assert.equal(retained.runDefinition.wire, definition.wire);
+    const attached = restarted.lookupRunDefinition(accepted.ref, moon,
+      publicationControl);
+    assert.deepEqual(attached.ref, accepted.ref);
+    assert.equal(attached.durability, 'durable');
+    assert.equal(attached.runDefinition.wire, definition.wire);
+    for (const foreign of [
+      {...accepted.ref, tenantId: 'tenant-b'},
+      {...accepted.ref, authorityScopeCid: cid('c')},
+      {...accepted.ref, runDefinitionCid: cid('d')},
+    ]) {
+      assert.equal(restarted.lookupRunDefinition(foreign, moon,
+        publicationControl), undefined);
+    }
     const resolved = restarted.resolveDefinition(identity(),
       {tenantId: 'tenant-a'}, moon, publicationControl);
     assert.equal(resolved.ref.runDefinitionCid, definition.identity);
@@ -251,6 +264,10 @@ test('Run Definition re-admission rejects corruption and incomplete records',
       definition.identity);
     assert.throws(() => reopened.lookupDefinition(key, moon,
       publicationControl), {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => reopened.lookupRunDefinition({
+      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      runDefinitionCid: definition.identity,
+    }, moon, publicationControl), {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => reopened.resolveDefinition(identity(),
       {tenantId: 'tenant-a'}, moon, publicationControl),
     {code: 'ClientRequestJournalCorrupt'});

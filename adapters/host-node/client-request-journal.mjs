@@ -178,6 +178,9 @@ export function openClientRequestJournal(directory, {
   };
   const select = database.prepare(`SELECT ${columns} FROM client_requests
     WHERE authority_scope_cid = ? AND caller_request_id = ?`);
+  const selectRef = database.prepare(`SELECT ${columns} FROM client_requests
+    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+      run_definition_cid = ?`);
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
@@ -318,6 +321,34 @@ export function openClientRequestJournal(directory, {
       return Object.freeze({...retained.found,
         runDefinition: retainedRunDefinition(
           retained.row, publicationControl, maxRunDefinitionWireBytes),
+      });
+    },
+    // Attach reads the original accepted Run Definition by its exact ref.
+    // It does not infer authority from a CID alone or create another Run.
+    lookupRunDefinition(ref, requestControl, publicationControl) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid) ||
+          typeof requestControl?.clientRequestAdmitRecord !== 'function') {
+        fail('InvalidClientRunLookup');
+      }
+      let row;
+      try {
+        row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+      } catch (error) { fail('ClientRequestLookupUnknown', error); }
+      if (row === undefined) return undefined;
+      const retained = retainedIdentity(row, requestControl);
+      if (requestControl.clientRequestScopeCid(retained) !==
+          row.logical_request_scope_cid) {
+        fail('ClientRequestJournalCorrupt');
+      }
+      const accepted = admission(row);
+      return Object.freeze({
+        ref: accepted.ref, durability: accepted.durability,
+        revision: accepted.revision,
+        runDefinition: retainedRunDefinition(
+          row, publicationControl, maxRunDefinitionWireBytes),
       });
     },
     // A resend can resolve an already accepted request before issuing a new
