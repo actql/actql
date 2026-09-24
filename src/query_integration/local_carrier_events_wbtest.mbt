@@ -2384,7 +2384,7 @@ test "standard Host runs registered bounded Events provider" {
   for
     variant in [
       "watermark", "dedupe", "window_fixed", "window_sliding", "window_parameter",
-      "session_relation",
+      "session", "session_global", "session_parameter", "session_ties", "session_relation",
     ] {
     let publication = variant != "session_ties"
     let (run, issuer) = captured_graph_fixture(
@@ -2498,6 +2498,8 @@ test "standard Host runs registered bounded Events provider" {
       2,
       events_live,
       obligations?=event_obligations,
+      require_provider=variant.has_prefix("session") &&
+        variant != "session_relation",
     )
     let event_rows = local_managed_test_rows(events_ops)
     let expected_rows = if variant == "dedupe" {
@@ -2646,10 +2648,6 @@ test "standard Host runs registered bounded Events provider" {
 test "standard Host retains Events across physical task boundaries" {
   for
     (variant, execution_quantum) in [
-      ("session", 0),
-      ("session_global", 0),
-      ("session_parameter", 0),
-      ("session_ties", 0),
       ("session_filter", 0),
       ("session_select", 0),
       ("session_derive", 0),

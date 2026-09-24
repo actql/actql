@@ -137,6 +137,7 @@ pub fn node_prefers_fused_without_relation_consumer(
 ) -> Bool {
   match node.payload {
     BasicGraph(_) => operation(node) == "SGA.normalize"
+    EventValue(_) => operation(node) == "TEA.window.session_assign"
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
