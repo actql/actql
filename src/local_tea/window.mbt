@@ -34,6 +34,7 @@ priv struct EventWindowState {
   mut coordinate : @grid.Coordinate?
   mut current : @bigint.BigInt
   mut latest : @bigint.BigInt
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -62,6 +63,7 @@ pub(all) enum EventWindowIssue {
   InvalidEventWindowRecord(Int)
   InvalidEventWindowTime(Int)
   EventWindowArithmetic(Int)
+  EventWindowWorkLimit
   EventWindowWorkspaceLimit
   EventWindowOutput(@records.Issue)
   EventWindowExecutionIssue(@bounded.Issue)
@@ -256,6 +258,9 @@ fn event_window_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(EventWindowInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(EventWindowWorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.record < @storage.record_count(state.source) {
@@ -310,6 +315,7 @@ fn event_window_step(
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidEventWindowKernel, progress, used)
         }
@@ -322,6 +328,7 @@ fn event_window_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -362,6 +369,7 @@ pub fn start_event_window(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[EventWindowExecution, EventWindowIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.WindowStep(window)) &&
@@ -377,6 +385,13 @@ pub fn start_event_window(
   guard @records.producer_read_storage(input) is Some(source) &&
     @storage.carrier(source) is @carrier.EventValue(events) else {
     return Err(EventWindowInputUnavailable)
+  }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(InvalidEventWindowLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(EventWindowWorkLimit)
   }
   let records = @storage.record_count(source)
   let size = @lower.window_size(window)
@@ -450,6 +465,7 @@ pub fn start_event_window(
     coordinate: None,
     current: @bigint.BigInt::from_int(0),
     latest: @bigint.BigInt::from_int(0),
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, event_window_step, cleanup_event_window_state, @records.discard_completed,

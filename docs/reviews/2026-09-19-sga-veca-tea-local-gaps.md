@@ -4,7 +4,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 22 have operation-specific
+The current local resource gate maps 68 routes: 23 have operation-specific
 boundary records, 6 have all four lifecycle roles, and 5 have exact and
 one-short work/workspace assurance across every production path. Another 24
 paths have path-scoped work/workspace evidence. Strict completion remains red.
@@ -103,6 +103,15 @@ from predicate expression and output-value budgets. Kernel cancellation,
 cleanup, and the fused standard Host timer remain connected to the same
 production entrypoint. This is literal-path evidence, not full work/workspace
 assurance for the Relation-selector and predicate variants.
+
+The Event window kernel now applies a cumulative control-work ceiling across
+bounded resumes. A fixed one-record fixture independently counts nine steps:
+record admission, three field reads, membership preparation, one seek,
+boundary construction, output commit, and finish. Nine steps complete and
+eight fail without publishing output; each quantum-one poll charges at most
+one step. This is fixed-window control-work evidence, not complete work and
+workspace assurance for fixed and sliding variants or Host-delivered
+cancellation of this exact fixture.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed

@@ -2927,7 +2927,16 @@
       "entrypoint": {
         "path": "src/local_tea/window.mbt",
         "symbol": "start_event_window"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "window_fixed_control_work_exact_one_short",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/window_wbtest.mbt",
+          "fixture": "fixed event window admits exact control work across resumes"
+        }
+      ]
     },
     {
       "inventory": "families",
