@@ -40,7 +40,8 @@ pub enum RowsToEventsPoll {
 ///|
 priv enum EventsToRowsPhase {
   BeginRecord
-  FindField
+  ScanFields
+  VerifyFields
   CommitRelationRow
   FinishRelation
 }
@@ -64,9 +65,10 @@ priv struct EventsToRowsState {
   schema : @schema.Schema
   mut phase : EventsToRowsPhase
   mut record : Int
-  mut column : Int
-  mut candidate : Int
-  mut values : Array[@value.CheckedValue]
+  mut source_field : Int
+  mut verified_column : Int
+  mut matched_count : Int
+  mut matched : Map[String, @value.CheckedValue]
 }
 
 ///|
@@ -386,33 +388,52 @@ fn events_to_rows_step(
       BeginRecord =>
         if events_source_record_count(state.source) is Some(count) &&
           state.record < count {
-          state.column = 0
-          state.candidate = 0
-          state.values = []
-          state.phase = FindField
+          state.source_field = 0
+          state.verified_column = 0
+          state.matched_count = 0
+          state.matched = Map([])
+          state.phase = ScanFields
         } else {
           state.phase = FinishRelation
         }
-      FindField =>
-        if state.column < @schema.field_count(state.schema) {
-          guard @schema.field_at(state.schema, state.column) is Some(expected) &&
-            events_source_field_count(state.source, state.record) is Some(width) else {
-            return @bounded.Failed(InvalidRecord(state.record), progress, used)
-          }
-          if state.candidate >= width {
-            return @bounded.Failed(InvalidRecord(state.record), progress, used)
-          }
-          guard events_source_field(state.source, state.record, state.candidate)
+      ScanFields => {
+        guard events_source_field_count(state.source, state.record)
+          is Some(width) else {
+          return @bounded.Failed(InvalidRecord(state.record), progress, used)
+        }
+        if state.matched_count == @schema.field_count(state.schema) {
+          state.phase = VerifyFields
+        } else if state.source_field < width {
+          guard events_source_field(
+              state.source,
+              state.record,
+              state.source_field,
+            )
             is Some((name, checked)) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
-          used += 1
-          state.candidate += 1
-          if name == expected.name {
-            state.values.push(checked)
-            state.column += 1
-            state.candidate = 0
+          state.source_field += 1
+          if @schema.lookup(state.schema, name) is Some(_) {
+            let key = @schema.reference_name(name)
+            if !state.matched.contains(key) {
+              state.matched_count += 1
+              state.matched[key] = checked
+            }
           }
+          used += 1
+        } else {
+          state.phase = VerifyFields
+        }
+      }
+      VerifyFields =>
+        if state.verified_column < @schema.field_count(state.schema) {
+          guard @schema.field_at(state.schema, state.verified_column)
+            is Some(expected) &&
+            state.matched.contains(@schema.reference_name(expected.name)) else {
+            return @bounded.Failed(InvalidRecord(state.record), progress, used)
+          }
+          state.verified_column += 1
+          used += 1
         } else {
           state.phase = CommitRelationRow
         }
@@ -421,11 +442,20 @@ fn events_to_rows_step(
           return @bounded.Failed(InvalidKernel, progress, used)
         }
         used += 1
-        match @execution.append_admitted_output(output, state.values) {
+        match
+          @execution.append_admitted_output_cells(
+            output,
+            @schema.field_count(state.schema),
+            column => {
+              @schema.field_at(state.schema, column).bind(field => {
+                state.matched.get(@schema.reference_name(field.name))
+              })
+            },
+          ) {
           Err(issue) =>
             return @bounded.Failed(RelationOutput(issue), progress, used)
           Ok(_) => {
-            state.values = []
+            state.matched = Map([])
             state.record += 1
             state.phase = BeginRecord
             progress += 1
@@ -465,7 +495,7 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.values = []
+  state.matched = Map([])
   if state.owned is Some(owned) {
     @records.discard_completed(owned) |> ignore
     state.owned = None
@@ -516,6 +546,8 @@ fn start_storage_to_rows(
       return Err(Completion(issue))
     }
   }
+  // Trusted output admission bounds the schema width by max_entries. The
+  // per-record map only retains names in that admitted output schema.
   let state : EventsToRowsState = {
     available,
     owned,
@@ -528,9 +560,10 @@ fn start_storage_to_rows(
     schema,
     phase: BeginRecord,
     record: 0,
-    column: 0,
-    candidate: 0,
-    values: [],
+    source_field: 0,
+    verified_column: 0,
+    matched_count: 0,
+    matched: Map([]),
   }
   let (session, token) = @bounded.start(
     control,

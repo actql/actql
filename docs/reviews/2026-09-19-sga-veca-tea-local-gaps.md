@@ -16,6 +16,14 @@ vectors require 28/27 construction-work units and 10/9 peak structural slots.
 Kernel cancellation after one private record and the standard Node Host's
 `rows-to-vectors-bridge` timer cancellation reach the same production path.
 
+The shared Events/Vectors-to-Relation projection no longer restarts a source
+record scan for every output column. It scans each demanded source field once,
+retains only admitted output names, then verifies output fields in schema order.
+The six-field reversed-storage fixture completes in 13 charged steps: six
+source probes, six checks, and one append. It preserves result order and
+avoids reading fields after all demanded names are found. Exact/one-short
+workspace and output-value proofs for the reverse Bridge routes remain open.
+
 The registered rows-to-Events Bridge now has independently counted 32/31
 construction-work and 13/12 peak structural-workspace limits for two
 three-field records. The workspace bound includes the second record's
