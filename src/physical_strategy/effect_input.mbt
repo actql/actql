@@ -369,6 +369,60 @@ pub fn check_captured_effect_preview_current_bindings(
 }
 
 ///|
+pub(all) enum CapturedEffectApplyKeyIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  Keys(@effect.EffectPreviewApplyIdentityIssue)
+} derive(Debug)
+
+///|
+/// Check the derived keys of the whole Effect Set against the same captured
+/// Preview while every required Result pin remains live. The logical request
+/// scope is distinct from a physical attempt; this check does not grant apply.
+pub fn check_captured_effect_preview_apply_keys(
+  value : CapturedEffectPreviewInputs,
+  scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectApplyKeyIssue] {
+  if max_rows < 0 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  let identity = @checked.effect_program_run_preview_identity(value.preview)
+  let member_count = @publication.effect_preview_member_count(identity)
+  if member_count > max_work / 2 {
+    return Err(CapacityExceeded)
+  }
+  let mut remaining = max_work - 2 * member_count
+  let mut total_rows = 0
+  for member_index in 0..<member_count {
+    let row_count = @publication.effect_preview_row_count(
+      identity, member_index,
+    ).unwrap()
+    if row_count > max_rows - total_rows || row_count > remaining {
+      return Err(CapacityExceeded)
+    }
+    total_rows += row_count
+    remaining -= row_count
+  }
+  for index in 0..<value.source_indexes.length() {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return Err(NotReady)
+    }
+  }
+  @effect.check_admitted_effect_preview_apply_keys(identity, scope, keys).map_err(issue => {
+      Keys(issue)
+    },
+  )
+}
+
+///|
 pub fn release_captured_effect_preview_inputs(
   value : CapturedEffectPreviewInputs,
 ) -> Bool {

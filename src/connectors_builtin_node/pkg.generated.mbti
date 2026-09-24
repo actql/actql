@@ -59,6 +59,8 @@ pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffect
 
 pub fn client_program_check_effect_plan_proofs(@physical_strategy.CapturedEffectPreviewInputs, Array[ClientEffectPlanProof], Int, Int) -> Result[Unit, ClientEffectPlanInventoryIssue]
 
+pub fn client_program_check_effect_preview_apply_keys(@physical_strategy.CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyKeyIssue]
+
 pub fn client_program_check_effect_preview_current_bindings(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectCurrentBindingIssue]
 
 pub fn client_program_check_effect_preview_target_guards(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectGuardIssue]

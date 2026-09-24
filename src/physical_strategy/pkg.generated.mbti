@@ -8,6 +8,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/numeric_reduction",
@@ -212,6 +213,8 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
+
+pub fn check_captured_effect_preview_apply_keys(CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
 
 pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
 
@@ -635,6 +638,13 @@ type CapturedAnyResultBorrow
 type CapturedAnyResultOutputSet
 
 type CapturedDAG
+
+pub(all) enum CapturedEffectApplyKeyIssue {
+  InvalidLimits
+  CapacityExceeded
+  NotReady
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+} derive(@debug.Debug)
 
 pub(all) enum CapturedEffectCurrentBindingIssue {
   InvalidLimits
