@@ -11,7 +11,8 @@ import {
   captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse,
 } from './effect-physical-dispatch.mjs';
-import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
+import {readAuthorizedEffectResponse,
+  recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const authorityScopeCid = cid('a');
@@ -439,5 +440,52 @@ test('read-only recovery checks the exact durable claim without sending',
         claim.key, cid('c'), cid('d'), cid('e'), cid('9'), cid('0'),
         'unavailable', cid('1'), cid('2')),
     }), {code: 'EffectLedgerIntentConflict'});
+    assert.equal(sends, 1);
+  });
+
+test('common recovery projects only an authorized stored response',
+  async t => {
+    const {open, claim} = await fixture(t);
+    const first = open();
+    t.after(() => first.close());
+    let projections = 0;
+    let sends = 0;
+    const options = {
+      claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      providerBinding: {providerAccount: 'account-a'},
+      authorizeEvidenceRead: binding => {
+        assert.equal(binding.providerAccount, 'account-a');
+        return true;
+      },
+      projectStored: stored => {
+        projections += 1;
+        return stored.responseBytes.toString('utf8');
+      },
+    };
+    assert.deepEqual(await recoverProjectedEffectResponse({
+      ...options, ledger: first,
+    }), {recovered: undefined});
+    assert.equal(projections, 0);
+    await captureClaimedEffectResponse({
+      ledger: first, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 201,
+          body: Buffer.from('{"success":true}')}};
+      },
+    });
+    first.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    await assert.rejects(recoverProjectedEffectResponse({
+      ...options, ledger: restarted,
+      authorizeEvidenceRead: () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    assert.equal(projections, 0);
+    assert.deepEqual(await recoverProjectedEffectResponse({
+      ...options, ledger: restarted,
+    }), {recovered: '{"success":true}'});
+    assert.equal(projections, 1);
     assert.equal(sends, 1);
   });
