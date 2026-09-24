@@ -1,6 +1,7 @@
 // The transport Client delegates admission, state and delivery to the Host.
 import {validClientAdmission, validClientConnection, validClientProfile,
-  validDeliveryAttemptLookup, validRequestLookup, validRunRef} from
+  validDeliveryAttemptLookup, validRequestLookup, validRunRef,
+  validRunState} from
   '@actql/client-wire';
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
@@ -369,10 +370,14 @@ export async function connect(options) {
     return Object.freeze({
       ref, profile: runProfile, result,
       status: async ({signal} = {}) => {
-        return readControl('status', {}, signal);
+        const state = await readControl('status', {}, signal);
+        if (!validRunState(state)) fail('InvalidHostRunState');
+        return state;
       },
       wait: async ({until, signal} = {}) => {
-        return readControl('wait', {until: until ?? null}, signal);
+        const state = await readControl('wait', {until: until ?? null}, signal);
+        if (!validRunState(state)) fail('InvalidHostRunState');
+        return state;
       },
       cancel: async ({signal} = {}) => {
         return readControl('cancel', {}, signal);
