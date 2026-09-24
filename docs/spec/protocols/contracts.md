@@ -1081,6 +1081,30 @@ with its nonsemantic Authoring Context as a private
 `actql-plan-document/0.1`. Changing only that context preserves Executable Plan
 identity but changes Plan Document and review-projection identity.
 
+<!-- requirement-block: planning-wire.result-plan-logical-identity planning-wire.result-plan-logical-identity.second -->
+Each declared Program Result has one `actql-result-plan/0.1` logical identity.
+Its CID is the SHA-256 of canonical JSON of the complete registered Result Plan
+object excluding only `result_plan_logical_cid`. The preimage binds the public
+Result name, owning Unit Definition CID, Unit-local Result name and declaration
+ordinal, checked projection in field order with value-contract CIDs, checked
+publication order strategy and terms, and the typed Relation output port with
+its exact row-contract CID. The Unit Definition and ordinal MUST identify that
+same checked Result port. Physical placement, generated execution node IDs,
+runtime values, delivery receipts, and publication observations do not enter
+this logical preimage. A saved Plan MUST recheck it against the checked Unit
+Result before Run admission.
+
+<!-- requirement-block: planning-wire.result-plan-root-binding planning-wire.result-plan-root-binding.second -->
+`execution_material.result_plan_logical_cids` has exactly one key for each
+declared Program Result name and no other keys. Each such name has exactly one
+`requested_result` root in `root_refs`, whose `ref` is the closed
+`{node_id, port}` output reference used by `data_edges`. The referenced node
+and output port MUST exist, carry Relation data, and have the row-contract CID
+bound by that Result Plan's typed output port. The graph reference binds a
+logical Result to this Executable Plan without entering the Result Plan CID.
+Duplicate names, missing roots, foreign ports, wrong carriers, and conflicting
+contracts MUST be rejected before Run admission.
+
 <!-- requirement-block: planning-wire.the-public-actql-plan-result-0-2-projection-must-not-expose-bound-scalar-or planning-wire.a-plan-document-must-be-stored-as-private-execution-material -->
 The public `actql-plan-result/0.1` projection MUST NOT expose bound scalar or
 opaque values, resolved bound requests, or the complete Executable Plan. It
@@ -1474,7 +1498,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:c2002906ae8133abb606cce66e5f35ce0f591fbe63979d74d57b16778c77e966
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:16c6535a631ceba7edda8cc842d78009df47930ee545da2a63f9a4b99a3ebb6e
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e
