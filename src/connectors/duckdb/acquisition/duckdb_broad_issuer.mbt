@@ -3,21 +3,13 @@
 /// verifies exact grant/port/read-view/settled transport ownership outside this
 /// package. It must never accept a CID, path, SQL-success bool or JSON as proof.
 struct DuckDBQueryIssuer {
-  _contracts : @planning.QueryEvidenceContracts
-  requirement : @planning.QueryRequirement
-  name : String
-  mut transport_matches : (DuckDBBroadAttempt) -> Bool
-  attempts : @planning.IssuerCounter
-  mut live : Bool
+  registration : @planning.QueryEvidenceRegistration[DuckDBBroadAttempt]
 }
-
-///|
-let duckdb_issuer_serial : @planning.IssuerCounter = @planning.issuer_counter()
 
 ///|
 priv struct DuckDBBroadAuthority {
   issuer : DuckDBQueryIssuer
-  number : String
+  token : @planning.QueryEvidenceAttemptAuthority[DuckDBBroadAttempt]
 }
 
 ///|
@@ -51,23 +43,11 @@ pub fn prepare_duckdb_query_issuer(
   max_nonce_chars : Int,
   transport_matches : (DuckDBBroadAttempt) -> Bool,
 ) -> Result[DuckDBQueryIssuer, DuckDBEvidenceIssue] {
-  if max_nonce_chars < 0 {
-    return Err(InvalidLimits)
-  }
-  if process_nonce.is_empty() || process_nonce.length() > max_nonce_chars {
-    return Err(IdentifierLimit)
-  }
-  guard @planning.reserve_issuer_number(duckdb_issuer_serial) is Some(serial) else {
-    return Err(IdentifierExhausted)
-  }
-  Ok({
-    _contracts: contracts,
-    requirement,
-    name: process_nonce + "/duckdb-issuer/" + serial.to_string(),
-    transport_matches,
-    attempts: @planning.issuer_counter(),
-    live: true,
-  })
+  @planning.register_query_evidence_issuer(
+    contracts, requirement, process_nonce, max_nonce_chars, "duckdb-issuer", transport_matches,
+  )
+  .map(registration => { registration, })
+  .map_err(duckdb_custody_issue)
 }
 
 ///|
@@ -78,46 +58,52 @@ pub fn prepare_issued_duckdb_broad_attempt(
   choice : @planning.AcquisitionChoice,
   prepared : @planning.PreparedAcquisition[DuckDBQueryPreparation],
 ) -> Result[DuckDBBroadAttempt, DuckDBEvidenceIssue] {
-  if !issuer.live {
-    return Err(IssuerClosed)
-  }
-  guard @planning.acquisition_choice_payload(choice, prepared)
-    is Some(preparation) else {
-    return Err(NotSelected)
-  }
-  if !physical_equal(issuer.requirement, preparation.requirement) {
-    return Err(UnauthorizedAttempt)
-  }
-  guard @planning.reserve_issuer_number(issuer.attempts) is Some(number) else {
-    return Err(IdentifierExhausted)
+  let (preparation, token) = match
+    @planning.reserve_selected_query_evidence_attempt(
+      issuer.registration,
+      choice,
+      prepared,
+      preparation => preparation.requirement,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(duckdb_custody_issue(issue))
   }
   let attempt = prepare_duckdb_broad_attempt(preparation)
-  Ok({ ..attempt, authority: Some({ issuer, number: number.to_string(), }), })
+  Ok({ ..attempt, authority: Some({ issuer, token, }), })
 }
 
 ///|
 pub fn close_duckdb_query_issuer(issuer : DuckDBQueryIssuer) -> Unit {
-  issuer.live = false
-  issuer.transport_matches = _ => false
+  @planning.close_query_evidence_registration(issuer.registration)
 }
 
 ///|
 pub fn duckdb_broad_attempt_identity(
   attempt : DuckDBBroadAttempt,
 ) -> (String, String)? {
-  attempt.authority.map(value => (value.issuer.name, value.number))
+  attempt.authority.map(value => {
+    (
+      @planning.query_evidence_registration_name(value.issuer.registration),
+      @planning.query_evidence_attempt_number(value.token),
+    )
+  })
 }
 
 ///|
 struct DuckDBBroadRecords {
   authority : DuckDBBroadAuthority
   retention : DuckDBBroadRetention
-  artifacts : @planning.QueryRecordArtifacts
+  issued : @planning.QueryEvidenceIssued[
+    DuckDBQueryIssuer,
+    DuckDBBroadAttempt,
+    DuckDBBroadRetention,
+  ]
 }
 
 ///|
 fn build_duckdb_broad_records(
   authority : DuckDBBroadAuthority,
+  attempt : DuckDBBroadAttempt,
   retained : DuckDBBroadRetention,
   limits : @planning.QueryMaterialLimits,
 ) -> Result[DuckDBBroadRecords, DuckDBEvidenceIssue] {
@@ -140,17 +126,20 @@ fn build_duckdb_broad_records(
     is Some(schema) else {
     return Err(InvalidRetainedLayout)
   }
-  @planning.build_query_record_artifacts(
-    requirement,
-    retained.measured.scan,
-    retained.measured.output,
+  @planning.issue_query_evidence(
+    authority.issuer.registration,
+    authority.token,
+    authority.issuer,
+    attempt,
+    retained,
+    retained.measured,
+    retained.completion._scan,
+    retained.output,
     schema,
-    authority.issuer.name,
-    authority.number,
     limits,
   )
-  .map(artifacts => { authority, retention: retained, artifacts, })
-  .map_err(duckdb_artifact_issue)
+  .map(issued => { authority, retention: retained, issued, })
+  .map_err(duckdb_custody_issue)
 }
 
 ///|
@@ -161,23 +150,21 @@ pub fn issue_duckdb_broad_records(
   guard attempt.authority is Some(authority) else {
     return Err(UnauthorizedAttempt)
   }
-  if !authority.issuer.live {
+  if !@planning.query_evidence_registration_live(authority.issuer.registration) {
     return Err(IssuerClosed)
   }
   guard attempt.state is Retained(retained) else { return Err(NotRetained) }
   if !physical_equal(
-      authority.issuer.requirement,
+      @planning.query_evidence_registration_requirement(
+        authority.issuer.registration,
+      ),
       retained.preparation.requirement,
     ) ||
     !duckdb_broad_retention_matches(retained, attempt) {
     abort_duckdb_broad_attempt(attempt)
     return Err(UnauthorizedAttempt)
   }
-  if !(authority.issuer.transport_matches)(attempt) {
-    abort_duckdb_broad_attempt(attempt)
-    return Err(UnverifiedTransport)
-  }
-  match build_duckdb_broad_records(authority, retained, limits) {
+  match build_duckdb_broad_records(authority, attempt, retained, limits) {
     Ok(records) => {
       attempt.state = EvidenceIssued(records)
       Ok(records)
@@ -195,7 +182,7 @@ pub fn verify_duckdb_broad_records(
   attempt : DuckDBBroadAttempt,
   records : DuckDBBroadRecords,
 ) -> Result[Unit, DuckDBEvidenceIssue] {
-  if !issuer.live {
+  if !@planning.query_evidence_registration_live(issuer.registration) {
     return Err(IssuerClosed)
   }
   guard attempt.authority is Some(expected) &&
@@ -211,16 +198,23 @@ pub fn verify_duckdb_broad_records(
   guard actual is Some(actual) &&
     physical_equal(actual, records) &&
     physical_equal(
-      issuer.requirement,
+      @planning.query_evidence_registration_requirement(issuer.registration),
       records.retention.preparation.requirement,
-    ) &&
-    duckdb_broad_retention_matches(records.retention, attempt) else {
+    ) else {
     return Err(ForeignRecords)
   }
-  if !(issuer.transport_matches)(attempt) {
-    return Err(UnverifiedTransport)
+  match
+    @planning.verify_query_evidence_issued(
+      records.issued,
+      issuer.registration,
+      records.authority.token,
+      issuer,
+      attempt,
+      records.retention,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(duckdb_custody_issue(issue))
   }
-  Ok(())
 }
 
 ///|
@@ -228,7 +222,26 @@ pub fn duckdb_broad_record_at(
   records : DuckDBBroadRecords,
   index : Int,
 ) -> (@encode.EncodedDocument, String)? {
-  @planning.query_record_artifact_at(records.artifacts, index)
+  @planning.query_evidence_record_at(records.issued, index)
+}
+
+///|
+fn duckdb_custody_issue(
+  issue : @planning.QueryEvidenceCustodyIssue,
+) -> DuckDBEvidenceIssue {
+  match issue {
+    InvalidLimits => InvalidLimits
+    InvalidIdentity => IdentifierLimit
+    IdentifierExhausted => IdentifierExhausted
+    IssuerClosed => IssuerClosed
+    NotSelected => NotSelected
+    ForeignRequirement => UnauthorizedAttempt
+    ForeignOwner => UnauthorizedAttempt
+    ForeignRetention | ForeignRecords => ForeignRecords
+    UnverifiedTransport => UnverifiedTransport
+    AlreadyCaptured => AlreadyCaptured
+    Artifact(issue) => duckdb_artifact_issue(issue)
+  }
 }
 
 ///|
