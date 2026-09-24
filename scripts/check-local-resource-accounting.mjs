@@ -540,9 +540,8 @@ for (const [index, route] of routeEntries.entries()) {
       for (const role of [
         `${prefix}_metadata_workspace_preflight`,
         `${prefix}_output_workspace_exact_one_short`,
-        ...(operation === 'interval_join'
-          ? ['interval_work_exact_one_short', 'interval_kernel_cancel_cleanup']
-          : []),
+        `${prefix}_work_exact_one_short`,
+        `${prefix}_kernel_cancel_cleanup`,
       ]) {
         if (!boundaryRoles.has(role)) {
           fail(`${label}: ${role} fixture is missing`);

@@ -228,3 +228,38 @@ test "bounded as-of join cancels before publishing partial output" {
   assert_true(cleanup_bounded_asof_join(execution).unwrap())
   assert_false(bounded_asof_join_cleanup_pending(execution))
 }
+
+///|
+test "bounded as-of join admits exact and one-short control work" {
+  // The fixed three-by-three fixture includes checked field resolution,
+  // identity validation and sort, clock reads, nine candidate visits,
+  // tie handling, three output rows, and finalization. Its fixed work
+  // boundary is 136 units, not a value read from the execution counter.
+  for (budget, accepted) in [(136, true), (135, false)] {
+    let (_, execution, inputs) = bounded_asof_fixture_result(10000, budget).unwrap()
+    let mut terminal = false
+    for _ in 0..<600 {
+      if terminal {
+        break
+      }
+      match advance_bounded_asof_join(execution, 1).unwrap() {
+        BoundedAsOfJoinContinue(..) => ()
+        BoundedAsOfJoinComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 3)
+          terminal = true
+        }
+        BoundedAsOfJoinFailed(Rows(RowLimit), ..) => {
+          assert_false(accepted)
+          assert_true(bounded_asof_join_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected as-of work boundary result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(inputs.all(producer_read_available))
+    assert_true(cleanup_bounded_asof_join(execution).unwrap())
+    assert_false(bounded_asof_join_cleanup_pending(execution))
+  }
+}

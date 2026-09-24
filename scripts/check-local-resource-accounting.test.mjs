@@ -90,17 +90,22 @@ test('temporal joins retain exact output workspace evidence', () => {
   }
 });
 
-test('interval join retains work and lifecycle route assurance', () => {
-  for (const role of [
-    'interval_work_exact_one_short',
-    'interval_kernel_cancel_cleanup',
+test('temporal joins retain work and kernel cleanup evidence', () => {
+  for (const [operation, prefix] of [
+    ['interval_join', 'interval'],
+    ['asof_join', 'asof'],
   ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'TEA' &&
-        entry.operation === 'interval_join');
-      route.boundary_tests = route.boundary_tests.filter(item =>
-        item.role !== role);
-    }), new RegExp(`TEA interval_join: ${role} fixture is missing`, 'u'));
+    for (const role of [
+      `${prefix}_work_exact_one_short`,
+      `${prefix}_kernel_cancel_cleanup`,
+    ]) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'TEA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item =>
+          item.role !== role);
+      }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+    }
   }
 });
 

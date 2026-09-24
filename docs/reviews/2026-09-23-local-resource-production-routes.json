@@ -3467,6 +3467,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
           "fixture": "bounded as-of join checks metadata and output workspace limits"
+        },
+        {
+          "role": "asof_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join admits exact and one-short control work"
+        },
+        {
+          "role": "asof_kernel_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join cancels before publishing partial output"
         }
       ],
       "environment_tests": [
