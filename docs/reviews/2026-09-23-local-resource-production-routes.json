@@ -4271,7 +4271,16 @@
       "entrypoint": {
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_events_to_rows"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "events_projection_value_width_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "Events projection production entrypoint enforces value and width limits"
+        }
+      ]
     },
     {
       "inventory": "families",

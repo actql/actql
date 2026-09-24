@@ -4,7 +4,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 37 have operation-specific
+The current local resource gate maps 68 routes: 38 have operation-specific
 boundary records, 18 have all four lifecycle roles, and 17 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 40 paths have path-scoped work/workspace evidence. Strict completion
@@ -26,6 +26,11 @@ Events-view fixture admits seven output value nodes and six schema entries,
 rejects each one-short bound, and stops and reclaims after scanning begins.
 It does not establish exact workspace or all production-route work limits for
 the reverse Bridge routes; those assurances remain open.
+The production `start_events_to_rows` entrypoint also admits the exact
+two-row/fourteen-node result and six-column metadata width, rejects each
+one-short bound, charges 26 projection steps, and stops and reclaims after
+the first scan step. This route has its own fixture; delivered Host timer
+cancellation and full work/workspace assurance remain open.
 
 The registered rows-to-Events Bridge now has independently counted 32/31
 construction-work and 13/12 peak structural-workspace limits for two

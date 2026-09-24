@@ -1053,6 +1053,147 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
 }
 
 ///|
+test "Events projection production entrypoint enforces value and width limits" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_events_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let storage_limits = carrier_events_storage_limits()
+  let encoding = @local_bridge.start_rows_to_events(
+    @bounded.control(),
+    sequence,
+    0,
+    external,
+    storage_limits,
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let events = finish_rows_to_events(encoding)
+  assert_eq(@local_bridge.cleanup_rows_to_events(encoding), Ok(true))
+  let watermark_input = @records.prepare_step_read(owner, 1, 0, events).unwrap()
+  let watermark = @local_tea.start_watermark(
+    @bounded.control(),
+    sequence,
+    1,
+    watermark_input,
+    storage_limits,
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let watermarked = finish_event_watermark(watermark)
+  assert_eq(@local_tea.cleanup_watermark(watermark), Ok(true))
+  let projection_input = @records.prepare_step_read(owner, 2, 0, watermarked).unwrap()
+  let exact = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<40 {
+    if exact_done {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(exact, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(output, work~, ..) => {
+        assert_eq(work, 26L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        assert_true(
+          @execution.completed_output_matches_inputs(output, [external]),
+        )
+        exact_done = true
+      }
+      _ => abort("exact Events projection failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_bridge.cleanup_events_to_rows(exact), Ok(true))
+  let one_short_width = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    5,
+    1000,
+    [external],
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 13, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<40 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Events projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_events_to_rows(
+    control,
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_events_to_rows(cancelled), Ok(true))
+  assert_true(@records.completed_available(watermarked))
+  assert_true(@records.discard_completed(watermarked))
+  assert_true(@records.discard_completed(events))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "Events to rows scans once and enforces projection limits" {
   let source_owner = @lower.bind_parameters(
     @lower.prepare(

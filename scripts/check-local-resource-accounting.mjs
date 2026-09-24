@@ -1301,6 +1301,10 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: delivered Bridge cancellation assurance is missing`);
     }
   }
+  if (route.family === 'Bridge' && route.operation === 'events' &&
+    !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
+    fail(`${label}: Events projection boundary fixture is missing`);
+  }
 }
 
 // Route fixtures cannot make a synchronous providerless resume interruptible.
