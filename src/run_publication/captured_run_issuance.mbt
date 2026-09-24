@@ -300,10 +300,17 @@ fn seal_effect_context(
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
+  preview : EffectPreviewIdentity?,
+  plans : Array[(String, @json.CanonicalValue)],
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@json.CanonicalValue, CapturedRunIssuanceIssue] {
+  let effect_ids = match preview {
+    Some(identity) => identity.member_effect_ids.copy()
+    None => []
+  }
+  effect_ids.sort_by(@canonical.compare_utf16)
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(CaptureIssuanceEncoding)
   }
@@ -313,12 +320,36 @@ fn seal_effect_context(
     @json.emit_value(authoring.value, writer)
     @encode.key(writer, "effect_plan_logical_cids")
     @encode.begin_object(writer)
+    if preview is Some(identity) {
+      for name in effect_ids {
+        let mut index = -1
+        for position in 0..<identity.member_effect_ids.length() {
+          if identity.member_effect_ids[position] == name {
+            index = position
+            break
+          }
+        }
+        if index >= 0 && identity.member_effect_plan_cids[index] is Some(cid) {
+          @encode.key(writer, name)
+          @encode.string_value(writer, cid)
+        }
+      }
+    }
     @encode.end_object(writer)
     @encode.key(writer, "effect_plans")
     @encode.begin_object(writer)
+    for (name, plan) in plans {
+      @encode.key(writer, name)
+      @json.emit_value(plan, writer)
+    }
     @encode.end_object(writer)
     @encode.key(writer, "effects")
     @encode.begin_object(writer)
+    for name in effect_ids {
+      @encode.key(writer, name)
+      @encode.begin_object(writer)
+      @encode.end_object(writer)
+    }
     @encode.end_object(writer)
     @encode.key(writer, "model_invocation_evidence")
     @encode.begin_array(writer)
@@ -410,6 +441,83 @@ pub fn issue_effect_free_captured_run(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  issue_captured_computation_run(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    None,
+    [],
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Issue the Effectful computation capture without claiming apply authority.
+/// Plan values are bounded context observations; the physical Plan payload
+/// still requires an exact checked output proof before any mutation.
+pub fn issue_effectful_captured_run(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  snapshots : Array[CapturedResultSnapshot],
+  advances : Array[PendingSourceStateAdvance],
+  authoring : RunEvidenceValue,
+  models : Array[RunEvidenceValue],
+  preview : EffectPreviewIdentity,
+  plan_values : Array[(String, String)],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  issue_captured_computation_run(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    Some(preview),
+    plan_values,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_captured_computation_run(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  snapshots : Array[CapturedResultSnapshot],
+  advances : Array[PendingSourceStateAdvance],
+  authoring : RunEvidenceValue,
+  models : Array[RunEvidenceValue],
+  preview : EffectPreviewIdentity?,
+  plan_values : Array[(String, String)],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
   if authoring.name != "authoring_context" {
     return Err(CaptureIssuanceWrongContract("authoring_context"))
   }
@@ -451,10 +559,46 @@ pub fn issue_effect_free_captured_run(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let plans : Array[(String, @json.CanonicalValue)] = []
+  for (name, wire) in plan_values {
+    guard preview is Some(identity) && identity.member_effect_ids.contains(name) else {
+      return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
+    }
+    let mut index = -1
+    for position in 0..<identity.member_effect_ids.length() {
+      if identity.member_effect_ids[position] == name {
+        index = position
+        break
+      }
+    }
+    if index < 0 ||
+      identity.member_effect_plan_cids[index] is None ||
+      plans.any(fn(value) { value.0 == name }) {
+      return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
+    }
+    let value = match
+      parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+      Ok(value) => value
+      Err(_) => return Err(CaptureIssuanceInvalidRows("effect_plans"))
+    }
+    plans.push((name, value))
+  }
+  if preview is Some(identity) {
+    let mut expected_plans = 0
+    for cid in identity.member_effect_plan_cids {
+      if cid is Some(_) {
+        expected_plans += 1
+      }
+    }
+    if identity.member_effect_ids.is_empty() || expected_plans != plans.length() {
+      return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
+    }
+  }
+  plans.sort_by(fn(left, right) { @canonical.compare_utf16(left.0, right.0) })
   let effect_context = match
     seal_effect_context(
-      ordered_snapshots, advances, authoring, ordered_models, max_wire_bytes, max_nodes,
-      max_depth,
+      ordered_snapshots, advances, authoring, ordered_models, preview, plans, max_wire_bytes,
+      max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -490,11 +634,19 @@ pub fn issue_effect_free_captured_run(
     Ok(value) => value
     Err(issue) => return Err(CaptureIssuanceContract(issue))
   }
-  match
-    validate_effect_free_run_evidence_chain(
-      run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
-      max_wire_bytes, max_nodes, max_depth,
-    ) {
+  let validation = match preview {
+    None =>
+      validate_effect_free_run_evidence_chain(
+        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
+        max_wire_bytes, max_nodes, max_depth,
+      )
+    Some(identity) =>
+      validate_effectful_computation_evidence_chain(
+        run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
+        identity, max_wire_bytes, max_nodes, max_depth,
+      )
+  }
+  match validation {
     Ok(_) => Ok(captured)
     Err(issue) => Err(CaptureIssuanceChain(issue))
   }

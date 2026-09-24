@@ -155,6 +155,8 @@ pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, 
 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
+pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
 
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
