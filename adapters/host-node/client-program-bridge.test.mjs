@@ -352,6 +352,12 @@ test('Node ABI derives the checked named Result and request identity', async () 
     }}],
     version: 'actql/0.1',
   });
+  const outputSchema = checked(
+    moon.clientProgramIssueLocalValuesOutputSchema(prepared, 0));
+  assert.equal(moon.clientProgramLocalValuesOutputSchemaWire(outputSchema),
+    '{"id":{"nullable":false,"type":"number"}}');
+  assert.equal(moon.clientProgramLocalValuesOutputSchemaCid(outputSchema),
+    'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513');
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
       pipeline, moon.clientProgramLocalValuesAoACid(aoa))));
@@ -365,6 +371,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramLocalValuesUnitSourceJson(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(
+    moon.clientProgramIssueLocalValuesOutputSchema(prepared, 1)),
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
     {code: 'MoonBitHostFailure'});
