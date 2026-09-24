@@ -175,6 +175,16 @@ pub fn captured_effect_preview_owner(
 }
 
 ///|
+/// The historical private Preview identity retained by the captured owner.
+/// Durable progress may be reconciled after Result pins are released, but
+/// this identity is not current material availability or send authority.
+pub fn captured_effect_preview_ledger_identity(
+  value : CapturedEffectPreviewInputs,
+) -> @publication.EffectPreviewIdentity {
+  @checked.effect_program_run_preview_identity(value.preview)
+}
+
+///|
 pub fn captured_effect_preview_input_at(
   value : CapturedEffectPreviewInputs,
   preview_index : Int,
