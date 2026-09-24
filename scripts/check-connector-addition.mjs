@@ -48,6 +48,9 @@ cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
 });
 symlinkSync(join(root, 'adapters/connectors/duckdb/node/node_modules'), join(isolated, 'adapters/connectors/duckdb/node/node_modules'), 'dir');
 cpSync(join(root, 'spec'), join(isolated, 'spec'), {recursive:true});
+mkdirSync(join(isolated, 'packages'), {recursive:true});
+cpSync(join(root, 'packages/client-wire'),
+  join(isolated, 'packages/client-wire'), {recursive:true});
 mkdirSync(join(isolated, 'vendor/duckdb'), {recursive:true});
 cpSync(join(root, 'vendor/duckdb/1.4.3'), join(isolated, 'vendor/duckdb/1.4.3'), {
   recursive: true,
