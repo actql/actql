@@ -14,6 +14,14 @@ const profile = Object.freeze({version: 'actql-client-host/0.1',
     maxRetainedValueBytes: 4096, maxRows: 10,
     maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}});
 const admission = Object.freeze({ref, durability: 'durable', revision: 4});
+const state = Object.freeze({version: 'actql-run-state/0.1',
+  run_id: 'run-a', status: 'succeeded',
+  updated_at: '2026-09-24T00:00:00.000Z',
+  next_action: {kind: 'refresh_availability', results: ['answer']},
+  result_available: false,
+  result_availability: {answer: {
+    state: 'unknown', observed_at: '2026-09-24T00:00:00.000Z',
+    reason: 'verification_pending'}}});
 const options = {mode: 'remote', endpoint: 'https://host.example/',
   token: () => 'scoped-token'};
 const oversizedControl = cancelled => new Response(new ReadableStream({
@@ -74,8 +82,6 @@ test('bounded control reads cover attach, status and error responses',
 
 test('document submit, attach and reads use one reference without replay', async t => {
   const requests = [];
-  const state = {outcome: 'succeeded', publication: 'publication_unknown',
-    availability: {answer: 'unknown'}, revision: 4};
   mock.method(globalThis, 'fetch', async (url, init) => {
     const operation = url.pathname.split('/').at(-1);
     requests.push({operation, body: JSON.parse(init.body), headers: init.headers});
@@ -115,6 +121,26 @@ test('document submit, attach and reads use one reference without replay', async
       runners: []}, requestId: 'request-a', kind: 'aql',
     input: {text: '{"version":"actql/0.1"}', format: 'json'},
     parameters: null});
+});
+
+test('status and wait reject malformed Host state replies', async t => {
+  let reply = state;
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'status' || operation === 'wait') {
+      return Response.json(reply);
+    }
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const execution = await (await connect(options)).attach(ref);
+  assert.deepEqual(await execution.status(), state);
+  assert.deepEqual(await execution.wait(), state);
+  reply = {...state, status: 'not_an_engine_state'};
+  await assert.rejects(execution.status(), {code: 'InvalidHostRunState'});
+  await assert.rejects(execution.wait(), {code: 'InvalidHostRunState'});
 });
 
 test('unknown submit carries one fixed request ID and lookup never submits', async t => {
