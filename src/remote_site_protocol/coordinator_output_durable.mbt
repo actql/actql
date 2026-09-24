@@ -302,6 +302,14 @@ pub fn durable_coordinator_output_record_json(
 }
 
 ///|
+/// Reissue the exact admitted poll after a Coordinator process restart.
+pub fn durable_coordinator_output_record_poll_json(
+  durable : DurableCoordinatorOutputRecord,
+) -> Result[String, DispatchIssue] {
+  remote_poll_output_plan_json(durable.output.request, durable.output.intent)
+}
+
+///|
 pub fn durable_coordinator_output_record_revision(
   durable : DurableCoordinatorOutputRecord,
 ) -> Int {

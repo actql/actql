@@ -208,6 +208,14 @@ pub fn coordinator_durable_output_json(
 }
 
 ///|
+#export_name("coordinatorDurableOutputPollJson")
+pub fn coordinator_durable_output_poll_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.durable_coordinator_output_record_poll_json(durable)
+}
+
+///|
 #export_name("coordinatorPrepareOutputUnknown")
 pub fn coordinator_prepare_output_unknown(
   record : @remote.CoordinatorOutputRecord,

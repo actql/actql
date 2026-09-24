@@ -122,10 +122,19 @@ test "Coordinator output transitions issue exact durable bodies" {
       true,
     ).unwrap().1
   let initial = prepare_durable_coordinator_output_record(output, plan).unwrap()
+  let exact_poll = remote_poll_output_plan_json(
+    remote_poll_output_request(output), remote_poll_output_intent(output),
+  ).unwrap()
+  assert_eq(
+    durable_coordinator_output_record_poll_json(initial), Ok(exact_poll),
+  )
   let unknown = prepare_coordinator_output_unknown(record).unwrap()
   assert_eq(coordinator_output_transition_expected_revision(unknown), 0)
   let uncertain = advance_durable_coordinator_output_record(initial, unknown).unwrap()
   let unknown_body = durable_coordinator_output_record_json(uncertain)
+  assert_eq(
+    durable_coordinator_output_record_poll_json(uncertain), Ok(exact_poll),
+  )
   assert_eq(
     coordinator_output_transition_durable_json(initial, unknown),
     Ok(unknown_body),

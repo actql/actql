@@ -118,6 +118,7 @@ export function restoreDurableOutput(journal: Journal,
   durable: DurableOutputRecord): OutputRecord;
 export function durableOutputRevision(durable: DurableOutputRecord): number;
 export function durableOutputJson(durable: DurableOutputRecord): string;
+export function durableOutputPollJson(durable: DurableOutputRecord): string;
 export function prepareOutputUnknown(record: OutputRecord): OutputTransition;
 export function prepareOutputSuccessJson(record: OutputRecord,
   body: string): OutputTransition;

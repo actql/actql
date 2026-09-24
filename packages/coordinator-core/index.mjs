@@ -140,6 +140,8 @@ export const restoreDurableOutput = (journal, durable) =>
   checked(owner.coordinatorRestoreDurableOutput(journal, durable));
 export const durableOutputRevision = owner.coordinatorDurableOutputRevision;
 export const durableOutputJson = owner.coordinatorDurableOutputJson;
+export const durableOutputPollJson = durable =>
+  checked(owner.coordinatorDurableOutputPollJson(durable));
 export const prepareOutputUnknown = record =>
   checked(owner.coordinatorPrepareOutputUnknown(record));
 export const prepareOutputSuccessJson = (record, body) =>
