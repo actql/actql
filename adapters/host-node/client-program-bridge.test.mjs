@@ -1060,6 +1060,75 @@ test('Node publication admission rejects evidence from another checked Program',
       prepared, ...foreignEnvironment), undefined);
   });
 
+test('Node Run Definition binding rejects changed supplied Parameters',
+  async t => {
+    const {environment} = await checkedFixture();
+    const document = await readFile(new URL('parameter-values.json', fixture),
+      'utf8');
+    const prepare = parameters => moon.clientProgramPreparationReady(
+      moon.clientProgramPrepareEffectFreeWithParameters(document, 'json',
+        environment, JSON.stringify({n: parameters})));
+    const preparedA = prepare(2);
+    const preparedB = prepare(3);
+    assert.ok(preparedA && preparedB);
+    const control = runtimeCore(moon).publicationControl;
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const checkedDefinition = prepared => {
+      const request = moon.clientProgramRequestIdentity(prepared,
+        cid('a'), 'parameter-definition-request', cid('b'));
+      const bindings = checked(moon.clientProgramIssueEmptyInvocationBindings(
+        prepared));
+      const evidence = publicationEvidence(
+        moon.clientRequestProgramCid(request),
+        moon.clientRequestParametersCid(request),
+        moon.clientProgramSemanticsCid(prepared),
+        moon.clientProgramCheckEnvironmentCid(prepared),
+        moon.strategyRunEvidenceIdentity(bindings));
+      const bound = evidence.slice(0, 3).map((value, index) =>
+        control.admitRunEvidence(
+          ['bound_invocation_template', 'prepared_invocation',
+            'run_authorization'][index],
+          moon.strategyRunEvidenceJson(value), limits));
+      const plan = control.admit('compiled_plan',
+        moon.strategyPublicationContractJson(evidence[3]), limits);
+      const admission = control.admitCheckedClientRunPublication(
+        prepared, ...bound, plan);
+      const definition = control.issueRunDefinition(admission, {
+        scopeId: 'tenant-a-scope', runId: 'parameter-run',
+        inputArtifactSetCid: cid('c'),
+        createdAt: '2026-09-24T00:00:00.000Z',
+        validUntil: '2027-01-01T00:00:00.000Z',
+      }, limits);
+      control.checkClientRunDefinitionBinding(prepared, admission,
+        definition);
+      return {request, admission, definition};
+    };
+    const first = checkedDefinition(preparedA);
+    const second = checkedDefinition(preparedB);
+    assert.notEqual(moon.clientRequestParametersCid(first.request),
+      moon.clientRequestParametersCid(second.request));
+    assert.throws(() => control.checkClientRunDefinitionBinding(preparedA,
+      first.admission, second.definition),
+    /Run Definition differs from checked Program/u);
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'foreign-parameters-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    await assert.rejects(journal.admitOrLookupDefinition(first.request, {
+      tenantId: 'tenant-a',
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition: () => {
+        control.checkClientRunDefinitionBinding(preparedA,
+          first.admission, second.definition);
+        return second.definition;
+      },
+    }, moon, control), /Run Definition differs from checked Program/u);
+    assert.equal(journal.lookup({tenantId: 'tenant-a',
+      authorityScopeCid: cid('a'),
+      requestId: 'parameter-definition-request'}, moon), undefined);
+  });
+
 test('durable request deduplication uses checked Program identity', async t => {
   const {document, environment} = await checkedFixture();
   const prepared = moon.clientProgramPrepareEffectFree(
