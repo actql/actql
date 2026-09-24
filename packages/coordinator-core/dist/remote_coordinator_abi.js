@@ -781,17 +781,18 @@ function _M0DTPC16result6ResultGdRP35actql5actql13source__value10ParseIssueE2Ok(
   this._0 = param0;
 }
 _M0DTPC16result6ResultGdRP35actql5actql13source__value10ParseIssueE2Ok.prototype.$tag = 1;
-function _M0TP35actql5actql13source__value6Parser(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9) {
+function _M0TP35actql5actql13source__value6Parser(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10) {
   this.source = param0;
   this.source_path = param1;
   this.limits = param2;
-  this.path = param3;
-  this.offset = param4;
-  this.byte_offset = param5;
-  this.line = param6;
-  this.column = param7;
-  this.nodes = param8;
-  this.deepest = param9;
+  this.normalize_text = param3;
+  this.path = param4;
+  this.offset = param5;
+  this.byte_offset = param6;
+  this.line = param7;
+  this.column = param8;
+  this.nodes = param9;
+  this.deepest = param10;
 }
 function $f64_reinterpret_i64(a) {
   $reinterpret_view.setFloat64(0, a, false);
@@ -1590,26 +1591,26 @@ const _M0FP35actql5actql16canonical__value17nfc__quick__checkN6constrS231 = new 
 const _M0MPC16string10StringView4findN6constrS9865 = 0;
 const _M0FPC28internal7strconv17check__underscoreN25_2atransition__table__222S230 = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 5, 5, 5, 0, 1, 2, 5];
 const _M0FPC28internal7strconv15parse__inf__nanN25_2atransition__table__304S312 = [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 3, 4, 14, 14, 14, 14, 14, 14, 14, 7, 14, 14, 14, 14, 5, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 6, 14, 14, 14, 0, 14, 14, 14, 14, 14, 14, 14, 14, 14, 8, 14, 14, 14, 14, 14, 1, 14, 14, 9, 14, 14, 14, 14, 14, 14, 14, 14, 10, 14, 14, 14, 14, 14, 14, 11, 14, 14, 14, 14, 14, 14, 14, 14, 14, 12, 14, 14, 14, 14, 14, 14, 14, 14, 13, 14, 1, 14, 14, 14, 14, 14, 14, 14];
-const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1135 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
-const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1136 = new _M0DTPC16result6ResultGRP35actql5actql13source__value5ValueRP35actql5actql13source__value10ParseIssueE2Ok(_M0FP35actql5actql13source__value13yaml__resolveN6constrS1135);
-const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1137 = new _M0DTP35actql5actql13source__value5Value4Bool(true);
-const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1138 = new _M0DTPC16result6ResultGRP35actql5actql13source__value5ValueRP35actql5actql13source__value10ParseIssueE2Ok(_M0FP35actql5actql13source__value13yaml__resolveN6constrS1137);
-const _M0FP35actql5actql13source__value13yaml__resolveN6recordS1139 = new _M0TP35actql5actql13source__value11ParseLimits(0, 0, 0);
-const _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1133 = 92;
-const _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1134 = 117;
-const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1140 = 2;
-const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1141 = 3;
-const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1142 = 0;
-const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1143 = 1;
-const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1144 = 4;
-const _M0MP35actql5actql13source__value6Parser13parse__stringN6constrS1145 = 34;
-const _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1146 = 45;
-const _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1147 = 46;
-const _M0MP35actql5actql13source__value6Parser8documentN6constrS1148 = 91;
-const _M0MP35actql5actql13source__value6Parser8documentN6constrS1149 = new _M0DTP35actql5actql13source__value5Value4Bool(true);
-const _M0MP35actql5actql13source__value6Parser8documentN6constrS1150 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
-const _M0MP35actql5actql13source__value6Parser8documentN6constrS1151 = 44;
-const _M0MP35actql5actql13source__value6Parser8documentN6constrS1152 = 58;
+const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1171 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
+const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1172 = new _M0DTPC16result6ResultGRP35actql5actql13source__value5ValueRP35actql5actql13source__value10ParseIssueE2Ok(_M0FP35actql5actql13source__value13yaml__resolveN6constrS1171);
+const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1173 = new _M0DTP35actql5actql13source__value5Value4Bool(true);
+const _M0FP35actql5actql13source__value13yaml__resolveN6constrS1174 = new _M0DTPC16result6ResultGRP35actql5actql13source__value5ValueRP35actql5actql13source__value10ParseIssueE2Ok(_M0FP35actql5actql13source__value13yaml__resolveN6constrS1173);
+const _M0FP35actql5actql13source__value13yaml__resolveN6recordS1175 = new _M0TP35actql5actql13source__value11ParseLimits(0, 0, 0);
+const _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1169 = 92;
+const _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1170 = 117;
+const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1176 = 2;
+const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1177 = 3;
+const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1178 = 0;
+const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1179 = 1;
+const _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1180 = 4;
+const _M0MP35actql5actql13source__value6Parser13parse__stringN6constrS1181 = 34;
+const _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1182 = 45;
+const _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1183 = 46;
+const _M0MP35actql5actql13source__value6Parser8documentN6constrS1184 = 91;
+const _M0MP35actql5actql13source__value6Parser8documentN6constrS1185 = new _M0DTP35actql5actql13source__value5Value4Bool(true);
+const _M0MP35actql5actql13source__value6Parser8documentN6constrS1186 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
+const _M0MP35actql5actql13source__value6Parser8documentN6constrS1187 = 44;
+const _M0MP35actql5actql13source__value6Parser8documentN6constrS1188 = 58;
 const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3215 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3216 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3217 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -6512,31 +6513,31 @@ function _M0FP35actql5actql16canonical__value18normalize__nfc__lf(value) {
     return _M0MPC16string6String8contains(_normalized, new _M0TPC16string10StringView(_M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS201, 0, _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS201.length)) ? new _M0DTPC16result6ResultGsRP35actql5actql16canonical__value22TextNormalizationErrorE2Ok(_M0MPC16string6String12replace__all(_M0MPC16string6String12replace__all(_normalized, new _M0TPC16string10StringView(_M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS202, 0, _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS202.length), new _M0TPC16string10StringView(_M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS203, 0, _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS203.length)), new _M0TPC16string10StringView(_M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS204, 0, _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS204.length), new _M0TPC16string10StringView(_M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS205, 0, _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS205.length))) : new _M0DTPC16result6ResultGsRP35actql5actql16canonical__value22TextNormalizationErrorE2Ok(_normalized);
   }
 }
-function _M0IP35actql5actql13source__value5PhasePB2Eq5equal(_x_454, _x_455) {
-  switch (_x_454) {
+function _M0IP35actql5actql13source__value5PhasePB2Eq5equal(_x_461, _x_462) {
+  switch (_x_461) {
     case 0: {
-      if (_x_455 === 0) {
+      if (_x_462 === 0) {
         return true;
       } else {
         return false;
       }
     }
     case 1: {
-      if (_x_455 === 1) {
+      if (_x_462 === 1) {
         return true;
       } else {
         return false;
       }
     }
     case 2: {
-      if (_x_455 === 2) {
+      if (_x_462 === 2) {
         return true;
       } else {
         return false;
       }
     }
     default: {
-      if (_x_455 === 3) {
+      if (_x_462 === 3) {
         return true;
       } else {
         return false;
@@ -6544,38 +6545,38 @@ function _M0IP35actql5actql13source__value5PhasePB2Eq5equal(_x_454, _x_455) {
     }
   }
 }
-function _M0IP35actql5actql13source__value9YamlStylePB2Eq5equal(_x_424, _x_425) {
-  switch (_x_424) {
+function _M0IP35actql5actql13source__value9YamlStylePB2Eq5equal(_x_431, _x_432) {
+  switch (_x_431) {
     case 0: {
-      if (_x_425 === 0) {
+      if (_x_432 === 0) {
         return true;
       } else {
         return false;
       }
     }
     case 1: {
-      if (_x_425 === 1) {
+      if (_x_432 === 1) {
         return true;
       } else {
         return false;
       }
     }
     case 2: {
-      if (_x_425 === 2) {
+      if (_x_432 === 2) {
         return true;
       } else {
         return false;
       }
     }
     case 3: {
-      if (_x_425 === 3) {
+      if (_x_432 === 3) {
         return true;
       } else {
         return false;
       }
     }
     default: {
-      if (_x_425 === 4) {
+      if (_x_432 === 4) {
         return true;
       } else {
         return false;
@@ -7060,7 +7061,7 @@ function _M0MP35actql5actql13source__value6Parser21parse__escape__scalar(self, p
     return _bind;
   }
   if (first >= 55296 && first <= 56319) {
-    if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1133)) {
+    if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1169)) {
       const _bind$2 = _M0MP35actql5actql13source__value6Parser4failGuE(self, _M0DTP35actql5actql13source__value10ParseIssue20InvalidUnicodeEscape__, path);
       if (_bind$2.$tag === 1) {
         const _ok = _bind$2;
@@ -7076,7 +7077,7 @@ function _M0MP35actql5actql13source__value6Parser21parse__escape__scalar(self, p
     } else {
       return _bind$2;
     }
-    if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1134)) {
+    if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser21parse__escape__scalarN6constrS1170)) {
       const _bind$3 = _M0MP35actql5actql13source__value6Parser4failGuE(self, _M0DTP35actql5actql13source__value10ParseIssue20InvalidUnicodeEscape__, path);
       if (_bind$3.$tag === 1) {
         const _ok = _bind$3;
@@ -7787,9 +7788,9 @@ function _M0FP35actql5actql13source__value19yaml__radix__number(text, width) {
     return new _M0DTPC16result6ResultGdRP35actql5actql13source__value10ParseIssueE2Ok(value);
   }
 }
-function _M0MP35actql5actql13source__value6Parser4make(source, source_path, limits) {
+function _M0MP35actql5actql13source__value6Parser12make_2einner(source, source_path, limits, normalize_text) {
   const bom = source.length > 0 && (0 >>> 0 < source.length ? source.charCodeAt(0) : $oob()) === 65279;
-  return new _M0TP35actql5actql13source__value6Parser(source, source_path, limits, [], bom ? 1 : 0, bom ? 3 : 0, 1, 1, 0, 0);
+  return new _M0TP35actql5actql13source__value6Parser(source, source_path, limits, normalize_text, [], bom ? 1 : 0, bom ? 3 : 0, 1, 1, 0, 0);
 }
 function _M0MP35actql5actql13source__value6Parser14read__binary64(self, start, path) {
   const _tmp = self.source;
@@ -8053,11 +8054,11 @@ function _M0FP35actql5actql13source__value13yaml__resolve(text) {
               }
               break _L$5;
             }
-            return _M0FP35actql5actql13source__value13yaml__resolveN6constrS1138;
+            return _M0FP35actql5actql13source__value13yaml__resolveN6constrS1174;
           }
           break _L$3;
         }
-        return _M0FP35actql5actql13source__value13yaml__resolveN6constrS1136;
+        return _M0FP35actql5actql13source__value13yaml__resolveN6constrS1172;
       }
       break _L;
     }
@@ -8109,7 +8110,7 @@ function _M0FP35actql5actql13source__value13yaml__resolve(text) {
     }
   }
   if (_M0FP35actql5actql13source__value22yaml__number__spelling(text)) {
-    const parser = _M0MP35actql5actql13source__value6Parser4make(text, "<number>", _M0FP35actql5actql13source__value13yaml__resolveN6recordS1139);
+    const parser = _M0MP35actql5actql13source__value6Parser12make_2einner(text, "<number>", _M0FP35actql5actql13source__value13yaml__resolveN6recordS1175, true);
     parser.offset = text.length;
     const start = (0 >>> 0 < text.length ? text.charCodeAt(0) : $oob()) === 43 ? 1 : 0;
     let _tmp;
@@ -9007,10 +9008,10 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
         const start = _M0MP35actql5actql13source__value6Parser5point(self);
         let style = undefined;
         if (_M0MP35actql5actql13source__value6Parser8yaml__at(self, 0) === 91) {
-          style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1140;
+          style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1176;
         } else {
           if (_M0MP35actql5actql13source__value6Parser8yaml__at(self, 0) === 123) {
-            style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1141;
+            style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1177;
           } else {
             _L: {
               _L$2: {
@@ -9028,7 +9029,7 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
                         break _L$3;
                       }
                     }
-                    style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1144;
+                    style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1180;
                   } else {
                     break _L$2;
                   }
@@ -9039,7 +9040,7 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
               }
               if (!flow && (allow_compact || self.line > origin_line)) {
                 if (_M0MP35actql5actql13source__value6Parser15yaml__indicator(self, 45)) {
-                  style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1142;
+                  style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1178;
                 } else {
                   _L$3: {
                     _L$4: {
@@ -9053,7 +9054,7 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
                       }
                       break _L$3;
                     }
-                    style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1143;
+                    style = _M0MP35actql5actql13source__value6Parser14yaml__documentN6constrS1179;
                   }
                 }
               }
@@ -9556,7 +9557,7 @@ function _M0MP35actql5actql13source__value6Parser11skip__space(self) {
 }
 function _M0MP35actql5actql13source__value6Parser13parse__string(self, path) {
   const start = _M0MP35actql5actql13source__value6Parser5point(self);
-  if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__stringN6constrS1145)) {
+  if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__stringN6constrS1181)) {
     const _bind = _M0MP35actql5actql13source__value6Parser4failGuE(self, _M0DTP35actql5actql13source__value10ParseIssue13InvalidString__, path);
     if (_bind.$tag === 1) {
       const _ok = _bind;
@@ -9597,19 +9598,23 @@ function _M0MP35actql5actql13source__value6Parser13parse__string(self, path) {
         return _bind$3;
       }
       const text = output.val;
-      const _bind$4 = _M0FP35actql5actql16canonical__value18normalize__nfc__lf(text);
       let decoded;
-      if (_bind$4.$tag === 1) {
-        const _Ok = _bind$4;
-        decoded = _Ok._0;
-      } else {
-        const _bind$5 = _M0MP35actql5actql13source__value6Parser4failGRP35actql5actql13source__value5ValueE(self, _M0DTP35actql5actql13source__value10ParseIssue20InvalidUnicodeEscape__, path);
-        if (_bind$5.$tag === 1) {
-          const _ok = _bind$5;
-          decoded = _ok._0;
+      if (self.normalize_text) {
+        const _bind$4 = _M0FP35actql5actql16canonical__value18normalize__nfc__lf(text);
+        if (_bind$4.$tag === 1) {
+          const _Ok = _bind$4;
+          decoded = _Ok._0;
         } else {
-          return _bind$5;
+          const _bind$5 = _M0MP35actql5actql13source__value6Parser4failGRP35actql5actql13source__value5ValueE(self, _M0DTP35actql5actql13source__value10ParseIssue20InvalidUnicodeEscape__, path);
+          if (_bind$5.$tag === 1) {
+            const _ok = _bind$5;
+            decoded = _ok._0;
+          } else {
+            return _bind$5;
+          }
         }
+      } else {
+        decoded = text;
       }
       return new _M0DTPC16result6ResultGUsRP35actql5actql12source__span4SpanERP35actql5actql13source__value10ParseAbortE2Ok({ _0: decoded, _1: _M0MP35actql5actql13source__value6Parser4span(self, start) });
     }
@@ -9728,7 +9733,7 @@ function _M0MP35actql5actql13source__value6Parser14consume__ascii(self, path) {
 function _M0MP35actql5actql13source__value6Parser13parse__number(self, path) {
   const start = _M0MP35actql5actql13source__value6Parser5point(self);
   const start_offset = self.offset;
-  if (_M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1146)) {
+  if (_M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1182)) {
     const _bind = _M0MP35actql5actql13source__value6Parser14consume__ascii(self, path);
     if (_bind.$tag === 1) {
       const _ok = _bind;
@@ -9813,7 +9818,7 @@ function _M0MP35actql5actql13source__value6Parser13parse__number(self, path) {
       return _bind;
     }
   }
-  if (_M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1147)) {
+  if (_M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser13parse__numberN6constrS1183)) {
     const _bind = _M0MP35actql5actql13source__value6Parser14consume__ascii(self, path);
     if (_bind.$tag === 1) {
       const _ok = _bind;
@@ -10054,7 +10059,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
                 } else {
                   return _bind$4;
                 }
-                completed = new _M0TP35actql5actql13source__value4Node(_M0MP35actql5actql13source__value6Parser8documentN6constrS1149, _M0MP35actql5actql13source__value6Parser4span(self, start));
+                completed = new _M0TP35actql5actql13source__value4Node(_M0MP35actql5actql13source__value6Parser8documentN6constrS1185, _M0MP35actql5actql13source__value6Parser4span(self, start));
                 break;
               }
               case 102: {
@@ -10065,7 +10070,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
                 } else {
                   return _bind$5;
                 }
-                completed = new _M0TP35actql5actql13source__value4Node(_M0MP35actql5actql13source__value6Parser8documentN6constrS1150, _M0MP35actql5actql13source__value6Parser4span(self, start));
+                completed = new _M0TP35actql5actql13source__value4Node(_M0MP35actql5actql13source__value6Parser8documentN6constrS1186, _M0MP35actql5actql13source__value6Parser4span(self, start));
                 break;
               }
               case 34: {
@@ -10119,7 +10124,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
         const _p = self.deepest;
         const _p$2 = frames.length + 1 | 0;
         self.deepest = _p > _p$2 ? _p : _p$2;
-        const container = _M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1148) ? new _M0DTP35actql5actql13source__value9Container10ArrayItems([]) : new _M0DTP35actql5actql13source__value9Container12ObjectFields([], _M0FP35actql5actql13decode__shape14key__admission());
+        const container = _M0IPC16option6OptionPB2Eq5equalGiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1184) ? new _M0DTP35actql5actql13source__value9Container10ArrayItems([]) : new _M0DTP35actql5actql13source__value9Container12ObjectFields([], _M0FP35actql5actql13decode__shape14key__admission());
         const _bind$2 = _M0MP35actql5actql13source__value6Parser15advance__scalar(self, self.path);
         if (_bind$2.$tag === 1) {
           const _ok = _bind$2;
@@ -10219,7 +10224,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
       continue;
     }
     if (_M0IP35actql5actql13source__value5PhasePB2Eq5equal(frame.phase, 3)) {
-      if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1151)) {
+      if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1187)) {
         const _bind$4 = frame.container;
         let issue;
         if (_bind$4.$tag === 0) {
@@ -10274,7 +10279,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
       } else {
         return _bind$7;
       }
-      if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1152)) {
+      if (_M0IP016_24default__implPB2Eq10not__equalGOiE(_M0MP35actql5actql13source__value6Parser4peek(self), _M0MP35actql5actql13source__value6Parser8documentN6constrS1188)) {
         const _bind$8 = _M0MP35actql5actql13source__value6Parser4failGuE(self, _M0DTP35actql5actql13source__value10ParseIssue13ExpectedColon__, self.path);
         if (_bind$8.$tag === 1) {
           const _ok = _bind$8;
@@ -10303,8 +10308,8 @@ function _M0FP35actql5actql13source__value13valid__limits(limits) {
 function _M0FP35actql5actql13source__value12input__error(issue, source_path, location) {
   return new _M0TP35actql5actql13source__value10ParseError(issue, source_path, location, _M0DTPC16option6OptionGRPB5ArrayGRP35actql5actql13source__value11PathSegmentEE4None__);
 }
-function _M0FP35actql5actql13source__value15parse__admitted(source, source_path, limits, yaml) {
-  const parser = _M0MP35actql5actql13source__value6Parser4make(source, source_path, limits);
+function _M0FP35actql5actql13source__value23parse__admitted_2einner(source, source_path, limits, yaml, normalize_text) {
+  const parser = _M0MP35actql5actql13source__value6Parser12make_2einner(source, source_path, limits, normalize_text);
   let node;
   let _try_err;
   _L: {
@@ -10338,7 +10343,7 @@ function _M0FP35actql5actql13source__value15parse__admitted(source, source_path,
   }
   return new _M0DTPC16result6ResultGRP35actql5actql13source__value12ParsedSourceRP35actql5actql13source__value10ParseErrorE2Ok(new _M0TP35actql5actql13source__value12ParsedSource(node, new _M0TP35actql5actql13source__value10ParseUsage(parser.byte_offset, parser.nodes, parser.deepest)));
 }
-function _M0FP35actql5actql13source__value19parse__bytes__input(source, limits, source_path, yaml) {
+function _M0FP35actql5actql13source__value27parse__bytes__input_2einner(source, limits, source_path, yaml, normalize_text) {
   if (!_M0FP35actql5actql13source__value13valid__limits(limits)) {
     return new _M0DTPC16result6ResultGRP35actql5actql13source__value12ParsedSourceRP35actql5actql13source__value10ParseErrorE3Err(_M0FP35actql5actql13source__value12input__error(_M0DTP35actql5actql13source__value10ParseIssue13InvalidLimits__, source_path, _M0DTP35actql5actql13source__value13ParseLocation11Unavailable__));
   }
@@ -10364,10 +10369,10 @@ function _M0FP35actql5actql13source__value19parse__bytes__input(source, limits, 
     const _suffix = _Malformed._0;
     return new _M0DTPC16result6ResultGRP35actql5actql13source__value12ParsedSourceRP35actql5actql13source__value10ParseErrorE3Err(_M0FP35actql5actql13source__value12input__error(_M0DTP35actql5actql13source__value10ParseIssue11InvalidUtf8__, source_path, new _M0DTP35actql5actql13source__value13ParseLocation10ByteOffset(source.length - (_suffix.end - _suffix.start | 0) | 0)));
   }
-  return _M0FP35actql5actql13source__value15parse__admitted(text, source_path, limits, yaml);
+  return _M0FP35actql5actql13source__value23parse__admitted_2einner(text, source_path, limits, yaml, normalize_text);
 }
 function _M0FP35actql5actql13source__value26parse__json__bytes_2einner(source, limits, source_path) {
-  return _M0MPC16result6Result3mapGRP35actql5actql13source__value12ParsedSourceRP35actql5actql13source__value10ParseErrorRP35actql5actql13source__value4NodeE(_M0FP35actql5actql13source__value19parse__bytes__input(source, limits, source_path, false), (parsed) => parsed.node);
+  return _M0MPC16result6Result3mapGRP35actql5actql13source__value12ParsedSourceRP35actql5actql13source__value10ParseErrorRP35actql5actql13source__value4NodeE(_M0FP35actql5actql13source__value27parse__bytes__input_2einner(source, limits, source_path, false, true), (parsed) => parsed.node);
 }
 function _M0FP35actql5actql12decode__core8path__at(tree, parent, edge) {
   const reversed = [];
