@@ -47,6 +47,8 @@ pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) ->
 
 pub fn check_effect_preview_checked_inventory(EffectResultBindings, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewInventoryIssue]
 
+pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
+
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
 
 pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
@@ -484,6 +486,14 @@ pub(all) enum EffectPreviewInventoryIssue {
   MissingMember(String)
   KindMismatch(String)
   FailurePolicyMismatch(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewStaticInventoryIssue {
+  Inventory(EffectPreviewInventoryIssue)
+  WorkLimit
+  MissingResolvedContract(String)
+  ForeignResolvedContract(String)
+  ContractCoverageMismatch
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBinding {

@@ -24,16 +24,30 @@ fn checked_preview_test_member(
   kind : String,
   policy : String,
   placeholder : String,
+  reference : String,
+  resolved_cid : String,
 ) -> String {
   let cid = checked_preview_test_cid("a")
+  let contract_fields = if kind == "command" {
+    "\"contract\":\"" +
+    reference +
+    "\",\"resolved_command_contract_cid\":\"" +
+    resolved_cid +
+    "\","
+  } else {
+    "\"mapping\":\"" +
+    reference +
+    "\",\"resolved_mapping_contract_cid\":\"" +
+    resolved_cid +
+    "\","
+  }
   "{\"effect_id\":\"" +
   id +
   "\",\"effect_kind\":\"" +
   kind +
-  "\",\"target\":\"Object\",\"mapping\":\"mapping:fixture\"," +
-  "\"resolved_mapping_contract_cid\":\"" +
-  cid +
-  "\",\"effect_identity_cid\":\"" +
+  "\",\"target\":\"Object\"," +
+  contract_fields +
+  "\"effect_identity_cid\":\"" +
   cid +
   "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
   cid +
@@ -60,10 +74,17 @@ fn checked_preview_test_identity(
   first : String,
   second : String,
   include_second? : Bool = true,
+  first_kind? : String = "update",
   second_kind? : String = "update",
   second_policy? : String? = None,
+  contract_reference? : String = "mapping:fixture",
+  resolved_contract_cid? : String? = None,
 ) -> @publication.EffectPreviewIdentity {
   let cid = checked_preview_test_cid("a")
+  let resolved_cid = match resolved_contract_cid {
+    Some(value) => value
+    None => cid
+  }
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
   let first_placeholder = checked_preview_test_cid("b")
   let second_placeholder = checked_preview_test_cid("c")
@@ -73,13 +94,14 @@ fn checked_preview_test_identity(
     None => if second == "second" { "continue" } else { "halt" }
   }
   let first_member = checked_preview_test_member(
-    first, "update", first_policy, first_placeholder,
+    first, first_kind, first_policy, first_placeholder, contract_reference, resolved_cid,
   )
   let members = if include_second {
     first_member +
     "," +
     checked_preview_test_member(
-      second, second_kind, selected_second_policy, second_placeholder,
+      second, second_kind, selected_second_policy, second_placeholder, contract_reference,
+      resolved_cid,
     )
   } else {
     first_member
@@ -189,5 +211,117 @@ test "checked Effect inventory rejects foreign Preview members" {
   assert_true(
     check_effect_preview_checked_inventory(bindings, 0, wrong_policy, 9)
     is Err(FailurePolicyMismatch("first")),
+  )
+}
+
+///|
+test "static Effect inventory binds exact Mapping contract" {
+  let effects = "{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}}"
+  let (checked, headers) = effect_binding_inputs(effects)
+  let mappings = effect_mapping_shape_fixture()
+  let candidate = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    effect_static_candidate_catalogs(mappings),
+    effect_static_candidate_limits(),
+  ).unwrap()
+  let mapping = @environment.mapping_shape_at(mappings, 0).unwrap()
+  let reference = @environment.mapping_shape_reference(mapping)
+  let resolved = @environment.mapping_shape_cid(mapping)
+  let preview = checked_preview_test_identity(
+    "create",
+    "unused",
+    include_second=false,
+    first_kind="create",
+    contract_reference=reference,
+    resolved_contract_cid=Some(resolved),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, preview, 20) is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, preview, 0)
+    is Err(Inventory(WorkLimit)),
+  )
+  let foreign_cid = checked_preview_test_identity(
+    "create",
+    "unused",
+    include_second=false,
+    first_kind="create",
+    contract_reference=reference,
+    resolved_contract_cid=Some(checked_preview_test_cid("f")),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, foreign_cid, 20)
+    is Err(ForeignResolvedContract("create")),
+  )
+  let foreign_ref = checked_preview_test_identity(
+    "create",
+    "unused",
+    include_second=false,
+    first_kind="create",
+    contract_reference="mapping:crm.foreign.v1",
+    resolved_contract_cid=Some(resolved),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, foreign_ref, 20)
+    is Err(ForeignResolvedContract("create")),
+  )
+}
+
+///|
+test "static Effect inventory binds exact Command contract" {
+  let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"ref\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{}}}}"
+  let (checked, headers) = effect_binding_inputs(
+    effects,
+    reference_nullable=Some(false),
+  )
+  let catalogs = command_target_catalog("crm/account")
+  let mappings = @environment.check_mapping_contract_shapes(
+    @environment.contract_registry_environment(
+      @environment.catalog_registry(@environment.reference_contents(catalogs)),
+    ),
+    effect_static_candidate_environment_limits(),
+    100,
+  ).unwrap()
+  let candidate = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    catalogs,
+    effect_static_candidate_limits(),
+  ).unwrap()
+  let binding = effect_command_target_at(
+    effect_static_candidate_command_targets(candidate),
+    0,
+  ).unwrap()
+  let resolved = @environment.member_cid(
+    @environment.command_target_member(effect_command_target_contract(binding)),
+  )
+  let preview = checked_preview_test_identity(
+    "command",
+    "unused",
+    include_second=false,
+    first_kind="command",
+    contract_reference="command:crm.invoke.v1",
+    resolved_contract_cid=Some(resolved),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, preview, 20) is Ok(_),
+  )
+  let foreign = checked_preview_test_identity(
+    "command",
+    "unused",
+    include_second=false,
+    first_kind="command",
+    contract_reference="command:crm.foreign.v1",
+    resolved_contract_cid=Some(resolved),
+  )
+  assert_true(
+    check_effect_preview_static_inventory(candidate, 0, foreign, 20)
+    is Err(ForeignResolvedContract("command")),
   )
 }

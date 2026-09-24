@@ -13,11 +13,18 @@ pub(all) enum EffectPreviewIdentityIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum EffectPreviewResolvedContract {
+  Mapping(String, String)
+  Command(String, String)
+} derive(Eq, Debug)
+
+///|
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
+  member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
@@ -581,6 +588,7 @@ pub fn admit_effect_preview_identity(
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
+  let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
@@ -608,6 +616,28 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_effect_kinds.push(effect_kind)
+    let contract = if effect_kind == "command" {
+      match
+        (
+          @json.object_field(effect, "contract"),
+          @json.object_field(effect, "resolved_command_contract_cid"),
+        ) {
+        (Some(@json.String(reference)), Some(@json.String(cid))) =>
+          Command(reference, cid)
+        _ => return Err(InvalidMember)
+      }
+    } else {
+      match
+        (
+          @json.object_field(effect, "mapping"),
+          @json.object_field(effect, "resolved_mapping_contract_cid"),
+        ) {
+        (Some(@json.String(reference)), Some(@json.String(cid))) =>
+          Mapping(reference, cid)
+        _ => return Err(InvalidMember)
+      }
+    }
+    member_contracts.push(contract)
     let failure_policy = match @json.object_field(effect, "on_item_failure") {
       Some(@json.String(value)) => value
       _ => return Err(InvalidMember)
@@ -735,6 +765,7 @@ pub fn admit_effect_preview_identity(
     member_cids: cids,
     member_effect_ids,
     member_effect_kinds,
+    member_contracts,
     member_failure_policies,
     member_footprints,
     row_keys,
@@ -785,6 +816,14 @@ pub fn effect_preview_member_kind(
   index : Int,
 ) -> String? {
   value.member_effect_kinds.get(index)
+}
+
+///|
+pub fn effect_preview_member_resolved_contract(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> EffectPreviewResolvedContract? {
+  value.member_contracts.get(index)
 }
 
 ///|
