@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedAppendPhase {
+  ChargeInput
   ResolveField
   BeginRow
   BuildCell
@@ -16,6 +17,7 @@ priv struct BoundedAppendState {
   output_schema : @schema.Schema
   control : ControlBudget
   workspace : RowWorkspace
+  input_scan : BoundedBinaryInputScan
   admitted_limits : @admitted.Limits
   mut output : AdmittedOutput?
   rows : Ref[AdmittedOutputRows?]
@@ -37,6 +39,7 @@ priv struct BoundedAppendState {
 ///|
 pub(all) enum BoundedAppendIssue {
   InvalidExecution
+  InputLimit
   Rows(RowIssue)
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
@@ -107,6 +110,21 @@ fn bounded_append_step(
       return bounded_append_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      ChargeInput => {
+        match advance_binary_input_scan(state.input_scan) {
+          Ok(true) => state.phase = ResolveField
+          Ok(false) => ()
+          Err(ValueLimit) =>
+            return bounded_append_failure(InputLimit, progress, used + 1)
+          Err(ControlLimit) =>
+            return bounded_append_failure(Rows(RowLimit), progress, used + 1)
+          Err(WorkspaceLimit) =>
+            return bounded_append_failure(Rows(RowLimit), progress, used + 1)
+          Err(InputUnavailable) =>
+            return bounded_append_failure(InvalidExecution, progress, used + 1)
+        }
+        used += 1
+      }
       ResolveField => {
         if state.field == width {
           state.phase = BeginRow
@@ -239,7 +257,8 @@ pub fn start_bounded_append(
   left : ProducerRead,
   right : ProducerRead,
   max_rows : Int,
-  values : ValueLimits,
+  input_values : ValueLimits,
+  output_values : ValueLimits,
   max_work : Int,
   max_frames : Int,
   max_entries : Int,
@@ -281,8 +300,18 @@ pub fn start_bounded_append(
     return Err(Rows(RowLimit))
   }
   let workspace = row_workspace(max_entries)
+  let control : ControlBudget = { remaining: max_work, max_frames, }
+  guard binary_input_scan(left, right, input_values, control, workspace)
+    is Some(input_scan) else {
+    return Err(InvalidExecution)
+  }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), max_rows, values) {
+    prepare_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      max_rows,
+      output_values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -309,12 +338,13 @@ pub fn start_bounded_append(
     right,
     kernel,
     output_schema,
-    control: { remaining: max_work, max_frames, },
+    control,
     workspace,
+    input_scan,
     admitted_limits: {
-      max_nodes: values.max_nodes,
-      max_depth: values.max_depth,
-      max_text_bytes: values.max_text_bytes,
+      max_nodes: output_values.max_nodes,
+      max_depth: output_values.max_depth,
+      max_text_bytes: output_values.max_text_bytes,
     },
     output: Some(output),
     rows,
@@ -324,7 +354,7 @@ pub fn start_bounded_append(
     names: [],
     left_columns: [],
     right_columns: [],
-    phase: ResolveField,
+    phase: ChargeInput,
     field: 0,
     on_left: true,
     left_row: 0,

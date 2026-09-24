@@ -5,6 +5,23 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 
+The `ad0c2fce` follow-up review found that the bounded binary providers
+omitted the receiving operation's cumulative `input_values` admission.
+Cross join and append now scan both typed input positions before output work,
+including repeated producer occurrences, field names, and nested values.
+The scan yields between row, field, nested-value, and UTF-16 scalar steps;
+input value and control-work ceilings remain separate. Cross join reaches
+empty output in constant time only after both inputs are admitted. Kernel
+fixtures cover exact and one-short receiving limits, empty-output validation,
+nested values, text, and admission-time cancellation; existing standard Host
+two-consumer and timer-cancel routes remain the product-path regression.
+Standard Host fixtures also complete the producers with ordinary limits and
+then reject each binary receiver under its own zero-node input budget, without
+publishing a result or reclaiming either producer prematurely.
+The Workers fixture was refreshed from the pinned generator. These changes
+close the review's binary input and stale-fixture findings, not the strict
+68-route resource assurance or the providerless synchronous lane.
+
 `SGA.subgraph` now shares one workspace ceiling across its live selector
 arrays, unpublished Graph builder, and predicate evaluation. Previously,
 selector scratch and output storage could each consume the full ceiling.

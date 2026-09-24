@@ -1794,6 +1794,27 @@
           "fixture": "bounded append admits independently calculated work and workspace"
         },
         {
+          "role": "append_external_input_value_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_append_wbtest.mbt",
+          "fixture": "bounded append admits both input occurrences cumulatively"
+        },
+        {
+          "role": "append_external_host_receiving_input_limit",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_binary_input_wbtest.mbt",
+          "fixture": "standard Host rejects append receiving input value limit"
+        },
+        {
+          "role": "append_external_nested_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_append_wbtest.mbt",
+          "fixture": "bounded append stops during nested input admission"
+        },
+        {
           "role": "append_external_quantum_and_output",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -2048,6 +2069,55 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
           "fixture": "bounded cross join charges exact metadata and pair work"
+        },
+        {
+          "role": "external_product_input_value_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join admits both inputs before producing pairs"
+        },
+        {
+          "role": "external_product_host_receiving_input_limit",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_binary_input_wbtest.mbt",
+          "fixture": "standard Host rejects cross join receiving input value limit"
+        },
+        {
+          "role": "external_product_self_input_occurrences",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded self cross charges each input position"
+        },
+        {
+          "role": "external_product_empty_output_input_admission",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join validates a nonempty input with empty output"
+        },
+        {
+          "role": "external_product_empty_singleton_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join advances empty and singleton sides at quantum one"
+        },
+        {
+          "role": "external_product_long_text_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join scans long text across resumptions"
+        },
+        {
+          "role": "external_product_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join stops and reclaims during input admission"
         },
         {
           "role": "external_product_workspace_exact_one_short",

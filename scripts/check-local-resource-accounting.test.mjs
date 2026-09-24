@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 20 with operation-specific boundary records, 5 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
@@ -119,6 +119,28 @@ test('same-stage cross join needs its provider and two consumers', () => {
     cross.boundary_tests = cross.boundary_tests.filter(item =>
       item.role !== 'direct_product_host_two_consumers');
   }), /RelA cross_join: bounded same-stage cross join evidence is missing/);
+});
+
+test('binary receivers need their input admission fixtures', () => {
+  for (const [operation, role] of [
+    ['append', 'append_external_input_value_exact_one_short'],
+    ['append', 'append_external_host_receiving_input_limit'],
+    ['append', 'append_external_nested_input_cancel_cleanup'],
+    ['cross_join', 'external_product_input_value_exact_one_short'],
+    ['cross_join', 'external_product_host_receiving_input_limit'],
+    ['cross_join', 'external_product_self_input_occurrences'],
+    ['cross_join', 'external_product_empty_output_input_admission'],
+    ['cross_join', 'external_product_empty_singleton_quantum'],
+    ['cross_join', 'external_product_long_text_quantum'],
+    ['cross_join', 'external_product_input_cancel_cleanup'],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA ${operation}: (?:reviewed )?${role} fixture is missing`));
+  }
 });
 
 test('distinct resource evidence covers full-row and keyed forms', () => {

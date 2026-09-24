@@ -34,6 +34,7 @@ fn bounded_append_fixture(
   right_schema? : String = "{\"id\":{\"type\":\"number\",\"nullable\":false}}",
   left_rows? : String = "[{\"id\":1},{\"id\":2}]",
   right_rows? : String = "[{\"id\":3}]",
+  input_nodes? : Int = 1000,
 ) -> (
   @bounded.Control,
   Result[BoundedAppendExecution, BoundedAppendIssue],
@@ -110,6 +111,12 @@ fn bounded_append_fixture(
     left,
     right,
     3,
+    {
+      max_nodes: input_nodes,
+      max_text_bytes: 10000,
+      max_depth: 100,
+      max_work: 10000,
+    },
     run_limits().output_values,
     max_work,
     100,
@@ -117,6 +124,122 @@ fn bounded_append_fixture(
     1000,
   )
   (control, execution, [left, right])
+}
+
+///|
+test "bounded append admits both input occurrences cumulatively" {
+  let (_, zero, _) = bounded_append_fixture(input_nodes=0)
+  let rejected = zero.unwrap()
+  let mut failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_append(rejected, 1).unwrap() {
+        BoundedAppendFailed(InputLimit, ..) => failed = true
+        BoundedAppendContinue(..) => ()
+        _ => fail("zero input budget accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_append(rejected).unwrap())
+  let (_, exact, _) = bounded_append_fixture(input_nodes=6)
+  let execution = exact.unwrap()
+  let mut complete = false
+  for _ in 0..<100 {
+    if !complete {
+      match advance_bounded_append(execution, 1).unwrap() {
+        BoundedAppendComplete(_, ..) => complete = true
+        BoundedAppendContinue(..) => ()
+        _ => fail("exact input budget rejected")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_append(execution).unwrap())
+  let (_, short, _) = bounded_append_fixture(input_nodes=5)
+  let rejected = short.unwrap()
+  failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_append(rejected, 1).unwrap() {
+        BoundedAppendFailed(InputLimit, ..) => failed = true
+        BoundedAppendContinue(..) => ()
+        _ => fail("one-short input budget accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_append(rejected).unwrap())
+}
+
+///|
+test "bounded append admits nested input values incrementally" {
+  let schema = "{\"id\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+  let (_, exact, _) = bounded_append_fixture(
+    left_schema=schema,
+    right_schema=schema,
+    left_rows="[{\"id\":[1,2]}]",
+    right_rows="[{\"id\":[3,4]}]",
+    input_nodes=8,
+  )
+  let execution = exact.unwrap()
+  let mut complete = false
+  let mut polls = 0
+  while !complete && polls < 100 {
+    polls += 1
+    match advance_bounded_append(execution, 1).unwrap() {
+      BoundedAppendComplete(_, ..) => complete = true
+      BoundedAppendContinue(..) => ()
+      _ => fail("exact nested input budget rejected")
+    }
+  }
+  assert_true(complete)
+  assert_true(polls > 10)
+  assert_true(cleanup_bounded_append(execution).unwrap())
+  let (_, short, _) = bounded_append_fixture(
+    left_schema=schema,
+    right_schema=schema,
+    left_rows="[{\"id\":[1,2]}]",
+    right_rows="[{\"id\":[3,4]}]",
+    input_nodes=7,
+  )
+  let rejected = short.unwrap()
+  let mut failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_append(rejected, 1).unwrap() {
+        BoundedAppendFailed(InputLimit, ..) => failed = true
+        BoundedAppendContinue(..) => ()
+        _ => fail("one-short nested input budget accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_append(rejected).unwrap())
+}
+
+///|
+test "bounded append stops during nested input admission" {
+  let schema = "{\"id\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+  let (control, started, inputs) = bounded_append_fixture(
+    left_schema=schema,
+    right_schema=schema,
+    left_rows="[{\"id\":[1,2]}]",
+    right_rows="[{\"id\":[3,4]}]",
+  )
+  let execution = started.unwrap()
+  for _ in 0..<5 {
+    assert_true(
+      advance_bounded_append(execution, 1).unwrap() is BoundedAppendContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_append(execution, 1).unwrap() is BoundedAppendStopped(_),
+  )
+  assert_true(cleanup_bounded_append(execution).unwrap())
+  assert_true(producer_read_available(inputs[0]))
+  assert_true(producer_read_available(inputs[1]))
 }
 
 ///|
@@ -157,7 +280,8 @@ test "bounded append preserves order across quantum-one resumes" {
 ///|
 test "bounded append admits independently calculated work and workspace" {
   // One name costs 1 + 2 control units. Three rows cost two units each.
-  let (_, exact, _) = bounded_append_fixture(max_work=9, max_entries=10)
+  // Input admission adds 17 row, field and text transitions: 26 total.
+  let (_, exact, _) = bounded_append_fixture(max_work=26, max_entries=10)
   let execution = exact.unwrap()
   let mut done = false
   while !done {
@@ -168,7 +292,7 @@ test "bounded append admits independently calculated work and workspace" {
     }
   }
   assert_true(cleanup_bounded_append(execution).unwrap())
-  let (_, short_work, _) = bounded_append_fixture(max_work=8, max_entries=10)
+  let (_, short_work, _) = bounded_append_fixture(max_work=25, max_entries=10)
   let rejected_work = short_work.unwrap()
   let mut failed_work = false
   while !failed_work {
@@ -179,7 +303,7 @@ test "bounded append admits independently calculated work and workspace" {
     }
   }
   assert_true(cleanup_bounded_append(rejected_work).unwrap())
-  let (_, short_space, _) = bounded_append_fixture(max_work=9, max_entries=9)
+  let (_, short_space, _) = bounded_append_fixture(max_work=26, max_entries=9)
   let rejected_space = short_space.unwrap()
   let mut failed_space = false
   while !failed_space {
