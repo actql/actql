@@ -217,6 +217,15 @@ test('Node ABI derives the checked named Result and request identity', async () 
     params: {rows: [{id: 1}, {id: 2}],
       schema: {id: {nullable: false, type: 'number'}}},
   }]);
+  const pipeline = checked(
+    moon.clientProgramLocalValuesPipelineJson(prepared, 0));
+  assert.equal(pipeline, JSON.stringify({
+    output: 'values_0', sources: {}, steps: JSON.parse(steps),
+    version: 'aoa-pipeline/0.1',
+  }));
+  assert.throws(() => checked(
+    moon.clientProgramLocalValuesPipelineJson(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
     {code: 'MoonBitHostFailure'});
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
@@ -297,6 +306,8 @@ test('Node ABI derives the checked named Result and request identity', async () 
     moon.clientProgramPublicationBytesLimitJson(yamlPrepared, 0, 0)),
   bytesLimitBody);
   assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
+  assert.equal(checked(
+    moon.clientProgramLocalValuesPipelineJson(yamlPrepared, 0)), pipeline);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
   assert.equal(moon.clientProgramPrepareEffectFree(
