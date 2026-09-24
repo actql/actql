@@ -417,6 +417,12 @@ test('physical flight is distinct from durable possible-dispatch', async t => {
   await started;
   assert.deepEqual(ready(first), [[1, 0]]);
   assert.deepEqual(ready(other), [[1, 0]]);
+  const locatorCid = effect.logicalItemLocatorCid(claims[0][0].locator);
+  const dispatching = other.currentAdmitted(locatorCid);
+  const uncertain = effect.issueNextLedgerEntry(
+    dispatching, 'unknown', '', 4096, 64, 4);
+  other.append(effect.ledgerEntryWire(uncertain));
+  assert.deepEqual(ready(first), [[1, 0]]);
   release();
   await assert.rejects(call, /response lost/);
   assert.deepEqual(ready(first), [[0, 1], [1, 0]]);
@@ -426,7 +432,7 @@ test('physical flight is distinct from durable possible-dispatch', async t => {
   assert.deepEqual(ready(restarted), [[0, 1], [1, 0]]);
   const retry = restarted.claimDispatch(claims[0][0]);
   assert.equal(retry.claimed, false);
-  assert.equal(retry.action, 3);
+  assert.equal(retry.action, 4);
 });
 
 test('lost Collections reply preserves independent member progress', async t => {

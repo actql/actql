@@ -48,8 +48,10 @@ export function openEffectLedger({
     maxStoredBytes,
   });
   const flightPrefix = `${realpathSync(root)}\0${scopeCid}\0`;
+  // A physical call still owns its row if the durable head advances from
+  // dispatching to unknown while the call is settling.
   const flightKey = entry =>
-    `${flightPrefix}${control.ledgerEntryCid(entry)}`;
+    `${flightPrefix}${control.ledgerEntryLocatorCid(entry)}`;
   const admit = wire => control.admitLedgerEntry(
     wire, maxEntryBytes, maxNodes, maxDepth,
   );
