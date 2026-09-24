@@ -425,6 +425,9 @@ for (const [index, route] of routeEntries.entries()) {
       'append_two_consumer_reclamation',
       'append_self_occurrence_reclamation',
       'append_external_work_workspace_exact_one_short',
+      'append_external_input_value_exact_one_short',
+      'append_external_host_receiving_input_limit',
+      'append_external_nested_input_cancel_cleanup',
       'append_external_quantum_and_output',
       'append_external_nullable_alignment',
       'append_external_cancel_cleanup',
@@ -936,6 +939,13 @@ for (const [index, route] of routeEntries.entries()) {
       'product_work_workspace_exact_one_short',
       'managed_pre_execution_cancel_cleanup',
       'external_product_mixed_stage_two_consumers',
+      'external_product_input_value_exact_one_short',
+      'external_product_host_receiving_input_limit',
+      'external_product_self_input_occurrences',
+      'external_product_empty_output_input_admission',
+      'external_product_empty_singleton_quantum',
+      'external_product_long_text_quantum',
+      'external_product_input_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);

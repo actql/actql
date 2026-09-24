@@ -4,6 +4,7 @@ fn bounded_append_issue(
   step : Int,
 ) -> @connector.FixedComputeIssue {
   match issue {
+    @execution.InputLimit => @connector.Execution(@execution.InputLimit)
     @execution.Rows(row_issue) =>
       @connector.Execution(@execution.Rows(step, row_issue))
     @execution.Capture(capture_issue) =>
@@ -48,6 +49,7 @@ fn append_provider(
           left,
           right,
           execution.rows.max_rows,
+          execution.rows.input_values,
           execution.rows.output_values,
           execution.max_work,
           execution.max_frames,

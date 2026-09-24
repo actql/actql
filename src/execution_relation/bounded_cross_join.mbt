@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedCrossJoinPhase {
+  ChargeInput
   ResolveField
   ResolveSource
   BeginPair
@@ -18,6 +19,7 @@ priv struct BoundedCrossJoinState {
   output_ceiling : Int
   control : ControlBudget
   workspace : RowWorkspace
+  input_scan : BoundedBinaryInputScan
   admitted_limits : @admitted.Limits
   mut output : AdmittedOutput?
   rows : Ref[AdmittedOutputRows?]
@@ -42,6 +44,7 @@ priv struct BoundedCrossJoinState {
 ///|
 pub(all) enum BoundedCrossJoinIssue {
   InvalidExecution
+  InputLimit
   Rows(RowIssue)
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
@@ -116,6 +119,33 @@ fn bounded_cross_join_step(
       return bounded_cross_join_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      ChargeInput => {
+        match advance_binary_input_scan(state.input_scan) {
+          Ok(true) => state.phase = ResolveField
+          Ok(false) => ()
+          Err(ValueLimit) =>
+            return bounded_cross_join_failure(InputLimit, progress, used + 1)
+          Err(ControlLimit) =>
+            return bounded_cross_join_failure(
+              Rows(RowLimit),
+              progress,
+              used + 1,
+            )
+          Err(WorkspaceLimit) =>
+            return bounded_cross_join_failure(
+              Rows(RowLimit),
+              progress,
+              used + 1,
+            )
+          Err(InputUnavailable) =>
+            return bounded_cross_join_failure(
+              InvalidExecution,
+              progress,
+              used + 1,
+            )
+        }
+        used += 1
+      }
       ResolveField => {
         if state.field == @lower.cross_join_field_count(state.profile) {
           state.phase = BeginPair
@@ -175,6 +205,10 @@ fn bounded_cross_join_step(
         used += 1
       }
       BeginPair => {
+        if left_count == 0 || right_count == 0 {
+          state.phase = FinishOutput
+          continue
+        }
         if state.left_row == left_count {
           state.phase = FinishOutput
           continue
@@ -291,7 +325,8 @@ pub fn start_bounded_cross_join(
   left : ProducerRead,
   right : ProducerRead,
   max_rows : Int,
-  values : ValueLimits,
+  input_values : ValueLimits,
+  output_values : ValueLimits,
   max_work : Int,
   max_frames : Int,
   max_entries : Int,
@@ -356,8 +391,13 @@ pub fn start_bounded_cross_join(
   if !reserve_slots(workspace, 2) {
     return Err(Rows(RowLimit))
   }
+  let control : ControlBudget = { remaining: max_work, max_frames, }
+  guard binary_input_scan(left, right, input_values, control, workspace)
+    is Some(input_scan) else {
+    return Err(InvalidExecution)
+  }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), ceiling, values) {
+    prepare_admitted_output(owner, @pipeline.Step(step), ceiling, output_values) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
@@ -385,12 +425,13 @@ pub fn start_bounded_cross_join(
     profile,
     output_schema,
     output_ceiling: ceiling,
-    control: { remaining: max_work, max_frames, },
+    control,
     workspace,
+    input_scan,
     admitted_limits: {
-      max_nodes: values.max_nodes,
-      max_depth: values.max_depth,
-      max_text_bytes: values.max_text_bytes,
+      max_nodes: output_values.max_nodes,
+      max_depth: output_values.max_depth,
+      max_text_bytes: output_values.max_text_bytes,
     },
     output: Some(output),
     rows,
@@ -399,7 +440,7 @@ pub fn start_bounded_cross_join(
     port,
     names: [],
     columns: [],
-    phase: ResolveField,
+    phase: ChargeInput,
     field: 0,
     source_column: 0,
     source_name: "",
