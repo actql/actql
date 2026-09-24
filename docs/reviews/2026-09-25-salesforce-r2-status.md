@@ -90,6 +90,18 @@ JavaScript. It is a static identity accessor, not input capture or an apply
 permit. Product connection and the review's fault-injection matrix remain
 open. Same-SHA Linux CI and live Salesforce are not yet verified.
 
+The remaining apply gate is not a missing call to one existing validator.
+The captured-input MoonBit owner currently exposes separate checks for Plan
+proofs, current source/Contract/capability/authority bindings, target guards,
+selected routes, risk-acceptance binding, derived keys, and whole-set
+footprints. Each explicitly disclaims send authority. The Salesforce Site
+writers accept an admitted Preview and exact row claims but do not receive a
+single whole-set apply owner. The ordinary Host must authenticate current
+external facts, run every obligation against the same captured owner before
+any mutation, and carry a non-forgeable admitted owner into common dispatch.
+Calling those checks independently from a provider-specific writer would
+leave a bypass and would not close R2-G1.
+
 The installed Host now connects a live Preview input to the generation-checked
 managed Result importer and the common canonical Result cursor. For each row,
 MoonBit compares the checked Plan selector and intended changes against the
