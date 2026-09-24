@@ -990,6 +990,20 @@ test('portable control validates Receipt and Captured Run references',
     previewBody.effects[0].effect_member_preview_cid]);
   const preview = control.admitEffectComputationPreview(
     previewWire(), run, authoringContext, limits);
+  const privateBinding = control.effectPrivateEvidenceBinding(preview, cid('a'));
+  assert.deepEqual(Object.keys(privateBinding),
+    ['name', 'semanticCid', 'holdingCid', 'wire']);
+  assert.equal(privateBinding.name, 'effect_preview');
+  assert.equal(privateBinding.semanticCid, previewBody.effect_preview_cid);
+  assert.equal(privateBinding.wire, previewWire());
+  assert.match(privateBinding.holdingCid, /^sha256:[0-9a-f]{64}$/u);
+  assert.notEqual(control.effectPrivateEvidenceBinding(
+    preview, cid('b')).holdingCid, privateBinding.holdingCid);
+  assert.throws(() => control.effectPrivateEvidenceBinding(
+    Object.freeze({kind: 'effect-computation-preview'}), cid('a')),
+  /Foreign Effect computation Preview/u);
+  assert.throws(() => control.effectPrivateEvidenceBinding(
+    preview, 'foreign'), {code: 'MoonBitHostFailure'});
   const computationChain = {
     runDefinition: run, invocation: invoked, definitions: [definition],
     artifacts: [artifact], manifest, receipt,
@@ -1252,8 +1266,28 @@ test('portable control validates Receipt and Captured Run references',
     maxObjects: 100,
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
+    privateEvidenceKey: Buffer.alloc(32, 4),
   }, control);
   t.after(async () => { await store.close(); });
+  const privatePrepared = await store.preparePrivateEvidence(
+    privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
+  );
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private',
+    holding_cid: privateBinding.holdingCid,
+    manifest_cid: privateBinding.semanticCid,
+    objects: [{cid: privatePrepared.physicalCid,
+      byte_count: privatePrepared.bytes}],
+  }, [privatePrepared.prepared]);
+  assert.equal((await store.readPrivateEvidence(
+    privateBinding.name,
+    privateBinding.semanticCid,
+    privateBinding.holdingCid,
+  )).toString('utf8'), privateBinding.wire);
+  assert.equal((await store.retirePhysicalHolding(
+    privateBinding.holdingCid,
+  )).deleted, true);
   for (const contract of [
     run,
     invoked,
