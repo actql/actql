@@ -44,6 +44,8 @@ pub fn emit_prepared_client_stage_semantics(PreparedClientProgram, Int, Int, Int
 
 pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskAoAStepsIssue]
 
+pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesPipelineIssue]
+
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy.CapturedDAG, PublicationOutputExportLimits) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
@@ -149,6 +151,13 @@ pub(all) enum ClientTaskSequenceIssue {
   EmptyTask
   Sequence(@lowering_relation.SequenceIssue)
   Generated(@execution_relation.SequenceRunIssue)
+}
+
+pub(all) enum ClientValuesPipelineIssue {
+  MissingTask
+  Sequence(@lowering_relation.SequenceIssue)
+  NotSingleValues
+  Encoding
 }
 
 type PreparedClientProgram

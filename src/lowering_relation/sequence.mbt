@@ -595,3 +595,34 @@ pub fn emit_sequence_steps(
   }
   @encode.end_array(out)
 }
+
+///|
+pub(all) enum SourceFreeValuesPipelineIssue {
+  NotSingleValues
+}
+
+///|
+/// Emit the canonical source-free AoA pipeline for one checked REL.values
+/// step. This is compilation material, not an admitted fragment or Plan.
+pub fn emit_source_free_values_pipeline(
+  value : PreparedSequence,
+  out : @encode.Writer,
+) -> Result[Unit, SourceFreeValuesPipelineIssue] raise @encode.EncodeFailure {
+  if value.steps.length() != 1 {
+    return Err(NotSingleValues)
+  }
+  guard value.steps[0] is ValuesStep(_) else { return Err(NotSingleValues) }
+  let output = value.owner.prepared.nodes[0].id
+  @encode.begin_object(out)
+  @encode.key(out, "output")
+  @encode.string_value(out, output)
+  @encode.key(out, "sources")
+  @encode.begin_object(out)
+  @encode.end_object(out)
+  @encode.key(out, "steps")
+  emit_sequence_steps(value, out)
+  @encode.key(out, "version")
+  @encode.string_value(out, "aoa-pipeline/0.1")
+  @encode.end_object(out)
+  Ok(())
+}

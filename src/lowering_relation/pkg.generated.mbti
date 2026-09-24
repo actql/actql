@@ -231,6 +231,8 @@ pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise 
 
 pub fn emit_set_kernel(PreparedSetKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_source_free_values_pipeline(PreparedSequence, @encode_core.Writer) -> Result[Unit, SourceFreeValuesPipelineIssue] raise @encode_core.EncodeFailure
+
 pub fn emit_values_node(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_values_params(PreparedValues, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -1814,6 +1816,10 @@ pub(all) enum SetIssue {
 pub struct SourceDemandTest {
   pointer : String
   predicate : @expression_typing.DemandTestKind
+}
+
+pub(all) enum SourceFreeValuesPipelineIssue {
+  NotSingleValues
 }
 
 pub(all) enum TimeSeriesIssue {
