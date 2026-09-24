@@ -446,10 +446,10 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'RelA' && route.operation === 'distinct') {
     for (const role of [
-      'selected_distinct_workspace_exact_one_short',
-      'selected_distinct_work_exact_one_short',
-      'selected_keyed_distinct_workspace_exact_one_short',
-      'selected_keyed_distinct_work_exact_one_short',
+      'distinct_unkeyed_workspace_exact_one_short',
+      'distinct_unkeyed_work_exact_one_short',
+      'distinct_keyed_workspace_exact_one_short',
+      'distinct_keyed_work_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -566,6 +566,11 @@ for (const [index, route] of routeEntries.entries()) {
     !environmentRoles.has('direct_product_node_timer_cancel_cleanup')) {
     fail(`${label}: same-stage cross join timer evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'distinct' &&
+    (!environmentRoles.has('same_stage_distinct_timer_cancel_cleanup') ||
+      !environmentRoles.has('ordinary_distinct_in_flight_host_timer'))) {
+    fail(`${label}: both distinct timer paths need executable evidence`);
+  }
   const validateAssurance = (scope, boundaryAssurance, rolePrefix) => {
     if (boundaryAssurance === undefined) return;
     const requiredProofs = [
@@ -671,7 +676,8 @@ for (const [index, route] of routeEntries.entries()) {
         route.operation === 'assert_rows';
       const rowVariants = route.family === 'RelA' &&
         ['selected_entrypoint', 'ordinary_entrypoint'].includes(pathName)
-        ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty']}[
+          ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty'],
+            distinct: ['unkeyed', 'keyed']}[
             route.operation
           ]
         : undefined;
@@ -1059,7 +1065,7 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'selected_distinct_first_occurrence_and_null',
       'selected_distinct_keyed_projection',
-      'selected_distinct_workspace_exact_one_short',
+      'distinct_unkeyed_workspace_exact_one_short',
       'selected_distinct_kernel_cancel_cleanup',
       'same_stage_distinct_two_consumers',
       'same_stage_values_distinct_two_consumers',
