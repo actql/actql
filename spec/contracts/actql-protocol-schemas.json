@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:5d8dfab4ac0b1721cbba4e2f9c9a2568de0bde461c992d6d0cece6b4eebcae62",
+  "artifact_registry_cid": "sha256:ddf9e6e94f1b7d53b0000bb9ea976c755c5169ff1e3f64b6269eae6b9d7ab962",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10681,7 +10681,8 @@
     "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:c2002906ae8133abb606cce66e5f35ce0f591fbe63979d74d57b16778c77e966",
+    "executable_plan": "sha256:16c6535a631ceba7edda8cc842d78009df47930ee545da2a63f9a4b99a3ebb6e",
+    "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
     "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
@@ -10704,7 +10705,7 @@
     "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:49283eb8a3e6c8b35e1aff11b0b121724f4d56f3d00a46093e15b8b9e46102ce",
+    "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422"
@@ -12715,8 +12716,22 @@
                 "minLength": 1
               },
               "ref": {
-                "type": "string",
-                "minLength": 3
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "node_id",
+                  "port"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "port": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
               }
             }
           }
@@ -36105,6 +36120,150 @@
         }
       }
     },
+    "result_plan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-result-plan-0.1.json",
+      "title": "actql-result-plan-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "result_name",
+        "unit_definition_cid",
+        "unit_result_name",
+        "unit_result_ordinal",
+        "projection",
+        "order",
+        "typed_output_port",
+        "result_plan_logical_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-result-plan/0.1"
+        },
+        "result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unit_result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_result_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "projection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "input",
+              "output",
+              "value_contract_cid"
+            ],
+            "properties": {
+              "input": {
+                "type": "string",
+                "minLength": 1
+              },
+              "output": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "order": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "strategy",
+            "terms"
+          ],
+          "properties": {
+            "strategy": {
+              "enum": [
+                "authored",
+                "inherited",
+                "candidate_key",
+                "projected_fields"
+              ]
+            },
+            "terms": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "field",
+                  "direction",
+                  "nulls",
+                  "authored"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "direction": {
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ]
+                  },
+                  "nulls": {
+                    "enum": [
+                      "first",
+                      "last"
+                    ]
+                  },
+                  "authored": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "typed_output_port": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "carrier",
+            "row_contract_cid"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "carrier": {
+              "const": "relation"
+            },
+            "row_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "result_plan_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
     "plan_fact_manifest": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-plan-fact-manifest-0.1.json",
@@ -41456,8 +41615,22 @@
                     "minLength": 1
                   },
                   "ref": {
-                    "type": "string",
-                    "minLength": 3
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "node_id",
+                      "port"
+                    ],
+                    "properties": {
+                      "node_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "port": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
                   }
                 }
               }
