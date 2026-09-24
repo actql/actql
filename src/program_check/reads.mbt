@@ -124,6 +124,13 @@ pub fn publication_selection(
 }
 
 ///|
+/// Name of the exact checked Unit Result port selected for publication.
+pub fn publication_result_name(value : PublicationExecution) -> String {
+  let selected = @context.publication_row_limit_result(value.selection)
+  @publication.name(@publication.port_result(selected.port))
+}
+
+///|
 pub fn publication_rows(value : PublicationExecution) -> @wire.LimitClaim {
   value.rows
 }

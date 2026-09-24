@@ -15,6 +15,7 @@ test "publication execution retains target dependencies and rejects another Prog
     let result = @context.publication_row_limit_result(check.selection)
     assert_eq(result.stage, stage)
     assert_eq(result.result_index, 0)
+    assert_eq(publication_result_name(check), "out")
     assert_true(check.phase is BeforeResultPublication)
     assert_true(check.failure is PreventResultPublication)
     assert_true(
