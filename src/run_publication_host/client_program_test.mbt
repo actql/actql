@@ -785,6 +785,48 @@ test "ordinary values document prepares one named Effect-free result" {
     )
     is Err(ClientExecutionMaterialAdmissionIssue::MismatchedMaterial),
   )
+  let executable = issue_prepared_client_values_executable_plan(
+    prepared, compiler_manifests, aoa_limits, 32, 64, 100000, 10000, 100,
+  ).unwrap()
+  assert_true(
+    client_values_executable_plan_cid(executable).has_prefix("sha256:"),
+  )
+  let executable_wire = client_values_executable_plan_wire(executable)
+  let manifest_wire = client_values_executable_plan_fact_manifest_wire(
+    executable,
+  )
+  assert_true(
+    executable_wire.contains(
+      "\"plan_fact_manifest_cid\":\"" +
+      client_values_executable_plan_fact_manifest_cid(executable) +
+      "\"",
+    ),
+  )
+  assert_true(executable_wire.contains(material_wire))
+  assert_eq(
+    client_values_executable_plan_cid(
+      admit_prepared_client_values_executable_plan(
+        prepared, executable_wire, manifest_wire, compiler_manifests, aoa_limits,
+        32, 64, 100000, 10000, 100,
+      ).unwrap(),
+    ),
+    client_values_executable_plan_cid(executable),
+  )
+  assert_true(
+    admit_prepared_client_values_executable_plan(
+      prepared,
+      executable_wire.replace(old="\"answer\"", new="\"foreign\""),
+      manifest_wire,
+      compiler_manifests,
+      aoa_limits,
+      32,
+      64,
+      100000,
+      10000,
+      100,
+    )
+    is Err(ClientValuesExecutablePlanAdmissionIssue::MismatchedPlan),
+  )
   assert_eq(
     client_values_plan_graph_wire(graph_component),
     "{\"data_edges\":[],\"nodes\":[" +

@@ -39,6 +39,8 @@ pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publica
 
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
+pub fn admit_prepared_client_values_executable_plan(PreparedClientProgram, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanAdmissionIssue]
+
 pub fn admit_prepared_client_values_execution_material(PreparedClientProgram, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
 
 pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
@@ -109,6 +111,14 @@ pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
 
+pub fn client_values_executable_plan_cid(ClientValuesExecutablePlan) -> String
+
+pub fn client_values_executable_plan_fact_manifest_cid(ClientValuesExecutablePlan) -> String
+
+pub fn client_values_executable_plan_fact_manifest_wire(ClientValuesExecutablePlan) -> String
+
+pub fn client_values_executable_plan_wire(ClientValuesExecutablePlan) -> String
+
 pub fn client_values_fragment_logical_cid(ClientValuesFragmentNode) -> String
 
 pub fn client_values_fragment_node_id(ClientValuesFragmentNode) -> String
@@ -154,6 +164,8 @@ pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, I
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
+
+pub fn issue_prepared_client_values_executable_plan(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue]
 
 pub fn issue_prepared_client_values_execution_material(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
 
@@ -485,6 +497,28 @@ pub struct ClientValuesAoAIdentity {
 pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
+  Encoding
+}
+
+pub struct ClientValuesExecutablePlan {
+  wire : String
+  cid : String
+  fact_manifest_wire : String
+  fact_manifest_cid : String
+}
+
+pub(all) enum ClientValuesExecutablePlanAdmissionIssue {
+  Issue(ClientValuesExecutablePlanIssue)
+  MismatchedPlan
+}
+
+pub(all) enum ClientValuesExecutablePlanIssue {
+  InvalidLimits
+  Graph(ClientValuesPlanGraphIssue)
+  Material(ClientExecutionMaterialIssue)
+  Facts(ClientPublicationPlanFactIssue)
+  Witnesses(ClientPublicationWitnessIssue)
+  FactManifest(PlanFactManifestIdentityIssue)
   Encoding
 }
 
