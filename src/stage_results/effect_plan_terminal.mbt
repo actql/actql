@@ -19,6 +19,56 @@ pub(all) enum EffectPlanTerminalIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum EffectPlanBindingIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidMember
+  MissingRule
+  Terminal(EffectPlanTerminalIssue)
+} derive(Eq, Debug)
+
+///|
+/// Select the Plan from one member of the rules' own checked Result inventory.
+/// Rule indexes are not authored member indexes: Command members are absent.
+/// Both sides of the lookup come from the same checked owner, never from a
+/// caller-supplied binding or a separately resolved Result name.
+pub fn effect_plan_terminal_for_member(
+  rules : EffectMappingRules,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[EffectPlanTerminal?, EffectPlanBindingIssue] {
+  if member_index < 0 || max_fields < 0 || max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  guard effect_result_binding_at(
+      effect_mapping_shapes_effects(effect_mapping_rules_shapes(rules)),
+      member_index,
+    )
+    is Some(binding) else {
+    return Err(InvalidMember)
+  }
+  if effect_mapping_rule_count(rules) > max_work {
+    return Err(WorkLimit)
+  }
+  let header = effect_result_binding_header(binding)
+  for index in 0..<effect_mapping_rule_count(rules) {
+    let rule = effect_mapping_rule_at(rules, index).unwrap()
+    let rule_header = effect_result_binding_header(
+      effect_mapping_shape_effect(effect_mapping_rule_effect(rule)),
+    )
+    if @syntax.effect_header_stage(rule_header) ==
+      @syntax.effect_header_stage(header) &&
+      @syntax.effect_header_id(rule_header) == @syntax.effect_header_id(header) {
+      return prepare_effect_plan_terminal(rule, max_fields).map_err(issue => {
+        Terminal(issue)
+      })
+    }
+  }
+  Err(MissingRule)
+}
+
+///|
 /// Only result-correlated update, upsert and delete have this terminal in
 /// ActQL 0.1. All other members stay on their own checked planning path.
 pub fn prepare_effect_plan_terminal(
