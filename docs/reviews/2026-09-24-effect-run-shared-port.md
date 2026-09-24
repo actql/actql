@@ -133,6 +133,13 @@ earlier prepared payloads; foreign occurrence evidence is rejected before it
 can be returned. The standard Effectful Host caller is still absent. This is
 a prepared, unpublished computation result set, not a Captured Run, final
 Receipt, mutation permit, or durable commit.
+MoonBit now issues the Effectful computation Captured Run from the admitted
+private Preview inventory and captured Result snapshots. It derives Effect
+member names and Plan CIDs rather than accepting a caller-authored Effect
+context, and rejects missing, duplicate, or foreign Plan entries. The Node
+Host bridge uses the same issuer and keeps Preview ownership opaque. Plan
+values remain bounded context observations; their physical payload match is
+still required before apply. This issuance does not commit publication.
 
 ## Required port and owners
 
