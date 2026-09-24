@@ -47,11 +47,15 @@ The review's concrete measurement gaps remain separate work items:
 | Raw records exist only in a local scratch directory | Upload the fixed-revision raw pairs, calibration, and assessment as a replayable CI artifact. A report containing only hashes or a local path is insufficient. |
 | One comparator completes | Run and assess the other three registered comparator families independently. A single-comparator result is not whole-experiment acceptance. |
 
-The manual `Registered performance matrix` workflow runs the same registered
-equivalent-obligations script on a fixed Linux revision and uploads case pairs,
-calibration records, and the assessment even when a gate fails. It excludes
-temporary source databases from the review artifact. The final acceptance run
-still needs all four comparator families and durable, replayable raw records.
+The manual `Registered performance matrix` workflow enumerates all 27 cases
+from the pinned fixture generator, measures them in bounded parallel Linux
+jobs at one revision, and aggregates the individually uploaded records. A
+missing, foreign, or corrupt case artifact makes the aggregate incomplete;
+the aggregate also requires one matching release build and the existing case
+admission and timing gates. Case artifacts preserve raw pairs and calibration,
+and the final artifact preserves the assessment even when a gate fails.
+Temporary source databases are excluded. The final acceptance run still needs
+all four comparator families and durable, replayable raw records.
 Performance work must preserve real validation, required identities,
 independent holding, cleanup, ordinary placement, and the original confidence
 and timing gates.

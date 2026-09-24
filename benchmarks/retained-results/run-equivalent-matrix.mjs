@@ -17,9 +17,11 @@ execFileSync(join(moonHome, 'bin', 'moon'), ['build', '--target', 'js', '--relea
     PATH: `${join(moonHome, 'bin')}:${process.env.PATH ?? ''}`}});
 const result = await runEquivalentMatrix({checkout,
   outputDirectory, ...(caseId === undefined ? {} : {caseId})});
+const status = caseId === undefined ? result.assessment.status :
+  result.assessment.cases.find(value => value.caseId === caseId)?.status ?? 'incomplete';
 console.log(JSON.stringify({revision: result.revision,
   outputDirectory: result.outputDirectory,
-  status: result.assessment.status,
+  status,
   registeredCases: result.assessment.registeredCases,
   receivedRecords: result.assessment.receivedRecords}));
-if (result.assessment.status !== 'pass') process.exitCode = 1;
+if (status !== 'pass') process.exitCode = 1;

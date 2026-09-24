@@ -7,9 +7,26 @@ permissions:
   contents: read
 
 jobs:
+  registered-cases:
+    runs-on: ubuntu-24.04
+    outputs:
+      cases: ${{ steps.list.outputs.cases }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - id: list
+        run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
+
   equivalent-obligations:
+    needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        case: ${{ fromJSON(needs.registered-cases.outputs.cases) }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -35,18 +52,42 @@ jobs:
           git status --short
           node --version
           moon version --all
-      - name: Run all registered equivalent-obligations cases
-        run: node benchmarks/retained-results/run-equivalent-matrix.mjs performance-artifacts/equivalent-obligations
-      - name: Preserve raw pairs and assessment
+      - name: Run registered equivalent-obligations case
+        run: node benchmarks/retained-results/run-equivalent-matrix.mjs performance-artifacts/equivalent-obligations '${{ matrix.case.caseId }}'
+      - name: Preserve raw pairs and calibration
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: equivalent-obligations-${{ github.sha }}-${{ github.run_id }}
+          name: equivalent-case-${{ matrix.case.index }}-${{ github.sha }}
           path: |
             performance-artifacts/equivalent-obligations/case-*.json
             performance-artifacts/equivalent-obligations/progress.json
             performance-artifacts/equivalent-obligations/assessment.json
             performance-artifacts/equivalent-obligations/assessment.md
             performance-artifacts/equivalent-obligations/actql-retained-calibration-*/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  equivalent-assessment:
+    needs: [registered-cases, equivalent-obligations]
+    if: always() && needs.registered-cases.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        continue-on-error: true
+        with:
+          pattern: equivalent-case-*-${{ github.sha }}
+          path: performance-artifacts/parts
+      - name: Assess all registered cases at one revision
+        run: node benchmarks/retained-results/equivalent-matrix-aggregate.mjs performance-artifacts/parts performance-artifacts/assessment '${{ github.sha }}'
+      - name: Preserve the matrix assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: equivalent-assessment-${{ github.sha }}-${{ github.run_id }}
+          path: performance-artifacts/assessment/
           if-no-files-found: warn
           retention-days: 30
