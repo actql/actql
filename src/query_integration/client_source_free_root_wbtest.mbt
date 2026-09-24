@@ -490,4 +490,113 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_native_remote_standard_output(
     runtime, journal, dispatch, input_binding, "[{\"id\":1},{\"id\":2}]",
   )
+  let second = @publication_host.prepare_source_free_client_values_dispatch(
+    run_binding,
+    request,
+    2,
+    "native-values-dispatch-2",
+    {
+      site_key: "native-values-site",
+      site_generation: 1,
+      runtime_bundle_cid: bundle_cid,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+      obligations_cid: native_publication_cid("native-values-obligations"),
+      budget_cid: @remote.remote_dispatch_budget_cid(budget),
+      evidence_issuer_capability_cid: issuer_capability,
+      grant_cid: operation_capability,
+    },
+  ).unwrap()
+  let endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
+    runtime,
+    journal,
+    native_publication_cid("native-values-coordinator"),
+    "native-values-site",
+    1,
+  ).unwrap()
+  let body = @remote.remote_poll_dispatch_json(second, input_binding).unwrap()
+  let second_cid = @remote.dispatch_request_identity(second)
+  assert_true(
+    endpoint.query_json(
+      @remote.remote_poll_query_json(second).unwrap(),
+      second_cid,
+    )
+    is Err(@native_remote_values.Journal(_)),
+  )
+  assert_true(
+    endpoint.dispatch_json(body, @remote.dispatch_request_identity(dispatch))
+    is Err(@native_remote_values.ForeignDispatch),
+  )
+  let foreign_endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
+    runtime, journal, "another-coordinator", "native-values-site", 1,
+  ).unwrap()
+  assert_true(
+    foreign_endpoint.dispatch_json(body, second_cid)
+    is Err(@native_remote_values.ForeignDispatch),
+  )
+  let reply = endpoint.dispatch_json(body, second_cid).unwrap()
+  let accepted = @remote.admit_remote_dispatch_response_json(
+    reply,
+    second,
+    @remote.DispatchReply,
+  ).unwrap()
+  assert_eq(@remote.remote_dispatch_response_revision(accepted), 5)
+  assert_eq(endpoint.dispatch_json(body, second_cid).unwrap(), reply)
+  let query = @remote.remote_poll_query_json(second).unwrap()
+  let status = endpoint.query_json(query, second_cid).unwrap()
+  let observed = @remote.admit_remote_dispatch_response_json(
+    status,
+    second,
+    @remote.StatusReply,
+  ).unwrap()
+  let subject = @remote.remote_dispatch_response_subject(observed).unwrap()
+  let material_generation = @remote.remote_managed_output_subject_projection(
+      subject,
+    )[1]
+  let reader = runtime
+    .open_output_reader(second, material_generation, 7)
+    .unwrap()
+  let output : Array[Byte] = []
+  while true {
+    let chunk = reader.next().unwrap()
+    for byte in chunk.bytes {
+      output.push(byte)
+    }
+    if chunk.eof {
+      break
+    }
+  }
+  assert_eq(
+    @utf8.decode_lossy(Bytes::from_array(output)),
+    "[{\"id\":1},{\"id\":2}]",
+  )
+  assert_true(reader.finish().unwrap())
+  assert_true(runtime.release(second).unwrap())
+  assert_true(runtime.close().unwrap())
+  assert_true(journal.close())
+  let reopened_journal = @native_remote_journal.open_journal(
+    sqlite,
+    root_path + "/values-journal.sqlite3",
+    262144L,
+    control,
+  ).unwrap()
+  let reopened_endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
+    runtime,
+    reopened_journal,
+    native_publication_cid("native-values-coordinator"),
+    "native-values-site",
+    1,
+  ).unwrap()
+  let restored = reopened_endpoint.query_json(query, second_cid).unwrap()
+  let restored_status = @remote.admit_remote_dispatch_response_json(
+    restored,
+    second,
+    @remote.StatusReply,
+  ).unwrap()
+  assert_true(
+    @remote.remote_dispatch_response_subject(restored_status) is Some(_),
+  )
+  assert_true(reopened_journal.close())
+  assert_true(bundles.close().unwrap())
 }
