@@ -95,6 +95,15 @@ pub fn coordinator_prepare_intent(
 }
 
 ///|
+/// Only a newly admitted durable intent can authorize an initial Site send.
+#export_name("coordinatorIntentIsNew")
+pub fn coordinator_intent_is_new(
+  admission : @remote.CoordinatorDispatchIntentAdmission,
+) -> Bool {
+  @remote.coordinator_dispatch_intent_kind(admission) == @remote.NewDispatch
+}
+
+///|
 #export_name("coordinatorAdmissionDurableJson")
 pub fn coordinator_admission_durable_json(
   admission : @remote.CoordinatorDispatchIntentAdmission,
