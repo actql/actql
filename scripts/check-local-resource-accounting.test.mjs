@@ -41,7 +41,27 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 30 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 31 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('sequence retains product cancellation and cleanup evidence', () => {
+  for (const role of [
+    'sequence_quantum_one_output_and_cleanup',
+    'sequence_in_flight_cancel_cleanup',
+    'sequence_output_limit_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'sequence');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA sequence: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'sequence');
+    route.environment_tests = [];
+  }), /TEA sequence: sequence_host_in_flight_cancel fixture is missing/);
 });
 
 test('temporal joins retain delivered Host cancellation evidence', () => {
