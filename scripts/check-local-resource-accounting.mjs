@@ -993,7 +993,7 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'Bridge' &&
     (route.operation === 'node_rows' || route.operation === 'edge_rows')) {
-    const role = `${route.operation}_workspace_exact_one_short_and_kernel_cancel_cleanup`;
+    const role = `${route.operation}_work_workspace_exact_one_short_and_kernel_cancel_cleanup`;
     if (!boundaryRoles.has(role)) {
       fail(`${label}: ${role} fixture is missing`);
     }

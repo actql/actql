@@ -50,7 +50,7 @@ for (const operation of ['node_rows', 'edge_rows']) {
       const route = routes.routes.find(entry => entry.family === 'Bridge' &&
         entry.operation === operation);
       route.boundary_tests = [];
-    }), new RegExp(`Bridge ${operation}: ${operation}_workspace_exact_one_short_and_kernel_cancel_cleanup fixture is missing`));
+    }), new RegExp(`Bridge ${operation}: ${operation}_work_workspace_exact_one_short_and_kernel_cancel_cleanup fixture is missing`));
   });
   test(`${operation} loses delivered cancellation assurance when removed`, () => {
     assert.match(run(undefined, routes => {
