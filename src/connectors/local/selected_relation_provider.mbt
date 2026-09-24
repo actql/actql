@@ -1,6 +1,22 @@
 ///|
 /// Common Relation execution for one checked internal unary operation. Family
 /// providers do not reinterpret or implement RelA after a Carrier bridge.
+fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
+  match @lower.kernel_body(kernel) {
+    @lower.AssertAll(_)
+    | @lower.AssertUnique(_)
+    | @lower.SnapshotMap(_)
+    | @lower.OrderedBindings(_)
+    | @lower.Filter(_)
+    | @lower.Select(_)
+    | @lower.DistinctRows
+    | @lower.StableSort(_)
+    | @lower.Limit(_, _, _) => true
+    _ => false
+  }
+}
+
+///|
 fn selected_binding_rows_issue(
   issue : @execution.BoundedBindingRowsIssue,
   step : Int,
@@ -146,26 +162,16 @@ fn selected_relation_provider(
         is Some(@lower.RowStep(kernel)) else {
         return false
       }
-      // Ordinary one-step row forms share the selected bounded kernel.
-      // Other ordinary row forms retain their established representation.
+      // Only bodies with a bounded evaluator can enter this provider.
+      if !selected_binding_rows_supported(kernel) {
+        return false
+      }
       match
         @execution.completion_preparation_selected_step(
           @execution.generated_completion_preparation(sequence),
         ) {
         Some(selected) => if selected != step { return false }
-        None =>
-          match @lower.kernel_body(kernel) {
-            @lower.AssertAll(_)
-            | @lower.AssertUnique(_)
-            | @lower.SnapshotMap(_)
-            | @lower.OrderedBindings(_)
-            | @lower.Filter(_)
-            | @lower.Select(_)
-            | @lower.DistinctRows
-            | @lower.StableSort(_)
-            | @lower.Limit(_, _, _) => ()
-            _ => return false
-          }
+        None => ()
       }
       @lower.node_at(
         @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
@@ -187,58 +193,11 @@ fn selected_relation_provider(
         is Some(@lower.RowStep(kernel)) else {
         return Err(@connector.Execution(@execution.InputSet))
       }
-      match @lower.kernel_body(kernel) {
-        @lower.SnapshotMap(_)
-        | @lower.OrderedBindings(_)
-        | @lower.Filter(_)
-        | @lower.AssertAll(_)
-        | @lower.AssertUnique(_)
-        | @lower.DistinctRows
-        | @lower.Select(_) =>
-          return selected_binding_rows_execution(
-            sequence, input, execution, max_value_bytes, step,
-          )
-        @lower.Limit(_, _, _) =>
-          return selected_binding_rows_execution(
-            sequence, input, execution, max_value_bytes, step,
-          )
-        @lower.StableSort(_) =>
-          return selected_binding_rows_execution(
-            sequence, input, execution, max_value_bytes, step,
-          )
-        _ => ()
+      if !selected_binding_rows_supported(kernel) {
+        return Err(@connector.Execution(@execution.InputSet))
       }
-      let terminated = Ref(false)
-      let canceled = Ref(false)
-      Ok(
-        managed_provider_execution(
-          quantum => {
-            if quantum <= 0 || terminated.val {
-              return Err(@connector.InvalidLimits)
-            }
-            terminated.val = true
-            if canceled.val {
-              return Ok(managed_provider_stopped_poll(0L, 0L))
-            }
-            match
-              @execution.execute_selected_relation_step(
-                sequence, input, execution,
-              ) {
-              Ok((output, work)) =>
-                Ok(managed_provider_complete(output, 0L, work))
-              Err((issue, work)) =>
-                Ok(
-                  managed_provider_failed(@connector.Execution(issue), 0L, work),
-                )
-            }
-          },
-          fn() {
-            canceled.val = true
-            true
-          },
-          fn() { terminated.val },
-          fn() { Ok(terminated.val) },
-        ),
+      selected_binding_rows_execution(
+        sequence, input, execution, max_value_bytes, step,
       )
     },
   )
