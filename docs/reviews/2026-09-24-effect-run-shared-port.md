@@ -463,3 +463,25 @@ releasing the Effect-like borrow makes only that borrow unavailable while an
 independent publication export can still finish. This tightens SF-4's
 cell-backed path; it does not add managed or nonterminal retention, a Preview
 payload proof, or standard Effect dispatch authority.
+
+### External SPI closure inventory
+
+The current package-public MoonBit surface is an internal composition API,
+not the promised external Connector SPI. Its generated signatures identify
+the exact split required before a provider can compile off-tree:
+
+| Provider requirement | Current exposure | Intended owner |
+| --- | --- | --- |
+| Resource, field, operation and scoped capability descriptions | Salesforce `catalog` projection and generic Catalog contracts | Stable provider facade and provider implementation |
+| Bounded query request, page order and typed cell admission | `ReadProjection`, `QueryPage`, `ManagedOutputValues` | Provider interpretation through a Host-created bounded sink |
+| Selected checked query and residual computation | `QueryRequirement`, `AcquisitionChoice`, `BoundPrepared` | Internal Host bridge, never an external provider constructor |
+| Attempt, issuer, retained output, capture and consumer binding | `QueryEvidenceRegistration`, `CapturedInputSource` | Shared Host custody and physical Site observation |
+| Effect request and stored response interpretation | Salesforce single/collection request projections | Provider semantics behind common apply and response custody |
+| Capacity, retry, cleanup and final completion | `connector_sdk` and common Engine owners | Internal Host/Engine authority |
+
+The next SPI change must define a source-stable provider-facing package and
+move one real Salesforce Catalog-to-read-to-capture path through it. A separate
+MoonBit project must then build an off-tree reference provider using only that
+package and its declared semantic dependencies. The generated `.mbti` closure
+must include callbacks and error payloads, not just nominal opaque types.
+An off-tree package that only registers a name is not the acceptance fixture.
