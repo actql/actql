@@ -32,10 +32,11 @@ session suites passed 32/32 locally. Final-revision Linux CI remains required.
 
 This is still open. The earlier `d7fa68cd3` assessment belongs to its own
 fixed revision and is not evidence for the current implementation. A full
-27-case equivalent-obligations run is in progress on clean `f9b9dafe8`; its
-result must be recorded with the exact release artifact, raw pairs, and case
-assessments. This is only one of four registered comparators. No diagnostic
-pair, indeterminate case, or missing case is counted as a pass.
+27-case equivalent-obligations run completed on clean `f9b9dafe8`; its
+assessment and limitations are recorded below. The raw pairs still need a
+durable CI artifact tied to the exact release build. This is only one of four
+registered comparators. No diagnostic pair, indeterminate case, or missing
+case is counted as a pass.
 
 The review's concrete measurement gaps remain separate work items:
 
