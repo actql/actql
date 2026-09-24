@@ -1203,6 +1203,9 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: Relation input entrypoint is missing`);
     }
     for (const role of [
+      'pool_relation_work_exact_one_short',
+      'pool_relation_workspace_exact_one_short',
+      'pool_relation_kernel_cancel_cleanup',
       'pool_empty_work_exact_one_short',
       'pool_record_work_exact_one_short',
       'pool_workspace_exact',
@@ -1216,8 +1219,14 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
     if (!environmentRoles.has('pool_host_in_flight_cancel') ||
-      pathAssurance.entrypoint === undefined) {
-      fail(`${label}: bounded Host cancellation assurance is missing`);
+      !environmentRoles.has('pool_relation_host_in_flight_cancel') ||
+      pathAssurance.entrypoint === undefined ||
+      pathAssurance.relation_entrypoint === undefined) {
+      fail(`${label}: direct and Relation Host cancellation assurances are required`);
+    }
+    if (resourceAssurance.entrypoint === undefined ||
+      resourceAssurance.relation_entrypoint === undefined) {
+      fail(`${label}: direct and Relation work/workspace assurances are required`);
     }
   }
   if (route.family === 'VecA' && route.operation === 'nearest') {

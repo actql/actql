@@ -5,9 +5,9 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
-boundary records, 13 have all four lifecycle roles, and 12 have exact and
+boundary records, 14 have all four lifecycle roles, and 13 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 35 paths have path-scoped work/workspace evidence. Strict completion
+routes, 36 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
 
 The single-step `nearest` entrypoint now has a direct Relation-input fixture
@@ -24,13 +24,15 @@ workspace ceilings (8/7 and 30/29) to their existing Host cancellation and
 kernel cleanup tests. Both routes are fully resource-assured for these
 registered entrypoints; this does not close other VecA operations.
 
-The direct Carrier `pool_vectors` entrypoint now has independent one-record
+The direct Carrier `pool_vectors` entrypoint has independent one-record
 work boundaries (30/29) and a fixed-shape structural workspace boundary
-(39/38), alongside its existing delivered Host cancellation and kernel
-cleanup evidence. The workspace expectation is derived from the fixture
-shape, not the production `pool_workspace()` helper. The separate Relation
-input entrypoint is not covered by this claim, so the operation remains
-outside full route assurance.
+(39/38), alongside delivered Host cancellation and kernel cleanup. Its
+workspace expectation is derived from fixture shape, not the production
+`pool_workspace()` helper. The separate Relation-input entrypoint now has
+independently counted 32/31 work and 18/17 workspace boundaries, plus a
+standard Host timer-cancellation fixture that reaches `start_relation_pool`.
+Both registered pool production paths have separate resource and lifecycle
+proofs.
 
 The bounded sequence-match route now names its quantum-one execution,
 in-flight kernel cancellation, output-limit cleanup, and ordinary Node

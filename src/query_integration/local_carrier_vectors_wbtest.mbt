@@ -3920,6 +3920,188 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
 }
 
 ///|
+fn direct_relation_pool_source_owner() -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check(
+      input_cursor(
+        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"group\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"embedding\":{\"type\":\"vector\",\"dimensions\":2," +
+        "\"nullable\":false}},\"rows\":[{\"id\":1,\"group\":1," +
+        "\"embedding\":[1,2]}]},\"as\":\"source\"}," +
+        "{\"from\":\"source\",\"assert_rows\":{\"unique_by\":[\"id\"]}," +
+        "\"as\":\"keyed\"}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_relation_pool_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
+        "\"by\":[\"group\"],\"method\":\"sum\"}}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(1),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+fn direct_relation_pool_limits(
+  workspace : Int,
+  work : Int,
+) -> @record_storage.Limits {
+  {
+    max_input_records: 10,
+    max_records: 10,
+    max_fields_per_record: 10,
+    max_value_bytes: 1000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 100,
+    max_value_depth: 10,
+    max_contract_work: 1000,
+    max_work: work,
+    max_workspace_slots: workspace,
+  }
+}
+
+///|
+test "relation pool enforces exact work and workspace boundaries" {
+  let source = direct_relation_pool_source_owner()
+  let owner = direct_relation_pool_owner(source)
+  let completed = @execution.execute_generated_sequence(
+    task_test_generated(source),
+    [],
+    compute_test_limits(),
+  ).unwrap()
+  let source_output = @execution.completed_output(completed, @pipeline.Step(1)).unwrap()
+  let read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source, source_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  // One five-slot record in each ordering array (10), three output fields,
+  // two vector components, and three key slots require 18 workspace slots.
+  assert_true(
+    @local_veca.start_relation_pool(
+      @bounded.control(),
+      @execution.generated_prepared_sequence(task_test_generated(owner)),
+      0,
+      read,
+      direct_relation_pool_limits(17, 1000),
+      4096L,
+      fn() { true },
+    )
+    is Err(@local_veca.PoolWorkspaceLimit),
+  )
+  assert_true(@execution.producer_read_available(read))
+  let control = @bounded.control()
+  let execution = @local_veca.start_relation_pool(
+    control,
+    @execution.generated_prepared_sequence(task_test_generated(owner)),
+    0,
+    read,
+    direct_relation_pool_limits(18, 1000),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_pool(execution, 1).unwrap()
+    is @local_veca.PoolContinue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_pool(execution, 1).unwrap()
+    is @local_veca.PoolStopped(_, ..),
+  )
+  assert_eq(@local_veca.cleanup_pool(execution), Ok(true))
+  assert_true(@execution.producer_read_available(read))
+  // One record: setup 3, three field scans 9, group/identity checks 2,
+  // identity encoding 2, component validation 2, collection/scratch 2,
+  // group boundaries 2, component build/fold/finish 6, output fields 3,
+  // and output commit 1. The independent total is 32 control units.
+  for (ceiling, accepted) in [(32, true), (31, false)] {
+    let bounded = @local_veca.start_relation_pool(
+      @bounded.control(),
+      @execution.generated_prepared_sequence(task_test_generated(owner)),
+      0,
+      read,
+      direct_relation_pool_limits(18, ceiling),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<40 {
+      if !terminal {
+        match @local_veca.advance_pool(bounded, 1).unwrap() {
+          @local_veca.PoolContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.PoolComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work, charged)
+            charged = work
+            assert_true(@records.completed_storage(output) is Some(_))
+            terminal = true
+          }
+          @local_veca.PoolFailed(@local_veca.PoolWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.pool_cleanup_pending(bounded))
+            terminal = true
+          }
+          _ => fail("Relation pool work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(@local_veca.cleanup_pool(bounded), Ok(true))
+    assert_true(@execution.producer_read_available(read))
+  }
+}
+
+///|
 test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let candidates = direct_nearest_relation_owner(
     "[{\"id\":1,\"embedding\":[1,0]}]",
