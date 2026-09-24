@@ -189,3 +189,11 @@ request journal test verifies same-key replay after reopen and rejects a
 changed Effect intent under that key. MoonBit's JS, Wasm, and native tests
 verify the common preimage and invalid request ID. This closes the request
 identity prerequisite, not public Effectful submit, apply, or publication.
+
+Run publication admission for an Effectful computation now checks the exact
+prepared owner before issuing a Run Definition. The prior Host fixture used
+generic evidence admission with a placeholder Parameter Values CID; the new
+owner-bound admission rejected it. The fixture now derives that CID from the
+checked Effect request identity and rejects changed Program Definition,
+Parameter Values, Program Semantics, or Check Environment evidence. This
+closes an early binding gap, not the later current-authority/apply boundary.

@@ -32,6 +32,8 @@ import {
 // Values
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
+pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
+
 pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[@effect_application.EffectRiskAcceptanceBody, @effect_application.EffectRiskAcceptanceIssue]
 
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
