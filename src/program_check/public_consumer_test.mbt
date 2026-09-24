@@ -682,7 +682,18 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let first_source = @strategy.checked_effect_source_at(graph_owner, 0).unwrap()
   assert_eq(@strategy.checked_effect_source_member(first_source), 0)
   assert_eq(@strategy.checked_effect_source_stage(first_source), 1)
+  assert_eq(@strategy.checked_effect_source_task(first_source), 1)
   let occurrence = @strategy.checked_effect_source_occurrence(first_source)
+  assert_eq(
+    @strategy.graph_stage_target_task(
+      @strategy.checked_effect_computation_graph(graph_owner),
+      1,
+      @publication.port_target(
+        @execution.managed_result_occurrence_port(occurrence),
+      ),
+    ),
+    Some(@strategy.checked_effect_source_task(first_source)),
+  )
   assert_eq(@execution.managed_result_occurrence_name(occurrence), "out")
   assert_true(
     physical_equal(
