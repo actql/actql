@@ -35,6 +35,17 @@ pub struct Program {
 }
 
 ///|
+/// The declared opaque names are public Program structure. Concrete reference
+/// values remain invocation material and are never read through this accessor.
+pub fn program_binding_names(program : Program) -> Array[String] {
+  let root = @wire.open_object(program.body).unwrap()
+  match @wire.lookup(root, "bindings") {
+    None => []
+    Some(bindings) => @wire.object_field_names(bindings).unwrap()
+  }
+}
+
+///|
 fn required(view : @wire.ObjectView, name : String) -> @wire.Cursor raise Abort {
   match @wire.required(view, name) {
     Ok(value) => value

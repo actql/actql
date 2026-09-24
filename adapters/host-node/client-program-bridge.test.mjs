@@ -203,7 +203,8 @@ test('binding set covers every checked Unit Result port', async () => {
 // Test-only evidence isolates checked Program binding. Product admission must
 // derive every other evidence CID from its real compiler and Host authority.
 function publicationEvidence(program, parameters, semantics,
-  checkEnvironmentCid, aoaLogicalCid = cid('9')) {
+  checkEnvironmentCid, invocationBindingsCid,
+  aoaLogicalCid = cid('9')) {
   const limits = [100000, 10000, 64];
   const evidence = (name, body) => checked(moon.strategyRunEvidenceSeal(
     name, JSON.stringify(body), ...limits));
@@ -211,7 +212,7 @@ function publicationEvidence(program, parameters, semantics,
     version: 'actql-bound-invocation-template/0.1',
     program_definition_cid: program,
     parameter_values_cid: parameters,
-    invocation_bindings_cid: cid('3'),
+    invocation_bindings_cid: invocationBindingsCid,
     check_environment_cid: checkEnvironmentCid,
     grammar_manifest_cid: cid('5'),
     required_profile_contracts: [],
@@ -255,11 +256,14 @@ function checkedValuesPublicationPlan(prepared, control) {
     prepared, cid('a'), 'published-values-request', cid('b'));
   const aoa = checked(
     moon.clientProgramIssueLocalValuesAoAIdentity(prepared, 0));
+  const invocationBindings = checked(
+    moon.clientProgramIssueEmptyInvocationBindings(prepared));
   const evidence = publicationEvidence(
     moon.clientRequestProgramCid(request),
     moon.clientRequestParametersCid(request),
     moon.clientProgramSemanticsCid(prepared),
     moon.clientProgramCheckEnvironmentCid(prepared),
+    moon.strategyRunEvidenceIdentity(invocationBindings),
     moon.clientProgramLocalValuesAoACid(aoa));
   const [template, preparedEvidence, authorization] = evidence
     .slice(0, 3).map((value, index) => control.admitRunEvidence(
@@ -346,6 +350,15 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const prepared = moon.clientProgramPrepareEffectFree(
     document, 'json', environment);
   assert.ok(prepared);
+  const invocationBindings = checked(
+    moon.clientProgramIssueEmptyInvocationBindings(prepared));
+  assert.equal(moon.strategyRunEvidenceIdentity(invocationBindings),
+    'sha256:5400e202cc7c63c3b757399f3a694b413f7b717ce58aa887cc156c6a39aab67f');
+  assert.deepEqual(JSON.parse(moon.strategyRunEvidenceJson(invocationBindings)), {
+    version: 'actql-invocation-bindings/0.1', bindings: {},
+    invocation_bindings_cid:
+      moon.strategyRunEvidenceIdentity(invocationBindings),
+  });
   assert.equal(moon.clientProgramResultCount(prepared), 1);
   assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
   assert.equal(moon.clientProgramResultName(prepared, 1), undefined);
@@ -915,11 +928,14 @@ test('Node publication admission rejects evidence from another checked Program',
     assert.ok(prepared);
     const identity = moon.clientProgramRequestIdentity(
       prepared, cid('a'), 'saved-request', cid('b'));
+    const invocationBindingsCid = moon.strategyRunEvidenceIdentity(checked(
+      moon.clientProgramIssueEmptyInvocationBindings(prepared)));
     const evidence = publicationEvidence(
       moon.clientRequestProgramCid(identity),
       moon.clientRequestParametersCid(identity),
       moon.clientProgramSemanticsCid(prepared),
-      moon.clientProgramCheckEnvironmentCid(prepared));
+      moon.clientProgramCheckEnvironmentCid(prepared),
+      invocationBindingsCid);
     assert.ok(moon.clientProgramAdmitPublication(prepared, ...evidence));
     const control = runtimeCore(moon).publicationControl;
     const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
@@ -975,13 +991,15 @@ test('Node publication admission rejects evidence from another checked Program',
     }, moon, control), {code: 'ClientRequestIntentConflict'});
     const foreignSemantics = publicationEvidence(
       moon.clientRequestProgramCid(identity),
-      moon.clientRequestParametersCid(identity), cid('f'), evidenceCid);
+      moon.clientRequestParametersCid(identity), cid('f'), evidenceCid,
+      invocationBindingsCid);
     assert.equal(moon.clientProgramAdmitPublication(
       prepared, ...foreignSemantics), undefined);
     const foreignEnvironment = publicationEvidence(
       moon.clientRequestProgramCid(identity),
       moon.clientRequestParametersCid(identity),
-      moon.clientProgramSemanticsCid(prepared), cid('f'));
+      moon.clientProgramSemanticsCid(prepared), cid('f'),
+      invocationBindingsCid);
     assert.equal(moon.clientProgramAdmitPublication(
       prepared, ...foreignEnvironment), undefined);
   });

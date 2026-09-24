@@ -23,3 +23,21 @@ test "source-free unit extraction refuses declarations and other stages" {
   let other = @encode.writer(10000, 1000, 64)
   assert_false(emit_source_free_unit_program(staged, other))
 }
+
+///|
+test "opaque binding inventory exposes names without invocation values" {
+  let without = parsed(
+    (
+      #|{"version":"actql/0.1","id":"p","stages":[{"id":"s","inputs":{},"steps":[{"values":{"rows":[{"id":1}]},"as":"rows"}],"results":{"rows":{"from":"rows"}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+    ),
+    format=Json,
+  )
+  assert_eq(program_binding_names(without), [])
+  let declared = parsed(
+    (
+      #|{"version":"actql/0.1","id":"p","bindings":{"target_file":{"type":"resource_ref","resource_kind":"example.file"}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"rows":[{"id":1}]},"as":"rows"}],"results":{"rows":{"from":"rows"}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
+    ),
+    format=Json,
+  )
+  assert_eq(program_binding_names(declared), ["target_file"])
+}

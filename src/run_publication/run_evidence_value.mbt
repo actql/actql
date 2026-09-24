@@ -26,6 +26,7 @@ pub(all) enum RunEvidenceValueIssue {
 ///|
 fn run_evidence_identity_field(name : String) -> String? {
   match name {
+    "invocation_bindings" => Some("invocation_bindings_cid")
     "bound_invocation_template" => Some("bound_invocation_template_cid")
     "prepared_invocation" => Some("prepared_invocation_cid")
     "run_authorization" => Some("run_authorization_cid")

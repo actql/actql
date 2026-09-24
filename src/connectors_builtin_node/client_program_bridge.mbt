@@ -718,6 +718,21 @@ pub fn client_program_issue_local_values_aoa_identity(
 }
 
 ///|
+/// Product-owned empty binding identity for a checked Program with no opaque
+/// declarations. A nonempty binding requires live Host reference admission.
+#export_name("clientProgramIssueEmptyInvocationBindings")
+pub fn client_program_issue_empty_invocation_bindings(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientEmptyInvocationBindingsIssue,
+] {
+  @publication_host.issue_prepared_client_empty_invocation_bindings(
+    prepared, 100000, 10000, 100,
+  )
+}
+
+///|
 #export_name("clientProgramLocalValuesAoAWire")
 pub fn client_program_local_values_aoa_wire(
   value : @publication_host.ClientValuesAoAIdentity,
