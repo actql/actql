@@ -101,71 +101,18 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     )
     is Err(@publication_host.MissingTask),
   )
-  let run = @publication_host.open_prepared_source_free_client_run(prepared, {
-    planning_work: 100000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 500000L,
-    retained_bytes: 200000000L,
-    execution_bytes: 268435456L,
-  }).unwrap()
-  let ledger = @strategy.captured_dag_ledger(run)
-  let registry = search_registry()
-  let limits = dispatch_test_limits()
-  let generated = @publication_host.prepare_client_task_sequence(
+  let setup = @client_local_host.open_source_free_local_host(
     prepared,
-    0,
-    registered_relation_contracts(),
-    [],
-    {
-      max_steps: 100,
-      max_rows: 100,
-      max_cells: 10000,
-      max_bindings: 100,
-      max_name_bytes: 10000,
-      expressions: {
-        max_nodes: 10000,
-        max_work: 100000,
-        max_depth: 100,
-        max_literal_nodes: 10000,
-        max_literal_text_bytes: 10000,
-      },
-    },
-    100000,
-    10000,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L, 0L, 0L, 0L,
   ).unwrap()
-  let modules = @builtin.configure_compute_modules(
-    @host_driver.open_dispatch_driver(run),
-    registry,
-    1,
-    _ => @strategy.RunIssue::ForeignCandidate,
-    with_local=Some(
-      (
-        @connector.capability_registration_at(registry, 0).unwrap(),
-        {
-          sequences: [generated],
-          managed_providers: [],
-          managed_capacity: limits.capacity,
-          execution: limits.local_execution,
-          measurement: limits.guards,
-          max_work: limits.candidate_work,
-        },
-        _ => @strategy.RunIssue::ForeignCandidate,
-        _ => @strategy.RunIssue::ForeignCandidate,
-      ),
-    ),
-  ).unwrap()
-  let installed = @builtin.configured_local_module(modules).unwrap()
-  @local_driver.configure_local_retained_inputs(
-    installed,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire: retained_attempt_wire_limits(),
-      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
-      max_batch_bytes: 64,
-    },
-    None,
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let ledger = @strategy.captured_dag_ledger(run)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(setup),
   ).unwrap()
   let available = Ref(true)
   let (operations, completed) = run_local_managed_test_task(

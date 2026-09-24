@@ -1,0 +1,14 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors_builtin" @builtin,
+  "actql/actql/physical_host" @host_driver,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/connectors/local/driver" @local_driver,
+  "actql/actql/physical_cost" @cost,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+}

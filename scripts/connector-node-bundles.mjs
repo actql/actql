@@ -208,15 +208,13 @@ dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
 if (existsSync(join(root, 'src', bridgePackage,
   'client_program_bridge.mbt'))) {
+  dependencies.set('actql/actql/client_local_host', 'client_local_host');
   dependencies.set('actql/actql/lowering_relation', 'lower');
   dependencies.set('actql/actql/check_environment', 'check_environment');
   dependencies.set('actql/actql/program_check', 'program_check');
   dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
   dependencies.set('actql/actql/source_value', 'source');
   dependencies.set('actql/actql/decode_core', 'decode');
-  dependencies.set('actql/actql/physical_cost', 'cost');
-  dependencies.set('actql/actql/canonical_json', 'identity');
-  dependencies.set('moonbitlang/core/json', 'json');
   dependencies.set('moonbitlang/core/encoding/utf8', 'utf8');
 }
 // A bridge package may also contain the handwritten Carrier adapter. Keep its

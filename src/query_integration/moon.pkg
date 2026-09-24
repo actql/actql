@@ -58,6 +58,7 @@ import {
   "actql/actql/remote_site_completion" @remote_completion,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/client_local_host" @client_local_host,
   "actql/actql/run_publication" @publication,
   "actql/actql/platform_native/publication_store" @native_publication_store,
   "actql/actql/publication_payload",
