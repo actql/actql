@@ -239,6 +239,8 @@ pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
 pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
 
+pub fn close_captured_effect_source_port(CapturedEffectInputs, Int) -> Bool
+
 pub fn close_captured_task_output(CapturedDAG, Int) -> Unit
 
 pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Unit, @physical_resources.LedgerIssue]
