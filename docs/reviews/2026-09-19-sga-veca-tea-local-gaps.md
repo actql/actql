@@ -96,10 +96,13 @@ arrays, unpublished Graph builder, and predicate evaluation. Previously,
 selector scratch and output storage could each consume the full ceiling.
 A fixed literal-selection fixture admits an independently calculated
 25-slot peak and rejects 24 slots before the final edge append. The route
-inventory binds these fixtures, kernel cancellation/cleanup, and the fused
-standard Host timer to the production entrypoint. This is one
-operation-specific boundary proof, not full work/workspace assurance for
-every subgraph variant.
+inventory also binds a fixed 19-step literal-selection control-work limit;
+18 steps fail before the unpublished Graph can complete. The bounded kernel
+now applies the supplied control-work ceiling across resumes, separately
+from predicate expression and output-value budgets. Kernel cancellation,
+cleanup, and the fused standard Host timer remain connected to the same
+production entrypoint. This is literal-path evidence, not full work/workspace
+assurance for the Relation-selector and predicate variants.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed

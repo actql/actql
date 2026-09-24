@@ -209,7 +209,7 @@ pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPre
 
 pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ShortestExecution, ShortestIssue]
 
-pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[SubgraphExecution, SubgraphIssue]
+pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
@@ -503,6 +503,7 @@ pub(all) enum SubgraphIssue {
   MissingSubgraphNodeIdentity(Int)
   SubgraphPredicate(@execution_relation.EvalIssueKind)
   SubgraphKeyOrder(@value_admission.KeyOrderIssue)
+  SubgraphWorkLimit
   SubgraphOutput(@managed_graph_runtime.Issue)
   SubgraphExecutionIssue(@bounded_execution.Issue)
 } derive(Eq, @debug.Debug)
