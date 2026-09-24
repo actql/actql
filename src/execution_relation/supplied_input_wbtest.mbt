@@ -206,6 +206,66 @@ test "supplied relation read retains exact input position and liveness" {
 }
 
 ///|
+test "bounded selected rows retain supplied input provenance" {
+  let owner = input_owner()
+  let captured = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"s\":\"ok\",\"n\":3}")],
+    max_rows=1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+  ).unwrap()
+  let live = Ref(true)
+  let read = prepare_supplied_relation_read(owner, 0, captured, fn() {
+    live.val
+  }).unwrap()
+  let sequence = prepared_sequence(owner)
+  let node = @lower.node_at(@lower.bound_preparation(owner), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    [@lower.node_id(node)],
+    10000,
+    1000,
+  ).unwrap()
+  let control = @bounded.control()
+  let active = start_bounded_binding_rows_supplied(
+    control,
+    generated,
+    read,
+    1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+    1000,
+    100,
+    100,
+    1000,
+  ).unwrap()
+  let mut complete = false
+  for _ in 0..<1000 {
+    if complete {
+      break
+    }
+    match advance_bounded_binding_rows(active, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 1)
+        assert_true(completed_cell(output, 0, 0) is Some(Number(3.0)))
+        assert_true(completed_cell(output, 0, 1) is Some(Text("ok")))
+        complete = true
+      }
+      _ => fail("supplied bounded selection failed")
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  assert_true(supplied_relation_read_available(read))
+  live.val = false
+  assert_false(supplied_relation_read_available(read))
+}
+
+///|
 test "supplied relation read rejects foreign owners and input positions" {
   let owner = input_owner()
   let rows = capture_input(owner, 0, [], max_rows=0, {

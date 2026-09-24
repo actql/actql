@@ -540,6 +540,16 @@ test "standard Host executes independent bounded Relation branches" {
 }
 
 ///|
+fn local_supplied_relation_program() -> String {
+  let program =
+    #|{"version":"actql/0.1","id":"supplied-relation","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"rows","inputs":{"x":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"label":{"type":"string","nullable":false}}}},"from":"x","steps":[{"filter":"id > 0","as":"positive"},{"from":"positive","sort":[{"id":"desc"}],"as":"ordered"},{"from":"ordered","take":1,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"out":{"from":{"stage":"consumer_a","result":"r"}}}}
+  program.replace(
+    old="{\"filter\":\"id > 0\",\"as\":\"positive\"},{\"from\":\"positive\",\"sort\"",
+    new="{\"filter\":\"id > 0\",\"as\":\"positive\"},{\"from\":\"positive\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"sort\"",
+  )
+}
+
+///|
 fn run_standard_host_values_sort_take(
   separate_stage : Bool,
   filter_first : Bool,
@@ -697,6 +707,182 @@ test "standard Host splits a unary Relation Stage for two consumers" {
 ///|
 test "standard Host splits a chain of bounded Relation Stages" {
   run_standard_host_values_sort_take(true, false, true)
+}
+
+///|
+test "standard Host bounds supplied Relation chains and retains two consumers" {
+  let (run, issuer) = captured_graph_fixture(
+    local_supplied_relation_chain=true,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+    supplied_local_rows=[
+      (
+        1,
+        0,
+        [
+          "{\"id\":2,\"label\":\"two\"}", "{\"id\":1,\"label\":\"one\"}", "{\"id\":0,\"label\":\"zero\"}",
+        ],
+      ),
+    ],
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  let held = []
+  let operations = []
+  let live = []
+  for task in 1..<7 {
+    let task_live = Ref(true)
+    let source = if task <= 4 { task - 2 } else { 3 }
+    let inputs = if task == 1 { [] } else { [held[source]] }
+    let rows = if task == 1 {
+      []
+    } else {
+      [local_managed_test_rows(operations[source])]
+    }
+    let (task_ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      inputs,
+      rows,
+      task,
+      task_live,
+      execution_quantum=1,
+      require_provider=true,
+    )
+    held.push(output)
+    operations.push(task_ops)
+    live.push(task_live)
+  }
+  assert_eq(local_managed_test_rows(operations[3]), [
+    "{\"id\":2,\"label\":\"two\"}",
+  ])
+  assert_eq(local_managed_test_rows(operations[4]), [
+    "{\"id\":2,\"label\":\"two\"}",
+  ])
+  assert_eq(local_managed_test_rows(operations[5]), [
+    "{\"label\":\"two\",\"id\":2}",
+  ])
+  live[4].val = false
+  @strategy.close_captured_task_output(run, 5)
+  (operations[4].close)()
+  ignore((operations[4].cleanup_refresh)())
+  assert_false(@execution.managed_completed_output_available(held[4]))
+  assert_true(@execution.managed_completed_output_available(held[5]))
+  assert_true(@execution.managed_completed_output_available(held[3]))
+  for task in [6, 4, 3, 2, 1] {
+    live[task - 1].val = false
+    @strategy.close_captured_task_output(run, task)
+    (operations[task - 1].close)()
+    ignore((operations[task - 1].cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host stops supplied Relation evaluation after work begins" {
+  let (run, issuer) = captured_graph_fixture(
+    local_supplied_relation_chain=true,
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 20,
+      holdings: 20,
+      transfer_bytes: 300000L,
+      retained_bytes: 134217728L,
+      execution_bytes: 536870912L,
+    }),
+    supplied_local_rows=[(1, 0, ["{\"id\":2,\"label\":\"two\"}"])],
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let setup = @local_driver.prepare_local_managed_dispatch(
+      installed,
+      [],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  assert_eq(operations.inputs.length(), 0)
+  let first = (operations.advance)(1).unwrap()
+  assert_false(first.complete)
+  assert_eq(first.work, 1L)
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  (operations.cleanup_refresh)() |> ignore
+  assert_false(@strategy.captured_task_completed(run, 1))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<7 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

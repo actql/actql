@@ -524,6 +524,25 @@ test "physical DAG splits a chain of bounded Relation Stages" {
 }
 
 ///|
+test "physical DAG splits supplied Relation rows into bounded tasks" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_supplied_relation_chain=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  for step in 0..<4 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG separates bounded values from distinct" {
   let program = query_checked_program_fixture(
     dag=true,
@@ -623,6 +642,7 @@ fn captured_graph_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_relation_chain? : Bool = false,
   local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
@@ -692,6 +712,7 @@ fn captured_graph_fixture(
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
     local_supplied_ranking_chain~,
+    local_supplied_relation_chain~,
     local_supplied_ranking_policy~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,

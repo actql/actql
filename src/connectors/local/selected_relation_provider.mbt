@@ -38,25 +38,42 @@ fn selected_binding_rows_issue(
 ///|
 fn selected_binding_rows_execution(
   sequence : @execution.GeneratedSequence,
-  input : @execution.ProducerRead,
+  input : ManagedProviderInput,
   execution : @execution.SequenceExecutionLimits,
   max_value_bytes : Int,
   step : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   let control = @bounded.control()
-  let active = match
-    @execution.start_bounded_binding_rows(
-      control,
-      sequence,
-      input,
-      execution.rows.max_rows,
-      execution.rows.input_values,
-      execution.rows.output_values,
-      execution.max_work,
-      execution.max_frames,
-      execution.rows.operation_entries,
-      max_value_bytes,
-    ) {
+  let started = match input {
+    RelationInput(read) =>
+      @execution.start_bounded_binding_rows(
+        control,
+        sequence,
+        read,
+        execution.rows.max_rows,
+        execution.rows.input_values,
+        execution.rows.output_values,
+        execution.max_work,
+        execution.max_frames,
+        execution.rows.operation_entries,
+        max_value_bytes,
+      )
+    SuppliedRelationInput(read) =>
+      @execution.start_bounded_binding_rows_supplied(
+        control,
+        sequence,
+        read,
+        execution.rows.max_rows,
+        execution.rows.input_values,
+        execution.rows.output_values,
+        execution.max_work,
+        execution.max_frames,
+        execution.rows.operation_entries,
+        max_value_bytes,
+      )
+    CarrierInput(_) => return Err(@connector.Execution(@execution.InputSet))
+  }
+  let active = match started {
     Ok(value) => value
     Err(issue) => return Err(selected_binding_rows_issue(issue, step))
   }
@@ -153,7 +170,7 @@ fn selected_relation_provider(
   limits : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> ManagedProvider {
-  managed_provider(
+  managed_provider_with_inputs(
     sequence => {
       if @execution.generated_sequence_step_count(sequence) != 1 {
         return false

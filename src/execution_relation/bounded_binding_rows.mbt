@@ -27,25 +27,95 @@ priv enum BoundedBindingRowsPhase {
 }
 
 ///|
-priv struct ProducerReadRow {
-  input : ProducerRead
+/// Keep the two exact receiving authorities distinct while sharing the
+/// bounded row evaluator. A supplied input is not a completed producer.
+priv enum BoundedBindingInput {
+  CompletedBindingInput(ProducerRead)
+  SuppliedBindingInput(SuppliedRelationRead)
+}
+
+///|
+fn bounded_binding_input_row_count(input : BoundedBindingInput) -> Int {
+  match input {
+    CompletedBindingInput(read) => producer_read_row_count(read)
+    SuppliedBindingInput(read) => supplied_relation_read_row_count(read)
+  }
+}
+
+///|
+fn bounded_binding_input_schema(input : BoundedBindingInput) -> @schema.Schema {
+  match input {
+    CompletedBindingInput(read) => producer_read_schema(read)
+    SuppliedBindingInput(read) => supplied_relation_read_schema(read)
+  }
+}
+
+///|
+fn bounded_binding_input_cell(
+  input : BoundedBindingInput,
+  row : Int,
+  column : Int,
+) -> Value? {
+  match input {
+    CompletedBindingInput(read) => producer_read_cell(read, row, column)
+    SuppliedBindingInput(read) =>
+      supplied_relation_read_cell(read, row, column).map(capture)
+  }
+}
+
+///|
+fn bounded_binding_input_available(input : BoundedBindingInput) -> Bool {
+  match input {
+    CompletedBindingInput(read) =>
+      producer_read_available(read) && producer_read_has_cell_access(read)
+    SuppliedBindingInput(read) => supplied_relation_read_available(read)
+  }
+}
+
+///|
+fn bounded_binding_input_matches(
+  input : BoundedBindingInput,
+  owner : @lower.BoundPrepared,
+  step : Int,
+) -> Bool {
+  match input {
+    CompletedBindingInput(read) =>
+      producer_read_matches_operation_input(read, owner, step, 0)
+    SuppliedBindingInput(read) =>
+      supplied_relation_read_matches_operation_input(read, owner, step, 0)
+  }
+}
+
+///|
+fn bounded_binding_trusted_input(
+  input : BoundedBindingInput,
+) -> TrustedOutputInput {
+  match input {
+    CompletedBindingInput(read) => trusted_output_relation_input(read)
+    SuppliedBindingInput(read) => trusted_output_supplied_relation_input(read)
+  }
+}
+
+///|
+priv struct BoundedBindingRow {
+  input : BoundedBindingInput
   row : Int
   width : Int
 }
 
 ///|
-impl RowValues for ProducerReadRow with fn value_count(self) {
+impl RowValues for BoundedBindingRow with fn value_count(self) {
   self.width
 }
 
 ///|
-impl RowValues for ProducerReadRow with fn value_at(self, column) {
-  producer_read_cell(self.input, self.row, column).unwrap()
+impl RowValues for BoundedBindingRow with fn value_at(self, column) {
+  bounded_binding_input_cell(self.input, self.row, column).unwrap()
 }
 
 ///|
-priv struct ProducerReadIndexedRows {
-  input : ProducerRead
+priv struct BoundedBindingIndexedRows {
+  input : BoundedBindingInput
   width : Int
 }
 
@@ -90,8 +160,8 @@ fn bounded_row_comparison_step(
     return Ok(Some(0))
   }
   let order = state.sort_orders[cursor.term]
-  let left = producer_read_cell(state.input, left_row, order.column)
-  let right = producer_read_cell(state.input, right_row, order.column)
+  let left = bounded_binding_input_cell(state.input, left_row, order.column)
+  let right = bounded_binding_input_cell(state.input, right_row, order.column)
   guard left is Some(left) && right is Some(right) else {
     return Err(InvalidInput)
   }
@@ -200,32 +270,32 @@ fn bounded_row_comparison_step(
 }
 
 ///|
-impl IndexedRows for ProducerReadIndexedRows with fn row_count(self) {
-  producer_read_row_count(self.input)
+impl IndexedRows for BoundedBindingIndexedRows with fn row_count(self) {
+  bounded_binding_input_row_count(self.input)
 }
 
 ///|
-impl IndexedRows for ProducerReadIndexedRows with fn column_count(self) {
+impl IndexedRows for BoundedBindingIndexedRows with fn column_count(self) {
   self.width
 }
 
 ///|
-impl IndexedRows for ProducerReadIndexedRows with fn row_width(self, _row) {
+impl IndexedRows for BoundedBindingIndexedRows with fn row_width(self, _row) {
   self.width
 }
 
 ///|
-impl IndexedRows for ProducerReadIndexedRows with fn read_cell(
+impl IndexedRows for BoundedBindingIndexedRows with fn read_cell(
   self,
   row,
   column,
 ) {
-  producer_read_cell(self.input, row, column).unwrap()
+  bounded_binding_input_cell(self.input, row, column).unwrap()
 }
 
 ///|
 priv struct BoundedBindingRowsState {
-  input : ProducerRead
+  input : BoundedBindingInput
   available : () -> Bool
   bindings : Array[(String, @lower.Expression)]
   predicate : @lower.Expression?
@@ -413,7 +483,7 @@ fn bounded_binding_rows_step(
 ) -> @bounded.KernelStep[CompletedOutput, BoundedBindingRowsIssue] {
   let mut used = 0
   let mut progress = 0
-  let count = producer_read_row_count(state.input)
+  let count = bounded_binding_input_row_count(state.input)
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
@@ -484,7 +554,7 @@ fn bounded_binding_rows_step(
         let first = if state.distinct_cursor == 0 {
           true
         } else {
-          let rows : ProducerReadIndexedRows = {
+          let rows : BoundedBindingIndexedRows = {
             input: state.input,
             width: state.input_names.length(),
           }
@@ -541,7 +611,11 @@ fn bounded_binding_rows_step(
             return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
           }
           let column = state.sort_orders[state.unique_key].column
-          guard producer_read_cell(state.input, state.unique_row, column)
+          guard bounded_binding_input_cell(
+              state.input,
+              state.unique_row,
+              column,
+            )
             is Some(value) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
@@ -573,7 +647,7 @@ fn bounded_binding_rows_step(
         if !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        let rows : ProducerReadIndexedRows = {
+        let rows : BoundedBindingIndexedRows = {
           input: state.input,
           width: state.input_names.length(),
         }
@@ -618,7 +692,11 @@ fn bounded_binding_rows_step(
           used += 1
         } else if state.charge_column < state.input_names.length() {
           let column = state.charge_column
-          guard producer_read_cell(state.input, state.charge_row, column)
+          guard bounded_binding_input_cell(
+              state.input,
+              state.charge_row,
+              column,
+            )
             is Some(value) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
@@ -665,7 +743,7 @@ fn bounded_binding_rows_step(
         guard state.logical is Some(logical) && state.scope is Some(scope) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        let source : ProducerReadRow = {
+        let source : BoundedBindingRow = {
           input: state.input,
           row: state.input_row,
           width: state.input_names.length(),
@@ -872,7 +950,7 @@ fn bounded_binding_rows_step(
           state.sort_charge_open = true
           used += 1
         } else if state.sort_column < state.input_names.length() {
-          guard producer_read_cell(
+          guard bounded_binding_input_cell(
               state.input,
               indices[state.sort_row],
               state.sort_column,
@@ -1074,7 +1152,7 @@ fn bounded_binding_rows_step(
           !spend_control_text(state.control, state.input_names[state.column]) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        guard producer_read_cell(state.input, state.row, state.column)
+        guard bounded_binding_input_cell(state.input, state.row, state.column)
           is Some(value) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
@@ -1192,7 +1270,8 @@ fn bounded_binding_rows_step(
         let value = match state.projection_ordinals {
           Some(projection) =>
             match projection.get(name) {
-              Some(index) => producer_read_cell(state.input, source_row, index)
+              Some(index) =>
+                bounded_binding_input_cell(state.input, source_row, index)
               None => None
             }
           None =>
@@ -1201,7 +1280,7 @@ fn bounded_binding_rows_step(
               None =>
                 match state.input_ordinals.get(name) {
                   Some(index) =>
-                    producer_read_cell(state.input, state.row, index)
+                    bounded_binding_input_cell(state.input, state.row, index)
                   None => None
                 }
             }
@@ -1336,6 +1415,62 @@ pub fn start_bounded_binding_rows(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue] {
+  start_bounded_binding_rows_with_input(
+    engine,
+    generated,
+    CompletedBindingInput(input),
+    max_rows,
+    input_values,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+/// A supplied Local input keeps its own exact checked binding. It is not
+/// converted into, or charged as, a completed upstream Relation.
+pub fn start_bounded_binding_rows_supplied(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  input : SuppliedRelationRead,
+  max_rows : Int,
+  input_values : ValueLimits,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue] {
+  start_bounded_binding_rows_with_input(
+    engine,
+    generated,
+    SuppliedBindingInput(input),
+    max_rows,
+    input_values,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+fn start_bounded_binding_rows_with_input(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  input : BoundedBindingInput,
+  max_rows : Int,
+  input_values : ValueLimits,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedBindingRowsExecution, BoundedBindingRowsIssue] {
   if max_rows < 0 ||
     max_work < 0 ||
     max_frames < 0 ||
@@ -1348,9 +1483,9 @@ pub fn start_bounded_binding_rows(
   guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
     generated_sequence_step_index_at(generated, 1) is None &&
     @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
-    producer_read_matches_operation_input(input, owner, step, 0) &&
-    producer_read_has_cell_access(input) &&
-    producer_read_row_count(input) <= max_rows &&
+    bounded_binding_input_matches(input, owner, step) &&
+    bounded_binding_input_available(input) &&
+    bounded_binding_input_row_count(input) <= max_rows &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
       @pipeline.Step(step),
@@ -1358,7 +1493,7 @@ pub fn start_bounded_binding_rows(
     is Some(output_schema) else {
     return Err(InvalidExecution)
   }
-  let input_schema = producer_read_schema(input)
+  let input_schema = bounded_binding_input_schema(input)
   let input_width = @schema.field_count(input_schema)
   let output_width = @schema.field_count(output_schema)
   let binding_count = @lower.kernel_view_entries(kernel)
@@ -1395,14 +1530,14 @@ pub fn start_bounded_binding_rows(
         false,
         None,
         false,
-        Some((0, producer_read_row_count(input))),
+        Some((0, bounded_binding_input_row_count(input))),
         Some(kernel),
       )
     @lower.TopK(top_count, _) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
-      let size = producer_read_row_count(input)
+      let size = bounded_binding_input_row_count(input)
       let selected = if top_count >= size.to_int64() {
         size
       } else {
@@ -1419,7 +1554,7 @@ pub fn start_bounded_binding_rows(
         false,
         None,
         false,
-        Some((0, producer_read_row_count(input))),
+        Some((0, bounded_binding_input_row_count(input))),
         Some(kernel),
       )
     }
@@ -1430,7 +1565,7 @@ pub fn start_bounded_binding_rows(
         offset >= 0L else {
         return Err(InvalidExecution)
       }
-      let size = producer_read_row_count(input)
+      let size = bounded_binding_input_row_count(input)
       let start = if offset >= size.to_int64() { size } else { offset.to_int() }
       let remaining = size - start
       let selected = if take_count >= remaining.to_int64() {
@@ -1507,7 +1642,10 @@ pub fn start_bounded_binding_rows(
   if !select_mode && !distinct && unique_keys is None && take_range is None {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
-      admit_logical_rows(logical, producer_read_row_count(input).to_int64()) {
+      admit_logical_rows(
+        logical,
+        bounded_binding_input_row_count(input).to_int64(),
+      ) {
       Err(issue) => return Err(Rows(LogicalRows(issue)))
       Ok(_) => ()
     }
@@ -1614,13 +1752,13 @@ pub fn start_bounded_binding_rows(
   let live = Ref(true)
   let accepted = Ref(false)
   let port = match
-    prepare_trusted_output_port(
+    prepare_trusted_output_port_with_inputs(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs=[input],
+      inputs=[bounded_binding_trusted_input(input)],
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -1636,7 +1774,7 @@ pub fn start_bounded_binding_rows(
   }
   let state : BoundedBindingRowsState = {
     input,
-    available: fn() { producer_read_available(input) },
+    available: fn() { bounded_binding_input_available(input) },
     bindings,
     predicate,
     assertion,

@@ -139,14 +139,16 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     !found_external_input {
     return Some(-1)
   }
-  // A chain of bounded, independently owned Relation Stages gives the unary
-  // row sequence a selected source. Imported and connector-backed sources
-  // without that checked chain keep their existing placement.
+  // Exact supplied input and bounded zero-input source chains can each
+  // select independently owned Relation steps.
   if all_selected && found_relation && !found_carrier {
     guard @lower.node_at(prepared, 0) is Some(first) else { return None }
     if @lower.node_accepts_managed_relation_view(first, 0) &&
       @lower.node_input_count(first) == 1 &&
       @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
+      if original_supplied_slot(graph, stage, source) is Some(_) {
+        return Some(-1)
+      }
       for edge in graph.data {
         if edge.consumer != stage ||
           edge.input != source ||

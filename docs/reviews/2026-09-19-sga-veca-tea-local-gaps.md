@@ -26,6 +26,13 @@ input checks, and standard Host input-admission cancellation were already
 landed at `9bd948e80` and its preceding binary-admission changes. The
 review's route-wide assurance and Distribution-owned ordinary Run checks
 remain separate completion conditions; the scan fix does not discharge them.
+The selected Relation row evaluator now accepts an exact supplied input read
+without relabelling it as a completed producer. A same-Stage supplied
+filter/unique/sort/take chain is split into bounded tasks; standard Host
+fixtures execute both downstream consumers, preserve independent release,
+and stop after positive work without publishing partial output. This removes
+one providerless multi-step case. Other formal RelA bodies and unmatched
+whole-sequence paths still use the synchronous fallback and remain open.
 ShortestPath now advances typed endpoint, edge, and weighted tie comparisons
 through the shared bounded key cursor. A quantum-one long-text fixture checks
 active cancellation, cleanup, and canonical output order on all three targets.

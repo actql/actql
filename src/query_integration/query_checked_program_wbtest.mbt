@@ -35,6 +35,7 @@ fn query_checked_program_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_relation_chain? : Bool = false,
   local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
@@ -137,6 +138,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_supplied_ranking_chain {
     local_supplied_ranking_program(policy=local_supplied_ranking_policy)
+  } else {
+    text
+  }
+  let text = if local_supplied_relation_chain {
+    local_supplied_relation_program()
   } else {
     text
   }
