@@ -344,3 +344,113 @@ test "event dedupe initializes predicate cells within the resume quantum" {
   assert_eq(cleanup_dedupe(stopped), Ok(true))
   assert_true(@records.discard_completed(source))
 }
+
+///|
+test "event dedupe admits exact and one-short cumulative control work" {
+  let producer = producer_owner(false)
+  let source = dedupe_source(producer, [(1.0, 2.0, "a")])
+  let owner = dedupe_owner(
+    producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // One record with two terms and three fields takes five initialization,
+  // fourteen loading, one sort, three grouping, and eight output/final steps.
+  for (budget, accepted) in [(31, true), (30, false)] {
+    let execution = start_dedupe(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<32 {
+      if terminal {
+        break
+      }
+      match advance_dedupe(execution, 1).unwrap() {
+        DedupeContinue(work~, ..) => assert_true(work <= budget.to_int64())
+        DedupeComplete(output, progress~, work~) => {
+          assert_true(accepted)
+          assert_eq((progress, work), (1L, 31L))
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        DedupeFailed(DedupeControlWorkLimit, progress~, work~) => {
+          assert_false(accepted)
+          assert_eq((progress, work), (1L, 30L))
+          assert_true(dedupe_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected dedupe control-work outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(cleanup_dedupe(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
+  assert_true(
+    start_dedupe(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(0),
+    )
+    is Err(DedupeControlWorkLimit),
+  )
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "event dedupe admits exact and one-short output workspace" {
+  let producer = producer_owner(false)
+  let source = dedupe_source(producer, [(1.0, 2.0, "a")])
+  let owner = dedupe_owner(
+    producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // One retained row needs five scratch slots; emission holds the row index
+  // and two structural entries for each of its three fields: seven slots.
+  for (workspace, accepted) in [(7, true), (6, false)] {
+    let execution = start_dedupe(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(workspace~),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<32 {
+      if terminal {
+        break
+      }
+      match advance_dedupe(execution, 1).unwrap() {
+        DedupeContinue(..) => ()
+        DedupeComplete(output, ..) => {
+          assert_true(accepted)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        DedupeFailed(DedupeWorkspaceLimit, ..) => {
+          assert_false(accepted)
+          assert_true(dedupe_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected dedupe workspace outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(cleanup_dedupe(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
+  assert_true(@records.discard_completed(source))
+}

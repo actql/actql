@@ -32,6 +32,7 @@
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
+    {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "time_series", "path": "entrypoint"},
     {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"}

@@ -494,6 +494,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'dedupe_incremental_initialization_cancel_cleanup',
       'dedupe_scratch_workspace_admission',
+      'dedupe_control_work_exact_one_short',
+      'dedupe_output_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -833,6 +835,11 @@ for (const [index, route] of routeEntries.entries()) {
     fail(`${label}: fixed and sliding work, workspace, and lifecycle assurance is missing`);
   }
   if (route.family === 'TEA' && route.operation === 'watermark_events' &&
+    (pathAssurance.entrypoint === undefined ||
+      resourceAssurance.entrypoint === undefined)) {
+    fail(`${label}: work, workspace, and lifecycle assurance is missing`);
+  }
+  if (route.family === 'TEA' && route.operation === 'dedupe_events' &&
     (pathAssurance.entrypoint === undefined ||
       resourceAssurance.entrypoint === undefined)) {
     fail(`${label}: work, workspace, and lifecycle assurance is missing`);

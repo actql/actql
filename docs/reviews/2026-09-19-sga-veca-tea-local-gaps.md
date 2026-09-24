@@ -5,10 +5,19 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 28 have operation-specific
-boundary records, 9 have all four lifecycle roles, and 8 have exact and
+boundary records, 10 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 29 paths have path-scoped work/workspace evidence. Strict completion
+routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The `dedupe_events` kernel now checks one cumulative control-work ceiling
+across resumes. Its one-record fixture counts 31 steps, including final
+completion; 30 steps fail before publication. The same input completes with
+seven output workspace slots and fails at six while retaining cleanup
+responsibility. Scratch admission has a separate four-record 20/19 fixture.
+The production entrypoint binds these resource tests to the delivered Host
+timer and kernel cancellation/cleanup tests. This closes the recorded
+`dedupe_events` path, not the providerless whole-sequence execution lane.
 
 The selected and ordinary `distinct` providers now have separate Host
 cancellation routes and shared, independently counted exact/one-short work
