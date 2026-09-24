@@ -53,7 +53,10 @@ test "risk acceptance binds canonical body and exact private Preview" {
   )
   let risk = admit_effect_risk_acceptance_body(risk_wire, 8192, 256, 12).unwrap()
   assert_true(
-    check_effect_risk_acceptance_body(preview, risk, a, a, a, a, a, a) is Ok(_),
+    check_effect_risk_acceptance_body(
+      preview, risk, a, a, a, a, a, a, "policy", "allow",
+    )
+    is Ok(_),
   )
   assert_true(
     check_effect_risk_acceptance_body(
@@ -65,8 +68,22 @@ test "risk acceptance binds canonical body and exact private Preview" {
       a,
       a,
       a,
+      "policy",
+      "allow",
     )
     is Err(ForeignReviewProjection),
+  )
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, risk, a, a, a, a, a, a, "human", "allow",
+    )
+    is Err(ForeignIssuerKind),
+  )
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, risk, a, a, a, a, a, a, "policy", "approved",
+    )
+    is Err(ForeignDecision),
   )
   assert_true(
     admit_effect_risk_acceptance_body(

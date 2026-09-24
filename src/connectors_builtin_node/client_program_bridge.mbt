@@ -1991,10 +1991,12 @@ pub fn client_program_check_effect_risk_acceptance_body(
   validity_evidence_cid : String,
   issuer_evidence_cid : String,
   authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
 ) -> Result[Unit, @strategy.CapturedEffectRiskIssue] {
   @strategy.check_captured_effect_risk_acceptance_body(
     preview, body, review_projection_cid, authority_scope_cid, policy_cid, validity_evidence_cid,
-    issuer_evidence_cid, authentication_evidence_cid,
+    issuer_evidence_cid, authentication_evidence_cid, issuer_kind, decision,
   )
 }
 

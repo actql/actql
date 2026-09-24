@@ -153,3 +153,10 @@ released input pin. These are semantic and identity checks only. The product
 Host still needs to authenticate the issuer and evidence, enforce current
 policy and expiry, and carry the resulting whole-set apply authority to the
 physical dispatch owner. Matching CID strings are not such authority.
+
+The risk comparison now also retains and checks `issuer_kind` and `decision`
+against separately authenticated Host facts. Equal evidence CIDs cannot
+relabel a policy `allow` body as a human `approved` decision. JS, Wasm, and
+native Effect/strategy tests each pass 57/57; the standard Host bridge passes
+14/14. This remains a comparison boundary, not issuer authentication or a
+whole-set apply permit.

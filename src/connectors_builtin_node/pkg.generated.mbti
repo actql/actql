@@ -69,7 +69,7 @@ pub fn client_program_check_effect_preview_current_bindings(@physical_strategy.C
 
 pub fn client_program_check_effect_preview_target_guards(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectGuardIssue]
 
-pub fn client_program_check_effect_risk_acceptance_body(@physical_strategy.CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String) -> Result[Unit, @physical_strategy.CapturedEffectRiskIssue]
+pub fn client_program_check_effect_risk_acceptance_body(@physical_strategy.CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String) -> Result[Unit, @physical_strategy.CapturedEffectRiskIssue]
 
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
