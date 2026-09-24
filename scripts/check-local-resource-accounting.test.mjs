@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 9 with four-role boundary evidence, 8 with full work\/workspace assurance, 29 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('time-series output and Host cancellation evidence must remain bound', () => {
@@ -113,6 +113,27 @@ test('dedupe initialization and Host timer evidence must remain executable', () 
       entry.operation === 'dedupe_events');
     dedupe.environment_tests = [];
   }), /TEA dedupe_events: dedupe_host_timer fixture is missing/);
+  for (const role of [
+    'dedupe_control_work_exact_one_short',
+    'dedupe_output_workspace_exact_one_short',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const dedupe = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'dedupe_events');
+      dedupe.boundary_tests = dedupe.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA dedupe_events: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const dedupe = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'dedupe_events');
+    delete dedupe.resource_assurance.entrypoint.work.one_short_limit;
+  }), /TEA dedupe_events: entrypoint operation work needs exact and one-short proofs/);
+  assert.match(run(undefined, routes => {
+    const dedupe = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'dedupe_events');
+    delete dedupe.path_assurance.entrypoint;
+  }), /TEA dedupe_events: work, workspace, and lifecycle assurance is missing/);
 });
 
 test('watermark resource and Host evidence must remain executable', () => {

@@ -50,7 +50,7 @@ pub fn session_initialization_progress(SessionExecution) -> (Int, Int)
 
 pub fn session_max_noninterruptible_value_bytes(SessionExecution) -> Int
 
-pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[DedupeExecution, DedupeIssue]
+pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[DedupeExecution, DedupeIssue]
 
 pub fn start_event_window(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[EventWindowExecution, EventWindowIssue]
 
@@ -85,6 +85,7 @@ pub(all) enum DedupeIssue {
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)
   DedupeTopTie(Int, Int)
+  DedupeControlWorkLimit
   DedupeWorkspaceLimit
   DedupeOutput(@managed_record_runtime.Issue)
   DedupeExecutionIssue(@bounded_execution.Issue)

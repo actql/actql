@@ -60,6 +60,7 @@ priv struct DedupeState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -89,6 +90,7 @@ pub(all) enum DedupeIssue {
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)
   DedupeTopTie(Int, Int)
+  DedupeControlWorkLimit
   DedupeWorkspaceLimit
   DedupeOutput(@records.Issue)
   DedupeExecutionIssue(@bounded.Issue)
@@ -553,6 +555,9 @@ fn dedupe_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(DedupeInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(DedupeControlWorkLimit, progress, used)
+    }
     match state.phase {
       InitializeCells | InitializeOrders => {
         used += 1
@@ -592,6 +597,7 @@ fn dedupe_step(
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidDedupeKernel, progress, used)
         }
@@ -603,6 +609,7 @@ fn dedupe_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -630,7 +637,15 @@ pub fn start_dedupe(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[DedupeExecution, DedupeIssue] {
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(InvalidDedupeLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(DedupeControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -712,6 +727,7 @@ pub fn start_dedupe(
     emit: 0,
     emit_field: 0,
     emit_fields: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, dedupe_step, cleanup_dedupe_state, @records.discard_completed,
