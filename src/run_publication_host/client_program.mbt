@@ -392,6 +392,49 @@ pub fn client_values_aoa_identity_cid(
 }
 
 ///|
+pub(all) enum ClientValuesUnitSourceIssue {
+  Pipeline(ClientValuesAoAIdentityIssue)
+  UnsupportedSource
+  Encoding
+}
+
+///|
+/// Issue unit-form source material only for the checked, source-free,
+/// single-stage Values path. The checked AoA identity is required first so
+/// this extraction cannot silently stand in for a different task. The
+/// resulting source is not an Executable Plan or a Run authorization.
+pub fn emit_prepared_client_values_unit_source(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientValuesUnitSourceIssue] {
+  if task != 0 || @strategy.graph_task_count(value.graph) != 1 {
+    return Err(UnsupportedSource)
+  }
+  match
+    issue_prepared_client_values_aoa_identity(
+      value, task, limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let emitted = @syntax.emit_source_free_unit_program(value.source, writer) catch {
+    _ => return Err(Encoding)
+  }
+  if !emitted {
+    return Err(UnsupportedSource)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
 /// Reparse the owner-emitted pipeline under the pinned canonical JSON rules
 /// before exposing its logical CID to a compiler. No caller-supplied AoA body
 /// or claimed CID enters this operation.

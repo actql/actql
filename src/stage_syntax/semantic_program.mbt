@@ -108,3 +108,62 @@ pub fn emit_metadata_stripped_program(
   }
   emit_without_annotations(root, root, omitted, out)
 }
+
+///|
+/// Extract the source-free single Stage as a unit-form Program input for
+/// compilation. The caller must still check and bind its Unit identity.
+/// Parameters, bindings, imports and Effect stages need their own extraction
+/// path; dropping any of them here would change the Program's meaning.
+pub fn emit_source_free_unit_program(
+  program : Program,
+  out : @encode.Writer,
+) -> Bool raise @encode.EncodeFailure {
+  if program.stages.length() != 1 {
+    return false
+  }
+  let root = program.body
+  let root_view = @wire.open_object(root).unwrap()
+  if @wire.lookup(root_view, "params") is Some(_) ||
+    @wire.lookup(root_view, "bindings") is Some(_) {
+    return false
+  }
+  let stage = program.stages[0]
+  let body = stage.body
+  let view = @wire.open_object(body).unwrap()
+  if @wire.lookup(view, "after") is Some(_) ||
+    @wire.lookup(view, "from") is Some(_) ||
+    @wire.lookup(view, "effects") is Some(_) ||
+    !stage.imports.is_empty() {
+    return false
+  }
+  let inputs = @wire.lookup(view, "inputs").unwrap()
+  if @wire.object_length(inputs) != Some(0) {
+    return false
+  }
+  let omitted : Map[Int, Bool] = Map([])
+  mark_declaration_annotations(root, body, "results", omitted)
+  mark_step_annotations(root, body, omitted)
+  @encode.begin_object(out)
+  @encode.key(out, "id")
+  @encode.string_value(out, stage.id)
+  @encode.key(out, "inputs")
+  emit_without_annotations(root, inputs, omitted, out)
+  @encode.key(out, "results")
+  emit_without_annotations(
+    root,
+    @wire.lookup(view, "results").unwrap(),
+    omitted,
+    out,
+  )
+  @encode.key(out, "steps")
+  emit_without_annotations(
+    root,
+    @wire.lookup(view, "steps").unwrap(),
+    omitted,
+    out,
+  )
+  @encode.key(out, "version")
+  @encode.string_value(out, "actql/0.1")
+  @encode.end_object(out)
+  true
+}
