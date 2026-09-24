@@ -68,7 +68,7 @@ const familyPackages = {
 
 const configurations = [{
   name: 'rela',
-  entry: `${moduleName}/connectors_builtin_node`,
+  entry: `${moduleName}/connectors_builtin_node_rela`,
   forbidden: ['sga', 'tea', 'veca'],
 }, {
   name: 'sga',
@@ -109,6 +109,7 @@ const build = spawnSync(moon, [
   '--release',
   '--deny-warn',
   'src/connectors_builtin_node',
+  'src/connectors_builtin_node_rela',
   'src/local_sga_provider',
   'src/local_tea_provider',
   'src/local_veca_provider',
@@ -136,8 +137,8 @@ function artifactFor(name) {
 const artifacts = new Map([
   ['rela', path.join(
     root,
-    '_build/js/release/build/connectors_builtin_node/',
-    'connectors_builtin_node.js',
+    '_build/js/release/build/connectors_builtin_node_rela/',
+    'connectors_builtin_node_rela.js',
   )],
   ['sga', artifactFor('local_sga_provider')],
   ['tea', artifactFor('local_tea_provider')],
@@ -153,8 +154,8 @@ function digest(file) {
 
 const relaResponse = path.join(
   root,
-  '_build/js/release/build/connectors_builtin_node/',
-  'connectors_builtin_node.js.rsp',
+  '_build/js/release/build/connectors_builtin_node_rela/',
+  'connectors_builtin_node_rela.js.rsp',
 );
 const linkedCores = new Set(
   readFileSync(relaResponse, 'utf8')

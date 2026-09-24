@@ -12,7 +12,6 @@ import {prepareCompletedEffectFreeRunPublication} from
   '../host-common/run-publication-preflight.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
-let runtime;
 
 async function runCapturedStrategyTarget(
   setup,
@@ -21,6 +20,8 @@ async function runCapturedStrategyTarget(
   observer,
   publishCheckedResults,
   publication,
+  loadRuntime,
+  install,
 ) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
@@ -29,7 +30,7 @@ async function runCapturedStrategyTarget(
     configurations.managedIdentityPolicy,
   );
   enableNodeCompileCache();
-  const moon = await (runtime ??= import(runtimeUrl.href));
+  const moon = await loadRuntime();
   signal?.throwIfAborted();
   if (publishCheckedResults && moon.strategyHostHasEffects(setup)) {
     throw new TypeError('EffectfulProgramRequiresEffectRun');
@@ -46,7 +47,7 @@ async function runCapturedStrategyTarget(
     throw new TypeError('Managed identity policy is not admissible');
   }
   const core = runtimeCore(moon);
-  const installed = await installStrategyContributions(moon, setup, checked, configurations, signal);
+  const installed = await install(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
   return runInstalledStrategy(
     setup,
@@ -69,18 +70,6 @@ async function runCapturedStrategyTarget(
 // The standard entry executes the checked Program's named Result request.
 // Until an installed implementation can satisfy its publication identity,
 // that task is rejected before start rather than silently treated as internal.
-export function runCapturedStrategy(setup, options = {}, signal, observer) {
-  return runCapturedStrategyTarget(setup, options, signal, observer, true);
-}
-
-// Explicit task-only entry. It does not request Program Result publication;
-// caller policy can still strengthen it, and cannot weaken consumer/Host rules.
-export function runCapturedInternalStrategy(
-  setup, options = {}, signal, observer,
-) {
-  return runCapturedStrategyTarget(setup, options, signal, observer, false);
-}
-
 export class CapturedRunPublicationError extends Error {
   constructor(cause, execution) {
     super('CapturedRunPublicationFailed', {cause});
@@ -96,12 +85,14 @@ export class CapturedRunPublicationError extends Error {
 // publication inputs and current Store capacity are admitted before any
 // Compute starts. The returned owner keeps internal completion and publication
 // cleanup explicit; publication failure never rewrites the Compute outcome.
-export async function runPublishedCapturedStrategy(
+async function runPublishedCapturedStrategyTarget(
   setup,
   publication,
-  options = {},
+  options,
   signal,
   observer,
+  loadRuntime,
+  install,
 ) {
   if (publication === null || typeof publication !== 'object' ||
       Array.isArray(publication) ||
@@ -115,6 +106,8 @@ export async function runPublishedCapturedStrategy(
     observer,
     true,
     publication,
+    loadRuntime,
+    install,
   );
   try {
     const result = await execution.publishEffectFreeRun(
@@ -134,3 +127,29 @@ export async function runPublishedCapturedStrategy(
     throw new CapturedRunPublicationError(error, execution);
   }
 }
+
+// Build-time composition selects a concrete MoonBit artifact and its matching
+// implementation set. Call options cannot substitute either component.
+export function createNodeHostEntry(loadRuntime, install) {
+  let runtime;
+  const load = () => (runtime ??= loadRuntime());
+  return Object.freeze({
+    runCapturedStrategy: (setup, options = {}, signal, observer) =>
+      runCapturedStrategyTarget(setup, options, signal, observer, true,
+        undefined, load, install),
+    runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
+      runCapturedStrategyTarget(setup, options, signal, observer, false,
+        undefined, load, install),
+    runPublishedCapturedStrategy: (
+      setup, publication, options = {}, signal, observer,
+    ) => runPublishedCapturedStrategyTarget(setup, publication, options,
+      signal, observer, load, install),
+  });
+}
+
+const standard = createNodeHostEntry(
+  () => import(runtimeUrl.href), installStrategyContributions);
+export const runCapturedStrategy = standard.runCapturedStrategy;
+export const runCapturedInternalStrategy = standard.runCapturedInternalStrategy;
+export const runPublishedCapturedStrategy =
+  standard.runPublishedCapturedStrategy;

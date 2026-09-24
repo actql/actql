@@ -27,6 +27,7 @@ import {
   "actql/actql/connectors/reference_compute/driver" @binding20,
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/connectors/local",
   "actql/actql/lowering_relation" @lower,
   "actql/actql/check_environment",
   "actql/actql/program_check",

@@ -30,7 +30,7 @@
     "check:local-family-coverage": "node --test scripts/check-local-family-coverage.test.mjs && node scripts/check-local-family-coverage.mjs && npm run check:local-resource-accounting",
     "check:rela-differential-coverage": "node --test scripts/check-rela-differential-coverage.test.mjs && node scripts/check-rela-differential-coverage.mjs",
     "check:local-resource-accounting": "node --test scripts/check-local-resource-accounting.test.mjs && node scripts/check-local-resource-accounting.mjs",
-    "check:local-family-artifacts": "node scripts/check-local-family-artifacts.mjs",
+    "check:local-family-artifacts": "node scripts/check-local-family-artifacts.mjs && node --test adapters/host-node/entry-rela.test.mjs",
     "check:events": "node scripts/event-schema.mjs && node --test scripts/event-schema.test.mjs && npm run check:calendar",
     "check:obligation-reads": "node scripts/check-obligation-reads.mjs && node --test scripts/obligation-reads.test.mjs",
     "check:calendar": "python3 scripts/generate-calendar-fixture.py && python3 scripts/check_calendar_boundaries.py && python3 -m unittest discover -s scripts -p 'test_calendar_*.py'",
