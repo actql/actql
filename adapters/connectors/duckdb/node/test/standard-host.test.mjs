@@ -6358,6 +6358,7 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-assert-where-in-flight', kind: 'assert-where'},
     {name: 'ordinary-assert-unique-in-flight', kind: 'assert-unique'},
     {name: 'ordinary-sort-in-flight', kind: 'sort'},
+    {name: 'ordinary-distinct-in-flight', kind: 'distinct'},
     {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
   ]) {
@@ -6377,6 +6378,7 @@ async function exerciseStrategyGraph(
         'assert-where': {assert_rows: {where: 'id > 0'}, as: 'out'},
         'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
         sort: {sort: [{id: 'desc'}], as: 'out'},
+        distinct: {distinct: true, as: 'out'},
         'top-k': {top_k: {k: 60, by: [{id: 'desc'}]}, as: 'out'},
         take: {take: 60, as: 'out'},
       }[ordinaryUnaryCase.kind];

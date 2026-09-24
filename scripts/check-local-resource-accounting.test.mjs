@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 9 with four-role boundary evidence, 8 with full work\/workspace assurance, 27 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 9 with four-role boundary evidence, 8 with full work\/workspace assurance, 29 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('time-series output and Host cancellation evidence must remain bound', () => {
@@ -315,10 +315,10 @@ test('binary receivers need their input admission fixtures', () => {
 
 test('distinct resource evidence covers full-row and keyed forms', () => {
   for (const role of [
-    'selected_distinct_workspace_exact_one_short',
-    'selected_distinct_work_exact_one_short',
-    'selected_keyed_distinct_workspace_exact_one_short',
-    'selected_keyed_distinct_work_exact_one_short',
+    'distinct_unkeyed_workspace_exact_one_short',
+    'distinct_unkeyed_work_exact_one_short',
+    'distinct_keyed_workspace_exact_one_short',
+    'distinct_keyed_work_exact_one_short',
   ]) {
     assert.match(run(undefined, routes => {
       const distinct = routes.routes.find(entry =>
@@ -1050,13 +1050,26 @@ test('resource gate rejects cross join without delivered Host cancellation', () 
   }), /RelA cross_join: missing environment fixture/);
 });
 
-test('resource gate retains same-stage distinct timer evidence', () => {
+test('resource gate retains both distinct timer paths', () => {
+  for (const role of [
+    'same_stage_distinct_timer_cancel_cleanup',
+    'ordinary_distinct_in_flight_host_timer',
+  ]) {
+    assert.match(run(undefined, value => {
+      const distinct = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'distinct');
+      distinct.environment_tests = distinct.environment_tests.filter(item =>
+        item.role !== role);
+    }), /RelA distinct: both distinct timer paths need executable evidence/);
+  }
+});
+
+test('distinct resource assurance cannot lose its keyed variant', () => {
   assert.match(run(undefined, value => {
     const distinct = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'distinct');
-    distinct.environment_tests = distinct.environment_tests.filter(item =>
-      item.role !== 'same_stage_distinct_timer_cancel_cleanup');
-  }), /RelA distinct: same-stage distinct timer fixture is missing/);
+    delete distinct.resource_assurance.ordinary_entrypoint.variants.keyed;
+  }), /RelA distinct: ordinary_entrypoint needs unkeyed and keyed resource variants/);
 });
 
 test('resource gate requires the direct values-distinct split', () => {

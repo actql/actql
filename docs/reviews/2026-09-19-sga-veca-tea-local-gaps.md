@@ -6,8 +6,16 @@ This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 28 have operation-specific
 boundary records, 9 have all four lifecycle roles, and 8 have exact and
-one-short work/workspace assurance across every production path. Another 27
-paths have path-scoped work/workspace evidence. Strict completion remains red.
+one-short work/workspace assurance across every production path. Across the
+routes, 29 paths have path-scoped work/workspace evidence. Strict completion
+remains red.
+
+The selected and ordinary `distinct` providers now have separate Host
+cancellation routes and shared, independently counted exact/one-short work
+and workspace fixtures for unkeyed and keyed forms. The two routes reach the
+same bounded row kernel, so their resource proofs are explicitly shared;
+their cancellation delivery is tested separately. The legacy synchronous
+entrypoint remains unassured, so `distinct` is not fully closed by this record.
 
 Finite-list ranking now indexes exact physical input ports during setup,
 while preserving every logical occurrence, including repeated use of one
