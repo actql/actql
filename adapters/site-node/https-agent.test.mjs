@@ -249,6 +249,37 @@ test('authenticated cancellation waits for physical handler exit', async t => {
   assert.equal(terminal.evidence, undefined);
 });
 
+test('mTLS resend starts a durably accepted but unstarted dispatch once',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-remote-preaccepted-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const fixture = await startFixture(root, material, {
+      preacceptDispatchId: 'dispatch-preaccepted',
+    });
+    t.after(() => fixture.close());
+    const options = {
+      origin: fixture.origin,
+      ca: material.ca,
+      cert: material.coordinatorCertificate,
+      key: material.coordinatorKey,
+      control: runtime.remoteSiteControl,
+      dispatch: fixture.dispatch('dispatch-preaccepted'),
+      inputBindingBody: '{}',
+    };
+    assert.deepEqual((await queryRemoteDispatch(options)).state,
+      [0, 0, 0, 0, 0]);
+    assert.equal(fixture.executionStarts(), 0);
+    const first = await sendRemoteDispatch(options);
+    assert.equal(first.dispatchRequestCid,
+      runtime.remoteSiteControl.identity(options.dispatch));
+    assert.deepEqual((await terminalStatus(options)).state,
+      [3, 2, 0, 1, 0]);
+    assert.equal(fixture.executionStarts(), 1);
+    await sendRemoteDispatch(options);
+    assert.equal(fixture.executionStarts(), 1);
+  });
+
 test('Agent close retries runtime cleanup without reopening admission',
   async t => {
     const root = await mkdtemp(join(tmpdir(), 'actql-remote-close-'));

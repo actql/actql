@@ -72,6 +72,12 @@ const store = openSqliteDispatchJournal(configuration.storeRoot, {
   siteGeneration: configuration.site.generation,
   runtimeRevision: configuration.site.runtimeRevision,
 });
+if (configuration.preaccepted !== undefined) {
+  const dispatch = admitRemoteDispatchJson(runtime.remoteSiteControl,
+    configuration.preaccepted.wire, configuration.preaccepted.cid, 65_536);
+  store.accept(runtime.remoteSiteControl.prepareAdmission(journal, dispatch),
+    dispatch, runtime.remoteSiteControl);
+}
 const registration = await prepareInstalledRemoteRuntimeRegistration({
   control: runtime.remoteSiteControl,
   site,

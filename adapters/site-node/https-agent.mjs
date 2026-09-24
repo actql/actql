@@ -202,6 +202,12 @@ export async function startHttpsRemoteSiteAgent({
         }
         const admission = control.prepareAdmission(journal, dispatch);
         const record = store.accept(admission, dispatch, control);
+        // A process may stop after durable acceptance but before runtime
+        // start. The common record decides whether this exact dispatch is
+        // still startable; active and completed work cannot start again.
+        if (control.runtimeStartable(record)) {
+          dispatchRuntime.start(dispatch, record, undefined, inputBindingBody);
+        }
         replyCanonical(response, control.replyJson(record));
         return;
       }

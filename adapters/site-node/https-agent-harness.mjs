@@ -122,7 +122,8 @@ export const remoteDispatch = (
 export async function startFixture(
   root,
   material,
-  {delayMs = 0, maxConcurrentOperations = 4, siteKey = 'site-a'} = {},
+  {delayMs = 0, maxConcurrentOperations = 4, siteKey = 'site-a',
+    preacceptDispatchId} = {},
 ) {
   const configurationPath = join(root, `agent-${siteKey}.json`);
   const targetTriple = 'test-native-target';
@@ -145,6 +146,9 @@ export async function startFixture(
   const runtimeBundleCid = runtime.remoteBundleControl.identity(
     bundleManifest,
   );
+  const preaccepted = preacceptDispatchId === undefined ? undefined :
+    remoteDispatch(preacceptDispatchId, 'local/1', {runtimeBundleCid,
+      siteKey});
   const signedBundle = signRemoteRuntimeBundle(
     bundleManifest,
     runtime.remoteBundleControl,
@@ -220,6 +224,10 @@ export async function startFixture(
       },
     },
     budgets: [{retainedBytes: '64', executionBytes: '16'}],
+    ...(preaccepted === undefined ? {} : {preaccepted: {
+      wire: runtime.remoteSiteControl.requestJson(preaccepted),
+      cid: runtime.remoteSiteControl.identity(preaccepted),
+    }}),
   }), {mode: 0o600});
   const child = fork(
     new URL('./https-agent-fixture.mjs', import.meta.url),
