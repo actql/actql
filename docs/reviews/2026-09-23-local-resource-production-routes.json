@@ -4280,7 +4280,24 @@
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "Events projection production entrypoint enforces value and width limits"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "events_projection_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-to-rows-bridge"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "events_projection_value_width_and_kernel_cancel_cleanup",
+          "one_short_limit": "events_projection_value_width_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "events_projection_host_in_flight_cancel",
+          "cleanup": "events_projection_value_width_and_kernel_cancel_cleanup"
+        }
+      }
     },
     {
       "inventory": "families",
@@ -4355,7 +4372,24 @@
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "Vectors projection production entrypoint enforces value and width limits"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "vectors_projection_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vectors-to-rows-bridge"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "vectors_projection_value_width_and_kernel_cancel_cleanup",
+          "one_short_limit": "vectors_projection_value_width_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "vectors_projection_host_in_flight_cancel",
+          "cleanup": "vectors_projection_value_width_and_kernel_cancel_cleanup"
+        }
+      }
     },
     {
       "inventory": "families",
