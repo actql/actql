@@ -231,3 +231,9 @@ lifetime. Foreign Plan, Environment, Run, and outlived authority are rejected.
 This is not executable Effect authority: executable-plan content, concrete
 Invocation, captured Effect plans and values, current grants, and apply remain
 to be admitted on the same owner before the standard Host may dispatch.
+That Run owner now binds a private Preview to its exact concrete Invocation,
+Run Definition, and Compiled Plan as well as the checked Stage inventory.
+Foreign Run, Plan, Invocation, or Invocation Template is rejected. The
+ObservationSet closure and Captured Run's Effect Plan and Result holding proofs
+are still outstanding;
+this Preview binding is not an apply permit.

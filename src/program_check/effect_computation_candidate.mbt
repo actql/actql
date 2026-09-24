@@ -36,6 +36,22 @@ pub struct EffectProgramRunCandidate {
 }
 
 ///|
+/// A private Preview bound both to a statically closed checked Effect Stage
+/// and to exact Run and Invocation identities. ObservationSet proof and apply
+/// authority are separate; this still cannot dispatch.
+pub struct EffectProgramRunPreview {
+  run : EffectProgramRunCandidate
+  invocation : @run_publication.PublicationContract
+  preview : EffectProgramStaticPreview
+}
+
+///|
+pub(all) enum EffectProgramRunPreviewIssue {
+  Static(EffectProgramStaticPreviewIssue)
+  Run(@run_publication.EffectPreviewRunBindingIssue)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum EffectProgramRunIssue {
   Binding(@run_publication.RunProgramBindingIssue)
 } derive(Eq, Debug)
@@ -247,6 +263,57 @@ pub fn effect_program_run_definition(
   value : EffectProgramRunCandidate,
 ) -> @run_publication.PublicationContract {
   value.run_definition
+}
+
+///|
+pub fn bind_effect_program_run_preview(
+  run : EffectProgramRunCandidate,
+  invocation : @run_publication.PublicationContract,
+  stage_index : Int,
+  preview : @run_publication.EffectPreviewIdentity,
+  max_work : Int,
+) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue] {
+  let static_preview = match
+    bind_effect_program_static_preview(
+      run.candidate,
+      stage_index,
+      preview,
+      max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Static(issue))
+  }
+  match
+    @run_publication.check_effect_preview_run_binding(
+      run.admission,
+      run.run_definition,
+      invocation,
+      preview,
+    ) {
+    Ok(_) => Ok({ run, invocation, preview: static_preview, })
+    Err(issue) => Err(Run(issue))
+  }
+}
+
+///|
+pub fn effect_program_run_preview_identity(
+  value : EffectProgramRunPreview,
+) -> @run_publication.EffectPreviewIdentity {
+  value.preview.preview
+}
+
+///|
+pub fn effect_program_run_preview_invocation(
+  value : EffectProgramRunPreview,
+) -> @run_publication.PublicationContract {
+  value.invocation
+}
+
+///|
+pub fn effect_program_run_preview_owner(
+  value : EffectProgramRunPreview,
+) -> EffectProgramRunCandidate {
+  value.run
 }
 
 ///|
