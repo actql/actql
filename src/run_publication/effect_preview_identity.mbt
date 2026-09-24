@@ -24,6 +24,9 @@ pub struct EffectPreviewIdentity {
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
+  member_source_binding_cids : Array[String]
+  member_capability_evidence_cids : Array[String]
+  member_authority_scope_cids : Array[String]
   member_effect_plan_cids : Array[String?]
   member_source_results : Array[String?]
   member_result_artifact_cids : Array[String?]
@@ -606,6 +609,9 @@ pub fn admit_effect_preview_identity(
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
+  let member_source_binding_cids : Array[String] = []
+  let member_capability_evidence_cids : Array[String] = []
+  let member_authority_scope_cids : Array[String] = []
   let member_effect_plan_cids : Array[String?] = []
   let member_source_results : Array[String?] = []
   let member_result_artifact_cids : Array[String?] = []
@@ -640,6 +646,17 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_effect_kinds.push(effect_kind)
+    guard @json.object_field(effect, "source_binding_cid")
+      is Some(@json.String(source_binding_cid)) &&
+      @json.object_field(effect, "capability_evidence_cid")
+      is Some(@json.String(capability_evidence_cid)) &&
+      @json.object_field(effect, "authority_scope_cid")
+      is Some(@json.String(authority_scope_cid)) else {
+      return Err(InvalidMember)
+    }
+    member_source_binding_cids.push(source_binding_cid)
+    member_capability_evidence_cids.push(capability_evidence_cid)
+    member_authority_scope_cids.push(authority_scope_cid)
     member_effect_plan_cids.push(
       optional_string(@json.object_field(effect, "effect_plan_logical_cid")),
     )
@@ -815,6 +832,9 @@ pub fn admit_effect_preview_identity(
     member_cids: cids,
     member_effect_ids,
     member_effect_kinds,
+    member_source_binding_cids,
+    member_capability_evidence_cids,
+    member_authority_scope_cids,
     member_effect_plan_cids,
     member_source_results,
     member_result_artifact_cids,
@@ -896,6 +916,32 @@ pub fn effect_preview_member_kind(
 }
 
 ///|
+/// Retained Preview binding only. Apply still requires current registered
+/// capability evidence and authority for the exact member.
+pub fn effect_preview_member_capability_evidence_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_capability_evidence_cids.get(index)
+}
+
+///|
+pub fn effect_preview_member_source_binding_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_source_binding_cids.get(index)
+}
+
+///|
+pub fn effect_preview_member_authority_scope_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_authority_scope_cids.get(index)
+}
+
+///|
 pub fn effect_preview_member_plan_cid(
   value : EffectPreviewIdentity,
   index : Int,
@@ -946,6 +992,17 @@ pub fn effect_preview_member_resolved_contract(
   index : Int,
 ) -> EffectPreviewResolvedContract? {
   value.member_contracts.get(index)
+}
+
+///|
+pub fn effect_preview_member_resolved_contract_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  match value.member_contracts.get(index) {
+    Some(Mapping(_, cid) | Command(_, cid)) => Some(cid)
+    None => None
+  }
 }
 
 ///|
