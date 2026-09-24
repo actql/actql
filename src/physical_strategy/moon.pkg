@@ -8,6 +8,7 @@ import {
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/stage_results" @results,
+  "actql/actql/stage_syntax" @syntax,
   "actql/actql/relation_results" @ports,
   "actql/actql/stage_parameters" @stages,
   "actql/actql/lowering_relation" @lower,

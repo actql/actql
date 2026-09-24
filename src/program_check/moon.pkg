@@ -5,6 +5,7 @@ import {
   "actql/actql/canonical_json" @json,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/physical_strategy" @strategy,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/numeric_reduction" @numeric,
 } for "test"

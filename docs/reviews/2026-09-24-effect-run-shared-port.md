@@ -315,3 +315,11 @@ and `CapturedEffectRunDAG` retains the same admitted Run owner through capture.
 This prevents a caller from discarding the Effect closure by using an ordinary
 computation entry. It does not yet prove the captured Result holdings, issue
 the Effect Context, or permit a physical write.
+
+The Effect-specific graph also binds each authored source Result to its exact
+checked Stage Result port and bound preparation. This lookup is independent of
+root publication aliases; the regression fixture gives the root export a
+different name. The graph reserves bounded work for every Effect member and
+retains the source occurrence for downstream capture. It is static provenance
+only: output liveness, a consumer holding, row values, and apply admission
+still require the captured execution and current authority.

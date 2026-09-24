@@ -519,9 +519,14 @@ test "Effect computation candidate retains owners without admitting execution" {
 test "Effect computation candidate closes the exact Mapping environment" {
   let (plain, _, _, evidence, limits) = public_input_fixture()
   let program = @syntax.parse(
-    plain.replace(
+    plain
+    .replace(
       old="\"id\":\"consumer\",\"inputs\":",
-      new="\"id\":\"consumer\",\"effects\":{\"first\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7},\"max_items\":{\"$param\":\"n\"}}},\"second\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":8},\"max_items\":1}}},\"inputs\":",
+      new="\"id\":\"consumer\",\"effects\":{\"first\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"out\"},\"max_items\":{\"$param\":\"n\"}}},\"second\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":8},\"max_items\":1}}},\"inputs\":",
+    )
+    .replace(
+      old="\"results\":{\"out\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}",
+      new="\"results\":{\"published\":{\"from\":{\"stage\":\"consumer\",\"result\":\"out\"}}}",
     ),
     limits.input,
     format=Json,
@@ -632,6 +637,41 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let graph_owner = @strategy.prepare_checked_effect_computation_dag(
     static_candidate, owners, 2, 10000,
   ).unwrap()
+  assert_eq(
+    @strategy.graph_result_name(
+      @strategy.checked_effect_computation_graph(graph_owner),
+      0,
+    ),
+    Some("published"),
+  )
+  assert_eq(@strategy.checked_effect_source_count(graph_owner), 2)
+  let first_source = @strategy.checked_effect_source_at(graph_owner, 0).unwrap()
+  assert_eq(@strategy.checked_effect_source_member(first_source), 0)
+  assert_eq(@strategy.checked_effect_source_stage(first_source), 1)
+  let occurrence = @strategy.checked_effect_source_occurrence(first_source)
+  assert_eq(@execution.managed_result_occurrence_name(occurrence), "out")
+  assert_true(
+    physical_equal(
+      @execution.managed_result_occurrence_owner(occurrence),
+      owners[1],
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @publication.port_result(
+        @execution.managed_result_occurrence_port(occurrence),
+      ),
+      @results.effect_result_binding_result(
+        @results.effect_result_binding_at(
+          @results.effect_static_candidate_results(
+            @program_check.effect_program_static_effects(static_candidate),
+          ),
+          0,
+        ).unwrap(),
+      ).unwrap(),
+    ),
+  )
+  assert_true(@strategy.checked_effect_source_at(graph_owner, 1) is None)
   assert_true(
     @strategy.prepare_checked_dag(computation, owners, 2, 10000)
     is Err(EffectGraphOwnerRequired),
@@ -784,6 +824,14 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let checked_run = @strategy.bind_checked_effect_run_dag(
     graph_owner, run_owner,
   ).unwrap()
+  assert_eq(@strategy.checked_effect_run_source_count(checked_run), 2)
+  assert_true(
+    physical_equal(
+      @strategy.checked_effect_run_source_at(checked_run, 0).unwrap(),
+      first_source,
+    ),
+  )
+  assert_true(@strategy.checked_effect_run_source_at(checked_run, 1) is None)
   assert_true(
     physical_equal(@strategy.checked_effect_run_owner(checked_run), run_owner),
   )
