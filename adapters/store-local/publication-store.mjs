@@ -3660,6 +3660,7 @@ export async function openLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
       await verifyPhysicalHoldingObjects(current);
+      await syncDirectory(physicalHoldingsDirectory);
       await adoptPreparedObjects([...new Set(
         current.objects.map(object => object.cid),
       )]);
@@ -3743,6 +3744,7 @@ export async function openLocalPublicationStore(
           fail('PublicationPhysicalHoldingConflict');
         }
         await verifyPhysicalHoldingObjects(current);
+        await syncDirectory(physicalHoldingsDirectory);
         return Object.freeze({record: current, created: false});
       }
       await verifyPhysicalHoldingObjects(source);

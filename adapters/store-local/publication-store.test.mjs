@@ -2822,6 +2822,82 @@ test('physical Transfer holding survives reopen and reclaims exact objects',
     assert.equal(reopened.status().objectCount, 0);
   });
 
+test('visible physical holdings retry directory durability before success',
+  async t => {
+    const directory = await mkdtemp(join(
+      tmpdir(), 'actql-holding-commit-durability-',
+    ));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory,
+      storeAuthorityCid: cids.authority,
+      capacityBytes: 1024,
+      maxObjectBytes: 512,
+      maxObjects: 8,
+      maxContractNodes: limits.maxNodes,
+      maxContractDepth: limits.maxDepth,
+    };
+    let failHoldingSync = false;
+    let holdingSyncs = 0;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(directory, 'physical-holdings')) {
+          holdingSyncs++;
+          if (failHoldingSync) {
+            failHoldingSync = false;
+            const error = new Error('injected holding sync failure');
+            error.code = 'EIO';
+            throw error;
+          }
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const store = await openLocalPublicationStore(
+      configuration, contractControl, durability,
+    );
+    t.after(async () => { await store.close(); });
+    const prepared = await preparePhysical(store, 'durable');
+    const source = physicalHolding(
+      digest('holding retry source'), digest('holding retry manifest'),
+      [{cid: prepared.cid, byte_count: prepared.bytes}],
+    );
+    const initialSyncs = holdingSyncs;
+    failHoldingSync = true;
+    await assert.rejects(store.commitPhysicalHolding(
+      source, [prepared.prepared],
+    ), code('EIO'));
+    assert.equal(prepared.prepared.status().pending, true);
+    assert.equal(holdingSyncs, initialSyncs + 1);
+    assert.equal((await store.commitPhysicalHolding(
+      source, [prepared.prepared],
+    )).created, false);
+    assert.equal(holdingSyncs, initialSyncs + 2);
+    assert.equal(prepared.prepared.status().pending, false);
+
+    const shared = physicalHolding(
+      digest('holding retry shared'), source.manifest_cid, source.objects,
+    );
+    failHoldingSync = true;
+    await assert.rejects(store.sharePhysicalHolding(
+      source.holding_cid, shared,
+    ), code('EIO'));
+    assert.equal(holdingSyncs, initialSyncs + 3);
+    assert.equal((await store.sharePhysicalHolding(
+      source.holding_cid, shared,
+    )).created, false);
+    assert.equal(holdingSyncs, initialSyncs + 4);
+    assert.equal((await store.retirePhysicalHolding(
+      source.holding_cid,
+    )).deleted, true);
+    assert.equal((await store.retirePhysicalHolding(
+      shared.holding_cid,
+    )).deleted, true);
+    assert.equal(store.status().storedBytes, 0);
+  });
+
 test('independent Transfer holdings share bytes but release independently',
   async t => {
     const {store} = await fixture(t);
