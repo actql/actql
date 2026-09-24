@@ -1348,6 +1348,11 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: vector expression boundary evidence is missing`);
     }
   }
+  if (route.family === 'RelA' &&
+    ['group', 'pivot', 'unpivot', 'unnest'].includes(route.operation) &&
+    !boundaryRoles.has(`${route.operation}_fixed_sequence_work_exact_one_short`)) {
+    fail(`${label}: fixed sequence work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

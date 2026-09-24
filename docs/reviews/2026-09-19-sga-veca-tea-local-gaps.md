@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 52 |
+| Operation-specific boundary records | 56 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -20,6 +20,14 @@ and checked by `check:local-resource-accounting`.
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+
+The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
+use fixed control-work expectations of 354, 145, 160, and 116 units for their
+respective authored fixtures. Each checks the independent constant against
+the charged work and admits that limit while rejecting one short. The
+resource gate binds each fixture to its operation and rejects its removal.
+These synchronous fixtures do not establish bounded resume, workspace peaks,
+or Host-delivered cancellation for the providerless whole-sequence lane.
 
 Graph node and edge matching now initialize sort scratch one slot per bounded
 resume step rather than allocating the entire input-sized array in `start`.

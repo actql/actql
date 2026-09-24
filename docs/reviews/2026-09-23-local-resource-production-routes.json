@@ -1288,7 +1288,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "pivot_fixed_sequence_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/pivot_sequence_wbtest.mbt",
+          "fixture": "pivot accepts exact shared work and rejects one-short execution"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1302,7 +1311,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "unpivot_fixed_sequence_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/unpivot_sequence_wbtest.mbt",
+          "fixture": "unpivot accepts exact shared work and rejects one-short execution"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1330,7 +1348,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "unnest_fixed_sequence_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/unnest_sequence_wbtest.mbt",
+          "fixture": "unnest accepts exact shared work and rejects one-short execution"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1372,7 +1399,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "group_fixed_sequence_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/group_rows_wbtest.mbt",
+          "fixture": "direct group accepts exact shared work and rejects one-short execution"
+        }
+      ]
     },
     {
       "inventory": "rela",
