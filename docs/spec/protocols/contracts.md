@@ -1214,20 +1214,22 @@ The Compiled Plan's hash preimage is:
 <!-- normative-code: envelope -->
 ```text
 {version: "actql-compiled-plan/0.1",
- invocation_template_cid, grammar_manifest_cid, required_profile_contracts,
- barrier_contract_manifest_cid, aoa_logical_cid, executable_plan_cid,
- result_plan_logical_cids, effect_plan_logical_cids, aoa_contract_cid}
+ compiler_version, aoa_ir_version, executable_plan_cid,
+ program_definition_cid, program_semantics_cid,
+ aoa_contract_cid, aoa_logical_cid}
 ```
 
-Result/Effect logical CID maps are keyed by their declared names. The Executable
-Plan's `execution_material` binds Program Definition, bound Invocation Template,
+The canonical hash excludes only `compiled_plan_cid` itself. Result/Effect
+logical CID maps are keyed by their declared names in the Executable Plan.
+Its `execution_material` binds Program Definition, bound Invocation Template,
 Check Environment, parameter/binding value CIDs, Grammar and barrier manifests,
 AoA contract, and Result/Effect plan maps; its graph binds nodes, typed edges,
-root Results, facts, limits and enforcement references. These are transitive
-dependencies, not optional audit metadata. Neither envelope contains its own
-CID or a later receipt CID. [Machine contracts](#machine-contracts) pins this owner's
-closed wire schemas; the [family contract index](../conformance.md#contract-index)
-is informative navigation to other owners.
+root Results, facts, limits and enforcement references. Those dependencies
+remain mandatory even though this compilation envelope references them through
+`executable_plan_cid`. Neither envelope contains a later receipt CID.
+[Machine contracts](#machine-contracts) pins this owner's closed wire schemas;
+the [family contract index](../conformance.md#contract-index) is informative
+navigation to other owners.
 
 <a id="diagnostic-documents"></a>
 
