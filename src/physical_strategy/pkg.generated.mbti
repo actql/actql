@@ -41,6 +41,8 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
+pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
+
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
 
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -142,6 +144,10 @@ pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Resu
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
 
 pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
+
+pub fn checked_effect_run_graph(CheckedEffectRunDAG) -> CheckedDAG
+
+pub fn checked_effect_run_owner(CheckedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
 
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
@@ -499,6 +505,11 @@ type CheckedDAG
 pub struct CheckedEffectComputationDAG {
   candidate : @program_check.EffectProgramStaticCandidate
   graph : CheckedDAG
+}
+
+pub struct CheckedEffectRunDAG {
+  computation : CheckedEffectComputationDAG
+  run : @program_check.EffectProgramRunCandidate
 }
 
 pub(all) struct CheckedTaskIdentity {

@@ -777,6 +777,28 @@ test "Effect computation candidate closes the exact Mapping environment" {
       run_definition,
     ),
   )
+  let checked_run = @strategy.bind_checked_effect_run_dag(
+    graph_owner, run_owner,
+  ).unwrap()
+  assert_true(
+    physical_equal(@strategy.checked_effect_run_owner(checked_run), run_owner),
+  )
+  assert_true(
+    physical_equal(
+      @strategy.checked_effect_run_graph(checked_run),
+      @strategy.checked_effect_computation_graph(graph_owner),
+    ),
+  )
+  let (rebound_admission, rebound_definition, _) = public_effect_run_fixture(
+    rebound_static,
+  )
+  let foreign_run = @program_check.bind_effect_program_static_run(
+    rebound_static, rebound_admission, rebound_definition,
+  ).unwrap()
+  assert_true(
+    @strategy.bind_checked_effect_run_dag(graph_owner, foreign_run)
+    is Err(ForeignCandidate),
+  )
   let (foreign_plan_admission, foreign_plan_run, _) = public_effect_run_fixture(
     static_candidate,
     semantics_cid=Some("sha256:" + "f".repeat(64)),

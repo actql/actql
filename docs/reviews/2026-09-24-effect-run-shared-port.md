@@ -301,3 +301,10 @@ path, not treated as five unfixed defects at the reviewed SHA:
 These local fixtures are not live Salesforce verification. The isolated org,
 credential reference and write permission have not been supplied; no existing
 Smooth Cloud connection may be substituted.
+
+The checked physical graph can now retain the exact admitted Effect Run owner
+in `CheckedEffectRunDAG`. Binding a graph to a separately checked candidate is
+rejected even when a caller could reproduce matching CID strings. This keeps
+the checked computation and Run proof together for the next capture boundary;
+it is neither a captured Result nor apply authority. The ordinary Host still
+rejects Effectful execution, so COMMON-SF-05 remains open.
