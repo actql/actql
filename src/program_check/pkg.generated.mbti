@@ -10,6 +10,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
@@ -86,6 +87,8 @@ pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publica
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
+
+pub fn check_effect_program_run_preview_footprints(EffectProgramRunPreview, Int, Int, Int) -> Result[Unit, @effect_application.EffectFootprintIssue]
 
 pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
 

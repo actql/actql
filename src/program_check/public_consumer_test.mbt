@@ -68,6 +68,7 @@ fn public_effect_preview_member(
   mapping_cid : String,
   placeholder : String,
   max_items? : Int = 1,
+  target_cid? : String? = None,
 ) -> String {
   let cid = "sha256:" + "a".repeat(64)
   "{\"effect_id\":\"" +
@@ -89,7 +90,9 @@ fn public_effect_preview_member(
   cid +
   "\",\"provider_namespace\":\"provider\",\"provider_boundary_cid\":\"" +
   cid +
-  "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
+  "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":" +
+  (if target_cid is Some(target) { "[\"" + target + "\"]" } else { "[]" }) +
+  "}," +
   "\"count\":0,\"max_items\":" +
   max_items.to_string() +
   ",\"required_permissions\":[\"write\"]," +
@@ -111,6 +114,8 @@ fn public_effect_preview_for_static(
   invocation_cid? : String? = None,
   first_max_items? : Int = 1,
   second_max_items? : Int = 1,
+  first_target_cid? : String? = None,
+  second_target_cid? : String? = None,
 ) -> @run_publication.EffectPreviewIdentity {
   let cid = "sha256:" + "a".repeat(64)
   let definition = definition_cid.unwrap_or(
@@ -138,6 +143,7 @@ fn public_effect_preview_for_static(
       mapping_cid,
       first_placeholder,
       max_items=first_max_items,
+      target_cid=first_target_cid,
     ) +
     "," +
     public_effect_preview_member(
@@ -145,6 +151,7 @@ fn public_effect_preview_for_static(
       mapping_cid,
       second_placeholder,
       max_items=second_max_items,
+      target_cid=second_target_cid,
     )
   let raw = "{\"version\":\"actql-effect-preview/0.1\"," +
     "\"sensitivity\":\"private\",\"retention_class\":\"authority-evidence\"," +
@@ -890,6 +897,43 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let bound_run_preview = @program_check.bind_effect_program_run_preview(
     run_owner, invocation, 1, run_preview, 1000,
   ).unwrap()
+  assert_true(
+    @program_check.check_effect_program_run_preview_footprints(
+      bound_run_preview, 2, 2, 100,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @program_check.check_effect_program_run_preview_footprints(
+      bound_run_preview, 2, 2, 2,
+    )
+    is Err(@effect.CapacityExceeded),
+  )
+  let same_target = "sha256:" + "9".repeat(64)
+  let overlapping = public_effect_preview_for_static(
+    static_candidate,
+    mapping_cid,
+    run_cid=Some(run_identity),
+    plan_cid=Some(plan_identity),
+    invocation_cid=Some(invocation_identity),
+    first_target_cid=Some(same_target),
+    second_target_cid=Some(same_target),
+  )
+  let overlapping_owner = @program_check.bind_effect_program_run_preview(
+    run_owner, invocation, 1, overlapping, 1000,
+  ).unwrap()
+  assert_true(
+    @program_check.check_effect_program_run_preview_footprints(
+      overlapping_owner, 2, 2, 100,
+    )
+    is Err(@effect.OverlappingTarget),
+  )
+  assert_true(
+    @program_check.check_effect_program_run_preview_footprints(
+      overlapping_owner, 2, 1, 100,
+    )
+    is Err(@effect.CapacityExceeded),
+  )
   assert_true(
     physical_equal(
       @program_check.effect_program_run_preview_identity(bound_run_preview),
