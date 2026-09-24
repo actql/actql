@@ -322,6 +322,25 @@ const schemas = {
       }
     }
   },
+  "submit_preparation_error": {
+    "type": "object",
+    "required": [
+      "code"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "enum": [
+          "ClientProgramInvalidInput",
+          "ClientParametersInvalid",
+          "ClientParametersTooLarge",
+          "ClientProgramUnsupported",
+          "ClientProgramNeedsInputs",
+          "ClientProgramRejected"
+        ]
+      }
+    }
+  },
   "run_state": {
     "type": "object",
     "required": [
@@ -865,4 +884,5 @@ export const validAdmissionShape = value => valid(value, schemas.admission);
 export const validLookupFoundShape = value => valid(value, schemas.lookup_found);
 export const validLookupNotFoundShape = value => valid(value, schemas.lookup_not_found);
 export const validLookupUnknownShape = value => valid(value, schemas.lookup_unknown);
+export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
 export const validRunStateShape = value => valid(value, schemas.run_state);
