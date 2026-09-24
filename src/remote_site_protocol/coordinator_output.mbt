@@ -402,6 +402,9 @@ pub fn restore_coordinator_output_record(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if (revision == 0) != (progress == CoordinatorOutputIntentDurable) {
+    return Err(InvalidJournal)
+  }
   let result = match progress {
     CoordinatorOutputSucceeded =>
       if result_json.is_empty() {
