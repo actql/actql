@@ -26,6 +26,7 @@ const member = (value, name) => {
 const contract = value => value !== null && typeof value === 'object' &&
   typeof value.name === 'string' && typeof value.identity === 'string' &&
   typeof value.wire === 'string';
+const completedResultOwners = new WeakMap();
 
 function validateExecution(execution) {
   if (execution === null || typeof execution !== 'object' ||
@@ -288,7 +289,9 @@ async function exportCompletedRunResultSet({
 export async function storeCompletedRunResultSet(options) {
   const exported = [];
   try {
-    return await exportCompletedRunResultSet(options, exported);
+    const stored = await exportCompletedRunResultSet(options, exported);
+    completedResultOwners.set(stored, options.execution);
+    return stored;
   } catch (error) {
     if (exported.length === 0 &&
         member(error, 'cleanupPending') !== true) throw error;
@@ -312,7 +315,8 @@ export function issueCompletedEffectfulComputationEvidence(options) {
     receiptEvidence, captureEvidence, preview, plans, contractLimits,
   } = options;
   validateExecution(execution);
-  if (!exactKeys(storedResults, ['results', 'definitions', 'artifacts']) ||
+  if (completedResultOwners.get(storedResults) !== execution ||
+      !exactKeys(storedResults, ['results', 'definitions', 'artifacts']) ||
       !Array.isArray(storedResults.results) ||
       storedResults.results.length !== execution.resultInventory.length ||
       !Array.isArray(storedResults.definitions) ||

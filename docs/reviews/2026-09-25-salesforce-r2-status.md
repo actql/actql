@@ -92,6 +92,9 @@ the Effect source Artifact in the published Result inventory by name.
 Changing the fixture's name would not resolve that general case. The exact
 Effect-source Artifact inventory and its Preview binding still need a
 coordinated contract correction before ordinary Effectful Run completion.
+The coordinator also requires the exact in-process export owner, not a copied
+result object or a second execution of the same checked Run. This is physical
+custody for issuance, not a durable publication or recovery guarantee.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
