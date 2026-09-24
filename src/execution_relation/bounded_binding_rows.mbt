@@ -50,6 +50,191 @@ priv struct ProducerReadIndexedRows {
 }
 
 ///|
+/// One comparison cursor is reused by the merge and partition-boundary
+/// phases. Text charging and comparison each advance by one UTF-16 scalar or
+/// code unit, so an equal long prefix never occupies a whole resume step.
+priv struct BoundedRowComparison {
+  mut left : Int
+  mut right : Int
+  mut terms : Int
+  mut term : Int
+  mut phase : Int
+  mut offset : Int
+}
+
+///|
+fn bounded_text_charge_step(
+  control : ControlBudget,
+  value : String,
+  index : Int,
+) -> Result[Int, OrderingIssue] {
+  if index >= value.length() {
+    return Ok(index)
+  }
+  let unit = value[index].to_int()
+  let (width, next) = if unit < 0x80 {
+    (1, index + 1)
+  } else if unit < 0x800 {
+    (2, index + 1)
+  } else if unit >= 0xd800 && unit <= 0xdbff {
+    if index + 1 >= value.length() {
+      return Err(Limit)
+    }
+    let trailing = value[index + 1].to_int()
+    if trailing < 0xdc00 || trailing > 0xdfff {
+      return Err(Limit)
+    }
+    (4, index + 2)
+  } else if unit >= 0xdc00 && unit <= 0xdfff {
+    return Err(Limit)
+  } else {
+    (3, index + 1)
+  }
+  if !spend_control(control, width) {
+    Err(Limit)
+  } else {
+    Ok(next)
+  }
+}
+
+///|
+fn bounded_row_comparison_step(
+  state : BoundedBindingRowsState,
+  left_row : Int,
+  right_row : Int,
+  terms : Int,
+) -> Result[Int?, OrderingIssue] {
+  let cursor = state.comparison
+  if terms < 0 || terms > state.sort_orders.length() {
+    return Err(InvalidInput)
+  }
+  if cursor.phase == -1 {
+    cursor.left = left_row
+    cursor.right = right_row
+    cursor.terms = terms
+    cursor.term = 0
+    cursor.phase = 0
+    cursor.offset = 0
+  } else if cursor.left != left_row ||
+    cursor.right != right_row ||
+    cursor.terms != terms {
+    return Err(InvalidInput)
+  }
+  if cursor.term == terms {
+    cursor.phase = -1
+    return Ok(Some(0))
+  }
+  let order = state.sort_orders[cursor.term]
+  let left = producer_read_cell(state.input, left_row, order.column)
+  let right = producer_read_cell(state.input, right_row, order.column)
+  guard left is Some(left) && right is Some(right) else {
+    return Err(InvalidInput)
+  }
+  match cursor.phase {
+    0 => {
+      if !spend_control(state.control, 1) {
+        return Err(Limit)
+      }
+      cursor.phase = 1
+      Ok(None)
+    }
+    1 => {
+      match left {
+        Text(value) =>
+          if cursor.offset < value.length() {
+            cursor.offset = match
+              bounded_text_charge_step(state.control, value, cursor.offset) {
+              Ok(next) => next
+              Err(issue) => return Err(issue)
+            }
+            return Ok(None)
+          }
+        _ =>
+          match charge_comparison_operand(state.control, left) {
+            Ok(_) => ()
+            Err(ComparisonChargeLimit) => return Err(Limit)
+            Err(ComparisonChargeInvalidOperand) =>
+              return Err(Scalar(InvalidOperand))
+          }
+      }
+      cursor.phase = 2
+      cursor.offset = 0
+      Ok(None)
+    }
+    2 => {
+      match right {
+        Text(value) =>
+          if cursor.offset < value.length() {
+            cursor.offset = match
+              bounded_text_charge_step(state.control, value, cursor.offset) {
+              Ok(next) => next
+              Err(issue) => return Err(issue)
+            }
+            return Ok(None)
+          }
+        _ =>
+          match charge_comparison_operand(state.control, right) {
+            Ok(_) => ()
+            Err(ComparisonChargeLimit) => return Err(Limit)
+            Err(ComparisonChargeInvalidOperand) =>
+              return Err(Scalar(InvalidOperand))
+          }
+      }
+      cursor.phase = 3
+      cursor.offset = 0
+      Ok(None)
+    }
+    3 => {
+      let compared = match (left, right) {
+        (Text(a), Text(b)) =>
+          if cursor.offset < a.length() && cursor.offset < b.length() {
+            let a_unit = a[cursor.offset]
+            let b_unit = b[cursor.offset]
+            if a_unit == b_unit {
+              cursor.offset += 1
+              return Ok(None)
+            }
+            if a_unit < b_unit {
+              -1
+            } else {
+              1
+            }
+          } else if a.length() < b.length() {
+            -1
+          } else if a.length() > b.length() {
+            1
+          } else {
+            0
+          }
+        (Null, Null) => 0
+        (Null, _) => if order.nulls_first { -1 } else { 1 }
+        (_, Null) => if order.nulls_first { 1 } else { -1 }
+        _ =>
+          match compare(left, right) {
+            Ok(value) => value
+            Err(issue) => return Err(Scalar(issue))
+          }
+      }
+      let compared = if left is Null || right is Null || !order.descending {
+        compared
+      } else {
+        -compared
+      }
+      if compared != 0 {
+        cursor.phase = -1
+        Ok(Some(compared))
+      } else {
+        cursor.term += 1
+        cursor.phase = 0
+        cursor.offset = 0
+        Ok(None)
+      }
+    }
+    _ => Err(InvalidInput)
+  }
+}
+
+///|
 impl IndexedRows for ProducerReadIndexedRows with fn row_count(self) {
   producer_read_row_count(self.input)
 }
@@ -95,6 +280,7 @@ priv struct BoundedBindingRowsState {
   mut partition_leader : Int
   mut partition_taken : Int64
   mut partition_checked : Bool
+  comparison : BoundedRowComparison
   sort_kernel : @lower.PreparedKernel?
   sort_only : Bool
   engine : @bounded.Control
@@ -624,22 +810,18 @@ fn bounded_binding_rows_step(
           !reserve_slots(state.workspace, count * 2) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        let rows : ProducerReadIndexedRows = {
-          input: state.input,
-          width: state.input_names.length(),
-        }
-        state.sort_execution = start_bounded_index_sort(state.engine, count, fn(
-          left,
-          right,
-        ) {
-          compare_row_indices(
-            rows,
-            left,
-            right,
-            state.sort_orders,
-            state.control,
-          ).map_err(ordering_row_issue)
-        })
+        state.sort_execution = start_bounded_index_sort_stepped(
+          state.engine,
+          count,
+          fn(left, right) {
+            bounded_row_comparison_step(
+              state,
+              left,
+              right,
+              state.sort_orders.length(),
+            ).map_err(ordering_row_issue)
+          },
+        )
         guard state.sort_execution is Some(_) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
@@ -675,7 +857,7 @@ fn bounded_binding_rows_step(
         guard state.sort_execution is Some(execution) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) {
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         match advance_bounded_index_sort(execution, 1) {
@@ -775,7 +957,7 @@ fn bounded_binding_rows_step(
           continue
         }
         if state.partition_limit is Some(limit) && !state.partition_checked {
-          if !spend_control(state.control, 1) {
+          if state.comparison.phase == -1 && !spend_control(state.control, 1) {
             return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
           }
           guard state.sorted_indices is Some(indices) else {
@@ -785,20 +967,18 @@ fn bounded_binding_rows_step(
           let different = if state.partition_leader < 0 {
             true
           } else {
-            let rows : ProducerReadIndexedRows = {
-              input: state.input,
-              width: state.input_names.length(),
-            }
             match
-              compare_row_indices_prefix(
-                rows,
+              bounded_row_comparison_step(
+                state,
                 state.partition_leader,
                 source,
-                state.sort_orders,
                 state.partition_terms,
-                state.control,
               ) {
-              Ok(value) => value != 0
+              Ok(Some(value)) => value != 0
+              Ok(None) => {
+                used += 1
+                continue
+              }
               Err(issue) =>
                 return fail_bounded_binding_rows(
                   Rows(ordering_row_issue(issue)),
@@ -1510,6 +1690,14 @@ pub fn start_bounded_binding_rows(
     partition_leader: -1,
     partition_taken: 0L,
     partition_checked: false,
+    comparison: {
+      left: -1,
+      right: -1,
+      terms: 0,
+      term: 0,
+      phase: -1,
+      offset: 0,
+    },
     sort_kernel,
     sort_only,
     engine,

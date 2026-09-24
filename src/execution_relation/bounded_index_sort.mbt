@@ -9,7 +9,7 @@ priv enum BoundedIndexSortPhase {
 ///|
 priv struct BoundedIndexSortState {
   count : Int
-  compare : (Int, Int) -> Result[Int, RowIssue]
+  compare : (Int, Int) -> Result[Int?, RowIssue]
   mut phase : BoundedIndexSortPhase
   mut source : Array[Int]
   mut target : Array[Int]
@@ -105,7 +105,12 @@ fn bounded_index_sort_step(
         } else {
           match
             (state.compare)(state.source[state.left], state.source[state.right]) {
-            Ok(value) => value <= 0
+            Ok(Some(value)) => value <= 0
+            Ok(None) => {
+              used += 1
+              progress += 1
+              continue
+            }
             Err(issue) => return @bounded.Failed(issue, progress, used + 1)
           }
         }
@@ -131,6 +136,19 @@ fn start_bounded_index_sort(
   control : @bounded.Control,
   count : Int,
   compare : (Int, Int) -> Result[Int, RowIssue],
+) -> BoundedIndexSort? {
+  start_bounded_index_sort_stepped(control, count, (left, right) => {
+    compare(left, right).map(value => Some(value))
+  })
+}
+
+///|
+/// A comparison may consume one bounded step without deciding the pair.
+/// The next advance retries that same pair; the callback owns its cursor.
+fn start_bounded_index_sort_stepped(
+  control : @bounded.Control,
+  count : Int,
+  compare : (Int, Int) -> Result[Int?, RowIssue],
 ) -> BoundedIndexSort? {
   if count < 0 {
     return None

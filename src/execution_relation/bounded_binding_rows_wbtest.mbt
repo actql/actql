@@ -780,6 +780,73 @@ test "bounded partitioned top-k selects each nullable partition and reclaims" {
 }
 
 ///|
+test "partitioned top-k yields inside a long text comparison" {
+  let prefix = "x".repeat(400)
+  let rows = "[{\"id\":1,\"group\":\"" +
+    prefix +
+    "a\",\"score\":1},{\"id\":2,\"group\":\"" +
+    prefix +
+    "b\",\"score\":2}]"
+  let (control, cancelled, input) = bounded_binding_rows_fixture(
+    rows,
+    top_k_by=true,
+  )
+  let mut previous_work = 0L
+  // The two equal 400-unit prefixes require far more than 800 quantum-one
+  // resumes; the fixed metadata and output phases alone cannot do so.
+  for _ in 0..<800 {
+    match advance_bounded_binding_rows(cancelled, 1).unwrap() {
+      BoundedBindingRowsContinue(work~, ..) => {
+        assert_true(work - previous_work <= 1L)
+        previous_work = work
+      }
+      _ => fail("long key completed before the comparison yielded")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(cancelled, 1).unwrap()
+    is BoundedBindingRowsStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(cancelled).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, completed, input) = bounded_binding_rows_fixture(rows, top_k_by=true)
+  let mut output : CompletedOutput? = None
+  for _ in 0..<5000 {
+    if output is Some(_) {
+      break
+    }
+    match advance_bounded_binding_rows(completed, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(value, ..) => output = Some(value)
+      _ => fail("long key did not complete")
+    }
+  }
+  guard output is Some(value) else { fail("long key did not terminate") }
+  assert_eq(completed_row_count(value), 2)
+  assert_true(completed_cell(value, 0, 1) is Some(Number(1.0)))
+  assert_true(completed_cell(value, 1, 1) is Some(Number(2.0)))
+  assert_true(cleanup_bounded_binding_rows(completed).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded text comparison charge uses exact UTF-8 bytes" {
+  let exact : ControlBudget = { remaining: 6, max_frames: 1, }
+  let text = "é😀"
+  assert_true(bounded_text_charge_step(exact, text, 0) is Ok(1))
+  assert_eq(exact.remaining, 4)
+  assert_true(bounded_text_charge_step(exact, text, 1) is Ok(3))
+  assert_eq(exact.remaining, 0)
+
+  let short : ControlBudget = { remaining: 5, max_frames: 1, }
+  assert_true(bounded_text_charge_step(short, text, 0) is Ok(1))
+  assert_true(bounded_text_charge_step(short, text, 1) is Err(Limit))
+  assert_eq(short.remaining, 3)
+}
+
+///|
 test "bounded selected empty sort reuses the input order" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",
@@ -2347,7 +2414,8 @@ test "bounded selected take admits exact unkeyed workspace" {
 ///|
 test "bounded selected take admits exact key-completion work" {
   // Control: input 6, sort names 4, rows 3, term 2, sort polls 15,
-  // comparisons 3, sorted rows 9, output names 4, copied row 3.
+  // comparisons 3, sorted rows 9, output names 4, copied row 3. Nine
+  // comparison-continuation steps add physical resume work, not control cost.
   let (execution, input) = bounded_binding_rows_keyed_take_fixture(49)
   let mut completed = false
   while !completed {
@@ -2356,7 +2424,7 @@ test "bounded selected take admits exact key-completion work" {
       BoundedBindingRowsComplete(output, work~, ..) => {
         assert_eq(completed_row_count(output), 1)
         assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
-        assert_eq(work, 52L)
+        assert_eq(work, 61L)
         completed = true
       }
       _ => fail("exact key-completion work failed")

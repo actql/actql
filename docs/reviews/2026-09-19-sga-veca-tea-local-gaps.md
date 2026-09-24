@@ -975,8 +975,12 @@ same-sequence variants can still reach the providerless lane.
   A Node standard Host timer reaches this selected sort after Graph
   construction, normalization, and node projection. Other Relation paths
   require their own boundedness and in-flight cancellation evidence.
-  The sort's outer merge is bounded, but each comparison still processes all
-  ordering terms and long text operands synchronously. A Node standard Host
+  The sort's outer merge and each comparison now yield through the bounded
+  session. Ordering terms, UTF-8 charging, and UTF-16 text comparison advance
+  in bounded steps; a long common prefix no longer occupies one resume.
+  The same comparator serves the partition boundary in bounded top-k.
+  Quantum-one fixtures verify pending comparisons, cancellation, and stable
+  ordering. A Node standard Host
   stress case uses the maximum ten-column fixture schema and seven sort keys,
   including six equal 660-byte text values (3,960 text bytes per row). The
   1,024-byte-per-key probe did not reach the managed sort task. The admitted
@@ -989,7 +993,9 @@ same-sequence variants can still reach the providerless lane.
   These are environment diagnostics, not a universal deadline or proof for
   every admitted representation. No response-time violation has been reproduced;
   split comparison work or select a stoppable placement if further admitted
-  profiles exceed the accepted response behavior. This evidence is for the
+  profiles exceed the accepted response behavior. The new comparison-step
+  fixture has not yet been repeated with a delivered Host timer; the earlier
+  timer evidence remains a separate product-path observation. This evidence is for the
   selected bounded path. Ordinary one-step sort now also uses that bounded
   provider, with quantum-one execution and two real downstream consumers
   verified on JS, Wasm, and native. The two paths still lack whole-operation
