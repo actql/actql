@@ -165,7 +165,7 @@ test "Effect computation candidate retains owners without admitting execution" {
     1000,
   ).unwrap()
   assert_true(
-    @program_check.prepare_effect_computation_static(candidate, mappings, {
+    @program_check.close_effect_computation_static(candidate, mappings, {
       max_members: 1,
       max_work: 1000,
       max_admission_nodes: 100,
@@ -315,7 +315,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
     { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
     1000,
   ).unwrap()
-  let static_candidate = @program_check.prepare_effect_computation_static(
+  let static_candidate = @program_check.close_effect_computation_static(
     candidate,
     mappings,
     {
@@ -326,13 +326,35 @@ test "Effect computation candidate closes the exact Mapping environment" {
       max_admission_text_bytes: 1000,
     },
   ).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_static_headers(static_candidate),
+      @program_check.effect_computation_headers(candidate),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_static_stage_results(static_candidate),
+      @program_check.effect_computation_stage_results(candidate),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_static_environment(static_candidate),
+      wire,
+    ),
+  )
   assert_eq(
     @results.effect_result_binding_count(
-      @results.effect_static_candidate_results(static_candidate),
+      @results.effect_static_candidate_results(
+        @program_check.effect_program_static_effects(static_candidate),
+      ),
     ),
     2,
   )
-  let bindings = @results.effect_static_candidate_results(static_candidate)
+  let bindings = @results.effect_static_candidate_results(
+    @program_check.effect_program_static_effects(static_candidate),
+  )
   assert_eq(
     @syntax.effect_header_id(
       @results.effect_result_binding_header(
@@ -351,7 +373,9 @@ test "Effect computation candidate closes the exact Mapping environment" {
   )
   assert_eq(
     @results.effect_mapping_rule_count(
-      @results.effect_static_candidate_mapping_rules(static_candidate),
+      @results.effect_static_candidate_mapping_rules(
+        @program_check.effect_program_static_effects(static_candidate),
+      ),
     ),
     2,
   )
@@ -368,7 +392,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
     1000,
   ).unwrap()
   assert_true(
-    @program_check.prepare_effect_computation_static(
+    @program_check.close_effect_computation_static(
       candidate,
       foreign_mappings,
       {

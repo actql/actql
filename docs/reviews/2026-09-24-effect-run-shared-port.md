@@ -88,6 +88,11 @@ without exposing an executable `CheckedProgram`. The ordinary `CheckOutcome`
 still rejects Effects; malformed headers, foreign owners, unrelated Bindings,
 and missing Mapping closure cannot escape through the candidate. This is a
 preparatory ownership bridge, not complete Effect checking or Run admission.
+The static Mapping/Command close now returns one opaque
+`EffectProgramStaticCandidate` retaining both the checked computation and its
+complete Effect inventory. Downstream capture must consume this same owner;
+the static close does not satisfy conversion, current authority, or apply
+obligations.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current
