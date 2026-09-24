@@ -1289,7 +1289,9 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'Bridge' &&
-    ['node_rows', 'edge_rows', 'to_events'].includes(route.operation)) {
+    ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
+      route.operation,
+    )) {
     const role = `${route.operation}_work_workspace_exact_one_short_and_kernel_cancel_cleanup`;
     if (!boundaryRoles.has(role)) {
       fail(`${label}: ${role} fixture is missing`);

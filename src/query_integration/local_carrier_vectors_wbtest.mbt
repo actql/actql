@@ -2017,6 +2017,144 @@ fn direct_nearest_relation_output(
 }
 
 ///|
+fn direct_rows_to_vectors_owner(
+  source : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"rows\",\"to_vectors\":{" +
+        "\"id\":\"id\",\"vector\":\"embedding\"}}]",
+      ),
+      [
+        (
+          "rows",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(source)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+      ],
+      None,
+      Some(input_cursor("\"rows\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
+test "rows to Vectors admits exact work and workspace and reclaims partial output" {
+  let source_owner = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,2]}," + "{\"id\":2,\"embedding\":[3,4]}]",
+  )
+  let source = direct_nearest_relation_output(source_owner)
+  let owner = direct_rows_to_vectors_owner(source_owner)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Each row costs two identity nodes, nine record nodes, and three copy
+  // units. Four slots per retained record overlap two scratch fields and
+  // four new slots during the second append.
+  for
+    (work, slots, outcome) in [
+      (28, 10, "complete"),
+      (27, 10, "work"),
+      (28, 9, "workspace"),
+    ] {
+    let execution = @local_bridge.start_rows_to_vectors(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      {
+        ..carrier_vectors_storage_limits(),
+        max_work: work,
+        max_workspace_slots: slots,
+      },
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal {
+      polls += 1
+      assert_true(polls < 40)
+      match @local_bridge.advance_rows_to_vectors(execution, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Complete(output, ..) => {
+          assert_eq(outcome, "complete")
+          assert_true(
+            @records.completed_storage(output) is Some(storage) &&
+            @record_storage.construction_work(storage) == 28 &&
+            @record_storage.retained_workspace_slots(storage) == 8,
+          )
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "work")
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkspaceLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "workspace")
+          terminal = true
+        }
+        _ => abort("unexpected rows-to-Vectors result")
+      }
+    }
+    assert_eq(@local_bridge.cleanup_rows_to_vectors(execution), Ok(true))
+    assert_eq(@local_bridge.cleanup_rows_to_vectors(execution), Ok(false))
+    assert_true(@execution.completed_output_available(source))
+  }
+
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_vectors(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_vectors_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut first_row = false
+  let mut polls = 0
+  while !first_row {
+    polls += 1
+    assert_true(polls < 20)
+    match @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap() {
+      @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
+      _ => abort("rows-to-Vectors did not yield after its first row")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_rows_to_vectors(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 fn direct_vector_expression_source_owner() -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check(
