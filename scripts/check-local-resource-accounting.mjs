@@ -1039,6 +1039,12 @@ if (requireBoundaryComplete) {
   } else if (fallbackAt < computeAt && computeAt < boundedCopyAt) {
     fail('providerless managed execution still computes synchronously');
   }
+  const relationProvider = fs.readFileSync(path.join(
+    root, 'src/connectors/local/selected_relation_provider.mbt',
+  ), 'utf8');
+  if (relationProvider.includes('@execution.execute_selected_relation_step(')) {
+    fail('selected Relation provider still computes unsupported rows synchronously');
+  }
 }
 
 for (const entry of rela.operations) {
