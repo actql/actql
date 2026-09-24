@@ -714,6 +714,30 @@ test "ordinary values document prepares one named Effect-free result" {
   let graph_component = issue_prepared_client_values_plan_graph(
     prepared, aoa_limits, 10000, 1000, 20,
   ).unwrap()
+  let compiler_manifests = admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let template = issue_prepared_source_free_client_bound_template(
+    prepared, compiler_manifests, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_true(
+    @publication.run_evidence_value_json(template).contains(
+      "\"grammar_manifest_cid\":\"" +
+      @environment.compiler_grammar_manifest_cid() +
+      "\"",
+    ),
+  )
+  assert_true(
+    @publication.run_evidence_value_json(template).contains(
+      "\"barrier_contract_manifest_cid\":\"" +
+      @environment.compiler_barrier_contract_manifest_cid() +
+      "\"",
+    ),
+  )
   assert_eq(
     client_values_plan_graph_wire(graph_component),
     "{\"data_edges\":[],\"nodes\":[" +
