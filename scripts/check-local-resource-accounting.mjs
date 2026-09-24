@@ -1329,6 +1329,16 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('mean_empty_work_exact_one_short_and_cleanup')) {
     fail(`${label}: Graph mean cumulative-work evidence is missing`);
   }
+  if (route.family === 'SGA') {
+    const structuralRole = {
+      graft_graph: 'graft_empty_work_exact_one_short_and_cleanup',
+      union_graphs: 'union_empty_work_exact_one_short_active_cancel_cleanup',
+      subtract_graphs: 'subtract_empty_work_exact_one_short_and_cleanup',
+    }[route.operation];
+    if (structuralRole && !boundaryRoles.has(structuralRole)) {
+      fail(`${label}: structural Graph cumulative-work evidence is missing`);
+    }
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

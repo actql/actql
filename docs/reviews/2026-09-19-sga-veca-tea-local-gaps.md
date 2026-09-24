@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 46 |
+| Operation-specific boundary records | 49 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -1405,6 +1405,16 @@ cancel request stops during the node-input pass. Cleanup succeeds for
 success, work failure, and cancellation, and the retained Graph is released.
 Existing workspace and delivered Host cancellation fixtures remain separate;
 this fixed shape does not prove every property or merge variant.
+
+Graft, finite-list union, and structural subtraction share a bounded Graph
+kernel but retain distinct typed source and input-position paths. All three
+now apply the selected work ceiling across resumes and charge each completed
+input position plus final output completion. The empty direct graft takes
+3/2 work, the four-position view union 5/4, and view subtraction 2/1.
+Quantum-one tests confirm failure without a partial Graph, explicit cleanup,
+and in-flight union cancellation after its first input position. Their
+nonempty merge, property, and output-value budgets still need broader
+independent route assurance.
 
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the

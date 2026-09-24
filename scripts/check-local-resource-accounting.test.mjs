@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 46 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 49 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('ranking loses bounded assembly evidence when its fixture is removed', () => {
@@ -142,6 +142,16 @@ test('Graph mean requires its cumulative-work fixture', () => {
       entry.operation === 'mean_graphs');
     route.boundary_tests = [];
   }), /SGA mean_graphs: Graph mean cumulative-work evidence is missing/u);
+});
+
+test('structural Graph modes each require a reached work fixture', () => {
+  for (const operation of ['graft_graph', 'union_graphs', 'subtract_graphs']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = [];
+    }), new RegExp(`SGA ${operation}: structural Graph cumulative-work evidence is missing`, 'u'));
+  }
 });
 
 test('resource summary rejects stale route counts', () => {

@@ -61,6 +61,7 @@ priv struct GraftState {
   mut set_token : Int
   mut set_cached_slots : Int
   set_results : Map[Int, @value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -87,6 +88,7 @@ pub(all) enum GraftIssue {
   GraftPropertyConflict
   GraftPropertyValue
   GraftWorkspaceLimit
+  GraftWorkLimit
   GraftValue(@value.CompleteEqualityIssue)
   GraftSet(@value_set.Issue)
   GraftOutput(@graph.Issue)
@@ -1521,11 +1523,14 @@ fn graft_step(
           } else {
             state.phase = Finish
           }
+          used += 1
         } else {
           advance_graft_source(state)
+          used += 1
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraftKernel, progress, used)
         }
@@ -1538,6 +1543,33 @@ fn graft_step(
     }
   }
   @bounded.Continue(progress, used)
+}
+
+///|
+fn bounded_graft_step(
+  state : GraftState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, GraftIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  if state.control_work_remaining < 1 {
+    return @bounded.Failed(GraftWorkLimit, 0, 0)
+  }
+  let result = graft_step(
+    state,
+    Int::min(quantum, state.control_work_remaining),
+    reader,
+  )
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  state.control_work_remaining -= charged
+  result
 }
 
 ///|
@@ -1575,6 +1607,9 @@ pub fn start_graft(
   storage_bytes : Int64,
   available : () -> Bool,
 ) -> Result[GraftExecution, GraftIssue] {
+  if limits.max_work < 0 {
+    return Err(InvalidGraftLimits)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard valid_graft_step(sequence, step, inputs.length()) else {
     return Err(InvalidGraftKernel)
@@ -1653,9 +1688,10 @@ pub fn start_graft(
     set_token: -1,
     set_cached_slots: 0,
     set_results: Map([]),
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
-    control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
+    control, state, bounded_graft_step, cleanup_graft_state, @graph.discard_completed,
   )
   Ok({
     session,
@@ -1675,6 +1711,9 @@ pub fn start_graft_views(
   storage_bytes : Int64,
   available : () -> Bool,
 ) -> Result[GraftExecution, GraftIssue] {
+  if limits.max_work < 0 {
+    return Err(InvalidGraftLimits)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard valid_graft_step(sequence, step, inputs.length()) else {
     return Err(InvalidGraftKernel)
@@ -1757,9 +1796,10 @@ pub fn start_graft_views(
     set_token: -1,
     set_cached_slots: 0,
     set_results: Map([]),
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
-    control, state, graft_step, cleanup_graft_state, @graph.discard_completed,
+    control, state, bounded_graft_step, cleanup_graft_state, @graph.discard_completed,
   )
   Ok({
     session,

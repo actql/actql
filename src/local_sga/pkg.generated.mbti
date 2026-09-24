@@ -266,6 +266,7 @@ pub(all) enum GraftIssue {
   GraftPropertyConflict
   GraftPropertyValue
   GraftWorkspaceLimit
+  GraftWorkLimit
   GraftValue(@value_admission.CompleteEqualityIssue)
   GraftSet(@bounded_value_set.Issue)
   GraftOutput(@managed_graph_runtime.Issue)

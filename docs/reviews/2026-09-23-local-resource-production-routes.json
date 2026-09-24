@@ -2965,7 +2965,16 @@
       "entrypoint": {
         "path": "src/local_sga/graft.mbt",
         "symbol": "start_graft"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "graft_empty_work_exact_one_short_and_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "fixture": "structural Graph modes charge empty source positions and completion"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -2979,7 +2988,16 @@
       "entrypoint": {
         "path": "src/local_sga/graft.mbt",
         "symbol": "start_graft_views"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "fixture": "structural Graph modes charge empty source positions and completion"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -2993,7 +3011,16 @@
       "entrypoint": {
         "path": "src/local_sga/graft.mbt",
         "symbol": "start_graft_views"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "subtract_empty_work_exact_one_short_and_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "fixture": "structural Graph modes charge empty source positions and completion"
+        }
+      ]
     },
     {
       "inventory": "families",

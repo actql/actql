@@ -728,12 +728,12 @@ test "graft observes exact raw input lifetime until output handoff" {
     fn() { true },
   ).unwrap()
   assert_true(
-    advance_graft(finishing, 2).unwrap() is GraftContinue(progress=2L, work=2L),
+    advance_graft(finishing, 2).unwrap() is GraftContinue(progress=1L, work=2L),
   )
   right_live.val = false
   assert_true(
     advance_graft(finishing, 1).unwrap()
-    is GraftFailed(GraftInputUnavailable, progress=2L, work=2L),
+    is GraftFailed(GraftInputUnavailable, progress=1L, work=2L),
   )
   assert_eq(cleanup_graft(finishing), Ok(true))
 
@@ -754,7 +754,7 @@ test "graft observes exact raw input lifetime until output handoff" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(completed, 3).unwrap() is GraftComplete(output, ..) else {
+  guard advance_graft(completed, 5).unwrap() is GraftComplete(output, ..) else {
     fail("live graft did not complete")
   }
   left_live.val = false
@@ -791,6 +791,101 @@ fn union_inputs(
 }
 
 ///|
+test "structural Graph modes charge empty source positions and completion" {
+  let left_owner = source_owner()
+  let right_owner = source_owner()
+  let left = empty_graph(left_owner, [], [])
+  let right = empty_graph(right_owner, [], [])
+  for (mode, exact) in [(0, 3), (1, 5), (2, 2)] {
+    let owner = match mode {
+      0 => graft_owner(left_owner, right_owner)
+      1 => union_owner(left_owner, right_owner)
+      _ => subtract_owner(left_owner, right_owner)
+    }
+    let reads = if mode == 1 {
+      union_inputs(owner, left_owner, right_owner, left, right)
+    } else {
+      graft_inputs(owner, left_owner, right_owner, left, right)
+    }
+    let views = reads.map(read => @graph.producer_read_view(read).unwrap())
+    for ceiling in [exact - 1, exact] {
+      let execution = if mode == 0 {
+        start_graft(
+          @bounded.control(),
+          sequence(owner),
+          0,
+          reads,
+          { ..storage_limits(), max_work: ceiling, },
+          4096L,
+          fn() { true },
+        ).unwrap()
+      } else {
+        start_graft_views(
+          @bounded.control(),
+          sequence(owner),
+          0,
+          views,
+          { ..storage_limits(), max_work: ceiling, },
+          4096L,
+          fn() { true },
+        ).unwrap()
+      }
+      let mut terminal = false
+      let mut completed : @graph.Completed? = None
+      let mut polls = 0
+      while !terminal {
+        polls += 1
+        assert_true(polls <= exact + 1)
+        match advance_graft(execution, 1).unwrap() {
+          GraftContinue(..) => ()
+          GraftComplete(output, work~, ..) => {
+            assert_eq(ceiling, exact)
+            assert_eq(work, exact.to_int64())
+            assert_eq(
+              @storage.node_count(@graph.completed_storage(output).unwrap()),
+              0,
+            )
+            completed = Some(output)
+            terminal = true
+          }
+          GraftFailed(GraftWorkLimit, work~, ..) => {
+            assert_eq(ceiling, exact - 1)
+            assert_eq(work, ceiling.to_int64())
+            terminal = true
+          }
+          _ => fail("structural Graph mode escaped its work ceiling")
+        }
+      }
+      assert_eq(cleanup_graft(execution), Ok(true))
+      if completed is Some(output) {
+        assert_true(@graph.discard_completed(output))
+      }
+    }
+    if mode == 1 {
+      let control = @bounded.control()
+      let cancelled = start_graft_views(
+        control,
+        sequence(owner),
+        0,
+        views,
+        { ..storage_limits(), max_work: exact, },
+        4096L,
+        fn() { true },
+      ).unwrap()
+      assert_true(
+        advance_graft(cancelled, 1).unwrap()
+        is GraftContinue(progress=0L, work=1L),
+      )
+      assert_true(@bounded.request_cancel(control))
+      assert_true(advance_graft(cancelled, 1).unwrap() is GraftStopped(_))
+      assert_eq(cleanup_graft(cancelled), Ok(true))
+    }
+  }
+  assert_true(@graph.discard_completed(left))
+  assert_true(@graph.discard_completed(right))
+}
+
+///|
 test "graft preserves ordered inputs and collapses equal declarations" {
   let left_owner = source_owner()
   let right_owner = source_owner()
@@ -812,10 +907,10 @@ test "graft preserves ordered inputs and collapses equal declarations" {
     advance_graft(execution, 1).unwrap() is GraftContinue(progress=1L, work=1L),
   )
   assert_true(
-    advance_graft(execution, 1).unwrap() is GraftContinue(progress=2L, work=2L),
+    advance_graft(execution, 1).unwrap() is GraftContinue(progress=1L, work=2L),
   )
-  guard advance_graft(execution, 1).unwrap()
-    is GraftComplete(completed, progress=2L, work=2L) else {
+  guard advance_graft(execution, 3).unwrap()
+    is GraftComplete(completed, progress=2L, work=5L) else {
     fail("completed graft")
   }
   let result = @graph.completed_storage(completed).unwrap()
@@ -839,8 +934,8 @@ test "graft preserves ordered inputs and collapses equal declarations" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(repeated_execution, 3).unwrap()
-    is GraftComplete(repeated_output, progress=2L, work=2L) else {
+  guard advance_graft(repeated_execution, 5).unwrap()
+    is GraftComplete(repeated_output, progress=2L, work=5L) else {
     fail("completed repeated-input graft")
   }
   let repeated_result = @graph.completed_storage(repeated_output).unwrap()
@@ -874,8 +969,8 @@ test "graft consumes exact common Graph views" {
   guard advance_graft(execution, 1).unwrap() is GraftContinue(_) else {
     fail("second view was not consumed")
   }
-  guard advance_graft(execution, 1).unwrap()
-    is GraftComplete(output, progress=2L, work=2L) else {
+  guard advance_graft(execution, 3).unwrap()
+    is GraftComplete(output, progress=2L, work=5L) else {
     fail("view graft did not complete")
   }
   let storage = @graph.completed_storage(output).unwrap()
@@ -958,11 +1053,14 @@ test "graft rejects conflicting payloads without exposing partial output" {
     fn() { true },
   ).unwrap()
   assert_true(
-    advance_graft(execution, 2).unwrap()
+    advance_graft(execution, 2).unwrap() is GraftContinue(progress=1L, work=2L),
+  )
+  assert_true(
+    advance_graft(execution, 1).unwrap()
     is GraftFailed(
       GraftOutput(@graph.Storage(@storage.DuplicateNodeConflict)),
       progress=1L,
-      work=1L
+      work=2L
     ),
   )
   assert_true(graft_stopped(execution))
@@ -1013,11 +1111,14 @@ test "graft enforces output admission before a second retained node" {
     fn() { true },
   ).unwrap()
   assert_true(
-    advance_graft(execution, 2).unwrap()
+    advance_graft(execution, 2).unwrap() is GraftContinue(progress=1L, work=2L),
+  )
+  assert_true(
+    advance_graft(execution, 1).unwrap()
     is GraftFailed(
       GraftOutput(@graph.Storage(@storage.NodeLimit)),
       progress=1L,
-      work=1L
+      work=2L
     ),
   )
   assert_true(graft_stopped(execution))
@@ -1045,7 +1146,7 @@ test "finite-list union enforces output admission at the exact boundary" {
     is GraftFailed(
       GraftOutput(@graph.Storage(@storage.NodeLimit)),
       progress=1L,
-      work=1L
+      work=2L
     ),
   )
   assert_eq(cleanup_graft(rejected), Ok(true))
@@ -1059,8 +1160,8 @@ test "finite-list union enforces output admission at the exact boundary" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(admitted, 8).unwrap()
-    is GraftComplete(output, progress=4L, work=4L) else {
+  guard advance_graft(admitted, 9).unwrap()
+    is GraftComplete(output, progress=4L, work=9L) else {
     fail("finite-list union did not complete at the exact node limit")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1085,8 +1186,8 @@ test "finite-list union applies explicit exact equality at every fold" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(execution, 8).unwrap()
-    is GraftComplete(output, progress=4L, work=4L) else {
+  guard advance_graft(execution, 9).unwrap()
+    is GraftComplete(output, progress=4L, work=9L) else {
     fail("explicit exact union did not complete")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1134,7 +1235,7 @@ test "structural subtraction removes identities and closes endpoints" {
   let output = match advance_graft(execution, 16).unwrap() {
     GraftComplete(output, progress~, work~) => {
       assert_eq(progress, 6L)
-      assert_eq(work, 6L)
+      assert_eq(work, 8L)
       output
     }
     GraftContinue(progress~, work~) =>
@@ -1175,8 +1276,8 @@ test "structural subtraction retains explicit exact-equal properties" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(execution, 4).unwrap()
-    is GraftComplete(output, progress=2L, work=2L) else {
+  guard advance_graft(execution, 5).unwrap()
+    is GraftComplete(output, progress=2L, work=5L) else {
     fail("exact-equal subtraction did not complete")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1232,8 +1333,8 @@ test "structural folds apply every finite numeric property strategy" {
       4096L,
       fn() { true },
     ).unwrap()
-    guard advance_graft(execution, 4).unwrap()
-      is GraftComplete(output, progress=2L, work=2L) else {
+    guard advance_graft(execution, 5).unwrap()
+      is GraftComplete(output, progress=2L, work=5L) else {
       fail("numeric structural union did not complete")
     }
     let result = @graph.completed_storage(output).unwrap()
@@ -1261,8 +1362,8 @@ test "structural folds apply every finite numeric property strategy" {
     4096L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(execution, 4).unwrap()
-    is GraftComplete(output, progress=2L, work=2L) else {
+  guard advance_graft(execution, 5).unwrap()
+    is GraftComplete(output, progress=2L, work=5L) else {
     fail("numeric structural subtraction did not complete")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1288,8 +1389,8 @@ test "structural folds apply every finite numeric property strategy" {
     8192L,
     fn() { true },
   ).unwrap()
-  guard advance_graft(execution, 8).unwrap()
-    is GraftComplete(output, progress=6L, work=6L) else {
+  guard advance_graft(execution, 9).unwrap()
+    is GraftComplete(output, progress=6L, work=9L) else {
     fail("numeric node and edge fold did not complete")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1368,8 +1469,8 @@ test "finite structural mean folds in authored input order" {
     fn() { true },
   ).unwrap()
   assert_eq(graft_max_noninterruptible_value_nodes(execution), 802)
-  guard advance_graft(execution, 6).unwrap()
-    is GraftComplete(output, progress=3L, work=3L) else {
+  guard advance_graft(execution, 7).unwrap()
+    is GraftComplete(output, progress=3L, work=7L) else {
     fail("finite numeric fold did not complete")
   }
   let result = @graph.completed_storage(output).unwrap()
@@ -1406,8 +1507,8 @@ test "structural strategies consume exact common Graph views" {
       4096L,
       fn() { true },
     ).unwrap()
-    guard advance_graft(execution, 4).unwrap()
-      is GraftComplete(output, progress=2L, work=2L) else {
+    guard advance_graft(execution, 5).unwrap()
+      is GraftComplete(output, progress=2L, work=5L) else {
       fail("structural view strategy did not complete")
     }
     let result = @graph.completed_storage(output).unwrap()
@@ -1657,6 +1758,7 @@ test "graft cleanup reclaims a failed terminal nested set" {
     set_token: 0,
     set_cached_slots: 0,
     set_results: Map([]),
+    control_work_remaining: 100,
   }
   assert_true(cleanup_graft_state(state))
   assert_true(state.set_execution is None)
