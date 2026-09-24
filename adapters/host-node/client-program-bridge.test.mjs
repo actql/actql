@@ -358,6 +358,19 @@ test('Node ABI derives the checked named Result and request identity', async () 
     '{"id":{"nullable":false,"type":"number"}}');
   assert.equal(moon.clientProgramLocalValuesOutputSchemaCid(outputSchema),
     'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513');
+  const fragment = checked(moon.clientProgramIssueLocalValuesFragment(
+    prepared, 0));
+  assert.equal(moon.clientProgramLocalValuesFragmentOutputContractCid(fragment),
+    'sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c');
+  assert.deepEqual(JSON.parse(moon.clientProgramLocalValuesFragmentWire(
+    fragment)), {
+    input_contracts: {}, kind: 'aoa_fragment',
+    logical_cid: moon.clientProgramLocalValuesAoACid(aoa),
+    node_id: 'values_0',
+    output_contracts: {values_0:
+      moon.clientProgramLocalValuesFragmentOutputContractCid(fragment)},
+    pipeline: JSON.parse(pipeline),
+  });
   const resultRow = checked(moon.clientProgramIssueResultRowContract(
     prepared, 0, 0));
   assert.equal(moon.clientProgramResultRowContractName(resultRow), 'rows');
@@ -383,6 +396,17 @@ test('Node ABI derives the checked named Result and request identity', async () 
     widePrepared, 0, 0));
   assert.equal(moon.clientProgramResultRowContractCid(projectedRow),
     moon.clientProgramResultRowContractCid(resultRow));
+  const wideFragment = checked(moon.clientProgramIssueLocalValuesFragment(
+    widePrepared, 0));
+  assert.notEqual(moon.clientProgramLocalValuesFragmentOutputContractCid(
+    wideFragment), moon.clientProgramResultRowContractCid(projectedRow));
+  assert.deepEqual(JSON.parse(
+    moon.clientProgramLocalValuesFragmentOutputContractWire(wideFragment)), {
+    additional_properties: false,
+    fields: {hidden: {nullable: false, type: 'string'},
+      id: {nullable: false, type: 'number'}},
+    nullable: false, type: 'object',
+  });
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
       pipeline, moon.clientProgramLocalValuesAoACid(aoa))));
@@ -399,6 +423,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramIssueLocalValuesOutputSchema(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(
+    moon.clientProgramIssueLocalValuesFragment(prepared, 1)),
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramIssueResultRowContract(prepared, 0, 1)),
