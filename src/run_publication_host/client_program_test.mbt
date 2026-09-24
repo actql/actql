@@ -93,6 +93,39 @@ test "ordinary values document prepares one named Effect-free result" {
     semantics_cid +
     "\",\"version\":\"actql-program-definition/0.1\"}",
   )
+  let semantics = emit_prepared_client_program_semantics(
+    prepared, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq("sha256:" + @sha.hex(@utf8.encode(semantics)), semantics_cid)
+  let stage_semantics = emit_prepared_client_stage_semantics(
+    prepared, 0, 10000, 1000, 20,
+  ).unwrap()
+  let source = @checked.source_identity(
+    @strategy.graph_program(prepared_client_graph(prepared)),
+  )
+  let expected_stage_cid = @program_refs.program_semantics_stage_cid(
+    @program_refs.program_definition_semantics(
+      @context.program_identity_definition(source),
+    ),
+    0,
+  ).unwrap()
+  assert_eq(
+    "sha256:" + @sha.hex(@utf8.encode(stage_semantics)),
+    expected_stage_cid,
+  )
+  assert_true(
+    emit_prepared_client_stage_semantics(prepared, 1, 10000, 1000, 20)
+    is Err(ClientIdentityMaterialIssue::MissingStage),
+  )
+  assert_true(
+    emit_prepared_client_program_semantics(
+      prepared,
+      semantics.length() - 1,
+      1000,
+      20,
+    )
+    is Err(ClientIdentityMaterialIssue::Encoding),
+  )
   assert_true(
     emit_prepared_client_program_definition(
       prepared,
@@ -100,7 +133,7 @@ test "ordinary values document prepares one named Effect-free result" {
       1000,
       20,
     )
-    is Err(ClientProgramDefinitionIssue::Encoding),
+    is Err(ClientIdentityMaterialIssue::Encoding),
   )
   assert_eq(
     identity.program_definition_cid,
@@ -178,6 +211,14 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     emit_prepared_client_program_definition(spaced, 10000, 1000, 20).unwrap(),
     definition,
+  )
+  assert_eq(
+    emit_prepared_client_program_semantics(spaced, 10000, 1000, 20).unwrap(),
+    semantics,
+  )
+  assert_eq(
+    emit_prepared_client_stage_semantics(spaced, 0, 10000, 1000, 20).unwrap(),
+    stage_semantics,
   )
   assert_eq(
     emit_prepared_client_task_aoa_steps(spaced, 0, aoa_limits, 10000, 1000, 20).unwrap(),

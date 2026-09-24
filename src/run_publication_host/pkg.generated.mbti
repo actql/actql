@@ -34,7 +34,11 @@ pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
-pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientProgramDefinitionIssue]
+pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
+
+pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
+
+pub fn emit_prepared_client_stage_semantics(PreparedClientProgram, Int, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskAoAStepsIssue]
 
@@ -69,7 +73,8 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
-pub(all) enum ClientProgramDefinitionIssue {
+pub(all) enum ClientIdentityMaterialIssue {
+  MissingStage
   Encoding
 }
 
