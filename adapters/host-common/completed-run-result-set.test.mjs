@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {storeCompletedRunResultSet} from './completed-run-publication.mjs';
+import {releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from
+  './completed-run-publication.mjs';
 import {runtimeCore} from './runtime-core.mjs';
 
 const contract = identity => ({name: 'result_definition', identity,
@@ -79,4 +80,55 @@ test('a foreign export cannot strand its prepared payload', async () => {
     outputLimits: {}, contractLimits: {},
   }), {code: 'InvalidCompletedRunPublicationExport'});
   assert.equal(pending, false);
+});
+
+test('explicit prepared release is single-flight and retryable', async () => {
+  const definition = contract(cid('1'));
+  const control = runtimeCore(moon).publicationControl;
+  let pending = true;
+  let releases = 0;
+  let retries = 0;
+  let failRelease = true;
+  const prepared = {
+    status: () => ({pending}),
+    async release() {
+      releases++;
+      if (failRelease) throw new Error('EIO');
+      pending = false;
+    },
+    async retry() {
+      retries++;
+      failRelease = false;
+      pending = false;
+    },
+  };
+  const execution = {
+    status: 'host-tasks-completed',
+    resultInventory: [{name: 'first'}],
+    publicationInventory: {occurrences: [
+      {name: 'first', task: 0, definitionContract: definition},
+    ]},
+    async storePublicationResult() {
+      return result('first', 0, definition, prepared);
+    },
+  };
+  const stored = await storeCompletedRunResultSet({
+    execution, store: {}, control,
+    runDefinition: contract(cid('2')), invocation: contract(cid('3')),
+    results: [{retention: contract(cid('4')), evidenceContext: {}}],
+    outputLimits: {}, contractLimits: {},
+  });
+  const first = releaseCompletedRunPreparedPayloads(stored, control);
+  const joined = releaseCompletedRunPreparedPayloads(stored, control);
+  assert.equal(first, joined);
+  await assert.rejects(first, {cleanupPending: true});
+  assert.equal(releases, 1);
+  assert.equal(pending, true);
+  assert.equal(await releaseCompletedRunPreparedPayloads(stored, control), true);
+  assert.equal(retries, 1);
+  assert.equal(pending, false);
+  assert.equal(await releaseCompletedRunPreparedPayloads(stored, control), false);
+  assert.equal(releases, 1);
+  assert.throws(() => releaseCompletedRunPreparedPayloads(stored, {}),
+    {code: 'InvalidCompletedRunResultSetOwner'});
 });

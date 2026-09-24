@@ -95,6 +95,15 @@ coordinated contract correction before ordinary Effectful Run completion.
 The coordinator also requires the exact in-process export owner, not a copied
 result object or a second execution of the same checked Run. This is physical
 custody for issuance, not a durable publication or recovery guarantee.
+Unpublished Result-set release now uses the common prepared-owner cleanup
+actions as one single-flight operation. A failed physical release retains a
+retry handle and blocks later evidence issuance; the Host fixture no longer
+loops over raw prepared handles to reclaim its results.
+This currently releases the prepared physical payload, not the separate
+semantic schema object installed by `putSemantic`. The real Store fixture
+retains 41 charged schema bytes after unpublished payload release. A future
+Store custody change must reclaim an unreferenced schema without removing a
+schema shared with another live preparation or committed Run.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
