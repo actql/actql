@@ -1523,6 +1523,53 @@ pub fn client_program_local_effect_source_count(
 }
 
 ///|
+/// Capture every checked Effect source as one consumer holding after Compute.
+/// The resulting owner is input custody only, never physical apply authority.
+#export_name("clientProgramPinEffectSources")
+pub fn client_program_pin_effect_sources(
+  value : ClientLocalEffectHost,
+  max_pins : Int,
+) -> Result[@strategy.CapturedEffectInputs, @strategy.RunIssue] {
+  @strategy.pin_captured_effect_sources(value.run, max_pins)
+}
+
+///|
+/// Revoke the ordinary task port only after its checked Effect consumer has
+/// acquired custody. Existing pins keep their own charged allocation.
+#export_name("clientProgramCloseEffectSourcePort")
+pub fn client_program_close_effect_source_port(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  @strategy.close_captured_effect_source_port(value, member_index)
+}
+
+///|
+#export_name("clientProgramEffectInputCount")
+pub fn client_program_effect_input_count(
+  value : @strategy.CapturedEffectInputs,
+) -> Int {
+  @strategy.captured_effect_inputs_count(value)
+}
+
+///|
+#export_name("clientProgramEffectInputAvailable")
+pub fn client_program_effect_input_available(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> Bool {
+  @strategy.captured_effect_input_at(value, member_index) is Some(_)
+}
+
+///|
+#export_name("clientProgramReleaseEffectInputs")
+pub fn client_program_release_effect_inputs(
+  value : @strategy.CapturedEffectInputs,
+) -> Bool {
+  @strategy.release_captured_effect_inputs(value)
+}
+
+///|
 /// Compute-only opening for an admitted source-free Effect Run. It preserves
 /// the captured Effect owner; physical mutation still requires Preview and
 /// apply admission after the checked computation settles.

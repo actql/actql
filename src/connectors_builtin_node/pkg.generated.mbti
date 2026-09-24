@@ -59,6 +59,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
+
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.ClientDirectResultRoot) -> String
@@ -70,6 +72,10 @@ pub fn client_program_direct_values_result_root_wire(@run_publication_host.Clien
 pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_input_available(@physical_strategy.CapturedEffectInputs, Int) -> Bool
+
+pub fn client_program_effect_input_count(@physical_strategy.CapturedEffectInputs) -> Int
 
 pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
 
@@ -127,6 +133,8 @@ pub fn client_program_open_source_free_local_effect_host(@run_publication_host.P
 
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_pin_effect_sources(ClientLocalEffectHost, Int) -> Result[@physical_strategy.CapturedEffectInputs, @physical_strategy.RunIssue]
+
 pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManifestIdentity) -> String
 
 pub fn client_program_plan_fact_manifest_wire(@run_publication_host.PlanFactManifestIdentity) -> String
@@ -160,6 +168,8 @@ pub fn client_program_publication_rows_limit_json(@run_publication_host.Prepared
 pub fn client_program_publication_witness_bodies(@run_publication_host.ClientPublicationWitnesses) -> Array[String]
 
 pub fn client_program_publication_witness_cids(@run_publication_host.ClientPublicationWitnesses) -> Array[String]
+
+pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
