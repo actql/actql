@@ -313,11 +313,45 @@ pub fn client_program_request_identity(
 }
 
 ///|
-/// Assemble an installed Local realization from the checked task owners.
-/// The two registry bodies are independently validated against the selected
-/// engine pins; caller-provided names or CIDs cannot install an extension.
-/// This opens only an in-memory task owner. Client request and Run admission
-/// must finish before the Host invokes it or starts physical work.
+/// The installed Local profile applies one bounded sequence definition to
+/// compiler material and the task that physically executes it.
+fn client_local_sequence_limits() -> @lower.SequenceLimits {
+  {
+    max_steps: 100,
+    max_rows: 100,
+    max_cells: 10000,
+    max_bindings: 100,
+    max_name_bytes: 10000,
+    expressions: {
+      max_nodes: 10000,
+      max_work: 100000,
+      max_depth: 100,
+      max_literal_nodes: 10000,
+      max_literal_text_bytes: 10000,
+    },
+  }
+}
+
+///|
+/// In-process compiler material for this installed Local profile. The same
+/// bounded sequence limits govern physical task preparation below. The output
+/// is not an Executable Plan, publication authority or Client wire value.
+#export_name("clientProgramLocalAoASteps")
+pub fn client_program_local_aoa_steps(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[String, @publication_host.ClientTaskAoAStepsIssue] {
+  @publication_host.emit_prepared_client_task_aoa_steps(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 fn reject_client_local_run(
   run : @strategy.CapturedDAG,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
@@ -327,6 +361,11 @@ fn reject_client_local_run(
 }
 
 ///|
+/// Assemble an installed Local realization from the checked task owners.
+/// The two registry bodies are independently validated against the selected
+/// engine pins; caller-provided names or CIDs cannot install an extension.
+/// This opens only an in-memory task owner. Client request and Run admission
+/// must finish before the Host invokes it or starts physical work.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
@@ -391,20 +430,7 @@ pub fn client_program_open_source_free_local_host(
         task,
         contracts,
         [],
-        {
-          max_steps: 100,
-          max_rows: 100,
-          max_cells: 10000,
-          max_bindings: 100,
-          max_name_bytes: 10000,
-          expressions: {
-            max_nodes: 10000,
-            max_work: 100000,
-            max_depth: 100,
-            max_literal_nodes: 10000,
-            max_literal_text_bytes: 10000,
-          },
-        },
+        client_local_sequence_limits(),
         100000,
         10000,
       ) {
