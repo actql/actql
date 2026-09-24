@@ -574,6 +574,19 @@ pub fn client_program_admit_publication_fact_entries(
 }
 
 ///|
+/// Bind a saved manifest to the Plan's exact fact array and canonical CID.
+/// The product compiler must still validate each fact and the whole Plan.
+#export_name("clientProgramCheckPlanFactManifestIdentity")
+pub fn client_program_check_plan_fact_manifest_identity(
+  manifest_wire : String,
+  plan_facts_wire : String,
+) -> Result[String, @publication_host.PlanFactManifestIdentityIssue] {
+  @publication_host.check_plan_fact_manifest_identity(
+    manifest_wire, plan_facts_wire, 100000, 10000, 100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.

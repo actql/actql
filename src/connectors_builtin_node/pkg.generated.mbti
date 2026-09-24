@@ -43,6 +43,8 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
+
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
