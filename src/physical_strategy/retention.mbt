@@ -1,6 +1,20 @@
 ///|
 priv struct TaskLifetime {
   mut live : Bool
+  mut pins : Int
+}
+
+///|
+/// A bounded borrow of one exact cell-backed task output. Closing the
+/// ordinary output port revokes new borrows, but cannot release its allocation
+/// while a consumer still owns this pin. The original completion must also
+/// remain available. Managed resident material needs its own physical owner
+/// and is not admitted through this port.
+struct CapturedOutputPin {
+  run : CapturedDAG
+  task : Int
+  output : @execution.CompletedOutput
+  mut live : Bool
 }
 
 ///|
@@ -64,6 +78,64 @@ pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
 }
 
 ///|
+/// Borrow an already completed cell-backed output before the Host closes its
+/// ordinary port. The caller supplies a finite per-task pin ceiling; no cells
+/// or rows are copied. Managed and Carrier outputs require a separate physical
+/// retention owner and are rejected here.
+pub fn pin_captured_task_output(
+  run : CapturedDAG,
+  task : Int,
+  target : @pipeline.Target,
+  max_pins : Int,
+) -> Result[CapturedOutputPin, RunIssue] {
+  if max_pins <= 0 || task < 0 || task >= run.outputs.length() {
+    return Err(ForeignCandidate)
+  }
+  if !task_done(run, task) ||
+    captured_task_target(run, task) != Some(target) ||
+    !run.lifetimes[task].live {
+    return Err(NotReady)
+  }
+  guard run.outputs[task] is Some(Materialized(output)) else {
+    return Err(UnsupportedGraph)
+  }
+  if !@execution.completed_has_cell_access(output) {
+    return Err(UnsupportedGraph)
+  }
+  if !@execution.completed_output_available(output) {
+    return Err(NotReady)
+  }
+  if run.lifetimes[task].pins >= max_pins {
+    return Err(Physical(@resources.HoldingLimit))
+  }
+  run.lifetimes[task].pins += 1
+  Ok({ run, task, output, live: true, })
+}
+
+///|
+/// Read a materialized Relation through this exact live pin. The returned
+/// alias is revoked when the pin is released, even if the caller retains it.
+/// A loss of the original completion remains observable independently.
+pub fn captured_output_pin_materialized(
+  pin : CapturedOutputPin,
+) -> @execution.CompletedOutput {
+  @execution.restrict_completed_output(pin.output, fn() { pin.live })
+}
+
+///|
+/// End one consumer's custody exactly once. The original physical-release
+/// predicate still decides when its allocation may leave the ledger.
+pub fn release_captured_output_pin(pin : CapturedOutputPin) -> Bool {
+  if !pin.live {
+    return false
+  }
+  pin.live = false
+  pin.run.lifetimes[pin.task].pins -= 1
+  collect_captured_retention(pin.run)
+  true
+}
+
+///|
 /// Release the Host's result port. Already completed descendants keep their own
 /// results and the backing allocations they retain; new readers are revoked.
 /// Exporting a result outside this run requires the Host to keep its port open
@@ -83,6 +155,8 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
   if task == 0 {
     run.source = None
   }
+  // A pinned consumer owns a separate alias until its release. The ordinary
+  // port is revoked immediately; its output slot may be dropped now.
   run.outputs[task] = None
   // A cached binding is not a started consumer. Drop our revoked aliases;
   // an in-flight native attempt keeps its input until cleanup is confirmed.
@@ -101,7 +175,9 @@ fn collect_captured_retention(run : CapturedDAG) -> Unit {
   // Backward edges ensure one descending pass releases newly unreferenced
   // ancestors. This traversal is bounded by the checked graph's task limit.
   for task = run.resources.length() - 1; task >= 0; task = task - 1 {
-    guard !run.lifetimes[task].live && run.resources[task] is Some(resource) else {
+    guard !run.lifetimes[task].live &&
+      run.lifetimes[task].pins == 0 &&
+      run.resources[task] is Some(resource) else {
       continue
     }
     let mut needed = false

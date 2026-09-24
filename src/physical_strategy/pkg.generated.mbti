@@ -97,6 +97,8 @@ pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
 
+pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
+
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
@@ -283,6 +285,8 @@ pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @phys
 
 pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
+
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
 pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
@@ -378,6 +382,8 @@ pub fn refresh_captured_retention(CapturedDAG) -> Unit
 pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -521,6 +527,8 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 type CapturedDAG
 
 type CapturedEffectRunDAG
+
+type CapturedOutputPin
 
 type CheckedDAG
 
