@@ -90,6 +90,20 @@ test('temporal joins retain exact output workspace evidence', () => {
   }
 });
 
+test('interval join retains work and lifecycle route assurance', () => {
+  for (const role of [
+    'interval_work_exact_one_short',
+    'interval_kernel_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'interval_join');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA interval_join: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('time-series output and Host cancellation evidence must remain bound', () => {
   assert.match(run(undefined, routes => {
     const series = routes.routes.find(entry => entry.family === 'TEA' &&

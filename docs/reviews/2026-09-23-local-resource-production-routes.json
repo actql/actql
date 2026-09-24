@@ -3341,6 +3341,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
           "fixture": "bounded interval checks metadata and output workspace limits"
+        },
+        {
+          "role": "interval_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "bounded interval charges every explored pair"
+        },
+        {
+          "role": "interval_kernel_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "bounded interval join cancels before publishing partial output"
         }
       ],
       "environment_tests": [

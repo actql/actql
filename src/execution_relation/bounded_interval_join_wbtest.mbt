@@ -184,6 +184,9 @@ test "bounded interval checks metadata and output workspace limits" {
 
 ///|
 test "bounded interval charges every explored pair" {
+  // This fixed two-by-two fixture includes four clock-loading steps and four
+  // pair visits, three output rows, and finalization in the 132-unit work
+  // envelope. The literal is independent of the execution's work counter.
   let (_, exact, _) = bounded_interval_fixture(max_work=132)
   let mut exact_terminal = false
   while !exact_terminal {
@@ -198,7 +201,7 @@ test "bounded interval charges every explored pair" {
     }
   }
   assert_true(cleanup_bounded_interval_join(exact).unwrap())
-  let (_, short, _) = bounded_interval_fixture(max_work=131)
+  let (_, short, inputs) = bounded_interval_fixture(max_work=131)
   let mut short_terminal = false
   while !short_terminal {
     match advance_bounded_interval_join(short, 1).unwrap() {
@@ -209,7 +212,10 @@ test "bounded interval charges every explored pair" {
       BoundedIntervalJoinStopped(_, ..) => fail("unexpected one-short stop")
     }
   }
+  assert_true(inputs.all(producer_read_available))
+  assert_true(bounded_interval_join_cleanup_pending(short))
   assert_true(cleanup_bounded_interval_join(short).unwrap())
+  assert_false(bounded_interval_join_cleanup_pending(short))
 }
 
 ///|
