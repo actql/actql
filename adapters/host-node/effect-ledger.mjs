@@ -437,6 +437,66 @@ export function openEffectLedger({
       }
       return receipt;
     },
+    // Inspect one ordered member from a single durable head snapshot. Only
+    // the previously stored physical response can supply a terminal row
+    // Receipt; unknown and unattempted rows supply no invented outcome.
+    // Current evidence-view authorization belongs to the Host caller.
+    checkMemberReceiptRowPartitionEvidence({preview, memberIndex,
+      rowOwners, memberReceiptWire}) {
+      if (!preview || !Number.isSafeInteger(memberIndex) ||
+          !Array.isArray(rowOwners) || rowOwners.length > maxEntries ||
+          typeof memberReceiptWire !== 'string') {
+        fail('InvalidEffectMemberReceiptEvidence');
+      }
+      const claims = rowOwners.map(owner => {
+        const claim = owner?.claims === undefined ? owner?.claim
+          : owner.claims?.[owner.batchRowIndex];
+        if (!claim?.basis || !claim.scope || !claim.locator || !claim.key ||
+            typeof claim.canonicalRequestCid !== 'string' ||
+            typeof claim.intentFingerprintCid !== 'string' ||
+            owner?.claims !== undefined &&
+              (!Array.isArray(owner.claims) ||
+                !Number.isSafeInteger(owner.batchRowIndex) ||
+                owner.batchRowIndex < 0 ||
+                owner.batchRowIndex >= owner.claims.length)) {
+          fail('InvalidEffectMemberReceiptEvidence');
+        }
+        return claim;
+      });
+      const locatorCids = claims.map(claim =>
+        control.logicalItemLocatorCid(claim.locator));
+      const heads = physical.currentSnapshot(locatorCids).map(row =>
+        validateStored(row)?.entry);
+      const activeOwners = heads.map(head => head !== undefined &&
+        activePhysicalFlights.has(flightKey(head)));
+      const terminalWires = heads.map((head, rowIndex) => {
+        if (head === undefined ||
+            ![2, 3, 4].includes(control.ledgerEntryStateCode(head))) {
+          return undefined;
+        }
+        const owner = rowOwners[rowIndex];
+        const {current, receipt, terminal} = admitStoredRowOutcome({
+          ...(owner.claims === undefined ? {claim: claims[rowIndex]} : {
+            claims: owner.claims, batchRowIndex: owner.batchRowIndex,
+          }),
+          preview, memberIndex, previewRowIndex: rowIndex,
+        });
+        if (control.ledgerEntryCid(current.entry) !==
+            control.ledgerEntryCid(head) ||
+            control.ledgerEntryCid(terminal) !==
+              control.ledgerEntryCid(head)) {
+          fail('EffectMemberReceiptHeadChanged');
+        }
+        return receipt.wire;
+      });
+      return control.checkMemberReceiptRowPartitionEvidence(
+        preview, memberIndex, claims.map(claim => claim.scope),
+        claims.map(claim => claim.locator),
+        claims.map(claim => claim.key),
+        claims.map(claim => claim.basis), heads, activeOwners,
+        terminalWires, memberReceiptWire, rowOwners.length,
+        maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+    },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
     readClaimedBatchResponse(claims) {

@@ -128,3 +128,56 @@ export async function readAuthorizedEffectTerminalOutcome(options) {
   });
   return Object.freeze({receipt, binding});
 }
+
+// A member Receipt is not evidence by itself. Authorize the exact retained
+// dispatches first, then compare its row partition with one durable Store
+// snapshot and re-admit every terminal row Receipt from saved response bytes.
+export async function checkAuthorizedEffectMemberReceiptRowPartition({
+  ledger,
+  rowOwners,
+  preview,
+  memberIndex,
+  memberReceiptWire,
+  commonMoon,
+  authorizeEvidenceRead,
+  providerBinding = {},
+}) {
+  if (!Array.isArray(rowOwners) || rowOwners.length === 0 ||
+      typeof ledger?.checkMemberReceiptRowPartitionEvidence !== 'function') {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const batches = new Map();
+  const ownedOwners = rowOwners.map(owner => {
+    if (owner?.claims === undefined) {
+      return Object.freeze({claim: snapshotEffectDispatchClaim(owner?.claim)});
+    }
+    if (!Array.isArray(owner.claims) ||
+        !Number.isSafeInteger(owner.batchRowIndex) ||
+        owner.batchRowIndex < 0 || owner.batchRowIndex >= owner.claims.length) {
+      fail('InvalidEffectMemberReceiptEvidence');
+    }
+    let claims = batches.get(owner.claims);
+    if (claims === undefined) {
+      claims = snapshotEffectDispatchClaims(owner.claims);
+      batches.set(owner.claims, claims);
+    }
+    return Object.freeze({claims, batchRowIndex: owner.batchRowIndex});
+  });
+  const authorizedBatches = new Set();
+  for (const owner of ownedOwners) {
+    if (owner.claim !== undefined) {
+      await readAuthorizedEffectResponse({ledger, claims: owner.claim,
+        commonMoon, expectedRequestCid: owner.claim.canonicalRequestCid,
+        providerBinding, authorizeEvidenceRead});
+    } else if (!authorizedBatches.has(owner.claims)) {
+      await readAuthorizedEffectResponse({ledger, claims: owner.claims,
+        commonMoon,
+        expectedRequestCid: owner.claims[0].canonicalRequestCid,
+        providerBinding, authorizeEvidenceRead, batch: true});
+      authorizedBatches.add(owner.claims);
+    }
+  }
+  return ledger.checkMemberReceiptRowPartitionEvidence({
+    preview, memberIndex, rowOwners: ownedOwners, memberReceiptWire,
+  });
+}
