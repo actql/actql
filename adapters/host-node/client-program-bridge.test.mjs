@@ -962,6 +962,8 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
     bound, registry, values, 1n, 0n, 0n, 0n);
   assert.ok(owned);
   assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 2);
+  assert.throws(() => checked(moon.clientProgramPinEffectSources(
+    owned, 2)), {code: 'MoonBitHostFailure'});
   const execution = await runCapturedInternalStrategy(
     moon.clientProgramLocalEffectHostRuntime(owned));
   try {
@@ -1045,6 +1047,8 @@ test('Effect sources retain exact physical producers across split Stages',
       const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
         bound, registry, values, 1n, 0n, 0n, 0n);
       assert.ok(owned);
+      assert.throws(() => checked(moon.clientProgramPinEffectSources(
+        owned, 1)), {code: 'MoonBitHostFailure'});
       const execution = await runCapturedInternalStrategy(
         moon.clientProgramLocalEffectHostRuntime(owned));
       try {
