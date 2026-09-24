@@ -26,6 +26,7 @@ fn checked_preview_test_member(
   placeholder : String,
   reference : String,
   resolved_cid : String,
+  plan_cid? : String? = None,
 ) -> String {
   let cid = checked_preview_test_cid("a")
   let contract_fields = if kind == "command" {
@@ -64,7 +65,13 @@ fn checked_preview_test_member(
   "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"]," +
   "\"approval\":\"none\",\"on_item_failure\":\"" +
   policy +
-  "\",\"changes\":[],\"row_order\":[],\"effect_member_preview_cid\":\"" +
+  "\"," +
+  (if plan_cid is Some(plan) {
+    "\"effect_plan_logical_cid\":\"" + plan + "\","
+  } else {
+    ""
+  }) +
+  "\"changes\":[],\"row_order\":[],\"effect_member_preview_cid\":\"" +
   placeholder +
   "\",\"executed\":false}"
 }
@@ -79,6 +86,8 @@ fn checked_preview_test_identity(
   second_policy? : String? = None,
   contract_reference? : String = "mapping:fixture",
   resolved_contract_cid? : String? = None,
+  first_plan_cid? : String? = None,
+  second_plan_cid? : String? = None,
 ) -> @publication.EffectPreviewIdentity {
   let cid = checked_preview_test_cid("a")
   let resolved_cid = match resolved_contract_cid {
@@ -94,14 +103,25 @@ fn checked_preview_test_identity(
     None => if second == "second" { "continue" } else { "halt" }
   }
   let first_member = checked_preview_test_member(
-    first, first_kind, first_policy, first_placeholder, contract_reference, resolved_cid,
+    first,
+    first_kind,
+    first_policy,
+    first_placeholder,
+    contract_reference,
+    resolved_cid,
+    plan_cid=first_plan_cid,
   )
   let members = if include_second {
     first_member +
     "," +
     checked_preview_test_member(
-      second, second_kind, selected_second_policy, second_placeholder, contract_reference,
+      second,
+      second_kind,
+      selected_second_policy,
+      second_placeholder,
+      contract_reference,
       resolved_cid,
+      plan_cid=second_plan_cid,
     )
   } else {
     first_member
