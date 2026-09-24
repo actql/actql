@@ -1796,7 +1796,15 @@ reaches two independent downstream Relation computations and final reclaim on
 all three targets. The Effect-free Named Result path publishes and retrieves
 the retained diagnostics through the formal Store. A real environment timer
 now cancels bounded diagnostic work, observes kernel stop, prevents completion,
-and releases all holdings and reservations. `graph_bounds` is complete.
+and releases all holdings and reservations. Long Text identity ordering now
+uses the shared bounded key cursor rather than one synchronous comparison.
+A quantum-one Graph bounds fixture stops within the comparison, reclaims the
+attempt, confirms the canonical completed order, and checks an independently
+counted 184-unit control-work limit and its one-short failure. The degree
+entrypoint uses the same Graph diagnostic kernel. Existing degree fixtures
+cover its independent production reach and resource boundaries. This
+additional comparison fixture does not establish the providerless lane.
+`graph_bounds` is complete.
 Directional degree metrics now count
 incoming, outgoing, and total incidences in canonical node order, including
 two total incidences for a self-loop. The shared bounded kernel admits its

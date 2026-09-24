@@ -1293,6 +1293,15 @@ test('graph bounds work evidence cannot disappear from its route', () => {
   }), /SGA graph_bounds: exact work boundary fixture is missing/);
 });
 
+test('graph bounds requires bounded identity ordering evidence', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graph_bounds');
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'graph_bounds_long_text_compare_cancel_cleanup');
+  }), /SGA graph_bounds: bounded identity ordering evidence is missing/u);
+});
+
 test('degree control-work evidence cannot disappear from its route', () => {
   assert.match(run(undefined, routes => {
     const degree = routes.routes.find(entry => entry.family === 'SGA' &&

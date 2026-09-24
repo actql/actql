@@ -1233,6 +1233,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('graph_bounds_work_exact_one_short')) {
     fail(`${label}: exact work boundary fixture is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
+    !boundaryRoles.has('graph_bounds_long_text_compare_cancel_cleanup')) {
+    fail(`${label}: bounded identity ordering evidence is missing`);
+  }
   if (route.family === 'SGA' && route.operation === 'degree' &&
     !boundaryRoles.has('degree_control_work_exact_one_short')) {
     fail(`${label}: exact control-work boundary fixture is missing`);
