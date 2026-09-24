@@ -131,6 +131,13 @@ pub fn[C, E] prepare_compute_host_policy_choice(
 }
 
 ///|
+pub fn[C, E] compute_host_policy_search_diagnostics(
+  host : ComputeHost[C, E],
+) -> @strategy.StrategySearchDiagnostics? {
+  host.estimates.bind(policy => adaptive_policy_search_diagnostics(policy))
+}
+
+///|
 pub fn[C, E] commit_compute_host_policy_choice(
   host : ComputeHost[C, E],
   position : Int?,

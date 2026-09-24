@@ -188,6 +188,14 @@ pub fn dispatch_policy_candidates(
 }
 
 ///|
+/// Exact planner-side counts for the pending candidate set.
+pub fn dispatch_policy_search_diagnostics(
+  host : StrategyHostDispatch,
+) -> @strategy.StrategySearchDiagnostics? {
+  @host_driver.compute_host_policy_search_diagnostics(host.runtime)
+}
+
+///|
 pub fn prepare_dispatch_policy_request(
   host : StrategyHostDispatch,
   request_id : String,

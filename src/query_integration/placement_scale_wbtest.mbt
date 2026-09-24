@@ -47,7 +47,16 @@ test "standard Host prepares bounded placement for twenty real module tasks" {
     max_work: 1000000,
     max_revisions: 1,
   }).unwrap()
+  let search_clock = @bench.monotonic_clock_start()
   assert_true(@dbhost.prepare_dispatch_policy_choice(host).unwrap())
+  let search_microseconds = @bench.monotonic_clock_end(search_clock)
+  let diagnostics = @dbhost.dispatch_policy_search_diagnostics(host).unwrap()
+  assert_true(!diagnostics.complete)
+  assert_eq(diagnostics.evaluated_assignments, 64)
+  assert_eq(diagnostics.generated_prefixes, 1918)
+  assert_eq(diagnostics.peak_frontier_states, 192)
+  assert_eq(diagnostics.peak_index_cells, 3776)
+  println("ACTQL_PLACEMENT_SEARCH " + search_microseconds.to_string())
   assert_true(@strategy.captured_dag_strategy(run) is None)
   @dbhost.commit_dispatch_offline_policy_choice(host).unwrap()
   let revision = @strategy.captured_dag_strategy(run).unwrap()

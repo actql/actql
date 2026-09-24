@@ -225,6 +225,17 @@ pub fn[E] adaptive_policy_candidates(
 }
 
 ///|
+/// Exact search counts for the currently pending choice. These counts describe
+/// planner metadata, not process memory or an allocator peak.
+pub fn[E] adaptive_policy_search_diagnostics(
+  policy : AdaptiveDispatch[E],
+) -> @strategy.StrategySearchDiagnostics? {
+  policy.pending_choice.bind(choices => {
+    Some(@strategy.strategy_search_diagnostics(choices))
+  })
+}
+
+///|
 pub fn[E] commit_adaptive_policy_decision(
   policy : AdaptiveDispatch[E],
   request : @strategy.PolicyRequest,

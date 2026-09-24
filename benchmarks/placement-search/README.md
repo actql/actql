@@ -18,7 +18,12 @@ preparation, search, assertions and test-runner overhead. The one/two-offer
 profile runs both configurations per repetition. The 20-task profile constructs
 a checked 21-stage Program, then prepares 20 Local/DuckDB estimate profiles;
 its estimate rates are fixture values, not a calibrated production model.
-`maxRssKiB` is the whole
+For the 20-task profile, `plannerOnlyMedianMs` and `plannerOnlyP95Ms` time
+bounded candidate preparation inside the MoonBit Host, after profile
+installation and before the policy decision. This excludes Program checking,
+Host construction, candidate commit and test-runner overhead. The test also
+asserts exact generated-prefix, frontier-state and index-cell counts. These
+are planner metadata counts, not allocator bytes. `maxRssKiB` is the whole
 process peak, including the large generated test bundle and runtime; it is not
 planner allocation or an estimate of deployed Host memory. Neither number is
 an acceptance threshold. The exact in-process frontier counters are asserted

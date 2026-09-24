@@ -33,12 +33,21 @@ function measure(file, index, count) {
   if (results !== count) {
     throw new Error(`test ${file}:${index} returned ${results} results, expected ${count}`);
   }
+  const plannerMicroseconds = [...child.stdout.matchAll(
+    /ACTQL_PLACEMENT_SEARCH ([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/g,
+  )].map(match => Number(match[1]));
+  if (file === 'placement_scale_wbtest.mbt' &&
+      (plannerMicroseconds.length !== count ||
+        plannerMicroseconds.some(value => !Number.isFinite(value) || value < 0))) {
+    throw new Error('InvalidPlannerIntervalTelemetry');
+  }
   const line = child.stderr.split('\n').find(value =>
     value.startsWith('ACTQL_SEARCH_RESOURCE '));
   if (line === undefined) {
     throw new Error(`test ${file}:${index} omitted process resource telemetry`);
   }
-  return JSON.parse(line.slice('ACTQL_SEARCH_RESOURCE '.length));
+  return {...JSON.parse(line.slice('ACTQL_SEARCH_RESOURCE '.length)),
+    ...(plannerMicroseconds.length ? {plannerMicroseconds} : {})};
 }
 
 const profiles = [
@@ -49,6 +58,11 @@ const profiles = [
 const results = profiles.map(({file, index, name}) => {
   const single = measure(file, index, 1);
   const repeated = measure(file, index, repetitions);
+  const planner = repeated.plannerMicroseconds?.toSorted((a, b) => a - b);
+  const plannerMedian = planner
+    ? (planner[Math.floor((planner.length - 1) / 2)] +
+        planner[Math.floor(planner.length / 2)]) / 2000
+    : undefined;
   return {
     name,
     testFile: file,
@@ -58,6 +72,8 @@ const results = profiles.map(({file, index, name}) => {
     repeated,
     incrementalFixtureMs: (repeated.elapsedMs - single.elapsedMs) /
       (repetitions - 1),
+    ...(planner ? {plannerOnlyMedianMs: plannerMedian,
+      plannerOnlyP95Ms: planner[Math.ceil(planner.length * 0.95) - 1] / 1000} : {}),
   };
 });
 process.stdout.write(`${JSON.stringify({
@@ -66,6 +82,6 @@ process.stdout.write(`${JSON.stringify({
   node: process.version,
   platform: process.platform,
   arch: process.arch,
-  scope: 'compiled JS test fixture including setup, offer preparation and bounded search; not search-only time or allocator peak',
+  scope: 'compiled JS fixture plus a separately timed 20-task bounded search; no allocator peak',
   results,
 }, null, 2)}\n`);
