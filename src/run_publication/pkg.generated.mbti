@@ -33,6 +33,8 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
+pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
+
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
@@ -323,6 +325,8 @@ pub fn run_evidence_value_name(RunEvidenceValue) -> String
 
 pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValue
 
+pub fn run_publication_compiled_plan_cid(RunPublicationAdmission) -> String
+
 pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -603,6 +607,14 @@ pub(all) enum EffectPreviewIdentityIssue {
 pub(all) enum EffectPreviewResolvedContract {
   Mapping(String, String)
   Command(String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewRunBindingIssue {
+  PreviewRunWrongInvocation
+  PreviewRunForeignTemplate
+  PreviewRunForeignRun
+  PreviewRunForeignPlan
+  PreviewRunForeignInvocation
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectSetApplyReceiptBindingIssue {

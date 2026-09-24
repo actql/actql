@@ -103,6 +103,9 @@ fn public_effect_preview_for_static(
   definition_cid? : String? = None,
   semantics_cid? : String? = None,
   environment_cid? : String? = None,
+  run_cid? : String? = None,
+  plan_cid? : String? = None,
+  invocation_cid? : String? = None,
 ) -> @run_publication.EffectPreviewIdentity {
   let cid = "sha256:" + "a".repeat(64)
   let definition = definition_cid.unwrap_or(
@@ -116,6 +119,9 @@ fn public_effect_preview_for_static(
       @program_check.effect_program_static_environment(candidate),
     ),
   )
+  let run_identity = run_cid.unwrap_or(cid)
+  let plan_identity = plan_cid.unwrap_or(cid)
+  let invocation_identity = invocation_cid.unwrap_or(cid)
   let authoring_body = "{\"annotations\":[],\"program_definition_cid\":\"" +
     definition +
     "\",\"version\":\"actql-authoring-context/0.1\"}"
@@ -134,11 +140,11 @@ fn public_effect_preview_for_static(
     "\",\"program_definition_cid\":\"" +
     definition +
     "\",\"invocation_cid\":\"" +
-    cid +
+    invocation_identity +
     "\",\"run_identity_cid\":\"" +
-    cid +
+    run_identity +
     "\",\"compiled_plan_cid\":\"" +
-    cid +
+    plan_identity +
     "\",\"check_environment_cid\":\"" +
     environment +
     "\",\"authoring_context\":{\"version\":\"actql-authoring-context/0.1\"," +
@@ -176,7 +182,7 @@ fn public_effect_preview_for_static(
       old="\"effect_preview_cid\":\"" + cid + "\"",
       new="\"effect_preview_cid\":\"" + preview_cid + "\"",
     ),
-    cid,
+    run_identity,
     authoring_cid,
     20000,
     1000,
@@ -191,6 +197,7 @@ fn public_effect_run_fixture(
   environment_cid? : String? = None,
 ) -> (
   @run_publication.RunPublicationAdmission,
+  @run_publication.PublicationContract,
   @run_publication.PublicationContract,
 ) {
   let cid = "sha256:" + "a".repeat(64)
@@ -283,7 +290,19 @@ fn public_effect_run_fixture(
     admission, "scope", "run", cid, "2026-09-24T00:00:00.000Z", "2026-09-25T02:00:00.000Z",
     16384, 128, 8,
   ).unwrap()
-  (admission, run)
+  let invocation = @run_publication.seal_publication_contract(
+    "run_invocation",
+    "{\"version\":\"actql-run-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @run_publication.run_evidence_value_identity(template) +
+    "\",\"observation_set_cid\":\"" +
+    cid +
+    "\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  (admission, run, invocation)
 }
 
 ///|
@@ -576,7 +595,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
     ),
   )
   assert_eq(@program_check.effect_program_static_preview_stage(bound), 1)
-  let (run_admission, run_definition) = public_effect_run_fixture(
+  let (run_admission, run_definition, invocation) = public_effect_run_fixture(
     static_candidate,
   )
   let run_owner = @program_check.bind_effect_program_static_run(
@@ -600,7 +619,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
       run_definition,
     ),
   )
-  let (foreign_plan_admission, foreign_plan_run) = public_effect_run_fixture(
+  let (foreign_plan_admission, foreign_plan_run, _) = public_effect_run_fixture(
     static_candidate,
     semantics_cid=Some("sha256:" + "f".repeat(64)),
   )
@@ -610,7 +629,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
     )
     is Err(Binding(@run_publication.RunProgramForeignPlan)),
   )
-  let (foreign_env_admission, foreign_env_run) = public_effect_run_fixture(
+  let (foreign_env_admission, foreign_env_run, _) = public_effect_run_fixture(
     static_candidate,
     environment_cid=Some("sha256:" + "f".repeat(64)),
   )
@@ -619,6 +638,100 @@ test "Effect computation candidate closes the exact Mapping environment" {
       static_candidate, foreign_env_admission, foreign_env_run,
     )
     is Err(Binding(@run_publication.RunProgramForeignTemplate)),
+  )
+  let run_identity = @run_publication.publication_contract_identity(
+    run_definition,
+  )
+  let plan_identity = @run_publication.run_publication_compiled_plan_cid(
+    run_admission,
+  )
+  let invocation_identity = @run_publication.publication_contract_identity(
+    invocation,
+  )
+  let run_preview = public_effect_preview_for_static(
+    static_candidate,
+    mapping_cid,
+    run_cid=Some(run_identity),
+    plan_cid=Some(plan_identity),
+    invocation_cid=Some(invocation_identity),
+  )
+  let bound_run_preview = @program_check.bind_effect_program_run_preview(
+    run_owner, invocation, 1, run_preview, 1000,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_preview_identity(bound_run_preview),
+      run_preview,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_preview_invocation(bound_run_preview),
+      invocation,
+    ),
+  )
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_run_preview_owner(bound_run_preview),
+      run_owner,
+    ),
+  )
+  for
+    (wrong_run, wrong_plan, wrong_invocation, expected) in [
+      (true, false, false, @run_publication.PreviewRunForeignRun),
+      (false, true, false, @run_publication.PreviewRunForeignPlan),
+      (false, false, true, @run_publication.PreviewRunForeignInvocation),
+    ] {
+    let foreign = public_effect_preview_for_static(
+      static_candidate,
+      mapping_cid,
+      run_cid=Some(
+        if wrong_run {
+          "sha256:" + "f".repeat(64)
+        } else {
+          run_identity
+        },
+      ),
+      plan_cid=Some(
+        if wrong_plan {
+          "sha256:" + "f".repeat(64)
+        } else {
+          plan_identity
+        },
+      ),
+      invocation_cid=Some(
+        if wrong_invocation {
+          "sha256:" + "f".repeat(64)
+        } else {
+          invocation_identity
+        },
+      ),
+    )
+    match
+      @program_check.bind_effect_program_run_preview(
+        run_owner, invocation, 1, foreign, 1000,
+      ) {
+      Err(Run(actual)) => assert_eq(actual, expected)
+      _ => fail("Foreign Run Preview escaped")
+    }
+  }
+  let foreign_invocation = @run_publication.seal_publication_contract(
+    "run_invocation",
+    "{\"version\":\"actql-run-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"sha256:" +
+    "f".repeat(64) +
+    "\",\"observation_set_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\"}",
+    16384,
+    128,
+    8,
+  ).unwrap()
+  assert_true(
+    @program_check.bind_effect_program_run_preview(
+      run_owner, foreign_invocation, 1, run_preview, 1000,
+    )
+    is Err(Run(@run_publication.PreviewRunForeignTemplate)),
   )
   assert_true(
     physical_equal(
