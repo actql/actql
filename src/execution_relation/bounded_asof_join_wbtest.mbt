@@ -31,11 +31,13 @@ fn bounded_asof_source(
 }
 
 ///|
-fn bounded_asof_fixture() -> (
-  @bounded.Control,
-  BoundedAsOfJoinExecution,
-  Array[ProducerRead],
-) raise {
+fn bounded_asof_fixture_result(
+  max_entries : Int,
+  max_work : Int,
+) -> Result[
+  (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
+  BoundedAsOfJoinIssue,
+] raise {
   let (left_owner, left_output) = bounded_asof_source(
     "[{\"id\":2,\"key\":1,\"clock\":105,\"priority\":null,\"value\":20}," +
     "{\"id\":1,\"key\":1,\"clock\":100,\"priority\":null,\"value\":10}," +
@@ -112,19 +114,45 @@ fn bounded_asof_fixture() -> (
     10000,
   ).unwrap()
   let control = @bounded.control()
-  let execution = start_bounded_asof_join(
-    control,
-    generated,
-    left,
-    right,
-    10,
-    run_limits().output_values,
-    100000,
-    100,
-    10000,
-    10000,
-  ).unwrap()
-  (control, execution, [left, right])
+  let execution = match
+    start_bounded_asof_join(
+      control,
+      generated,
+      left,
+      right,
+      10,
+      run_limits().output_values,
+      max_work,
+      100,
+      max_entries,
+      10000,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((control, execution, [left, right]))
+}
+
+///|
+fn bounded_asof_fixture(
+  max_entries? : Int = 10000,
+) -> (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]) raise {
+  bounded_asof_fixture_result(max_entries, 100000).unwrap()
+}
+
+///|
+test "bounded as-of join admits metadata before constructing it" {
+  match bounded_asof_fixture_result(13, 0) {
+    Err(Rows(RowLimit)) => ()
+    _ => fail("expected early workspace rejection")
+  }
+  let (control, execution, _) = bounded_asof_fixture(max_entries=14)
+  assert_true(@bounded.request_cancel(control))
+  match advance_bounded_asof_join(execution, 1).unwrap() {
+    BoundedAsOfJoinStopped(@bounded.Cancelled, ..) => ()
+    _ => fail("expected cancellation")
+  }
+  assert_true(cleanup_bounded_asof_join(execution).unwrap())
 }
 
 ///|
