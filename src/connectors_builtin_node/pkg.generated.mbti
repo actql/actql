@@ -31,6 +31,10 @@ import {
 // Values
 pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
+pub fn client_program_admit_publication_bytes_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
+
+pub fn client_program_admit_publication_rows_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
+
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
@@ -53,7 +57,11 @@ pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEn
 
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
 
+pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
+
 pub fn client_program_publication_bytes_limit_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationLimitIssue]
+
+pub fn client_program_publication_rows_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
 pub fn client_program_publication_rows_limit_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationLimitIssue]
 
