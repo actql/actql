@@ -478,6 +478,19 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: empty schema workspace evidence is missing`);
     }
   }
+  for (const operation of ['row_window', 'unpivot', 'unnest']) {
+    if (route.family === 'RelA' && route.operation === operation) {
+      const required = [`${operation}_input_index_pre_admission`];
+      if (operation !== 'row_window') {
+        required.push(`${operation}_empty_schema_workspace_exact_one_short`);
+      }
+      for (const role of required) {
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+    }
+  }
   if (route.family === 'VecA' && route.operation === 'merge_rankings' &&
     !boundaryRoles.has('ranking_bounded_record_output_cancel_cleanup')) {
     fail(`${label}: bounded ranking assembly fixture is missing`);

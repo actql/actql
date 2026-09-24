@@ -43,6 +43,14 @@ one-short workspace limits. The route gate requires the window and both set
 fixtures. These are operation-specific structural boundaries, not complete
 work, in-flight cancellation, or cleanup assurance for those synchronous
 whole-sequence paths.
+The window, unpivot, and unnest evaluators now reserve their input-name index
+width before constructing the width-sized lookup map. One-short fixtures
+reject before any field-traversal work is charged. Unpivot and unnest also
+bind their existing empty-schema exact/one-short workspace fixture to their
+own production routes. `lag` charges partition and ordering term counts
+separately and uses the checked output width for each row's work and
+workspace, avoiding overflow in both additions. These local admission fixes
+do not turn the synchronous whole-sequence entrypoint into a bounded session.
 
 The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
 use fixed control-work expectations of 354, 145, 160, and 116 units for their

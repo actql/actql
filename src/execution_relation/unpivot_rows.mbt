@@ -26,6 +26,9 @@ fn[T : RelationRows] evaluate_unpivot_into(
   }
   let names = input.field_names()
   let width = names.length()
+  if !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
   let ordinals : Map[String, Int] = Map([])
   for i = 0; i < width; i = i + 1 {
     if !spend_control(control, 1) || !spend_control_text(control, names[i]) {
@@ -89,9 +92,7 @@ fn[T : RelationRows] evaluate_unpivot_into(
     }
   }
   let rows = IndexedRows::row_count(input)
-  if !reserve_slots(workspace, rows) ||
-    !reserve_slots(workspace, width) ||
-    !reserve_slots(workspace, output_width) {
+  if !reserve_slots(workspace, rows) || !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }
   let output_names = Array::makei(output_width, i => {

@@ -52,7 +52,8 @@ fn[T : RelationRows] evaluate_lag_rows(
   let order_count = @lower.kernel_sort_term_count(kernel)
   if !reserve_slots(workspace, partition_count) ||
     !reserve_slots(workspace, order_count) ||
-    !spend_control(control, partition_count + order_count) {
+    !spend_control(control, partition_count) ||
+    !spend_control(control, order_count) {
     return Err(RowLimit)
   }
   let partitions : Array[ColumnOrder] = []
@@ -131,8 +132,8 @@ fn[T : RelationRows] evaluate_lag_rows(
       return Err(InvalidRows)
     }
     if !spend_control(control, 1) ||
-      !spend_control(control, width + 1) ||
-      !reserve_slots(workspace, width + 1) {
+      !spend_control(control, output_width) ||
+      !reserve_slots(workspace, output_width) {
       return Err(RowLimit)
     }
     let values = Array::makei(width, column => {

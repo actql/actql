@@ -1240,6 +1240,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/row_window_scale_wbtest.mbt",
           "fixture": "empty row window reserves its output schema before allocation"
+        },
+        {
+          "role": "row_window_input_index_pre_admission",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_window_scale_wbtest.mbt",
+          "fixture": "row window admits its input-name index before field traversal"
         }
       ]
     },
@@ -1337,6 +1344,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/unpivot_sequence_wbtest.mbt",
           "fixture": "unpivot accepts exact shared work and rejects one-short execution"
+        },
+        {
+          "role": "unpivot_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+          "fixture": "empty reshape outputs reserve schema entries before construction"
+        },
+        {
+          "role": "unpivot_input_index_pre_admission",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+          "fixture": "reshape admits input-name indices before field traversal"
         }
       ]
     },
@@ -1374,6 +1395,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/unnest_sequence_wbtest.mbt",
           "fixture": "unnest accepts exact shared work and rejects one-short execution"
+        },
+        {
+          "role": "unnest_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+          "fixture": "empty reshape outputs reserve schema entries before construction"
+        },
+        {
+          "role": "unnest_input_index_pre_admission",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/reshape_scale_wbtest.mbt",
+          "fixture": "reshape admits input-name indices before field traversal"
         }
       ]
     },

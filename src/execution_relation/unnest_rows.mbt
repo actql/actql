@@ -26,6 +26,9 @@ fn[T : RelationRows] evaluate_unnest_into(
   }
   let names = input.field_names()
   let width = names.length()
+  if !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
   let source_name = @schema.reference_name(column)
   let mut source_column = -1
   let ordinals : Map[String, Int] = Map([])
@@ -68,9 +71,7 @@ fn[T : RelationRows] evaluate_unnest_into(
   }
   let mut emitted = 0
   let rows = IndexedRows::row_count(input)
-  if !reserve_slots(workspace, rows) ||
-    !reserve_slots(workspace, width) ||
-    !reserve_slots(workspace, output_width) {
+  if !reserve_slots(workspace, rows) || !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }
   let output_names = Array::makei(output_width, i => {

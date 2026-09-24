@@ -122,6 +122,9 @@ fn[T : RelationRows] evaluate_window_rows(
   if output_width < 2 || output_width - 2 != width {
     return Err(InvalidRows)
   }
+  if !reserve_slots(workspace, width) {
+    return Err(RowLimit)
+  }
   let mut time_column = -1
   let time_name = @schema.reference_name(@lower.window_time(window))
   let ordinals : Map[String, Int] = Map([])
@@ -174,7 +177,6 @@ fn[T : RelationRows] evaluate_window_rows(
   let input_count = IndexedRows::row_count(input)
   if input_count > max_rows ||
     !reserve_slots(workspace, input_count) ||
-    !reserve_slots(workspace, width) ||
     !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }

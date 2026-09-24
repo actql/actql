@@ -81,6 +81,23 @@ test('window and set routes lose schema workspace evidence without fixtures', ()
   }
 });
 
+test('reshape and window routes reject missing pre-admission evidence', () => {
+  for (const operation of ['row_window', 'unpivot', 'unnest']) {
+    const roles = [`${operation}_input_index_pre_admission`];
+    if (operation !== 'row_window') {
+      roles.push(`${operation}_empty_schema_workspace_exact_one_short`);
+    }
+    for (const role of roles) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'RelA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item =>
+          item.role !== role);
+      }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
 test('rows-to-Graph Bridge loses its boundary when either fixture is removed', () => {
   for (const role of [
     'graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup',
