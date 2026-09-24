@@ -128,6 +128,26 @@ async function runPublishedCapturedStrategyTarget(
   }
 }
 
+// Compute an admitted Effect Run through the installed Host without claiming
+// apply or publication success. The exact captured owner remains with the
+// caller for Result pins, Preview, and subsequent durable Effect progress.
+async function runCapturedEffectComputationTarget(
+  owner, options, signal, observer, loadRuntime, install,
+) {
+  const moon = await loadRuntime();
+  if (typeof moon.clientProgramLocalEffectHostRuntime !== 'function') {
+    throw new TypeError('Effect computation Host is unavailable');
+  }
+  let setup;
+  try { setup = moon.clientProgramLocalEffectHostRuntime(owner); }
+  catch { throw new TypeError('InvalidCapturedEffectComputation'); }
+  if (setup === undefined || !moon.strategyHostHasEffects(setup)) {
+    throw new TypeError('InvalidCapturedEffectComputation');
+  }
+  return runCapturedStrategyTarget(setup, options, signal, observer,
+    false, undefined, loadRuntime, install);
+}
+
 // Build-time composition selects a concrete MoonBit artifact and its matching
 // implementation set. Call options cannot substitute either component.
 export function createNodeHostEntry(loadRuntime, install) {
@@ -140,6 +160,10 @@ export function createNodeHostEntry(loadRuntime, install) {
     runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
       runCapturedStrategyTarget(setup, options, signal, observer, false,
         undefined, load, install),
+    runCapturedEffectComputation: (
+      owner, options = {}, signal, observer,
+    ) => runCapturedEffectComputationTarget(owner, options, signal,
+      observer, load, install),
     runPublishedCapturedStrategy: (
       setup, publication, options = {}, signal, observer,
     ) => runPublishedCapturedStrategyTarget(setup, publication, options,
@@ -151,5 +175,7 @@ const standard = createNodeHostEntry(
   () => import(runtimeUrl.href), installStrategyContributions);
 export const runCapturedStrategy = standard.runCapturedStrategy;
 export const runCapturedInternalStrategy = standard.runCapturedInternalStrategy;
+export const runCapturedEffectComputation =
+  standard.runCapturedEffectComputation;
 export const runPublishedCapturedStrategy =
   standard.runPublishedCapturedStrategy;

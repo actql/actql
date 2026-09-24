@@ -14,5 +14,7 @@ const entry = createNodeHostEntry(
 export const runCapturedStrategy = entry.runCapturedStrategy;
 export const runCapturedInternalStrategy =
   entry.runCapturedInternalStrategy;
+export const runCapturedEffectComputation =
+  entry.runCapturedEffectComputation;
 export const runPublishedCapturedStrategy =
   entry.runPublishedCapturedStrategy;

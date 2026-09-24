@@ -1739,6 +1739,35 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    admitCheckedClientEffectRunPublication(
+      checkedEffect, template, prepared, authorization, compiledPlan,
+    ) {
+      if (typeof moon.clientProgramAdmitEffectPublication !== 'function') {
+        throw new TypeError('Client Effect admission is unavailable');
+      }
+      const admission = moon.clientProgramAdmitEffectPublication(
+        checkedEffect,
+        evidenceToken(template),
+        evidenceToken(prepared),
+        evidenceToken(authorization),
+        token(compiledPlan),
+      );
+      if (admission === undefined) {
+        throw new TypeError('Publication evidence differs from checked Effect');
+      }
+      return inspectAdmission(admission);
+    },
+    bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
+      if (typeof moon.clientProgramBindEffectRun !== 'function') {
+        throw new TypeError('Client Effect Run binding is unavailable');
+      }
+      const bound = moon.clientProgramBindEffectRun(
+        checkedEffect, admissionToken(admission), token(runDefinition));
+      if (bound === undefined) {
+        throw new TypeError('Run Definition differs from checked Effect');
+      }
+      return bound;
+    },
     issueRunDefinition(admission, definition, limits) {
       issuanceLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
