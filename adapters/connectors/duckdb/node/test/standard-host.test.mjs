@@ -5515,7 +5515,7 @@ async function exerciseStrategyGraph(
       const beforeFiles = (await readdir(exampleDirectory)).sort();
       const evidenceRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/retained_host_bridge/retained_host_bridge.js')));
       const observed = [];
-      const observer = installCompletionObserver(({task, output}) => {
+      const observer = installCompletionObserver(({task, output, readRetained}) => {
         const retained = expected[observed.length] === 'duckdb';
         if (!retained) {
           observed.push({task});
@@ -5526,7 +5526,8 @@ async function exerciseStrategyGraph(
         assert.equal(evidenceRuntime.retainedCompletionCanHandoff(evidence, output), true);
         assert.equal(descriptor.input_count, 1);
         assert.equal(descriptor.output_step, 1);
-        observed.push({task, output, evidence, descriptor});
+        assert.equal(typeof readRetained, 'function');
+        observed.push({task, output, evidence, descriptor, readRetained});
       });
       const result = await runExample({database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: native,
@@ -5541,8 +5542,18 @@ async function exerciseStrategyGraph(
         assert.equal(result.report.internal_output_cids[2].cid, hash([{id: 3}, {id: 3}]));
         assert.deepEqual(observed.map(value => value.task), result.report.completed.map(value => value.task));
         for (const record of observed) {
-          if (record.descriptor) assert.equal(record.descriptor.rows_cid,
-            result.report.internal_output_cids.find(value => value.task === record.task).cid);
+          if (record.descriptor) {
+            assert.equal(record.descriptor.rows_cid,
+              result.report.internal_output_cids.find(value => value.task === record.task).cid);
+            const chunks = [];
+            const receipt = await record.readRetained(chunk => {
+              chunks.push(Buffer.from(chunk));
+            });
+            const bytes = Buffer.concat(chunks);
+            assert.equal(bytes.length, receipt.bytes);
+            assert.equal(`sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+              record.descriptor.rows_cid);
+          }
         }
         if (imports !== undefined) {
           assert.equal(result.report.completed[2].importedRows, 2);
@@ -5556,6 +5567,8 @@ async function exerciseStrategyGraph(
       } finally { await result.close(); }
       for (const record of observed) {
         if (record.evidence) {
+          await assert.rejects(record.readRetained(() => {}),
+            {code: 'RetainedUnavailable'});
           assert.equal(evidenceRuntime.retainedCompletionCanHandoff(record.evidence, record.output), false);
           assert.deepEqual(evidenceRuntime.retainedCompletionDescriptor(record.evidence), record.descriptor);
         }

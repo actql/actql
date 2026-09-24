@@ -182,6 +182,10 @@ export function duckdbStrategyContribution(moon, setup, checked, configuration) 
         completed: result.completed,
         material: result.material,
         close: () => result.close(),
+        ...(options.retainedOutput
+          ? {readRetained: (accept, readSignal) =>
+              result.readRetained(accept, readSignal)}
+          : {}),
         diagnostic: Object.freeze({
           realization: options.managedOutput ? 'duckdb-managed'
             : resident ? 'duckdb-resident' : 'duckdb', transport: result.usage,

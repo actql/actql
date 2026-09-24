@@ -875,7 +875,16 @@ export async function runInstalledStrategy(
         // Deliver the core's exact output, never a connector diagnostic/CID or
         // callback-supplied substitute. Failure stops future tasks but cannot
         // undo this already completed task's independent result.
-        try { await observeCompletion(Object.freeze({task: index, output})); }
+        const readRetained = typeof result?.readRetained === 'function'
+          ? async (accept, readSignal) => {
+              if (siteResult?.status().released) {
+                throw new StrategyHostError('RetainedUnavailable');
+              }
+              return result.readRetained(accept, readSignal);
+            }
+          : undefined;
+        try { await observeCompletion(Object.freeze({task: index, output,
+          ...(readRetained === undefined ? {} : {readRetained})})); }
         catch (error) { rememberCleanup(error, observeCompletion); throw error; }
         signal?.throwIfAborted();
       }

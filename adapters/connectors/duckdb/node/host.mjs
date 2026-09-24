@@ -959,6 +959,16 @@ async function runHostCompute(
         if (closed) throw new DuckDBTransportError('ReleasedCompute');
         return output;
       },
+      async readRetained(accept, readSignal) {
+        if (closed || !retained || !body?.available()) {
+          throw new DuckDBTransportError('RetainedInputUnavailable');
+        }
+        const receipt = await body.consume(accept, readSignal);
+        if (closed || !body.available()) {
+          throw new DuckDBTransportError('RetainedInputUnavailable');
+        }
+        return receipt;
+      },
       close() {
         if (closed) return;
         closed = true;

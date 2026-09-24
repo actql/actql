@@ -594,3 +594,11 @@ the registered paired admission. Keep the existing isolated profile for runs
 that require it. If a single-process profile is added, expose its exact
 holding through the installed Host's read authority and verify it after task
 completion before considering it for ordinary placement.
+
+The installed completion observer now receives an optional bounded reader for
+the exact DuckDB retained output after common task completion. It reads the
+sealed holding, verifies its physical digest, and refuses new reads after the
+Host releases that output. The standard Host test checks the returned bytes
+against the independently expected CID. This closes the reader wiring needed
+for a single-process profile; it does not authorize that profile's placement
+or change the separate-process path and its custody checks.
