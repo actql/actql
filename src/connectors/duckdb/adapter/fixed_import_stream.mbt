@@ -75,10 +75,20 @@ pub fn verify_fixed_import_chunk(
       return Err(Physical(issue))
     }
   }
+  if rows == 0 {
+    return Ok(())
+  }
+  // The verifier consumes each row synchronously. Refill one bounded row
+  // buffer instead of allocating a fresh array for every resident row.
+  let values = Array::makei(@schema.field_count(physical.schema), column => {
+    physical_batch_cell(batch, 0, column).unwrap()
+  })
   for row in 0..<rows {
-    let values = Array::makei(@schema.field_count(physical.schema), column => {
-      physical_batch_cell(batch, row, column).unwrap()
-    })
+    if row > 0 {
+      for column in 0..<values.length() {
+        values[column] = physical_batch_cell(batch, row, column).unwrap()
+      }
+    }
     match verify_fixed_import_values(stream, values) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
