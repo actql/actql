@@ -37,6 +37,7 @@ import {
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/stage_results" @results,
   "actql/actql/run_publication",
+  "actql/actql/effect_application" @effect,
   "actql/actql/relation_results" @publication,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/program_references" @references,

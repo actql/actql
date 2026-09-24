@@ -358,3 +358,12 @@ keep the terminal task ports closed while those consumer pins remain live and
 confirm the ledger returns to zero after release. This owner does not yet
 capture Effect Plan rows or authorize a Preview or mutation; the standard
 Effectful Host entry remains the completion blocker.
+
+The whole-set write-footprint check can now consume the admitted private
+Preview retained by the exact checked Run owner. It derives member identities
+and target inventories from that owner rather than a caller-assembled list;
+the two-member fixture rejects overlapping targets and enforces target and
+work ceilings. The earlier wire-plus-declared-inventory control remains for
+existing adapter callers, but is not the ownership proof for a standard Run.
+This check alone does not establish current authority, target freshness,
+captured row/payload equivalence, or mutation admission.

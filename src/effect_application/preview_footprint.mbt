@@ -20,6 +20,94 @@ fn preview_footprint_text(
 }
 
 ///|
+/// Derive the whole-set footprint only from an admitted private Preview.
+/// The caller cannot substitute an independently assembled member inventory
+/// or target list. This remains one preflight obligation, not an apply permit.
+pub fn check_admitted_effect_preview_footprint_conflicts(
+  preview : @publication.EffectPreviewIdentity,
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Result[Unit, EffectFootprintIssue] {
+  let count = @publication.effect_preview_member_count(preview)
+  if max_members < 1 ||
+    max_members > 1000 ||
+    count < 1 ||
+    count > max_members ||
+    max_targets < 0 ||
+    max_targets > 100000 ||
+    max_work < 1 ||
+    max_work > 100000000 {
+    return Err(InvalidLimits)
+  }
+  if count >= max_work {
+    return Err(CapacityExceeded)
+  }
+  let members : Array[EffectMemberFootprint] = []
+  let mut remaining = max_work
+  let mut total_targets = 0
+  for index in 0..<count {
+    if remaining <= 0 {
+      return Err(CapacityExceeded)
+    }
+    remaining -= 1
+    guard @publication.effect_preview_member_effect_id(preview, index)
+      is Some(effect_id) &&
+      @publication.effect_preview_member_footprint(preview, index)
+      is Some(footprint) else {
+      return Err(InvalidFootprint)
+    }
+    let kind = match @publication.effect_preview_footprint_kind(footprint) {
+      "exact_targets" => ExactTargets
+      "collection" => Collection
+      "opaque" => Opaque
+      _ => return Err(InvalidFootprint)
+    }
+    let target_count = @publication.effect_preview_footprint_target_count(
+      footprint,
+    )
+    if target_count > max_targets - total_targets || target_count > remaining {
+      return Err(CapacityExceeded)
+    }
+    total_targets += target_count
+    remaining -= target_count
+    let targets : Array[String] = []
+    for target_index in 0..<target_count {
+      guard @publication.effect_preview_footprint_target_cid(
+          footprint, target_index,
+        )
+        is Some(target) else {
+        return Err(InvalidFootprint)
+      }
+      targets.push(target)
+    }
+    members.push({
+      effect_id,
+      kind,
+      provider_namespace: @publication.effect_preview_footprint_provider_namespace(
+        footprint,
+      ),
+      provider_boundary_cid: @publication.effect_preview_footprint_provider_boundary_cid(
+        footprint,
+      ),
+      resource_identity_scheme_cid: @publication.effect_preview_footprint_resource_identity_scheme_cid(
+        footprint,
+      ),
+      resource_kind: @publication.effect_preview_footprint_resource_kind(
+        footprint,
+      ),
+      provider_object_identity_cids: targets,
+    })
+  }
+  if remaining <= 0 {
+    return Err(CapacityExceeded)
+  }
+  check_effect_set_footprint_conflicts(
+    members, max_members, max_targets, remaining,
+  )
+}
+
+///|
 /// Compare the complete private Preview to a checked Stage's Effect inventory
 /// before deriving its write footprints. The caller must supply the inventory
 /// from a sealed checked Plan, never from the Preview or an authored override.
