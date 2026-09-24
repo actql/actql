@@ -3713,6 +3713,35 @@ export async function openLocalPublicationStore(
     return Object.freeze({record, created: true});
   };
 
+  // Reconcile a private holding by exact admitted wire, then confirm its
+  // directory durability. A visible link alone is not a committed holding.
+  const confirmPrivateEvidence = async binding => {
+    active();
+    if (!exactKeys(binding, [
+      'name', 'semanticCid', 'holdingCid', 'wire',
+    ]) || binding.name !== 'effect_preview' ||
+        typeof binding.wire !== 'string') {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    cidHex(binding.semanticCid);
+    cidHex(binding.holdingCid);
+    const record = await inspectPhysicalHolding(binding.holdingCid);
+    if (record === undefined) return undefined;
+    if (record.namespace !== 'publication-private' ||
+        record.manifest_cid !== binding.semanticCid ||
+        record.objects.length !== 1) {
+      fail('PublicationPrivateEvidenceUnavailable');
+    }
+    const stored = await readPrivateEvidence(
+      binding.name, binding.semanticCid, binding.holdingCid,
+    );
+    if (!stored.equals(Buffer.from(binding.wire, 'utf8'))) {
+      fail('PublicationPrivateEvidenceConflict');
+    }
+    await commitPhysicalHolding(record, []);
+    return record;
+  };
+
   const sharePhysicalHolding = async (sourceHoldingCid, value) => {
     active();
     cidHex(sourceHoldingCid);
@@ -4637,6 +4666,7 @@ export async function openLocalPublicationStore(
     putBytes,
     putSemantic,
     preparePrivateEvidence,
+    confirmPrivateEvidence,
     putPreparedResultSchema,
     putPublicationContract,
     verifyObject,

@@ -425,6 +425,19 @@ test('private evidence is encrypted, bound, and readable after restart',
     assert.deepEqual(await reopened.readPrivateEvidence(
       'effect_preview', cid, holdingCid,
     ), Buffer.from(wire));
+    const binding = Object.freeze({
+      name: 'effect_preview', semanticCid: cid, holdingCid, wire,
+    });
+    assert.deepEqual(await reopened.confirmPrivateEvidence(binding), {
+      version: 'actql-local-physical-holding/0.1',
+      namespace: 'publication-private',
+      holding_cid: holdingCid,
+      manifest_cid: cid,
+      objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+    });
+    await assert.rejects(reopened.confirmPrivateEvidence({
+      ...binding, wire: '{"value":"different"}',
+    }), code('PublicationPrivateEvidenceConflict'));
     assert.equal((await reopened.inspectPhysicalHolding(holdingCid))
       .objects[0].cid, prepared.physicalCid);
     await reopened.close();
