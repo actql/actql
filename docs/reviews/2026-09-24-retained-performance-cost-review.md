@@ -580,3 +580,17 @@ calibrates only the selected Native profile, and retains the same source and
 release-artifact provenance in each pair. Node-managed cases keep their
 existing calibration and capacity fallback. This removes measurement setup
 work, not product execution work or an acceptance obligation.
+
+A non-assessment feasibility probe also ran the ordinary checked Node Host in
+one process with the existing retained-file contract and a resident DuckDB
+candidate. The 10,000-row narrow join completed all four task boundaries; the
+10,000-row narrow reuse case completed all three. Each task produced a retained
+file and the final logical CID matched the independent fixture. This shows
+that the existing Host can avoid the parent/child double preparation without
+dropping the old identity contract. It does not establish a distributable
+profile or a performance pass: the probe did not exercise an independently
+authorized post-completion reader, the separate-process isolation policy, or
+the registered paired admission. Keep the existing isolated profile for runs
+that require it. If a single-process profile is added, expose its exact
+holding through the installed Host's read authority and verify it after task
+completion before considering it for ordinary placement.
