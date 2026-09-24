@@ -120,6 +120,29 @@ test('binding set covers every checked Unit Result port', async () => {
     `{"kind":"resolved_limit","value":${body}}`);
   assert.deepEqual(moon.clientProgramPublicationPlanFactEntries(issued),
     entries);
+  const witnesses = checked(
+    moon.clientProgramIssuePublicationWitnesses(prepared));
+  const witnessBodies = moon.clientProgramPublicationWitnessBodies(witnesses);
+  const witnessCids = moon.clientProgramPublicationWitnessCids(witnesses);
+  assert.equal(witnessBodies.length, witnessCids.length);
+  assert.ok(witnessBodies.length > 1);
+  assert.equal(new Set(witnessCids).size, witnessCids.length);
+  for (const body of witnessBodies) {
+    const witness = JSON.parse(body);
+    assert.ok(witnessCids.includes(witness.witness_cid));
+  }
+  for (const body of limits) {
+    for (const candidate of JSON.parse(body).candidates) {
+      assert.ok(witnessCids.includes(candidate.witness_cid));
+    }
+  }
+  assert.deepEqual(moon.clientProgramPublicationWitnessBodies(checked(
+    moon.clientProgramAdmitPublicationWitnesses(
+      prepared, witnessBodies))), witnessBodies);
+  assert.throws(() => checked(moon.clientProgramAdmitPublicationWitnesses(
+    prepared, witnessBodies.slice(1))), {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(moon.clientProgramAdmitPublicationWitnesses(
+    prepared, witnessBodies.toReversed())), {code: 'MoonBitHostFailure'});
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitPublicationFactEntries(prepared,
       entries.toReversed())));
