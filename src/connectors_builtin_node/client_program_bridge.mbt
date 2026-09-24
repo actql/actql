@@ -53,19 +53,16 @@ pub(all) enum ClientProgramBridgeOutcome {
 }
 
 ///|
-/// Explicit JSON or YAML only. Supplied Parameter Values are a separately
-/// bounded JSON body; they never modify the checked Program document.
-#export_name("clientProgramPrepareEffectFreeWithParameters")
-pub fn client_program_prepare_effect_free_with_parameters(
-  document : String,
+/// Document format and Parameter Values are admitted once for either
+/// computation kind. Neither branch may reinterpret the supplied JSON.
+fn client_program_input(
   format : String,
-  environment : @program_check.CheckEnvironment,
   parameters : String?,
-) -> ClientProgramBridgeOutcome {
+) -> Result[(@stage_syntax.Format, @decode.Cursor?), ClientProgramBridgeIssue] {
   let selected = match format {
     "json" => @stage_syntax.Json
     "yaml" => @stage_syntax.Yaml
-    _ => return Rejected(InvalidFormat)
+    _ => return Err(InvalidFormat)
   }
   let supplied = match parameters {
     None => None
@@ -77,7 +74,7 @@ pub fn client_program_prepare_effect_free_with_parameters(
           source_path="Client Parameters",
         ) {
         Ok(value) => value
-        Err(issue) => return Rejected(SuppliedSyntax(issue))
+        Err(issue) => return Err(SuppliedSyntax(issue))
       }
       match
         @decode.admit(parsed, {
@@ -87,11 +84,16 @@ pub fn client_program_prepare_effect_free_with_parameters(
           max_total_string_bytes: 65536,
         }) {
         Ok(value) => Some(value)
-        Err(issue) => return Rejected(SuppliedAdmission(issue))
+        Err(issue) => return Err(SuppliedAdmission(issue))
       }
     }
   }
-  let limits : @publication_host.ClientProgramPreparationLimits = {
+  Ok((selected, supplied))
+}
+
+///|
+fn client_program_standard_limits() -> @publication_host.ClientProgramPreparationLimits {
+  {
     checking: {
       input: {
         source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
@@ -142,12 +144,144 @@ pub fn client_program_prepare_effect_free_with_parameters(
     max_tasks: 32,
     max_graph_work: 1000000,
   }
+}
+
+///|
+/// Explicit JSON or YAML only. Supplied Parameter Values are a separately
+/// bounded JSON body; they never modify the checked Program document.
+#export_name("clientProgramPrepareEffectFreeWithParameters")
+pub fn client_program_prepare_effect_free_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  parameters : String?,
+) -> ClientProgramBridgeOutcome {
+  let (selected, supplied) = match client_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
+  }
   match
     @publication_host.prepare_effect_free_client_program(
-      document, selected, environment, supplied, limits,
+      document,
+      selected,
+      environment,
+      supplied,
+      client_program_standard_limits(),
     ) {
     Ok(value) => Prepared(value)
     Err(issue) => Rejected(Preparation(issue))
+  }
+}
+
+///|
+/// Internal Host preparation only. A prepared Effect computation is neither
+/// a checked Effect Run nor an apply permit, and the public submit adapter
+/// continues to reject nonempty Effects until the complete Run path exists.
+pub(all) enum ClientEffectProgramBridgeIssue {
+  Input(ClientProgramBridgeIssue)
+  Preparation(@publication_host.ClientEffectComputationIssue)
+}
+
+///|
+pub(all) enum ClientEffectProgramBridgeOutcome {
+  EffectPrepared(@publication_host.PreparedClientEffectComputation)
+  EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
+///|
+fn client_program_effect_limits() -> @publication_host.ClientEffectComputationLimits {
+  {
+    program: client_program_standard_limits(),
+    max_members: 1024,
+    max_header_work: 1000000,
+    mapping: {
+      max_bytes: 65536,
+      max_nodes: 4096,
+      max_depth: 64,
+      max_members: 256,
+    },
+    max_mapping_work: 100000,
+    effects: {
+      max_members: 1024,
+      max_work: 1000000,
+      max_admission_nodes: 100000,
+      max_admission_depth: 64,
+      max_admission_text_bytes: 1000000,
+    },
+  }
+}
+
+///|
+#export_name("clientProgramPrepareEffectComputationWithParameters")
+pub fn client_program_prepare_effect_computation_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  parameters : String?,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientEffectProgramBridgeOutcome {
+  let (selected, supplied) = match client_program_input(format, parameters) {
+    Ok(value) => value
+    Err(issue) => return EffectRejected(Input(issue))
+  }
+  match
+    @publication_host.prepare_client_effect_computation(
+      document,
+      selected,
+      environment,
+      supplied,
+      evidence,
+      client_program_effect_limits(),
+    ) {
+    Ok(value) => EffectPrepared(value)
+    Err(issue) => EffectRejected(Preparation(issue))
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationReady")
+pub fn client_program_effect_preparation_ready(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> @publication_host.PreparedClientEffectComputation? {
+  match outcome {
+    EffectPrepared(value) => Some(value)
+    EffectRejected(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationIssue")
+pub fn client_program_effect_preparation_issue(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> ClientEffectProgramBridgeIssue? {
+  match outcome {
+    EffectPrepared(_) => None
+    EffectRejected(issue) => Some(issue)
+  }
+}
+
+///|
+#export_name("clientProgramEffectPreparationIssueCode")
+pub fn client_program_effect_preparation_issue_code(
+  outcome : ClientEffectProgramBridgeOutcome,
+) -> String? {
+  match outcome {
+    EffectPrepared(_) => None
+    EffectRejected(issue) =>
+      Some(
+        match issue {
+          Input(InvalidFormat) => "invalid_format"
+          Input(SuppliedSyntax(_)) => "supplied_syntax"
+          Input(SuppliedAdmission(_)) => "supplied_admission"
+          Input(Preparation(_)) => "invalid_input_owner"
+          Preparation(Syntax(_)) => "program_syntax"
+          Preparation(Candidate(_)) => "effect_candidate_rejected"
+          Preparation(Mapping(_)) => "effect_mapping_rejected"
+          Preparation(Static(_)) => "effect_static_rejected"
+          Preparation(Stage(_)) => "stage_rejected"
+          Preparation(Graph(_)) => "graph_rejected"
+        },
+      )
   }
 }
 

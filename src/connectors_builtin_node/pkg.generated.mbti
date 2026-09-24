@@ -65,6 +65,12 @@ pub fn client_program_direct_values_result_root_row_contract_cid(@run_publicatio
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
 
+pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome) -> ClientEffectProgramBridgeIssue?
+
+pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOutcome) -> String?
+
+pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
@@ -114,6 +120,8 @@ pub fn client_program_preparation_issue(ClientProgramBridgeOutcome) -> ClientPro
 pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> String?
 
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
 
@@ -1409,6 +1417,16 @@ pub(all) suberror NodeHostFailure {
 }
 
 // Types and methods
+pub(all) enum ClientEffectProgramBridgeIssue {
+  Input(ClientProgramBridgeIssue)
+  Preparation(@run_publication_host.ClientEffectComputationIssue)
+}
+
+pub(all) enum ClientEffectProgramBridgeOutcome {
+  EffectPrepared(@run_publication_host.PreparedClientEffectComputation)
+  EffectRejected(ClientEffectProgramBridgeIssue)
+}
+
 pub(all) enum ClientProgramBridgeIssue {
   InvalidFormat
   SuppliedSyntax(@source_value.ParseError)
