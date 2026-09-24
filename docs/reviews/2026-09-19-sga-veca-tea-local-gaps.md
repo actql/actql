@@ -9,6 +9,15 @@ boundary records, 8 have all four lifecycle roles, and 7 have exact and
 one-short work/workspace assurance across every production path. Another 26
 paths have path-scoped work/workspace evidence. Strict completion remains red.
 
+Finite-list ranking now indexes exact physical input ports during setup,
+while preserving every logical occurrence, including repeated use of one
+material. A revoked-input fixture verifies failure, nonpublication, and
+cleanup after a producer becomes unavailable during execution. The resumed
+kernel still scans all input occurrences before each work step. Splitting
+that check into rotating steps is unsafe without a completion-time input
+authority fence: an already-checked input can be revoked before completion.
+The input-count multiplier and full ranking boundary assurance remain open.
+
 Global `top_k` now selects a bounded Relation task after its checked key
 assertion. Its full-input sort and requested output prefix advance at quantum
 one; a fixed fixture checks independently counted exact and one-short work
