@@ -82,7 +82,7 @@ async function checkedFixture() {
 }
 
 async function effectFixture({splitSource = false,
-  splitEffectSource = 'consumer'} = {}) {
+  splitEffectSource = 'consumer', writeKind = 'create'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -90,7 +90,8 @@ async function effectFixture({splitSource = false,
   const targetSchema = {
     additional_properties: false,
     fields: {
-      Id: {nullable: false, type: 'string'},
+      Id: {nullable: false, type: writeKind === 'create' ?
+        'string' : 'number'},
       Name: {nullable: true, type: 'number'},
     },
     nullable: false,
@@ -103,8 +104,9 @@ async function effectFixture({splitSource = false,
     mapping_ref: 'mapping:crm.account.v1',
     minimum_approval: 'none',
     permission_rules: [{
-      effect_kind: 'create', permissions: ['scope:create'],
-      selector_class: 'none', write_fields: ['Name'],
+      effect_kind: writeKind, permissions: ['scope:' + writeKind],
+      selector_class: writeKind === 'create' ? 'none' : 'id',
+      write_fields: ['Name'],
     }],
     primary_identity: 'Id',
     required_fields: [],
@@ -141,13 +143,13 @@ async function effectFixture({splitSource = false,
   );
   assert.ok(environment);
   const document = JSON.parse(documentBody);
-  document.stages[0].effects = {
-    save: {create: {
-      target: 'connector://crm/account',
-      mapping: mapping.mapping_ref,
-      from: {result: 'rows'},
-    }},
-  };
+  const write = writeKind === 'create'
+    ? {target: 'connector://crm/account', mapping: mapping.mapping_ref,
+      from: {result: 'rows'}}
+    : {target: 'connector://crm/account', mapping: mapping.mapping_ref,
+      from: {result: 'rows'}, id: 'id',
+      set: {Name: {field: 'id'}}};
+  document.stages[0].effects = {save: {[writeKind]: write}};
   if (splitSource) {
     delete document.stages[0].effects;
     document.stages.push({
@@ -171,17 +173,14 @@ async function effectFixture({splitSource = false,
       inputs: {rows: {result: {stage: 'middle', result: 'rows'}}},
       steps: [{take: 2, as: 'selected'}],
       results: {rows: {from: 'selected', fields: ['id']}},
-      effects: {save: {create: {
-        target: 'connector://crm/account', mapping: mapping.mapping_ref,
-        from: {result: 'rows'},
-      }}},
+      effects: {save: {[writeKind]: write}},
     });
     document.results.answer.from.stage = 'consumer';
     if (splitEffectSource !== 'consumer') {
       document.stages.pop();
       document.results.answer.from.stage = 'middle';
-      document.stages[1].effects = {save: {create: {
-        target: 'connector://crm/account', mapping: mapping.mapping_ref,
+      document.stages[1].effects = {save: {[writeKind]: {
+        ...write,
         from: {result: splitEffectSource === 'early' ? 'early' : 'rows'},
       }}};
     }
@@ -263,6 +262,22 @@ test('internal Client bridge retains Effect closure without public apply',
       document, 'json', environment, '{', []);
     assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidParameters),
       'supplied_syntax');
+    assert.equal(checked(moon.clientProgramEffectPlanCid(
+      prepared, 0, 10, 100, 10000, 1000, 20)), undefined);
+    const update = await effectFixture({writeKind: 'update'});
+    const updateOutcome =
+      moon.clientProgramPrepareEffectComputationWithParameters(
+        update.document, 'json', update.environment, undefined, []);
+    const updatePrepared = moon.clientProgramEffectPreparationReady(
+      updateOutcome);
+    assert.ok(updatePrepared,
+      moon.clientProgramEffectPreparationIssueCode(updateOutcome));
+    assert.match(checked(moon.clientProgramEffectPlanCid(
+      updatePrepared, 0, 10, 100, 10000, 1000, 20)),
+    /^sha256:[0-9a-f]{64}$/);
+    assert.throws(() => checked(moon.clientProgramEffectPlanCid(
+      updatePrepared, 1, 10, 100, 10000, 1000, 20)),
+    {code: 'MoonBitHostFailure'});
   });
 
 test('admitted source-free Effect Run computes through the installed Host',
