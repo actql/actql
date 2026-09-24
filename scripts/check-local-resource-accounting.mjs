@@ -1365,6 +1365,11 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
     fail(`${label}: Events projection boundary fixture is missing`);
   }
+  if (route.family === 'Bridge' && route.operation === 'graph' &&
+    (!boundaryRoles.has('graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup') ||
+      !boundaryRoles.has('graph_bridge_two_consumer_lifetime'))) {
+    fail(`${label}: rows-to-Graph Bridge boundary evidence is missing`);
+  }
   if (route.family === 'Bridge' && route.operation === 'events' &&
     !environmentRoles.has('events_projection_host_in_flight_cancel')) {
     fail(`${label}: Events projection Host cancellation fixture is missing`);

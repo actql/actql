@@ -6418,6 +6418,103 @@ test "bounded Graph bridge preserves repeated positions and two consumers" {
 }
 
 ///|
+test "rows to Graph Bridge admits exact control work and workspace" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_owner(source_owner)
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Two declared nodes each take identity, property, and commit work. Two
+  // edges each take source, target, property, two endpoint checks, and commit.
+  // Finalizing the Graph is one further step: 2 * 3 + 2 * 6 + 1 = 19.
+  // The two property indices and eight fixed scratch slots overlap at start.
+  assert_true(
+    @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      9,
+      fn() { true },
+      control_work_limit=Some(19),
+    )
+    is Err(@local_bridge.GraphWorkspaceLimit),
+  )
+  for (work, accepted) in [(19, true), (18, false)] {
+    let execution = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      10,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut finished = false
+    for _ in 0..<30 {
+      if !finished {
+        match @local_bridge.advance_rows_to_graph(execution, 1).unwrap() {
+          @local_bridge.Continue(..) => ()
+          @local_bridge.Complete(output, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 19L)
+            let storage = @graphs.completed_storage(output).unwrap()
+            assert_eq(@graph_storage.node_count(storage), 2)
+            assert_eq(@graph_storage.edge_count(storage), 2)
+            assert_true(@graphs.discard_completed(output))
+            finished = true
+          }
+          @local_bridge.Failed(@local_bridge.GraphControlWorkLimit, ..) => {
+            assert_false(accepted)
+            assert_true(@local_bridge.rows_to_graph_cleanup_pending(execution))
+            finished = true
+          }
+          _ => fail("rows-to-Graph control boundary had another outcome")
+        }
+      }
+    }
+    assert_true(finished)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(execution), Ok(true))
+    assert_false(@local_bridge.rows_to_graph_cleanup_pending(execution))
+    assert_true(@execution.producer_read_available(external))
+  }
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_graph(
+    control,
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    10,
+    fn() { true },
+    control_work_limit=Some(19),
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_rows_to_graph(cancelled, 1).unwrap()
+    is @local_bridge.Continue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_graph(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(@bounded.Cancelled, ..),
+  )
+  assert_true(@local_bridge.rows_to_graph_cleanup_pending(cancelled))
+  assert_eq(@local_bridge.cleanup_rows_to_graph(cancelled), Ok(true))
+  assert_false(@local_bridge.rows_to_graph_cleanup_pending(cancelled))
+  assert_true(@execution.producer_read_available(external))
+}
+
+///|
 test "bounded Graph edge projection survives Graph reclamation" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)

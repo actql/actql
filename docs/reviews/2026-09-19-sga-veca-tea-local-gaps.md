@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 51 |
+| Operation-specific boundary records | 52 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -1424,6 +1424,16 @@ contents before cleanup. Separate expression and row-execution tests cover
 private-state cancellation. This is evidence for the shared selected derive
 path; it does not yet establish all ordinary or mixed-Stage placements, or
 delivered Host cancellation for each expression.
+
+The declared-node rows-to-Graph Bridge now receives the selected cumulative
+control-work ceiling from the Graph provider. Its fixed two-row construction
+charges 19 transitions, including finalization; 18 fails without publishing.
+Two property indices plus eight fixed slots require 10 workspace slots, so
+9 is rejected at start. A separate quantum-one cancellation after positive
+construction work confirms stop, cleanup, and continued availability of the
+borrowed Relation input. The existing repeated-input and two-consumer test
+still exercises its output lifetime. This does not prove every derived-node,
+label, or wide-property variant or delivered Host cancellation for this Bridge.
 
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the

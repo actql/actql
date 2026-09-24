@@ -4394,7 +4394,23 @@
       "entrypoint": {
         "path": "src/local_bridge/graph.mbt",
         "symbol": "start_rows_to_graph"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "rows to Graph Bridge admits exact control work and workspace"
+        },
+        {
+          "role": "graph_bridge_two_consumer_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded Graph bridge preserves repeated positions and two consumers"
+        }
+      ]
     },
     {
       "inventory": "families",

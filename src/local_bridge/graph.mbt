@@ -38,6 +38,7 @@ priv struct RowsToGraphState {
   mut target : @value.CheckedValue?
   mut label : @value.CheckedValue?
   mut properties : Array[@value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -466,6 +467,7 @@ fn rows_to_graph_step(
         }
       }
       FinishGraph => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphKernel, progress, used)
         }
@@ -478,6 +480,37 @@ fn rows_to_graph_step(
     }
   }
   @bounded.Continue(progress, used)
+}
+
+///|
+fn bounded_rows_to_graph_step(
+  state : RowsToGraphState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, GraphBridgeIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  let bounded_quantum = match state.control_work_remaining {
+    None => quantum
+    Some(remaining) => {
+      if remaining < 1 {
+        return @bounded.Failed(GraphControlWorkLimit, 0, 0)
+      }
+      Int::min(quantum, remaining)
+    }
+  }
+  let result = rows_to_graph_step(state, bounded_quantum, reader)
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  if state.control_work_remaining is Some(remaining) {
+    state.control_work_remaining = Some(remaining - charged)
+  }
+  result
 }
 
 ///|
@@ -504,7 +537,11 @@ pub fn start_rows_to_graph(
   storage_bytes : Int64,
   max_workspace_slots : Int,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[RowsToGraphExecution, GraphBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(GraphControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphConstructionStep(graph)) &&
@@ -618,9 +655,10 @@ pub fn start_rows_to_graph(
     target: None,
     label: None,
     properties: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
-    control, state, rows_to_graph_step, cleanup_rows_to_graph_state, @graph.discard_completed,
+    control, state, bounded_rows_to_graph_step, cleanup_rows_to_graph_state, @graph.discard_completed,
   )
   Ok({ session, token: Some(token), })
 }

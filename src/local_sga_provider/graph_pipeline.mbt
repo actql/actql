@@ -546,6 +546,7 @@ fn advance_execution(
             value.storage_bytes,
             value.limits.max_workspace_slots,
             fn() { true },
+            control_work_limit=Some(value.limits.max_work),
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)

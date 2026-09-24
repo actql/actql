@@ -50,7 +50,21 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 51 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 52 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('rows-to-Graph Bridge loses its boundary when either fixture is removed', () => {
+  for (const role of [
+    'graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup',
+    'graph_bridge_two_consumer_lifetime',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
+        entry.operation === 'graph');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), /Bridge graph: rows-to-Graph Bridge boundary evidence is missing/u);
+  }
 });
 
 test('vector expressions lose their operation boundary when evidence is removed', () => {
