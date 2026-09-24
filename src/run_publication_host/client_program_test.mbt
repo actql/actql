@@ -213,6 +213,46 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(client_publication_plan_fact_entries(facts), [
     rows_entry, bytes_entry,
   ])
+  let witnesses = issue_prepared_client_publication_witnesses(
+    prepared, 10, 10000, 1000, 20,
+  ).unwrap()
+  let witness_bodies = client_publication_witness_bodies(witnesses)
+  let witness_cids = client_publication_witness_cids(witnesses)
+  assert_eq(witness_bodies.length(), 3)
+  assert_eq(witness_cids.length(), 3)
+  assert_true(witness_cids[0] != witness_cids[1])
+  assert_true(
+    admit_prepared_client_publication_witnesses(
+      prepared, witness_bodies, 10, 10000, 1000, 20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_publication_witnesses(
+      prepared,
+      [witness_bodies[0]],
+      10,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationWitnessAdmissionIssue::MismatchedWitnesses),
+  )
+  assert_true(
+    admit_prepared_client_publication_witnesses(
+      prepared,
+      [witness_bodies[1], witness_bodies[0], witness_bodies[2]],
+      10,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationWitnessAdmissionIssue::MismatchedWitnesses),
+  )
+  assert_true(
+    issue_prepared_client_publication_witnesses(prepared, 2, 10000, 1000, 20)
+    is Err(ClientPublicationWitnessIssue::BudgetExceeded),
+  )
   assert_true(
     admit_prepared_client_publication_fact_entries(
       prepared,
