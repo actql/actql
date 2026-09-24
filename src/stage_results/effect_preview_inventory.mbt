@@ -6,6 +6,7 @@ pub(all) enum EffectPreviewInventoryIssue {
   MissingMember(String)
   KindMismatch(String)
   FailurePolicyMismatch(String)
+  SourceMismatch(String)
 } derive(Eq, Debug)
 
 ///|
@@ -69,6 +70,11 @@ fn check_effect_preview_checked_inventory_usage(
     if @publication.effect_preview_member_failure_policy(preview, matched) !=
       Some(@syntax.effect_header_failure_policy(header)) {
       return Err(FailurePolicyMismatch(id))
+    }
+    let source = @syntax.effect_header_source_result(header)
+    if @publication.effect_preview_member_source_result(preview, matched) !=
+      source {
+      return Err(SourceMismatch(id))
     }
   }
   Ok(max_work - remaining)

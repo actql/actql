@@ -80,6 +80,7 @@ fn public_effect_preview_member(
   placeholder : String,
   max_items? : Int = 1,
   target_cid? : String? = None,
+  source_name? : String? = None,
 ) -> String {
   let cid = "sha256:" + "a".repeat(64)
   "{\"effect_id\":\"" +
@@ -90,6 +91,11 @@ fn public_effect_preview_member(
   mapping_cid +
   "\",\"effect_identity_cid\":\"" +
   cid +
+  (if source_name is Some(source) {
+    "\",\"source_result\":\"" + source + "\",\"result_artifact_cid\":\"" + cid
+  } else {
+    ""
+  }) +
   "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
   cid +
   "\",\"capability_evidence_cid\":\"" +
@@ -155,6 +161,7 @@ fn public_effect_preview_for_static(
       first_placeholder,
       max_items=first_max_items,
       target_cid=first_target_cid,
+      source_name=Some("out"),
     ) +
     "," +
     public_effect_preview_member(

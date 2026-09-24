@@ -4,6 +4,21 @@ fn preview_identity_test_cid(digit : String) -> String {
 }
 
 ///|
+fn preview_identity_test_canonical(wire : String) -> String {
+  let parsed = @source.parse_json(wire, {
+    max_input_bytes: 8192,
+    max_nodes: 256,
+    max_depth: 12,
+  }).unwrap()
+  let value = @json.from_source(parsed, 256, 12, 8192) catch {
+    _ => abort("Expected canonical Preview fixture")
+  }
+  @json.stringify_value(value, 8192, 256, 12) catch {
+    _ => abort("Expected canonical Preview fixture")
+  }
+}
+
+///|
 fn preview_identity_test_wire(
   run_cid : String,
   authoring_cid : String,
@@ -443,5 +458,42 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   assert_true(
     derive_effect_preview_identities(changed_operation, 8192, 256, 12)
     is Err(RowIdentityMismatch(0, 0)),
+  )
+}
+
+///|
+test "Effect Preview source and captured Artifact cannot be split" {
+  let cid = preview_identity_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let raw = preview_identity_test_wire(
+    cid,
+    authoring,
+    cid,
+    "target",
+    cid,
+    cid,
+    empty=true,
+  )
+  let without_artifact = preview_identity_test_canonical(
+    raw.replace(
+      old="\"preview_strength\":",
+      new="\"source_result\":\"answer\",\"preview_strength\":",
+    ),
+  )
+  assert_true(
+    admit_effect_preview_identity(
+      without_artifact, cid, authoring, 8192, 256, 12,
+    )
+    is Err(InvalidMember),
+  )
+  let without_source = preview_identity_test_canonical(
+    raw.replace(
+      old="\"preview_strength\":",
+      new="\"result_artifact_cid\":\"" + cid + "\",\"preview_strength\":",
+    ),
+  )
+  assert_true(
+    admit_effect_preview_identity(without_source, cid, authoring, 8192, 256, 12)
+    is Err(InvalidMember),
   )
 }

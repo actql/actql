@@ -121,6 +121,11 @@ their distinct authority contracts remain separate. Literal changes are not
 silently copied into the AoA field map. This is a checked planning fragment,
 not a captured Result binding, physical payload, Preview admission, or write
 permit; the standard Effectful Run port remains open.
+Preview identity admission now retains the paired source Result name and
+Result Artifact CID. Static checked-Stage admission rejects a different
+source name, and the captured computation-chain check requires the exact
+Artifact in that Captured Run. These checks do not yet prove the captured
+rows' Effect Plan output or authorize apply.
 
 ## Required port and owners
 

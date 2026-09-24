@@ -15,6 +15,7 @@ fn final_test_preview_wire(
   member_cid : String,
   preview_cid : String,
   plan? : Bool = true,
+  artifact_cid? : String? = None,
 ) -> String {
   let receipt = publication_contract_json(chain.receipt)
   let value = captured_test_value(receipt)
@@ -45,6 +46,8 @@ fn final_test_preview_wire(
     "\",\"effect_identity_cid\":\"" +
     cid +
     (if plan { "\",\"effect_plan_logical_cid\":\"" + cid } else { "" }) +
+    "\",\"source_result\":\"answer\",\"result_artifact_cid\":\"" +
+    artifact_cid.unwrap_or(publication_contract_identity(chain.artifact)) +
     "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
     cid +
     "\",\"capability_evidence_cid\":\"" +
@@ -76,11 +79,18 @@ fn final_test_preview_wire(
 fn final_test_preview(
   chain : CapturedRunTestChain,
   plan? : Bool = true,
+  artifact_cid? : String? = None,
 ) -> EffectPreviewIdentity {
   let placeholder = ordering_test_cid("a")
   let (_, members) = match
     derive_effect_preview_identities(
-      final_test_preview_wire(chain, placeholder, placeholder, plan~),
+      final_test_preview_wire(
+        chain,
+        placeholder,
+        placeholder,
+        plan~,
+        artifact_cid~,
+      ),
       65536,
       4096,
       32,
@@ -103,13 +113,25 @@ fn final_test_preview(
       }
   }
   let (preview_cid, _) = derive_effect_preview_identities(
-    final_test_preview_wire(chain, members[0], placeholder, plan~),
+    final_test_preview_wire(
+      chain,
+      members[0],
+      placeholder,
+      plan~,
+      artifact_cid~,
+    ),
     65536,
     4096,
     32,
   ).unwrap()
   admit_effect_preview_identity(
-    final_test_preview_wire(chain, members[0], preview_cid, plan~),
+    final_test_preview_wire(
+      chain,
+      members[0],
+      preview_cid,
+      plan~,
+      artifact_cid~,
+    ),
     publication_contract_identity(chain.run),
     run_evidence_value_identity(chain.authoring),
     65536,
@@ -760,6 +782,32 @@ test "Effectful computation chain rejects a foreign captured plan" {
     "{\"WriteOne\":{}}",
     "{\"WriteOne\":\"" + ordering_test_cid("f") + "\"}",
   )
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceInventoryMismatch("captured_effects")),
+  )
+}
+
+///|
+test "Effectful computation chain rejects a foreign source Artifact" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(
+    chain,
+    artifact_cid=Some(ordering_test_cid("f")),
+  )
+  let captured = final_test_captured(chain)
   assert_true(
     validate_effectful_computation_evidence_chain(
       chain.run,

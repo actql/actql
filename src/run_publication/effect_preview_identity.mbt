@@ -25,6 +25,8 @@ pub struct EffectPreviewIdentity {
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
   member_effect_plan_cids : Array[String?]
+  member_source_results : Array[String?]
+  member_result_artifact_cids : Array[String?]
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
@@ -591,6 +593,8 @@ pub fn admit_effect_preview_identity(
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
   let member_effect_plan_cids : Array[String?] = []
+  let member_source_results : Array[String?] = []
+  let member_result_artifact_cids : Array[String?] = []
   let member_max_items : Array[Int64] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
@@ -623,6 +627,17 @@ pub fn admit_effect_preview_identity(
     member_effect_plan_cids.push(
       optional_string(@json.object_field(effect, "effect_plan_logical_cid")),
     )
+    let source_result = optional_string(
+      @json.object_field(effect, "source_result"),
+    )
+    let artifact_cid = optional_string(
+      @json.object_field(effect, "result_artifact_cid"),
+    )
+    if (source_result is Some(_)) != (artifact_cid is Some(_)) {
+      return Err(InvalidMember)
+    }
+    member_source_results.push(source_result)
+    member_result_artifact_cids.push(artifact_cid)
     match @json.object_field(effect, "max_items") {
       Some(@json.Number(limit)) if limit > 0.0 &&
         limit <= 9007199254740991.0 &&
@@ -780,6 +795,8 @@ pub fn admit_effect_preview_identity(
     member_effect_ids,
     member_effect_kinds,
     member_effect_plan_cids,
+    member_source_results,
+    member_result_artifact_cids,
     member_max_items,
     member_contracts,
     member_failure_policies,
@@ -861,6 +878,30 @@ pub fn effect_preview_member_plan_cid(
   index : Int,
 ) -> String? {
   match value.member_effect_plan_cids.get(index) {
+    Some(cid) => cid
+    None => None
+  }
+}
+
+///|
+/// A source Result and its captured Artifact are an inseparable member
+/// binding. Their presence does not by itself prove checked membership.
+pub fn effect_preview_member_source_result(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  match value.member_source_results.get(index) {
+    Some(name) => name
+    None => None
+  }
+}
+
+///|
+pub fn effect_preview_member_result_artifact_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  match value.member_result_artifact_cids.get(index) {
     Some(cid) => cid
     None => None
   }
