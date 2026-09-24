@@ -553,6 +553,7 @@ test "Effect computation candidate retains owners without admitting execution" {
 fn public_effect_mapping_closure(
   generated : Bool,
   split_source? : Bool = false,
+  split_intermediate? : Bool = false,
   split_before? : Bool = false,
 ) -> Unit raise {
   let (plain, _, _, evidence, base_limits) = public_input_fixture(generated~)
@@ -596,6 +597,14 @@ fn public_effect_mapping_closure(
         "{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}"
       } else {
         "{\"take\":1,\"as\":\"selected\"}"
+      },
+    )
+    .replace(
+      old="\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}}",
+      new=if split_intermediate {
+        "\"results\":{\"out\":{\"from\":\"projected\",\"fields\":[\"id\",\"value\"]}}}"
+      } else {
+        "\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}}"
       },
     ),
     limits.input,
@@ -740,7 +749,14 @@ fn public_effect_mapping_closure(
     },
   )
   if split_source {
-    assert_eq(@strategy.checked_effect_source_task(first_source), 4)
+    assert_eq(
+      @strategy.checked_effect_source_task(first_source),
+      if split_intermediate {
+        3
+      } else {
+        4
+      },
+    )
   } else if split_before {
     assert_eq(@strategy.checked_effect_source_task(first_source), 5)
   } else {
@@ -1421,6 +1437,15 @@ test "Values-root Effect Run keeps its checked owner through capture" {
 ///|
 test "Effect source binds the final physical task of a split Stage" {
   public_effect_mapping_closure(false, split_source=true)
+}
+
+///|
+test "Effect source binds an intermediate physical task of a split Stage" {
+  public_effect_mapping_closure(
+    false,
+    split_source=true,
+    split_intermediate=true,
+  )
 }
 
 ///|
