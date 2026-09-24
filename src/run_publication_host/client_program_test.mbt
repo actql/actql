@@ -122,6 +122,61 @@ test "ordinary values document prepares one named Effect-free result" {
   ).unwrap()
   assert_true(rows_binding != bytes_binding)
   assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [bytes_binding, rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::MissingBinding),
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [rows_binding, rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::DuplicateBinding),
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [bytes_binding, "{}"],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::InvalidBinding),
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [bytes_binding, rows_binding],
+      1,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::BudgetExceeded),
+  )
+  assert_true(
     admit_prepared_client_publication_binding(
       prepared,
       0,
@@ -150,6 +205,32 @@ test "ordinary values document prepares one named Effect-free result" {
   let wrong_port = rows_binding.replace(
     old="\"result_name\":\"rows\"",
     new="\"result_name\":\"answer\"",
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [bytes_binding, wrong_port],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::MismatchedBinding),
+  )
+  let foreign_cid = rows_binding.replace(
+    old="\"binding_cid\":\"sha256:",
+    new="\"binding_cid\":\"sha256:f",
+  )
+  assert_true(
+    admit_prepared_client_publication_binding_set(
+      prepared,
+      [bytes_binding, foreign_cid],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingSetIssue::UnexpectedBinding),
   )
   assert_true(
     admit_prepared_client_publication_binding(
