@@ -89,6 +89,15 @@ after it. This is a local attribution probe, not an alternating performance
 assessment or a claim that cold preparation is solved. The parent and worker
 still prepare the application independently.
 
+The unchanged registered narrow/100 assessment at clean `dbf36ac57` then
+completed seven qualified pairs and still failed: warm overhead was
+28.658–32.773 milliseconds against 10 ms, and cold overhead was
+652.437–749.094 milliseconds against 100 ms. These intervals were worse than
+the prior local run, so the small preparation probe must not be presented as a
+measured end-to-end improvement. Both assessments remain local diagnostics;
+the final Linux acceptance run is still required. The raw assessment is in
+workspace scratch at `.codex-scratch/perf-equivalent-small-dbf36`.
+
 ## Next changes to test independently
 
 1. Separate immutable application preparation from per-run parameter,
