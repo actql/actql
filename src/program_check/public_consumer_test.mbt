@@ -553,8 +553,33 @@ test "Effect computation candidate retains owners without admitting execution" {
 fn public_effect_mapping_closure(
   generated : Bool,
   split_source? : Bool = false,
+  split_before? : Bool = false,
 ) -> Unit raise {
-  let (plain, _, _, evidence, limits) = public_input_fixture(generated~)
+  let (plain, _, _, evidence, base_limits) = public_input_fixture(generated~)
+  let plain = if split_before {
+    plain.replace(
+      old="},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}}",
+      new="},{\"id\":\"middle\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}},\"steps\":[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"middle\",\"result\":\"out\"}}}",
+    )
+  } else {
+    plain
+  }
+  let limits : @program_check.CheckLimits = if split_before {
+    {
+      input: { ..base_limits.input, max_stages: 3, },
+      compilation: {
+        ..base_limits.compilation,
+        structure: {
+          ..base_limits.compilation.structure,
+          stages: 3,
+          steps: 10,
+          results: 3,
+        },
+      },
+    }
+  } else {
+    base_limits
+  }
   let program = @syntax.parse(
     plain
     .replace(
@@ -608,7 +633,7 @@ fn public_effect_mapping_closure(
     { text_time: false, veca: false, },
     {
       rela: true,
-      sga: split_source,
+      sga: split_source || split_before,
       tea: false,
       calendar: false,
       text_rank: false,
@@ -688,7 +713,7 @@ fn public_effect_mapping_closure(
   let graph_owner = @strategy.prepare_checked_effect_computation_dag(
     static_candidate,
     owners,
-    if split_source {
+    if split_source || split_before {
       8
     } else {
       2
@@ -706,9 +731,18 @@ fn public_effect_mapping_closure(
   assert_eq(@strategy.checked_effect_source_count(graph_owner), 2)
   let first_source = @strategy.checked_effect_source_at(graph_owner, 0).unwrap()
   assert_eq(@strategy.checked_effect_source_member(first_source), 0)
-  assert_eq(@strategy.checked_effect_source_stage(first_source), 1)
+  assert_eq(
+    @strategy.checked_effect_source_stage(first_source),
+    if split_before {
+      2
+    } else {
+      1
+    },
+  )
   if split_source {
     assert_eq(@strategy.checked_effect_source_task(first_source), 4)
+  } else if split_before {
+    assert_eq(@strategy.checked_effect_source_task(first_source), 5)
   } else {
     assert_eq(@strategy.checked_effect_source_task(first_source), 1)
   }
@@ -716,7 +750,11 @@ fn public_effect_mapping_closure(
   assert_eq(
     @strategy.graph_stage_target_task(
       @strategy.checked_effect_computation_graph(graph_owner),
-      1,
+      if split_before {
+        2
+      } else {
+        1
+      },
       @publication.port_target(
         @execution.managed_result_occurrence_port(occurrence),
       ),
@@ -727,7 +765,7 @@ fn public_effect_mapping_closure(
   assert_true(
     physical_equal(
       @execution.managed_result_occurrence_owner(occurrence),
-      owners[1],
+      owners[if split_before { 2 } else { 1 }],
     ),
   )
   assert_true(
@@ -746,6 +784,15 @@ fn public_effect_mapping_closure(
     ),
   )
   assert_true(@strategy.checked_effect_source_at(graph_owner, 1) is None)
+  if split_before {
+    assert_eq(
+      @strategy.graph_task_count(
+        @strategy.checked_effect_computation_graph(graph_owner),
+      ),
+      6,
+    )
+    return
+  }
   assert_true(
     @strategy.prepare_checked_dag(computation, owners, 2, 10000)
     is Err(EffectGraphOwnerRequired),
@@ -1374,6 +1421,11 @@ test "Values-root Effect Run keeps its checked owner through capture" {
 ///|
 test "Effect source binds the final physical task of a split Stage" {
   public_effect_mapping_closure(false, split_source=true)
+}
+
+///|
+test "Effect source follows a preceding split Stage" {
+  public_effect_mapping_closure(false, split_before=true)
 }
 
 ///|
