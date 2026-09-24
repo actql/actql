@@ -10,6 +10,10 @@ const output = join(
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
 const selected = Object.freeze({
+  result_plan: Object.freeze({
+    schema: 'result_plan',
+    identity: 'result_plan_logical_cid',
+  }),
   bound_invocation_template: Object.freeze({
     schema: 'bound_invocation_template',
     identity: 'bound_invocation_template_cid',

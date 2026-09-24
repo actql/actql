@@ -50,6 +50,7 @@ fn protocol_test_accepts(
 ///|
 test "all generated Run evidence versions are exact" {
   let cases = [
+    ("result_plan", "actql-result-plan/0.1"),
     ("bound_invocation_template", "actql-bound-invocation-template/0.1"),
     ("prepared_invocation", "actql-prepared-invocation/0.1"),
     ("run_authorization", "actql-run-authorization/0.1"),
@@ -73,6 +74,20 @@ test "all generated Run evidence versions are exact" {
       protocol_test_accepts(nodes, index, "\"" + version + "-wrong\""),
     )
   }
+}
+
+///|
+test "generated Result Plan type and order domains are closed" {
+  let (nodes, index) = protocol_test_property_node("result_plan", [
+    "typed_output_port", "carrier",
+  ])
+  assert_true(protocol_test_accepts(nodes, index, "\"relation\""))
+  assert_false(protocol_test_accepts(nodes, index, "\"graph\""))
+  let (nodes, index) = protocol_test_property_node("result_plan", [
+    "order", "strategy",
+  ])
+  assert_true(protocol_test_accepts(nodes, index, "\"inherited\""))
+  assert_false(protocol_test_accepts(nodes, index, "\"unknown\""))
 }
 
 ///|
