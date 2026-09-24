@@ -63,6 +63,21 @@ test('empty RelA resource boundaries are required by their routes', () => {
   }
 });
 
+test('supplied Relation selection loses assurance without its fixtures', () => {
+  for (const role of [
+    'supplied_select_work_workspace_exact_one_short',
+    'supplied_relation_chain_two_consumers',
+    'supplied_relation_chain_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'select');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA select: reviewed ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('nest loses its independent empty boundary if the fixture is removed', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&

@@ -266,6 +266,82 @@ test "bounded selected rows retain supplied input provenance" {
 }
 
 ///|
+test "bounded supplied projection admits exact work and workspace" {
+  // One input-row opening, one output-row opening, and the two UTF-8 bytes
+  // in the projected names give four work units. Two view entries, two
+  // input and output names, two input and selected ordinals, and four row
+  // slots give a fourteen-slot structural peak.
+  let owner = input_owner()
+  let captured = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"s\":\"ok\",\"n\":3}")],
+    max_rows=1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+  ).unwrap()
+  let live = Ref(true)
+  let read = prepare_supplied_relation_read(owner, 0, captured, fn() {
+    live.val
+  }).unwrap()
+  let sequence = prepared_sequence(owner)
+  let node = @lower.node_at(@lower.bound_preparation(owner), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    [@lower.node_id(node)],
+    10000,
+    1000,
+  ).unwrap()
+  for (work, slots, succeeds) in [(4, 14, true), (3, 14, false), (4, 13, false)] {
+    let started = start_bounded_binding_rows_supplied(
+      @bounded.control(),
+      generated,
+      read,
+      1,
+      { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+      { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+      work,
+      100,
+      slots,
+      1000,
+    )
+    let active = match started {
+      Ok(active) => active
+      Err(Rows(RowLimit)) => {
+        assert_false(succeeds)
+        continue
+      }
+      Err(_) => fail("supplied projection admission had another outcome")
+    }
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match advance_bounded_binding_rows(active, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(succeeds)
+          assert_eq(completed_row_count(output), 1)
+          terminal = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_false(succeeds)
+          terminal = true
+        }
+        _ => fail("supplied projection resource boundary had another outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(supplied_relation_read_available(read))
+  }
+  live.val = false
+  assert_false(supplied_relation_read_available(read))
+}
+
+///|
 test "supplied relation read rejects foreign owners and input positions" {
   let owner = input_owner()
   let rows = capture_input(owner, 0, [], max_rows=0, {

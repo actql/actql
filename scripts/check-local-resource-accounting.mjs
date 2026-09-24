@@ -1040,6 +1040,9 @@ for (const [index, route] of routeEntries.entries()) {
       'select_input_exact',
       'select_input_one_short',
       'select_cancel_cleanup',
+      'supplied_select_work_workspace_exact_one_short',
+      'supplied_relation_chain_two_consumers',
+      'supplied_relation_chain_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);

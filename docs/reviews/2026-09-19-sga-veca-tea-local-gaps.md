@@ -33,6 +33,12 @@ fixtures execute both downstream consumers, preserve independent release,
 and stop after positive work without publishing partial output. This removes
 one providerless multi-step case. Other formal RelA bodies and unmatched
 whole-sequence paths still use the synchronous fallback and remain open.
+The supplied select read also has a fixed one-row boundary: one input and
+one output opening plus two output-name bytes cost four control units; the
+view, name, ordinal, and row slots peak at fourteen. Exact limits succeed,
+and either one-short limit fails before completion while the borrowed input
+remains available. This is a path-scoped proof, not assurance for every
+supplied-input variant or the remaining synchronous fallback.
 ShortestPath now advances typed endpoint, edge, and weighted tie comparisons
 through the shared bounded key cursor. A quantum-one long-text fixture checks
 active cancellation, cleanup, and canonical output order on all three targets.

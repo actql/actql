@@ -349,6 +349,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected projection admits exact work and workspace"
+        },
+        {
+          "role": "supplied_select_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection admits exact work and workspace"
+        },
+        {
+          "role": "supplied_relation_chain_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host bounds supplied Relation chains and retains two consumers"
+        },
+        {
+          "role": "supplied_relation_chain_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "fixture": "standard Host stops supplied Relation evaluation after work begins"
         }
       ],
       "environment_tests": [
