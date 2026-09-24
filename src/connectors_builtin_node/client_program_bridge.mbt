@@ -1881,6 +1881,26 @@ pub fn client_program_check_effect_preview_target_guards(
 }
 
 ///|
+/// The Host supplies current, authorized source, Contract, registration, and
+/// grant observations for every member. Equality with the Preview is not
+/// permission to mutate or evidence that the observations are authentic.
+#export_name("clientProgramCheckEffectPreviewCurrentBindings")
+pub fn client_program_check_effect_preview_current_bindings(
+  value : @strategy.CapturedEffectPreviewInputs,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectCurrentBindingIssue] {
+  @strategy.check_captured_effect_preview_current_bindings(
+    value, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
+    authority_scope_cids, max_members, max_work,
+  )
+}
+
+///|
 /// Exact Host limits for the checked Effect input stream, shared by cell and
 /// resident representations. These limits do not grant access or apply.
 #export_name("clientProgramEffectInputExportLimits")
