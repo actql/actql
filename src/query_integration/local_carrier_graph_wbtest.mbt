@@ -5998,6 +5998,38 @@ test "path traversal charges overlapping start selector and indices" {
     assert_eq(@local_sga.cleanup_traverse(execution), Ok(true))
     assert_eq(@local_sga.traverse_private_entry_count(execution), 0)
     assert_eq(@local_sga.traverse_private_workspace_usage(execution).0, 0)
+    if workspace == 8 {
+      for ceiling in [0, 1] {
+        let limited = @local_sga.start_traverse(
+          @bounded.control(),
+          task_test_completion(owner),
+          sequence,
+          1,
+          @graphs.prepare_step_read(owner, 1, 0, graph).unwrap(),
+          20,
+          {
+            max_nodes: 1000,
+            max_text_bytes: 1000,
+            max_depth: 10,
+            max_work: ceiling,
+          },
+          workspace,
+          1000,
+          1000,
+          [external],
+        ).unwrap()
+        match @local_sga.advance_traverse(limited, 100).unwrap() {
+          @local_sga.TraverseFailed(
+            @local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit),
+            progress=0L,
+            work~
+          ) => assert_eq(work, ceiling.to_int64())
+          _ => fail("path traversal escaped its work ceiling")
+        }
+        assert_eq(@local_sga.cleanup_traverse(limited), Ok(true))
+        assert_eq(@local_sga.traverse_private_entry_count(limited), 0)
+      }
+    }
     assert_true(@graphs.discard_completed(graph))
   }
 }

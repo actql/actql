@@ -1317,8 +1317,9 @@ for (const [index, route] of routeEntries.entries()) {
     fail(`${label}: reach control-work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'traverse' &&
-    !boundaryRoles.has('node_emit_control_work_ceiling')) {
-    fail(`${label}: node-emitting traversal work evidence is missing`);
+    (!boundaryRoles.has('node_emit_control_work_ceiling') ||
+      !boundaryRoles.has('path_emit_control_work_ceiling'))) {
+    fail(`${label}: traversal work evidence is missing`);
   }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(

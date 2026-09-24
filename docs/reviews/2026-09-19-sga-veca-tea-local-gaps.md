@@ -77,6 +77,14 @@ limit rather than bypassing the shared state. This is prefix evidence, not an
 exact full-route work proof for every reach direction, predicate, or path
 traversal.
 
+The separate path-emitting traversal kernel now enforces the same selected
+control-work ceiling across resumes and charges completion. A four-start
+fixture rejects ceilings of zero and one after exactly zero and one charged
+step respectively, without exposing a partial path result; its overlapping
+start-selector/index cancellation still reclaims private state. This closes
+the unbounded control-work escape in the path branch, but not exact full-route
+work assurance across all path predicates and output shapes.
+
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component
 vectors require 28/27 construction-work units and 10/9 peak structural slots.

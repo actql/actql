@@ -115,7 +115,9 @@ test('reach and node traversal require shared control-work evidence', () => {
     ['reach', 'reach_prefix_work_workspace_active_cancel',
       /SGA reach: reach control-work evidence is missing/u],
     ['traverse', 'node_emit_control_work_ceiling',
-      /SGA traverse: node-emitting traversal work evidence is missing/u],
+      /SGA traverse: traversal work evidence is missing/u],
+    ['traverse', 'path_emit_control_work_ceiling',
+      /SGA traverse: traversal work evidence is missing/u],
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&

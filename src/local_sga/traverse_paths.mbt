@@ -123,6 +123,7 @@ priv struct TraversePathsState {
   mut node_sort_choose_left : Bool
   mut workspace_slots : Int
   mut workspace_peak : Int
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -158,6 +159,7 @@ pub(all) enum TraversePathsIssue {
   TraversePathsStartMissing
   TraversePathsOutputLimit
   TraversePathsWorkspaceLimit
+  TraversePathsWorkLimit
   TraversePathsPredicate(@execution.EvalIssueKind)
   TraversePathsKeyOrder(@value.KeyOrderIssue)
   TraversePathsOutput(@execution.CaptureIssue)
@@ -578,6 +580,9 @@ fn traverse_paths_step(
     if !@graph.producer_read_available(state.input) ||
       !traverse_path_starts_available(state) {
       return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
+    }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(TraversePathsWorkLimit, progress, used)
     }
     match state.phase {
       InitializeStartSelection =>
@@ -1561,6 +1566,7 @@ fn traverse_paths_step(
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
         }
@@ -1579,6 +1585,7 @@ fn traverse_paths_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1655,6 +1662,9 @@ fn start_traverse_paths(
   inputs : Array[@execution.ProducerRead],
 ) -> Result[TraversePathsExecution, TraversePathsIssue] {
   let owner = @lower.sequence_owner(sequence)
+  if limits.max_work < 0 {
+    return Err(TraversePathsWorkLimit)
+  }
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphTraverseStep(prepared)) else {
     return Err(InvalidTraversePathsKernel)
@@ -1873,6 +1883,7 @@ fn start_traverse_paths(
     node_sort_choose_left: false,
     workspace_slots: node_count + predicate_workspace_width,
     workspace_peak: node_count + predicate_workspace_width,
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
     control,
