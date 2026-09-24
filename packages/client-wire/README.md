@@ -20,7 +20,13 @@ generated from `spec/contracts/actql-client-host.json` with
 `node scripts/generate-client-host-wire.mjs --write`. The publication artifact
 guards and types are generated from the registered Run publication and protocol
 schemas with `node scripts/generate-client-publication-wire.mjs --write`. The
-normal distribution gate checks both generated-file sets for freshness. The
+same Client–Host generator projects the registered `run_state` artifact from
+`spec/contracts/actql-protocol-schemas.json` into `validRunState` and
+`WireRunState`. This guard checks structural wire shape only. It is a component
+of the future Client snapshot; it does not express the separate publication,
+cancellation, physical-stop or revision facts, and it does not replace the
+MoonBit state validator. The normal distribution gate checks both
+generated-file sets for freshness. The
 small remaining
 cross-artifact checks bind a reply to the requested Run and Result; they do
 not decide publication or delivery transitions.

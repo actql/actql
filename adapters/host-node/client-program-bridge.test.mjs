@@ -17,6 +17,7 @@ import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
+import {validRunState} from '../../packages/client-wire/index.mjs';
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
@@ -514,7 +515,9 @@ test('checked Values Program publishes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
-        assert.equal((await execution.status()).status, 'succeeded');
+        const state = await execution.status();
+        assert.equal(validRunState(state), true);
+        assert.equal(state.status, 'succeeded');
         assert.deepEqual(await execution.result('answer').all(), expected);
         const reader = execution.result('answer').rows();
         assert.deepEqual(await Array.fromAsync(reader), expected);

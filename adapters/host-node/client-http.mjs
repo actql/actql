@@ -4,7 +4,8 @@ import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {deliverAuthorizedResult,
   inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {clientHostOperations, validClientAdmission, validClientBody,
-  validClientProfile, validDeliveryAttemptLookup, validRequestLookup} from
+  validClientProfile, validDeliveryAttemptLookup, validRequestLookup,
+  validRunState} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -188,6 +189,9 @@ export function createClientHttpHandler({
           principalId: principal,
           purpose: 'inspect',
         }) : await invoke(observeRun);
+        if (observeRun === undefined && !validRunState(state)) {
+          invalid('InvalidClientHostRunState');
+        }
         sendJson(state);
       } else if (operation === 'wait') {
         const observer = observationAttempt(response);

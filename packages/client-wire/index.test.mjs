@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {clientHostOperations, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
-  validRequestLookup, validRunRef} from './index.mjs';
+  validRequestLookup, validRunRef, validRunState} from './index.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
@@ -114,6 +114,31 @@ test('request lookup retains found, absent and observation-unknown replies',
       'request-a'), false);
     assert.equal(validRequestLookup({kind: 'unknown', reason: ''},
       'request-a'), false);
+  });
+
+test('registered Run state guard checks nested availability and action wire',
+  () => {
+    const at = '2026-09-24T00:30:00.000Z';
+    const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
+      status: 'succeeded', updated_at: at,
+      next_action: {kind: 'read_result', results: ['answer']},
+      result_available: true,
+      result_availability: {answer: {state: 'available',
+        reason: 'confirmed_present', observed_at: at}}};
+    assert.equal(validRunState(state), true);
+    for (const changed of [
+      {...state, status: 'other'},
+      {...state, result_available: 'true'},
+      {...state, next_action: {kind: 'read_result', results: []}},
+      {...state, next_action: {kind: 'none', results: ['answer']}},
+      {...state, result_availability: {}},
+      {...state, result_availability: {answer: {...state.result_availability.answer,
+        reason: 'store_query_failed'}}},
+      {...state, checkpoint: {checkpoint_id: 'paused',
+        checkpoint_cid: `sha256:${'c'.repeat(64)}`, kind: 'run_scope'}},
+      {...state, result_availability: {'': state.result_availability.answer}},
+      {...state, revision: 1},
+    ]) assert.equal(validRunState(changed), false);
   });
 
 const delivery = JSON.parse(readFileSync(new URL(
