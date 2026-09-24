@@ -137,11 +137,14 @@ try {
   const result = JSON.parse(stdout.trim().split('\n').at(-1));
   const selections = stdout.split('\n').filter(line => line.startsWith('selection:'));
   const taskIntervals = stdout.split('\n')
-    .filter(line => line.startsWith('task-elapsed-ms:'))
+    .filter(line => line.startsWith('task-elapsed-us:'))
     .map(line => {
-      const match = /^task-elapsed-ms:([1-9][0-9]*):(0|[1-9][0-9]*)$/.exec(line);
+      const match = /^task-elapsed-us:([1-9][0-9]*):(0|[1-9][0-9]*)$/.exec(line);
       assert(match, 'InvalidNativeTaskInterval');
-      return {task: Number(match[1]), elapsedMilliseconds: Number(match[2])};
+      const elapsedMicroseconds = Number(match[2]);
+      assert(Number.isSafeInteger(elapsedMicroseconds));
+      return {task: Number(match[1]), elapsedMicroseconds,
+        elapsedMilliseconds: elapsedMicroseconds / 1000};
     });
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);

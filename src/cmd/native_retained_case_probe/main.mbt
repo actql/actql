@@ -138,19 +138,21 @@ fn native_strategy_issue_name(
 
 ///|
 /// Measure the same one-task product boundary used by the full Run helper.
-/// These millisecond intervals are calibration inputs, never acceptance
-/// timings. The wall clock is only an observation; it grants no authority.
+/// These monotonic intervals are calibration inputs, never acceptance
+/// timings. The clock observation grants no execution authority.
 fn execute_timed_native_strategy_run(
   run : @host.NativeStandardStrategyRun,
 ) -> Result[Unit, @host.NativeStandardStrategyRunIssue] {
   while true {
-    let before = @env.now()
+    let before = @bench.monotonic_clock_start()
     match @host.execute_next_native_standard_strategy_task(run) {
       Ok(Some(completion)) => {
-        let after = @env.now()
-        let elapsed = if after >= before { after - before } else { 0UL }
+        let elapsed = @bench.monotonic_clock_end(before).to_int64()
+        if elapsed < 0L {
+          abort("invalid monotonic interval")
+        }
         println(
-          "task-elapsed-ms:" +
+          "task-elapsed-us:" +
           completion.task.to_string() +
           ":" +
           elapsed.to_string(),

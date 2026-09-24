@@ -18,4 +18,5 @@ import {
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
   "moonbitlang/core/env",
+  "moonbitlang/core/bench",
 }

@@ -81,6 +81,10 @@ jobs:
           moon build src/cmd/native_retained_case_probe --target native --release
           node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100
           node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000
+          node benchmarks/retained-results/native-estimate-calibration.mjs \
+            native-acquisition-full-validation-low-selectivity/narrow/100 \
+            native-acquisition-full-validation-low-selectivity/narrow/1000 \
+            "$RUNNER_TEMP/native-retained-calibration.json"
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies

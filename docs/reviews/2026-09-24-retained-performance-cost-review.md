@@ -475,7 +475,7 @@ task at the existing one-task Host boundary. A separate Native calibration
 uses three alternating forced-choice training rounds, the median task
 interval for each eligible implementation, and a held-out ordinary selection.
 This profile is distinct from the Node Host profile and is not a paired
-acceptance sample. Its millisecond clock granularity is sufficient for
-candidate ranking diagnostics; formal timing still uses the registered
+acceptance sample. Its monotonic microsecond observation is rounded up to
+millisecond candidate rates; formal timing still uses the registered
 parent-process boundary. Neither profile can replace the other merely because
 both use the same checked Program and Result oracle.
