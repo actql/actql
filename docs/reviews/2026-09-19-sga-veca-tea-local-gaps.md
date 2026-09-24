@@ -4,9 +4,21 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 21 have operation-specific
+The current local resource gate maps 68 routes: 22 have operation-specific
 boundary records, 6 have all four lifecycle roles, and 5 have exact and
-one-short work/workspace assurance. Strict completion remains red.
+one-short work/workspace assurance across every production path. Another 24
+paths have path-scoped work/workspace evidence. Strict completion remains red.
+
+Global `top_k` now selects a bounded Relation task after its checked key
+assertion. Its full-input sort and requested output prefix advance at quantum
+one; a fixed fixture checks independently counted exact and one-short work
+and workspace limits, and a second fixture stops and reclaims private sort
+state before publication. The ordinary standard Host runs the assertion,
+global top-k, and two real downstream Computes as separate tasks. A Node
+timer delivers cancellation after positive top-k work and observes stop,
+nonpublication, and final cleanup. This is an assured ordinary path, not
+proof of the providerless whole-sequence path, the selected mixed-Carrier
+path, or partitioned `top_k_by`.
 
 The `ad0c2fce` follow-up review found that the bounded binary providers
 omitted the receiving operation's cumulative `input_values` admission.

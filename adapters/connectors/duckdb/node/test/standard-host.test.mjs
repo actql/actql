@@ -5853,7 +5853,7 @@ async function exerciseStrategyGraph(
     ['snapshot derive', snapshotDeriveProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
-    ['global top k', globalTopKProgram, [1, 2, 3, 4]],
+    ['global top k', globalTopKProgram, [1, 2, 3, 4, 5]],
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
@@ -6065,7 +6065,7 @@ async function exerciseStrategyGraph(
       if (name === 'global top k' || name === 'partitioned top k') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [4, 2, 2, 2],
+          name === 'global top k' ? [4, 4, 2, 2, 2] : [4, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -6356,6 +6356,7 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-assert-where-in-flight', kind: 'assert-where'},
     {name: 'ordinary-assert-unique-in-flight', kind: 'assert-unique'},
     {name: 'ordinary-sort-in-flight', kind: 'sort'},
+    {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
   ]) {
     const ordinaryUnaryProgram = structuredClone(selectProgram);
@@ -6374,9 +6375,15 @@ async function exerciseStrategyGraph(
         'assert-where': {assert_rows: {where: 'id > 0'}, as: 'out'},
         'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
         sort: {sort: [{id: 'desc'}], as: 'out'},
+        'top-k': {top_k: {k: 60, by: [{id: 'desc'}]}, as: 'out'},
         take: {take: 60, as: 'out'},
       }[ordinaryUnaryCase.kind];
-      unary.steps = [unaryStep];
+      unary.steps = ordinaryUnaryCase.kind === 'top-k'
+        ? [
+          {assert_rows: {unique_by: ['id']}, as: 'unique'},
+          {from: 'unique', ...unaryStep},
+        ]
+        : [unaryStep];
       const fields = ordinaryUnaryCase.kind === 'derive'
         ? ['id', 'amount', 'next']
         : ordinaryUnaryCase.kind === 'rename' ? ['id', 'total']
@@ -6442,7 +6449,8 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const result = active.advance(quantum);
                   const poll = checked(result);
-                  if (start === 2) {
+                  if (start === (ordinaryUnaryCase.kind === 'top-k'
+                    ? 3 : 2)) {
                     assert(poll.work <= BigInt(quantum));
                     if (poll.complete === false && poll.progress > 0n &&
                         poll.work > 0n) {
@@ -6467,7 +6475,8 @@ async function exerciseStrategyGraph(
         [localStrategyContribution(observedRuntime, setup, checked, undefined)],
         cancellation.signal,
       );
-      assert.equal(managedStarts, 2);
+      assert.equal(managedStarts,
+        ordinaryUnaryCase.kind === 'top-k' ? 3 : 2);
       assert(progressAfterStart > 0n,
         `${ordinaryUnaryCase.name}: row work must precede abort`);
       assert.equal(cancellation.signal.aborted, true);
@@ -6476,7 +6485,8 @@ async function exerciseStrategyGraph(
       assert(stoppedAt >= deliveredAt);
       assert.equal(execution.status, 'host-tasks-failed');
       assert.equal(execution.failure?.name, 'AbortError');
-      assert.deepEqual(execution.completed.map(item => item.task), [1]);
+      assert.deepEqual(execution.completed.map(item => item.task),
+        ordinaryUnaryCase.kind === 'top-k' ? [1, 2] : [1]);
     } finally {
       ordinaryUnaryCapture.close();
       await execution?.close();

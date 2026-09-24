@@ -3,9 +3,9 @@ fn bounded_binding_rows_source(
   rows : String,
   id_nullable? : Bool = false,
   distinct? : Bool = false,
+  top_k_source? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
-  let owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
+  let text = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
     (if id_nullable { "true" } else { "false" }) +
     (if distinct {
       "},\"tag\":{\"type\":\"string\",\"nullable\":true}}"
@@ -14,14 +14,28 @@ fn bounded_binding_rows_source(
     }) +
     ",\"rows\":" +
     rows +
-    "},\"as\":\"seed\"}]",
-  )
+    "},\"as\":\"seed\"}]"
+  let text = if top_k_source {
+    text.replace(
+      old="\"as\":\"seed\"}]",
+      new="\"as\":\"rows\"},{\"from\":\"rows\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"seed\"}]",
+    )
+  } else {
+    text
+  }
+  let owner = bound_pipeline(text)
   let sequence = prepared_sequence(owner)
+  let output_step = if top_k_source { 1 } else { 0 }
+  let nodes = Array::makei(output_step + 1, index => {
+    @lower.node_id(
+      @lower.node_at(@lower.bound_preparation(owner), index).unwrap(),
+    )
+  })
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
     [],
-    ["values_0"],
+    nodes,
     100000,
     10000,
   ).unwrap()
@@ -30,12 +44,13 @@ fn bounded_binding_rows_source(
     [],
     compute_test_limits(),
   ).unwrap()
-  (owner, completed_output(completed, @pipeline.Step(0)).unwrap())
+  (owner, completed_output(completed, @pipeline.Step(output_step)).unwrap())
 }
 
 ///|
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
+  source_step? : Int = 0,
   following_step? : Bool = false,
   filter? : Bool = false,
   assert_all? : Bool = false,
@@ -44,6 +59,7 @@ fn bounded_binding_rows_receiver(
   rename? : Bool = false,
   drop? : Bool = false,
   take? : Bool = false,
+  top_k? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
@@ -52,7 +68,7 @@ fn bounded_binding_rows_receiver(
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
-    @pipeline.Step(0),
+    @pipeline.Step(source_step),
   ).unwrap()
   let checked = @pipeline.check_with_evidence(
     input_cursor(
@@ -61,6 +77,8 @@ fn bounded_binding_rows_receiver(
         "{\"distinct\":[\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if distinct {
         "{\"distinct\":true,\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if top_k {
+        "{\"top_k\":{\"k\":1,\"by\":[{\"id\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if take {
         "{\"take\":{\"count\":1,\"offset\":1},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if sort || sort_empty {
@@ -128,6 +146,7 @@ fn bounded_binding_rows_fixture(
   rename? : Bool = false,
   drop? : Bool = false,
   take? : Bool = false,
+  top_k? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
@@ -142,9 +161,11 @@ fn bounded_binding_rows_fixture(
     rows,
     id_nullable~,
     distinct=distinct || distinct_keyed,
+    top_k_source=top_k,
   )
   let receiver = bounded_binding_rows_receiver(
     source_owner,
+    source_step=if top_k { 1 } else { 0 },
     following_step~,
     filter~,
     assert_all~,
@@ -153,6 +174,7 @@ fn bounded_binding_rows_fixture(
     rename~,
     drop~,
     take~,
+    top_k~,
     sort~,
     sort_empty~,
     distinct~,
@@ -169,6 +191,7 @@ fn bounded_binding_rows_fixture(
       drop ||
       assert_unique ||
       take ||
+      top_k ||
       sort ||
       sort_empty ||
       distinct ||
@@ -599,6 +622,71 @@ test "bounded selected sort has an exact control-work boundary" {
   }
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+test "bounded global top-k admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // Two input rows, schema names, sort admission, the merge comparison,
+  // and one three-field output require 35 control units. Metadata, two
+  // merge indices, and the checked output row peak at 21 workspace slots.
+  for
+    (work, entries, accepted) in [
+      (35, 21, true),
+      (34, 21, false),
+      (35, 20, false),
+    ] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      top_k=true,
+      max_work=work,
+      max_entries=entries,
+    )
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal && polls < 1000 {
+      polls += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 1)
+          assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+          terminal = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_false(accepted)
+          terminal = true
+        }
+        _ => fail("unexpected global top-k resource outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "bounded global top-k stops before publishing partial output" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+    top_k=true,
+  )
+  for _ in 0..<20 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
 }
 
 ///|

@@ -1144,6 +1144,66 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
+      },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "boundary_tests": [
+        {
+          "role": "ordinary_top_k_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local global top-k resumes within quantum"
+        },
+        {
+          "role": "top_k_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded global top-k admits exact work and workspace"
+        },
+        {
+          "role": "top_k_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded global top-k stops before publishing partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "ordinary_top_k_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-global-top-k-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "ordinary_entrypoint": {
+          "exact_limit": "top_k_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_host_timer",
+          "cleanup": "top_k_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          }
+        }
       }
     },
     {
