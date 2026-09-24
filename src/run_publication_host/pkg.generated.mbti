@@ -28,6 +28,8 @@ pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array
 
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
+pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -236,6 +238,14 @@ pub(all) enum ClientValuesPipelineIssue {
 }
 
 type ParsedClientPublicationBinding derive(Eq, @debug.Debug)
+
+pub(all) enum PlanFactManifestIdentityIssue {
+  InvalidBudget
+  InvalidManifest
+  InvalidPlanFacts
+  FactMismatch
+  CidMismatch
+} derive(Eq, @debug.Debug)
 
 type PreparedClientProgram
 
