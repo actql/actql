@@ -32,6 +32,7 @@ export const pollQueryJson = request =>
   checked(owner.coordinatorPollQueryJson(request));
 export const prepareIntent = (journal, request) =>
   checked(owner.coordinatorPrepareIntent(journal, request));
+export const intentIsNew = owner.coordinatorIntentIsNew;
 export const admissionDurableJson = admission =>
   checked(owner.coordinatorAdmissionDurableJson(admission));
 export const commitIntent = admission =>
