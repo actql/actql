@@ -21,6 +21,7 @@ pub(all) enum ClientExecutionMaterialAdmissionIssue {
 pub struct ClientExecutionMaterial {
   wire : String
   invocation_template_cid : String
+  invocation_template_wire : String
 }
 
 ///|
@@ -35,6 +36,13 @@ pub fn client_execution_material_template_cid(
   value : ClientExecutionMaterial,
 ) -> String {
   value.invocation_template_cid
+}
+
+///|
+pub fn client_execution_material_template_wire(
+  value : ClientExecutionMaterial,
+) -> String {
+  value.invocation_template_wire
 }
 
 ///|
@@ -159,6 +167,7 @@ pub fn issue_prepared_client_values_execution_material(
       invocation_template_cid: @publication.run_evidence_value_identity(
         template,
       ),
+      invocation_template_wire: @publication.run_evidence_value_json(template),
     })
   } catch {
     _ => Err(Encoding)
