@@ -861,6 +861,69 @@ pub fn client_program_result_row_contract_unit_cid(
 }
 
 ///|
+/// Checked Program Result identity issued by the shared MoonBit owner.
+#export_name("clientProgramIssueResultPlan")
+pub fn client_program_issue_result_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+) -> Result[
+  @publication_host.ClientResultPlanIdentity,
+  @publication_host.ClientResultPlanIssue,
+] {
+  @publication_host.issue_prepared_client_result_plan(
+    prepared, result, 100000, 10000, 100,
+  )
+}
+
+///|
+/// Recheck saved Result Plan bytes against the same checked export.
+#export_name("clientProgramAdmitResultPlan")
+pub fn client_program_admit_result_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+  saved_wire : String,
+) -> Result[
+  @publication_host.ClientResultPlanIdentity,
+  @publication_host.ClientResultPlanAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_result_plan(
+    prepared, result, saved_wire, 100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientProgramResultPlanWire")
+pub fn client_program_result_plan_wire(
+  value : @publication_host.ClientResultPlanIdentity,
+) -> String {
+  @publication_host.client_result_plan_wire(value)
+}
+
+///|
+#export_name("clientProgramResultPlanCid")
+pub fn client_program_result_plan_cid(
+  value : @publication_host.ClientResultPlanIdentity,
+) -> String {
+  @publication_host.client_result_plan_cid(value)
+}
+
+///|
+#export_name("clientProgramResultPlanName")
+pub fn client_program_result_plan_name(
+  value : @publication_host.ClientResultPlanIdentity,
+) -> String {
+  @publication_host.client_result_plan_name(value)
+}
+
+///|
+#export_name("clientProgramResultPlanRowContractCid")
+pub fn client_program_result_plan_row_contract_cid(
+  value : @publication_host.ClientResultPlanIdentity,
+) -> String {
+  @publication_host.client_result_plan_row_contract_cid(value)
+}
+
+///|
 /// Saved AoA material is rechecked against the exact prepared Program.
 #export_name("clientProgramAdmitLocalValuesAoAIdentity")
 pub fn client_program_admit_local_values_aoa_identity(
