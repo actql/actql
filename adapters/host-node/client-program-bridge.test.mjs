@@ -205,6 +205,14 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
   assert.equal(moon.clientProgramResultName(prepared, 1), undefined);
   assert.equal(moon.clientProgramCheckEnvironmentCid(prepared), evidenceCid);
+  const steps = checked(moon.clientProgramLocalAoASteps(prepared, 0));
+  assert.deepEqual(JSON.parse(steps), [{
+    id: 'values_0', in: [], op: 'REL.values',
+    params: {rows: [{id: 1}, {id: 2}],
+      schema: {id: {nullable: false, type: 'number'}}},
+  }]);
+  assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
+    {code: 'MoonBitHostFailure'});
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const request = moon.clientProgramRequestIdentity(
@@ -225,6 +233,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
       yamlPrepared, cid('a'), 'saved-request', cid('b'))),
   programCid);
   assert.equal(moon.clientProgramSemanticsCid(yamlPrepared), semanticsCid);
+  assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
   assert.equal(moon.clientProgramPrepareEffectFree(
