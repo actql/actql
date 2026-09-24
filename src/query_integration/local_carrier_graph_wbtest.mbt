@@ -2129,6 +2129,7 @@ fn finish_graph_to_rows(
           @local_bridge.GraphInputUnavailable => abort("graph unavailable")
           @local_bridge.InvalidGraphRecord(_) => abort("invalid graph record")
           @local_bridge.GraphWorkspaceLimit => abort("graph workspace")
+          @local_bridge.GraphControlWorkLimit => abort("graph control work")
           @local_bridge.GraphRelationOutput(_) => abort("graph relation output")
           @local_bridge.GraphCompletion(_) => abort("graph completion")
           @local_bridge.GraphExecution(_) => abort("graph execution")
@@ -6171,10 +6172,38 @@ fn graph_rows_projection_workspace_and_cancel(
     1000,
     1000,
     [external],
+    control_work_limit=Some(2 * (width + 1)),
   ).unwrap()
   let rows = finish_graph_to_rows(accepted)
   assert_eq(@execution.completed_row_count(rows), 2)
   assert_eq(@local_bridge.cleanup_graph_to_rows(accepted), Ok(true))
+  let one_short_control = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    values,
+    width,
+    1000,
+    1000,
+    [external],
+    control_work_limit=Some(2 * (width + 1) - 1),
+  ).unwrap()
+  let mut control_failed = false
+  for _ in 0..<100 {
+    match @local_bridge.advance_graph_to_rows(one_short_control, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.GraphControlWorkLimit, ..) => {
+        control_failed = true
+        break
+      }
+      _ => fail("Graph projection did not reject one-short control work")
+    }
+  }
+  assert_true(control_failed)
+  assert_eq(@local_bridge.cleanup_graph_to_rows(one_short_control), Ok(true))
   let control = @bounded.control()
   let execution = @local_bridge.start_graph_to_rows(
     control,

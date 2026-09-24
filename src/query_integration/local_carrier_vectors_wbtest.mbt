@@ -2237,6 +2237,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     2,
     1000,
     [external],
+    control_work_limit=Some(10),
   ).unwrap()
   let mut exact_done = false
   for _ in 0..<20 {
@@ -2258,6 +2259,35 @@ test "Vectors projection production entrypoint enforces value and width limits" 
   }
   assert_true(exact_done)
   assert_eq(@local_bridge.cleanup_vectors_to_rows(exact), Ok(true))
+  let one_short_work = @local_bridge.start_vectors_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    projection_input,
+    2,
+    { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    2,
+    1000,
+    [external],
+    control_work_limit=Some(9),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<20 {
+    if work_failed {
+      break
+    }
+    match @local_bridge.advance_vectors_to_rows(one_short_work, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
+        assert_eq(work, 9L)
+        work_failed = true
+      }
+      _ => abort("one-short Vectors projection did not reject work")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_work), Ok(true))
   let one_short_width = @local_bridge.start_vectors_to_rows(
     @bounded.control(),
     task_test_completion(owner),

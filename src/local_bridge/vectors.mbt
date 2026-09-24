@@ -93,6 +93,7 @@ pub fn start_vectors_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[VectorsToRowsExecution, EventsBridgeIssue] {
   start_records_to_rows(
     control,
@@ -107,6 +108,7 @@ pub fn start_vectors_to_rows(
     inputs,
     @projection.Vectors,
     fn(carrier) { carrier is @carrier.VectorValue(_) },
+    control_work_limit,
   ).map(inner => { inner, })
 }
 
@@ -121,6 +123,7 @@ pub fn start_vectors_view_to_rows(
   limits : @execution.ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[VectorsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -158,6 +161,7 @@ pub fn start_vectors_view_to_rows(
     max_entries,
     max_name_bytes,
     None,
+    control_work_limit,
   ).map(inner => { inner, })
 }
 

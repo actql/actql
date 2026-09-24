@@ -69,6 +69,7 @@ priv struct EventsToRowsState {
   mut verified_column : Int
   mut matched_count : Int
   mut matched : Map[String, @value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -129,6 +130,7 @@ pub enum EventsToRowsPoll {
 ///|
 pub(all) enum EventsBridgeIssue {
   InvalidKernel
+  ControlWorkLimit
   InputUnavailable
   InvalidRow(Int)
   InvalidRecord(Int)
@@ -404,6 +406,10 @@ fn events_to_rows_step(
         if state.matched_count == @schema.field_count(state.schema) {
           state.phase = VerifyFields
         } else if state.source_field < width {
+          if !charge_events_to_rows_work(state) {
+            return @bounded.Failed(ControlWorkLimit, progress, used)
+          }
+          used += 1
           guard events_source_field(
               state.source,
               state.record,
@@ -420,26 +426,31 @@ fn events_to_rows_step(
               state.matched[key] = checked
             }
           }
-          used += 1
         } else {
           state.phase = VerifyFields
         }
       }
       VerifyFields =>
         if state.verified_column < @schema.field_count(state.schema) {
+          if !charge_events_to_rows_work(state) {
+            return @bounded.Failed(ControlWorkLimit, progress, used)
+          }
+          used += 1
           guard @schema.field_at(state.schema, state.verified_column)
             is Some(expected) &&
             state.matched.contains(@schema.reference_name(expected.name)) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
           state.verified_column += 1
-          used += 1
         } else {
           state.phase = CommitRelationRow
         }
       CommitRelationRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        if !charge_events_to_rows_work(state) {
+          return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
         match
@@ -490,6 +501,20 @@ fn events_to_rows_step(
 }
 
 ///|
+fn charge_events_to_rows_work(state : EventsToRowsState) -> Bool {
+  match state.control_work_remaining {
+    None => true
+    Some(remaining) =>
+      if remaining <= 0 {
+        false
+      } else {
+        state.control_work_remaining = Some(remaining - 1)
+        true
+      }
+  }
+}
+
+///|
 fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
@@ -522,7 +547,11 @@ fn start_storage_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead]?,
+  control_work_limit : Int?,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(ControlWorkLimit)
+  }
   let output = match
     @execution.prepare_admitted_output(owner, target, max_rows, limits) {
     Ok(value) => value
@@ -564,6 +593,7 @@ fn start_storage_to_rows(
     verified_column: 0,
     matched_count: 0,
     matched: Map([]),
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -592,6 +622,7 @@ fn start_records_to_rows(
   inputs : Array[@execution.ProducerRead],
   expected : @projection.Operation,
   carrier_matches : (@carrier.Carrier) -> Bool,
+  control_work_limit : Int?,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -625,6 +656,7 @@ fn start_records_to_rows(
     max_entries,
     max_name_bytes,
     Some(inputs),
+    control_work_limit,
   )
 }
 
@@ -640,6 +672,7 @@ pub fn start_completed_relation_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -678,6 +711,7 @@ pub fn start_completed_relation_to_rows(
     max_entries,
     max_name_bytes,
     Some(inputs),
+    control_work_limit,
   )
 }
 
@@ -692,6 +726,7 @@ pub fn start_events_view_to_rows(
   limits : @execution.ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -729,6 +764,7 @@ pub fn start_events_view_to_rows(
     max_entries,
     max_name_bytes,
     None,
+    control_work_limit,
   )
 }
 
@@ -744,6 +780,7 @@ pub fn start_events_to_rows(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[EventsToRowsExecution, EventsBridgeIssue] {
   start_records_to_rows(
     control,
@@ -758,6 +795,7 @@ pub fn start_events_to_rows(
     inputs,
     @projection.Events,
     fn(carrier) { carrier is @carrier.EventValue(_) },
+    control_work_limit,
   )
 }
 
