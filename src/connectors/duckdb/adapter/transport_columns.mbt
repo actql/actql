@@ -61,28 +61,24 @@ pub fn decode_transport_columns(
   let mut remaining_text = limits.max_text_bytes
   for column in columns {
     guard column is Array(values) else { return Err(InvalidShape) }
-    for cell in values {
-      match cell {
-        Null | True | False => ()
-        String(value) =>
-          match @scalar.admit_utf8_length(value, remaining_text) {
-            Ok(bytes) => remaining_text -= bytes
-            Err(MalformedUtf16(_)) => return Err(InvalidUnicode)
-            Err(_) => return Err(TextLimit)
-          }
-        _ => return Err(InvalidShape)
-      }
-    }
     let cursor = match
-      @decode.admit_raw_json(Json::array(values), span, {
+      @decode.admit_raw_scalar_column(values, span, {
         max_nodes: limits.max_nodes,
         max_depth: 1,
         max_string_bytes: limits.max_text_bytes,
-        max_total_string_bytes: limits.max_text_bytes,
+        max_total_string_bytes: remaining_text,
       }) {
       Ok(cursor) => cursor
-      Err(issue) => return Err(Decode(issue))
+      Err(issue) =>
+        match issue.kind {
+          @decode.InvalidUnicode => return Err(InvalidUnicode)
+          @decode.WrongType => return Err(InvalidShape)
+          // Depth and node count were bounded by the frame preflight.
+          @decode.BudgetExceeded => return Err(TextLimit)
+          _ => return Err(Decode(issue))
+        }
     }
+    remaining_text -= @decode.admission_usage(cursor).total_string_bytes
     output.push(cursor)
   }
   Ok(output)

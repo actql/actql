@@ -56,6 +56,15 @@ that they do not establish a reliable speedup or a passing performance result.
 The remaining whole-cell admission, JSON transport, output row construction,
 and parent/worker preparation costs remain open.
 
+The next transport change replaces generic raw-JSON tree traversal for a
+physical column with a flat, closed scalar-column admission path. It checks
+shape, Unicode, cumulative text bytes, node count and depth while building
+the owned cursor once, in cell order. This removes the adapter's separate
+per-cell text-length pass and the generic decoder's continuation stack. Its
+cursor usage and failures are compared with generic raw admission on JS,
+Wasm and native. JSON parsing and the subsequent ActQL value admission remain;
+this is not a claim of zero-copy transport or a timing pass.
+
 At clean revision `c1ffb07a4`, the unchanged local registered narrow/100
 runner completed seven qualified equivalent-obligations pairs. Its warm
 overhead interval was 41.963–74.565 milliseconds against the 10 ms limit;

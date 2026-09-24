@@ -133,3 +133,59 @@ pub fn admit_raw_json(
     },
   })
 }
+
+///|
+/// Admit a flat physical column in source order. The closed scalar shape is
+/// checked together with the text budget so that the first failing cell keeps
+/// its priority without a separate pass over every string.
+pub fn admit_raw_scalar_column(
+  values : Array[Json],
+  span : @span.Span,
+  limits : Limits,
+) -> Result[Cursor, Issue] {
+  if limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_string_bytes < 0 ||
+    limits.max_total_string_bytes < 0 {
+    return Err({ kind: InvalidLimits, path: [], span, })
+  }
+  let tree : Array[OwnedNode] = []
+  if limits.max_nodes == 0 ||
+    limits.max_depth == 0 ||
+    values.length() > limits.max_nodes - 1 {
+    return Err(at(tree, -1, Root, span, BudgetExceeded))
+  }
+  let children : Array[Int] = []
+  tree.push({ value: ArrayValue(children), span, parent: -1, edge: Root, })
+  let mut remaining_text = limits.max_total_string_bytes
+  let mut largest_string = 0
+  for index = 0; index < values.length(); index = index + 1 {
+    let value : OwnedValue = match values[index] {
+      Null => Null
+      True => Bool(true)
+      False => Bool(false)
+      String(text) => {
+        let size = match text_charge(text, limits, remaining_text) {
+          Ok(size) => size
+          Err(kind) => return Err(at(tree, 0, Element(index), span, kind))
+        }
+        remaining_text -= size
+        largest_string = Int::max(largest_string, size)
+        Text(text)
+      }
+      _ => return Err(at(tree, 0, Element(index), span, WrongType))
+    }
+    children.push(tree.length())
+    tree.push({ value, span, parent: 0, edge: Element(index), })
+  }
+  Ok({
+    tree,
+    index: 0,
+    usage: {
+      nodes: values.length() + 1,
+      depth: 1,
+      largest_string_bytes: largest_string,
+      total_string_bytes: limits.max_total_string_bytes - remaining_text,
+    },
+  })
+}

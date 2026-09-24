@@ -44,3 +44,47 @@ test "raw physical JSON admission preserves text and exact budgets" {
     assert_eq(issue.span, span)
   }
 }
+
+///|
+test "flat physical column admission matches generic raw JSON" {
+  let span : @span.Span = {
+    start_byte: 0,
+    end_byte: 16,
+    start_line: 1,
+    end_line: 1,
+    start_column: 1,
+    end_column: 17,
+    source_path: "<column>",
+  }
+  let values = match @json.parse("[\"é\",null,true,\"z\"]") {
+    Array(values) => values
+    _ => abort("invalid test column")
+  }
+  let limits : Limits = {
+    max_nodes: 5,
+    max_depth: 1,
+    max_string_bytes: 2,
+    max_total_string_bytes: 3,
+  }
+  let flat = admit_raw_scalar_column(values, span, limits).unwrap()
+  let generic = admit_raw_json(Json::array(values), span, limits).unwrap()
+  assert_eq(admission_usage(flat), admission_usage(generic))
+  assert_eq(text(element_at(flat, 0).unwrap()), Ok("é"))
+  assert_true(is_null(element_at(flat, 1).unwrap()))
+  assert_eq(boolean(element_at(flat, 2).unwrap()), Ok(true))
+  for
+    changed in [
+      { ..limits, max_nodes: 4, },
+      { ..limits, max_depth: 0, },
+      { ..limits, max_total_string_bytes: 2, },
+    ] {
+    let flat = admit_raw_scalar_column(values, span, changed).unwrap_err()
+    let generic = admit_raw_json(Json::array(values), span, changed).unwrap_err()
+    assert_eq(flat, generic)
+  }
+  let invalid = [@json.parse("1")]
+  assert_eq(
+    admit_raw_scalar_column(invalid, span, limits).unwrap_err().kind,
+    WrongType,
+  )
+}
