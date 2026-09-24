@@ -250,7 +250,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let program = @syntax.parse(
     plain.replace(
       old="\"id\":\"consumer\",\"inputs\":",
-      new="\"id\":\"consumer\",\"effects\":{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}},\"inputs\":",
+      new="\"id\":\"consumer\",\"effects\":{\"first\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}},\"second\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":8}}}},\"inputs\":",
     ),
     limits.input,
     format=Json,
@@ -287,14 +287,28 @@ test "Effect computation candidate closes the exact Mapping environment" {
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
+  match
+    @program_check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      2,
+    ) {
+    Err(Headers(issue)) =>
+      assert_eq(@syntax.effect_header_issue_kind(issue), BudgetExceeded)
+    _ => fail("partial multi-member Effect inventory escaped")
+  }
   let candidate = @program_check.prepare_effect_computation_candidate(
     program,
     environment,
     None,
     evidence,
     limits,
-    1,
-    1,
+    2,
+    2,
   ).unwrap()
   let mappings = @environment.check_mapping_contract_shapes(
     wire,
@@ -305,7 +319,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
     candidate,
     mappings,
     {
-      max_members: 1,
+      max_members: 2,
       max_work: 1000,
       max_admission_nodes: 100,
       max_admission_depth: 10,
@@ -316,13 +330,30 @@ test "Effect computation candidate closes the exact Mapping environment" {
     @results.effect_result_binding_count(
       @results.effect_static_candidate_results(static_candidate),
     ),
-    1,
+    2,
+  )
+  let bindings = @results.effect_static_candidate_results(static_candidate)
+  assert_eq(
+    @syntax.effect_header_id(
+      @results.effect_result_binding_header(
+        @results.effect_result_binding_at(bindings, 0).unwrap(),
+      ),
+    ),
+    "first",
+  )
+  assert_eq(
+    @syntax.effect_header_id(
+      @results.effect_result_binding_header(
+        @results.effect_result_binding_at(bindings, 1).unwrap(),
+      ),
+    ),
+    "second",
   )
   assert_eq(
     @results.effect_mapping_rule_count(
       @results.effect_static_candidate_mapping_rules(static_candidate),
     ),
-    1,
+    2,
   )
   let foreign_wire = @environment.read(
     @utf8.encode(
@@ -341,7 +372,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
       candidate,
       foreign_mappings,
       {
-        max_members: 1,
+        max_members: 2,
         max_work: 1000,
         max_admission_nodes: 100,
         max_admission_depth: 10,
