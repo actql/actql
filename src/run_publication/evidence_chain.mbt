@@ -295,6 +295,51 @@ fn same_names(left : Array[String], right : Array[String]) -> Bool {
 }
 
 ///|
+fn effect_context_preview_inventory_matches(
+  context : @json.CanonicalValue,
+  preview : EffectPreviewIdentity,
+) -> Bool {
+  guard @json.object_field(context, "effects") is Some(effects) &&
+    evidence_inventory_names(effects) is Some(effect_names) &&
+    !effect_names.is_empty() &&
+    same_names(effect_names, preview.member_effect_ids) else {
+    return false
+  }
+  let plan_names : Array[String] = []
+  for index in 0..<preview.member_effect_ids.length() {
+    if effect_preview_member_plan_cid(preview, index) is Some(_) {
+      plan_names.push(preview.member_effect_ids[index])
+    }
+  }
+  guard @json.object_field(context, "effect_plans") is Some(plans) &&
+    evidence_inventory_names(plans) is Some(captured_plan_names) &&
+    same_names(captured_plan_names, plan_names) &&
+    @json.object_field(context, "effect_plan_logical_cids") is Some(plan_cids) &&
+    evidence_inventory_names(plan_cids) is Some(captured_cid_names) &&
+    same_names(captured_cid_names, plan_names) else {
+    return false
+  }
+  for index in 0..<preview.member_effect_ids.length() {
+    if effect_preview_member_plan_cid(preview, index) is Some(expected) &&
+      evidence_string(plan_cids, preview.member_effect_ids[index]) !=
+      Some(expected) {
+      return false
+    }
+    if effect_preview_member_source_result(preview, index) is Some(name) {
+      guard effect_preview_member_result_artifact_cid(preview, index)
+        is Some(expected_artifact) &&
+        @json.object_field(context, "result_artifacts") is Some(artifacts) &&
+        @json.object_field(artifacts, name) is Some(artifact) &&
+        evidence_string(artifact, "result_artifact_cid") ==
+        Some(expected_artifact) else {
+        return false
+      }
+    }
+  }
+  true
+}
+
+///|
 fn publication_inventory_matches(
   request : PublicationContract,
   definitions : Array[PublicationContract],
@@ -326,10 +371,10 @@ fn publication_inventory_matches(
 }
 
 ///|
-/// Validate the complete Effect-free evidence chain before a Store adapter may
-/// expose an index entry. Every input is already a closed, self-identified
-/// contract; this function owns their cross-object meaning.
-pub fn validate_effect_free_run_evidence_chain(
+/// Validate the computation evidence shared by Effect-free and Effectful Runs.
+/// The latter still requires a separately admitted apply outcome before a
+/// final Receipt or publication commit can be accepted.
+fn validate_computation_run_evidence_chain(
   run_definition : PublicationContract,
   invocation : PublicationContract,
   definitions : Array[PublicationContract],
@@ -337,6 +382,7 @@ pub fn validate_effect_free_run_evidence_chain(
   manifest : PublicationContract,
   receipt : PublicationContract,
   captured_run : PublicationContract,
+  preview : EffectPreviewIdentity?,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -356,6 +402,14 @@ pub fn validate_effect_free_run_evidence_chain(
     return Err(EvidenceWrongContract("captured_run"))
   }
   let receipt_value = receipt.value
+  if @json.object_field(receipt_value, "effect_preview_cid") is Some(_) ||
+    @json.object_field(receipt_value, "effect_set_apply_receipt_cid") is Some(_) ||
+    @json.object_field(receipt_value, "captured_run_cid") is Some(_) {
+    return match preview {
+      None => Err(EvidenceNotEffectFree)
+      Some(_) => Err(EvidenceReferenceMismatch("computation_receipt"))
+    }
+  }
   if evidence_string(receipt_value, "invocation_cid") !=
     Some(invocation.identity) {
     return Err(EvidenceReferenceMismatch("invocation_cid"))
@@ -363,6 +417,23 @@ pub fn validate_effect_free_run_evidence_chain(
   if evidence_string(receipt_value, "compiled_plan_cid") !=
     contract_string(run_definition, "compiled_plan_cid") {
     return Err(EvidenceReferenceMismatch("compiled_plan_cid"))
+  }
+  if preview is Some(effect_preview) {
+    for
+      (field, expected) in [
+        ("program_semantics_cid", effect_preview.program_semantics_cid),
+        ("program_definition_cid", effect_preview.program_definition_cid),
+        ("invocation_cid", effect_preview.invocation_cid),
+        ("compiled_plan_cid", effect_preview.compiled_plan_cid),
+        ("check_environment_cid", effect_preview.check_environment_cid),
+      ] {
+      if evidence_string(receipt_value, field) != Some(expected) {
+        return Err(EvidenceReferenceMismatch("preview." + field))
+      }
+    }
+    if effect_preview.run_identity_cid != run_definition.identity {
+      return Err(EvidenceReferenceMismatch("preview.run_identity_cid"))
+    }
   }
   if evidence_string(receipt_value, "result_manifest_cid") !=
     Some(manifest.identity) {
@@ -509,12 +580,23 @@ pub fn validate_effect_free_run_evidence_chain(
     ) {
     return Err(EvidenceEmbeddedIdentity("effect_context_cid"))
   }
-  if !evidence_empty_object(@json.object_field(effect_context, "effects")) ||
-    !evidence_empty_object(@json.object_field(effect_context, "effect_plans")) ||
-    !evidence_empty_object(
-      @json.object_field(effect_context, "effect_plan_logical_cids"),
-    ) {
-    return Err(EvidenceNotEffectFree)
+  match preview {
+    None =>
+      if !evidence_empty_object(@json.object_field(effect_context, "effects")) ||
+        !evidence_empty_object(
+          @json.object_field(effect_context, "effect_plans"),
+        ) ||
+        !evidence_empty_object(
+          @json.object_field(effect_context, "effect_plan_logical_cids"),
+        ) {
+        return Err(EvidenceNotEffectFree)
+      }
+    Some(effect_preview) =>
+      if !effect_context_preview_inventory_matches(
+          effect_context, effect_preview,
+        ) {
+        return Err(EvidenceInventoryMismatch("captured_effects"))
+      }
   }
   guard @json.object_field(effect_context, "result_artifacts")
     is Some(captured_artifacts) else {
@@ -537,6 +619,35 @@ pub fn validate_effect_free_run_evidence_chain(
       return Err(EvidenceInventoryMismatch(field))
     }
   }
+  guard @json.object_field(effect_context, "result_values") is Some(values) &&
+    @json.object_field(effect_context, "result_fields") is Some(field_inventory) else {
+    return Err(EvidenceMissingField("captured_results"))
+  }
+  for artifact in artifacts {
+    guard contract_string(artifact, "result_definition_cid")
+      is Some(definition_cid) else {
+      return Err(EvidenceInventoryMismatch("captured_results"))
+    }
+    let matching = definitions.filter(fn(definition) {
+      definition.identity == definition_cid
+    })
+    guard matching.length() == 1 &&
+      contract_string(matching[0], "result_name") is Some(name) &&
+      @json.object_field(values, name) is Some(row_value) &&
+      row_value is @json.Array(frozen_rows) &&
+      @json.object_field(field_inventory, name) is Some(field_value) &&
+      evidence_string_array(field_value) is Some(fields) else {
+      return Err(EvidenceInventoryMismatch("captured_results"))
+    }
+    let rows = @json.array_values(frozen_rows)
+    if !captured_fields_valid(rows, fields) ||
+      contract_count(artifact, "actual_row_count") !=
+      Some(rows.length().to_int64()) ||
+      captured_relation_cid(row_value, max_wire_bytes, max_nodes, max_depth) !=
+      contract_string(artifact, "logical_result_cid") {
+      return Err(EvidenceReferenceMismatch("captured_result_values"))
+    }
+  }
   let authoring = match evidence_object(effect_context, "authoring_context") {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -546,6 +657,11 @@ pub fn validate_effect_free_run_evidence_chain(
     ) ||
     evidence_string(authoring, "program_definition_cid") != program {
     return Err(EvidenceEmbeddedIdentity("authoring_context_cid"))
+  }
+  if preview is Some(effect_preview) &&
+    evidence_string(authoring, "authoring_context_cid") !=
+    Some(effect_preview.authoring_context_cid) {
+    return Err(EvidenceReferenceMismatch("preview.authoring_context_cid"))
   }
   guard @json.object_field(effect_context, "model_invocation_evidence")
     is Some(model_evidence) else {
@@ -569,6 +685,67 @@ pub fn validate_effect_free_run_evidence_chain(
     return Err(EvidenceReferenceMismatch("external_model_evidence"))
   }
   Ok(())
+}
+
+///|
+/// Validate every retained computation dependency before Effect-free commit.
+pub fn validate_effect_free_run_evidence_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  validate_computation_run_evidence_chain(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    captured_run,
+    None,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Validate a captured Effectful computation, including its exact Preview
+/// inventory. This does not prove physical Effect Plan payloads, current
+/// authority, apply outcomes, or a durable publication commit.
+pub fn validate_effectful_computation_evidence_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  validate_computation_run_evidence_chain(
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    computation_receipt,
+    captured_run,
+    Some(preview),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
 }
 
 ///|

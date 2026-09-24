@@ -24,6 +24,7 @@ test "installed offer collection uses exact finite entries and preserves unknown
       name,
       acquisition: false,
       fixed_compute: true,
+      effect: false,
     }),
     3,
     100,

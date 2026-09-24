@@ -204,6 +204,7 @@ pub fn ${name}_managed_start(
     }
   }
 }
+dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
 if (existsSync(join(root, 'src', bridgePackage,
   'client_program_bridge.mbt'))) {

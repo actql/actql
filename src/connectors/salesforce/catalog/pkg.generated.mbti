@@ -1,0 +1,655 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/salesforce/catalog"
+
+import {
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn acknowledge_query_page(QueryRead, QueryPage) -> Result[Unit, QueryReadIssue]
+
+pub fn begin_catalog_sync(ResourceListing) -> CatalogSync
+
+pub fn begin_query_read(ReadProjection, String, QueryPageLimits, Int, Int64) -> Result[QueryRead, QueryReadIssue]
+
+pub fn bind_read_projection_contracts(ReadProjection, Array[@value_contract.Contract]) -> ReadProjection?
+
+pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
+
+pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
+
+pub fn catalog_observation_identity(CatalogObservation) -> String
+
+pub fn catalog_observation_json(CatalogObservation) -> String
+
+pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
+
+pub fn catalog_observation_resource_outcome(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceDescribeOutcome, CatalogObservationIssue]
+
+pub fn catalog_response_sha256(Bytes) -> String
+
+pub fn catalog_sync_describe(CatalogSync, String, Bytes, DescribeLimits) -> Result[Unit, CatalogSyncIssue]
+
+pub fn catalog_sync_is_complete(CatalogSync) -> Bool
+
+pub fn catalog_sync_next(CatalogSync) -> String?
+
+pub fn catalog_sync_outcome(CatalogSync, String) -> ResourceDescribeOutcome?
+
+pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
+
+pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
+
+pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
+
+pub fn interrupt_query_read(QueryRead) -> Bool
+
+pub fn prepare_catalog_observation(CatalogSync, CatalogObservationBinding, String, Array[String?], Array[String?], Int) -> Result[CatalogObservation, CatalogObservationIssue]
+
+pub fn prepare_continue_write_collection(Array[WriteCollectionItem], String, WriteCollectionRequestLimits) -> Result[WriteCollectionRequest, WriteCollectionRequestIssue]
+
+pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
+
+pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRequestLimits) -> Result[SingleWriteRequest, WriteRequestIssue]
+
+pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
+pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
+
+pub fn prepare_write_target_identity(WriteProjection, WriteTargetValue, Int, Int) -> Result[WriteTargetIdentity, WriteCollectionRequestIssue]
+
+pub fn project_describe(Bytes, String, DescribeLimits) -> Result[ResourceMetadata, DescribeIssue]
+
+pub fn project_query_page(Bytes, ReadProjection, String, QueryPageLimits) -> Result[QueryPage, QueryPageIssue]
+
+pub fn project_resource_listing(Bytes, ListLimits) -> Result[ResourceListing, ListingIssue]
+
+pub fn project_write_collection_response(Bytes, WriteCollectionKind, Int, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
+pub fn project_write_collection_response_for_request(Int, Bytes, WriteCollectionRequest, WriteCollectionResponseLimits) -> Result[WriteCollectionResponse, WriteCollectionResponseIssue]
+
+pub fn project_write_single_success(Int, Bytes, WriteSingleKind, WriteCollectionResponseLimits) -> Result[WriteSingleResponse, WriteSingleResponseIssue]
+
+pub fn query_page_cell(QueryPage, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn query_page_done(QueryPage) -> Bool
+
+pub fn query_page_matches_projection(QueryPage, ReadProjection) -> Bool
+
+pub fn query_page_next_url(QueryPage) -> String?
+
+pub fn query_page_response_sha256(QueryPage) -> String
+
+pub fn query_page_row_count(QueryPage) -> Int
+
+pub fn query_page_total_size(QueryPage) -> Int64
+
+pub fn query_read_accept_page(QueryRead, String, Bytes) -> Result[QueryPage, QueryReadIssue]
+
+pub fn query_read_complete(QueryRead) -> Bool
+
+pub fn query_read_next_path(QueryRead) -> Result[String?, QueryReadIssue]
+
+pub fn query_read_page_count(QueryRead) -> Int
+
+pub fn query_read_row_count(QueryRead) -> Int64
+
+pub fn read_projection_fields(ReadProjection) -> Array[String]
+
+pub fn read_projection_has_prefilter(ReadProjection) -> Bool
+
+pub fn read_projection_matches_site_scope(ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
+
+pub fn read_projection_observation(ReadProjection) -> String
+
+pub fn read_projection_resource(ReadProjection) -> String
+
+pub fn read_projection_soql(ReadProjection) -> String
+
+pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
+
+pub fn recheck_single_write_request(SingleWriteRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
+pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
+pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
+pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn require_unique_external_id(ResourceMetadata, String) -> Result[FieldMetadata, ResourceRequirementIssue]
+
+pub fn require_update_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
+
+pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
+
+pub fn single_write_request_body(SingleWriteRequest) -> String
+
+pub fn single_write_request_boundary_cid(SingleWriteRequest, Int) -> Result[String, WriteCollectionRequestIssue]
+
+pub fn single_write_request_cid(SingleWriteRequest, String, Int) -> Result[String, WriteRequestIssue]
+
+pub fn single_write_request_effect_kind(SingleWriteRequest) -> String
+
+pub fn single_write_request_grant_operation(SingleWriteRequest) -> String
+
+pub fn single_write_request_kind(SingleWriteRequest) -> WriteSingleKind
+
+pub fn single_write_request_matches_preview_row_target(SingleWriteRequest, String, Int) -> Result[Bool, WriteCollectionRequestIssue]
+
+pub fn single_write_request_matches_site_scope(SingleWriteRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
+
+pub fn single_write_request_method(SingleWriteRequest) -> String
+
+pub fn single_write_request_org_id(SingleWriteRequest) -> String
+
+pub fn single_write_request_path(SingleWriteRequest) -> String
+
+pub fn single_write_request_resource(SingleWriteRequest) -> String
+
+pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
+
+pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
+
+pub fn write_body_json(WriteBody) -> String
+
+pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_collection_request_body(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_boundary_cid(WriteCollectionRequest, Int) -> Result[String, WriteCollectionRequestIssue]
+
+pub fn write_collection_request_cid(WriteCollectionRequest, String, Int) -> Result[String, WriteRequestIssue]
+
+pub fn write_collection_request_effect_kind(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_grant_operation(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_matches_preview_row_target(WriteCollectionRequest, Int, String, Int) -> Result[Bool, WriteCollectionRequestIssue]
+
+pub fn write_collection_request_matches_site_scope(WriteCollectionRequest, String, String, String, String, Int, String, String, String, String, String) -> Bool
+
+pub fn write_collection_request_method(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_org_id(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_path(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_resource(WriteCollectionRequest) -> String
+
+pub fn write_collection_request_row_body(WriteCollectionRequest, Int) -> String?
+
+pub fn write_collection_request_row_cid(WriteCollectionRequest, Int) -> String?
+
+pub fn write_collection_request_row_count(WriteCollectionRequest) -> Int
+
+pub fn write_collection_request_target_identity(WriteCollectionRequest, Int, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
+
+pub fn write_collection_response_sha256(WriteCollectionResponse) -> String
+
+pub fn write_collection_result_at(WriteCollectionResponse, Int) -> WriteRowResult?
+
+pub fn write_collection_result_count(WriteCollectionResponse) -> Int
+
+pub fn write_projection_boundary_cid(WriteProjection, Int) -> Result[String, WriteCollectionRequestIssue]
+
+pub fn write_projection_fields(WriteProjection) -> Array[String]
+
+pub fn write_projection_matches_binding(WriteProjection, CatalogObservationBinding) -> Bool
+
+pub fn write_projection_observation(WriteProjection) -> String
+
+pub fn write_projection_operation(WriteProjection) -> WriteOperation
+
+pub fn write_projection_resource(WriteProjection) -> String
+
+pub fn write_single_response_sha256(WriteSingleResponse) -> String
+
+pub fn write_single_result(WriteSingleResponse) -> WriteRowResult
+
+pub fn write_target_boundary_cid(WriteTargetIdentity) -> String
+
+pub fn write_target_object_cid(WriteTargetIdentity) -> String
+
+pub fn write_target_scheme_cid(WriteTargetIdentity) -> String
+
+// Errors
+
+// Types and methods
+pub struct CatalogObservation {
+  names : Array[String]
+  outcomes : Array[ResourceDescribeOutcome]
+  truncated : Bool
+  binding : CatalogObservationBinding
+  body : String
+  cid : String
+}
+
+pub(all) struct CatalogObservationBinding {
+  tenant : String
+  principal : String
+  environment : String
+  connection_revision : String
+  org_id : String
+  site_key : String
+  site_generation : Int
+  connector_registration : String
+  connector_revision : String
+  resource_origin : String
+  run_invocation_cid : String
+  dispatch_request_cid : String
+  sync_occurrence : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CatalogObservationIssue {
+  IncompleteSync
+  InvalidBinding
+  InvalidUseEvidence
+  EvidenceCountMismatch
+  OutputLimit
+  ForeignBinding
+  DescribeUnavailable(DescribeFailure)
+  Resource(ResourceSelectionIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct CatalogSync {
+  listing : ResourceListing
+  outcomes : Array[ResourceDescribeOutcome]
+  mut next_index : Int
+  mut finished : Bool
+}
+
+pub(all) enum CatalogSyncIssue {
+  AlreadyFinished
+  WrongResource
+  NoPendingResource
+  Incomplete
+  Describe(DescribeIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DescribeFailure {
+  PermissionDenied
+  RateLimited
+  ProviderUnavailable
+  TransportInterrupted
+  InvalidMetadata
+  Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DescribeIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  ResourceMismatch
+  DuplicateField(String)
+  InvalidField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DescribeLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_fields : Int
+  max_name_units : Int
+}
+
+pub(all) enum ExactIntComparison {
+  Equal
+  Less
+  LessEqual
+  Greater
+  GreaterEqual
+} derive(Eq, @debug.Debug)
+
+pub struct FieldMetadata {
+  name : String
+  native_type : String
+  nullable : Bool
+  nullability_confirmed : Bool
+  defaulted_on_create : Bool
+  default_on_create_confirmed : Bool
+  createable : Bool
+  updateable : Bool
+  filterable : Bool
+  sortable : Bool
+  external_id : Bool
+  unique : Bool
+  case_sensitive : Bool?
+  reference_to : Array[String]
+}
+
+pub(all) struct ListLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_resources : Int
+  max_selected : Int
+  max_name_units : Int
+}
+
+pub struct ListedResource {
+  name : String
+  queryable : Bool
+  createable : Bool
+  updateable : Bool
+}
+
+pub(all) enum ListingIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  DuplicateResource(String)
+} derive(Eq, @debug.Debug)
+
+pub struct QueryPage {
+  projection : ReadProjection
+  rows : Array[Array[@value_admission.CheckedValue]]
+  done : Bool
+  next_url : String?
+  total_size : Int64
+  response_sha256 : String
+}
+
+pub(all) enum QueryPageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  InvalidLocator
+  MissingRequiredField(String)
+  NullRequiredField(String)
+  UnexpectedField(String)
+  ValueAdmission(String, @value_admission.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct QueryPageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+  max_locator_units : Int
+}
+
+pub struct QueryRead {
+  plan : ReadProjection
+  api_version : String
+  page_limits : QueryPageLimits
+  max_pages : Int
+  max_total_rows : Int64
+  mut next_path : String?
+  mut pending_page : QueryPage?
+  mut page_count : Int
+  mut row_count : Int64
+  mut interrupted : Bool
+}
+
+pub(all) enum QueryReadIssue {
+  InvalidLimits
+  InvalidQuery
+  AlreadyFinished
+  Interrupted
+  WrongRequest
+  PageAwaitingConsumption
+  WrongPage
+  PageLimit
+  RowLimit
+  Page(QueryPageIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct ReadProjection {
+  observation_cid : String
+  binding : CatalogObservationBinding
+  resource : String
+  fields : Array[FieldMetadata]
+  contracts : Array[@value_contract.Contract]
+  soql : String
+  max_soql_bytes : Int
+  prefiltered : Bool
+}
+
+pub(all) enum ReadProjectionIssue {
+  Observation(CatalogObservationIssue)
+  Requirement(ResourceRequirementIssue)
+  EmptyProjection
+  QueryLimit
+  UnconfirmedNullability(String)
+  UnsupportedReadType(String)
+  ForeignCurrentObservation
+  SchemaChanged(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResourceDescribeOutcome {
+  Pending
+  Described(ResourceMetadata)
+  Unavailable(DescribeFailure)
+}
+
+pub struct ResourceListing {
+  selected : Array[ListedResource]
+  visible_count : Int
+  truncated : Bool
+  response_sha256 : String
+}
+
+pub struct ResourceMetadata {
+  name : String
+  queryable : Bool
+  createable : Bool
+  updateable : Bool
+  fields : Array[FieldMetadata]
+  response_sha256 : String
+}
+
+pub(all) enum ResourceRequirementIssue {
+  DuplicateRequestedField(String)
+  FieldUnconfirmed(String)
+  ResourceNotQueryable
+  ResourceNotCreateable
+  ResourceNotUpdateable
+  FieldNotCreateable(String)
+  FieldNotUpdateable(String)
+  FieldConstraintUnconfirmed(String)
+  MissingRequiredCreateField(String)
+  ExternalIdNotUnique(String)
+  ExternalTargetInBody(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResourceSelectionIssue {
+  ListingTruncated
+  NotVisible
+  DescribeRequired
+  DescribeMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct SingleWriteRequest {
+  verb : String
+  path : String
+  body : String
+  kind : WriteSingleKind
+  projection : WriteProjection
+  target : WriteTargetValue
+  max_target_bytes : Int
+}
+
+pub struct WriteBody {
+  projection : WriteProjection
+  json : String
+}
+
+pub(all) enum WriteBodyIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  UnexpectedField(String)
+  MissingField(String)
+  NullNotAllowed(String)
+  InvalidValue(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteBodyLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+pub(all) struct WriteCollectionItem {
+  row_preview_cid : String
+  body : WriteBody
+  target : WriteTargetValue
+}
+
+pub(all) enum WriteCollectionKind {
+  CollectionCreate
+  CollectionUpdate
+  CollectionUpsert
+} derive(Eq, @debug.Debug)
+
+pub struct WriteCollectionRequest {
+  verb : String
+  path : String
+  body : String
+  kind : WriteCollectionKind
+  projection : WriteProjection
+  row_preview_cids : Array[String]
+  row_bodies : Array[String]
+  targets : Array[WriteTargetValue]
+  max_target_bytes : Int
+}
+
+pub(all) enum WriteCollectionRequestIssue {
+  InvalidLimits
+  InvalidVersion
+  InvalidRows
+  MixedProjection
+  InvalidTarget
+  DuplicateRow
+  DuplicateTarget
+  InvalidBody
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteCollectionRequestLimits {
+  max_path_bytes : Int
+  max_target_bytes : Int
+  max_body_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+} derive(Eq, @debug.Debug)
+
+pub struct WriteCollectionResponse {
+  results : Array[WriteRowResult]
+  response_sha256 : String
+}
+
+pub(all) enum WriteCollectionResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnexpectedStatus
+  InvalidResponse
+  CountMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteCollectionResponseLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+}
+
+pub(all) enum WriteOperation {
+  WriteCreate
+  WriteUpdateById
+  WriteUpsertByExternalId(String)
+} derive(Eq, @debug.Debug)
+
+pub struct WriteProjection {
+  observation_cid : String
+  binding : CatalogObservationBinding
+  resource : String
+  operation : WriteOperation
+  field_names : Array[String]
+  fields : Array[FieldMetadata]
+  external_target : FieldMetadata?
+}
+
+pub(all) enum WriteProjectionIssue {
+  Observation(CatalogObservationIssue)
+  Requirement(ResourceRequirementIssue)
+  FieldLimit
+  EmptyUpdate
+  TargetFieldInBody(String)
+  UnconfirmedNullability(String)
+  UnsupportedWriteType(String)
+  ForeignCurrentObservation
+  SchemaChanged(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteProviderError {
+  status_code : String
+  message : String
+  fields : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteRequestIssue {
+  InvalidLimits
+  InvalidVersion
+  InvalidTarget
+  TargetTypeMismatch
+  InvalidUnicode
+  CapacityExceeded
+  InvalidOrigin
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WriteRequestLimits {
+  max_path_bytes : Int
+  max_target_bytes : Int
+  max_body_bytes : Int
+}
+
+pub(all) enum WriteRowResult {
+  RowApplied(String, Bool)
+  RowFailed(Array[WriteProviderError])
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteSingleKind {
+  SingleCreate
+  SingleUpdateById(String)
+  SingleUpsert
+} derive(Eq, @debug.Debug)
+
+pub struct WriteSingleResponse {
+  result : WriteRowResult
+  response_sha256 : String
+}
+
+pub(all) enum WriteSingleResponseIssue {
+  InvalidLimits
+  BudgetExceeded
+  UnexpectedStatus
+  InvalidResponse
+} derive(Eq, @debug.Debug)
+
+pub struct WriteTargetIdentity {
+  boundary_cid : String
+  scheme_cid : String
+  object_cid : String
+}
+
+pub(all) enum WriteTargetValue {
+  NoWriteTarget
+  RecordId(String)
+  ExternalText(String)
+  ExternalInt(Int)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

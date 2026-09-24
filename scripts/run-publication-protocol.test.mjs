@@ -40,3 +40,35 @@ test('generator retains supported literal and property-name constraints', () => 
     assert.doesNotThrow(() => emitSchema(schema));
   }
 });
+
+test('generator keeps object-scoped Effect branch constraints', () => {
+  assert.doesNotThrow(() => emitSchema({
+    type: 'object',
+    properties: {kind: {enum: ['command', 'create']}},
+    allOf: [{oneOf: [
+      {properties: {kind: {const: 'command'}}, required: ['contract']},
+      {properties: {kind: {const: 'create'}}, required: ['mapping']},
+    ]}],
+  }));
+  assert.throws(() => emitSchema({
+    allOf: [{properties: {kind: {const: 'command'}}}],
+  }), /Unsupported typeless/);
+});
+
+test('generator keeps Effect receipt conditional and exclusion rules', () => {
+  assert.doesNotThrow(() => emitSchema({
+    type: 'object',
+    properties: {state: {enum: ['unknown', 'applied']}},
+    allOf: [{if: {properties: {state: {const: 'unknown'}},
+      required: ['state']}, then: {required: ['reason']},
+    else: {not: {required: ['reason']}}}],
+    oneOf: [{required: ['command_id'],
+      not: {required: ['operation_ref']}},
+    {required: ['operation_ref'],
+      not: {anyOf: [{required: ['command_id']},
+        {required: ['idempotency_key']}]}}],
+  }));
+  assert.throws(() => emitSchema({then: {required: ['reason']}}),
+    /requires if/);
+  assert.throws(() => emitSchema({anyOf: []}), /Empty.*anyOf/);
+});

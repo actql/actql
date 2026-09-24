@@ -256,6 +256,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/capture-and-replay.effectful-final-run-receipt-binds-complete-prior-chain",
+      "statement_sha256": "65517755aac0958b9dfb095ccb557408a04108e3ea3775100aa5a9c1fef275c3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt",
       "statement_sha256": "7f54a31785b2c6b1677698479a6ff3116109a2d2bff7ab77759d2294ac1a7da9",
       "status": "pending",
@@ -1378,6 +1389,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body",
+      "statement_sha256": "1863284846223e517a5c5fa645bfd2f5230c739cbff4d553d682fea62f263eef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings",
+      "statement_sha256": "ed21d3760688e1731ad1e15878e92797eb839a3fdf7bab8453b7a72a5eb21f82",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/effect-application.when-review-is-required-the-runtime-must-pause-at-one",
       "statement_sha256": "8e351081b73140a129bf1e4fac3715937126e44c94380173cea86fe26f8100b7",
       "status": "pending",
@@ -1518,6 +1551,28 @@
       "source": {
         "anchor": "preview-strength",
         "kind": "table"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/preview-strength.effect-set-receipt-must-match-member-partitions",
+      "statement_sha256": "4b44355ec90e9fe436c6eba6c99e3875a61146f8b73877a26a70db95f7982761",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-strength",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/preview-strength.repeated-member-outcome-must-match-exact-value",
+      "statement_sha256": "a9e05c8145ee03d823ca6eecee219488e687381209a8d81060791b54a1c41e89",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "preview-strength",
+        "kind": "prose"
       }
     },
     {

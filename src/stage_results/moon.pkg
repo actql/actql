@@ -8,17 +8,24 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/pipeline_parameters" @collection,
   "actql/actql/relation_results" @results,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @value,
   "actql/actql/decode_core" @decode,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/stage_local_inputs" @local,
   "actql/actql/sourceview_input" @sourceviews,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_value" @canonical,
 }
 
 import {
-  "actql/actql/relation_schema" @schema,
   "actql/actql/calendar_typing" @calendar,
+  "actql/actql/canonical_json" @json,
+  "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
-  "actql/actql/value_contract" @contract,
+  "actql/actql/sha256" @sha,
 } for "test"

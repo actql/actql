@@ -38,7 +38,14 @@ pub fn prepare_scenario(
   )
   let sequences = dispatch_test_generated(run)
   let registry = @connector.prepare_capability_registry(
-    [{ name: "in-process", acquisition: false, fixed_compute: true, }],
+    [
+      {
+        name: "in-process",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
     1,
     100,
   ).unwrap()

@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:5bb5140c8ae939f5b89dd22fa2c7661bf82dd934bd13b7bfabfaea78b59db9ae",
+  "artifact_registry_cid": "sha256:ddf9e6e94f1b7d53b0000bb9ea976c755c5169ff1e3f64b6269eae6b9d7ab962",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10685,13 +10685,13 @@
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2",
+    "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
-    "effect_apply_receipt": "sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26",
+    "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
     "effect_set_apply_receipt": "sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf",
     "effect_reconciliation_receipt": "sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4",
-    "run_receipt": "sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0",
+    "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -10708,7 +10708,7 @@
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
-    "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
+    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -36795,6 +36795,7 @@
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-effect-preview-0.1.json",
       "title": "actql-effect-preview-0.1",
+      "$comment": "Semantic CID omits effect_preview_cid, run_identity_cid, authoring_context, and nested changes[].row_idempotency_key only. Each effect_member_preview_cid is the CID of {version:actql-effect-member-preview/0.1,member:MemberSemanticBody}, where MemberSemanticBody omits that self CID and nested row_idempotency_key only. Excluded transport fields still require exact apply binding.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -37169,6 +37170,8 @@
                   "additionalProperties": false,
                   "required": [
                     "target_row_identity",
+                    "target_guard",
+                    "intended_changes",
                     "before",
                     "after",
                     "row_preview_cid",
@@ -37213,6 +37216,69 @@
                         }
                       ]
                     },
+                    "target_guard": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "version_cid"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "version"
+                            },
+                            "version_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "intended_changes": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "value"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "present"
+                            },
+                            "value": {}
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "const": "not_applicable"
+                            }
+                          }
+                        }
+                      ]
+                    },
                     "before": {},
                     "after": {},
                     "row_preview_cid": {
@@ -37220,10 +37286,6 @@
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     },
                     "row_idempotency_key": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "target_version": {
                       "type": "string",
                       "pattern": "^sha256:[0-9a-f]{64}$"
                     }
@@ -37575,6 +37637,7 @@
       "required": [
         "version",
         "effect_preview_cid",
+        "effect_member_preview_cid",
         "applied",
         "accepted",
         "unknown",
@@ -37589,6 +37652,10 @@
           "const": "actql-effect-apply-receipt/0.1"
         },
         "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
@@ -39441,8 +39508,50 @@
             "independent_snapshots",
             "shared_snapshot"
           ]
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_set_apply_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "captured_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
-      }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "effect_preview_cid",
+            "effect_set_apply_receipt_cid",
+            "captured_run_cid"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "effect_preview_cid"
+                ]
+              },
+              {
+                "required": [
+                  "effect_set_apply_receipt_cid"
+                ]
+              },
+              {
+                "required": [
+                  "captured_run_cid"
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     "runtime_error": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -72114,8 +72223,50 @@
                 "independent_snapshots",
                 "shared_snapshot"
               ]
+            },
+            "effect_preview_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "effect_set_apply_receipt_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "captured_run_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             }
-          }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "effect_preview_cid",
+                "effect_set_apply_receipt_cid",
+                "captured_run_cid"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "effect_preview_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "effect_set_apply_receipt_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "captured_run_cid"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
         },
         "effect_context": {
           "type": "object",

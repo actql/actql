@@ -1,0 +1,327 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/effect_application"
+
+import {
+  "actql/actql/run_publication",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
+
+pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
+pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
+
+pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
+
+pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
+
+pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
+
+pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
+
+pub fn effect_apply_key_cid(EffectApplyKey) -> String
+
+pub fn effect_batch_rows_share_member(LogicalItemLocator, EffectDispatchKey, LogicalItemLocator, EffectDispatchKey) -> Bool
+
+pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
+
+pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
+
+pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
+
+pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
+
+pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_follows(EffectLedgerEntry?, EffectLedgerEntry) -> Bool
+
+pub fn effect_ledger_entry_locator_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_matches_basis(EffectLedgerEntry, EffectLedgerBasis) -> Bool
+
+pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
+
+pub fn effect_row_action_code(EffectRowAction) -> Int
+
+pub fn effect_row_recovery_action(LogicalItemLocator, String, EffectDispatchKey, String, EffectRowRecord?, Bool) -> EffectRowAction
+
+pub fn effect_row_recovery_action_from_entry(LogicalItemLocator, String, EffectDispatchKey, String, EffectLedgerEntry?, Bool) -> Int
+
+pub fn effect_row_recovery_action_from_store(LogicalItemLocator, String, EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
+
+pub fn effect_set_frontier(Array[EffectMemberProgress], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+
+pub fn effect_set_frontier_from_codes(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+
+pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+
+pub fn effect_set_frontier_outcome_code(EffectSetFrontier) -> Int
+
+pub fn effect_set_frontier_ready_count(EffectSetFrontier) -> Int
+
+pub fn effect_set_frontier_ready_member(EffectSetFrontier, Int) -> Int
+
+pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
+
+pub fn issue_next_effect_ledger_entry(EffectLedgerEntry, String, String?, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
+pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
+
+pub fn logical_item_locator_cid(LogicalItemLocator) -> String
+
+pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+
+pub fn prepare_effect_apply_key(LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
+
+pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
+pub fn prepare_effect_ledger_basis(LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
+
+pub fn prepare_logical_item_locator(LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
+
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, EffectIdentityIssue]
+
+// Errors
+
+// Types and methods
+pub struct EffectApplyKey {
+  logical_request_scope_cid : String
+  effect_preview_cid : String
+  effect_id : String
+  effect_member_preview_cid : String
+  cid : String
+}
+
+pub(all) enum EffectCollectionBatchIssue {
+  InvalidLimits
+  InvalidMember
+  ForeignKind
+  ForeignPolicy
+  InvalidSlice
+  CapacityExceeded
+  ForeignRow(Int)
+  ForeignKey(Int)
+  ForeignLocator(Int)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectDispatchKey {
+  logical_request_scope_cid : String
+  effect_preview_cid : String
+  row_or_item_key_wire : String
+  cid : String
+}
+
+pub(all) enum EffectFootprintIssue {
+  InvalidLimits
+  InvalidMember
+  InvalidFootprint
+  CapacityExceeded
+  UnprovenIndependence
+  OverlappingTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectFootprintKind {
+  ExactTargets
+  Collection
+  Opaque
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectIdentityIssue {
+  InvalidAuthorityScope
+  InvalidPreview
+  InvalidEffect
+  InvalidUnitNamespace
+  InvalidItemCorrelation
+  InvalidMemberPreview
+  InvalidCallerRequest
+  InvalidRowKey
+  InvalidLimits
+  CapacityExceeded
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectItemFailurePolicy {
+  HaltMember
+  ContinueMember
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectItemProgress {
+  ItemUnattempted
+  ItemSending
+  ItemApplied
+  ItemAccepted
+  ItemFailed
+  ItemUnknown
+} derive(Eq, @debug.Debug)
+
+pub struct EffectLedgerBasis {
+  logical_request_scope_cid : String
+  logical_item_locator_cid : String
+  unit_definition_cid : String
+  original_membership_cid : String
+  intent_fingerprint_cid : String
+  effect_preview_cid : String
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  recovery_contract_cid : String
+  capability : String
+  reservation_evidence_cid : String
+  retention_contract_cid : String
+}
+
+pub struct EffectLedgerEntry {
+  wire : String
+  cid : String
+  logical_request_scope_cid : String
+  logical_item_locator_cid : String
+  unit_definition_cid : String
+  original_membership_cid : String
+  intent_fingerprint_cid : String
+  effect_preview_cid : String
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  recovery_contract_cid : String
+  capability : String
+  state : EffectRowState
+  fence : Int64
+  attempt_sequence : Int64
+  prior_entry_cid : String?
+  outcome_receipt_cid : String?
+  reservation_evidence_cid : String
+  retention_contract_cid : String
+}
+
+pub(all) enum EffectLedgerIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidShape
+  InvalidIdentity
+  InvalidTransition
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectMemberFootprint {
+  effect_id : String
+  kind : EffectFootprintKind
+  provider_namespace : String
+  provider_boundary_cid : String
+  resource_identity_scheme_cid : String
+  resource_kind : String
+  provider_object_identity_cids : Array[String]
+}
+
+pub(all) struct EffectMemberProgress {
+  effect_id : String
+  policy : EffectItemFailurePolicy
+  rows : Array[EffectItemProgress]
+}
+
+pub(all) enum EffectPreviewApplyIdentityIssue {
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  KeyInventoryMismatch
+  ForeignKeyScope(Int, Int)
+  ForeignKeyPreview(Int, Int)
+  RowKeyMismatch(Int, Int)
+} derive(@debug.Debug)
+
+pub(all) enum EffectPreviewFootprintIssue {
+  PreviewShape(@run_publication.PublicationContractIssue)
+  InvalidPreviewFootprint
+  InventoryMismatch
+  FailurePolicyMismatch
+  EffectIdentityMismatch
+  Conflict(EffectFootprintIssue)
+} derive(@debug.Debug)
+
+pub(all) enum EffectPreviewTargetGuardIssue {
+  InvalidLimits
+  CapacityExceeded
+  InvalidObservation(Int)
+  DuplicateObservation(Int)
+  MissingObservation(Int, Int)
+  StalePreview(Int, Int)
+  ForeignObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectRowAction {
+  PersistPrepared
+  ClaimPrepared
+  JoinActive
+  ReconcilePossibleDispatch
+  ReconcileUnknown
+  ReturnApplied
+  ReturnAccepted
+  ReturnFailed
+  RequestConflict
+  InvalidRecord
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectRowRecord {
+  logical_item_locator_cid : String
+  intent_fingerprint_cid : String
+  dispatch_key_cid : String
+  canonical_request_cid : String
+  state : EffectRowState
+}
+
+pub(all) enum EffectRowState {
+  Prepared
+  Dispatching
+  Applied
+  Accepted
+  Failed
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectSetFrontier {
+  ready : Array[(Int, Int)]
+  outcome : EffectSetOutcome
+}
+
+pub(all) enum EffectSetOutcome {
+  SetRunning
+  SetSucceeded
+  SetFailed
+  SetNeedsReconciliation
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectSetProgressIssue {
+  InvalidLimits
+  InvalidMember
+  CapacityExceeded
+  InvalidHistory
+  ForeignLedgerEntry(Int, Int)
+  ForeignPreviewRow(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectTargetVersionObservation {
+  row_preview_cid : String
+  version_cid : String
+} derive(Eq, @debug.Debug)
+
+pub struct LogicalItemLocator {
+  logical_request_scope_cid : String
+  program_id : String
+  node_id : String
+  effect_id : String
+  item_correlation_wire : String
+  cid : String
+}
+
+pub struct LogicalRequestScope {
+  authority_scope_cid : String
+  caller_request_id : String
+  cid : String
+}
+
+// Type aliases
+
+// Traits

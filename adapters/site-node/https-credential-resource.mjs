@@ -6,36 +6,67 @@ const fail = (code, cause) => {
 const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
 
-function operationFor(operations, scope) {
+function exactRequestTarget(path) {
+  if (!text(path) || !path.startsWith('/') || path.startsWith('//') ||
+      path.includes('\\') || path.includes('#')) {
+    fail('InvalidRemoteCredentialOperation');
+  }
+  for (let index = 0; index < path.length; index++) {
+    const code = path.charCodeAt(index);
+    if (code < 0x21 || code > 0x7e) {
+      fail('InvalidRemoteCredentialOperation');
+    }
+    if (code === 0x25) {
+      if (index + 2 >= path.length ||
+          !/^[0-9A-Fa-f]{2}$/.test(path.slice(index + 1, index + 3))) {
+        fail('InvalidRemoteCredentialOperation');
+      }
+      index += 2;
+    }
+  }
+  return path;
+}
+
+function operationFor(operations, scope, maxRequestBytes) {
   if (!(operations instanceof Map) || !text(scope?.operation) ||
       !text(scope?.resourceOrigin)) {
     fail('InvalidRemoteCredentialOperation');
   }
   const operation = operations.get(scope.operation);
   if (operation === undefined || operation === null ||
-      typeof operation !== 'object' || operation.method !== 'GET' ||
-      !text(operation.path) || !operation.path.startsWith('/') ||
-      operation.path.startsWith('//')) {
+      typeof operation !== 'object' ||
+      !['GET', 'POST', 'PATCH'].includes(operation.method) ||
+      !text(operation.path)) {
     fail('UnsupportedRemoteCredentialOperation');
   }
+  const mutation = operation.method !== 'GET';
+  if ((mutation && (typeof operation.body !== 'string' ||
+      Buffer.byteLength(operation.body) > maxRequestBytes)) ||
+      (!mutation && operation.body !== undefined)) {
+    fail('InvalidRemoteCredentialOperation');
+  }
   let origin;
-  let target;
   try {
     origin = new URL(scope.resourceOrigin);
-    target = new URL(operation.path, origin);
   } catch (error) {
     fail('InvalidRemoteCredentialOperation', error);
   }
   if (origin.protocol !== 'https:' || origin.origin !== scope.resourceOrigin ||
-      target.origin !== origin.origin || target.username !== '' ||
-      target.password !== '') {
+      origin.username !== '' || origin.password !== '') {
     fail('InvalidRemoteCredentialOperation');
   }
-  return Object.freeze({method: operation.method, target});
+  return Object.freeze({
+    method: operation.method,
+    hostname: origin.hostname,
+    port: origin.port || undefined,
+    path: exactRequestTarget(operation.path),
+    body: mutation ? operation.body : undefined,
+    requestBytes: mutation ? Buffer.byteLength(operation.body) : 0,
+  });
 }
 
-function receive({target, method, secret, ca, cert, key, signal,
-  maxResponseBytes}) {
+function receive({hostname, port, path, method, body, requestBytes, secret,
+  ca, cert, key, signal, maxResponseBytes}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (handler, value) => {
@@ -43,7 +74,11 @@ function receive({target, method, secret, ca, cert, key, signal,
       settled = true;
       handler(value);
     };
-    const request = httpsRequest(target, {
+    const request = httpsRequest({
+      protocol: 'https:',
+      hostname,
+      port,
+      path,
       method,
       ca,
       cert,
@@ -51,6 +86,10 @@ function receive({target, method, secret, ca, cert, key, signal,
       headers: Object.freeze({
         accept: 'application/json',
         authorization: `Bearer ${secret}`,
+        ...(body === undefined ? {} : {
+          'content-type': 'application/json',
+          'content-length': requestBytes,
+        }),
       }),
       signal,
     }, response => {
@@ -75,7 +114,7 @@ function receive({target, method, secret, ca, cert, key, signal,
       })));
     });
     request.once('error', error => finish(reject, error));
-    request.end();
+    request.end(body);
   });
 }
 
@@ -93,7 +132,9 @@ export async function callHttpsCredentialResource({
   cert,
   key,
   now = Date.now,
+  maxRequestBytes = 1_048_576,
   maxResponseBytes = 1_048_576,
+  returnRejectedResponse = false,
   signal,
 }) {
   if (typeof control?.identity !== 'function' ||
@@ -101,10 +142,12 @@ export async function callHttpsCredentialResource({
       typeof journal?.authorize !== 'function' ||
       typeof journal?.finish !== 'function' ||
       typeof resolveSecret !== 'function' || typeof now !== 'function' ||
-      !text(useId) || !count(maxResponseBytes) || maxResponseBytes === 0) {
+      !text(useId) || !count(maxRequestBytes) || maxRequestBytes === 0 ||
+      !count(maxResponseBytes) || maxResponseBytes === 0 ||
+      typeof returnRejectedResponse !== 'boolean') {
     fail('InvalidRemoteCredentialCall');
   }
-  const operation = operationFor(operations, scope);
+  const operation = operationFor(operations, scope, maxRequestBytes);
   signal?.throwIfAborted();
   const claimed = journal.claim(
     control.identity(grant),
@@ -122,6 +165,10 @@ export async function callHttpsCredentialResource({
       tenant: scope.tenant,
       environment: scope.environment,
       operation: scope.operation,
+      resourceOrigin: scope.resourceOrigin,
+      siteKey: scope.siteKey,
+      siteGeneration: scope.siteGeneration,
+      connectorRegistration: scope.connectorRegistration,
     }), signal);
     if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
     signal?.throwIfAborted();
@@ -141,15 +188,21 @@ export async function callHttpsCredentialResource({
       signal,
       maxResponseBytes,
     });
+    if (response.statusCode === 401 &&
+        typeof resolveSecret.invalidate === 'function') {
+      resolveSecret.invalidate(secret);
+    }
     if (response.statusCode >= 300 && response.statusCode < 400) {
       fail('RemoteCredentialRedirectRejected');
     }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    const accepted = response.statusCode >= 200 && response.statusCode < 300;
+    if (!accepted && !returnRejectedResponse) {
       fail('RemoteCredentialResourceRejected');
     }
-    journal.finish(claimed.record.useCid, 'succeeded');
+    journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
     return Object.freeze({
       useCid: claimed.record.useCid,
+      accepted,
       statusCode: response.statusCode,
       headers: response.headers,
       body: response.body,
@@ -157,7 +210,9 @@ export async function callHttpsCredentialResource({
   } catch (error) {
     journal.finish(
       claimed.record.useCid,
-      requestStarted && error?.code !== 'RemoteCredentialRedirectRejected' &&
+      requestStarted &&
+        (operation.method !== 'GET' ||
+          error?.code !== 'RemoteCredentialRedirectRejected') &&
         error?.code !== 'RemoteCredentialResourceRejected'
         ? 'unknown'
         : 'failed',

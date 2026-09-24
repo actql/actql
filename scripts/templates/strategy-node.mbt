@@ -7,6 +7,14 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode.EncodeFailure)
   OutputExport(@execution.CompletedExportIssue)
   PublicationEvidence(@publication.ResultEvidenceIssuanceIssue)
+  EffectIdentity(@effect.EffectIdentityIssue)
+  EffectSetProgress(@effect.EffectSetProgressIssue)
+  EffectFootprint(@effect.EffectFootprintIssue)
+  EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
+  EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectPreviewTargetGuard(@effect.EffectPreviewTargetGuardIssue)
+  EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
+  EffectLedger(@effect.EffectLedgerIssue)
   CapturedRun(@publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote.DispatchIssue)
   RemoteTransfer(@transfer.RemoteTransferIssue)
@@ -334,6 +342,18 @@ pub fn strategy_host_program_definition_cid(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> String {
   @strategy.graph_program_definition_cid(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
+#export_name("strategyHostHasEffects")
+pub fn strategy_host_has_effects(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool {
+  @strategy.graph_program_has_effects(
     @strategy.captured_dag_graph(
       @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
     ),
@@ -7324,6 +7344,581 @@ pub fn strategy_remote_transfer_record_restore(
   match @transfer.restore_record(request, state) {
     Ok(value) => value
     Err(issue) => raise RemoteTransfer(issue)
+  }
+}
+
+///|
+/// The Host fixes the logical request independently of physical Runs.
+#export_name("strategyEffectLogicalRequestScope")
+pub fn strategy_effect_logical_request_scope(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  max_caller_bytes : Int,
+) -> @effect.LogicalRequestScope raise NodeHostFailure {
+  match @effect.prepare_logical_request_scope(
+    authority_scope_cid, caller_request_id, max_caller_bytes,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLogicalRequestScopeCid")
+pub fn strategy_effect_logical_request_scope_cid(
+  scope : @effect.LogicalRequestScope,
+) -> String {
+  @effect.logical_request_scope_cid(scope)
+}
+
+///|
+#export_name("strategyEffectDispatchKey")
+pub fn strategy_effect_dispatch_key(
+  scope : @effect.LogicalRequestScope,
+  effect_preview_cid : String,
+  row_or_item_key_wire : String,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> @effect.EffectDispatchKey raise NodeHostFailure {
+  match @effect.prepare_effect_dispatch_key(
+    scope, effect_preview_cid, row_or_item_key_wire,
+    max_key_bytes, max_key_nodes, max_key_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectDispatchKeyCid")
+pub fn strategy_effect_dispatch_key_cid(key : @effect.EffectDispatchKey) -> String {
+  @effect.effect_dispatch_key_cid(key)
+}
+
+///|
+#export_name("strategyEffectBatchRowsShareMember")
+pub fn strategy_effect_batch_rows_share_member(
+  first_locator : @effect.LogicalItemLocator,
+  first_key : @effect.EffectDispatchKey,
+  next_locator : @effect.LogicalItemLocator,
+  next_key : @effect.EffectDispatchKey,
+) -> Bool {
+  @effect.effect_batch_rows_share_member(
+    first_locator, first_key, next_locator, next_key,
+  )
+}
+
+///|
+#export_name("strategyEffectLogicalItemLocator")
+pub fn strategy_effect_logical_item_locator(
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  effect_id : String,
+  item_correlation_wire : String,
+  max_name_bytes : Int,
+  max_item_bytes : Int,
+  max_item_nodes : Int,
+  max_item_depth : Int,
+) -> @effect.LogicalItemLocator raise NodeHostFailure {
+  match @effect.prepare_logical_item_locator(
+    scope, program_id, node_id, effect_id, item_correlation_wire,
+    max_name_bytes, max_item_bytes, max_item_nodes, max_item_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLogicalItemLocatorCid")
+pub fn strategy_effect_logical_item_locator_cid(
+  locator : @effect.LogicalItemLocator,
+) -> String {
+  @effect.logical_item_locator_cid(locator)
+}
+
+///|
+#export_name("strategyEffectApplyKey")
+pub fn strategy_effect_apply_key(
+  scope : @effect.LogicalRequestScope,
+  effect_preview_cid : String,
+  effect_id : String,
+  effect_member_preview_cid : String,
+  max_effect_bytes : Int,
+) -> @effect.EffectApplyKey raise NodeHostFailure {
+  match @effect.prepare_effect_apply_key(
+    scope, effect_preview_cid, effect_id, effect_member_preview_cid,
+    max_effect_bytes,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectApplyKeyCid")
+pub fn strategy_effect_apply_key_cid(key : @effect.EffectApplyKey) -> String {
+  @effect.effect_apply_key_cid(key)
+}
+
+///|
+#export_name("strategyEffectRowRecoveryAction")
+pub fn strategy_effect_row_recovery_action(
+  expected_locator : @effect.LogicalItemLocator,
+  intent_fingerprint_cid : String,
+  expected_key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  stored_locator_cid : String,
+  stored_fingerprint_cid : String,
+  stored_key_cid : String,
+  stored_request_cid : String,
+  stored_state : Int,
+  active_owner : Bool,
+) -> Int {
+  @effect.effect_row_recovery_action_from_store(
+    expected_locator, intent_fingerprint_cid, expected_key,
+    canonical_request_cid, stored_locator_cid, stored_fingerprint_cid,
+    stored_key_cid,
+    stored_request_cid, stored_state, active_owner,
+  )
+}
+
+///|
+#export_name("strategyEffectRowRecoveryActionFromEntry")
+pub fn strategy_effect_row_recovery_action_from_entry(
+  expected_locator : @effect.LogicalItemLocator,
+  intent_fingerprint_cid : String,
+  expected_key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+  stored : @effect.EffectLedgerEntry?,
+  active_owner : Bool,
+) -> Int {
+  @effect.effect_row_recovery_action_from_entry(
+    expected_locator, intent_fingerprint_cid, expected_key,
+    canonical_request_cid, stored, active_owner,
+  )
+}
+
+///|
+#export_name("strategyEffectSetFrontier")
+pub fn strategy_effect_set_frontier(
+  effect_ids : Array[String],
+  policies : Array[Int],
+  row_states : Array[Array[Int]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> @effect.EffectSetFrontier raise NodeHostFailure {
+  match @effect.effect_set_frontier_from_codes(
+    effect_ids, policies, row_states, max_members, max_rows, max_work,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectSetProgress(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectSetFrontierFromLedger")
+pub fn strategy_effect_set_frontier_from_ledger(
+  preview : @publication.EffectPreviewIdentity,
+  scopes : Array[Array[@effect.LogicalRequestScope]],
+  locators : Array[Array[@effect.LogicalItemLocator]],
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  expected_bases : Array[Array[@effect.EffectLedgerBasis]],
+  heads : Array[Array[@effect.EffectLedgerEntry?]],
+  active_owners : Array[Array[Bool]],
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> @effect.EffectSetFrontier raise NodeHostFailure {
+  match @effect.effect_set_frontier_from_preview_ledger_entries(
+    preview, scopes, locators, keys, expected_bases, heads, active_owners,
+    max_members, max_rows, max_work,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectSetProgress(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectSetFootprintConflictsCheck")
+pub fn strategy_effect_set_footprint_conflicts_check(
+  effect_ids : Array[String],
+  kinds : Array[Int],
+  namespaces : Array[String],
+  boundary_cids : Array[String],
+  scheme_cids : Array[String],
+  resource_kinds : Array[String],
+  target_cids : Array[Array[String]],
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match @effect.check_effect_set_footprint_conflicts_from_codes(
+    effect_ids, kinds, namespaces, boundary_cids, scheme_cids,
+    resource_kinds, target_cids, max_members, max_targets, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectFootprint(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewFootprintConflictsCheck")
+pub fn strategy_effect_preview_footprint_conflicts_check(
+  preview_wire : String,
+  declared_effect_ids : Array[String],
+  declared_failure_policies : Array[Int],
+  declared_effect_identity_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match @effect.check_effect_preview_footprint_conflicts(
+    preview_wire, declared_effect_ids, declared_failure_policies,
+    declared_effect_identity_cids,
+    max_wire_bytes, max_nodes, max_depth,
+    max_members, max_targets, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectPreviewFootprint(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewIdentities")
+pub fn strategy_effect_preview_identities(
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[String] raise NodeHostFailure {
+  match @publication.derive_effect_preview_identities(
+    preview_wire, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok((preview_cid, member_cids)) => {
+      let identities = [preview_cid]
+      for cid in member_cids {
+        identities.push(cid)
+      }
+      identities
+    }
+    Err(issue) => raise EffectPreviewIdentity(@effect.Preview(issue))
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewRowIdentities")
+pub fn strategy_effect_preview_row_identities(
+  preview_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Array[Array[String]] raise NodeHostFailure {
+  match @publication.derive_effect_preview_row_identities(
+    preview_wire, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(rows) => rows
+    Err(issue) => raise EffectPreviewIdentity(@effect.Preview(issue))
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewApplyIdentityAdmit")
+pub fn strategy_effect_preview_apply_identity_admit(
+  preview_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  scope : @effect.LogicalRequestScope,
+  expected_keys : Array[Array[@effect.EffectDispatchKey]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match @effect.admit_effect_preview_apply_identity(
+    preview_wire, expected_run_identity_cid, expected_authoring_context_cid,
+    scope, expected_keys, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(identity) => @publication.effect_preview_semantic_identity(identity)
+    Err(issue) => raise EffectPreviewIdentity(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewApplyIdentity")
+pub fn strategy_effect_preview_apply_identity(
+  preview_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  scope : @effect.LogicalRequestScope,
+  expected_keys : Array[Array[@effect.EffectDispatchKey]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise NodeHostFailure {
+  match @effect.admit_effect_preview_apply_identity(
+    preview_wire, expected_run_identity_cid, expected_authoring_context_cid,
+    scope, expected_keys, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(identity) => identity
+    Err(issue) => raise EffectPreviewIdentity(issue)
+  }
+}
+
+///|
+/// The Site supplies currently authorized target observations. This checks
+/// every Preview guard but does not create a whole-set apply permit.
+#export_name("strategyEffectPreviewTargetGuardsCheck")
+pub fn strategy_effect_preview_target_guards_check(
+  preview : @publication.EffectPreviewIdentity,
+  row_preview_cids : Array[String],
+  version_cids : Array[String],
+  max_rows : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  if max_rows < 0 ||
+    row_preview_cids.length() != version_cids.length() ||
+    row_preview_cids.length() > max_rows {
+    raise InvalidCommand
+  }
+  let observations : Array[@effect.EffectTargetVersionObservation] = []
+  for index in 0..<row_preview_cids.length() {
+    observations.push({
+      row_preview_cid: row_preview_cids[index],
+      version_cid: version_cids[index],
+    })
+  }
+  match @effect.check_effect_preview_target_guards(
+    preview, observations, max_rows, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectPreviewTargetGuard(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectCollectionBatchAdmit")
+pub fn strategy_effect_collection_batch_admit(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  first_row : Int,
+  effect_kind : String,
+  scope : @effect.LogicalRequestScope,
+  row_cids : Array[String],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  max_rows : Int,
+  max_work : Int,
+) -> Bool raise NodeHostFailure {
+  match @effect.admit_effect_collection_batch(
+    preview, member_index, first_row, effect_kind, scope, row_cids, locators, keys,
+    max_rows, max_work,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectCollectionBatch(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectMemberRowAdmit")
+pub fn strategy_effect_member_row_admit(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  effect_kind : String,
+  scope : @effect.LogicalRequestScope,
+  row_cid : String,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+) -> Bool raise NodeHostFailure {
+  match @effect.admit_effect_single_row(
+    preview, member_index, row_index, effect_kind, scope, row_cid, locator, key,
+  ) {
+    Ok(_) => true
+    Err(issue) => raise EffectCollectionBatch(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectSetFrontierOutcome")
+pub fn strategy_effect_set_frontier_outcome(
+  frontier : @effect.EffectSetFrontier,
+) -> Int {
+  @effect.effect_set_frontier_outcome_code(frontier)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyCount")
+pub fn strategy_effect_set_frontier_ready_count(
+  frontier : @effect.EffectSetFrontier,
+) -> Int {
+  @effect.effect_set_frontier_ready_count(frontier)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyMember")
+pub fn strategy_effect_set_frontier_ready_member(
+  frontier : @effect.EffectSetFrontier,
+  index : Int,
+) -> Int {
+  @effect.effect_set_frontier_ready_member(frontier, index)
+}
+
+///|
+#export_name("strategyEffectSetFrontierReadyRow")
+pub fn strategy_effect_set_frontier_ready_row(
+  frontier : @effect.EffectSetFrontier,
+  index : Int,
+) -> Int {
+  @effect.effect_set_frontier_ready_row(frontier, index)
+}
+
+///|
+#export_name("strategyEffectAdmitLedgerEntry")
+pub fn strategy_effect_admit_ledger_entry(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match @effect.admit_effect_ledger_entry(
+    wire, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(entry) => entry
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectLedgerEntryFollows")
+pub fn strategy_effect_ledger_entry_follows(
+  previous : @effect.EffectLedgerEntry?,
+  next : @effect.EffectLedgerEntry,
+) -> Bool {
+  @effect.effect_ledger_entry_follows(previous, next)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryCid")
+pub fn strategy_effect_ledger_entry_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryLocatorCid")
+pub fn strategy_effect_ledger_entry_locator_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_locator_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryScopeCid")
+pub fn strategy_effect_ledger_entry_scope_cid(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_scope_cid(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryWire")
+pub fn strategy_effect_ledger_entry_wire(
+  entry : @effect.EffectLedgerEntry,
+) -> String {
+  @effect.effect_ledger_entry_wire(entry)
+}
+
+///|
+#export_name("strategyEffectLedgerEntryAdmitsDispatch")
+pub fn strategy_effect_ledger_entry_admits_dispatch(
+  entry : @effect.EffectLedgerEntry,
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  canonical_request_cid : String,
+) -> Bool {
+  @effect.effect_ledger_entry_admits_dispatch(
+    entry, scope, locator, key, canonical_request_cid,
+  )
+}
+
+///|
+#export_name("strategyEffectLedgerEntryMatchesBasis")
+pub fn strategy_effect_ledger_entry_matches_basis(
+  entry : @effect.EffectLedgerEntry,
+  basis : @effect.EffectLedgerBasis,
+) -> Bool {
+  @effect.effect_ledger_entry_matches_basis(entry, basis)
+}
+
+///|
+#export_name("strategyEffectLedgerBasis")
+pub fn strategy_effect_ledger_basis(
+  scope : @effect.LogicalRequestScope,
+  locator : @effect.LogicalItemLocator,
+  key : @effect.EffectDispatchKey,
+  unit_definition_cid : String,
+  original_membership_cid : String,
+  intent_fingerprint_cid : String,
+  canonical_request_cid : String,
+  recovery_contract_cid : String,
+  capability : String,
+  reservation_evidence_cid : String,
+  retention_contract_cid : String,
+) -> @effect.EffectLedgerBasis raise NodeHostFailure {
+  match @effect.prepare_effect_ledger_basis(
+    scope, locator, key, unit_definition_cid, original_membership_cid,
+    intent_fingerprint_cid, canonical_request_cid, recovery_contract_cid,
+    capability, reservation_evidence_cid, retention_contract_cid,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectIssuePreparedLedgerEntry")
+pub fn strategy_effect_issue_prepared_ledger_entry(
+  basis : @effect.EffectLedgerBasis,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  match @effect.issue_prepared_effect_ledger_entry(
+    basis, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
+  }
+}
+
+///|
+#export_name("strategyEffectIssueNextLedgerEntry")
+pub fn strategy_effect_issue_next_ledger_entry(
+  prior : @effect.EffectLedgerEntry,
+  next_state : String,
+  outcome_receipt_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @effect.EffectLedgerEntry raise NodeHostFailure {
+  let outcome = if outcome_receipt_cid.is_empty() {
+    None
+  } else {
+    Some(outcome_receipt_cid)
+  }
+  match @effect.issue_next_effect_ledger_entry(
+    prior, next_state, outcome, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => raise EffectLedger(issue)
   }
 }
 

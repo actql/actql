@@ -230,7 +230,19 @@ export function correctedContracts(registry, cli) {
     ...Object.fromEntries(
       Object.entries(receipt.properties).filter(([key]) => key !== 'version'),
     ),
+    effect_preview_cid: clone(cid),
+    effect_set_apply_receipt_cid: clone(cid),
+    captured_run_cid: clone(cid),
   };
+  const finalReferences = [
+    'effect_preview_cid',
+    'effect_set_apply_receipt_cid',
+    'captured_run_cid',
+  ];
+  receipt.oneOf = [
+    {required: finalReferences},
+    {not: {anyOf: finalReferences.map(field => ({required: [field]}))}},
+  ];
   receipt.properties.result_manifest = clone(manifest);
   receipt.properties.result_artifacts.additionalProperties = clone(artifact);
   const state = runStateSchema(next.artifact_schemas.run_state);
@@ -265,6 +277,24 @@ export function checkContracts(registry, cli) {
   );
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('compiler_version'));
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('aoa_ir_version'));
+  assert.deepEqual(registry.artifact_schemas.run_receipt.oneOf, [
+    {
+      required: [
+        'effect_preview_cid',
+        'effect_set_apply_receipt_cid',
+        'captured_run_cid',
+      ],
+    },
+    {
+      not: {
+        anyOf: [
+          {required: ['effect_preview_cid']},
+          {required: ['effect_set_apply_receipt_cid']},
+          {required: ['captured_run_cid']},
+        ],
+      },
+    },
+  ]);
   assert.ok(registry.artifact_schemas.run_state.required.includes('result_availability'));
   for (const [name, schema] of Object.entries(registry.artifact_schemas)) {
     assert.equal(registry.artifact_schema_cids[name], machineCid(schema), name);

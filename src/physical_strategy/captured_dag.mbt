@@ -41,6 +41,14 @@ struct CapturedDAG {
 }
 
 ///|
+/// An exact admitted Effect Run retained through physical capture. Compute
+/// access does not authorize Preview admission or mutation dispatch.
+struct CapturedEffectRunDAG {
+  checked : CheckedEffectRunDAG
+  captured : CapturedDAG
+}
+
+///|
 /// One authoritative committed output slot per checked task. The variants
 /// preserve representation-specific typed access; they are not independent
 /// completion ledgers. A task can occupy this slot only once.
@@ -90,6 +98,7 @@ pub(all) enum RunIssue {
   NotReady
   Stopped
   ForeignCandidate
+  PreviewWorkLimit
   MissingOutput
   Capture(@query.CapturedSourceIssue)
   Binding(@execution.ProducerBindingIssue)
@@ -212,7 +221,7 @@ pub fn open_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
-  if graph.source_free_root {
+  if graph.source_free_root || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
   open_checked_dag(graph, Some(source), ledger, supplied)
@@ -228,12 +237,57 @@ pub fn open_source_free_dag(
   if graph.owners.is_empty() ||
     graph.input_counts[0] != 0 ||
     !graph.source_free_root ||
+    graph_program_has_effects(graph) ||
     graph.data.any(edge => edge.consumer == 0) ||
     graph.control.any(edge => edge.consumer == 0) ||
     graph.supplied_slots.any(slot => slot.consumer == 0) {
     return Err(UnsupportedGraph)
   }
   open_checked_dag(graph, None, ledger, [])
+}
+
+///|
+/// Open physical compute only from the bound Effect Run graph. The returned
+/// owner keeps the static closure and admitted Run beside the captured DAG.
+pub fn open_captured_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  supplied? : Array[@execution.CapturedRows] = [],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let captured = match
+    open_checked_dag(checked.computation.graph, Some(source), ledger, supplied) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ checked, captured, })
+}
+
+///|
+pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
+  value.captured
+}
+
+///|
+pub fn captured_effect_run_owner(
+  value : CapturedEffectRunDAG,
+) -> @checked.EffectProgramRunCandidate {
+  value.checked.run
+}
+
+///|
+/// Retain the checked source occurrence through capture without implying a
+/// live read pin. Physical output availability is checked at each use-site.
+pub fn captured_effect_run_source_count(value : CapturedEffectRunDAG) -> Int {
+  value.checked.computation.sources.length()
+}
+
+///|
+pub fn captured_effect_run_source_at(
+  value : CapturedEffectRunDAG,
+  index : Int,
+) -> CheckedEffectSourcePort? {
+  value.checked.computation.sources.get(index).bind(source => source)
 }
 
 ///|
@@ -507,7 +561,10 @@ fn open_checked_dag(
       return Err(UnsupportedGraph)
     }
   }
-  let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
+  let lifetimes = Array::makei(count, _ => TaskLifetime::{
+    live: true,
+    pins: 0,
+  })
   let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
   if !root_is_compute {
@@ -617,6 +674,11 @@ pub fn configure_captured_managed_identity_policy(
     }
   }
   if run.managed_identity_policy_sealed || run.running is Some(_) || started {
+    return false
+  }
+  // This policy is for the Effect-free Result publication path. An Effectful
+  // Run must close its Preview, apply and final Receipt separately.
+  if publish_checked_results && graph_program_has_effects(run.graph) {
     return false
   }
   // Acquisition publication needs its own observation/receipt identity

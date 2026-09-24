@@ -6,13 +6,30 @@ fn protocol_test_property_node(
   let nodes = generated_protocol_schema_nodes()
   let mut index = generated_protocol_schema_root(name, false).unwrap()
   for field in path {
-    match nodes[index] {
-      ObjectRule(properties, _, _, _, _) =>
-        index = protocol_property_schema(properties, field).unwrap()
-      _ => abort("Expected protocol object rule")
-    }
+    index = protocol_test_find_property(nodes, index, field).unwrap()
   }
   (nodes, index)
+}
+
+///|
+fn protocol_test_find_property(
+  nodes : Array[ProtocolSchemaRule],
+  index : Int,
+  field : String,
+) -> Int? {
+  match nodes[index] {
+    ObjectRule(properties, _, _, _, _) =>
+      protocol_property_schema(properties, field)
+    AllOfRule(children) | OneOfRule(children) | AnyOfRule(children) => {
+      for child in children {
+        if protocol_test_find_property(nodes, child, field) is Some(found) {
+          return Some(found)
+        }
+      }
+      None
+    }
+    _ => None
+  }
 }
 
 ///|
@@ -45,6 +62,10 @@ test "all generated Run evidence versions are exact" {
     ("run_receipt", "actql-run-receipt/0.1"),
     ("captured_run", "actql-captured-run/0.1"),
     ("result_delivery_receipt", "actql-result-delivery-receipt/0.1"),
+    ("effect_preview", "actql-effect-preview/0.1"),
+    ("effect_apply_receipt", "actql-effect-apply-receipt/0.1"),
+    ("effect_set_apply_receipt", "actql-effect-set-apply-receipt/0.1"),
+    ("effect_reconciliation_receipt", "actql-effect-reconciliation-receipt/0.1"),
   ]
   for (name, version) in cases {
     let (nodes, index) = protocol_test_property_node(name, ["version"])
@@ -106,4 +127,111 @@ test "protocol conjunction checks both branches" {
   assert_true(protocol_test_accepts(nodes, 2, "\"expected\""))
   assert_false(protocol_test_accepts(nodes, 2, "\"different\""))
   assert_false(protocol_test_accepts(nodes, 2, "42"))
+}
+
+///|
+test "negated schema cannot accept a branch that ran out of validation work" {
+  let nodes = [protocol_object_rule([], ["forbidden"], -2, 0, None), NotRule(0)]
+  let value = parse_contract_wire("{}", 1024, 8, 4).unwrap()
+  assert_false(
+    validate_protocol_node(value, 1, nodes, {
+      remaining: 2,
+      max_wire_bytes: 1024,
+      max_nodes: 8,
+      max_depth: 4,
+    }),
+  )
+  assert_true(
+    validate_protocol_node(value, 1, nodes, {
+      remaining: 3,
+      max_wire_bytes: 1024,
+      max_nodes: 8,
+      max_depth: 4,
+    }),
+  )
+}
+
+///|
+fn protocol_test_effect_member(
+  kind : String,
+  contract_fields : String,
+  executed : String,
+) -> String {
+  let cid = "sha256:" + "a".repeat(64)
+  "{\"effect_id\":\"WriteOne\",\"effect_kind\":\"" +
+  kind +
+  "\",\"target\":\"Object\",\"effect_identity_cid\":\"" +
+  cid +
+  "\",\"preview_strength\":\"blind\",\"source_binding_cid\":\"" +
+  cid +
+  "\",\"capability_evidence_cid\":\"" +
+  cid +
+  "\",\"authority_scope_cid\":\"" +
+  cid +
+  "\",\"write_footprint\":{\"kind\":\"opaque\",\"resource_identity_scheme_cid\":\"" +
+  cid +
+  "\",\"provider_namespace\":\"provider\",\"provider_boundary_cid\":\"" +
+  cid +
+  "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
+  "\"count\":0,\"max_items\":1,\"required_permissions\":[],\"approval\":\"none\"," +
+  "\"on_item_failure\":\"halt\",\"changes\":[],\"row_order\":[]," +
+  "\"effect_member_preview_cid\":\"" +
+  cid +
+  "\",\"executed\":" +
+  executed +
+  contract_fields +
+  "}"
+}
+
+///|
+test "Effect Preview member schema keeps Command and Mapping branches distinct" {
+  let (nodes, effects_index) = protocol_test_property_node("effect_preview", [
+    "effects",
+  ])
+  let member_index = match nodes[effects_index] {
+    ArrayRule(items, _, _) => items
+    _ => abort("Expected Effect member array")
+  }
+  let cid = "sha256:" + "a".repeat(64)
+  let command = ",\"contract\":\"command:fixture\",\"resolved_command_contract_cid\":\"" +
+    cid +
+    "\""
+  let mapping = ",\"mapping\":\"mapping:fixture\",\"resolved_mapping_contract_cid\":\"" +
+    cid +
+    "\""
+  assert_true(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      protocol_test_effect_member("command", command, "false"),
+    ),
+  )
+  assert_true(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      protocol_test_effect_member("create", mapping, "false"),
+    ),
+  )
+  assert_false(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      protocol_test_effect_member("command", mapping, "false"),
+    ),
+  )
+  assert_false(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      protocol_test_effect_member("create", command, "false"),
+    ),
+  )
+  assert_false(
+    protocol_test_accepts(
+      nodes,
+      member_index,
+      protocol_test_effect_member("command", command, "true"),
+    ),
+  )
 }

@@ -36,6 +36,10 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
+pub fn bind_captured_effect_preview_inputs(CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
+
+pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
+
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
 
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -57,6 +61,26 @@ pub fn captured_dag_graph(CapturedDAG) -> CheckedDAG
 pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
+
+pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
+
+pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput
+
+pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
+
+pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
+
+pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
+
+pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+
+pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
 
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
@@ -84,9 +108,13 @@ pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
 
+pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
+
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
+
+pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> CapturedOutputPin?
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
@@ -129,6 +157,30 @@ pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> 
 pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
+
+pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
+
+pub fn checked_effect_preview_source_indexes(CheckedEffectRunDAG, @program_check.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
+
+pub fn checked_effect_run_graph(CheckedEffectRunDAG) -> CheckedDAG
+
+pub fn checked_effect_run_owner(CheckedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+
+pub fn checked_effect_run_source_at(CheckedEffectRunDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn checked_effect_run_source_count(CheckedEffectRunDAG) -> Int
+
+pub fn checked_effect_source_at(CheckedEffectComputationDAG, Int) -> CheckedEffectSourcePort?
+
+pub fn checked_effect_source_count(CheckedEffectComputationDAG) -> Int
+
+pub fn checked_effect_source_member(CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_source_occurrence(CheckedEffectSourcePort) -> @execution_relation.ManagedResultOccurrence
+
+pub fn checked_effect_source_stage(CheckedEffectSourcePort) -> Int
 
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
@@ -190,6 +242,8 @@ pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
 
 pub fn graph_program_definition_cid(CheckedDAG) -> String
 
+pub fn graph_program_has_effects(CheckedDAG) -> Bool
+
 pub fn graph_result_count(CheckedDAG) -> Int
 
 pub fn graph_result_name(CheckedDAG, Int) -> String?
@@ -236,11 +290,25 @@ pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
+pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
+
+pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
+
+pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedResultOutputSet, RunIssue]
+
+pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
+
+pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedEffectComputationDAG, GraphIssue]
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
@@ -322,7 +390,17 @@ pub fn refresh_captured_retention(CapturedDAG) -> Unit
 
 pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
 
+pub fn release_captured_effect_input(CapturedEffectInput) -> Bool
+
+pub fn release_captured_effect_inputs(CapturedEffectInputs) -> Bool
+
+pub fn release_captured_effect_preview_inputs(CapturedEffectPreviewInputs) -> Bool
+
 pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
+
+pub fn release_captured_result_output_set(CapturedResultOutputSet) -> Bool
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -379,6 +457,8 @@ pub fn settle_resident_transfer(CapturedDAG, ResidentTransfer, Bool) -> Result[U
 pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
+
+pub fn start_captured_effect_input_export(CapturedEffectInput, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
 
@@ -445,7 +525,25 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 // Types and methods
 type CapturedDAG
 
+type CapturedEffectInput
+
+type CapturedEffectInputs
+
+type CapturedEffectPreviewInputs
+
+type CapturedEffectRunDAG
+
+type CapturedOutputPin
+
+type CapturedResultOutputSet
+
 type CheckedDAG
+
+type CheckedEffectComputationDAG
+
+type CheckedEffectRunDAG
+
+type CheckedEffectSourcePort
 
 pub(all) struct CheckedTaskIdentity {
   task : Int
@@ -492,6 +590,8 @@ pub struct DataEdge {
 
 pub(all) enum GraphIssue {
   InvalidLimits
+  EffectGraphOwnerRequired
+  ForeignEffectSource(Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
@@ -620,6 +720,7 @@ pub(all) enum RunIssue {
   NotReady
   Stopped
   ForeignCandidate
+  PreviewWorkLimit
   MissingOutput
   Capture(@execution_query.CapturedSourceIssue)
   Binding(@execution_relation.ProducerBindingIssue)

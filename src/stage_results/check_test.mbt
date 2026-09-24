@@ -1,12 +1,21 @@
 ///|
-fn prepared(body : String) -> @parameters.CollectedOperations {
+fn prepared(
+  body : String,
+  effects? : String = "",
+  reference_nullable? : Bool? = None,
+  amount_nullable? : Bool = false,
+) -> @parameters.CollectedOperations {
   let text = "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[" +
     "{\"id\":\"a\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
     body +
-    "}}," +
+    "}" +
+    effects +
+    "}," +
     "{\"id\":\"b\",\"inputs\":{\"rows\":{}},\"steps\":[],\"results\":{\"r\":" +
     body +
-    "}}]," +
+    "}" +
+    effects +
+    "}]," +
     "\"results\":{\"out\":{\"from\":{\"stage\":\"b\",\"result\":\"r\"}}}}"
   let program = @syntax.parse(
     text,
@@ -28,16 +37,33 @@ fn prepared(body : String) -> @parameters.CollectedOperations {
     max_depth: 100,
     max_text_bytes: 10000,
   }).unwrap()
-  let schema = @schema.from_fields(
-    [
-      (
-        @schema.Unqualified("amount"),
-        @contract.primitive(NumberType, nullable=false),
-      ),
-    ],
-    max_fields=1,
-    max_name_bytes=100,
-  ).unwrap()
+  let fields = [
+    (
+      @schema.Unqualified("amount"),
+      @contract.primitive(NumberType, nullable=amount_nullable),
+    ),
+  ]
+  if reference_nullable is Some(nullable) {
+    let reference = @contract.read_author(
+      @decode.admit(
+        @source.parse_json(
+          "{\"type\":\"resource_ref\",\"nullable\":" +
+          nullable.to_string() +
+          ",\"resource_kind\":\"crm/account\"}",
+          { max_input_bytes: 200, max_nodes: 10, max_depth: 4, },
+        ).unwrap(),
+        {
+          max_nodes: 10,
+          max_depth: 4,
+          max_string_bytes: 200,
+          max_total_string_bytes: 200,
+        },
+      ).unwrap(),
+      { max_nodes: 10, max_depth: 4, max_text_bytes: 200, },
+    ).unwrap()
+    fields.push((@schema.Unqualified("ref"), reference))
+  }
+  let schema = @schema.from_fields(fields, max_fields=2, max_name_bytes=100).unwrap()
   let pipelines = []
   for i in 0..<@parameters.stage_count(source) {
     let body = @decode.open_object(

@@ -64,6 +64,8 @@ fn run_local_managed_test_task(
     Err(Dispatch(_)) => fail("Local managed start dispatch failed")
     Err(Execution(NotReady)) => fail("Local managed start was not ready")
     Err(Execution(Stopped)) => fail("Local managed run was stopped")
+    Err(Execution(PreviewWorkLimit)) =>
+      fail("Local managed start exceeded preview work")
     Err(Execution(MissingOutput)) => fail("Local managed start missed output")
     Err(Execution(ForeignCandidate)) =>
       fail("Local managed start had a foreign candidate")

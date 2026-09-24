@@ -5,6 +5,7 @@ import {
   "actql/actql/decode_core" @wire,
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/contract_reference" @contract_ref,
 }
 
 import {

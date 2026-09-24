@@ -139,11 +139,42 @@ signer key ID, and reviewer identity cannot contradict one another.
 
 ### Private preview row state
 
-<!-- requirement-block: preview-row-state.for-every-preview-row-implementations-must-first-compute-row-preview-cid -->
+<!-- requirement-block: preview-row-state.for-every-preview-row-implementations-must-first-compute-row-preview-cid preview-row-state.common-preview-admission-must-recompute-every-row-cid -->
 For every preview row, implementations MUST first compute
 `row_preview_cid = CID({version, program_definition_cid, invocation_cid, effect_identity_cid,
 resolved_contract_cid, operation, target_row_identity, preview_strength,
-target_guard, intended_changes, before, after})`.
+target_guard, intended_changes, before, after})`. The `version` in this
+preimage is `actql-effect-preview-row/0.1`. The Program Definition and
+Invocation CIDs come from the enclosing private Preview. The Effect identity,
+operation, and preview strength come from the enclosing member.
+`resolved_contract_cid` is the member's resolved Command Contract CID for a
+command, otherwise its resolved Mapping Contract CID. The remaining fields
+come from that exact `changes[]` entry. The preimage is canonical JSON; the
+transported `row_preview_cid` is not part of its own preimage. Common Preview
+admission MUST recompute and compare every row CID before admitting the member
+or set CID. A missing field is not supplied with a default.
+
+<!-- requirement-block: preview-row-state.target-guard-and-intended-changes-are-required-closed-forms -->
+`target_guard` is required and has the closed form
+`{state: "version", version_cid: CID}` or `{state: "not_applicable"}`.
+The version form binds the connector's exact target version/content guard.
+An update, delete, or update-side upsert admitted as `full_diff` or `targeted`
+requires that form. An upsert with a present `before` row is update-side for
+this purpose. A blind preview may use the not-applicable form when no target
+version was observed. Create uses the not-applicable form. A command without a
+version guard may also use it. This form does not waive another required
+admission guard.
+`intended_changes` is required and has the closed form
+`{state: "present", value: CanonicalJSON}` or `{state: "not_applicable"}`.
+The present value is the exact approved mutation or typed command payload,
+including field omission versus an explicit null. The not-applicable form is
+only for an operation with no row payload, such as delete or a payload-free
+command. Apply uses this
+approved value and rechecks the current target guard; it MUST NOT rebuild the
+approved mutation from current target state. Neither field may contain a
+credential or secret. A caller-facing review view is a redacted projection of
+the private Preview, not a replacement for this preimage.
+
 Private `before` and `after` evidence use the closed union:
 
 <!-- requirement-block: preview-row-state.rowstate -->
@@ -162,8 +193,9 @@ RowState := {state: "present", value: Row}
 An approval attestation contains the exact Effect Preview CID, approver,
 canonical UTC approval time,
 preview-authority-scope CID, review claims, an Ed25519 key identity/signature,
-and its own CID. An individual apply receipt contains the preview CID,
-approval-attestation CID exactly when approval was required, disjoint
+and its own CID. An individual apply receipt contains the set Preview CID,
+its exact member Preview CID, approval-attestation CID exactly when approval
+was required, and disjoint
 `applied`/`accepted`/`unknown`/`failed`/`unattempted` row-preview identities, a
 typed outcome, status, optional stale-error CID, and receipt CID. An Effect Set
 apply receipt binds the complete set preview, set approval, fixed `attempt_all`
@@ -176,9 +208,15 @@ serialization and its released byte identity ([Result delivery](artifacts.md#res
 phase, stable code/message, already materialized artifact CIDs, and
 `partial_output_published: false`.
 
+<!-- requirement-block: review-artifacts.each-member-apply-receipt-must-bind-exact-member-preview -->
+Each member apply receipt MUST bind its exact member Preview CID as well as
+the set Preview CID. A row partition alone cannot identify a member whose
+preview contains no rows.
+
 <!-- requirement-block: review-artifacts.an-effect-review-projection-must-include-each-effect-s-kind-target -->
-The private Effect Preview binds the evidence available for its strength and may contain
-secrets. It declares `sensitivity: private`, an authority-evidence retention
+The private Effect Preview binds the evidence available for its strength and
+may contain sensitive business values, but not credentials or secret material.
+It declares `sensitivity: private`, an authority-evidence retention
 class, and encryption required. Its transport envelope also carries the
 separately self-addressed Authoring Context; that sidecar is deliberately
 excluded from `effect_preview_cid`. Review UIs display the canonical
@@ -188,6 +226,13 @@ excluded from `effect_preview_cid`. Review UIs display the canonical
 context, plus its own CID and restricted/encrypted retention metadata.
 An Effect review projection MUST include each Effect's kind, target, count,
 and every row identity with the following strength-specific evidence:
+
+<!-- requirement-block: review-artifacts.effect-preview-semantic-exclusions-do-not-waive-exact-apply-binding -->
+The exact 0.1 member and set CID preimages, including the exclusion of derived
+row idempotency keys and physical Run identity, are defined in
+[Effect preview, approval, and application](../execution.md#effect-application).
+Those exclusions MUST NOT waive exact Run, authoring, request, or
+authorization binding at apply.
 
 <!-- requirement-block: review-artifacts.row-variant-required-review-evidence-full-diff -->
 | Row variant | Required review evidence |
@@ -363,13 +408,13 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:bb3c388b79286bc702077c6bc66ac64d9f6789470f67864f67c789f3069e97f2
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:30139b17ce3db707b669b038a89c0ca89d4b5fa4b77d5062e9abc44cc5a93d26
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
@@ -382,7 +427,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```
 

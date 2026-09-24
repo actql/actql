@@ -1,0 +1,388 @@
+# Salesforce Connector implementation agreement
+
+Base SHA: `8cae50b6c6c3d9ae5c5cf215e5820358d94b59fe`.
+
+- Salesforce is the first external provider. Complete its declared capabilities
+  against the individual Connector criteria in proposal section 22.5; do not
+  treat PostgreSQL or Cloud staging as a prerequisite. Keep provider names out
+  of common Engine decisions.
+- Separate the static Connector Catalog from connection- and authority-bound
+  Resource Catalog observations. A resource is usable only when the required
+  fields, relationships, permissions, and completeness evidence are present.
+  An inaccessible or failed describe is not proof of absence. Retain the exact
+  Run-dependent observation and recheck current authority and schema before use.
+- Use `Account` as the read-only comparison and a configurable dedicated custom
+  object for read/write tests. Test a unique external ID, omitted versus NULL
+  fields, types, and write constraints. No object name belongs in Connector
+  product logic.
+- Push down only semantics proven equivalent for the exact type and operation.
+  A broader prefilter requires a no-false-negative proof and residual evaluation.
+  One query and its complete locator chain form one finite observation, not a
+  point-in-time Salesforce snapshot. A failed chain cannot be extended by a new
+  query under the old observation identity.
+
+The first implemented predicate pushdown is a bound, checked comparison of a
+selected `int` field against an exactly representable 32-bit integer. It also
+requires current `filterable` metadata and the admitted SOQL length bound.
+Unsupported predicates keep the broad query; all queries retain the checked
+Local residual. In particular, text comparison is not advertised as exact:
+Salesforce normally applies case-insensitive, user-locale comparison, unlike
+ActQL text equality ([Salesforce comparison operators](https://developer.salesforce.com/docs/platform/salesforce-soql-sosl/guide/sforce-api-calls-soql-select-comparisonoperators.html)).
+- Implement single-record REST, then sObject Collections, for create, ID-based
+  update, and external-ID upsert through the existing Effect contract. Bulk is
+  later. Collections group eligible rows within one Effect Set member, map each
+  response to its row identity, and never conflate row `continue` with the
+  Effect Set's `attempt_all`. `halt` uses ordered single-record calls. An
+  explicit `allOrNone=true` request is one provider-atomic typed command only
+  where the existing contract represents it; multiple HTTP batches are not
+  atomic as a set. Salesforce rollback is not a guarantee about every external
+  side effect.
+- Standard REST writes have unavailable automatic recovery. A response lost
+  after possible dispatch remains `unknown` and keeps the Run in
+  `needs_reconciliation`; do not infer historical attempt success from a current
+  row or unique external ID. Preserve exact request, row and attempt identity,
+  observations, and known outcomes without secrets. No automatic resend of an
+  uncertain write. An intentional repeat is a new authorized business request
+  with a new caller request ID, linked to but not erasing the original unknown.
+  Administrative investigation does not relabel the Effect or terminate its Run.
+- For update and update-side upsert, use `full_diff` and recheck every preview
+  guard before the first write. A mismatch leaves every row unattempted with
+  `stale_preview`. Do not claim atomic compare-and-swap for the custom object or
+  extend Account-only `If-Match` behavior to other endpoints. Reject operations
+  that require provider-atomic version conditions when unavailable; do not switch
+  the approved create/update branch of an upsert after target drift.
+- The live test org, custom object, external-ID field, and credentials are not
+  assigned. Salesforce schema creation and writes are not authorized, and the
+  Smooth Cloud connection must not be reused. Continue product implementation,
+  local HTTP tests, independent fixtures, and a reviewable setup/minimum-rights
+  guide. Mark live-provider verification incomplete until a dedicated org and
+  Site secret-resolver reference are supplied; never store secret values in
+  source, chat, or logs.
+
+## Effect Set completion boundary
+
+The Salesforce milestone includes a checked multi-member Effect Set through
+the standard Host, not only a single REST write or response parser. This uses
+the existing language and execution contracts; it introduces no ordered
+cross-member workflow.
+
+- Members of one Stage are an unordered `attempt_all` intent set. Failure or
+  uncertainty in one member does not suppress another independent member.
+  Actual dispatch order is evidence, not authored member order.
+- `halt` and `continue` govern the stable row sequence **within one member**.
+  Under halt, a failed or unknown row leaves later rows of that member
+  unattempted. Under continue, other rows may proceed, but an unknown row is
+  never silently resent.
+- Before any mutation, the Host must check every member's preview, current
+  authority, capability and target guards, plus the structured write
+  footprints of the complete set. Unprovable overlap is a preflight rejection
+  with zero writes. Multi-member partial-application risk requires the
+  authenticated acceptance bound to the exact complete Preview.
+- Each member retains its own input, target, identity, result and reconciliation
+  responsibility. A member's rows remain distinct from Effect Set members;
+  sObject Collections may batch eligible rows of one member but may not merge
+  members or turn `halt` into an unordered batch.
+- `accepted` needs a valid OperationRef and may satisfy the Run's outcome rule.
+  Unknown takes precedence for reconciliation; cancellation does not erase
+  applied results or relabel possible dispatch as never sent. There is no
+  cross-member transaction, rollback or compensation graph.
+
+Required product tests include: all members succeed; one member halts after a
+row failure while another proceeds; continue after a failed or unknown row;
+known success mixed with unknown; overlap rejected before every write; lost
+response and restart without resending successful or uncertain work; and
+cancellation that distinguishes unattempted from possibly dispatched rows.
+Each test must assert the exact request count and order, member/row outcomes,
+durable evidence and remaining reconciliation responsibility. The current
+MoonBit identity and progress helpers do not by themselves meet this product
+boundary: the checked Program, Preview, authorization, durable journal,
+physical requests and final receipts must be connected before completion.
+
+## Salesforce target and transport identity
+
+The admitted connection records an exact Salesforce org ID. Catalog
+observations, read/write projections, current schema checks, and the Site
+credential configuration must retain that binding. An instance origin alone
+does not identify an org. A change of org must fail before a credential use or
+durable Effect send claim.
+
+The Connector derives two distinct identities:
+
+- The physical request CID binds the exact origin, method, request-target, and
+  body. The HTTPS adapter sends that target without URL path normalization;
+  unrepresentable paths fail before the credential use claim.
+- The provider target identity is for whole-set overlap admission. The
+  boundary CID binds the canonical org ID. The scheme CID binds RecordId versus
+  external-ID field and its confirmed matching rule. The object CID binds that
+  boundary, scheme, resource, and canonical target value. These are bounded,
+  versioned canonical JSON preimages; they are not physical request CIDs.
+
+An admitted single or Collections request retains its own target values and
+exposes the corresponding footprint identities. Whole-set preflight must use
+these request-derived identities, not a second caller-supplied target list.
+Create requests have no existing exact target and require collection or opaque
+footprint handling under the common Effect contract.
+
+RecordIds use case-sensitive 15-character values with validated 18-character
+extensions. A 15-character value and its valid 18-character extension have one
+target identity. Distinct 15-character casing is not collapsed. For unique
+text external IDs, the observed `caseSensitive` fact is retained and rechecked.
+Case-insensitive ASCII values can be compared by ASCII folding. Without that
+fact, or for case-insensitive non-ASCII values whose provider equivalence is
+unproved, exact-target admission rejects rather than assuming disjointness.
+The original target spelling remains in the physical request.
+
+The common Effect Set footprint checker consumes these Connector-issued CIDs.
+Create targets remain opaque until a provider record identity is known. Two
+different schemes in one org cannot prove independence merely because their
+hashes differ: an external ID and a RecordId can select the same record.
+Every member's target inventory still has to be derived from its checked
+Preview and admitted source rows before the first mutation.
+
+## Fixed-SHA review disposition
+
+The review in `02-salesforce-effects.md` inspected `66b42189d2bb17407776fd74ca0e7ea9ddf73d01`.
+Its findings are a verification list, not a claim that every finding remains
+open at later commits. At `eb451c24bb98c83bfa14fbff1119436f71820043`:
+
+| Finding | Current disposition | Evidence and remaining boundary |
+| --- | --- | --- |
+| SF-1: external-ID dot segments changed after request identity | Fixed by `52feb781e` | The HTTPS adapter sends the admitted request-target without URL path normalization. Local HTTPS tests compare the actual method, target, and body with the request CID, including dot segments and encoded characters. |
+| SF-2: unproven RecordId and external-ID target independence | Fixed at the Connector target boundary by `6b4fc8c40`, `311921b14`, and `ceea8df1a` | RecordId aliases and external-ID matching metadata produce org-bound, request-derived target identities. Unknown equivalence fails closed. This does not itself establish whole-Program Effect preflight. |
+| SF-3: complete multi-member product path | Open | The standard checked Program still rejects nonempty Effects, and the standard Host remains Effect-free. The shared Run port, complete-set admission, Collections custody, final receipts, and restart fault matrix remain required. |
+
+The Salesforce Site and common Effect tests pass 88/88 at the stated HEAD.
+These are component and local HTTPS tests, not a standard Host multi-member
+acceptance run or a live Salesforce-org test. The exact shared boundary and
+acceptance matrix are recorded in
+`docs/reviews/2026-09-24-effect-run-shared-port.md`. Do not close SF-3 or the
+Salesforce milestone on the basis of the first two fixes.
+
+Subsequent work added an atomic all-row Collections send claim (`8bcbbd105`),
+one durable response body with per-row custody (`5fab9ad56`), a local HTTPS
+send/restart fixture (`2e78a67c6`), and a MoonBit-owned same-member/Preview
+batch check (`c8b2a1872`). These close physical batch-custody gaps, but they do
+not establish the checked Program inventory, whole-set apply admission, final
+Effect receipts, or the standard Effectful Run path. SF-3 remains open. The
+isolated Salesforce org and write permission also remain unavailable, so no
+live-provider verification is claimed.
+
+The send binding checks the exact admitted Preview member, operation
+kind, contiguous ordered row CIDs, logical row correlations, and derived keys
+before durable claim. A local HTTPS fixture verifies zero sends for foreign
+member, row range, row order, or locator and one send across a ledger restart.
+The single-record REST path now uses the same MoonBit row rule for a `halt`
+or `continue` member; Collections additionally require `continue`. Preview
+admission builds the row index once, so each later send checks only its bounded
+slice rather than rescanning the member's complete row inventory.
+The admitted Preview also retains its typed write footprint. Before a
+single-record or Collections send claim, the Salesforce MoonBit bridge compares
+the physical request's exact resource, org boundary, target scheme, and each
+existing target with that member's admitted footprint. A foreign boundary is
+rejected without a ledger claim or credential use. This check does not prove
+that the request body equals the Preview's source-derived rows, nor does it
+replace whole-set conflict admission or current apply authority.
+For update and upsert rows, the bridge also compares each request target with
+the corresponding Preview row identity under the observed Salesforce matching
+rule. A Collections batch cannot swap two otherwise valid targets between its
+ordered rows. RecordId aliases remain equivalent; unknown external-ID
+matching is rejected. The create path still needs source-to-payload evidence.
+This is not yet an apply permit: checked input provenance, exact Preview-to-
+physical payload equivalence, all-member preflight, current authorization,
+and final receipts still require the shared Effectful Run port above.
+
+The fixed-SHA review was rechecked at `3dc0322b972470025e262ef3886e9c7dd52368f8`.
+The targeted Node suites passed 109/109 tests on 2026-09-24. SF-1 and SF-2
+remain closed; their exact-target and provider-identity paths need no duplicate
+implementation. SF-3 remains an acceptance blocker until the ordinary checked
+Program and standard Host produce the complete multi-member Preview, apply
+admission, durable row outcomes, member and set receipts, and restart-safe
+reconciliation through real Site HTTP. The isolated org is still unavailable,
+so these local results make no live-provider claim.
+
+The common Effect frontier can now be derived from admitted, durable SQLite row
+heads rather than caller-supplied state codes. Its product bridge uses the
+admitted Preview to fix the complete member inventory, failure policies, and
+row order. MoonBit checks each row's key, correlation, locator, immutable
+ledger basis, and Preview identity before deriving progress. Restart, halt,
+continue, foreign-binding, and budget fixtures cover this step. The caller
+must still prove that the Preview belongs to the checked Program and that the
+physical requests satisfy current apply admission. This progress reader is
+not an apply permit, does not send HTTP requests, and does not close SF-3.
+
+At `5217412b1e2bce5592b9dcfab0cb54fd75c111f7`, the Effect header and
+Result-field binding work additionally retains the exact checked Stage Result
+occurrence and typed selector, key, command-target, and value references.
+This is structural check progress, not Mapping/Command Contract admission or
+an Effectful standard Host path. The local Salesforce Site suite passed
+103/103 on 2026-09-24. SF-1 and SF-2 remain closed without duplicate changes;
+SF-3 and authorized live-org verification remain open. The shared product
+port and its acceptance matrix are maintained in
+`docs/reviews/2026-09-24-effect-run-shared-port.md`.
+
+The Salesforce Host bridge also reprojects a verified, durably stored physical
+response after restart without claiming another credential use or sending the
+request again. A Collections replay checks the exact batch owner and ordered
+dispatch membership before applying the same MoonBit response projection used
+for the initial observation. A response lost after the provider request stays
+possible-dispatch, with no typed recovered result and no automatic resend.
+These are physical-response facts, not terminal Effect facts or final receipts.
+The checked Program, all-member preflight and apply permit, durable outcome
+admission, receipts, and ordinary Effectful Run path remain open under SF-3.
+
+At `6f2462baa5da9c924792bb0f783cb19af490febf`, the common MoonBit
+frontier distinguishes a live physical send from a durable dispatch claim.
+The Node adapter reports only exact process-local flight observations; after
+the physical call settles or the process restarts, an unresolved dispatch is
+possible-dispatch and is never automatically resent. A gated SQLite fixture
+checks both states across two Store handles and restart. Effect application
+tests passed 31/31 on each of JS, Wasm, and native; the Salesforce Site suite
+passed 106/106. The independent Connector addition gate and documentation
+gate passed at this SHA. SF-3 still requires the checked Program-to-Host Run
+path and final receipts. No live Salesforce verification is claimed.
+
+The retained in-process Catalog observation now keeps typed describe outcomes,
+including provider failure reasons, rather than reducing every failed describe
+to an absent metadata slot. The accessor requires the original exact binding;
+it distinguishes an unlisted resource from one omitted by a truncated listing.
+Read and write candidate preparation propagate the specific failure instead of
+reporting a generic missing describe. Local HTTPS and MoonBit target tests
+cover these distinctions. This does not grant current disclosure or execution
+authority, persist the observation for restart, or close the Effectful Run
+boundary in SF-3.
+
+The next shared step retains a bounded structural header inventory from the
+original Stage declarations. It preserves exact Stage/member occurrences,
+Effect kinds, source Result references, Contract references, and authored row
+failure policy. Explicit EffectValue wrappers and field-bearing source rules
+are checked under a bounded traversal. This inventory is deliberately not a
+`CheckedEffectSet`: it does not establish field typing, Contract closure,
+authority, Preview guards, or execution permission. The standard checker
+continues to reject nonempty Effects until those obligations and the Host
+caller are connected. Structural
+header tests therefore advance SF-3 without closing its product-path review.
+
+A bounded binding step joins those headers to the checked Result
+occurrences of the same Program. It rejects foreign Program owners and absent
+Result-side selector, key, command target, and EffectValue fields before any
+Effect can be admitted. It retains the admitted field contracts and their
+selector/key/value roles without claiming field-type compatibility,
+Mapping/Command closure, Preview validity, authorization, or an Effectful Run.
+SF-3 remains open until the ordinary Host
+path and its fault-injection matrix are connected.
+
+The Mapping Contract now has a closed 0.1 body schema, a pinned independent
+CID fixture, and a MoonBit shape admission step for the resolved body, target
+schema, primary identity, and write-field inventories. This is not yet a
+Mapping apply permit: permission-rule selection, conversion laws, row values,
+current authority, complete Preview admission, and the standard Host caller
+still need to be connected. The fixed-SHA review remains SF-1/SF-2 closed and
+SF-3 open; local HTTPS evidence must not be reported as live-org evidence.
+
+A MoonBit admission now selects exactly one static permission rule for the
+effect kind, selector class, and complete write-field set. It validates every
+rule, rejects ambiguous or missing matches, and retains both the selected
+permission set and contract-wide required permissions. A caller must still
+use a write-field set derived from its checked Effect and prove current grants;
+this selection does not admit an Effectful Run or close SF-3.
+
+The checked-Effect bridge now derives selector class and complete write-field
+sets from retained headers. Result-backed create/store use the Mapping's
+explicit row field map; inline create, update, and upsert use authored keys;
+delete writes no fields. It then invokes the same static rule selector for
+every non-Command member. Mapping row values, type conversions, exact
+Environment ownership, current grants, Preview, and apply remain unadmitted.
+The bridge additionally rejects inline create when a required target field
+is omitted and result-backed create/store when an explicitly mapped source
+field is absent from the retained checked Result. Direct Result-field copies
+now check their non-null value shape against the exact target field, including
+inline update/upsert `set` references. Literal value admission, null behavior,
+and conversion-law closure remain open.
+Declared conversion entries are now checked against writable targets, exact
+source-contract identities, and law CIDs before the static rule is exposed;
+equal Mapping bodies share one admitted inventory across Effect members.
+The law CID remains an unresolved obligation, not evidence that the Site has
+a registered converter or that its output matches the target type.
+The next bounded MoonBit step retains admitted literal values from inline
+create/update/upsert and contract-owned create/store row mappings. It checks
+target value types and known null behavior under aggregate work, node, depth,
+and text limits. A literal `null` with `reject` fails, while `omit` cannot
+satisfy a required target field. This is still not complete row evaluation:
+Result-field null behavior, registered conversions, current authority,
+complete Preview admission, and physical apply remain separate obligations.
+
+At `89cd38476`, the unpublished Effect Preview 0.1 row contract requires
+closed `target_guard` and `intended_changes` fields. Common MoonBit admission
+recomputes every row CID from its parent Program, Invocation, member Contract,
+operation, strength, target, guard, approved changes, and before/after evidence
+before checking member and set CIDs. The independent corpus fixes guarded
+update and guard-free create identities, including explicit null. Tampered or
+missing row fields and foreign parent context fail admission. The Salesforce
+single and Collections Host bridges compare physical write bodies to the
+approved row payload before a durable send claim, including a reordered row
+inventory. This prevents later target observation from silently rebuilding
+the approved payload. The Salesforce Site suite passed 107/107, the relevant
+MoonBit publication, Effect, and Salesforce packages passed 196/196 on each
+of JS, Wasm, and native, and the canonical corpus passed 387/387 on each.
+This is a Preview and physical-binding increment, not a complete apply permit:
+current target-guard recheck, user-facing redacted review projection, the
+standard checked multi-member Run path, final receipts, and authorized live
+Salesforce verification remain open.
+
+The admitted private Preview now retains each row's approved target version
+guard. A common MoonBit check compares a bounded, exact row-CID-keyed inventory
+of current version observations across every member before mutation. Missing,
+stale, duplicate, foreign, and over-budget observations fail independently in
+JS, Wasm, and native tests. The Site must still obtain those observations under
+current authority, and the standard Host must invoke this check together with
+source, capability, approval, and whole-set preflight before its first send.
+This helper is not an apply permit and does not close SF-3.
+The generated Node Host bridge now exposes that same MoonBit check without
+reimplementing comparison rules in JavaScript. A two-member fixture verifies
+that observations are keyed by row CID rather than Preview member order and
+that one missing or stale member guard rejects the whole check. The standard
+Effectful Run caller and current Site observation producer remain open.
+
+## Capability comparison with Smooth Cloud
+
+This is a design comparison, not an import of Smooth Cloud contracts. The
+ActQL specification and machine contracts remain authoritative.
+
+| Concern | Decision | Reason |
+| --- | --- | --- |
+| Static capabilities vs. observed resources | Already reflected | ActQL separates content-addressed Connector Catalog contracts from authorized observations and forbids partial discovery from establishing complete evidence. |
+| Operation and field constraints | Adopt missing product projection | Smooth Cloud projects describe-level field permissions, keys, and write constraints. ActQL already requires typed capability and preview evidence; its Salesforce implementation still needs exact resource-level facts and conservative incompleteness. |
+| Pushdown | Keep ActQL contract | ActQL requires value/type/order/duplicate preservation. Smooth Cloud's curated field allowlists and provider-specific preflight are useful comparison cases, not authority for semantic equivalence or a common Engine branch. |
+| Authentication scope | Already reflected | ActQL's credential grant and use bind tenant, principal, Site generation, operation, origin, attempt, expiry, and use count more exactly than a generic readable/writable flag. |
+| Partial results and retries | Already reflected; connect product path | ActQL distinguishes per-item failure, `unknown`, idempotency, reconciliation, and Effect Set policy. Smooth Cloud's per-row errors and repair reasons inform fixtures, but its operation labels must not replace ActQL outcomes. |
+| Catalog sync and resource resolver | Adopt missing product path | Smooth Cloud separates metadata sync, selection, readiness, and repair diagnostics. Implement these for ActQL with exact snapshot and current authority checks; do not import Cloud tenant, billing, OAuth, or curated display policy. |
+
+Comparison sources: Smooth Cloud `connector-spi` catalog sync, resource
+resolver and write capability contracts; Salesforce catalog, read, write and
+capability modules. ActQL sources: `docs/spec/protocols/contracts.md`,
+`docs/spec/protocols/discovery.md`, `docs/spec/execution.md`, and
+`src/remote_credential`. No new shared Capability abstraction is introduced
+solely for this comparison.
+
+## Optional local Salesforce CLI authentication
+
+The local Site may use an existing `sf org login web` session. Connection
+admission records the selected alias, org ID, username, and instance origin,
+without a token. A Site execution session uses the public `sf org display`
+and `sf org auth show-access-token` interfaces and checks the alias binding
+before and after token resolution. A successful token is reused only in that
+exact session for a bounded monotonic interval; concurrent refreshes join one
+flight. Retargeting the alias affects future sessions and the next refresh,
+not an already pinned session. A 401 invalidates the matching cached token
+without replaying the request. Every HTTP use still has its own grant claim
+and current authorization check. The token stays in the Site credential
+adapter. CLI credentials and refresh remain CLI-owned;
+ActQL never reads CLI private files or copies a refresh token. A changed token
+for the same exact binding is allowed, but it does not retry an uncertain
+Effect.
+
+This optional Node adapter does not alter the Node-free native profile or the
+explicit Site secret-resolver path. Failure does not fall back to Cloud. Live
+CLI and Salesforce verification remain pending until the isolated org and
+authorized scope are supplied. Controlled CLI and HTTPS fixtures cover the
+local failure and redaction behavior in the meantime.

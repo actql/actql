@@ -346,12 +346,17 @@ Effectful Run: computation receipt → Captured Run → Effect Preview
   → approval/apply/reconciliation receipts → final Run receipt
 ```
 
-<!-- requirement-block: capture-and-replay.an-artifact-must-not-require-a-future-artifact-s-cid-in -->
+<!-- requirement-block: capture-and-replay.an-artifact-must-not-require-a-future-artifact-s-cid-in capture-and-replay.effectful-final-run-receipt-binds-complete-prior-chain -->
 The computation receipt embedded in Captured Run contains no later Preview or
 apply CID. A final Run receipt is a new artifact referencing the earlier
 evidence, not a mutation of that captured receipt. The receipt schema may be
 shared, but its pre-effect and final instances have distinct CIDs. An artifact
 MUST NOT require a future artifact's CID in its own hash preimage.
+In 0.1, an Effectful final Run Receipt carries `effect_preview_cid`,
+`effect_set_apply_receipt_cid`, and `captured_run_cid` together. An Effect-free
+Receipt and an Effectful computation Receipt omit all three. Final admission
+MUST verify the exact checked Program kind and referenced Run chain; well-formed
+CID strings alone do not establish those bindings.
 
 <!-- requirement-block: capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt -->
 An Effect-free Run MUST use its single Run Receipt as the final receipt; it does
@@ -1480,6 +1485,25 @@ Preview MUST:
 - emit the complete `effect_preview_cid`; and
 - report `executed: false`.
 
+<!-- requirement-block: effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings -->
+For the private `actql-effect-preview/0.1` body, a member's
+`effect_member_preview_cid` MUST be the CID of the canonical envelope
+`{version: "actql-effect-member-preview/0.1", member: MemberSemanticBody}`.
+`MemberSemanticBody` is the complete member object with only its
+`effect_member_preview_cid` and every
+`changes[].row_idempotency_key` removed. The row preview CIDs remain in this
+body and are established first by the row preimage in
+[Private preview row state](protocols/run.md#preview-row-state).
+
+The set `effect_preview_cid` MUST be the CID of the canonical complete private
+Preview body with only `effect_preview_cid`, `run_identity_cid`,
+`authoring_context`, and every `changes[].row_idempotency_key` removed.
+Computed member CIDs remain in the set preimage. Establish and verify row preview CIDs,
+then member CIDs, then the set CID, and only then derive row idempotency keys.
+No other semantic field is excluded. The omitted physical Run, Authoring
+Context, and derived keys remain required fields of the transported Preview;
+apply admission checks their exact bindings independently of the semantic CID.
+
 <!-- requirement-block: effect-application.when-review-is-required-the-runtime-must-pause-at-one effect-application.the-host-must-preflight-every-member-before-the-first-mutation effect-application.before-the-first-mutation-dispatch-a-data-connector-must-advertise -->
 Application remains a separate host-authorized phase inside that Run.
 When review is required, the runtime MUST pause at one Effect Commit
@@ -1694,6 +1718,19 @@ Admission/preflight failure dispatches no rows under either policy. Per-item
 continuation does not override whole-set preflight or the Effect Set's separate
 `attempt_all` member policy. Receipt partitions retain all five outcomes;
 `accepted` does not assert provider completion ([Outcomes and reconciliation](#reconciliation)).
+
+<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions preview-strength.repeated-member-outcome-must-match-exact-value -->
+An Effect Set apply receipt MUST agree with the referenced member receipts.
+Each entry's state reflects its member's row partition: `unknown` takes
+precedence; any failed row, or unattempted rows mixed with success, yields
+`failed`; only unattempted rows yield `unattempted`; otherwise any accepted
+row yields `accepted`, and the remaining case is `applied`.
+The set status is `unknown_outcome` if any row is unknown; otherwise it is
+`partial_failure` for both successful and failed/unattempted rows, `failed`
+for only failed/unattempted rows, `accepted` if any row is accepted, and
+`applied` otherwise. An entry that repeats its member's `outcome` MUST repeat
+the exact admitted value. This consistency check does not prove the physical
+row outcomes; their evidence remains a separate Host admission obligation.
 
 <!-- requirement-block: preview-strength.the-host-must-not-silently-regenerate-a-new-preview-and -->
 Apply admission revalidates the exact source binding, resolved mapping

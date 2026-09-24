@@ -1,0 +1,9 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/salesforce/acquisition" @salesforce,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/execution_query" @query,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/lowering_relation" @lower,
+}

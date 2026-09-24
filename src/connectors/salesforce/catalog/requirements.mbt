@@ -1,0 +1,163 @@
+///|
+/// These checks only admit facts from one complete describe response. Site,
+/// connection, current authority, and schema revision are checked separately.
+pub(all) enum ResourceRequirementIssue {
+  DuplicateRequestedField(String)
+  FieldUnconfirmed(String)
+  ResourceNotQueryable
+  ResourceNotCreateable
+  ResourceNotUpdateable
+  FieldNotCreateable(String)
+  FieldNotUpdateable(String)
+  FieldConstraintUnconfirmed(String)
+  MissingRequiredCreateField(String)
+  ExternalIdNotUnique(String)
+  ExternalTargetInBody(String)
+} derive(Eq, Debug)
+
+///|
+fn require_distinct_fields(
+  resource : ResourceMetadata,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  let selected = []
+  let seen : Map[String, Bool] = Map([])
+  for name in names {
+    if seen.contains(name) {
+      return Err(DuplicateRequestedField(name))
+    }
+    seen[name] = true
+    guard described_field(resource, name) is Some(field) else {
+      // A field omitted by field-level security is not proven absent.
+      return Err(FieldUnconfirmed(name))
+    }
+    selected.push(field)
+  }
+  Ok(selected)
+}
+
+///|
+/// Reading is allowed only for fields present in the exact described view.
+/// This does not authorize a query or declare filter semantic equivalence.
+pub fn require_read_fields(
+  resource : ResourceMetadata,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  if !resource.queryable {
+    return Err(ResourceNotQueryable)
+  }
+  require_distinct_fields(resource, names)
+}
+
+///|
+pub fn require_create_fields(
+  resource : ResourceMetadata,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  require_create_fields_with_target(resource, names, None)
+}
+
+///|
+fn require_create_fields_with_target(
+  resource : ResourceMetadata,
+  names : Array[String],
+  external_target : String?,
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  if !resource.createable {
+    return Err(ResourceNotCreateable)
+  }
+  let fields = match require_distinct_fields(resource, names) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for field in fields {
+    if !field.createable {
+      return Err(FieldNotCreateable(field.name))
+    }
+  }
+  for field in resource.fields {
+    if !field.createable {
+      continue
+    }
+    if !field.nullability_confirmed || !field.default_on_create_confirmed {
+      return Err(FieldConstraintUnconfirmed(field.name))
+    }
+    if !field.nullable &&
+      !field.defaulted_on_create &&
+      !names.contains(field.name) &&
+      external_target != Some(field.name) {
+      return Err(MissingRequiredCreateField(field.name))
+    }
+  }
+  Ok(fields)
+}
+
+///|
+/// Upsert can create or update. The unique external ID in its exact target
+/// path supplies that create field, but is not repeated in the body.
+pub fn require_upsert_fields(
+  resource : ResourceMetadata,
+  external_id : String,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  if names.contains(external_id) {
+    return Err(ExternalTargetInBody(external_id))
+  }
+  let target = match require_unique_external_id(resource, external_id) {
+    Ok(field) => field
+    Err(issue) => return Err(issue)
+  }
+  if !target.createable {
+    return Err(FieldNotCreateable(external_id))
+  }
+  let fields = match
+    require_create_fields_with_target(resource, names, Some(external_id)) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match require_update_fields(resource, names) {
+    Ok(_) => Ok(fields)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+pub fn require_update_fields(
+  resource : ResourceMetadata,
+  names : Array[String],
+) -> Result[Array[FieldMetadata], ResourceRequirementIssue] {
+  if !resource.updateable {
+    return Err(ResourceNotUpdateable)
+  }
+  let fields = match require_distinct_fields(resource, names) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for field in fields {
+    if !field.updateable {
+      return Err(FieldNotUpdateable(field.name))
+    }
+  }
+  Ok(fields)
+}
+
+///|
+/// External-ID targeting alone does not prove once-only side effects or an
+/// exact historical write outcome. Both unique and externalId are required.
+pub fn require_unique_external_id(
+  resource : ResourceMetadata,
+  name : String,
+) -> Result[FieldMetadata, ResourceRequirementIssue] {
+  let fields = match require_distinct_fields(resource, [name]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let field = match fields {
+    [field] => field
+    _ => return Err(FieldUnconfirmed(name))
+  }
+  if !field.external_id || !field.unique {
+    return Err(ExternalIdNotUnique(name))
+  }
+  Ok(field)
+}

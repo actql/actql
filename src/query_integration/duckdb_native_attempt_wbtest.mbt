@@ -18,7 +18,7 @@ fn native_candidate_fixture(
     query_material_limits(),
   ).unwrap()
   let registry = @connector.prepare_capability_registry(
-    [{ name: "duckdb", acquisition: true, fixed_compute: true, }],
+    [{ name: "duckdb", acquisition: true, fixed_compute: true, effect: false, }],
     1,
     6,
   ).unwrap()

@@ -10,6 +10,7 @@ import {
   "actql/actql/capacity_witness",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
@@ -19,9 +20,11 @@ import {
   "actql/actql/pipeline_typing",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
+  "actql/actql/run_publication",
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -76,17 +79,37 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
+pub fn bind_effect_program_run_preview(EffectProgramRunCandidate, @run_publication.PublicationContract, Int, @run_publication.EffectPreviewIdentity, Int, @stage_results.EffectPlanIdentityLimits) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue]
+
+pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int, @stage_results.EffectPlanIdentityLimits) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue]
+
+pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue]
+
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
+
+pub fn check_effect_program_run_preview_footprints(EffectProgramRunPreview, Int, Int, Int) -> Result[Unit, @effect_application.EffectFootprintIssue]
 
 pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
 
 pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
 
+pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
+
+pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
+
+pub fn checked_program_has_effects(CheckedProgram) -> Bool
+
+pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
+
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
+
+pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
+
+pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
 pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
 
@@ -119,6 +142,48 @@ pub fn diagnostic_location_position(DiagnosticLocation) -> @source_value.ParseLo
 pub fn diagnostic_location_source_path(DiagnosticLocation) -> String
 
 pub fn diagnostic_origin(CheckDiagnostic) -> DiagnosticOrigin?
+
+pub fn effect_computation_catalog_references(EffectComputationCandidate) -> @check_environment.CatalogReferences
+
+pub fn effect_computation_environment(EffectComputationCandidate) -> @check_environment.WireEnvironment
+
+pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.EffectHeaders
+
+pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
+
+pub fn effect_program_run_admission(EffectProgramRunCandidate) -> @run_publication.RunPublicationAdmission
+
+pub fn effect_program_run_definition(EffectProgramRunCandidate) -> @run_publication.PublicationContract
+
+pub fn effect_program_run_preview_identity(EffectProgramRunPreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn effect_program_run_preview_invocation(EffectProgramRunPreview) -> @run_publication.PublicationContract
+
+pub fn effect_program_run_preview_owner(EffectProgramRunPreview) -> EffectProgramRunCandidate
+
+pub fn effect_program_run_preview_stage(EffectProgramRunPreview) -> Int
+
+pub fn effect_program_run_static_candidate(EffectProgramRunCandidate) -> EffectProgramStaticCandidate
+
+pub fn effect_program_static_checked_computation(EffectProgramStaticCandidate) -> CheckedProgram
+
+pub fn effect_program_static_definition_cid(EffectProgramStaticCandidate) -> String
+
+pub fn effect_program_static_effects(EffectProgramStaticCandidate) -> @stage_results.EffectStaticCandidate
+
+pub fn effect_program_static_environment(EffectProgramStaticCandidate) -> @check_environment.WireEnvironment
+
+pub fn effect_program_static_headers(EffectProgramStaticCandidate) -> @stage_syntax.EffectHeaders
+
+pub fn effect_program_static_preview_candidate(EffectProgramStaticPreview) -> EffectProgramStaticCandidate
+
+pub fn effect_program_static_preview_identity(EffectProgramStaticPreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn effect_program_static_preview_stage(EffectProgramStaticPreview) -> Int
+
+pub fn effect_program_static_semantics_cid(EffectProgramStaticCandidate) -> String
+
+pub fn effect_program_static_stage_results(EffectProgramStaticCandidate) -> @stage_results.Checked
 
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
@@ -277,6 +342,8 @@ pub fn pivot_numeric_slots_demand(PivotNumericSlots) -> @pipeline_check_context.
 pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericSlots?
 
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
+
+pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
@@ -768,6 +835,43 @@ pub struct DirectSourcePolicy {
   classification : @check_environment.DataClassification
   unknown_provenance : Bool
 }
+
+type EffectComputationCandidate
+
+pub(all) enum EffectComputationIssue {
+  InvalidLimits
+  InvalidProgram(@stage_syntax.SyntaxError)
+  Headers(@stage_syntax.EffectHeaderIssue)
+  MissingEffects
+  Computation(LocalConstructionFailure)
+}
+
+type EffectProgramRunCandidate
+
+pub(all) enum EffectProgramRunIssue {
+  Binding(@run_publication.RunProgramBindingIssue)
+} derive(Eq, @debug.Debug)
+
+type EffectProgramRunPreview
+
+pub(all) enum EffectProgramRunPreviewIssue {
+  Static(EffectProgramStaticPreviewIssue)
+  Run(@run_publication.EffectPreviewRunBindingIssue)
+} derive(Eq, @debug.Debug)
+
+type EffectProgramStaticCandidate
+
+type EffectProgramStaticPreview
+
+pub(all) enum EffectProgramStaticPreviewIssue {
+  ForeignProgramDefinition
+  ForeignProgramSemantics
+  ForeignCheckEnvironment
+  ForeignResolvedLimit(String)
+  LimitWorkExceeded
+  Inventory(@stage_results.EffectPreviewStaticInventoryIssue)
+  PlanInventory(@stage_results.EffectPlanInventoryIssue)
+} derive(Eq, @debug.Debug)
 
 type EffectivePolicy
 

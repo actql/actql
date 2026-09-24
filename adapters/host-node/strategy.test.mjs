@@ -250,6 +250,20 @@ test('standard Host owns publication control and exact execution binding', async
   );
 });
 
+test('Effectful computation cannot use Effect-free publication', async () => {
+  const registration = {}, f = fixture([registration]);
+  f.core.programHasEffects = () => true;
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run() { f.complete.add(1); },
+  }]);
+  await assert.rejects(
+    result.publishEffectFreeRun({}, {}, undefined),
+    {code: 'EffectfulProgramRequiresEffectRun'},
+  );
+  result.close();
+});
+
 test('checked Results cannot lose their Program Definition identity', async () => {
   const registration = {}, f = fixture([registration]);
   f.core.resultInventory = () => [{name: 'r', task: 1, definition: {}}];

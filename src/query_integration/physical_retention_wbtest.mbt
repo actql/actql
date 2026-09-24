@@ -42,6 +42,243 @@ test "captured external holding waits for physical release in either close order
 }
 
 ///|
+test "captured output pin keeps one completed allocation after port close" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  captured_graph_local(run, 1).unwrap()
+  let held = @resources.ledger_usage(ledger).held_bytes
+  assert_true(held > 0L)
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(0), 1) is Err(_))
+  let pin = @strategy.pin_captured_task_output(run, 1, Step(1), 1).unwrap()
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(1), 1) is Err(_))
+  let borrowed = @strategy.captured_output_pin_materialized(pin)
+  assert_true(@execution.completed_output_available(borrowed))
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 1)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(1), 1) is Err(_))
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, held)
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_false(@strategy.release_captured_output_pin(pin))
+}
+
+///|
+test "captured output waits for every independent consumer pin" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  captured_graph_local(run, 1).unwrap()
+  let first = @strategy.pin_captured_task_output(run, 1, Step(1), 2).unwrap()
+  let second = @strategy.pin_captured_task_output(run, 1, Step(1), 2).unwrap()
+  let second_view = @strategy.captured_output_pin_materialized(second)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 1)
+  assert_true(@strategy.release_captured_output_pin(first))
+  assert_true(@execution.completed_output_available(second_view))
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  assert_true(@strategy.release_captured_output_pin(second))
+  assert_false(@execution.completed_output_available(second_view))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "checked Result pin rejects a foreign owner and retains its exact output" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  let (foreign, foreign_issuer) = captured_graph_fixture()
+  let foreign_graph = @strategy.captured_dag_graph(foreign)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let foreign_occurrence = @strategy.graph_result_occurrence(foreign_graph, 0).unwrap()
+  assert_true(
+    @strategy.pin_captured_result_output(run, task, foreign_occurrence, 1)
+    is Err(ForeignCandidate),
+  )
+  assert_true(
+    @strategy.pin_captured_result_output(run, 0, occurrence, 1)
+    is Err(ForeignCandidate),
+  )
+  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
+  let borrowed = @strategy.captured_output_pin_materialized(pin)
+  assert_true(@execution.completed_output_available(borrowed))
+  @mock.close_mock_query_issuer(issuer)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_true(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes > 0L,
+  )
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+  @mock.close_mock_query_issuer(foreign_issuer)
+  @strategy.stop_captured_dag(foreign)
+  @strategy.close_captured_task_output(foreign, 0)
+}
+
+///|
+test "checked Result pin set rolls back partial acquisition and releases all consumers" {
+  let (run, issuer) = captured_graph_fixture()
+  let (foreign, foreign_issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  let foreign_graph = @strategy.captured_dag_graph(foreign)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let foreign_occurrence = @strategy.graph_result_occurrence(foreign_graph, 0).unwrap()
+  assert_true(
+    @strategy.pin_captured_result_output_set(
+      run,
+      [(task, occurrence), (task, foreign_occurrence)],
+      2,
+    )
+    is Err(ForeignCandidate),
+  )
+  assert_true(
+    @strategy.pin_captured_result_output_set(
+      run,
+      [(task, occurrence), (task, occurrence)],
+      1,
+    )
+    is Err(_),
+  )
+  // Both failed acquisitions released their first pin. The same ceiling now
+  // permits one checked consumer, which remains live after ordinary close.
+  let single = @strategy.pin_captured_result_output_set(
+    run,
+    [(task, occurrence)],
+    1,
+  ).unwrap()
+  let borrowed = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(single, 0).unwrap(),
+  )
+  @strategy.close_captured_task_output(run, task)
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_true(@strategy.release_captured_result_output_set(single))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_false(@strategy.release_captured_result_output_set(single))
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(foreign_issuer)
+  @strategy.stop_captured_dag(foreign)
+  @strategy.close_captured_task_output(foreign, 0)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
+test "checked Result pin set retains repeated consumers until joint release" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let set = @strategy.pin_captured_result_output_set(
+    run,
+    [(task, occurrence), (task, occurrence)],
+    2,
+  ).unwrap()
+  let first = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(set, 0).unwrap(),
+  )
+  let second = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(set, 1).unwrap(),
+  )
+  @strategy.close_captured_task_output(run, task)
+  assert_true(@execution.completed_output_available(first))
+  assert_true(@execution.completed_output_available(second))
+  assert_true(@strategy.release_captured_result_output_set(set))
+  assert_false(@execution.completed_output_available(first))
+  assert_false(@execution.completed_output_available(second))
+  assert_true(@strategy.captured_result_output_set_pin_at(set, 0) is None)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
+test "checked Result view streams from a pin after its task port closes" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
+  let output = @strategy.captured_output_pin_materialized(pin)
+  @strategy.close_captured_task_output(run, task)
+  let preparation = @execution.start_completed_result_relation_export(
+    output,
+    occurrence,
+    {
+      max_fields: 10,
+      max_mapping_work: 100,
+      max_order_work: 1000,
+      max_workspace_entries: 20,
+    },
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    row_wire_limits(),
+    row_wire_limits(),
+    { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+    128,
+  ).unwrap()
+  while true {
+    let (done, _) = @execution.advance_completed_result_relation_export(
+      preparation, 1,
+    ).unwrap()
+    if done {
+      break
+    }
+  }
+  let stream = @execution.finish_completed_result_relation_export_preparation(
+    preparation,
+  ).unwrap()
+  let text = StringBuilder()
+  while @execution.next_completed_output_export(stream).unwrap() is Some(part) {
+    text.write_string(part)
+  }
+  let (receipt, tail) = @execution.finish_completed_relation_export(stream).unwrap()
+  text.write_string(tail)
+  assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
+  assert_eq(@execution.completed_relation_export_field_names(receipt), ["id"])
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(output))
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
 test "capture cleanup confirmation does not erase completed child retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)

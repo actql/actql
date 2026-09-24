@@ -5,16 +5,23 @@ import {
   "actql/actql/calendar_profile",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
+  "actql/actql/relation_schema",
+  "actql/actql/run_publication",
   "actql/actql/stage_local_inputs",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn admit_effect_mapping_literals(EffectMappingRules, EffectMappingLiteralLimits) -> Result[EffectMappingLiterals, EffectMappingLiteralIssue]
+
 pub fn attach_imports(ResultImports, @stage_parameters.CollectedStage, max_work~ : Int) -> Result[AttachedImports, ImportIssue]
 
 pub fn attached_imports(AttachedImports) -> ResultImports
@@ -23,13 +30,191 @@ pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(AttachedImports) -> Int
 
+pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
+
+pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
+
+pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappingRules, EffectMappingRuleIssue]
+
+pub fn bind_effect_mapping_shapes(EffectResultBindings, @check_environment.MappingContractShapes, Int) -> Result[EffectMappingShapes, EffectMappingShapeIssue]
+
+pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
+
 pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
 
 pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
+pub fn check_effect_preview_checked_inventory(EffectResultBindings, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewInventoryIssue]
+
+pub fn check_effect_preview_plan_inventory(EffectMappingRules, Int, @run_publication.EffectPreviewIdentity, EffectPlanIdentityLimits) -> Result[Unit, EffectPlanInventoryIssue]
+
+pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
+
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+
+pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
+
+pub fn effect_command_input_count(EffectCommandInputs) -> Int
+
+pub fn effect_command_input_field_at(EffectCommandInputBinding, Int) -> EffectCommandInputField?
+
+pub fn effect_command_input_field_contract(EffectCommandInputField) -> @value_contract.Contract
+
+pub fn effect_command_input_field_count(EffectCommandInputBinding) -> Int
+
+pub fn effect_command_input_field_name(EffectCommandInputField) -> String
+
+pub fn effect_command_input_field_value(EffectCommandInputField) -> EffectCommandInputValue
+
+pub fn effect_command_input_issue_effect(EffectCommandInputIssue) -> String
+
+pub fn effect_command_input_issue_kind(EffectCommandInputIssue) -> EffectCommandInputIssueKind
+
+pub fn effect_command_input_issue_stage(EffectCommandInputIssue) -> Int
+
+pub fn effect_command_input_target(EffectCommandInputBinding) -> EffectCommandTargetBinding
+
+pub fn effect_command_inputs_targets(EffectCommandInputs) -> EffectCommandTargets
+
+pub fn effect_command_inputs_usage(EffectCommandInputs) -> (Int, Int, Int)
+
+pub fn effect_command_target_at(EffectCommandTargets, Int) -> EffectCommandTargetBinding?
+
+pub fn effect_command_target_contract(EffectCommandTargetBinding) -> @check_environment.CommandTarget
+
+pub fn effect_command_target_count(EffectCommandTargets) -> Int
+
+pub fn effect_command_target_effect(EffectCommandTargetBinding) -> EffectResultBinding
+
+pub fn effect_command_target_issue_effect(EffectCommandTargetIssue) -> String
+
+pub fn effect_command_target_issue_kind(EffectCommandTargetIssue) -> EffectCommandTargetIssueKind
+
+pub fn effect_command_target_issue_stage(EffectCommandTargetIssue) -> Int
+
+pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environment.CatalogContents
+
+pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindings
+
+pub fn effect_command_targets_references(EffectCommandTargets) -> @check_environment.CatalogReferences
+
+pub fn effect_command_targets_work(EffectCommandTargets) -> Int
+
+pub fn effect_mapping_literal_at(EffectMappingLiterals, Int) -> EffectMappingLiteralBinding?
+
+pub fn effect_mapping_literal_count(EffectMappingLiterals) -> Int
+
+pub fn effect_mapping_literal_issue_effect(EffectMappingLiteralIssue) -> String
+
+pub fn effect_mapping_literal_issue_kind(EffectMappingLiteralIssue) -> EffectMappingLiteralIssueKind
+
+pub fn effect_mapping_literal_issue_stage(EffectMappingLiteralIssue) -> Int
+
+pub fn effect_mapping_literal_origin(EffectMappingLiteralBinding) -> EffectMappingLiteralOrigin
+
+pub fn effect_mapping_literal_rule(EffectMappingLiteralBinding) -> EffectMappingRuleBinding
+
+pub fn effect_mapping_literal_target(EffectMappingLiteralBinding) -> String
+
+pub fn effect_mapping_literal_value(EffectMappingLiteralBinding) -> EffectMappingLiteralValue
+
+pub fn effect_mapping_literals_rules(EffectMappingLiterals) -> EffectMappingRules
+
+pub fn effect_mapping_literals_usage(EffectMappingLiterals) -> (Int, Int, Int)
+
+pub fn effect_mapping_rule_at(EffectMappingRules, Int) -> EffectMappingRuleBinding?
+
+pub fn effect_mapping_rule_conversions(EffectMappingRuleBinding) -> @check_environment.MappingConversions
+
+pub fn effect_mapping_rule_count(EffectMappingRules) -> Int
+
+pub fn effect_mapping_rule_effect(EffectMappingRuleBinding) -> EffectMappingShapeBinding
+
+pub fn effect_mapping_rule_issue_effect(EffectMappingRuleIssue) -> String
+
+pub fn effect_mapping_rule_issue_kind(EffectMappingRuleIssue) -> EffectMappingRuleIssueKind
+
+pub fn effect_mapping_rule_issue_stage(EffectMappingRuleIssue) -> Int
+
+pub fn effect_mapping_rule_row_fields(EffectMappingRuleBinding) -> @check_environment.MappingRowFields?
+
+pub fn effect_mapping_rule_selection(EffectMappingRuleBinding) -> @check_environment.MappingPermissionSelection
+
+pub fn effect_mapping_rules_shapes(EffectMappingRules) -> EffectMappingShapes
+
+pub fn effect_mapping_rules_work(EffectMappingRules) -> Int
+
+pub fn effect_mapping_shape_at(EffectMappingShapes, Int) -> EffectMappingShapeBinding?
+
+pub fn effect_mapping_shape_contract(EffectMappingShapeBinding) -> @check_environment.MappingContractShape
+
+pub fn effect_mapping_shape_count(EffectMappingShapes) -> Int
+
+pub fn effect_mapping_shape_effect(EffectMappingShapeBinding) -> EffectResultBinding
+
+pub fn effect_mapping_shape_issue_effect(EffectMappingShapeIssue) -> String
+
+pub fn effect_mapping_shape_issue_kind(EffectMappingShapeIssue) -> EffectMappingShapeIssueKind
+
+pub fn effect_mapping_shape_issue_stage(EffectMappingShapeIssue) -> Int
+
+pub fn effect_mapping_shapes_effects(EffectMappingShapes) -> EffectResultBindings
+
+pub fn effect_mapping_shapes_environment(EffectMappingShapes) -> @check_environment.MappingContractShapes
+
+pub fn effect_mapping_shapes_work(EffectMappingShapes) -> Int
+
+pub fn effect_plan_pipeline_cid(EffectPlanTerminal, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn effect_plan_terminal_rule(EffectPlanTerminal) -> EffectMappingRuleBinding
+
+pub fn effect_plan_terminal_source_result(EffectPlanTerminal) -> String
+
+pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
+
+pub fn effect_result_binding_count(EffectResultBindings) -> Int
+
+pub fn effect_result_binding_header(EffectResultBinding) -> @stage_syntax.EffectHeader
+
+pub fn effect_result_binding_issue_effect(EffectResultBindingIssue) -> String
+
+pub fn effect_result_binding_issue_field(EffectResultBindingIssue) -> String?
+
+pub fn effect_result_binding_issue_kind(EffectResultBindingIssue) -> EffectResultBindingIssueKind
+
+pub fn effect_result_binding_issue_stage(EffectResultBindingIssue) -> Int
+
+pub fn effect_result_binding_result(EffectResultBinding) -> @relation_results.ResultDefinition?
+
+pub fn effect_result_bindings_headers(EffectResultBindings) -> @stage_syntax.EffectHeaders
+
+pub fn effect_result_bindings_owner(EffectResultBindings) -> Checked
+
+pub fn effect_result_bindings_work(EffectResultBindings) -> Int
+
+pub fn effect_result_field_binding_at(EffectResultBinding, Int) -> EffectResultFieldBinding?
+
+pub fn effect_result_field_binding_count(EffectResultBinding) -> Int
+
+pub fn effect_result_field_binding_field(EffectResultFieldBinding) -> @relation_schema.Field
+
+pub fn effect_result_field_binding_role(EffectResultFieldBinding) -> EffectResultFieldRole
+
+pub fn effect_static_candidate_command_inputs(EffectStaticCandidate) -> EffectCommandInputs
+
+pub fn effect_static_candidate_command_targets(EffectStaticCandidate) -> EffectCommandTargets
+
+pub fn effect_static_candidate_mapping_literals(EffectStaticCandidate) -> EffectMappingLiterals
+
+pub fn effect_static_candidate_mapping_rules(EffectStaticCandidate) -> EffectMappingRules
+
+pub fn effect_static_candidate_results(EffectStaticCandidate) -> EffectResultBindings
+
+pub fn effect_static_candidate_work(EffectStaticCandidate) -> Int
+
+pub fn emit_effect_plan_pipeline(EffectPlanTerminal, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
@@ -74,6 +259,10 @@ pub fn local_source_values(PreparedLocalSource) -> @parameter_binding.BoundValue
 pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
+
+pub fn prepare_effect_plan_terminal(EffectMappingRuleBinding, Int) -> Result[EffectPlanTerminal?, EffectPlanTerminalIssue]
+
+pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
@@ -125,6 +314,308 @@ pub(all) struct CollectionLimits {
   max_work : Int
   max_nodes : Int
   max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub struct EffectCommandInputBinding {
+  target : EffectCommandTargetBinding
+  fields : Array[EffectCommandInputField]
+}
+
+pub struct EffectCommandInputField {
+  name : String
+  contract : @value_contract.Contract
+  value : EffectCommandInputValue
+}
+
+pub struct EffectCommandInputIssue {
+  kind : EffectCommandInputIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectCommandInputIssueKind {
+  InvalidLimits
+  WorkLimit
+  InvalidContract
+  MissingField(String)
+  UnknownField(String)
+  IncompatibleField(String)
+  IncompatibleLiteral(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectCommandInputLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectCommandInputValue {
+  ResultField(@relation_schema.Field)
+  Literal(@value_admission.CheckedValue)
+}
+
+pub struct EffectCommandInputs {
+  targets : EffectCommandTargets
+  entries : Array[EffectCommandInputBinding]
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
+
+pub struct EffectCommandTargetBinding {
+  effect : EffectResultBinding
+  contract : @check_environment.CommandTarget
+}
+
+pub struct EffectCommandTargetIssue {
+  kind : EffectCommandTargetIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectCommandTargetIssueKind {
+  InvalidLimits
+  WorkLimit
+  Contract(@check_environment.CommandTargetIssue)
+  TargetKindMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectCommandTargets {
+  effects : EffectResultBindings
+  references : @check_environment.CatalogReferences
+  entries : Array[EffectCommandTargetBinding]
+  work : Int
+}
+
+pub struct EffectMappingLiteralBinding {
+  rule : EffectMappingRuleBinding
+  target_field : String
+  origin : EffectMappingLiteralOrigin
+  value : EffectMappingLiteralValue
+}
+
+pub struct EffectMappingLiteralIssue {
+  kind : EffectMappingLiteralIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingLiteralIssueKind {
+  InvalidLimits
+  WorkLimit
+  IncompatibleLiteral(String)
+  RejectedNull(String)
+  RequiredOmission(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectMappingLiteralLimits {
+  max_work : Int
+  max_value_nodes : Int
+  max_value_depth : Int
+  max_value_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectMappingLiteralOrigin {
+  InlineCreate
+  InlineSet
+  ContractRow
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectMappingLiteralValue {
+  Written(@value_admission.CheckedValue)
+  Omitted
+}
+
+pub struct EffectMappingLiterals {
+  rules : EffectMappingRules
+  entries : Array[EffectMappingLiteralBinding]
+  used_work : Int
+  used_value_nodes : Int
+  used_value_text_bytes : Int
+}
+
+pub struct EffectMappingRuleBinding {
+  effect : EffectMappingShapeBinding
+  conversions : @check_environment.MappingConversions
+  row_fields : @check_environment.MappingRowFields?
+  selection : @check_environment.MappingPermissionSelection
+}
+
+pub struct EffectMappingRuleIssue {
+  kind : EffectMappingRuleIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingRuleIssueKind {
+  InvalidLimits
+  WorkLimit
+  InvalidBody
+  MissingRequiredField(String)
+  MissingResultField(String)
+  IncompatibleSourceType(String)
+  IncompatibleNullBehavior(String)
+  RowFields(@check_environment.MappingRowFieldsIssue)
+  Conversion(@check_environment.MappingConversionIssue)
+  Permission(@check_environment.MappingPermissionIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectMappingRules {
+  shapes : EffectMappingShapes
+  entries : Array[EffectMappingRuleBinding]
+  work : Int
+}
+
+pub struct EffectMappingShapeBinding {
+  effect : EffectResultBinding
+  mapping : @check_environment.MappingContractShape
+}
+
+pub struct EffectMappingShapeIssue {
+  kind : EffectMappingShapeIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectMappingShapeIssueKind {
+  InvalidLimits
+  WorkLimit
+  MissingMapping
+  TargetMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectMappingShapes {
+  effects : EffectResultBindings
+  mappings : @check_environment.MappingContractShapes
+  entries : Array[EffectMappingShapeBinding]
+  work : Int
+}
+
+pub(all) struct EffectPlanIdentityLimits {
+  max_work : Int
+  max_fields : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPlanInventoryIssue {
+  InvalidLimits
+  InvalidStage
+  WorkLimit
+  FieldLimit
+  MissingPlan(String)
+  ForeignPlan(String)
+  OutputLimit
+  InvalidEncoding
+} derive(Eq, @debug.Debug)
+
+pub struct EffectPlanTerminal {
+  rule : EffectMappingRuleBinding
+  source_result : String
+  entity : String
+  operation : String
+  selector : String
+  selector_field : String
+  field_map : Array[(String, String)]
+  checked_changes : Int
+}
+
+pub(all) enum EffectPlanTerminalIssue {
+  InvalidLimits
+  FieldLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewInventoryIssue {
+  InvalidStage
+  WorkLimit
+  MemberCountMismatch
+  MissingMember(String)
+  KindMismatch(String)
+  FailurePolicyMismatch(String)
+  SourceMismatch(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPreviewStaticInventoryIssue {
+  Inventory(EffectPreviewInventoryIssue)
+  WorkLimit
+  MissingResolvedContract(String)
+  ForeignResolvedContract(String)
+  ContractCoverageMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct EffectResultBinding {
+  header : @stage_syntax.EffectHeader
+  result : @relation_results.ResultDefinition?
+  fields : Array[EffectResultFieldBinding]
+}
+
+pub struct EffectResultBindingIssue {
+  kind : EffectResultBindingIssueKind
+  stage_index : Int
+  effect_id : String
+  field : String?
+}
+
+pub(all) enum EffectResultBindingIssueKind {
+  InvalidLimits
+  WorkLimit
+  ForeignProgram
+  MissingResult
+  MissingField
+  InvalidCommandTarget
+} derive(Eq, @debug.Debug)
+
+pub struct EffectResultBindings {
+  owner : Checked
+  headers : @stage_syntax.EffectHeaders
+  members : Array[EffectResultBinding]
+  work : Int
+}
+
+pub struct EffectResultFieldBinding {
+  role : EffectResultFieldRole
+  field : @relation_schema.Field
+}
+
+pub(all) enum EffectResultFieldRole {
+  EffectSelector
+  EffectUpsertKey
+  EffectCommandTarget
+  EffectValue(String)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectStaticCandidate {
+  results : EffectResultBindings
+  mapping_shapes : EffectMappingShapes
+  mapping_rules : EffectMappingRules
+  mapping_literals : EffectMappingLiterals
+  command_targets : EffectCommandTargets
+  command_inputs : EffectCommandInputs
+  work : Int
+}
+
+pub(all) enum EffectStaticCandidateIssue {
+  InvalidLimits
+  MemberLimit
+  ForeignEnvironment
+  WorkLimit
+  Results(EffectResultBindingIssue)
+  MappingShapes(EffectMappingShapeIssue)
+  MappingRules(EffectMappingRuleIssue)
+  MappingLiterals(EffectMappingLiteralIssue)
+  CommandTargets(EffectCommandTargetIssue)
+  CommandInputs(EffectCommandInputIssue)
+  IncompleteInventory
+}
+
+pub(all) struct EffectStaticCandidateLimits {
+  max_members : Int
+  max_work : Int
+  max_admission_nodes : Int
+  max_admission_depth : Int
+  max_admission_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ImportIssue {

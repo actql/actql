@@ -419,7 +419,14 @@ fn captured_graph_local(
     Some(registry) => registry
     None =>
       @connector.prepare_capability_registry(
-        [{ name: "local", acquisition: false, fixed_compute: true, }],
+        [
+          {
+            name: "local",
+            acquisition: false,
+            fixed_compute: true,
+            effect: false,
+          },
+        ],
         1,
         100,
       ).unwrap()

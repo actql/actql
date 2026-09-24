@@ -1,0 +1,11 @@
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+}

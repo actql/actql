@@ -1144,7 +1144,14 @@ pub fn client_program_open_source_free_local_host(
   }
   let registry = match
     @connector.prepare_capability_registry(
-      [{ name: "local", acquisition: false, fixed_compute: true, }],
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
       1,
       100,
     ) {

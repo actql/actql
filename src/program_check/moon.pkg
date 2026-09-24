@@ -2,7 +2,10 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/sha256" @sha,
-  "actql/actql/parameter_references" @parameter_refs,
+  "actql/actql/canonical_json" @json,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/text_rank_profile" @lexical,
   "actql/actql/numeric_reduction" @numeric,
 } for "test"
@@ -20,6 +23,8 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/parameter_binding" @parameters,
+  "actql/actql/parameter_references" @parameter_refs,
+  "actql/actql/value_admission" @value,
   "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
   "actql/actql/event_typing" @event,
@@ -31,6 +36,8 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/stage_results" @results,
+  "actql/actql/run_publication",
+  "actql/actql/effect_application" @effect,
   "actql/actql/relation_results" @publication,
   "actql/actql/canonical_value" @canonical,
   "actql/actql/program_references" @references,

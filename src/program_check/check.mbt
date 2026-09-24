@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
@@ -10,6 +11,7 @@ struct CheckedProgram {
   window_limits : Array[Array[WindowLimit]]
   input_completeness : Array[Array[InputCompletenessRequirement]]
   expression_profiles : @context.ExpressionProfiles
+  catalog_references : @environment.CatalogReferences
   identity : @context.ProgramSourceIdentity
   requirements : @context.StageRequirementClosure
   gates : @context.ProgramIncomingGates
@@ -157,6 +159,7 @@ fn check(
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  effect_headers? : @syntax.EffectHeaders? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -169,6 +172,7 @@ fn check(
   }
   check_supported_source(program, budget)
   let conversions : Array[ProofConversion] = []
+  let references : Array[@environment.CatalogReferences] = []
   let (identity, requirements, gates, contracts, units) = construct_local(
     program,
     supplied,
@@ -182,7 +186,9 @@ fn check(
     calendar~,
     text_rank~,
     conversion_out=Some(conversions),
+    references_out=Some(references),
     capacity_inputs~,
+    effect_headers~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
@@ -306,6 +312,7 @@ fn check(
     error => raise Units(error)
   }
   {
+    has_effects: effect_headers is Some(_),
     keyed_input_proofs,
     nest_limits,
     traversal_limits,
@@ -316,6 +323,7 @@ fn check(
     window_limits,
     input_completeness,
     expression_profiles,
+    catalog_references: references[0],
     identity,
     requirements,
     gates,
@@ -329,6 +337,13 @@ fn check(
     analytic_numeric_slots,
     pivot_numeric_slots,
   }
+}
+
+///|
+/// Structural Effect declarations remain attached to a computation-only
+/// check. Their presence never turns its output into an Effect-free Run.
+pub fn checked_program_has_effects(program : CheckedProgram) -> Bool {
+  program.has_effects
 }
 
 ///|
@@ -586,6 +601,53 @@ pub fn unit_pipeline(
   index : Int,
 ) -> @pipeline.CheckedPipeline? {
   program.units.get(index).map(unit => unit.pipeline)
+}
+
+///|
+fn checked_selected_policy(
+  program : CheckedProgram,
+) -> @context.SelectedPolicyContext {
+  let sources = @context.program_identity_sources(program.identity)
+  let operation_checks = @context.program_sources_operations(sources)
+  let preparation = @context.operation_profiles_preparation(operation_checks)
+  let producers = @context.preparation_sources(preparation)
+  let capacity = @context.source_producer_capacity(producers)
+  let policy = @context.source_capacity_context(capacity)
+  @context.source_policy_selected(policy)
+}
+
+///|
+/// Return the exact Environment retained by this checked Program. A matching
+/// CID from an independently admitted Environment is not the same owner.
+/// This accessor does not itself authorize an Effect or captured Result use.
+pub fn checked_environment(
+  program : CheckedProgram,
+) -> @environment.WireEnvironment {
+  @environment.capacity_environment(
+    @context.selected_capacity(checked_selected_policy(program)),
+  )
+}
+
+///|
+/// Return the exact Catalog role-reference closure admitted during this
+/// Program check. This is static evidence, not current authority or an Effect
+/// execution permit; consumers must retain its owner and bind exact members.
+pub fn checked_catalog_references(
+  program : CheckedProgram,
+) -> @environment.CatalogReferences {
+  program.catalog_references
+}
+
+///|
+/// Return the exact checked Stage Results retained by this Program. This is
+/// an ownership bridge for downstream Run admission, not an Effect permit or
+/// authority to use a captured Result. The ordinary checker still rejects
+/// Effects until their full static and execution closure is connected.
+pub fn checked_stage_results(program : CheckedProgram) -> @results.Checked {
+  let selected = checked_selected_policy(program)
+  let reconciled = @context.policy_context(selected)
+  let wired = @context.reconciled_wiring(reconciled)
+  @context.stage_results(@context.wired_stage_contexts(wired))
 }
 
 ///|

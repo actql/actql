@@ -16,8 +16,84 @@ const remoteSiteControls = new WeakMap();
 const remoteTransferControls = new WeakMap();
 const remoteStandardSourceControls = new WeakMap();
 const remoteCredentialControls = new WeakMap();
+const effectApplicationControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
+
+function effectApplicationControl(moon) {
+  let control = effectApplicationControls.get(moon);
+  if (control !== undefined) return control;
+  control = Object.freeze({
+    logicalRequestScope: (...args) =>
+      checked(moon.strategyEffectLogicalRequestScope(...args)),
+    logicalRequestScopeCid: moon.strategyEffectLogicalRequestScopeCid,
+    dispatchKey: (...args) =>
+      checked(moon.strategyEffectDispatchKey(...args)),
+    dispatchKeyCid: moon.strategyEffectDispatchKeyCid,
+    batchRowsShareMember: moon.strategyEffectBatchRowsShareMember,
+    logicalItemLocator: (...args) =>
+      checked(moon.strategyEffectLogicalItemLocator(...args)),
+    logicalItemLocatorCid: moon.strategyEffectLogicalItemLocatorCid,
+    applyKey: (...args) =>
+      checked(moon.strategyEffectApplyKey(...args)),
+    applyKeyCid: moon.strategyEffectApplyKeyCid,
+    recoveryAction: moon.strategyEffectRowRecoveryAction,
+    recoveryActionFromEntry: moon.strategyEffectRowRecoveryActionFromEntry,
+    setFrontier: (...args) => checked(moon.strategyEffectSetFrontier(...args)),
+    setFrontierFromLedger: (...args) => checked(
+      moon.strategyEffectSetFrontierFromLedger(...args)),
+    setFrontierOutcome: moon.strategyEffectSetFrontierOutcome,
+    setFrontierReadyCount: moon.strategyEffectSetFrontierReadyCount,
+    setFrontierReadyMember: moon.strategyEffectSetFrontierReadyMember,
+    setFrontierReadyRow: moon.strategyEffectSetFrontierReadyRow,
+    checkSetFootprintConflicts: (...args) => checked(
+      moon.strategyEffectSetFootprintConflictsCheck(...args),
+    ),
+    checkPreviewFootprintConflicts: (...args) => checked(
+      moon.strategyEffectPreviewFootprintConflictsCheck(...args),
+    ),
+    derivePreviewIdentities: (...args) => checked(
+      moon.strategyEffectPreviewIdentities(...args),
+    ),
+    derivePreviewRowIdentities: (...args) => checked(
+      moon.strategyEffectPreviewRowIdentities(...args),
+    ),
+    admitPreviewApplyIdentity: (...args) => checked(
+      moon.strategyEffectPreviewApplyIdentityAdmit(...args),
+    ),
+    admitPreviewIdentity: (...args) => checked(
+      moon.strategyEffectPreviewApplyIdentity(...args),
+    ),
+    checkPreviewTargetGuards: (...args) => checked(
+      moon.strategyEffectPreviewTargetGuardsCheck(...args),
+    ),
+    admitCollectionBatch: (...args) => checked(
+      moon.strategyEffectCollectionBatchAdmit(...args),
+    ),
+    admitMemberRow: (...args) => checked(
+      moon.strategyEffectMemberRowAdmit(...args),
+    ),
+    admitLedgerEntry: (...args) => checked(
+      moon.strategyEffectAdmitLedgerEntry(...args),
+    ),
+    ledgerEntryFollows: moon.strategyEffectLedgerEntryFollows,
+    ledgerEntryCid: moon.strategyEffectLedgerEntryCid,
+    ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
+    ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
+    ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
+    ledgerEntryAdmitsDispatch: moon.strategyEffectLedgerEntryAdmitsDispatch,
+    ledgerEntryMatchesBasis: moon.strategyEffectLedgerEntryMatchesBasis,
+    ledgerBasis: (...args) => checked(moon.strategyEffectLedgerBasis(...args)),
+    issuePreparedLedgerEntry: (...args) => checked(
+      moon.strategyEffectIssuePreparedLedgerEntry(...args),
+    ),
+    issueNextLedgerEntry: (...args) => checked(
+      moon.strategyEffectIssueNextLedgerEntry(...args),
+    ),
+  });
+  effectApplicationControls.set(moon, control);
+  return control;
+}
 
 function siteControl(moon) {
   let control = siteControls.get(moon);
@@ -2735,11 +2811,13 @@ export function runtimeCore(moon) {
     remoteTransferControl: remoteTransferControl(moon),
     remoteStandardSourceControl: remoteStandardSourceControl(moon),
     remoteCredentialControl: remoteCredentialControl(moon),
+    effectApplicationControl: effectApplicationControl(moon),
     remoteBundleControl: remoteBundleControl(moon),
     publicationControl: publications,
     outputExportControl: outputExportControl(moon, publications),
     count: moon.strategyHostCount,
     programDefinitionCid: moon.strategyHostProgramDefinitionCid,
+    programHasEffects: moon.strategyHostHasEffects,
     resultInventory(value) {
       const names = moon.strategyHostResultNames(value);
       if (!Array.isArray(names)) throw new TypeError('Invalid Result inventory');

@@ -106,12 +106,12 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     client_result_plan_wire(result_plan),
     (
-      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
+      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:db7320fcd0090a93ced0c41a6936103a1d2ab02f87beb95d8c99733c95713d53","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:a95a846eda354702da7771206feebfae30ba6814682de74b416ad35c1b467a7b","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
     ),
   )
   assert_eq(
     client_result_plan_cid(result_plan),
-    "sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68",
+    "sha256:db7320fcd0090a93ced0c41a6936103a1d2ab02f87beb95d8c99733c95713d53",
   )
   assert_eq(
     client_result_plan_cid(
@@ -976,6 +976,10 @@ test "ordinary values document prepares one named Effect-free result" {
     "sha256:2e497e1244d7db59831b0ab81ae7dc89333babea783a102a747a55f3e7890dd3",
   )
   assert_eq(
+    client_request_scope_cid(request),
+    @request_scope.prepare_scope_cid(scope_cid, "saved-request", 256).unwrap(),
+  )
+  assert_eq(
     client_request_intent_cid(request),
     "sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d",
   )
@@ -1055,6 +1059,10 @@ test "ordinary values document prepares one named Effect-free result" {
     is Err(InvalidRequestId),
   )
   assert_true(
+    prepare_client_request_identity(prepared, scope_cid, "e\u{0301}", input_cid)
+    is Err(InvalidRequestId),
+  )
+  assert_true(
     prepare_client_request_identity(
       prepared, "sha256:bad", "saved-request", input_cid,
     )
@@ -1084,7 +1092,7 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_false(@strategy.captured_task_completed(run, 0))
   assert_true(@strategy.captured_task_target(run, 0) is Some(_))
   let registry = @connector.prepare_capability_registry(
-    [{ name: "local", acquisition: false, fixed_compute: true, }],
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
     1,
     100,
   ).unwrap()

@@ -67,7 +67,7 @@ fn environment_work(
 fn prepare_environment(
   environment : @environment.WireEnvironment,
   budget : IdentityBudget,
-) -> @environment.SourceRequestContracts raise EnvironmentFailure {
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
   let b = IdentityBudget::{
     work: budget.work,
     bytes: budget.bytes,
@@ -182,5 +182,5 @@ fn prepare_environment(
   budget.work = b.work
   budget.bytes = b.bytes
   budget.nodes = b.nodes
-  requests
+  (requests, references)
 }

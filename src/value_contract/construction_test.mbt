@@ -20,6 +20,43 @@ test "constructed primitives retain the admitted checked representation" {
 }
 
 ///|
+test "contract nullability view follows the admitted root contract" {
+  let nonnull = @value_contract.primitive(
+    @value_contract.NumberType,
+    nullable=false,
+  )
+  assert_false(@value_contract.contract_nullable(nonnull))
+  assert_true(
+    @value_contract.contract_nullable(
+      @value_contract.with_nullability(nonnull, true),
+    ),
+  )
+}
+
+///|
+test "ResourceRef kind view excludes nullable and non-reference values" {
+  let reference = author(
+    "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"crm/account\"}",
+  )
+  assert_eq(
+    @value_contract.nonnull_resource_ref_kind(reference),
+    Some("crm/account"),
+  )
+  assert_true(
+    @value_contract.nonnull_resource_ref_kind(
+      @value_contract.with_nullability(reference, true),
+    )
+    is None,
+  )
+  assert_true(
+    @value_contract.nonnull_resource_ref_kind(
+      @value_contract.primitive(@value_contract.StringType, nullable=false),
+    )
+    is None,
+  )
+}
+
+///|
 test "constructed numeric parameters match admission without new upper bounds" {
   for precision = -1; precision <= 39; precision = precision + 1 {
     for scale = -1; scale <= 40; scale = scale + 1 {

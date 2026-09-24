@@ -16,6 +16,8 @@ pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
 
 pub fn assignable_usage(Contract, Contract, Int) -> (Bool, Int) raise RelationError
 
+pub fn contract_nullable(Contract) -> Bool
+
 pub fn decimal_contract(Int, Int, nullable~ : Bool) -> Contract?
 
 pub fn emit_checked(Contract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -29,6 +31,8 @@ pub fn fields(Fields) -> Array[Field]
 pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationError
 
 pub fn key_comparable(Contract, Contract) -> Bool
+
+pub fn nonnull_resource_ref_kind(Contract) -> String?
 
 pub fn object_contract(Array[(String, Contract)], nullable~ : Bool, max_fields~ : Int, max_name_bytes~ : Int) -> Result[Contract, ConstructionIssue]
 

@@ -7,7 +7,17 @@ test "owned Environment admission validates Catalog with aggregate exact budgets
     nodes: 100000,
     depth: 100,
   }
-  let checked = prepare_environment(environment, budget)
+  let (checked, references) = prepare_environment(environment, budget)
+  assert_true(
+    physical_equal(
+      @environment.contract_registry_environment(
+        @environment.catalog_registry(
+          @environment.reference_contents(references),
+        ),
+      ),
+      environment,
+    ),
+  )
   let reference = catalog_fixture(environment)
   assert_eq(
     @environment.source_request_usage(checked),
