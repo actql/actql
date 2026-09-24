@@ -17,6 +17,8 @@ import {
 // Values
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
+
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
 
 pub fn admit_prepared_client_publication_binding_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationBindingSetIssue]
@@ -36,6 +38,14 @@ pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, Str
 pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
+
+pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
+
+pub fn client_direct_result_root_plan_cid(ClientDirectResultRoot) -> String
+
+pub fn client_direct_result_root_row_contract_cid(ClientDirectResultRoot) -> String
+
+pub fn client_direct_result_root_wire(ClientDirectResultRoot) -> String
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
@@ -109,6 +119,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
+pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
+
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
 
 pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue]
@@ -156,6 +168,29 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
+pub struct ClientDirectResultRoot {
+  wire : String
+  result_name : String
+  result_plan_cid : String
+  node_id : String
+  port : String
+  row_contract_cid : String
+}
+
+pub(all) enum ClientDirectResultRootAdmissionIssue {
+  Issue(ClientDirectResultRootIssue)
+  MismatchedRoot
+}
+
+pub(all) enum ClientDirectResultRootIssue {
+  InvalidLimits
+  MissingResult
+  Fragment(ClientValuesFragmentIssue)
+  ResultPlan(ClientResultPlanIssue)
+  RequiresResultTransformation
+  Encoding
+}
+
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
   Encoding
