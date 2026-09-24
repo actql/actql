@@ -7,6 +7,67 @@ struct CoordinatorCheckedOutputPlan {
 }
 
 ///|
+/// The Host supplies currently authorized publication and movement fields.
+/// A CID is identity evidence, not a grant. Accepted Site output must already
+/// be retained before issuing the exact read-only Output Plan poll.
+#export_name("coordinatorIssueOutputPlanPollJson")
+pub fn coordinator_issue_output_plan_poll_json(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+  store_authority_cid : String,
+  publication_attempt_cid : String,
+  result_definition_cid : String,
+  ordering_evidence_cid : String,
+  coordinator_authority : String,
+  transfer_attempt : String,
+  transfer_route : String,
+  destination_site_key : String,
+  destination_site_generation : Int,
+  transfer_max_bytes : Int64,
+  transfer_expires_unix_ms : Int64,
+  source_grant_cid : String,
+  destination_grant_cid : String,
+  route_capability_cid : String,
+  transfer_origin : String,
+) -> Result[String, @remote.DispatchIssue] {
+  match coordinator_accepted_site_output(durable) {
+    Ok(Some(_)) => ()
+    _ => return Err(@remote.InvalidJournal)
+  }
+  let request = @remote.durable_coordinator_dispatch_record_request(durable)
+  let key = @remote.dispatch_request_journal_key(request)
+  if key.length() == 0 || key[0] != coordinator_authority {
+    return Err(@remote.DispatchIdentityMismatch)
+  }
+  let route = match transfer_route {
+    "direct" => @transfer.DirectStream
+    "store" => @transfer.TransferStore
+    _ => return Err(@remote.InvalidDispatch)
+  }
+  let intent = match
+    @remote.prepare_remote_output_intent(request, {
+      store_authority_cid,
+      publication_attempt_cid,
+      result_definition_cid,
+      ordering_evidence_cid,
+      coordinator_authority,
+      transfer_attempt,
+      transfer_route: route,
+      destination_site_key,
+      destination_site_generation,
+      transfer_max_bytes,
+      transfer_expires_unix_ms,
+      source_grant_cid,
+      destination_grant_cid,
+      route_capability_cid,
+      transfer_origin,
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @remote.remote_poll_output_plan_json(request, intent)
+}
+
+///|
 #export_name("coordinatorAdmitCheckedOutputPlan")
 pub fn coordinator_admit_checked_output_plan(
   durable : @remote.DurableCoordinatorDispatchRecord,

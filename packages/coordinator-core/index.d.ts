@@ -77,6 +77,26 @@ export interface AcceptedSiteOutput {
 }
 export function acceptedSiteOutput(durable: DurableRecord):
   Readonly<AcceptedSiteOutput> | undefined;
+export interface OutputIntentInput {
+  storeAuthorityCid: string;
+  publicationAttemptCid: string;
+  resultDefinitionCid: string;
+  orderingEvidenceCid: string;
+  coordinatorAuthority: string;
+  transferAttempt: string;
+  transferRoute: 'direct' | 'store';
+  destinationSiteKey: string;
+  destinationSiteGeneration: number;
+  transferMaxBytes: number | bigint;
+  transferExpiresUnixMs: number | bigint;
+  sourceGrantCid: string;
+  destinationGrantCid: string;
+  routeCapabilityCid: string;
+  transferOrigin: string;
+}
+/** Caller must independently authorize every publication and movement field. */
+export function issueOutputPlanPollJson(durable: DurableRecord,
+  input: Readonly<OutputIntentInput>): string;
 export function admitCheckedOutputPlan(durable: DurableRecord,
   pollBody: string, planBody: string, expectedResultDefinitionCid: string,
   limits: Readonly<{maxChunks: number; maxManifestBytes: number;

@@ -4,5 +4,6 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/encoding/utf8",
 }

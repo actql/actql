@@ -24,6 +24,43 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol25Coordin
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTP35actql5actql12encode__core5Frame10ArrayItems(param0) {
+  this._0 = param0;
+}
+_M0DTP35actql5actql12encode__core5Frame10ArrayItems.prototype.$tag = 0;
+function _M0DTP35actql5actql12encode__core5Frame9ObjectKey(param0, param1) {
+  this._0 = param0;
+  this._1 = param1;
+}
+_M0DTP35actql5actql12encode__core5Frame9ObjectKey.prototype.$tag = 1;
+function _M0DTP35actql5actql12encode__core5Frame11ObjectValue(param0) {
+  this._0 = param0;
+}
+_M0DTP35actql5actql12encode__core5Frame11ObjectValue.prototype.$tag = 2;
+function _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(param0) {
   this._0 = param0;
 }
@@ -76,19 +113,6 @@ function _M0TP35actql5actql13source__value11ParseLimits(param0, param1, param2) 
   this.max_nodes = param1;
   this.max_depth = param2;
 }
-function _M0DTP35actql5actql12encode__core5Frame10ArrayItems(param0) {
-  this._0 = param0;
-}
-_M0DTP35actql5actql12encode__core5Frame10ArrayItems.prototype.$tag = 0;
-function _M0DTP35actql5actql12encode__core5Frame9ObjectKey(param0, param1) {
-  this._0 = param0;
-  this._1 = param1;
-}
-_M0DTP35actql5actql12encode__core5Frame9ObjectKey.prototype.$tag = 1;
-function _M0DTP35actql5actql12encode__core5Frame11ObjectValue(param0) {
-  this._0 = param0;
-}
-_M0DTP35actql5actql12encode__core5Frame11ObjectValue.prototype.$tag = 2;
 function _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -105,14 +129,6 @@ function _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23Publicat
   this._0 = param0;
 }
 _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -145,14 +161,6 @@ function _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalMa
   this._0 = param0;
 }
 _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -351,14 +359,6 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32Durable
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32DurableCoordinatorDispatchRecordRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol22RemoteDispatchResponseRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -1927,6 +1927,13 @@ function _M0TP35actql5actql22remote__site__protocol27CoordinatorOutputTransition
   this.next_result = param4;
   this.consumed = param5;
 }
+function _M0DTPC16option6OptionGRPB5ArrayGsEE4None() {}
+_M0DTPC16option6OptionGRPB5ArrayGsEE4None.prototype.$tag = 0;
+const _M0DTPC16option6OptionGRPB5ArrayGsEE4None__ = new _M0DTPC16option6OptionGRPB5ArrayGsEE4None();
+function _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(param0) {
+  this._0 = param0;
+}
+_M0DTPC16option6OptionGRPB5ArrayGsEE4Some.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -1939,13 +1946,6 @@ function _M0TP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputP
   this.output = param0;
   this.plan = param1;
 }
-function _M0DTPC16option6OptionGRPB5ArrayGsEE4None() {}
-_M0DTPC16option6OptionGRPB5ArrayGsEE4None.prototype.$tag = 0;
-const _M0DTPC16option6OptionGRPB5ArrayGsEE4None__ = new _M0DTPC16option6OptionGRPB5ArrayGsEE4None();
-function _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(param0) {
-  this._0 = param0;
-}
-_M0DTPC16option6OptionGRPB5ArrayGsEE4Some.prototype.$tag = 1;
 function _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None() {}
 _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None.prototype.$tag = 0;
 const _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None__ = new _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None();
@@ -2082,7 +2082,45 @@ const _M0FP35actql5actql22remote__site__protocol41coordinator__output__progress_
 const _M0FP35actql5actql22remote__site__protocol41coordinator__output__progress__from__codeN6constrS3744 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(1);
 const _M0FP35actql5actql22remote__site__protocol41coordinator__output__progress__from__codeN6constrS3745 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(2);
 const _M0FP35actql5actql22remote__site__protocol41coordinator__output__progress__from__codeN6constrS3746 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql12encode__core12value__startN6constrS363 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(false);
 const _M0FPB4seed = _M0FPB12random__seed();
+const _M0FP35actql5actql12encode__core12begin__arrayN6constrS364 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(true);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3517 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3518 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3519 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol46remote__managed__output__measurement__identityN6constrS3520 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3522 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3523 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3524 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol42remote__managed__output__subject__identityN6constrS3525 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3511 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3512 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3513 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol37remote__execution__evidence__identityN6constrS3514 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3527 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3528 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3529 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol17request__identityN6constrS3530 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3531 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3532 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3533 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3534 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3535 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS201 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS202 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3565 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3573 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3574 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3575 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3576 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28remote__output__intent__jsonN6constrS3577 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3578 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3579 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3580 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3581 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS203 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS204 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS205 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS455 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(8);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS456 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(9);
 const _M0FP35actql5actql16canonical__value17nfc__quick__checkN6constrS229 = new _M0DTPC16result6ResultGbRP35actql5actql16canonical__value22TextNormalizationErrorE2Ok(false);
@@ -2111,7 +2149,6 @@ const _M0MP35actql5actql13source__value6Parser8documentN6constrS1185 = new _M0DT
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1186 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1187 = 44;
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1188 = 58;
-const _M0FP35actql5actql12encode__core12value__startN6constrS363 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(false);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS382 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS383 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS384 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
@@ -2120,23 +2157,9 @@ const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS3
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS387 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS388 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS389 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(3);
-const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3527 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3528 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3529 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol17request__identityN6constrS3530 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3531 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3532 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3533 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3534 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3535 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3522 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3523 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3524 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol42remote__managed__output__subject__identityN6constrS3525 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1403 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1404 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer17request__identityN6constrS1405 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
-const _M0FP35actql5actql12encode__core12begin__arrayN6constrS364 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(true);
 const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS384 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
 const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS385 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
 const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS386 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
@@ -2176,16 +2199,7 @@ const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS405
 const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS406 = new _M0TP35actql5actql12decode__core6Limits(64, 2, 32768, 32768);
 const _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS407 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol33admit__remote__output__plan__jsonN6constrS3611 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3517 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3518 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3519 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol46remote__managed__output__measurement__identityN6constrS3520 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3511 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3512 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3513 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol37remote__execution__evidence__identityN6constrS3514 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol26prepare__dispatch__requestN6constrS3582 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3565 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__bodyN6recordS3583 = new _M0TP35actql5actql13source__value11ParseLimits(65536, 32, 2);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__bodyN6recordS3584 = new _M0TP35actql5actql12decode__core6Limits(32, 2, 65536, 65536);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__jsonN6constrS3585 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -2196,10 +2210,6 @@ const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS162 = new
 const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS163 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(1);
 const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS164 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
 const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS165 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
-const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3573 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3574 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3575 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3576 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol35admit__remote__output__intent__jsonN6constrS3589 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol44admit__remote__poll__output__operation__jsonN6constrS3590 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol32admit__coordinator__output__planN6constrS3740 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol16RemoteOutputPlanERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
@@ -2213,11 +2223,6 @@ const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__i
 const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3753 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(11);
 const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3754 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(5);
 const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3755 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(7);
-const _M0FP35actql5actql22remote__site__protocol28remote__output__intent__jsonN6constrS3577 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3578 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
-const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3579 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3580 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3581 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql16remote__transfer15restore__recordN6constrS1424 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer20RemoteTransferRecordRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer15restore__recordN6constrS1425 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer20RemoteTransferRecordRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer15restore__recordN6constrS1426 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer20RemoteTransferRecordRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
@@ -2299,8 +2304,6 @@ const _M0FP35actql5actql22remote__site__protocol43admit__remote__managed__output
 const _M0FP35actql5actql22remote__site__protocol42remote__managed__output__measurement__jsonN6constrS3521 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol49admit__remote__managed__output__measurement__jsonN6constrS3548 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol30RemoteManagedOutputMeasurementRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol45admit__durable__coordinator__dispatch__recordN6constrS3690 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32DurableCoordinatorDispatchRecordRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS163 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS164 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol14response__rootN6recordS3542 = new _M0TP35actql5actql13source__value11ParseLimits(524288, 64, 3);
 const _M0FP35actql5actql22remote__site__protocol14response__rootN6recordS3543 = new _M0TP35actql5actql12decode__core6Limits(64, 3, 262144, 524288);
 const _M0FP35actql5actql22remote__site__protocol39admit__remote__dispatch__response__jsonN6constrS3552 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol22RemoteDispatchResponseRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -2497,11 +2500,11 @@ function _M0MPC16uint646UInt6413to__be__bytes(self) {
 function _M0IP016_24default__implPB2Eq10not__equalGRPB5ArrayGsEE(x, y) {
   return !_M0IPC15array5ArrayPB2Eq5equalGsE(x, y);
 }
-function _M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressE(x, y) {
-  return !_M0IP35actql5actql22remote__site__protocol25CoordinatorOutputProgressPB2Eq5equal(x, y);
-}
 function _M0IP016_24default__implPB2Eq10not__equalGRPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueEE(x, y) {
   return !_M0IPC16result6ResultPB2Eq5equalGsRP35actql5actql22remote__site__protocol13DispatchIssueE(x, y);
+}
+function _M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql22remote__site__protocol25CoordinatorOutputProgressE(x, y) {
+  return !_M0IP35actql5actql22remote__site__protocol25CoordinatorOutputProgressPB2Eq5equal(x, y);
 }
 function _M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressE(x, y) {
   return !_M0IP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressPB2Eq5equal(x, y);
@@ -24983,6 +24986,116 @@ function _M0FP35actql5actql22remote__site__protocol41commit__coordinator__dispat
 function _M0FP35actql5actql22remote__site__protocol43coordinator__dispatch__record__state__codes(record) {
   return _M0FP35actql5actql22remote__site__protocol31coordinator__record__projection(record);
 }
+function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable) {
+  _L: {
+    const _bind = durable.evidence;
+    const _bind$2 = durable.subject;
+    const _bind$3 = durable.measurement;
+    if (_bind === undefined) {
+      if (_bind$2 === undefined) {
+        if (_bind$3 === undefined) {
+          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_M0DTPC16option6OptionGRPB5ArrayGsEE4None__);
+        } else {
+          break _L;
+        }
+      } else {
+        break _L;
+      }
+    } else {
+      const _Some = _bind;
+      const _evidence = _Some;
+      if (_bind$2 === undefined) {
+        break _L;
+      } else {
+        const _Some$2 = _bind$2;
+        const _subject = _Some$2;
+        if (_bind$3 === undefined) {
+          break _L;
+        } else {
+          const _Some$3 = _bind$3;
+          const _measurement = _Some$3;
+          const request = durable.request;
+          if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
+            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS202;
+          }
+          const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
+          const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
+          const _bind$5 = _bind$4.length;
+          let _tmp = 0;
+          while (true) {
+            const _ = _tmp;
+            if (_ < _bind$5) {
+              const field = _bind$4[_];
+              _M0MPC15array5Array4pushGsE(fields, field);
+              _tmp = _ + 1 | 0;
+              continue;
+            } else {
+              break;
+            }
+          }
+          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(fields));
+        }
+      }
+    }
+  }
+  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS201;
+}
+function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json(durable, store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, transfer_route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin) {
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable);
+      if (_bind.$tag === 1) {
+        const _Ok = _bind;
+        const _x = _Ok._0;
+        if (_x.$tag === 1) {
+        } else {
+          break _L$2;
+        }
+      } else {
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS203;
+  }
+  const request = durable.request;
+  const key = _M0FP35actql5actql22remote__site__protocol31dispatch__request__journal__key(request);
+  let _tmp;
+  if (key.length === 0) {
+    _tmp = true;
+  } else {
+    const _p = _M0MPC15array5Array2atGsE(key, 0);
+    _tmp = !(_p === coordinator_authority);
+  }
+  if (_tmp) {
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS204;
+  }
+  let route;
+  switch (transfer_route) {
+    case "direct": {
+      route = 0;
+      break;
+    }
+    case "store": {
+      route = 1;
+      break;
+    }
+    default: {
+      return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS205;
+    }
+  }
+  const _bind = _M0FP35actql5actql22remote__site__protocol31prepare__remote__output__intent(request, new _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin));
+  let intent;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    intent = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+  }
+  return _M0FP35actql5actql22remote__site__protocol32remote__poll__output__plan__json(request, intent);
+}
 function _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan(durable, poll_body, plan_body, expected_result_definition_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
   const _bind = _M0FP35actql5actql22remote__site__protocol32admit__coordinator__output__plan(durable, poll_body, plan_body, expected_result_definition_cid, max_chunks, max_manifest_bytes, max_referenced_bytes);
   if (_bind.$tag === 1) {
@@ -25136,60 +25249,6 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dis
 function _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request(durable) {
   return durable.request;
 }
-function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable) {
-  _L: {
-    const _bind = durable.evidence;
-    const _bind$2 = durable.subject;
-    const _bind$3 = durable.measurement;
-    if (_bind === undefined) {
-      if (_bind$2 === undefined) {
-        if (_bind$3 === undefined) {
-          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_M0DTPC16option6OptionGRPB5ArrayGsEE4None__);
-        } else {
-          break _L;
-        }
-      } else {
-        break _L;
-      }
-    } else {
-      const _Some = _bind;
-      const _evidence = _Some;
-      if (_bind$2 === undefined) {
-        break _L;
-      } else {
-        const _Some$2 = _bind$2;
-        const _subject = _Some$2;
-        if (_bind$3 === undefined) {
-          break _L;
-        } else {
-          const _Some$3 = _bind$3;
-          const _measurement = _Some$3;
-          const request = durable.request;
-          if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
-            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS164;
-          }
-          const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
-          const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
-          const _bind$5 = _bind$4.length;
-          let _tmp = 0;
-          while (true) {
-            const _ = _tmp;
-            if (_ < _bind$5) {
-              const field = _bind$4[_];
-              _M0MPC15array5Array4pushGsE(fields, field);
-              _tmp = _ + 1 | 0;
-              continue;
-            } else {
-              break;
-            }
-          }
-          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(fields));
-        }
-      }
-    }
-  }
-  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS163;
-}
 function _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown(record) {
   return _M0FP35actql5actql22remote__site__protocol38prepare__coordinator__outcome__unknown(record);
 }
@@ -25224,4 +25283,4 @@ function _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__stat
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible(record, request) {
   return _M0FP35actql5actql22remote__site__protocol44coordinator__exact__retransmission__eligible(record, request);
 }
-export { _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }
+export { _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json as coordinatorIssueOutputPlanPollJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }

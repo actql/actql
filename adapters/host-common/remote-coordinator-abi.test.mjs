@@ -3,7 +3,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/remote_coordinator_abi/remote_coordinator_abi.js';
 import {checked} from './runtime-result.mjs';
-import {acceptedSiteOutput, admitDurableJson} from
+import {acceptedSiteOutput, admitDurableJson,
+  issueOutputPlanPollJson} from
   '../../packages/coordinator-core/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -31,6 +32,21 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
   const initialBody = checked(moon.coordinatorAdmissionDurableJson(admission));
   const initial = checked(moon.coordinatorAdmitDurableJson(initialBody));
   assert.equal(acceptedSiteOutput(admitDurableJson(initialBody)), undefined);
+  const outputInput = {
+    storeAuthorityCid: cid('5'), publicationAttemptCid: cid('6'),
+    resultDefinitionCid: cid('7'), orderingEvidenceCid: cid('8'),
+    coordinatorAuthority: 'coordinator-a', transferAttempt: 'transfer-a',
+    transferRoute: 'direct', destinationSiteKey: 'store-a',
+    destinationSiteGeneration: 1, transferMaxBytes: 1048576,
+    transferExpiresUnixMs: 2000000000000,
+    sourceGrantCid: cid('9'), destinationGrantCid: cid('a'),
+    routeCapabilityCid: cid('b'), transferOrigin: 'https://store.example',
+  };
+  assert.throws(() => issueOutputPlanPollJson(initial, outputInput),
+    {code: 'CoordinatorOwnerRejected'});
+  assert.throws(() => issueOutputPlanPollJson(initial,
+    {...outputInput, transferMaxBytes: 0}),
+  /InvalidCoordinatorOutputIntentInput/u);
   assert.equal(moon.coordinatorDurableRevision(initial), 0);
   assert.equal(moon.coordinatorDurableDispatchCid(initial), requestCid);
 

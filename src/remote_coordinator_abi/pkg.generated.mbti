@@ -54,6 +54,8 @@ pub fn coordinator_exact_retransmission_eligible(@remote_site_protocol.Coordinat
 
 pub fn coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
 
+pub fn coordinator_issue_output_plan_poll_json(@remote_site_protocol.DurableCoordinatorDispatchRecord, String, String, String, String, String, String, String, String, Int, Int64, Int64, String, String, String, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_output_admission_durable_json(CoordinatorCheckedOutputPlan) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_output_intent_is_new(@remote_site_protocol.CoordinatorOutputAdmission) -> Bool

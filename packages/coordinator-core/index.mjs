@@ -66,6 +66,33 @@ export const acceptedSiteOutput = durable => {
     physicalManifestCid, measurementEvidenceCid, rowCount,
     retainedBytes, subjectCid});
 };
+export const issueOutputPlanPollJson = (durable, input) => {
+  const integer = value => typeof value === 'bigint'
+    ? value > 0n && value <= 9223372036854775807n
+    : Number.isSafeInteger(value) && value > 0;
+  if (input === null || typeof input !== 'object' ||
+      !['storeAuthorityCid', 'publicationAttemptCid',
+        'resultDefinitionCid', 'orderingEvidenceCid',
+        'coordinatorAuthority', 'transferAttempt', 'destinationSiteKey',
+        'sourceGrantCid', 'destinationGrantCid', 'routeCapabilityCid',
+        'transferOrigin'].every(key => typeof input[key] === 'string') ||
+      input.transferRoute !== 'direct' && input.transferRoute !== 'store' ||
+      !Number.isSafeInteger(input.destinationSiteGeneration) ||
+      input.destinationSiteGeneration < 0 ||
+      input.destinationSiteGeneration > 2147483647 ||
+      !integer(input.transferMaxBytes) ||
+      !integer(input.transferExpiresUnixMs)) {
+    throw new TypeError('InvalidCoordinatorOutputIntentInput');
+  }
+  return checked(owner.coordinatorIssueOutputPlanPollJson(
+    durable, input.storeAuthorityCid, input.publicationAttemptCid,
+    input.resultDefinitionCid, input.orderingEvidenceCid,
+    input.coordinatorAuthority, input.transferAttempt, input.transferRoute,
+    input.destinationSiteKey, input.destinationSiteGeneration,
+    BigInt(input.transferMaxBytes), BigInt(input.transferExpiresUnixMs),
+    input.sourceGrantCid, input.destinationGrantCid,
+    input.routeCapabilityCid, input.transferOrigin));
+};
 export const admitCheckedOutputPlan = (durable, pollBody, planBody,
   expectedResultDefinitionCid, {maxChunks, maxManifestBytes,
     maxReferencedBytes}) => {
