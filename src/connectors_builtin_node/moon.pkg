@@ -38,4 +38,5 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
+  "actql/actql/stage_results" @effect_results,
 }

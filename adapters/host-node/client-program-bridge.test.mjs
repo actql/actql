@@ -375,6 +375,17 @@ test('admitted source-free Effect Run computes through the installed Host',
             preview.authoringCid, previewLimits));
         assert.equal(moon.clientProgramEffectPreviewInputAt(
           previewInputs, 0), input);
+        assert.equal(checked(
+          moon.clientProgramEffectPreviewPlanTerminal(
+            previewInputs, 0, 10, 100)), undefined);
+        assert.throws(() => checked(
+          moon.clientProgramEffectPreviewPlanTerminal(
+            previewInputs, 0, -1, 100)),
+        {code: 'MoonBitHostFailure'});
+        assert.throws(() => checked(
+          moon.clientProgramEffectPreviewPlanTerminal(
+            previewInputs, 1, 10, 100)),
+        {code: 'MoonBitHostFailure'});
         assert.doesNotThrow(() => checked(
           moon.clientProgramCheckEffectPreviewTargetGuards(
             previewInputs, [], [], 0, 1)));
@@ -443,6 +454,10 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
       }
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.throws(() => checked(
+        moon.clientProgramEffectPreviewPlanTerminal(
+          previewInputs, 0, 10, 100)),
+      {code: 'MoonBitHostFailure'});
       assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), false);
       assert.throws(() => checked(
         moon.clientProgramCheckEffectPreviewTargetGuards(

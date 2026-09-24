@@ -1738,6 +1738,25 @@ pub fn client_program_effect_preview_input_at(
 }
 
 ///|
+/// Return the checked Plan associated with this live Preview input. The
+/// terminal is opaque to Node and cannot be replaced by a caller-authored
+/// Mapping rule or an equal-CID foreign Result.
+#export_name("clientProgramEffectPreviewPlanTerminal")
+pub fn client_program_effect_preview_plan_terminal(
+  value : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[
+  @effect_results.EffectPlanTerminal?,
+  @strategy.CapturedEffectPlanIssue,
+] {
+  @strategy.captured_effect_preview_plan_terminal(
+    value, preview_index, max_fields, max_work,
+  )
+}
+
+///|
 /// The Site supplies current authorized observations for every guarded row.
 /// This checks the captured Preview but never issues mutation authority.
 #export_name("clientProgramCheckEffectPreviewTargetGuards")
