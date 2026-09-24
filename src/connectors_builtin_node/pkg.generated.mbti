@@ -58,6 +58,16 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_program_compilation_executable_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_program_compilation_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_program_compilation_template_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
+
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
 pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.ClientDirectResultRoot) -> String
@@ -1470,6 +1480,11 @@ pub(all) enum ClientProgramBridgeIssue {
 pub(all) enum ClientProgramBridgeOutcome {
   Prepared(@run_publication_host.PreparedClientProgram)
   Rejected(ClientProgramBridgeIssue)
+}
+
+pub(all) enum ClientProgramValuesCompilationBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientValuesCompilationIssue)
 }
 
 pub(all) enum ClientProgramValuesPlanBridgeIssue {

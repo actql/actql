@@ -985,6 +985,89 @@ pub fn client_program_local_values_plan_fact_manifest_wire(
 }
 
 ///|
+pub(all) enum ClientProgramValuesCompilationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Compilation(@publication_host.ClientValuesCompilationIssue)
+}
+
+///|
+/// Compile the installed direct Values profile through the shared MoonBit
+/// owner. The returned handles are private Host material, not public wire.
+#export_name("clientProgramCompileLocalValues")
+pub fn client_program_compile_local_values(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientValuesCompilation,
+  ClientProgramValuesCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  match
+    @publication_host.issue_prepared_client_values_compilation(
+      prepared,
+      manifests,
+      client_local_sequence_limits(),
+      1000,
+      10000,
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(compiled) => Ok(compiled)
+    Err(issue) => Err(Compilation(issue))
+  }
+}
+
+///|
+#export_name("clientProgramCompilationExecutablePlanWire")
+pub fn client_program_compilation_executable_plan_wire(
+  value : @publication_host.ClientValuesCompilation,
+) -> String {
+  @publication_host.client_values_executable_plan_wire(
+    @publication_host.client_values_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramCompilationFactManifestWire")
+pub fn client_program_compilation_fact_manifest_wire(
+  value : @publication_host.ClientValuesCompilation,
+) -> String {
+  @publication_host.client_values_executable_plan_fact_manifest_wire(
+    @publication_host.client_values_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramCompilationTemplateWire")
+pub fn client_program_compilation_template_wire(
+  value : @publication_host.ClientValuesCompilation,
+) -> String {
+  @publication.run_evidence_value_json(
+    @publication_host.client_values_compilation_template(value),
+  )
+}
+
+///|
+#export_name("clientProgramCompilationCompiledPlanWire")
+pub fn client_program_compilation_compiled_plan_wire(
+  value : @publication_host.ClientValuesCompilation,
+) -> String {
+  @publication.publication_contract_json(
+    @publication_host.client_values_compilation_compiled_plan(value),
+  )
+}
+
+///|
 /// Checked Result row type from the exact publication port, after its
 /// projection. This is private Plan material, not Run admission.
 #export_name("clientProgramIssueResultRowContract")

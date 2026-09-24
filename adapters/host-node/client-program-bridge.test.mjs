@@ -254,24 +254,31 @@ function publicationEvidence(program, parameters, semantics,
 function checkedValuesPublicationPlan(prepared, control) {
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'published-values-request', cid('b'));
-  const aoa = checked(
-    moon.clientProgramIssueLocalValuesAoAIdentity(prepared, 0));
-  const invocationBindings = checked(
-    moon.clientProgramIssueEmptyInvocationBindings(prepared));
-  const evidence = publicationEvidence(
-    moon.clientRequestProgramCid(request),
-    moon.clientRequestParametersCid(request),
-    moon.clientProgramSemanticsCid(prepared),
-    moon.clientProgramCheckEnvironmentCid(prepared),
-    moon.strategyRunEvidenceIdentity(invocationBindings),
-    moon.clientProgramLocalValuesAoACid(aoa));
-  const [template, preparedEvidence, authorization] = evidence
-    .slice(0, 3).map((value, index) => control.admitRunEvidence(
-      ['bound_invocation_template', 'prepared_invocation',
-        'run_authorization'][index],
-      moon.strategyRunEvidenceJson(value), publicationLimits));
+  const compilation = checked(moon.clientProgramCompileLocalValues(prepared));
+  const template = control.admitRunEvidence('bound_invocation_template',
+    moon.clientProgramCompilationTemplateWire(compilation),
+    publicationLimits);
   const compiledPlan = control.admit('compiled_plan',
-    moon.strategyPublicationContractJson(evidence[3]), publicationLimits);
+    moon.clientProgramCompilationCompiledPlanWire(compilation),
+    publicationLimits);
+  assert.equal(JSON.parse(moon.clientProgramCompilationExecutablePlanWire(
+    compilation)).executable_plan_cid,
+  JSON.parse(compiledPlan.wire).executable_plan_cid);
+  const preparedEvidence = control.sealRunEvidence('prepared_invocation',
+    JSON.stringify({
+      version: 'actql-prepared-invocation/0.1',
+      invocation_template_cid: template.identity,
+      compiled_plan_cid: compiledPlan.identity,
+      execution_context_cid: cid('a'), host_policy_cid: cid('b'),
+      policy_decision: 'allow', expires_at: '2099-01-01T00:00:00.000Z',
+    }), publicationLimits);
+  const authorization = control.sealRunEvidence('run_authorization',
+    JSON.stringify({
+      version: 'actql-run-authorization/0.1',
+      prepared_invocation_cid: preparedEvidence.identity,
+      execution_context_cid: cid('a'), host_policy_cid: cid('b'),
+      decision: 'allowed',
+    }), publicationLimits);
   const admission = control.admitCheckedClientRunPublication(
     prepared, template, preparedEvidence, authorization, compiledPlan);
   const runDefinition = control.issueRunDefinition(admission, {
