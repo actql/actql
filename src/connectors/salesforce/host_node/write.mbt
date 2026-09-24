@@ -356,6 +356,39 @@ pub fn salesforce_single_write_success_projection(
 }
 
 ///|
+#export_name("salesforceProjectSingleEffectOutcome")
+pub fn salesforce_project_single_effect_outcome(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  request : @catalog.SingleWriteRequest,
+  response : @catalog.WriteSingleResponse,
+  max_identity_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue {
+  if !salesforce_single_write_request_matches_preview_footprint(
+      preview, member_index, row_index, request, max_identity_bytes,
+    ) {
+    raise InvalidResource
+  }
+  guard @publication.effect_preview_row_identity(
+      preview, member_index, row_index,
+    )
+    is Some(row_cid) else {
+    raise InvalidResource
+  }
+  match
+    @catalog.project_single_effect_outcome(
+      response, row_cid, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionResponse(issue)
+  }
+}
+
+///|
 #export_name("salesforcePrepareContinueWriteCollection")
 pub fn salesforce_prepare_continue_write_collection(
   row_preview_cids : Array[String],
@@ -761,4 +794,46 @@ pub fn salesforce_collection_write_response_row_cid(
     Some((cid, _)) => cid
     None => raise InvalidResource
   }
+}
+
+///|
+#export_name("salesforceProjectCollectionEffectOutcome")
+pub fn salesforce_project_collection_effect_outcome(
+  response : @catalog.WriteCollectionResponse,
+  index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.project_collection_effect_outcome_at(
+      response, index, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionResponse(issue)
+  }
+}
+
+///|
+#export_name("salesforceWriteEffectOutcomeRowCid")
+pub fn salesforce_write_effect_outcome_row_cid(
+  projection : @catalog.WriteRowEffectProjection,
+) -> String {
+  @catalog.write_row_effect_projection_row_cid(projection)
+}
+
+///|
+#export_name("salesforceWriteEffectOutcomeWire")
+pub fn salesforce_write_effect_outcome_wire(
+  projection : @catalog.WriteRowEffectProjection,
+) -> String {
+  @catalog.write_row_effect_projection_wire(projection)
+}
+
+///|
+#export_name("salesforceWriteEffectOutcomeResponseSha256")
+pub fn salesforce_write_effect_outcome_response_sha256(
+  projection : @catalog.WriteRowEffectProjection,
+) -> String {
+  @catalog.write_row_effect_projection_response_sha256(projection)
 }
