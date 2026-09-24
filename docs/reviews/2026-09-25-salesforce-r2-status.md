@@ -21,6 +21,10 @@ The two-member source test now also runs with a split producer. It first
 forces a late pin-capacity failure, then confirms both independent pins use
 Task 4 and that releasing one does not invalidate the other. The surviving
 pin exports the checked rows after the ordinary output port closes.
+Both the shared-source and split-producer Host fixtures now also reject a
+pin before Compute has produced its output. The same owners subsequently run
+and pin at exact capacity, showing that the early failure did not strand a
+holding. This is not the missing local HTTPS no-send regression.
 
 The regression exposed two adjacent execution defects. A managed consumer
 rejected Task 0 even when the Run root was Compute, and the source-free Local
@@ -51,7 +55,7 @@ R2-G1 remains a completion condition: connect the checked/captured inputs,
 whole-set Preview and apply admission, durable claims, physical writes,
 reconciliation, and final publication through one ordinary multi-member
 Effectful Run. The current standard Host regression stops at owned input
-export; it does not prove the mutation or final Receipt path. Missing/foreign
+export; it does not prove the mutation or final Receipt path. Foreign
 late-pin failures and local HTTPS no-send cases still need top-level coverage.
 
 The checked Effect preparation now exposes a private per-member Plan CID so
