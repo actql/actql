@@ -356,6 +356,11 @@ pub fn validate_effect_free_run_evidence_chain(
     return Err(EvidenceWrongContract("captured_run"))
   }
   let receipt_value = receipt.value
+  if @json.object_field(receipt_value, "effect_preview_cid") is Some(_) ||
+    @json.object_field(receipt_value, "effect_set_apply_receipt_cid") is Some(_) ||
+    @json.object_field(receipt_value, "captured_run_cid") is Some(_) {
+    return Err(EvidenceNotEffectFree)
+  }
   if evidence_string(receipt_value, "invocation_cid") !=
     Some(invocation.identity) {
     return Err(EvidenceReferenceMismatch("invocation_cid"))
