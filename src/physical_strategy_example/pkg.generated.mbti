@@ -63,6 +63,8 @@ pub fn application_task_content_read(Application, Int, @execution_relation.Retai
 
 pub fn application_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
 
+pub fn application_task_manifest(String, String, String, String, DataProfile) -> Array[@physical_strategy.CheckedTaskIdentity] raise
+
 pub fn application_task_output_matches(@physical_strategy.CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
 
 pub fn application_task_reference(Application, Int) -> @physical_strategy.CheckedTaskReference raise

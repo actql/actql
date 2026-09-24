@@ -5,7 +5,8 @@ import {createProcessRetainedStore} from '../../../../store-local/process-servic
 import {createProcessCompletionCustody} from '../../../../host-node/completion-custody.mjs';
 import {snapshotProcessLimits} from '../../../../host-node/process-accounting.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
-import {prepareExampleText} from './physical-strategy.mjs';
+import {prepareExampleTaskManifest} from './physical-strategy.mjs';
+import {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
 
 export async function createManagedExampleHost(limits) {
   enableNodeCompileCache();
@@ -35,15 +36,14 @@ export async function createManagedExampleHost(limits) {
         phases[name] = performance.now() - phaseStarted;
         phaseStarted = performance.now();
       };
-      const plan = await prepareExampleText(input, childLimits);
-      phases.parentPreparationCalls = 1;
+      const tasks = await prepareExampleTaskManifest(input);
+      phases.parentPreparationCalls = 0;
+      phases.parentTaskManifestCalls = 1;
       finishPhase('parentPreparationMs');
-      phases.parentPreparationDetails = plan.preparationDiagnostics;
       if (!input.retainedOutput || input.localImportWorkMilliseconds === undefined) {
         throw new TypeError('ManagedExampleRequiresIndependentRetention');
       }
       signal?.throwIfAborted();
-      const tasks = plan.taskIdentities();
       const capacityBytes = input.retainedOutput.wire.max_bytes * (tasks.length + 1);
       if (!Number.isSafeInteger(capacityBytes) || BigInt(capacityBytes) > childLimits.retained_bytes) {
         throw new TypeError('InvalidRetainedCapacity');
@@ -53,10 +53,12 @@ export async function createManagedExampleHost(limits) {
         capacityBytes, maxFrameBytes: input.retainedOutput.maxFrameBytes,
         maxEntries: tasks.length + 1,
       });
-      const custody = createProcessCompletionCustody(store,
-        {maxCompletions: tasks.length, maxInputs: 2, maxColumns: input.dataProfile?.columns ?? 10}, tasks);
+      const completionLimits = {maxCompletions: tasks.length, maxInputs: 2,
+        maxColumns: input.dataProfile?.columns ?? 10};
+      const custody = createProcessCompletionCustody(store, completionLimits, tasks);
       // Accepted runs never retry automatically, even if process start or
-      // execution later fails. Invalid pure requests above remain correctable.
+      // execution later fails. The child validates physical configuration
+      // before execution; its exact task graph is checked below.
       if (runs.has(run)) throw new TypeError('InvalidOrUsedExampleRun');
       if (runs.size >= capacity.attempts) throw new TypeError('ExampleRunRecordLimit');
       if (active) throw new TypeError('ManagedExampleHoldingActive');
@@ -102,7 +104,14 @@ export async function createManagedExampleHost(limits) {
         finishPhase('processStartMs');
         custody.observe(channel);
         phase = 'prepare';
-        await channel.request({command: 'prepare', input: {...input, controlStore: true}}, signal);
+        const prepared = await channel.request({command: 'prepare', input: {...input, controlStore: true}}, signal);
+        const expected = tasks.map(task => snapshotCompletionTask(task, completionLimits));
+        if (!Array.isArray(prepared.taskIdentities) ||
+            prepared.taskIdentities.length !== expected.length ||
+            prepared.taskIdentities.some((task, index) =>
+              JSON.stringify(snapshotCompletionTask(task, completionLimits)) !== JSON.stringify(expected[index]))) {
+          throw new Error('ForeignPreparedTaskManifest');
+        }
         finishPhase('workerPreparationMs');
         phase = 'execute';
         const result = await channel.request({command: 'execute'}, signal);

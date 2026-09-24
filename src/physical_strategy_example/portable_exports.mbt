@@ -55,6 +55,20 @@ pub fn prepare_application_with_data(
 
 ///|
 #cfg(not(target="js"))
+pub fn application_task_manifest(
+  program_json : String,
+  environment_json : String,
+  environment_cid : String,
+  parameter_json : String,
+  data : DataProfile,
+) -> Array[@strategy.CheckedTaskIdentity] raise {
+  core_application_task_manifest(
+    program_json, environment_json, environment_cid, parameter_json, data,
+  )
+}
+
+///|
+#cfg(not(target="js"))
 pub fn application_acquisition(
   app : Application,
 ) -> @acquisition_host.NativeHostConfiguration {

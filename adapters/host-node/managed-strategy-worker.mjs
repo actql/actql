@@ -64,9 +64,13 @@ export function serveManagedStrategy(prepare, frames) {
         }
         accounting = plan.usage;
       }
+      const taskIdentities = plan.taskIdentities?.();
+      if (taskIdentities !== undefined && (!Array.isArray(taskIdentities) || taskIdentities.length > 32)) {
+        throw Error('InvalidStrategyTaskManifest');
+      }
       prepared = Object.freeze({open: plan.open});
       phase = 'prepared';
-      return {kind: 'strategy-prepared', pid: process.pid};
+      return {kind: 'strategy-prepared', pid: process.pid, ...(taskIdentities === undefined ? {} : {taskIdentities})};
     }
     if (Object.keys(request).join(',') !== 'command') throw Error('InvalidStrategyRequest');
     if (request.command === 'execute' && phase === 'prepared') {

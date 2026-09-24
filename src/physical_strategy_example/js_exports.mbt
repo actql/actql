@@ -58,6 +58,21 @@ pub fn prepare_application_with_data(
 
 ///|
 #cfg(target="js")
+#export_name("applicationTaskManifest")
+pub fn application_task_manifest(
+  program_json : String,
+  environment_json : String,
+  environment_cid : String,
+  parameter_json : String,
+  data : DataProfile,
+) -> Array[@strategy.CheckedTaskIdentity] raise {
+  core_application_task_manifest(
+    program_json, environment_json, environment_cid, parameter_json, data,
+  )
+}
+
+///|
+#cfg(target="js")
 #export_name("applicationAcquisition")
 pub fn application_acquisition(
   app : Application,

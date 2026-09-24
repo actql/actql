@@ -89,6 +89,15 @@ export async function runExample({ database, environment, environmentCid, progra
 // The same bounded example application can construct its owned setup inside
 // an execution process. Source access belongs only to open, after preparation.
 // This remains the documented example profile, not a general Program runner.
+export async function prepareExampleTaskManifest({programText, environmentText,
+  environmentCid, parameterText, dataProfile}) {
+  const data = snapshotDataProfile(dataProfile);
+  if (!data) throw new Error('Task manifest requires a data profile');
+  const app = await import(runtimeUrl);
+  return checked(app.applicationTaskManifest(programText, environmentText,
+    environmentCid, parameterText, data));
+}
+
 export async function prepareExampleText({database, environmentCid, programText,
   environmentText, parameterText, adoptedText, query, evidence, receipts,
   schema = 'main', table = 'records', nativeMilliseconds = '5', resident = false,

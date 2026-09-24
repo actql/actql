@@ -602,3 +602,13 @@ Host releases that output. The standard Host test checks the returned bytes
 against the independently expected CID. This closes the reader wiring needed
 for a single-process profile; it does not authorize that profile's placement
 or change the separate-process path and its custody checks.
+
+The isolated Node example now derives only the checked task manifest in its
+parent. The worker still performs full physical preparation. Before execute,
+the parent compares the worker's prepared task identities with its checked
+manifest, and completion custody repeats the exact match when it admits each
+retained output. This removes the parent's physical candidate and fragment
+preparation without treating a parent assertion as worker authority. The
+managed Host cycle and three-target package checks passed locally. This is a
+structural reduction in preparation calls, not a measured 27-case performance
+pass; the large-case control and output path still needs product-level work.

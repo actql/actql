@@ -144,6 +144,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       task.phases.inputs ?? []);
     const observedInputWork = Object.freeze({
       parentPreparationCalls: result.phases.parentPreparationCalls,
+      parentTaskManifestCalls: result.phases.parentTaskManifestCalls,
       workerPreparationCalls:
         result.report.preparation_diagnostics?.applicationPrepareCalls,
       reportedDirectInputScans: compute.reduce((total, phase) =>

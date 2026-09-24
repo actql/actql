@@ -17,7 +17,8 @@ serveManagedStrategy(async (input, _signal, context) => {
     throw new Error('ControlStoreRequiresRetainedOutputAndLocalImportPolicy');
   }
   const plan = await prepareExampleText(input, context.resourceLimits);
-  return {resourceLimits: plan.resourceLimits, usage: plan.usage, async open(signal, context) {
+  return {resourceLimits: plan.resourceLimits, usage: plan.usage,
+    taskIdentities: () => JSON.parse(JSON.stringify(plan.taskIdentities())), async open(signal, context) {
     const binding = controlStore ? bindProcessStore(context) : undefined;
     const observer = binding ? await installProcessCompletionObserver(binding,
       {maxCompletions: 4, maxInputs: 2, maxColumns: input.dataProfile?.columns ?? 10}, plan.completionTask) : undefined;
