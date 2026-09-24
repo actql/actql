@@ -18,6 +18,14 @@ struct CapturedOutputPin {
 }
 
 ///|
+/// All-or-nothing retention of checked Result occurrences. This owns only
+/// physical input liveness; it does not authorize disclosure or an Effect.
+struct CapturedResultOutputSet {
+  pins : Array[CapturedOutputPin]
+  mut live : Bool
+}
+
+///|
 priv struct TaskRetention {
   mut holding : @resources.Holding?
   mut release_confirmed : () -> Bool
@@ -132,6 +140,56 @@ pub fn release_captured_output_pin(pin : CapturedOutputPin) -> Bool {
   pin.live = false
   pin.run.lifetimes[pin.task].pins -= 1
   collect_captured_retention(pin.run)
+  true
+}
+
+///|
+/// Acquire every exact checked Result occurrence before a multi-consumer
+/// operation starts. Failure releases earlier pins, including repeated
+/// occurrences of the same task, without closing the producer's own port.
+pub fn pin_captured_result_output_set(
+  run : CapturedDAG,
+  sources : Array[(Int, @execution.ManagedResultOccurrence)],
+  max_pins : Int,
+) -> Result[CapturedResultOutputSet, RunIssue] {
+  let pins : Array[CapturedOutputPin] = []
+  for (task, occurrence) in sources {
+    match pin_captured_result_output(run, task, occurrence, max_pins) {
+      Ok(pin) => pins.push(pin)
+      Err(issue) => {
+        for pin in pins {
+          release_captured_output_pin(pin) |> ignore
+        }
+        return Err(issue)
+      }
+    }
+  }
+  Ok({ pins, live: true, })
+}
+
+///|
+pub fn captured_result_output_set_pin_at(
+  set : CapturedResultOutputSet,
+  index : Int,
+) -> CapturedOutputPin? {
+  if set.live {
+    set.pins.get(index)
+  } else {
+    None
+  }
+}
+
+///|
+pub fn release_captured_result_output_set(
+  set : CapturedResultOutputSet,
+) -> Bool {
+  if !set.live {
+    return false
+  }
+  set.live = false
+  for pin in set.pins {
+    release_captured_output_pin(pin) |> ignore
+  }
   true
 }
 
