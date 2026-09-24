@@ -29,6 +29,10 @@ test('schema and operation mutations invalidate generated Client–Host wire',
     changed.operations.connect.push('nonce');
     assert.notEqual(buildClientHostWire(changed, protocol).module,
       original.module);
+    changed.schemas.submit_preparation_error.properties.code.enum
+      .push('UnexpectedSubmitError');
+    assert.notEqual(buildClientHostWire(changed, protocol).types,
+      original.types);
     changed.schemas.profile.properties.limits.properties.maxRows.type = 'number';
     assert.throws(() => buildClientHostWire(changed, protocol),
       /UnsupportedPublicationType/);

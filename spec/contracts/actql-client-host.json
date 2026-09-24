@@ -87,6 +87,21 @@
       }
     },
     "lookup_not_found": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "not_found"}}},
-    "lookup_unknown": {"type": "object", "additionalProperties": false, "required": ["kind", "reason"], "properties": {"kind": {"const": "unknown"}, "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}}
+    "lookup_unknown": {"type": "object", "additionalProperties": false, "required": ["kind", "reason"], "properties": {"kind": {"const": "unknown"}, "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}},
+    "submit_preparation_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code"],
+      "properties": {
+        "code": {"enum": [
+          "ClientProgramInvalidInput",
+          "ClientParametersInvalid",
+          "ClientParametersTooLarge",
+          "ClientProgramUnsupported",
+          "ClientProgramNeedsInputs",
+          "ClientProgramRejected"
+        ]}
+      }
+    }
   }
 }

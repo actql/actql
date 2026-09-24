@@ -5,7 +5,8 @@ import {validDeliveryAttempt, validDeliveryRecord,
 import {clientHostOperations, clientHostRequestKeys,
   validAdmissionShape, validConnectionShape, validLookupFoundShape,
   validLookupNotFoundShape, validLookupUnknownShape, validProfileShape,
-  validRunRefShape, validRunStateShape} from './client-host.generated.js';
+  validRunRefShape, validRunStateShape,
+  validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const exact = (value, keys) => value !== null && typeof value === 'object' &&
@@ -22,6 +23,10 @@ export function validRunRef(value) {
 // snapshot must also carry publication, cancellation and physical stop facts.
 export function validRunState(value) {
   return validRunStateShape(value);
+}
+
+export function validSubmitPreparationError(value) {
+  return validSubmitPreparationErrorShape(value);
 }
 
 export function validClientConnection(value) {
