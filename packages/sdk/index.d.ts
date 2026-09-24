@@ -1,5 +1,5 @@
 import type {WireClientProfile, WireDeliveryAttemptLookup,
-  WireRequestLookup, WireRunRef} from '@actql/client-wire';
+  WireRequestLookup, WireRunRef, WireRunState} from '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
@@ -28,6 +28,8 @@ export type ConnectionOptions =
 export type ConfirmedProfile = WireClientProfile;
 
 export type RequestLookup = WireRequestLookup;
+
+export type RunState = WireRunState;
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
@@ -68,8 +70,8 @@ export interface Result {
 export interface Execution {
   readonly ref: RunReference;
   readonly profile: ConfirmedProfile;
-  status(options?: {signal?: AbortSignal}): Promise<unknown>;
-  wait(options?: {until?: string; signal?: AbortSignal}): Promise<unknown>;
+  status(options?: {signal?: AbortSignal}): Promise<RunState>;
+  wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
   cancel(options?: {signal?: AbortSignal}): Promise<unknown>;
   reconcile(options?: {signal?: AbortSignal}): Promise<unknown>;
   result(name: string): Result;
