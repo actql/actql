@@ -244,7 +244,7 @@ test "outbound agent observes durable acceptance before one execution" {
     match journal.observation(request) {
       Ok(observation) =>
         Ok(Some(@journal.recovered_site_dispatch_record(observation)))
-      Err(@journal.StateCollision) => Ok(None)
+      Err(@journal.MissingDispatch) => Ok(None)
       Err(issue) => Err(@client.Journal(issue))
     }
   }

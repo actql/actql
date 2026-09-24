@@ -208,7 +208,7 @@ pub fn acknowledge_status(
       }
       (Some(record), body)
     }
-    Err(@journal.StateCollision) => {
+    Err(@journal.MissingDispatch) => {
       let body = match @remote.remote_poll_not_seen_json(request) {
         Ok(value) => value
         Err(issue) => return Err(Protocol(issue))
