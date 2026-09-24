@@ -82,3 +82,18 @@ export async function recoverProjectedEffectResponse({
     recovered: stored === undefined ? undefined : projectStored(stored),
   });
 }
+
+// Evidence viewing precedes exact physical outcome access. The returned
+// record is custody of a prior projection, not semantic admission or a
+// terminal Effect fact; no write credential or new send is available here.
+export async function readAuthorizedEffectOutcomes(options) {
+  const {ledger, claims, batch = false} = options;
+  const {stored, binding} = await readAuthorizedEffectResponse(options);
+  if (stored === undefined) return Object.freeze({outcomes: undefined,
+    binding});
+  const read = batch ? ledger.readClaimedBatchOutcomes
+    : ledger.readClaimedOutcome;
+  if (typeof read !== 'function') fail('InvalidEffectOutcomeRead');
+  const outcomes = read.call(ledger, claims);
+  return Object.freeze({outcomes, binding});
+}

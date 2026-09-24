@@ -271,6 +271,14 @@ export function openEffectLedger({
       }
       return row;
     },
+    // Read physical outcome custody only through the same exact claim that
+    // owns the saved response. This does not admit the outcome's semantic
+    // body, issue a receipt, or make a dispatch terminal.
+    readClaimedOutcome(claim) {
+      const stored = ledger.readClaimedResponse(claim);
+      if (stored === undefined) return undefined;
+      return physical.outcome(stored.dispatchEntryCid);
+    },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
     readClaimedBatchResponse(claims) {
@@ -320,6 +328,14 @@ export function openEffectLedger({
         fail('EffectCollectionResponseBindingMismatch');
       }
       return row;
+    },
+    // Each Collections row retains its own dispatch and outcome owner even
+    // though all rows share one durable HTTP observation.
+    readClaimedBatchOutcomes(claims) {
+      const stored = ledger.readClaimedBatchResponse(claims);
+      if (stored === undefined) return undefined;
+      return Object.freeze(stored.batchMembers.map(member =>
+        physical.outcome(member.dispatchEntryCid)));
     },
     recordResponse({dispatching, scope, locator, key,
       canonicalRequestCid, credentialUseCid, statusCode, responseBytes}) {

@@ -7,11 +7,13 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
+import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {
   captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse,
 } from './effect-physical-dispatch.mjs';
 import {readAuthorizedEffectResponse,
+  readAuthorizedEffectOutcomes,
   recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -32,12 +34,12 @@ async function fixture(t) {
   const basis = control.ledgerBasis(scope, locator, key,
     cid('c'), cid('d'), cid('e'), canonicalRequestCid, cid('0'),
     'unavailable', cid('1'), cid('2'));
-  return {open, claim: {scope, locator, key, basis,
+  return {root, open, claim: {scope, locator, key, basis,
     intentFingerprintCid: cid('e'), canonicalRequestCid}};
 }
 
 async function collectionFixture(t) {
-  const {open} = await fixture(t);
+  const {root, open} = await fixture(t);
   const scope = control.logicalRequestScope(authorityScopeCid,
     'request-1', 32);
   const claims = ['row-1', 'row-2'].map(row => {
@@ -52,8 +54,121 @@ async function collectionFixture(t) {
     return {scope, locator, key, basis,
       intentFingerprintCid: cid('e'), canonicalRequestCid};
   });
-  return {open, claims};
+  return {root, open, claims};
 }
+
+test('exact single claim reopens physical outcome custody without a send',
+  async t => {
+    const {root, open, claim} = await fixture(t);
+    const first = open();
+    let sends = 0;
+    const sent = await captureClaimedEffectResponse({
+      ledger: first, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 201,
+          body: Buffer.from('{"success":true}')}};
+      },
+    });
+    assert.equal(first.readClaimedOutcome(claim), undefined);
+    const physical = openSqliteEffectLedger(root, {authorityScopeCid});
+    try {
+      physical.recordOutcome({
+        logicalRequestScopeCid: first.scopeCid,
+        logicalItemLocatorCid: control.logicalItemLocatorCid(claim.locator),
+        dispatchEntryCid: control.ledgerEntryCid(sent.ownership.dispatching),
+        responsePhysicalSha256: sent.response.responsePhysicalSha256,
+        outcomeCid: cid('5'),
+        outcomeJson: '{"result":{"record_id":"a001"},"state":"applied"}',
+      });
+    } finally {
+      physical.close();
+    }
+    first.close();
+    const reopened = open();
+    t.after(() => reopened.close());
+    const outcome = reopened.readClaimedOutcome(claim);
+    assert.equal(outcome.outcomeCid, cid('5'));
+    assert.equal(outcome.responsePhysicalSha256,
+      sent.response.responsePhysicalSha256);
+    const authorized = await readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: () => true,
+    });
+    assert.equal(authorized.outcomes.outcomeCid, cid('5'));
+    await assert.rejects(readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: claim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    assert.throws(() => reopened.readClaimedOutcome({
+      ...claim, canonicalRequestCid: cid('9'),
+    }), {code: 'EffectDispatchBindingMismatch'});
+    const retry = await captureClaimedEffectResponse({
+      ledger: reopened, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => { sends += 1; },
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(sends, 1);
+  });
+
+test('exact Collections claim reopens distinct row outcome custody',
+  async t => {
+    const {root, open, claims} = await collectionFixture(t);
+    const first = open();
+    let sends = 0;
+    const sent = await captureClaimedEffectCollectionResponse({
+      ledger: first, claims, requestCid: claims[0].canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 200,
+          body: Buffer.from('[{"success":true},{"success":false}]')}};
+      },
+    });
+    assert.deepEqual(first.readClaimedBatchOutcomes(claims),
+      [undefined, undefined]);
+    const stored = first.readClaimedBatchResponse(claims);
+    const physical = openSqliteEffectLedger(root, {authorityScopeCid});
+    try {
+      for (let index = 0; index < claims.length; index++) {
+        physical.recordOutcome({
+          logicalRequestScopeCid: first.scopeCid,
+          logicalItemLocatorCid: control.logicalItemLocatorCid(
+            claims[index].locator),
+          dispatchEntryCid: control.ledgerEntryCid(
+            sent.ownership.dispatching[index]),
+          responsePhysicalSha256: stored.responsePhysicalSha256,
+          outcomeCid: cid(index === 0 ? '5' : '6'),
+          outcomeJson: index === 0
+            ? '{"result":{"record_id":"a001"},"state":"applied"}'
+            : '{"error":{"code":"INVALID_FIELD","message":"Bad field"},"state":"failed"}',
+        });
+      }
+    } finally {
+      physical.close();
+    }
+    first.close();
+    const reopened = open();
+    t.after(() => reopened.close());
+    assert.deepEqual(reopened.readClaimedBatchOutcomes(claims)
+      .map(outcome => outcome.outcomeCid), [cid('5'), cid('6')]);
+    const authorized = await readAuthorizedEffectOutcomes({
+      ledger: reopened, claims, batch: true, commonMoon: moon,
+      expectedRequestCid: claims[0].canonicalRequestCid,
+      authorizeEvidenceRead: () => true,
+    });
+    assert.deepEqual(authorized.outcomes.map(outcome => outcome.outcomeCid),
+      [cid('5'), cid('6')]);
+    assert.throws(() => reopened.readClaimedBatchOutcomes(
+      [...claims].reverse()), {code: 'EffectCollectionResponseBindingMismatch'});
+    const retry = await captureClaimedEffectCollectionResponse({
+      ledger: reopened, claims, requestCid: claims[0].canonicalRequestCid,
+      execute: async () => { sends += 1; },
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(sends, 1);
+  });
 
 test('single raw response is durable before provider projection', async t => {
   const {open, claim} = await fixture(t);
