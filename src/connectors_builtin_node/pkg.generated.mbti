@@ -173,6 +173,8 @@ pub fn client_program_effect_preview_ledger_identity(@physical_strategy.Captured
 
 pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, @physical_strategy.CapturedEffectPlanIssue]
 
+pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
+
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]

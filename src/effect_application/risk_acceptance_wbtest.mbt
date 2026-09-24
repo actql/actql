@@ -1,5 +1,9 @@
 ///|
-fn risk_test_wire(preview_cid : String, claims : String) -> String {
+fn risk_test_wire_with_auth(
+  preview_cid : String,
+  claims : String,
+  authentication_cid : String,
+) -> String {
   let a = preview_footprint_test_cid("a")
   let body = "{\"version\":\"actql-effect-risk-acceptance/0.1\"," +
     "\"issuer_kind\":\"policy\",\"issuer_evidence_cid\":\"" +
@@ -17,7 +21,7 @@ fn risk_test_wire(preview_cid : String, claims : String) -> String {
     "\",\"claims\":" +
     claims +
     ",\"authentication_evidence_cid\":\"" +
-    a +
+    authentication_cid +
     "\"}"
   let parsed = @source.parse_json(body, {
     max_input_bytes: 8192,
@@ -35,6 +39,49 @@ fn risk_test_wire(preview_cid : String, claims : String) -> String {
       old="\"version\":",
       new="\"self_cid\":\"" + cid + "\",\"version\":",
     ),
+  )
+}
+
+///|
+fn risk_test_wire(preview_cid : String, claims : String) -> String {
+  risk_test_wire_with_auth(preview_cid, claims, preview_footprint_test_cid("a"))
+}
+
+///|
+test "risk detached-authentication payload excludes only auth and self references" {
+  let a = preview_footprint_test_cid("a")
+  let b = preview_footprint_test_cid("b")
+  let c = preview_footprint_test_cid("c")
+  let first = admit_effect_risk_acceptance_body(
+    risk_test_wire_with_auth(b, "[\"effect_scope_approved\"]", a),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_risk_acceptance_unsigned_payload_cid(first),
+    "sha256:07beb07c409c4a23fba09591f3d9aac3ef9db518b2c6bdc3f0b02c807b98b18d",
+  )
+  let changed_auth = admit_effect_risk_acceptance_body(
+    risk_test_wire_with_auth(b, "[\"effect_scope_approved\"]", c),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    effect_risk_acceptance_unsigned_payload_cid(changed_auth),
+    effect_risk_acceptance_unsigned_payload_cid(first),
+  )
+  assert_true(changed_auth.cid != first.cid)
+  let changed_preview = admit_effect_risk_acceptance_body(
+    risk_test_wire_with_auth(c, "[\"effect_scope_approved\"]", a),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_true(
+    effect_risk_acceptance_unsigned_payload_cid(changed_preview) !=
+    effect_risk_acceptance_unsigned_payload_cid(first),
   )
 }
 

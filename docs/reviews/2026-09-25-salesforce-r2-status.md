@@ -160,3 +160,12 @@ relabel a policy `allow` body as a human `approved` decision. JS, Wasm, and
 native Effect/strategy tests each pass 57/57; the standard Host bridge passes
 14/14. This remains a comparison boundary, not issuer authentication or a
 whole-set apply permit.
+
+MoonBit now also derives the detached-authentication payload CID from the
+canonical risk body with only `self_cid` and `authentication_evidence_cid`
+excluded. A fixed independent vector verifies the preimage; changing only
+the authentication reference changes the complete body CID but not the
+signed payload CID, while changing the Preview changes the signed CID. The
+Node Host bridge exposes that exact MoonBit result. This does not verify a
+signature, issuer trust, expiry, or current grant; those remain prerequisites
+for the ordinary Effectful apply path.

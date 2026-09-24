@@ -3,6 +3,7 @@
 /// semantic bindings, not the issuer's signature or current authority.
 pub struct EffectRiskAcceptanceBody {
   cid : String
+  unsigned_payload_cid : String
   issuer_kind : String
   decision : String
   issuer_evidence_cid : String
@@ -132,8 +133,18 @@ pub fn admit_effect_risk_acceptance_body(
   if expected != cid {
     return Err(InvalidIdentity)
   }
+  guard @json.object_without_field(body, "authentication_evidence_cid")
+    is Some(unsigned_body) else {
+    return Err(InvalidShape)
+  }
+  let unsigned_payload_cid = @json.cid_value(
+    unsigned_body, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
   Ok({
     cid,
+    unsigned_payload_cid,
     issuer_kind,
     decision,
     issuer_evidence_cid,
@@ -146,6 +157,15 @@ pub fn admit_effect_risk_acceptance_body(
     scope_approved,
     partial_application_accepted,
   })
+}
+
+///|
+/// Detached authentication signs this CID, excluding self_cid and the
+/// authentication reference. It is not proof that any issuer is trusted.
+pub fn effect_risk_acceptance_unsigned_payload_cid(
+  body : EffectRiskAcceptanceBody,
+) -> String {
+  body.unsigned_payload_cid
 }
 
 ///|
