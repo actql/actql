@@ -37,6 +37,28 @@ canonical row construction, rather than filesystem write count or Appender
 calls. The cost of output admission is distinct from output identity generation;
 the diagnostic does not prove either can be skipped.
 
+## Small-case startup cost
+
+The 100-row narrow fixture used about 225 milliseconds for parent preparation,
+217 milliseconds for child preparation, and 83 milliseconds to start the child
+in one local run. Its three task intervals summed to about 35 milliseconds.
+Both processes load and compile the same 15 MB generated JavaScript runtime,
+then each performs full application preparation. A CPU profile located a large
+part of the fixed startup cost in JavaScript module compilation.
+
+The Node managed Host now enables Node's built-in on-disk module compile cache
+before importing its generated runtime; the standard Node Host does the same.
+This caches V8 code, not ActQL checking results or authority. Node's
+`NODE_DISABLE_COMPILE_CACHE=1` remains an opt-out, and a failed or unavailable
+cache leaves execution unchanged. In a local single-run comparison using a new
+cache directory, the first run took 876 milliseconds and the next fresh-process
+run 587 milliseconds. Parent module import fell from 108 to 24 milliseconds;
+worker preparation fell from 279 to 179 milliseconds. Output identity and
+completion were unchanged. These are diagnostic observations, not a paired
+acceptance result; cache warmup, filesystem policy, and the remaining checking
+cost must remain visible in cold-run reports. See the [Node 22 module compile
+cache contract](https://nodejs.org/download/release/v22.17.0/docs/api/module.html#module-compile-cache).
+
 ## Next changes to test independently
 
 1. Separate immutable application preparation from per-run parameter,

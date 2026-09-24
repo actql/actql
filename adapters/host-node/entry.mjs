@@ -7,6 +7,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {snapshotConfigurations} from './installation.mjs';
 import {completionObserver} from '../host-common/completion-observer.mjs';
 import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';
+import {enableNodeCompileCache} from './compile-cache.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
   '../host-common/run-publication-preflight.mjs';
 
@@ -27,6 +28,7 @@ async function runCapturedStrategyTarget(
   const identityPolicy = preparedManagedIdentityPolicy(
     configurations.managedIdentityPolicy,
   );
+  enableNodeCompileCache();
   const moon = await (runtime ??= import(runtimeUrl.href));
   signal?.throwIfAborted();
   if (!moon.strategyHostConfigureManagedIdentity(

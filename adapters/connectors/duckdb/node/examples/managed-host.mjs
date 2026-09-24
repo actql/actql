@@ -4,9 +4,11 @@ import {createManagedProcessHost} from '../../../../host-node/process-capacity.m
 import {createProcessRetainedStore} from '../../../../store-local/process-service.mjs';
 import {createProcessCompletionCustody} from '../../../../host-node/completion-custody.mjs';
 import {snapshotProcessLimits} from '../../../../host-node/process-accounting.mjs';
+import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
 import {prepareExampleText} from './physical-strategy.mjs';
 
 export async function createManagedExampleHost(limits) {
+  enableNodeCompileCache();
   const capacity = snapshotProcessLimits(limits);
   const host = await createManagedProcessHost(capacity);
   const runs = new Set();

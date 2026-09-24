@@ -2,9 +2,12 @@
 // This example exercises the product checker and standard Host in the worker;
 // it is not a separate fixture evaluator or an execution-proof constructor.
 import {serveManagedStrategy} from '../../../../host-node/managed-strategy-worker.mjs';
+import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
 import {prepareExampleText} from './physical-strategy.mjs';
 import {bindProcessStore} from '../../../../store-local/process-binding.mjs';
 import {installProcessCompletionObserver} from '../../../../host-node/process-completion-observer.mjs';
+
+enableNodeCompileCache();
 
 serveManagedStrategy(async (input, _signal, context) => {
   if (!context.resourceLimits) throw new Error('ManagedApplicationRequiresResourceDelegation');
