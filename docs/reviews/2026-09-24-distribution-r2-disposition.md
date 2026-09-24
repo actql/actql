@@ -35,3 +35,13 @@ a foreign dispatch or Result intent before opening a reader. The native test,
 all-target check, public API check, native remote runtime gate and Cloud's
 local native mTLS smoke passed. This supplies the Site-side physical source;
 it does not transfer bytes to Cloud or publish a Named Result.
+
+At `dae70d26a`, the Values endpoint rechecks the Coordinator output intent,
+observed Site subject and admitted Output Plan before borrowing the common
+native direct Transfer sender. The sender uses the retained manifest reader,
+native HTTP client and durable Transfer journal; its destination origin comes
+from Site configuration rather than the poll envelope. This is an OSS source
+entry point, not yet an HTTPS execute route or Cloud destination. The all-target
+MoonBit check, native Values fixture, native remote runtime gate and generated
+public API check passed locally. The fixture still verifies the physical source
+and independent rows; it does not exercise the new direct send through Cloud.
