@@ -2,17 +2,14 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
+import {invocationBindingsMatch, ownInvocationAuthorization,
+  ownInvocationContext, ownInvocationLimits} from
+  '../host-common/owned-invocation-context.mjs';
 
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
 const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const listOperation = 'salesforce:catalog:list';
 const describeOperation = 'salesforce:catalog:describe';
-const bindingKeys = Object.freeze([
-  'issuerAuthority', 'principal', 'tenant', 'environment',
-  'siteKey', 'siteGeneration', 'runtimeBundleCid',
-  'connectorRegistration', 'connectorRevision', 'resourceOrigin',
-  'runInvocationCid', 'taskAttempt', 'dispatchRequestCid',
-]);
 
 const count = value => Number.isInteger(value) && value >= 0 &&
   value <= 2_147_483_647;
@@ -38,8 +35,8 @@ function validateAuthorization(authorization, operation, originalScope) {
       !count(authorization.scope.siteGeneration)) {
     fail('InvalidSalesforceCatalogAuthorization');
   }
-  if (originalScope !== undefined && bindingKeys.some(
-    key => authorization.scope[key] !== originalScope[key])) {
+  if (originalScope !== undefined &&
+      !invocationBindingsMatch(authorization.scope, originalScope)) {
     fail('ForeignSalesforceCatalogBinding');
   }
   return authorization.scope;
@@ -73,8 +70,8 @@ export async function syncSalesforceCatalog({
   listAuthorization,
   authorizationForDescribe,
   credential,
-  listLimits,
-  describeLimits,
+  listLimits: requestedListLimits,
+  describeLimits: requestedDescribeLimits,
   callResource = callHttpsCredentialResource,
   signal,
 }) {
@@ -88,20 +85,27 @@ export async function syncSalesforceCatalog({
       !credential || typeof callResource !== 'function') {
     fail('InvalidSalesforceCatalogSync');
   }
-  validateLimits(listLimits);
-  validateLimits({...describeLimits,
-    maxResources: describeLimits?.maxFields,
-    maxSelected: describeLimits?.maxFields,
+  validateLimits(requestedListLimits);
+  validateLimits({...requestedDescribeLimits,
+    maxResources: requestedDescribeLimits?.maxFields,
+    maxSelected: requestedDescribeLimits?.maxFields,
   });
-  const listScope = validateAuthorization(listAuthorization, listOperation);
+  const context = ownInvocationContext({
+    authorization: listAuthorization, credential,
+    limits: requestedListLimits,
+    callbacks: {authorizationForDescribe, callResource},
+  });
+  const listLimits = context.limits;
+  const describeLimits = ownInvocationLimits(requestedDescribeLimits);
+  const listScope = validateAuthorization(context.authorization, listOperation);
   signal?.throwIfAborted();
   const prefix = `/services/data/${apiVersion}/sobjects/`;
   const listResponse = await scopedGet({
-    authorization: listAuthorization,
+    authorization: context.authorization,
     path: prefix,
     maxBytes: listLimits.maxBytes,
-    credential,
-    callResource,
+    credential: context.credential,
+    callResource: context.callbacks.callResource,
     signal,
   });
   if (!listResponse.accepted) {
@@ -135,14 +139,15 @@ export async function syncSalesforceCatalog({
       break;
     }
     try {
-      const authorization = await authorizationForDescribe(name);
+      const authorization = ownInvocationAuthorization(
+        await context.callbacks.authorizationForDescribe(name));
       validateAuthorization(authorization, describeOperation, listScope);
       const response = await scopedGet({
         authorization,
         path: `${prefix}${name}/describe`,
         maxBytes: describeLimits.maxBytes,
-        credential,
-        callResource,
+        credential: context.credential,
+        callResource: context.callbacks.callResource,
         signal,
       });
       describeUseCids.push(response.useCid);

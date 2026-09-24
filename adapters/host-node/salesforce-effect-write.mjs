@@ -1,8 +1,9 @@
 import {checked} from '../host-common/runtime-result.mjs';
-import {projectSalesforceSingleObservation, writeSalesforceSingleRecord} from
+import {projectSalesforceSingleObservation,
+  sendRawSalesforceSingleRecord} from
   '../site-node/salesforce-single-write.mjs';
 import {projectSalesforceCollectionObservation,
-  writeSalesforceContinueCollection} from
+  sendRawSalesforceContinueCollection} from
   '../site-node/salesforce-collection-write.mjs';
 import {matchesSalesforceCredentialOrg} from
   '../site-node/salesforce-credential-binding.mjs';
@@ -11,6 +12,8 @@ import {captureClaimedEffectResponse,
   snapshotEffectDispatchClaim,
   snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {ownInvocationContext, ownInvocationLimits} from
+  '../host-common/owned-invocation-context.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -36,6 +39,7 @@ export async function recoverStoredSalesforceSingleResponse({
       typeof authorizeEvidenceRead !== 'function' || !limits) {
     fail('InvalidSalesforceEffectResponseRead');
   }
+  const ownedLimits = ownInvocationLimits(limits);
   const ownedClaim = snapshotEffectDispatchClaim(claim);
   const effect = runtimeCore(commonMoon).effectApplicationControl;
   if (effect.logicalRequestScopeCid(ownedClaim.scope) !== ledger.scopeCid) {
@@ -65,7 +69,7 @@ export async function recoverStoredSalesforceSingleResponse({
         statusCode: stored.statusCode,
         body: stored.responseBytes,
       }),
-      limits,
+      limits: ownedLimits,
     }),
   });
 }
@@ -94,6 +98,7 @@ export async function recoverStoredSalesforceCollectionResponse({
         ownedClaims.length) {
     fail('InvalidSalesforceEffectResponseRead');
   }
+  const ownedLimits = ownInvocationLimits(limits);
   const effect = runtimeCore(commonMoon).effectApplicationControl;
   if (ownedClaims.some(claim =>
     effect.logicalRequestScopeCid(claim.scope) !== ledger.scopeCid)) {
@@ -125,7 +130,7 @@ export async function recoverStoredSalesforceCollectionResponse({
         statusCode: stored.statusCode,
         body: stored.responseBytes,
       }),
-      limits,
+      limits: ownedLimits,
     }),
   });
 }
@@ -161,18 +166,33 @@ export async function captureClaimedSalesforceSingleResponse({
         scope.runInvocationCid, scope.dispatchRequestCid)) {
     fail('ForeignSalesforceEffectWrite');
   }
+  const context = ownInvocationContext({authorization, credential, limits,
+    callbacks: {callResource}});
+  const ownedScope = context.scope;
   checked(moon.salesforceRecheckSingleWriteRequest(
     request, currentObservation));
   signal?.throwIfAborted();
   const requestCid = checked(moon.salesforceSingleWriteRequestCid(
-    request, scope.resourceOrigin, maxRequestIdentityBytes));
+    request, ownedScope.resourceOrigin, maxRequestIdentityBytes));
   const captured = await captureClaimedEffectResponse({
     ledger,
     claim,
     requestCid,
-    execute: () => writeSalesforceSingleRecord({
-      moon, request, currentObservation, authorization, credential,
-      limits, signal, callResource,
+    execute: () => sendRawSalesforceSingleRecord({
+      moon, request, currentObservation,
+      authorization: context.authorization,
+      credential: context.credential,
+      limits: context.limits, signal,
+      callResource: context.callbacks.callResource,
+    }),
+    projectStored: (stored, raw) => projectSalesforceSingleObservation({
+      moon, request,
+      observation: Object.freeze({
+        useCid: stored.credentialUseCid,
+        statusCode: stored.statusCode,
+        body: stored.responseBytes,
+      }),
+      limits: raw.limits,
     }),
   });
   const stored = captured.ownership?.response;
@@ -186,7 +206,7 @@ export async function captureClaimedSalesforceSingleResponse({
       statusCode: stored.statusCode,
       body: stored.responseBytes,
     }),
-    limits,
+    limits: context.limits,
   });
   return Object.freeze({...captured, recovered});
 }
@@ -282,6 +302,9 @@ export async function captureSalesforceCollectionEffectWrite({
         scope.runInvocationCid, scope.dispatchRequestCid)) {
     fail('ForeignSalesforceEffectCollection');
   }
+  const context = ownInvocationContext({authorization, credential, limits,
+    callbacks: {callResource}});
+  const ownedScope = context.scope;
   checked(moon.salesforceRecheckCollectionWriteRequest(
     request, currentObservation));
   if (!checked(moon.salesforceCollectionWriteRequestMatchesPreviewFootprint(
@@ -291,7 +314,7 @@ export async function captureSalesforceCollectionEffectWrite({
   }
   signal?.throwIfAborted();
   const requestCid = checked(moon.salesforceCollectionWriteRequestCid(
-    request, scope.resourceOrigin, maxRequestIdentityBytes));
+    request, ownedScope.resourceOrigin, maxRequestIdentityBytes));
   const rowCids = Array.from({length: count}, (_, index) =>
     moon.salesforceCollectionWriteRequestRowCid(request, index));
   const effect = runtimeCore(commonMoon).effectApplicationControl;
@@ -300,12 +323,25 @@ export async function captureSalesforceCollectionEffectWrite({
     moon.salesforceCollectionWriteRequestEffectKind(request),
     ownedClaims[0].scope, rowCids,
     ownedClaims.map(claim => claim.locator),
-    ownedClaims.map(claim => claim.key), limits.maxRows, maxBindingWork);
+    ownedClaims.map(claim => claim.key), context.limits.maxRows,
+    maxBindingWork);
   const captured = await captureClaimedEffectCollectionResponse({
     ledger, claims: ownedClaims, requestCid,
-    execute: () => writeSalesforceContinueCollection({
-      moon, request, currentObservation, authorization, credential,
-      limits, signal, callResource,
+    execute: () => sendRawSalesforceContinueCollection({
+      moon, request, currentObservation,
+      authorization: context.authorization,
+      credential: context.credential,
+      limits: context.limits, signal,
+      callResource: context.callbacks.callResource,
+    }),
+    projectStored: (stored, raw) => projectSalesforceCollectionObservation({
+      moon, request,
+      observation: Object.freeze({
+        useCid: stored.credentialUseCid,
+        statusCode: stored.statusCode,
+        body: stored.responseBytes,
+      }),
+      limits: raw.limits,
     }),
   });
   if (captured.claimed ||
@@ -321,7 +357,7 @@ export async function captureSalesforceCollectionEffectWrite({
       statusCode: response.statusCode,
       body: response.responseBytes,
     }),
-    limits,
+    limits: context.limits,
   });
   return Object.freeze({...captured, recovered});
 }
