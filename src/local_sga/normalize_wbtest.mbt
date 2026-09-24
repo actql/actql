@@ -234,6 +234,98 @@ fn source_graph(
 }
 
 ///|
+fn limited_normalize(
+  managed_view : Bool,
+  limits : @storage.Limits,
+) -> NormalizeExecution {
+  let producer = source_owner()
+  let source = source_graph(producer, Ref(true))
+  let owner = consumer_owner(producer)
+  let read = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+  if managed_view {
+    start_normalize_view(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      @graph.producer_read_view(read).unwrap(),
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+  } else {
+    start_normalize(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      read,
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+  }
+}
+
+///|
+fn check_normalize_work_workspace_limits(managed_view : Bool) -> Unit raise {
+  // Two one-property nodes require 5 slots each. The labeled,
+  // one-property edge requires 8. Wire-node work is 5 + 5 + 11.
+  let exact = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 21,
+    max_workspace_slots: 18,
+  })
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(exact, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(exact, 1).unwrap() is Complete(_, progress=3L, work=3L),
+  )
+  assert_eq(cleanup_normalize(exact), Ok(true))
+
+  let short_work = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 20,
+    max_workspace_slots: 18,
+  })
+  assert_true(advance_normalize(short_work, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(short_work, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(short_work, 1).unwrap()
+    is Failed(Output(@graph.Storage(@storage.WorkLimit)), progress=2L, work=2L),
+  )
+  assert_true(normalize_cleanup_pending(short_work))
+  assert_eq(cleanup_normalize(short_work), Ok(true))
+
+  let short_workspace = limited_normalize(managed_view, {
+    ..storage_limits(),
+    max_work: 21,
+    max_workspace_slots: 17,
+  })
+  assert_true(advance_normalize(short_workspace, 1).unwrap() is Continue(_))
+  assert_true(advance_normalize(short_workspace, 1).unwrap() is Continue(_))
+  assert_true(
+    advance_normalize(short_workspace, 1).unwrap()
+    is Failed(
+      Output(@graph.Storage(@storage.WorkspaceLimit)),
+      progress=2L,
+      work=2L
+    ),
+  )
+  assert_true(normalize_cleanup_pending(short_workspace))
+  assert_eq(cleanup_normalize(short_workspace), Ok(true))
+}
+
+///|
+test "normalize admits exact and one-short work and workspace" {
+  check_normalize_work_workspace_limits(false)
+}
+
+///|
+test "normalize managed view admits exact and one-short work and workspace" {
+  check_normalize_work_workspace_limits(true)
+}
+
+///|
 test "normalize advances in bounded steps and feeds two consumers" {
   let producer = source_owner()
   let source_live = Ref(true)

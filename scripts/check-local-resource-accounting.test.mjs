@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 4 with full work\/workspace assurance, 21 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 23 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
@@ -361,8 +361,27 @@ test('resource completion requires each unselected Carrier prefix', () => {
 });
 
 test('resource completion requires work and workspace proof independently', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+  assert.match(run(undefined, routes => {
+    const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'normalize_graph');
+    delete normalize.resource_assurance.entrypoint;
+  }, ['--require-boundary-complete']),
     /SGA normalize_graph: entrypoint work\/workspace assurance is missing/);
+});
+
+test('normalize requires work and workspace evidence for both paths', () => {
+  for (const path of ['entrypoint', 'selected_entrypoint']) {
+    assert.match(run(undefined, routes => {
+      const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'normalize_graph');
+      delete normalize.resource_assurance[path].work.one_short_limit;
+    }), new RegExp(`SGA normalize_graph: ${path} operation work needs exact and one-short proofs`));
+    assert.match(run(undefined, routes => {
+      const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'normalize_graph');
+      delete normalize.resource_assurance[path].workspace;
+    }), new RegExp(`SGA normalize_graph: ${path} operation needs work and workspace assurance`));
+  }
 });
 
 test('graph bounds retains both exact resource dimensions', () => {

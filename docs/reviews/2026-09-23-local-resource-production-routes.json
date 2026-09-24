@@ -2288,6 +2288,13 @@
           "fixture": "normalize confirms cancellation before reclaiming partial output"
         },
         {
+          "role": "normalize_work_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize admits exact and one-short work and workspace"
+        },
+        {
           "role": "normalize_view_exact_node_capacity",
           "suite": "moon:local_sga",
           "targets": ["js", "wasm", "native"],
@@ -2314,6 +2321,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_sga/normalize_wbtest.mbt",
           "fixture": "normalize managed view cancels and reclaims partial output"
+        },
+        {
+          "role": "normalize_view_work_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/normalize_wbtest.mbt",
+          "fixture": "normalize managed view admits exact and one-short work and workspace"
         }
       ],
       "environment_tests": [
@@ -2344,6 +2358,28 @@
           "one_short_limit": "normalize_view_one_short_node_capacity",
           "in_flight_cancel": "normalize_selected_in_flight_host_timer",
           "cleanup": "normalize_view_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "normalize_work_workspace_exact_one_short",
+            "one_short_limit": "normalize_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "normalize_work_workspace_exact_one_short",
+            "one_short_limit": "normalize_work_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "normalize_view_work_workspace_exact_one_short",
+            "one_short_limit": "normalize_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "normalize_view_work_workspace_exact_one_short",
+            "one_short_limit": "normalize_view_work_workspace_exact_one_short"
+          }
         }
       }
     },

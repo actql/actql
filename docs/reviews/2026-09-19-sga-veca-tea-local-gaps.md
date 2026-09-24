@@ -5,7 +5,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 21 have operation-specific
-boundary records, 6 have all four lifecycle roles, and 4 have exact and
+boundary records, 6 have all four lifecycle roles, and 5 have exact and
 one-short work/workspace assurance. Strict completion remains red.
 
 The `ad0c2fce` follow-up review found that the bounded binary providers
@@ -50,6 +50,16 @@ standard Host timer establishes delivered cancellation separately. Gate
 mutation tests reject removal of either work or workspace evidence. This
 raises full work/workspace route assurance from 2/68 to 4/68, without
 claiming that the other Bridge routes or the providerless compute are done.
+
+Graph normalization now has independent work/workspace boundary fixtures for
+both the direct and managed-view production entries. The two one-property
+nodes and one labeled, one-property edge require 21 wire-node work units and
+18 retained structural slots. Exact limits complete at quantum one; each
+one-short limit stops before the final edge and cleanup reclaims partial
+output. The fixtures pass on JS, Wasm, and native (2/2 per target). Both
+entrypoints are bound to the route gate, raising full work/workspace route
+assurance from 4/68 to 5/68. This does not close other Graph operations or
+the strict completion gate.
 
 At source SHA `a389a4d356ac92ab6e5257d26263dcbc18914dfd`, the
 execution-relation and query-integration suites passed 1,447/1,447 on each
