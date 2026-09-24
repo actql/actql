@@ -510,6 +510,19 @@ pub fn client_program_admit_publication_binding_set(
 }
 
 ///|
+/// Admit the complete checked Result publication limits and their consumers.
+#export_name("clientProgramAdmitPublicationPlanFacts")
+pub fn client_program_admit_publication_plan_facts(
+  prepared : @publication_host.PreparedClientProgram,
+  limits : Array[String],
+  bindings : Array[String],
+) -> Result[Unit, @publication_host.ClientPublicationPlanFactIssue] {
+  @publication_host.admit_prepared_client_publication_plan_facts(
+    prepared, limits, bindings, 1000, 100000, 10000, 100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
