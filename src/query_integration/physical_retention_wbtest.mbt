@@ -126,6 +126,99 @@ test "checked Result pin rejects a foreign owner and retains its exact output" {
 }
 
 ///|
+test "checked Result pin set rolls back partial acquisition and releases all consumers" {
+  let (run, issuer) = captured_graph_fixture()
+  let (foreign, foreign_issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  let foreign_graph = @strategy.captured_dag_graph(foreign)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let foreign_occurrence = @strategy.graph_result_occurrence(foreign_graph, 0).unwrap()
+  assert_true(
+    @strategy.pin_captured_result_output_set(
+      run,
+      [(task, occurrence), (task, foreign_occurrence)],
+      2,
+    )
+    is Err(ForeignCandidate),
+  )
+  assert_true(
+    @strategy.pin_captured_result_output_set(
+      run,
+      [(task, occurrence), (task, occurrence)],
+      1,
+    )
+    is Err(_),
+  )
+  // Both failed acquisitions released their first pin. The same ceiling now
+  // permits one checked consumer, which remains live after ordinary close.
+  let single = @strategy.pin_captured_result_output_set(
+    run,
+    [(task, occurrence)],
+    1,
+  ).unwrap()
+  let borrowed = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(single, 0).unwrap(),
+  )
+  @strategy.close_captured_task_output(run, task)
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_true(@strategy.release_captured_result_output_set(single))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_false(@strategy.release_captured_result_output_set(single))
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  @mock.close_mock_query_issuer(foreign_issuer)
+  @strategy.stop_captured_dag(foreign)
+  @strategy.close_captured_task_output(foreign, 0)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
+test "checked Result pin set retains repeated consumers until joint release" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let set = @strategy.pin_captured_result_output_set(
+    run,
+    [(task, occurrence), (task, occurrence)],
+    2,
+  ).unwrap()
+  let first = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(set, 0).unwrap(),
+  )
+  let second = @strategy.captured_output_pin_materialized(
+    @strategy.captured_result_output_set_pin_at(set, 1).unwrap(),
+  )
+  @strategy.close_captured_task_output(run, task)
+  assert_true(@execution.completed_output_available(first))
+  assert_true(@execution.completed_output_available(second))
+  assert_true(@strategy.release_captured_result_output_set(set))
+  assert_false(@execution.completed_output_available(first))
+  assert_false(@execution.completed_output_available(second))
+  assert_true(@strategy.captured_result_output_set_pin_at(set, 0) is None)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
 test "checked Result view streams from a pin after its task port closes" {
   let (run, issuer) = captured_graph_fixture()
   let graph = @strategy.captured_dag_graph(run)

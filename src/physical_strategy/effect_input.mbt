@@ -8,6 +8,84 @@ struct CapturedEffectInput {
 }
 
 ///|
+/// One Effect Run's complete source inventory. Members without a Result
+/// source retain their position but require no pin. The source inventory is
+/// derived from the checked graph, never supplied by a caller.
+struct CapturedEffectInputs {
+  entries : Array[CapturedEffectInput?]
+  pins : CapturedResultOutputSet
+  mut live : Bool
+}
+
+///|
+/// Pin all Result-consuming members as one custody step. A later missing,
+/// foreign, or over-limit source cannot strand earlier consumer holdings.
+pub fn pin_captured_effect_sources(
+  run : CapturedEffectRunDAG,
+  max_pins : Int,
+) -> Result[CapturedEffectInputs, RunIssue] {
+  let requests : Array[(Int, @execution.ManagedResultOccurrence)] = []
+  let sources : Array[CheckedEffectSourcePort?] = []
+  for index in 0..<captured_effect_run_source_count(run) {
+    let source = captured_effect_run_source_at(run, index)
+    if source is Some(source) {
+      if source.member_index != index {
+        return Err(ForeignCandidate)
+      }
+      requests.push((source.stage, source.occurrence))
+    }
+    sources.push(source)
+  }
+  let pins = match
+    pin_captured_result_output_set(run.captured, requests, max_pins) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let entries : Array[CapturedEffectInput?] = []
+  let mut pin_index = 0
+  for source in sources {
+    match source {
+      Some(source) => {
+        let pin = captured_result_output_set_pin_at(pins, pin_index).unwrap()
+        entries.push(Some({ source, pin, }))
+        pin_index += 1
+      }
+      None => entries.push(None)
+    }
+  }
+  Ok({ entries, pins, live: true, })
+}
+
+///|
+pub fn captured_effect_inputs_count(value : CapturedEffectInputs) -> Int {
+  value.entries.length()
+}
+
+///|
+pub fn captured_effect_input_at(
+  value : CapturedEffectInputs,
+  member_index : Int,
+) -> CapturedEffectInput? {
+  if value.live {
+    value.entries.get(member_index).bind(entry => entry)
+  } else {
+    None
+  }
+}
+
+///|
+/// Revoke every consumer alias. Already returned input aliases share the
+/// underlying pins and become unavailable after this release.
+pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {
+  if !value.live {
+    return false
+  }
+  value.live = false
+  release_captured_result_output_set(value.pins) |> ignore
+  true
+}
+
+///|
 /// Capture only the source retained by this checked Effect Run. An authored
 /// name or caller-supplied output cannot replace its checked Stage Result port.
 /// Nonterminal and managed representations require their own retained output
