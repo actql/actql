@@ -385,7 +385,11 @@ pub fn salesforce_project_single_effect_outcome(
     ) {
     Ok(value) =>
       match
-        @publication.parse_effect_outcome_shape(
+        @publication.check_effect_preview_row_outcome(
+          preview,
+          member_index,
+          row_index,
+          @catalog.write_row_effect_projection_row_cid(value),
           @catalog.write_row_effect_projection_wire(value),
           max_wire_bytes,
           max_nodes,
@@ -809,19 +813,29 @@ pub fn salesforce_collection_write_response_row_cid(
 ///|
 #export_name("salesforceProjectCollectionEffectOutcome")
 pub fn salesforce_project_collection_effect_outcome(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  first_row_index : Int,
   response : @catalog.WriteCollectionResponse,
   index : Int,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
 ) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue {
+  if first_row_index < 0 || index < 0 || first_row_index > 2147483647 - index {
+    raise InvalidResource
+  }
   match
     @catalog.project_collection_effect_outcome_at(
       response, index, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) =>
       match
-        @publication.parse_effect_outcome_shape(
+        @publication.check_effect_preview_row_outcome(
+          preview,
+          member_index,
+          first_row_index + index,
+          @catalog.write_row_effect_projection_row_cid(value),
           @catalog.write_row_effect_projection_wire(value),
           max_wire_bytes,
           max_nodes,
