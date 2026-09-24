@@ -146,6 +146,21 @@ try {
       return {task: Number(match[1]), elapsedMicroseconds,
         elapsedMilliseconds: elapsedMicroseconds / 1000};
     });
+  const taskUsages = stdout.split('\n')
+    .filter(line => line.startsWith('task-usage:'))
+    .map(line => {
+      const match = /^task-usage:([1-9][0-9]*):((?:0|[1-9][0-9]*):){5}(?:0|[1-9][0-9]*)$/.exec(line);
+      assert(match, 'InvalidNativeTaskUsage');
+      const [task, measurementWork, measurementBytes, measurementNodes,
+        comparisonWork, comparisonBytes, comparisonNodes] =
+        line.slice('task-usage:'.length).split(':').map(Number);
+      for (const value of [task, measurementWork, measurementBytes,
+        measurementNodes, comparisonWork, comparisonBytes, comparisonNodes]) {
+        assert(Number.isSafeInteger(value) && value >= 0, 'InvalidNativeTaskUsage');
+      }
+      return {task, measurementWork, measurementBytes, measurementNodes,
+        comparisonWork, comparisonBytes, comparisonNodes};
+    });
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);
   assert(Number.isSafeInteger(result.execution_us) && result.execution_us >= 0,
@@ -166,13 +181,15 @@ try {
   assert.equal(result.acquisition.comparison_rows, fixture.rows);
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: finalTask}, (_, index) => index + 1));
+  assert.deepEqual(taskUsages.map(value => value.task),
+    Array.from({length: finalTask}, (_, index) => index + 1));
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
     scope: registered ? 'registered-feasibility' : 'calibration-training',
     elapsedMilliseconds,
     executionMilliseconds: result.execution_us / 1000,
     cleanupMilliseconds: result.cleanup_us / 1000,
-    taskIntervals, selections, result,
+    taskIntervals, taskUsages, selections, result,
     selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
 } catch (error) {

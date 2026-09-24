@@ -482,11 +482,14 @@ both use the same checked Program and Result oracle.
 
 The Native probe also reports its own execution and confirmed cleanup
 intervals, the terminal common ledger usage, and acquisition guard and
-comparison charges read from the completed observation. These are observed
-product facts rather than quantities inferred from the fixture. Per-task
-compute charges, receipt metadata parity, and the independent Comparator
-admission still need explicit connection before a Native sample can enter the
-registered paired assessment.
+comparison charges read from the completed observation. It now reads each
+completed task's value measurement and comparison charge from the exact Local
+or DuckDB attempt. A mixed Local/DuckDB three-task case and a four-task join
+case both retain the independent final CID while reporting all task charges.
+These are observed product facts rather than quantities inferred from the
+fixture. Receipt metadata parity and independent Comparator admission still
+need explicit connection before a Native sample can enter the registered
+paired assessment.
 
 The Native rate profile is admitted against the clean revision, exact release
 binary digest, distinct training and target fixtures, all forced-choice

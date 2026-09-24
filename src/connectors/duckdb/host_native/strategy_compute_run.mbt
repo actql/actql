@@ -121,6 +121,42 @@ pub fn native_strategy_compute_run_task_count(
 }
 
 ///|
+/// Read the value and predicate measurements owned by the exact completed
+/// task. This reports the product attempt rather than estimating work from a
+/// fixture or from the selected capability.
+fn native_strategy_compute_task_usage(
+  run : NativeStrategyComputeRun,
+  task : Int,
+) -> (Int, Int, Int, Int, Int, Int)? {
+  for entry in run.entries {
+    if entry.runtime.task_index != task || entry.runtime.output is None {
+      continue
+    }
+    let attempt = @duckdb_driver.captured_duckdb_attempt(entry.runtime.task)
+    guard @duckdb_compute.duckdb_compute_measurement_usage(attempt)
+      is Some((work, bytes, nodes)) &&
+      @duckdb_compute.duckdb_compute_demand_usage(attempt) is Some(demand) else {
+      return None
+    }
+    match demand {
+      @duckdb.Comparison(usage) =>
+        return Some(
+          (
+            work,
+            bytes,
+            nodes,
+            usage.physical_work,
+            usage.physical_bytes,
+            usage.physical_nodes,
+          ),
+        )
+      _ => return Some((work, bytes, nodes, 0, 0, 0))
+    }
+  }
+  None
+}
+
+///|
 /// Stop admission and release every runtime whose physical and common cleanup
 /// facts are confirmed. Failures do not skip independent entries, and another
 /// call retries only owners that remain unresolved.

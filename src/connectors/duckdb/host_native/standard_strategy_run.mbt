@@ -37,6 +37,33 @@ pub(all) enum NativeStandardStrategyRunIssue {
 pub(all) struct NativeStandardStrategyTaskCompletion {
   task : Int
   output : @execution.CompletedOutput
+  usage : NativeStandardStrategyTaskUsage?
+}
+
+///|
+/// Product measurements for the completed task's actual implementation.
+/// Logical obligations and ledger capacity remain separate accounting axes.
+pub(all) struct NativeStandardStrategyTaskUsage {
+  measurement_work : Int
+  measurement_bytes : Int
+  measurement_nodes : Int
+  comparison_work : Int
+  comparison_bytes : Int
+  comparison_nodes : Int
+}
+
+///|
+fn native_standard_task_usage(
+  measured : (Int, Int, Int, Int, Int, Int),
+) -> NativeStandardStrategyTaskUsage {
+  {
+    measurement_work: measured.0,
+    measurement_bytes: measured.1,
+    measurement_nodes: measured.2,
+    comparison_work: measured.3,
+    comparison_bytes: measured.4,
+    comparison_nodes: measured.5,
+  }
 }
 
 ///|
@@ -201,7 +228,22 @@ pub fn execute_next_native_standard_strategy_task(
       run.stop_dispatch()
       return Err(InvalidSelection)
     }
-    return Ok(Some({ task: task_index, output, }))
+    let usage = if run.retained_profile is Some(_) {
+      let last = run.local_owners[run.local_owners.length() - 1]
+      let measured = (last.operations.guard_usage)()
+      if measured.length() == 3 {
+        Some(
+          native_standard_task_usage(
+            (measured[0], measured[1], measured[2], 0, 0, 0),
+          ),
+        )
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+    return Ok(Some({ task: task_index, output, usage, }))
   }
   if !physical_equal(
       selected,
@@ -261,7 +303,16 @@ pub fn execute_next_native_standard_strategy_task(
         None
       },
     ) {
-    Ok(output) => Ok(Some({ task: task_index, output, }))
+    Ok(output) =>
+      Ok(
+        Some({
+          task: task_index,
+          output,
+          usage: native_strategy_compute_task_usage(run.runtimes, task_index).map(
+            native_standard_task_usage,
+          ),
+        }),
+      )
     Err(issue) => {
       run.accepting = false
       run.stop_dispatch()

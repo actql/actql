@@ -151,11 +151,30 @@ fn execute_timed_native_strategy_run(
         if elapsed < 0L {
           abort("invalid monotonic interval")
         }
+        guard completion.usage is Some(usage) else {
+          abort("completed task lacks product measurement")
+        }
         println(
           "task-elapsed-us:" +
           completion.task.to_string() +
           ":" +
           elapsed.to_string(),
+        )
+        println(
+          "task-usage:" +
+          completion.task.to_string() +
+          ":" +
+          usage.measurement_work.to_string() +
+          ":" +
+          usage.measurement_bytes.to_string() +
+          ":" +
+          usage.measurement_nodes.to_string() +
+          ":" +
+          usage.comparison_work.to_string() +
+          ":" +
+          usage.comparison_bytes.to_string() +
+          ":" +
+          usage.comparison_nodes.to_string(),
         )
       }
       Ok(None) => return Ok(())

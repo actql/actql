@@ -185,6 +185,16 @@ pub(all) enum NativeStandardStrategyRunIssue {
 pub(all) struct NativeStandardStrategyTaskCompletion {
   task : Int
   output : @execution_relation.CompletedOutput
+  usage : NativeStandardStrategyTaskUsage?
+}
+
+pub(all) struct NativeStandardStrategyTaskUsage {
+  measurement_work : Int
+  measurement_bytes : Int
+  measurement_nodes : Int
+  comparison_work : Int
+  comparison_bytes : Int
+  comparison_nodes : Int
 }
 
 pub(all) enum NativeStrategyComputeCleanupIssue {
