@@ -6,6 +6,7 @@ import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
+  executionShape,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
@@ -28,6 +29,12 @@ test('portable Host package compiles the ordinary Values Program', () => {
     {rela: true});
   const prepared = prepare(read('values.json'), 'json', environment);
   const compilation = compileValues(prepared);
+  assert.deepEqual(executionShape(compilation), {
+    planNodeId: 'values_0',
+    outputContractCid:
+      'sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c',
+    resultNames: ['answer'],
+  });
   const wires = privateCompilationWires(compilation);
   const plan = JSON.parse(wires.executablePlan);
   const facts = JSON.parse(wires.factManifest);

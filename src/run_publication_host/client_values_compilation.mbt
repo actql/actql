@@ -3,6 +3,7 @@ pub(all) enum ClientValuesCompilationIssue {
   Plan(ClientValuesExecutablePlanIssue)
   Material(ClientExecutionMaterialIssue)
   AoA(ClientValuesAoAIdentityIssue)
+  Fragment(ClientValuesFragmentIssue)
   Template(@publication.RunEvidenceValueIssue)
   CompiledPlan(@publication.PublicationContractIssue)
 }
@@ -20,6 +21,8 @@ pub struct ClientValuesCompilation {
   plan : ClientValuesExecutablePlan
   template : @publication.RunEvidenceValue
   compiled_plan : @publication.PublicationContract
+  fragment : ClientValuesFragmentNode
+  result_names : Array[String]
 }
 
 ///|
@@ -41,6 +44,29 @@ pub fn client_values_compilation_compiled_plan(
   value : ClientValuesCompilation,
 ) -> @publication.PublicationContract {
   value.compiled_plan
+}
+
+///|
+/// The one checked Plan node and declared Result inventory. These are
+/// compilation coordinates, not dispatch authority or Site selection.
+pub fn client_values_compilation_plan_node_id(
+  value : ClientValuesCompilation,
+) -> String {
+  client_values_fragment_node_id(value.fragment)
+}
+
+///|
+pub fn client_values_compilation_output_contract_cid(
+  value : ClientValuesCompilation,
+) -> String {
+  client_values_fragment_output_contract_cid(value.fragment)
+}
+
+///|
+pub fn client_values_compilation_result_names(
+  value : ClientValuesCompilation,
+) -> Array[String] {
+  value.result_names.copy()
 }
 
 ///|
@@ -114,7 +140,21 @@ pub fn issue_prepared_client_values_compilation(
     Ok(compiled) => compiled
     Err(issue) => return Err(CompiledPlan(issue))
   }
-  Ok({ plan, template, compiled_plan, })
+  let fragment = match
+    issue_prepared_client_values_fragment(
+      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(fragment) => fragment
+    Err(issue) => return Err(Fragment(issue))
+  }
+  let result_names : Array[String] = []
+  for index in 0..<prepared_client_result_count(value) {
+    guard prepared_client_result_name(value, index) is Some(name) else {
+      return Err(Plan(Encoding))
+    }
+    result_names.push(name)
+  }
+  Ok({ plan, template, compiled_plan, fragment, result_names, })
 }
 
 ///|

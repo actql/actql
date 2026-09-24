@@ -175,6 +175,32 @@ pub fn client_values_host_compiled_plan_wire(
 }
 
 ///|
+/// In-process checked execution coordinates for the single Values node.
+/// The Site still needs an authorized candidate, grant and Run dispatch.
+#export_name("clientValuesHostPlanNodeId")
+pub fn client_values_host_plan_node_id(
+  value : @host.ClientValuesCompilation,
+) -> String {
+  @host.client_values_compilation_plan_node_id(value)
+}
+
+///|
+#export_name("clientValuesHostOutputContractCid")
+pub fn client_values_host_output_contract_cid(
+  value : @host.ClientValuesCompilation,
+) -> String {
+  @host.client_values_compilation_output_contract_cid(value)
+}
+
+///|
+#export_name("clientValuesHostResultNames")
+pub fn client_values_host_result_names(
+  value : @host.ClientValuesCompilation,
+) -> Array[String] {
+  @host.client_values_compilation_result_names(value)
+}
+
+///|
 /// The Host must first admit caller input intent and authority scope. This
 /// owner then binds the checked Program and effective Parameter Values to the
 /// caller request ID; neither the CID nor this handle grants authorization.

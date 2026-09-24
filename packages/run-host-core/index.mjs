@@ -76,6 +76,15 @@ export function privateCompilationWires(compilation) {
   });
 }
 
+export function executionShape(compilation) {
+  const {value} = requireHandle(compilations, compilation);
+  return Object.freeze({
+    planNodeId: owner.clientValuesHostPlanNodeId(value),
+    outputContractCid: owner.clientValuesHostOutputContractCid(value),
+    resultNames: Object.freeze([...owner.clientValuesHostResultNames(value)]),
+  });
+}
+
 // The Host must establish scope and admitted input intent before calling this
 // pure identity operation. The returned handle is not a Run or a grant.
 export function prepareRequest(prepared, authorityScopeCid, requestId,

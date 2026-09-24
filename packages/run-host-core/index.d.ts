@@ -63,6 +63,11 @@ export function prepare(document: string, format: 'json' | 'yaml',
 export function compileValues(prepared: PreparedProgram): ValuesCompilation;
 export function privateCompilationWires(
   compilation: ValuesCompilation): PrivateCompilationWires;
+export function executionShape(compilation: ValuesCompilation): Readonly<{
+  planNodeId: string;
+  outputContractCid: string;
+  resultNames: readonly string[];
+}>;
 // The Host establishes authority scope and admitted input intent. An identity
 // handle or its fields do not grant Run access or permission to dispatch.
 export function prepareRequest(prepared: PreparedProgram,
