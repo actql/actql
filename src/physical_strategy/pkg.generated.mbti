@@ -42,6 +42,8 @@ pub fn bind_captured_effect_preview_inputs(CapturedEffectInputs, @program_check.
 
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
+pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedAnyResultBorrow, RunIssue]
+
 pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
 
 pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
@@ -53,6 +55,18 @@ pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (Residen
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn captured_any_result_borrow_available(CapturedAnyResultBorrow) -> Bool
+
+pub fn captured_any_result_borrow_cell_output(CapturedAnyResultBorrow) -> @execution_relation.CompletedOutput?
+
+pub fn captured_any_result_borrow_matches_carrier(CapturedAnyResultBorrow, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_any_result_borrow_matches_managed(CapturedAnyResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
+
+pub fn captured_any_result_output_set_borrow_at(CapturedAnyResultOutputSet, Int) -> CapturedAnyResultBorrow?
 
 pub fn captured_carrier_managed_task_input(CapturedDAG, Int, @execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.ProducerReadReference, input_index? : Int) -> Result[@execution_relation.CarrierManagedProducerRead, RunIssue]
 
@@ -72,11 +86,15 @@ pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
+pub fn captured_effect_input_matches_carrier(CapturedEffectInput, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_effect_input_matches_managed(CapturedEffectInput, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
 pub fn captured_effect_input_member_index(CapturedEffectInput) -> Int
 
 pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relation.ManagedResultOccurrence
 
-pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput
+pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput?
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
@@ -330,6 +348,8 @@ pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[Ca
 
 pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn pin_captured_any_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedAnyResultOutputSet, RunIssue]
+
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
 
 pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
@@ -433,6 +453,10 @@ pub fn record_managed_transfer_source_stop(ManagedTransferProgress) -> Bool
 pub fn refresh_captured_retention(CapturedDAG) -> Unit
 
 pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool, @physical_resources.LedgerIssue]
+
+pub fn release_captured_any_result_borrow(CapturedAnyResultBorrow) -> Bool
+
+pub fn release_captured_any_result_output_set(CapturedAnyResultOutputSet) -> Bool
 
 pub fn release_captured_effect_input(CapturedEffectInput) -> Bool
 
@@ -585,6 +609,10 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 // Errors
 
 // Types and methods
+type CapturedAnyResultBorrow
+
+type CapturedAnyResultOutputSet
+
 type CapturedDAG
 
 type CapturedEffectInput

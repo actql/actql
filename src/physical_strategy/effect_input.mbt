@@ -1,10 +1,10 @@
 ///|
-/// One checked Effect source occurrence and its exact captured cell-backed
-/// output. The ordinary task port may close while this owner is live. This is
-/// neither a Preview nor an apply permit, and it does not copy Result cells.
+/// One checked Effect source occurrence and its exact captured output. The
+/// ordinary task port may close while this owner is live. Resident material
+/// remains with the installed Host; this neither copies rows nor permits apply.
 struct CapturedEffectInput {
   source : CheckedEffectSourcePort
-  borrow : CapturedResultBorrow
+  borrow : CapturedAnyResultBorrow
 }
 
 ///|
@@ -14,7 +14,7 @@ struct CapturedEffectInput {
 struct CapturedEffectInputs {
   run : CapturedEffectRunDAG
   entries : Array[CapturedEffectInput?]
-  pins : CapturedResultOutputSet
+  pins : CapturedAnyResultOutputSet
   mut live : Bool
 }
 
@@ -48,7 +48,7 @@ pub fn pin_captured_effect_sources(
     sources.push(source)
   }
   let pins = match
-    pin_captured_result_output_set(run.captured, requests, max_pins) {
+    pin_captured_any_result_output_set(run.captured, requests, max_pins) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -57,7 +57,7 @@ pub fn pin_captured_effect_sources(
   for source in sources {
     match source {
       Some(source) => {
-        let borrow = captured_result_output_set_borrow_at(pins, pin_index).unwrap()
+        let borrow = captured_any_result_output_set_borrow_at(pins, pin_index).unwrap()
         entries.push(Some({ source, borrow, }))
         pin_index += 1
       }
@@ -155,7 +155,7 @@ pub fn bind_captured_effect_preview_inputs(
   for index in indexes {
     if index is Some(index) {
       guard inputs.entries.get(index).bind(value => value) is Some(input) &&
-        captured_result_borrow_available(input.borrow) else {
+        captured_any_result_borrow_available(input.borrow) else {
         return Err(NotReady)
       }
     }
@@ -184,7 +184,7 @@ pub fn captured_effect_preview_input_at(
       index.bind(index => value.inputs.entries.get(index).bind(entry => entry))
     })
   input.bind(input => {
-    if captured_result_borrow_available(input.borrow) {
+    if captured_any_result_borrow_available(input.borrow) {
       Some(input)
     } else {
       None
@@ -216,7 +216,7 @@ pub fn captured_effect_input_at(
   .get(member_index)
   .bind(entry => entry)
   .bind(input => {
-    if captured_result_borrow_available(input.borrow) {
+    if captured_any_result_borrow_available(input.borrow) {
       Some(input)
     } else {
       None
@@ -232,15 +232,15 @@ pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {
     return false
   }
   value.live = false
-  release_captured_result_output_set(value.pins) |> ignore
+  release_captured_any_result_output_set(value.pins) |> ignore
   true
 }
 
 ///|
 /// Capture only the source retained by this checked Effect Run. An authored
 /// name or caller-supplied output cannot replace its checked Stage Result port.
-/// Nonterminal and managed representations require their own retained output
-/// path before they can be accepted as Effect inputs.
+/// A resident output can be pinned here, but its concrete representation and
+/// checked Result view must still be supplied before any Effect payload exists.
 pub fn pin_captured_effect_source(
   run : CapturedEffectRunDAG,
   member_index : Int,
@@ -251,7 +251,7 @@ pub fn pin_captured_effect_source(
     return Err(ForeignCandidate)
   }
   let borrow = match
-    borrow_captured_result_output(
+    borrow_captured_any_result_output(
       run.captured,
       source.task,
       source.occurrence,
@@ -273,7 +273,7 @@ pub fn captured_effect_input_member_index(value : CapturedEffectInput) -> Int {
 pub fn captured_effect_input_occurrence(
   value : CapturedEffectInput,
 ) -> @execution.ManagedResultOccurrence {
-  captured_result_borrow_occurrence(value.borrow)
+  captured_any_result_borrow_occurrence(value.borrow)
 }
 
 ///|
@@ -282,8 +282,27 @@ pub fn captured_effect_input_occurrence(
 /// preparation, not by returning a caller-defined table here.
 pub fn captured_effect_input_output(
   value : CapturedEffectInput,
-) -> @execution.CompletedOutput {
-  captured_result_borrow_output(value.borrow)
+) -> @execution.CompletedOutput? {
+  captured_any_result_borrow_cell_output(value.borrow)
+}
+
+///|
+/// The Host's concrete resident output must be the same committed generation
+/// that this checked Effect source pinned; an equal CID or Result name is not
+/// enough. Matching does not establish a view or grant mutation authority.
+pub fn[T] captured_effect_input_matches_managed(
+  value : CapturedEffectInput,
+  output : @execution.ManagedCompletedOutput[T],
+) -> Bool {
+  captured_any_result_borrow_matches_managed(value.borrow, output)
+}
+
+///|
+pub fn captured_effect_input_matches_carrier(
+  value : CapturedEffectInput,
+  output : @execution.CarrierManagedCompletedOutput,
+) -> Bool {
+  captured_any_result_borrow_matches_carrier(value.borrow, output)
 }
 
 ///|
@@ -305,21 +324,19 @@ pub fn start_captured_effect_input_export(
   @execution.CompletedResultRelationExportPreparation,
   @execution.CompletedExportIssue,
 ] {
-  start_captured_result_borrow_export(
-    value.borrow,
-    result_view,
-    max_rows,
-    values,
-    payload_wire,
-    logical_wire,
-    schema_limits,
-    max_batch_bytes,
-  )
+  match value.borrow.kind {
+    Cells(borrow) =>
+      start_captured_result_borrow_export(
+        borrow, result_view, max_rows, values, payload_wire, logical_wire, schema_limits,
+        max_batch_bytes,
+      )
+    Resident(_) => Err(NotCellRepresentation)
+  }
 }
 
 ///|
 /// End the Effect consumer's retention once its Preview input has been safely
 /// captured or abandoned. This does not acknowledge any mutation outcome.
 pub fn release_captured_effect_input(value : CapturedEffectInput) -> Bool {
-  release_captured_result_borrow(value.borrow)
+  release_captured_any_result_borrow(value.borrow)
 }

@@ -100,15 +100,13 @@ The static Mapping/Command close now returns one opaque
 complete Effect inventory. Downstream capture must consume this same owner;
 the static close does not satisfy conversion, current authority, or apply
 obligations.
-The shared Captured DAG now offers a bounded pin for a completed cell-backed
-task output. Closing the ordinary output port prevents new pins while an
-existing pin keeps the allocation charged and avoids revoking its borrowed
-view solely because of port close. The original completion must still be
-available. Managed and external resident outputs are rejected by this pin:
-their physical owner must supply an equivalent retention proof. The Effect
-source port can now bind that pin to the exact checked Result occurrence for
-cell-backed terminal outputs. It is not yet a complete Preview input or the
-standard Effect Run port.
+The shared Captured DAG now offers bounded pins for completed cell-backed and
+resident task outputs. Closing the ordinary output port prevents new pins
+while an existing pin keeps the allocation charged. The original completion
+must still be available. The Effect source port binds those pins to exact
+checked Result occurrences, but resident outputs still require the installed
+Host's representation-specific view and payload proof. This is not yet a
+complete Preview input or the standard Effect Run port.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current
@@ -505,7 +503,7 @@ claim that every finding remains open at the current branch head:
 | SF-1 / SPI-01 | Partial. The Salesforce acquisition assembly now lives in the Host package while the provider Catalog has no Host or planning imports. `connector_sdk` still exposes internal checked-owner types; the external devkit, off-tree build, and source-compatibility test remain open. |
 | SF-2 / INT-01 | Addressed by the integrated common logical-request owner. Client intent fingerprint and Effect dispatch identity remain separate. |
 | SF-3 / INT-02 | Partial. The checked Effect Run owner has a source-free physical open through the ordinary private DAG lifecycle. The standard Values-to-Effect-to-final-Receipt Client/Host path remains open. |
-| SF-4 / INT-04 | Partial. Cell-backed completed outputs support independent common pins. The common Result boundary can now pin an exact Managed or Carrier-managed completion reference against the checked occurrence and task holding. The Host must still connect representation-specific export, Effect input binding and current authority. Nonterminal Result coverage remains unproven. Unsupported representations must fail before Effect send. |
+| SF-4 / INT-04 | Partial. Cell-backed and resident completed outputs support independent common pins. The checked Effect source inventory now acquires a mixed-representation pin set with rollback. The Host must still connect representation-specific export, physical payload equivalence and current authority. Nonterminal Result coverage remains unproven. Unsupported exports must fail before Effect send. |
 | SF-5 | Open. The ordinary checker and standard Client/Host still reject nonempty Effects. No Salesforce-specific submit path substitutes for a multi-member Run. |
 
 The Host-package move passes Salesforce conformance on JS, Wasm and native,
@@ -520,3 +518,8 @@ Closing the underlying physical output makes the remaining borrow unavailable,
 and final release leaves the ledger empty. This checks common physical custody
 only. It does not turn a managed Result into an Effect payload or publication
 view without the installed Host's exact representation-specific export.
+The Effect input port now uses this representation-neutral Result pin set.
+Its cell exporter rejects a resident representation explicitly; a resident
+input only proves exact physical custody until the Host presents the same
+concrete output and establishes its checked view and payload. A failed later
+pin releases earlier member pins without rerunning the producer.
