@@ -19,7 +19,9 @@ import {canonicalJson} from
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
 import {captureClaimedSalesforceSingleResponse,
   captureSalesforceSingleEffectWrite,
-  captureSalesforceCollectionEffectWrite} from
+  captureSalesforceCollectionEffectWrite,
+  recoverStoredSalesforceSingleResponse,
+  recoverStoredSalesforceCollectionResponse} from
   '../host-node/salesforce-effect-write.mjs';
 import {openSqliteCredentialJournal} from
   './sqlite-credential-journal.mjs';
@@ -734,6 +736,39 @@ test('Host claim owns one local HTTPS write', async t => {
     sent.physical.observation.body);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
   assert.equal(setup.journal.recover().length, usesBeforeRetry);
+  let evidenceReads = 0;
+  const recovery = {
+    ledger: restarted, claim: {...claim}, commonMoon, moon: salesforceMoon,
+    request: outbound, resourceOrigin: binding.resourceOrigin,
+    limits: options.limits,
+  };
+  const withoutWriteGrant = await recoverStoredSalesforceSingleResponse({
+    ...recovery,
+    authorizeEvidenceRead: async observed => {
+      evidenceReads += 1;
+      assert.equal(observed.logicalRequestScopeCid, restarted.scopeCid);
+      assert.equal(observed.logicalItemLocatorCid,
+        effect.logicalItemLocatorCid(locator));
+      assert.equal(observed.canonicalRequestCid, requestCid);
+      assert.equal(observed.orgId, '00D000000000001EAA');
+      recovery.claim.canonicalRequestCid = cid('9');
+      return true;
+    },
+  });
+  assert.equal(withoutWriteGrant.recovered.kind,
+    'typed-success-response');
+  assert.deepEqual(withoutWriteGrant.recovered.result,
+    sent.physical.result);
+  assert.equal(evidenceReads, 1);
+  await assert.rejects(recoverStoredSalesforceSingleResponse({
+    ...recovery, claim, authorizeEvidenceRead: async () => false,
+  }), {code: 'EffectEvidenceAccessDenied'});
+  await assert.rejects(recoverStoredSalesforceSingleResponse({
+    ...recovery, claim, request: unapprovedRequest,
+    authorizeEvidenceRead: async () => true,
+  }), {code: 'ForeignSalesforceEffectResponse'});
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
+  assert.equal(setup.journal.recover().length, usesBeforeRetry);
 });
 
 test('lost HTTPS reply remains uncertain across Effect ledger restart',
@@ -809,6 +844,14 @@ test('lost HTTPS reply remains uncertain across Effect ledger restart',
     assert.equal(retry.recovered, undefined);
     assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
     assert.equal(setup.journal.recover().length, usesBeforeRetry);
+    const evidence = await recoverStoredSalesforceSingleResponse({
+      ledger: restarted, claim, commonMoon, moon: salesforceMoon,
+      request: outbound, resourceOrigin: binding.resourceOrigin,
+      limits: options.limits,
+      authorizeEvidenceRead: async () => true,
+    });
+    assert.equal(evidence.recovered, undefined);
+    assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
   });
 
 test('Site does not promote rejected or malformed writes to Effect success',
@@ -1194,6 +1237,40 @@ test('Host custody binds one HTTPS Collections response to every row',
         effect.ledgerEntryCid(dispatching)).responseBytes,
       sent.physical.observation.body);
     }
+    const recovery = {
+      ledger: restarted, claims: [...claims], commonMoon,
+      moon: salesforceMoon,
+      request: outbound, resourceOrigin: binding.resourceOrigin,
+      limits: options.limits,
+    };
+    const withoutWriteGrant =
+      await recoverStoredSalesforceCollectionResponse({
+        ...recovery,
+        authorizeEvidenceRead: async observed => {
+          assert.deepEqual(observed.logicalItemLocatorCids,
+            claims.map(claim =>
+              effect.logicalItemLocatorCid(claim.locator)));
+          assert.equal(observed.canonicalRequestCid, requestCid);
+          recovery.claims.reverse();
+          return true;
+        },
+      });
+    assert.equal(withoutWriteGrant.recovered.kind, 'typed-row-response');
+    assert.equal(withoutWriteGrant.recovered.rowCount, 2);
+    await assert.rejects(recoverStoredSalesforceCollectionResponse({
+      ...recovery, claims, authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    await assert.rejects(recoverStoredSalesforceCollectionResponse({
+      ...recovery, claims: [...claims].reverse(),
+      authorizeEvidenceRead: async () => true,
+    }), {code: 'EffectCollectionResponseBindingMismatch'});
+    await assert.rejects(recoverStoredSalesforceCollectionResponse({
+      ...recovery, claims, request: unapprovedRequest,
+      authorizeEvidenceRead: async () => true,
+    }), {code: 'ForeignSalesforceEffectResponse'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 1);
+    assert.equal(setup.journal.recover().length, usesBeforeRetry);
   });
 
 test('Collections cannot swap two Preview targets before the send claim',
