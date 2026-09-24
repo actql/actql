@@ -297,4 +297,41 @@ test "ordinary values document prepares one named Effect-free result" {
     })
     is Err(Lowering(_)),
   )
+  let parameterized =
+    #|{"version":"actql/0.1","id":"client-parameter","params":{"n":{"type":"number"}},"stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"derive":{"value":"id + $n"},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+  guard prepare_effect_free_client_program(
+      parameterized,
+      Json,
+      selected,
+      None,
+      limits,
+    )
+    is Err(NeedsInputs(requests)) else {
+    fail("missing Parameter request was discarded")
+  }
+  assert_eq(@checked.input_request_count(requests), 1)
+  let supplied = @decode.admit(
+    @source.parse_json("{\"n\":\"bad\"}", {
+      max_input_bytes: 100,
+      max_nodes: 10,
+      max_depth: 10,
+    }).unwrap(),
+    {
+      max_nodes: 10,
+      max_depth: 10,
+      max_string_bytes: 100,
+      max_total_string_bytes: 100,
+    },
+  ).unwrap()
+  guard prepare_effect_free_client_program(
+      parameterized,
+      Json,
+      selected,
+      Some(supplied),
+      limits,
+    )
+    is Err(Check(diagnostic)) else {
+    fail("supplied Parameter diagnostic was discarded")
+  }
+  assert_eq(@checked.diagnostic_origin(diagnostic), Some(SuppliedValues))
 }

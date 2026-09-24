@@ -22,4 +22,5 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host_driver,
+  "actql/actql/source_value" @source,
 } for "test"
