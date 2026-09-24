@@ -446,3 +446,12 @@ The standard Effectful Host still must acquire a nonterminal Result before its
 ordinary port closes; managed and Carrier-managed Results need representation-
 specific physical holding and generation proofs. No implicit copy, reread,
 or recomputation is accepted as a substitute.
+
+The common Result borrow now exposes its own liveness check. Effect Preview
+binding and lookup use that check, and the ordinary Effect input lookup no
+longer returns an input whose individual borrow was released while the set
+owner remained live. A three-target captured-Result regression checks that
+releasing the Effect-like borrow makes only that borrow unavailable while an
+independent publication export can still finish. This tightens SF-4's
+cell-backed path; it does not add managed or nonterminal retention, a Preview
+payload proof, or standard Effect dispatch authority.
