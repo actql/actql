@@ -1,13 +1,15 @@
 ///|
 pub(all) enum ClientBoundTemplateIssue {
   ValuesGraph(ClientValuesPlanGraphIssue)
+  UnsupportedPipeline
   OpaqueBindings(ClientEmptyInvocationBindingsIssue)
   Evidence(@publication.RunEvidenceValueIssue)
 }
 
 ///|
 /// Issue the source-free Bound Invocation Template from one checked Program.
-/// This only covers Programs without opaque bindings or required profiles.
+/// This only covers one direct Values step without opaque bindings or required
+/// profiles.
 /// Plan issuance still needs physical contract and complete fact admission.
 pub fn issue_prepared_source_free_client_bound_template(
   value : PreparedClientProgram,
@@ -23,6 +25,31 @@ pub fn issue_prepared_source_free_client_bound_template(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(ValuesGraph(issue))
+  }
+  let aoa = match
+    issue_prepared_client_values_aoa_identity(
+      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(aoa) => aoa
+    Err(_) => return Err(UnsupportedPipeline)
+  }
+  guard parse_plan_identity_value(
+      client_values_aoa_identity_wire(aoa),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    )
+    is Some(pipeline) &&
+    @canonical.object_field(pipeline, "steps") is Some(@canonical.Array(steps)) else {
+    return Err(UnsupportedPipeline)
+  }
+  let steps = @canonical.array_values(steps)
+  if steps.length() != 1 {
+    return Err(UnsupportedPipeline)
+  }
+  guard @canonical.object_field(steps[0], "op")
+    is Some(@canonical.String("REL.values")) else {
+    return Err(UnsupportedPipeline)
   }
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(

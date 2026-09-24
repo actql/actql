@@ -738,6 +738,53 @@ test "ordinary values document prepares one named Effect-free result" {
       "\"",
     ),
   )
+  let material = issue_prepared_client_values_execution_material(
+    prepared, compiler_manifests, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    client_execution_material_template_cid(material),
+    @publication.run_evidence_value_identity(template),
+  )
+  let material_wire = client_execution_material_wire(material)
+  assert_true(
+    material_wire.contains(
+      "\"aoa_contract_cid\":\"" +
+      @environment.compiler_aoa_contract_cid() +
+      "\"",
+    ),
+  )
+  assert_true(
+    material_wire.contains(
+      "\"result_plan_logical_cids\":{\"answer\":\"" +
+      client_result_plan_cid(result_plan) +
+      "\"}",
+    ),
+  )
+  assert_true(material_wire.contains("\"effect_plan_logical_cids\":{}"))
+  assert_true(material_wire.contains("\"parameter_names\":[]"))
+  assert_eq(
+    client_execution_material_wire(
+      admit_prepared_client_values_execution_material(
+        prepared, material_wire, compiler_manifests, aoa_limits, 10000, 1000, 20,
+      ).unwrap(),
+    ),
+    material_wire,
+  )
+  assert_true(
+    admit_prepared_client_values_execution_material(
+      prepared,
+      material_wire.replace(
+        old=client_result_plan_cid(result_plan),
+        new=@environment.compiler_grammar_manifest_cid(),
+      ),
+      compiler_manifests,
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientExecutionMaterialAdmissionIssue::MismatchedMaterial),
+  )
   assert_eq(
     client_values_plan_graph_wire(graph_component),
     "{\"data_edges\":[],\"nodes\":[" +

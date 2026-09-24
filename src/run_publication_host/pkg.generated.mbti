@@ -39,6 +39,8 @@ pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publica
 
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
+pub fn admit_prepared_client_values_execution_material(PreparedClientProgram, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
+
 pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
 
 pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphAdmissionIssue]
@@ -56,6 +58,10 @@ pub fn client_direct_result_root_plan_cid(ClientDirectResultRoot) -> String
 pub fn client_direct_result_root_row_contract_cid(ClientDirectResultRoot) -> String
 
 pub fn client_direct_result_root_wire(ClientDirectResultRoot) -> String
+
+pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
+
+pub fn client_execution_material_wire(ClientExecutionMaterial) -> String
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
@@ -149,6 +155,8 @@ pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
 
+pub fn issue_prepared_client_values_execution_material(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
+
 pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
@@ -196,6 +204,7 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Types and methods
 pub(all) enum ClientBoundTemplateIssue {
   ValuesGraph(ClientValuesPlanGraphIssue)
+  UnsupportedPipeline
   OpaqueBindings(ClientEmptyInvocationBindingsIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
@@ -240,6 +249,26 @@ pub(all) enum ClientEmptyInvocationBindingsIssue {
   BindingsDeclared
   Evidence(@run_publication.RunEvidenceValueIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct ClientExecutionMaterial {
+  wire : String
+  invocation_template_cid : String
+}
+
+pub(all) enum ClientExecutionMaterialAdmissionIssue {
+  Issue(ClientExecutionMaterialIssue)
+  MismatchedMaterial
+}
+
+pub(all) enum ClientExecutionMaterialIssue {
+  InvalidLimits
+  Template(ClientBoundTemplateIssue)
+  Bindings(ClientEmptyInvocationBindingsIssue)
+  Program(ClientIdentityMaterialIssue)
+  ResultPlan(ClientResultPlanIssue)
+  DuplicateResultName
+  Encoding
+}
 
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
