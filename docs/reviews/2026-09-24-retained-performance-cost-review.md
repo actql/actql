@@ -622,3 +622,31 @@ per-row MoonBit-to-JavaScript call from the selected large-case path without
 changing the required output scan. Three-target query integration and the real
 DuckDB retained Host cycle passed locally. Its actual time benefit and the
 remaining gap belong to the final fixed-SHA matrix, not this correctness gate.
+
+The registered Linux paired assessment was then run at
+`988b82dc5ec0df89fa98e99a1e32848dfa77e9ff` (CI run `36066543677`). All
+27 case records and seven alternating pairs per case reached the aggregator.
+The result is **15 pass, 12 fail**. All nine acquisition cases and all six
+small join/reuse cases pass. Large join fails in all seven layouts/sizes:
+the narrow 10,000-row ratio interval is 5.424–6.794, narrowing to
+1.509–1.523 at one million rows. Large reuse fails in five of seven cases;
+the narrow 10,000-row interval is 4.488–4.641. Numeric-64/100,000 and
+text-1024/100,000 reuse pass. The registered 1.25 ratio, ceilings, comparator,
+task boundaries, and holding obligations were unchanged. Raw pairs, calibration,
+and the aggregate assessment are retained as artifacts of that CI run.
+
+The selected large join and reuse paths already use DuckDB resident inputs:
+the saved 10,000-row product reports have zero direct input scans and reuse
+input values across tasks. Repeated input import is therefore not the cause
+of those failures; the first import and each required output holding remain.
+In one narrow join pair, parent manifest preparation took 384 ms, process
+startup 175 ms, worker preparation 460 ms, and worker execution 937 ms against
+a 375 ms comparator. In one narrow reuse pair the corresponding figures were
+454, 234, 577, and 1,276 ms against 553 ms. These figures are one pair, not
+the aggregate interval; startup also varied substantially across pairs.
+The selected `managedOutput` branch writes an independent column holding per
+task. The new batched row-stream drain is for the other retained receiver and
+does not optimize this managed output branch. The next structural change must
+address preparation, process placement, and managed output handling as one
+product path while preserving each task's independent holding and completion
+barrier. No performance completion is claimed at this SHA.
