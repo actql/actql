@@ -363,6 +363,121 @@ pub fn emit_prepared_client_values_pipeline(
 }
 
 ///|
+/// Canonical AoA identity of one checked source-free Values pipeline. This
+/// identifies the fragment body, not the complete Executable Plan or Run.
+pub struct ClientValuesAoAIdentity {
+  wire : String
+  cid : String
+}
+
+///|
+pub(all) enum ClientValuesAoAIdentityIssue {
+  Pipeline(ClientValuesPipelineIssue)
+  NoncanonicalPipeline
+  Encoding
+}
+
+///|
+pub fn client_values_aoa_identity_wire(
+  value : ClientValuesAoAIdentity,
+) -> String {
+  value.wire
+}
+
+///|
+pub fn client_values_aoa_identity_cid(
+  value : ClientValuesAoAIdentity,
+) -> String {
+  value.cid
+}
+
+///|
+/// Reparse the owner-emitted pipeline under the pinned canonical JSON rules
+/// before exposing its logical CID to a compiler. No caller-supplied AoA body
+/// or claimed CID enters this operation.
+pub fn issue_prepared_client_values_aoa_identity(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
+  let wire = match
+    emit_prepared_client_values_pipeline(
+      value, task, limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(body) => body
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  guard parse_plan_identity_value(wire, max_wire_bytes, max_nodes, max_depth)
+    is Some(body) else {
+    return Err(NoncanonicalPipeline)
+  }
+  let canonical = @canonical.stringify_value(
+    body, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != wire {
+    return Err(NoncanonicalPipeline)
+  }
+  let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  Ok({ wire, cid, })
+}
+
+///|
+pub(all) enum ClientValuesAoAAdmissionIssue {
+  CheckedPipeline(ClientValuesAoAIdentityIssue)
+  InvalidPipeline
+  PipelineMismatch
+  CidMismatch
+  Encoding
+}
+
+///|
+/// Recheck saved AoA material against the same prepared Program. Key order in
+/// the saved JSON is not semantic, but rows, typed values and step order are.
+pub fn admit_prepared_client_values_aoa_identity(
+  value : PreparedClientProgram,
+  task : Int,
+  saved_wire : String,
+  claimed_cid : String,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientValuesAoAAdmissionIssue] {
+  let expected = match
+    issue_prepared_client_values_aoa_identity(
+      value, task, limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(identity) => identity
+    Err(issue) => return Err(CheckedPipeline(issue))
+  }
+  guard parse_plan_identity_value(
+      saved_wire, max_wire_bytes, max_nodes, max_depth,
+    )
+    is Some(saved) else {
+    return Err(InvalidPipeline)
+  }
+  let canonical = @canonical.stringify_value(
+    saved, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != expected.wire {
+    return Err(PipelineMismatch)
+  }
+  if claimed_cid != expected.cid {
+    return Err(CidMismatch)
+  }
+  Ok(())
+}
+
+///|
 pub(all) enum ClientTaskSequenceIssue {
   MissingTask
   EmptyTask
