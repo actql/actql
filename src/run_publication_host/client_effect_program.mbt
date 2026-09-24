@@ -132,6 +132,20 @@ pub fn prepared_client_effect_computation_environment_cid(
 }
 
 ///|
+pub fn prepared_client_effect_computation_definition_cid(
+  value : PreparedClientEffectComputation,
+) -> String {
+  @checked.effect_program_static_definition_cid(value.candidate)
+}
+
+///|
+pub fn prepared_client_effect_computation_semantics_cid(
+  value : PreparedClientEffectComputation,
+) -> String {
+  @checked.effect_program_static_semantics_cid(value.candidate)
+}
+
+///|
 /// Bind the prepared computation to its admitted exact Run. This preserves
 /// the Effect closure instead of passing only its graph to a source-free Host.
 pub(all) enum ClientEffectRunIssue {
@@ -180,4 +194,43 @@ pub fn prepared_client_effect_run_computation(
   value : PreparedClientEffectRun,
 ) -> PreparedClientEffectComputation {
   value.computation
+}
+
+///|
+/// Open only a source-free checked Effect Run. This creates an in-memory
+/// compute owner after exact Run admission; it is not a mutation permit.
+pub fn open_prepared_source_free_client_effect_run(
+  value : PreparedClientEffectRun,
+  limits : @resources.LedgerLimits,
+) -> Result[@strategy.CapturedEffectRunDAG, ClientRunOpenIssue] {
+  let ledger = match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Ledger(issue))
+  }
+  @strategy.open_source_free_effect_run_dag(value.checked, ledger).map_err(issue => {
+    Run(issue)
+  })
+}
+
+///|
+/// Compile an Effectful task through the same checked Local lowering as an
+/// Effect-free task, without discarding its static Effect owner.
+pub fn prepare_client_effect_task_sequence(
+  value : PreparedClientEffectComputation,
+  task : Int,
+  contracts : @execution.RegisteredRelationContracts,
+  contexts : Array[@execution.FragmentRuntimeContext],
+  limits : @lower.SequenceLimits,
+  max_work : Int,
+  max_entries : Int,
+) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
+  prepare_client_task_sequence_graph(
+    @strategy.checked_effect_computation_graph(value.graph),
+    task,
+    contracts,
+    contexts,
+    limits,
+    max_work,
+    max_entries,
+  )
 }
