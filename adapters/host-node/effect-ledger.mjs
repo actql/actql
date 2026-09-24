@@ -279,6 +279,37 @@ export function openEffectLedger({
       if (stored === undefined) return undefined;
       return physical.outcomeForLocator(stored.logicalItemLocatorCid);
     },
+    // Physical custody only. The caller must separately admit the typed
+    // provider projection and issue its semantic outcome Receipt. A partial
+    // Collections projection can resume from the saved response without a
+    // second HTTP send.
+    recordClaimedOutcome({claim, claims, rowIndex, responsePhysicalSha256,
+      outcomeCid, outcomeJson}) {
+      let stored, member;
+      if (claims === undefined) {
+        if (rowIndex !== undefined) fail('InvalidEffectPhysicalOutcome');
+        stored = ledger.readClaimedResponse(claim);
+        member = stored;
+      } else {
+        if (claim !== undefined || !Array.isArray(claims) ||
+            !Number.isSafeInteger(rowIndex) ||
+            rowIndex < 0 || rowIndex >= claims.length) {
+          fail('InvalidEffectPhysicalOutcome');
+        }
+        stored = ledger.readClaimedBatchResponse(claims);
+        member = stored?.batchMembers[rowIndex];
+      }
+      if (stored === undefined || member === undefined ||
+          stored.responsePhysicalSha256 !== responsePhysicalSha256) {
+        fail('EffectPhysicalResponseNotOwned');
+      }
+      return physical.recordOutcome({
+        logicalRequestScopeCid: scopeCid,
+        logicalItemLocatorCid: member.logicalItemLocatorCid,
+        dispatchEntryCid: member.dispatchEntryCid,
+        responsePhysicalSha256, outcomeCid, outcomeJson,
+      });
+    },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
     readClaimedBatchResponse(claims) {
