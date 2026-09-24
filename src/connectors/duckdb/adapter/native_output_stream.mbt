@@ -37,6 +37,7 @@ pub fn stream_native_output(
       retention,
       wire,
       max_batch_bytes,
+      capture_value_measurement=true,
     ) {
     Err(issue) => Err(Stream(issue))
     Ok(admitted) => {

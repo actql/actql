@@ -62,6 +62,66 @@ test "exact resident values reuse avoids rows and preserves both consumer budget
 }
 
 ///|
+test "retained source carries measured values into its first exact consumer" {
+  let owner = capture_fixture()
+  let (source, _) = retained_fixture(
+    owner,
+    Ref(true),
+    capture_value_measurement=true,
+  )
+  let material = source.representation.unwrap()
+  let captured = material.value_measurement.unwrap()
+  assert_eq(captured.columns, [0, 1])
+  assert_eq(captured.column_usage, [(2, 2), (10, 2)])
+  assert_eq((captured.work, captured.bytes, captured.nodes), (6, 12, 4))
+  assert_eq((captured.ceiling, captured.depth), (6, 0))
+  let input = retained_scan_fixture(owner, source)
+  let proof = prepare_trusted_retained_scan_reuse(input, (), (_, _) => true).unwrap()
+  for ceiling in [6, 5] {
+    let scan = prepare_retained_producer_scan(
+      input,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      64,
+    ).unwrap()
+    let measurement = prepare_streamed_fixed_producer_measurement(
+      [input],
+      Step(0),
+      max_rows=2,
+      max_value_bytes=ceiling,
+      { max_work: 1000, max_bytes: 1000, max_nodes: 1000, max_depth: 10, },
+    ).unwrap()
+    attach_retained_producer_measurement(measurement, scan).unwrap()
+    assert_true(reuse_retained_scan_identity(scan, proof))
+    assert_eq(reuse_retained_scan_values(scan), ceiling == 6)
+    if ceiling == 6 {
+      finish_retained_producer_scan(scan).unwrap() |> ignore
+      assert_eq(
+        (
+          measurement.budget.work,
+          measurement.budget.bytes,
+          measurement.budget.nodes,
+        ),
+        (994, 988, 996),
+      )
+    } else {
+      for row in 0..<2 {
+        append_retained_producer_scan_values(
+          scan,
+          output_fixture_row(owner, row),
+        ).unwrap()
+        |> ignore
+      }
+      assert_true(
+        finish_retained_producer_scan(scan)
+        is Err(InputGuard(ValueBytes(InputValues, 1, 1))),
+      )
+    }
+  }
+}
+
+///|
 test "values reuse insufficient admission budgets leave ordered fallback untouched" {
   let owner = capture_fixture()
   let (source, _) = retained_fixture(owner, Ref(true))

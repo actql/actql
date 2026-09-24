@@ -8,6 +8,7 @@ priv struct TestRetainedProof {
 fn retained_fixture(
   owner : @lower.BoundPrepared,
   live : Ref[Bool],
+  capture_value_measurement? : Bool = false,
 ) -> (CompletedOutput, RetainedOutputHandle[String]) raise {
   let stream = prepare_admitted_output_stream(
     owner,
@@ -16,6 +17,7 @@ fn retained_fixture(
     stream_value_limits(),
     row_wire_limits(),
     64,
+    capture_value_measurement~,
   ).unwrap()
   for row in 0..<2 {
     let supplied = output_fixture_row(owner, row)

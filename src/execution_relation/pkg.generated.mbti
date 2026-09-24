@@ -642,7 +642,7 @@ pub fn prepare_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueL
 
 pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
 
-pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int) -> Result[AdmittedOutputStream, OutputStreamIssue]
+pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int, capture_value_measurement? : Bool) -> Result[AdmittedOutputStream, OutputStreamIssue]
 
 pub fn[P] prepare_carrier_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[CarrierManagedProducerRead], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
 

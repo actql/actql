@@ -94,6 +94,7 @@ fn prepare_fixed_compute_receiving_impl(
           retention,
           wire,
           batch_bytes,
+          capture_value_measurement=true,
         ) {
         Ok(stream) => (None, Some(stream), chunk_rows)
         Err(issue) => {

@@ -8040,9 +8040,9 @@ async function exerciseStrategyGraph(
       capture.close(); await capture.cleanupHandle.retry();
     }
   }
-  // Two independent count consumers of X can share established value evidence.
+  // Capture and downstream count consumers share exact retained value evidence.
   // This passes the actual checked DAG and installed resident Host, not a fake
-  // verifier callback. The third filter still executes its own demand scan.
+  // verifier callback. Any new comparison still executes its demand scan.
   for (const projected of [false, true]) {
     await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
     const counts = JSON.parse(program);
@@ -8069,8 +8069,8 @@ async function exerciseStrategyGraph(
           importLimits: {maxRows: 100, maxCells: 1000}, retainedOutput: retention}),
       });
       assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
-      assert.deepEqual(execution.completed.map(item => item.phases.reusedInputValues), [0, 1, 0]);
-      assert.deepEqual(execution.completed.map(item => item.phases.directInputScans), [1, 0, 1]);
+      assert.deepEqual(execution.completed.map(item => item.phases.reusedInputValues), [1, 1, 1]);
+      assert.deepEqual(execution.completed.map(item => item.phases.directInputScans), [0, 0, 0]);
       for (const task of [1, 2, 3]) assert.equal(fixture.strategyFixtureCid(f, task), hash([{id: 3}]));
     } finally {
       if (execution) { await execution.close(); assert.equal(await execution.cleanup(), true); }

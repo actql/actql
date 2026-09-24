@@ -750,6 +750,7 @@ fn finish_completed_export_stream(
         work: value.budget.work,
       },
       measurement_identity: None,
+      value_measurement: None,
     }
     Ok(
       (

@@ -43,7 +43,7 @@ pub fn[T] retain_admitted_output_stream(
       receipt,
       storage_bytes: receipt.bytes.to_int64(),
       available,
-      value_measurement: None,
+      value_measurement: receipt.value_measurement,
     },
     payload,
   }
@@ -70,7 +70,12 @@ pub fn[T] retain_admitted_output_representation(
     return Err(NotRetained)
   }
   Ok({
-    material: { receipt, storage_bytes, available, value_measurement: None, },
+    material: {
+      receipt,
+      storage_bytes,
+      available,
+      value_measurement: receipt.value_measurement,
+    },
     payload,
   })
 }

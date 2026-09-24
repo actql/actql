@@ -264,6 +264,25 @@ also leaves the output CID, retained bytes, and independent Store seal intact.
 The three-target execution-relation tests and real-DuckDB Host tests pass; a
 paired assessment at this later revision is still pending.
 
+The single registered wide/reuse comparison at clean `066c7ca56` still failed:
+seven pairs gave an execution ratio interval of 1.401–1.545. Output callbacks
+were roughly 0.7–1.0 seconds per wide task in that local run, but the comparator
+also ran faster. This is not evidence that the ratio improved. The first
+consumer still performed a full input value scan, and another later consumer
+did so as well.
+
+The canonical retention encoder can also preserve per-column value bytes,
+nodes, maximum value size, and depth while it emits the required output once.
+The source capture and retained Compute outputs now attach this summary only
+to the exact sealed material generation. A receiving task may reuse it if the
+current owner, representation, limits, authority and receipt all match; tighter
+limits retain the original ordered scan and first failure. The value summary is
+not a substitute for new comparison or join demand. A real standard-Host count
+fixture now reuses values at all three consumers without another full scan,
+including a projected input. The exact first-consumer and tighter-ceiling
+regressions pass on all three MoonBit targets. Formal paired timing after this
+change remains to be measured.
+
 The controller's preparation cannot simply be dropped: its independently
 checked task identities constrain the worker's completion claims before the
 attempt is accepted. A prepared artifact shared across that process boundary
