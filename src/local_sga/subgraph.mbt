@@ -307,13 +307,16 @@ fn subgraph_step(
           guard state.node_predicate is Some(predicate) else {
             return @bounded.Failed(InvalidSubgraphKernel, progress, used)
           }
+          guard state.output is Some(output) else {
+            return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+          }
           match
             @execution.start_predicate_expression(
               predicate,
               state.predicate_input,
               state.predicate_work_remaining,
               state.value_limits.max_nodes,
-              state.predicate_workspace,
+              state.predicate_workspace - @graph.output_workspace_slots(output),
             ) {
             Err(issue) =>
               return @bounded.Failed(
@@ -405,13 +408,16 @@ fn subgraph_step(
           guard state.edge_predicate is Some(predicate) else {
             return @bounded.Failed(InvalidSubgraphKernel, progress, used)
           }
+          guard state.output is Some(output) else {
+            return @bounded.Failed(InvalidSubgraphKernel, progress, used)
+          }
           match
             @execution.start_predicate_expression(
               predicate,
               state.predicate_input,
               state.predicate_work_remaining,
               state.value_limits.max_nodes,
-              state.predicate_workspace,
+              state.predicate_workspace - @graph.output_workspace_slots(output),
             ) {
             Err(issue) =>
               return @bounded.Failed(
@@ -571,12 +577,17 @@ pub fn start_subgraph(
     predicate_fields > limits.max_workspace_slots - nodes - selector_count * 2 {
     return Err(InvalidSubgraphLimits)
   }
+  let selector_workspace = nodes + selector_count * 2 + predicate_fields
+  let output_limits = {
+    ..limits,
+    max_workspace_slots: limits.max_workspace_slots - selector_workspace,
+  }
   let output = match
     @graph.prepare_output(
       owner,
       @pipeline.Step(step),
       @storage.DeclaredNodes,
-      limits,
+      output_limits,
       storage_bytes,
       available,
     ) {
@@ -603,10 +614,7 @@ pub fn start_subgraph(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
-    predicate_workspace: limits.max_workspace_slots -
-    nodes -
-    selector_count * 2 -
-    predicate_fields,
+    predicate_workspace: output_limits.max_workspace_slots,
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
