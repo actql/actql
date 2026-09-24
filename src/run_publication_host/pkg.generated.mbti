@@ -155,6 +155,8 @@ pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @l
 
 pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue]
 
+pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
+
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
@@ -192,6 +194,12 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
+pub(all) enum ClientBoundTemplateIssue {
+  ValuesGraph(ClientValuesPlanGraphIssue)
+  OpaqueBindings(ClientEmptyInvocationBindingsIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
 pub(all) enum ClientCompilationManifestIssue {
   InvalidBudget
   InvalidGrammarManifest
