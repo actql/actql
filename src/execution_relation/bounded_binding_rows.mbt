@@ -63,41 +63,6 @@ priv struct BoundedRowComparison {
 }
 
 ///|
-fn bounded_text_charge_step(
-  control : ControlBudget,
-  value : String,
-  index : Int,
-) -> Result[Int, OrderingIssue] {
-  if index >= value.length() {
-    return Ok(index)
-  }
-  let unit = value[index].to_int()
-  let (width, next) = if unit < 0x80 {
-    (1, index + 1)
-  } else if unit < 0x800 {
-    (2, index + 1)
-  } else if unit >= 0xd800 && unit <= 0xdbff {
-    if index + 1 >= value.length() {
-      return Err(Limit)
-    }
-    let trailing = value[index + 1].to_int()
-    if trailing < 0xdc00 || trailing > 0xdfff {
-      return Err(Limit)
-    }
-    (4, index + 2)
-  } else if unit >= 0xdc00 && unit <= 0xdfff {
-    return Err(Limit)
-  } else {
-    (3, index + 1)
-  }
-  if !spend_control(control, width) {
-    Err(Limit)
-  } else {
-    Ok(next)
-  }
-}
-
-///|
 fn bounded_row_comparison_step(
   state : BoundedBindingRowsState,
   left_row : Int,

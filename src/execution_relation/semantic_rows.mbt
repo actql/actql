@@ -23,6 +23,130 @@ fn compare_complete_value(
 }
 
 ///|
+/// Charge one admitted UTF-16 scalar by its exact UTF-8 byte width. A long
+/// operand can therefore be charged without hiding its scan in one resume.
+fn bounded_text_charge_step(
+  control : ControlBudget,
+  value : String,
+  index : Int,
+) -> Result[Int, OrderingIssue] {
+  if index >= value.length() {
+    return Ok(index)
+  }
+  let unit = value[index].to_int()
+  let (width, next) = if unit < 0x80 {
+    (1, index + 1)
+  } else if unit < 0x800 {
+    (2, index + 1)
+  } else if unit >= 0xd800 && unit <= 0xdbff {
+    if index + 1 >= value.length() {
+      return Err(Limit)
+    }
+    let trailing = value[index + 1].to_int()
+    if trailing < 0xdc00 || trailing > 0xdfff {
+      return Err(Limit)
+    }
+    (4, index + 2)
+  } else if unit >= 0xdc00 && unit <= 0xdfff {
+    return Err(Limit)
+  } else {
+    (3, index + 1)
+  }
+  if !spend_control(control, width) {
+    Err(Limit)
+  } else {
+    Ok(next)
+  }
+}
+
+///|
+priv struct BoundedCompleteValueComparison {
+  mut phase : Int
+  mut offset : Int
+}
+
+///|
+/// Text uses the same complete-value charges and UTF-16 order as the atomic
+/// comparator. Other admitted kinds retain their existing comparison path.
+fn bounded_complete_value_comparison_step(
+  cursor : BoundedCompleteValueComparison,
+  left : Value,
+  right : Value,
+  control : ControlBudget,
+) -> Result[Int?, OrderingIssue] {
+  guard left is Text(a) && right is Text(b) else {
+    if cursor.phase != -1 {
+      return Err(InvalidInput)
+    }
+    return compare_complete_value(left, right, control).map(value => Some(value))
+  }
+  if cursor.phase == -1 {
+    cursor.phase = 0
+    cursor.offset = 0
+  }
+  match cursor.phase {
+    0 => {
+      if !spend_control(control, 1) {
+        return Err(Limit)
+      }
+      cursor.phase = 1
+      Ok(None)
+    }
+    1 => {
+      if cursor.offset < a.length() {
+        cursor.offset = match
+          bounded_text_charge_step(control, a, cursor.offset) {
+          Ok(next) => next
+          Err(issue) => return Err(issue)
+        }
+        return Ok(None)
+      }
+      cursor.phase = 2
+      cursor.offset = 0
+      Ok(None)
+    }
+    2 => {
+      if cursor.offset < b.length() {
+        cursor.offset = match
+          bounded_text_charge_step(control, b, cursor.offset) {
+          Ok(next) => next
+          Err(issue) => return Err(issue)
+        }
+        return Ok(None)
+      }
+      cursor.phase = 3
+      cursor.offset = 0
+      Ok(None)
+    }
+    3 => {
+      let compared = if cursor.offset < a.length() && cursor.offset < b.length() {
+        let left_unit = a[cursor.offset]
+        let right_unit = b[cursor.offset]
+        if left_unit == right_unit {
+          cursor.offset += 1
+          return Ok(None)
+        }
+        if left_unit < right_unit {
+          -1
+        } else {
+          1
+        }
+      } else if a.length() < b.length() {
+        -1
+      } else if a.length() > b.length() {
+        1
+      } else {
+        0
+      }
+      cursor.phase = -1
+      cursor.offset = 0
+      Ok(Some(compared))
+    }
+    _ => Err(InvalidInput)
+  }
+}
+
+///|
 fn compare_complete_scalar(
   left : Value,
   right : Value,
