@@ -2,14 +2,17 @@
 package "actql/actql/run_publication_host"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/pipeline_check_context",
   "actql/actql/program_check",
   "actql/actql/run_publication",
+  "actql/actql/stage_results",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
@@ -38,6 +41,8 @@ pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publica
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
 pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
+
+pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectRunIssue]
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
@@ -151,6 +156,8 @@ pub fn prepare_all_captured_result_publication_exports(@physical_strategy.Captur
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_task_sequence(PreparedClientProgram, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
@@ -162,6 +169,18 @@ pub fn prepare_publication_output_export(@execution_relation.CompletedOutput, Pu
 pub fn prepare_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
 pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
+
+pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
+
+pub fn prepared_client_effect_computation_environment_cid(PreparedClientEffectComputation) -> String
+
+pub fn prepared_client_effect_computation_graph(PreparedClientEffectComputation) -> @physical_strategy.CheckedEffectComputationDAG
+
+pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
+
+pub fn prepared_client_effect_run_computation(PreparedClientEffectRun) -> PreparedClientEffectComputation
+
+pub fn prepared_client_effect_run_graph(PreparedClientEffectRun) -> @physical_strategy.CheckedEffectRunDAG
 
 pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.CheckedDAG
 
@@ -197,6 +216,29 @@ pub(all) enum ClientDirectResultRootIssue {
   ResultPlan(ClientResultPlanIssue)
   RequiresResultTransformation
   Encoding
+}
+
+pub(all) enum ClientEffectComputationIssue {
+  Syntax(@stage_syntax.SyntaxError)
+  Candidate(@program_check.EffectComputationIssue)
+  Mapping(@check_environment.MappingShapeIssue)
+  Static(@stage_results.EffectStaticCandidateIssue)
+  Stage(ClientStageOwnerIssue)
+  Graph(@physical_strategy.GraphIssue)
+}
+
+pub(all) struct ClientEffectComputationLimits {
+  program : ClientProgramPreparationLimits
+  max_members : Int
+  max_header_work : Int
+  mapping : @check_environment.Limits
+  max_mapping_work : Int
+  effects : @stage_results.EffectStaticCandidateLimits
+}
+
+pub(all) enum ClientEffectRunIssue {
+  Admission(@program_check.EffectProgramRunIssue)
+  Binding(@physical_strategy.RunIssue)
 }
 
 pub(all) enum ClientIdentityMaterialIssue {
@@ -373,6 +415,13 @@ pub(all) enum ClientRunOpenIssue {
   Run(@physical_strategy.RunIssue)
 }
 
+pub(all) enum ClientStageOwnerIssue {
+  MissingCheckedStage(Int)
+  MissingStageIdentity(Int)
+  Lowering(@lowering_relation.Issue)
+  Binding(@lowering_relation.BindingIssue)
+}
+
 pub(all) enum ClientTaskAoAStepsIssue {
   MissingTask
   Sequence(@lowering_relation.SequenceIssue)
@@ -460,6 +509,10 @@ pub(all) enum PlanFactManifestIdentityIssue {
   FactMismatch
   CidMismatch
 } derive(Eq, @debug.Debug)
+
+type PreparedClientEffectComputation
+
+type PreparedClientEffectRun
 
 type PreparedClientProgram
 
