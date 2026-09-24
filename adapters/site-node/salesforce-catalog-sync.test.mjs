@@ -1014,10 +1014,17 @@ test('Site Collections preserve exact row order and partial outcomes',
     const result = await writeSalesforceContinueCollection(options);
     assert.equal(result.kind, 'typed-row-response');
     assert.equal(result.rowCount, 2);
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      result.result, 0), true);
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      result.result, 1), false);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      result.result, 0)), true);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      result.result, 1)), false);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
+      result.result, 0)), cid('1'));
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
+      result.result, 1)), cid('2'));
+    assert.throws(() => checked(
+      salesforceMoon.salesforceCollectionWriteResponseRowCid(
+        result.result, 2)));
     assert.equal(setup.journal.inspect(result.observation.useCid).outcome,
       'succeeded');
     assert.deepEqual(setup.seen.filter(item => item.path?.endsWith(
@@ -1255,10 +1262,10 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.equal(mutableLimits.maxDepth, 0);
     assert.equal(sent.claimed, true);
     assert.equal(sent.physical.kind, 'typed-row-response');
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      sent.physical.result, 0), true);
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      sent.physical.result, 1), false);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      sent.physical.result, 0)), true);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      sent.physical.result, 1)), false);
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
     first.close();
@@ -1272,10 +1279,14 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.deepEqual(retry.ownership.actions, [3, 3]);
     assert.equal(retry.recovered.kind, 'typed-row-response');
     assert.equal(retry.recovered.rowCount, 2);
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      retry.recovered.result, 0), true);
-    assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-      retry.recovered.result, 1), false);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      retry.recovered.result, 0)), true);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+      retry.recovered.result, 1)), false);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
+      retry.recovered.result, 0)), rowCids[0]);
+    assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
+      retry.recovered.result, 1)), rowCids[1]);
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
     assert.equal(setup.journal.recover().length, usesBeforeRetry);
@@ -1599,8 +1610,8 @@ test('Site Collections use exact update and external-ID upsert authority',
             maxNodes: 64, maxDepth: 6, maxRows: 200},
         });
         assert.equal(result.kind, 'typed-row-response');
-        assert.equal(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
-          result.result, 0), true);
+        assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
+          result.result, 0)), true);
         const writes = setup.seen.filter(item => item.method === 'PATCH');
         assert.deepEqual(writes.map(item => [item.method, item.path]), [[
           scenario.method, scenario.path,

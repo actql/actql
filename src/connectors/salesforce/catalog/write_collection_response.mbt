@@ -41,6 +41,7 @@ pub(all) enum WriteRowResult {
 pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
+  row_preview_cids : Array[String]?
 }
 
 ///|
@@ -54,6 +55,22 @@ pub fn write_collection_result_at(
   index : Int,
 ) -> WriteRowResult? {
   value.results.get(index)
+}
+
+///|
+/// Only a response projected with a prepared request can correlate a
+/// positional provider result to a Preview row. A count-only projection has
+/// no row ownership. This binding alone is not terminal outcome evidence.
+pub fn write_collection_bound_result_at(
+  value : WriteCollectionResponse,
+  index : Int,
+) -> (String, WriteRowResult)? {
+  guard value.row_preview_cids is Some(rows) &&
+    rows.get(index) is Some(row_cid) &&
+    value.results.get(index) is Some(result) else {
+    return None
+  }
+  Some((row_cid, result))
 }
 
 ///|
@@ -75,12 +92,17 @@ pub fn project_write_collection_response_for_request(
   if http_status != 200 {
     return Err(UnexpectedStatus)
   }
-  project_write_collection_response(
-    bytes,
-    request.kind,
-    request.row_preview_cids.length(),
-    limits,
-  )
+  let response = match
+    project_write_collection_response(
+      bytes,
+      request.kind,
+      request.row_preview_cids.length(),
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..response, row_preview_cids: Some(request.row_preview_cids.copy()), })
 }
 
 ///|
@@ -248,5 +270,5 @@ pub fn project_write_collection_response(
       Err(issue) => return Err(issue)
     }
   }
-  Ok({ results, response_sha256: @sha.hex(bytes), })
+  Ok({ results, response_sha256: @sha.hex(bytes), row_preview_cids: None, })
 }

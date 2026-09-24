@@ -81,7 +81,9 @@ pub fn salesforce_collection_write_request_scope_matches(@catalog.WriteCollectio
 
 pub fn salesforce_collection_write_request_target_identity(@catalog.WriteCollectionRequest, Int, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollectionResponse, Int) -> Bool
+pub fn salesforce_collection_write_response_row_applied(@catalog.WriteCollectionResponse, Int) -> Bool raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_collection_write_response_row_cid(@catalog.WriteCollectionResponse, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
 

@@ -162,6 +162,8 @@ pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
 
+pub fn write_collection_bound_result_at(WriteCollectionResponse, Int) -> (String, WriteRowResult)?
+
 pub fn write_collection_request_body(WriteCollectionRequest) -> String
 
 pub fn write_collection_request_boundary_cid(WriteCollectionRequest, Int) -> Result[String, WriteCollectionRequestIssue]
@@ -546,6 +548,7 @@ pub(all) struct WriteCollectionRequestLimits {
 pub struct WriteCollectionResponse {
   results : Array[WriteRowResult]
   response_sha256 : String
+  row_preview_cids : Array[String]?
 }
 
 pub(all) enum WriteCollectionResponseIssue {
