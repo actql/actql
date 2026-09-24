@@ -3,8 +3,9 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {admitEnvironment, compileValues, prepare,
-  privateCompilationWires} from './index.mjs';
+import {admitEnvironment, admitRequestFields, compileValues, prepare,
+  prepareRequest, privateCompilationWires, requestFields,
+  requestRelation} from './index.mjs';
 
 const read = name => readFileSync(new URL(`../sdk/fixtures/${name}`,
   import.meta.url), 'utf8');
@@ -60,4 +61,44 @@ test('portable Host rejects unadmitted environment and invalid Program', () => {
     environment), {code: 'RunHostPreparationRejected'});
   assert.throws(() => prepare(read('values.json'), 'future', environment),
     {name: 'TypeError', message: 'InvalidRunHostPreparation'});
+});
+
+test('portable Host owns the exact checked logical request relation', () => {
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const document = read('values.json');
+  const prepared = prepare(document, 'json', environment);
+  const scope = `sha256:${'a'.repeat(64)}`;
+  const input = `sha256:${'b'.repeat(64)}`;
+  const first = prepareRequest(prepared, scope, 'saved-request', input);
+  const fields = requestFields(first);
+  assert.equal(fields.authorityScopeCid, scope);
+  assert.equal(fields.requestId, 'saved-request');
+  assert.equal(fields.callerInputIntentCid, input);
+  assert.equal(fields.logicalRequestScopeCid, cid({
+    version: 'actql-logical-request/0.1',
+    authority_scope_cid: scope, caller_request_id: 'saved-request',
+  }));
+  assert.equal(fields.intentFingerprintCid, cid({
+    version: 'actql-logical-request-intent/0.1',
+    caller_input_intent_cid: input,
+    parameter_values_cid: fields.parameterValuesCid,
+    program_definition_cid: fields.programDefinitionCid,
+  }));
+  const restored = admitRequestFields(fields);
+  assert.equal(requestRelation(first, restored), 'same_request');
+  assert.deepEqual(requestFields(restored), fields);
+  const changed = prepare(document.replace('"id": 2', '"id": 3'),
+    'json', environment);
+  assert.equal(requestRelation(prepareRequest(changed, scope,
+    'saved-request', input), restored), 'changed_intent');
+  assert.equal(requestRelation(prepareRequest(prepared, scope,
+    'other-request', input), restored), 'different_request');
+  assert.throws(() => admitRequestFields({...fields,
+    intentFingerprintCid: `sha256:${'0'.repeat(64)}`}),
+  {code: 'RunHostRequestRecordRejected'});
+  assert.throws(() => admitRequestFields({...fields, extra: true}),
+    {name: 'TypeError', message: 'InvalidRunHostRequestRecord'});
+  assert.throws(() => requestRelation({}, restored),
+    {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });
