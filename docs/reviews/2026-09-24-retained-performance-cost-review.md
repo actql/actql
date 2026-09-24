@@ -367,3 +367,52 @@ time. Validate each isolated change against the same production fixture, then
 run the fixed Linux paired assessment at a new SHA. Diagnostic ablations and
 conditional-CID profiles must be reported separately from the registered
 acceptance profile.
+
+## Small-result execution-path decision
+
+The registered narrow/100 case remains far outside the fixed startup limits.
+In the last measured product sample, the controller spent about 173 ms on
+preparation, process start about 100 ms, and the child another 176 ms on
+preparation. The three selected Compute tasks together took about 34 ms. A
+separate preparation probe found no single dominant checker operation after
+module import: parsing, checking, lowering, contract admission, and hashing all
+contribute. Shaving one helper cannot plausibly close a cold gap of more than
+500 ms or the remaining warm gap.
+
+The next structural implementation should use the existing native standard
+Host as a single-process execution path for eligible bounded local cases.
+This is a change of physical realization, not a change of the checked Program,
+ordinary candidate selection, resource ceilings, required identity, or
+completion semantics. The existing Node process profile remains useful when
+process isolation is required. The native path must first establish the same
+independent, immutable file holding **before** each common task completion is
+made available to a downstream consumer. Its task-by-task entry point already
+exists, but the present native diagnostic only checks the final CID and cleanup;
+it does not meet this holding or fresh-reader obligation.
+
+Implementation order for that path:
+
+1. Give each selected task an exact native file-holding owner, separate from
+   its DuckDB session or Local temporary rows. Reserve the registered byte
+   ceiling before writing; export in bounded chunks; seal only after the
+   complete ordered output and required CID/measurement have been established.
+   A failed seal, unlink, or sync retains cleanup ownership and accounting.
+2. Connect the sealed holding to the common task completion with the checked
+   task/attempt/output binding. A Store digest is physical integrity evidence,
+   not an execution success claim. No downstream input may see the provisional
+   file or a completed task lacking its required holding.
+3. Admit the next task through a fresh bounded reader of that exact holding.
+   Preserve its current authority, logical work, full-read evidence, and
+   independently confirmed release. Do not reopen the source database or
+   recompute a producer solely to satisfy this reader.
+4. Exercise the registered narrow and wide fixtures through the normal Host,
+   including Local and DuckDB selections, negative ownership/tamper/cancel
+   cases, and real cleanup. Extend the paired runner only to invoke this real
+   product path and record the same fresh-process cold and task warm boundaries;
+   never replace the direct comparator or the fixed thresholds.
+
+The first meaningful timing checkpoint is after those four pieces are
+connected. The native diagnostic's earlier roughly 22 ms median is only a
+feasibility signal because it lacks independent retention. It is not a speed
+claim for the completed path. The full 27-case Linux assessment and the other
+registered comparator families remain the acceptance gate.
