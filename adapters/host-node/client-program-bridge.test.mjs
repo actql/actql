@@ -689,6 +689,34 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const previewLimits = moon.clientProgramEffectPreviewInputLimits(
         20000, 1000, 20, 1000, 100, 20000, 1000, 20,
         2, 2, 100, 100);
+      const foreignOwned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+        bound, registry, values, 1n, 0n, 0n, 0n);
+      assert.ok(foreignOwned);
+      const foreignExecution = await runCapturedInternalStrategy(
+        moon.clientProgramLocalEffectHostRuntime(foreignOwned));
+      try {
+        assert.equal(foreignExecution.status, 'host-tasks-completed');
+        const foreignInputs = checked(moon.clientProgramPinEffectSources(
+          foreignOwned, 2));
+        try {
+          assert.throws(() => checked(
+            moon.clientProgramBindEffectPreviewInputs(
+              owned, foreignInputs, invocation, 0, preview.wire,
+              preview.authoringCid, previewLimits)),
+          {code: 'MoonBitHostFailure'});
+          assert.throws(() => checked(
+            moon.clientProgramBindEffectPreviewInputs(
+              foreignOwned, inputs, invocation, 0, preview.wire,
+              preview.authoringCid, previewLimits)),
+          {code: 'MoonBitHostFailure'});
+        } finally {
+          assert.equal(moon.clientProgramReleaseEffectInputs(
+            foreignInputs), true);
+        }
+      } finally {
+        await foreignExecution.close();
+        assert.equal(foreignExecution.cleanupPending(), false);
+      }
       const conflicting = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         storedResults.artifacts[0].identity, 'update', [1, 2],
