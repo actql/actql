@@ -1439,11 +1439,16 @@ test('portable control validates Receipt and Captured Run references',
   let requestAccessAllowed = true;
   let accessAllowed = true;
   let advanceAccessTimeAt;
+  let readRequestGate;
   let accessTime = '2026-09-18T01:00:00.000Z';
   const accessChecks = [];
   const accessAuthority = installResultAccessAuthority({
     async authorizeResultReadRequest(facts) {
       accessChecks.push(`authorize:request:${facts.resultName}`);
+      if (readRequestGate !== undefined) {
+        readRequestGate.started();
+        await readRequestGate.wait;
+      }
       return requestAccessAllowed;
     },
     async authorizeDeliveryAttemptLookup(facts) {
@@ -1458,7 +1463,7 @@ test('portable control validates Receipt and Captured Run references',
         egressAdmissionCid: cid('3'),
         expiresAt: '2026-09-19T00:00:00.000Z',
         maxBytes: 1024,
-        maxUses: 2,
+        maxUses: 3,
       };
     },
     async authorizeResultRead(facts) {
@@ -1784,6 +1789,41 @@ test('portable control validates Receipt and Captured Run references',
   assert.ok(accessChecks.includes('authorize:read'));
   assert.ok(accessChecks.includes('authorize:write'));
   assert.ok(accessChecks.includes('authorize:receipt'));
+  let releaseReadRequest;
+  let readAuthorizationStarted;
+  const readStarted = new Promise(resolve => {
+    readAuthorizationStarted = resolve;
+  });
+  const readWait = new Promise(resolve => { releaseReadRequest = resolve; });
+  readRequestGate = {started: readAuthorizationStarted, wait: readWait};
+  const changedReadRequest = {
+    indexKey: {tenantId: 'tenant-a', authorityScopeCid: cid('d'),
+      runDefinitionCid: run.identity},
+    principalId: 'principal-a', purpose: 'download', resultName: 'answer',
+    format: 'json', attemptId: 'snapshot-json',
+  };
+  const snapshottedChunks = [];
+  const pendingRead = deliverAuthorizedResult(
+    accessService, changedReadRequest, {
+      async write(bytes) {
+        snapshottedChunks.push(Buffer.from(bytes));
+        return {confirmedBytes: bytes.byteLength};
+      },
+      async finish() { return {confirmed: true}; },
+    },
+  );
+  await readStarted;
+  changedReadRequest.resultName = 'missing-result';
+  changedReadRequest.format = 'csv';
+  changedReadRequest.attemptId = 'foreign-attempt';
+  changedReadRequest.indexKey.tenantId = 'tenant-b';
+  changedReadRequest.indexKey.runDefinitionCid = cid('0');
+  releaseReadRequest();
+  readRequestGate = undefined;
+  const snapshottedDelivery = await pendingRead;
+  assert.equal(snapshottedDelivery.idempotent, false);
+  assert.equal(Buffer.concat(snapshottedChunks).toString('utf8'),
+    '[{"value":7}]');
   accessAllowed = false;
   await assert.rejects(deliverAuthorizedResult(
     accessService,
