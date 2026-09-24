@@ -1,7 +1,7 @@
 import type {ClientHostOperation, WireAdmissionShape,
   WireConnectionShape, WireLookupFoundShape, WireLookupNotFoundShape,
   WireLookupUnknownShape, WireProfileShape, WireRunRefShape,
-  WireRunStateShape} from
+  WireRunStateShape, WireSubmitPreparationErrorShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
 
@@ -22,6 +22,7 @@ export type WireConnection =
 
 export type WireRunRef = WireRunRefShape;
 export type WireRunState = WireRunStateShape;
+export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 
 type WireBodyBase = Readonly<{connection: WireConnection}>;
 type WireRefBody = WireBodyBase & Readonly<{ref: WireRunRef}>;
@@ -57,6 +58,8 @@ export type WireClientBody =
 
 export declare function validRunRef(value: unknown): value is WireRunRef;
 export declare function validRunState(value: unknown): value is WireRunState;
+export declare function validSubmitPreparationError(value: unknown):
+  value is WireSubmitPreparationError;
 export declare function validClientConnection(value: unknown):
   value is WireConnection;
 export declare function validClientBody<O extends ClientHostOperation>(
