@@ -4,11 +4,14 @@ package "actql/actql/platform_native/remote_values_host"
 import {
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
@@ -38,6 +41,7 @@ pub fn NativeRemoteValuesSiteEndpoint::open_output_manifest_reader(Self, String,
 pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::query_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::route(Self) -> (String, Int)
+pub fn NativeRemoteValuesSiteEndpoint::send_output_direct(Self, @http_client.Client, @remote_transfer_journal.Journal, String, String, String, Int, Int, Int, Int64) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteValuesSiteEndpointIssue]
 
 pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   InvalidConfiguration

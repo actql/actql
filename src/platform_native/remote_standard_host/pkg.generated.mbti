@@ -121,6 +121,8 @@ pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardIn
 
 pub fn retry_native_remote_standard_payload_failure_cleanup(NativeRemoteStandardPayloadFailure) -> Bool
 
+pub fn send_native_remote_observed_output_direct(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @http_client.Client, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
+
 // Errors
 
 // Types and methods

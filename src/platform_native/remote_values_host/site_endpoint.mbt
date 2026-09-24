@@ -261,6 +261,66 @@ pub fn NativeRemoteValuesSiteEndpoint::open_output_manifest_reader(
     Err(issue) => return Err(Runtime(issue))
   }
   @output.open_native_remote_observed_output_manifest_reader(
-    self.runtime, self.journal, request, completion, max_chunk_bytes,
+    self.runtime,
+    self.journal,
+    request,
+    completion,
+    max_chunk_bytes,
+  ).map_err(issue => OutputSource(issue))
+}
+
+///|
+/// Recheck the exact Coordinator output intent and observed Site subject
+/// before opening a durable direct Transfer. The destination origin is a
+/// physical Site setting, not a URL accepted from the poll envelope.
+pub fn NativeRemoteValuesSiteEndpoint::send_output_direct(
+  self : NativeRemoteValuesSiteEndpoint,
+  client : @http.Client,
+  transfer_journal : @transfer_journal.Journal,
+  destination_origin : String,
+  envelope : String,
+  claimed_cid : String,
+  max_chunk_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteValuesSiteEndpointIssue] {
+  let plan_wire = match self.output_plan_json(envelope, claimed_cid) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let poll = match @remote.admit_remote_poll_output_plan_json(envelope) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidEnvelope)
+  }
+  let request = @remote.remote_poll_output_request(poll)
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(InvalidOutput)
+  }
+  let plan = match
+    @remote.admit_remote_output_plan_json(
+      plan_wire, poll, subject, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let completion = match self.runtime.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  @output.send_native_remote_observed_output_direct(
+    self.runtime,
+    self.journal,
+    client,
+    transfer_journal,
+    destination_origin,
+    request,
+    completion,
+    @remote.remote_output_plan_transfer_request(plan),
+    max_chunk_bytes,
   ).map_err(issue => OutputSource(issue))
 }

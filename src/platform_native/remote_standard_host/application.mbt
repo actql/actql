@@ -630,8 +630,9 @@ pub fn open_native_remote_observed_output_manifest_reader(
 }
 
 ///|
-fn NativeRemoteStandardSiteComponent::open_observed_transfer_source(
-  self : NativeRemoteStandardSiteComponent,
+fn open_native_remote_observed_transfer_source(
+  runtime : @runtime.NativeRemoteRuntime,
+  journal : @journal.Journal,
   dispatch : @remote.DispatchRequest,
   completion : @runtime.NativeRemoteRuntimeCompletion,
   transfer : @transfer.RemoteTransferRequest,
@@ -649,8 +650,8 @@ fn NativeRemoteStandardSiteComponent::open_observed_transfer_source(
     return Err(Transfer(@transfer_client.InvalidRequest))
   }
   let reader = match
-    self.open_observed_output_manifest_reader(
-      dispatch, completion, max_chunk_bytes,
+    open_native_remote_observed_output_manifest_reader(
+      runtime, journal, dispatch, completion, max_chunk_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -715,20 +716,40 @@ pub fn NativeRemoteStandardSiteComponent::send_observed_output_direct(
   if self.closed {
     return Err(Closed)
   }
+  send_native_remote_observed_output_direct(
+    self.runtime, self.journal, self.client, transfer_journal, origin,
+    dispatch, completion, transfer, max_chunk_bytes,
+  )
+}
+
+///|
+/// Borrow the existing runtime and physical adapters for one exact observed
+/// output Transfer. The caller retains their process-level close ownership;
+/// a failed send retains its source and transport cleanup responsibility.
+pub fn send_native_remote_observed_output_direct(
+  runtime : @runtime.NativeRemoteRuntime,
+  journal : @journal.Journal,
+  client : @http.Client,
+  transfer_journal : @transfer_journal.Journal,
+  origin : String,
+  dispatch : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  transfer : @transfer.RemoteTransferRequest,
+  max_chunk_bytes : Int,
+) -> Result[
+  @transfer.RemoteTransferRecord,
+  NativeRemoteStandardSiteComponentIssue,
+] {
   let source = match
-    self.open_observed_transfer_source(
-      dispatch, completion, transfer, max_chunk_bytes,
+    open_native_remote_observed_transfer_source(
+      runtime, journal, dispatch, completion, transfer, max_chunk_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   match
     @transfer_client.send_durable_direct_transfer_from_source(
-      transfer_journal,
-      self.client,
-      origin,
-      transfer,
-      source,
+      transfer_journal, client, origin, transfer, source,
     ) {
     Ok(record) => Ok(record)
     Err(failure) => Err(TransferSend(failure))
@@ -754,8 +775,9 @@ pub fn NativeRemoteStandardSiteComponent::send_observed_output_store(
     return Err(Closed)
   }
   let source = match
-    self.open_observed_transfer_source(
-      dispatch, completion, transfer, max_chunk_bytes,
+    open_native_remote_observed_transfer_source(
+      self.runtime, self.journal, dispatch, completion, transfer,
+      max_chunk_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
