@@ -2233,9 +2233,12 @@ Relation inputs and inferred Relation roles. A direct Vectors-input fixture
 now counts 28/27 control-work units with quantum one, admits 23 structural
 workspace slots and rejects 22 before starting. It also verifies cancellation
 during incremental identity initialization and cleanup of the private output.
-The Relation-input path lacks matching exact/one-short evidence, and neither
-path has a delivered Host cancellation fixture. This route therefore remains
-outside four-role and full resource assurance.
+The existing Node standard Host `vector-nearest` fixture delivers a timer
+cancellation during Relation-input kernel work, confirms stop, and retries
+cleanup. The Relation-input path still lacks matching exact/one-short
+evidence, while the Vectors-input path lacks a delivered Host cancellation
+fixture. This route therefore remains outside four-role and full resource
+assurance.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.

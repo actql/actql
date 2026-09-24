@@ -3746,6 +3746,15 @@
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "standard Host completes nearest Relation roles"
         }
+      ],
+      "environment_tests": [
+        {
+          "role": "nearest_relation_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-nearest"
+        }
       ]
     },
     {
