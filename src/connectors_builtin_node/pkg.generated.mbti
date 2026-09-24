@@ -9,6 +9,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/logical_request_scope",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
@@ -120,15 +121,15 @@ pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Boo
 
 pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
 
-pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
+pub fn strategy_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
 
 pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
 
 pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool
 
-pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
+pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
 
-pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
+pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
 
@@ -140,9 +141,9 @@ pub fn strategy_effect_issue_next_ledger_entry(@effect_application.EffectLedgerE
 
 pub fn strategy_effect_issue_prepared_ledger_entry(@effect_application.EffectLedgerBasis, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
 
-pub fn strategy_effect_ledger_basis(@effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
+pub fn strategy_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
 
-pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
+pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
 
 pub fn strategy_effect_ledger_entry_cid(@effect_application.EffectLedgerEntry) -> String
 
@@ -156,19 +157,19 @@ pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEn
 
 pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
 
-pub fn strategy_effect_logical_item_locator(@effect_application.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
+pub fn strategy_effect_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
 
 pub fn strategy_effect_logical_item_locator_cid(@effect_application.LogicalItemLocator) -> String
 
-pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_application.LogicalRequestScope raise NodeHostFailure
+pub fn strategy_effect_logical_request_scope(String, String, Int) -> @logical_request_scope.LogicalRequestScope raise NodeHostFailure
 
-pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
+pub fn strategy_effect_logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
-pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
+pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
 
-pub fn strategy_effect_preview_apply_identity(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
+pub fn strategy_effect_preview_apply_identity(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
 
-pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
+pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
 
@@ -186,7 +187,7 @@ pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], 
 
 pub fn strategy_effect_set_frontier(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
 
-pub fn strategy_effect_set_frontier_from_ledger(@run_publication.EffectPreviewIdentity, Array[Array[@effect_application.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+pub fn strategy_effect_set_frontier_from_ledger(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
 
 pub fn strategy_effect_set_frontier_outcome(@effect_application.EffectSetFrontier) -> Int
 

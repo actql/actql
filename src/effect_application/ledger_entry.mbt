@@ -233,7 +233,7 @@ pub fn effect_ledger_entry_admits_dispatch(
   canonical_request_cid : String,
 ) -> Bool {
   entry.state == Dispatching &&
-  entry.logical_request_scope_cid == scope.cid &&
+  entry.logical_request_scope_cid == logical_request_scope_cid(scope) &&
   entry.logical_item_locator_cid == locator.cid &&
   entry.effect_preview_cid == key.effect_preview_cid &&
   entry.dispatch_key_cid == key.cid &&

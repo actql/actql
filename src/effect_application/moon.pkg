@@ -7,5 +7,6 @@ import {
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "actql/actql/run_publication" @publication,
+  "actql/actql/logical_request_scope" @request_scope,
   "moonbitlang/core/encoding/utf8",
 }

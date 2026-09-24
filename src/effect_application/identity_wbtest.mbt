@@ -62,6 +62,14 @@ test "effect identity rejects foreign or noncanonical inputs" {
     prepare_logical_request_scope(authority, "e\u{0301}", 32)
     is Err(InvalidCallerRequest),
   )
+  assert_true(
+    prepare_logical_request_scope(authority, "request\n1", 32)
+    is Err(InvalidCallerRequest),
+  )
+  assert_true(
+    prepare_logical_request_scope(authority, "request-1", 257)
+    is Err(InvalidLimits),
+  )
   let scope = prepare_logical_request_scope(authority, "request-1", 32).unwrap()
   assert_true(
     prepare_effect_dispatch_key(scope, "sha256:wrong", "\"row-1\"", 32, 8, 3)

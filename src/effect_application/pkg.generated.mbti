@@ -2,18 +2,19 @@
 package "actql/actql/effect_application"
 
 import {
+  "actql/actql/logical_request_scope",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
+pub fn admit_effect_collection_batch(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[LogicalItemLocator], Array[EffectDispatchKey], Int, Int) -> Result[Unit, EffectCollectionBatchIssue]
 
 pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectLedgerIssue]
 
-pub fn admit_effect_preview_apply_identity(String, String, String, LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
+pub fn admit_effect_preview_apply_identity(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
 
-pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
+pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
 
 pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
@@ -35,7 +36,7 @@ pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
 
-pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
+pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
 
 pub fn effect_ledger_entry_cid(EffectLedgerEntry) -> String
 
@@ -61,7 +62,7 @@ pub fn effect_set_frontier(Array[EffectMemberProgress], Int, Int, Int) -> Result
 
 pub fn effect_set_frontier_from_codes(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
-pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
+pub fn effect_set_frontier_from_preview_ledger_entries(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[EffectSetFrontier, EffectSetProgressIssue]
 
 pub fn effect_set_frontier_outcome_code(EffectSetFrontier) -> Int
 
@@ -77,17 +78,17 @@ pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> R
 
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
-pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+pub fn logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
-pub fn prepare_effect_apply_key(LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
+pub fn prepare_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> Result[EffectApplyKey, EffectIdentityIssue]
 
-pub fn prepare_effect_dispatch_key(LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+pub fn prepare_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
 
-pub fn prepare_effect_ledger_basis(LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
+pub fn prepare_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
 
-pub fn prepare_logical_item_locator(LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
+pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 
-pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, EffectIdentityIssue]
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_request_scope.LogicalRequestScope, EffectIdentityIssue]
 
 // Errors
 
@@ -316,12 +317,7 @@ pub struct LogicalItemLocator {
   cid : String
 }
 
-pub struct LogicalRequestScope {
-  authority_scope_cid : String
-  caller_request_id : String
-  cid : String
-}
-
 // Type aliases
+pub using @logical_request_scope {type LogicalRequestScope}
 
 // Traits

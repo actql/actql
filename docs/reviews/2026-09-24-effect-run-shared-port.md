@@ -348,6 +348,7 @@ still require the captured execution and current authority.
 
 The initial `CapturedEffectInput` port now pins a completed cell-backed output
 through its exact checked member source, bound preparation and Result target.
+
 The common pin also rejects a foreign Program owner and retains the backing
 allocation after the ordinary output port closes. It does not copy cells or
 authorize a write. Nonterminal Result targets and managed/resident outputs
@@ -393,3 +394,21 @@ work ceilings. The earlier wire-plus-declared-inventory control remains for
 existing adapter callers, but is not the ownership proof for a standard Run.
 This check alone does not establish current authority, target freshness,
 captured row/payload equivalence, or mutation admission.
+
+## Integration review at 15904a32f
+
+The fixed-SHA review `01-salesforce-effects-review.md` identifies five
+integration concerns. The shared `logical_request_scope` package now owns the
+0.1 caller-ID admission and CID preimage. Effect dispatch uses that exact
+opaque owner; its ledger admits the caller ID before opening durable storage.
+The independent CID vector and NFC, control-character, and UTF-8 byte-limit
+tests run on JS, Wasm, and native. The Distribution Client branch must replace
+its separate `client_request_identity` rule with this owner before SF-2 can
+close across both product entries. The Client intent fingerprint remains
+distinct from an Effect dispatch key.
+
+SF-1 (external public SPI closure), SF-3 (source-free Effectful Run capture),
+SF-4 (managed and nonterminal Result borrowing), and SF-5 (standard multi-
+member Effect Run) remain open. The existing `CapturedEffectPreviewInputs`
+binding is a private input identity guard, not apply authority. No local
+fixture or this shared CID migration is live Salesforce verification.

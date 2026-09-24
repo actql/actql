@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -57,6 +57,20 @@ async function fixture(t) {
 const open = root => openEffectLedger({moon, root, authorityScopeCid,
   callerRequestId: 'request-1', maxEntryBytes: 4096});
 const effect = runtimeCore(moon).effectApplicationControl;
+
+test('logical request admission precedes durable Effect ledger creation',
+  async t => {
+    const root = await fixture(t);
+    for (const callerRequestId of ['e\u0301', 'request\n1', 'x'.repeat(257)]) {
+      assert.throws(() => openEffectLedger({moon, root, authorityScopeCid,
+        callerRequestId}));
+      assert.deepEqual(await readdir(root), []);
+    }
+    const ledger = openEffectLedger({moon, root, authorityScopeCid,
+      callerRequestId: 'x'.repeat(256)});
+    assert.equal(typeof ledger.scopeCid, 'string');
+    ledger.close();
+  });
 
 function batchClaims() {
   const scope = effect.logicalRequestScope(authorityScopeCid,

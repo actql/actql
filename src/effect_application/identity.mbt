@@ -14,11 +14,7 @@ pub(all) enum EffectIdentityIssue {
 } derive(Eq, Debug)
 
 ///|
-pub struct LogicalRequestScope {
-  authority_scope_cid : String
-  caller_request_id : String
-  cid : String
-}
+pub type LogicalRequestScope = @request_scope.LogicalRequestScope
 
 ///|
 pub struct EffectDispatchKey {
@@ -94,43 +90,21 @@ pub fn prepare_logical_request_scope(
   caller_request_id : String,
   max_caller_bytes : Int,
 ) -> Result[LogicalRequestScope, EffectIdentityIssue] {
-  if max_caller_bytes < 1 || max_caller_bytes > 1000000 {
-    return Err(InvalidLimits)
-  }
-  if !effect_cid_valid(authority_scope_cid) {
-    return Err(InvalidAuthorityScope)
-  }
-  if !canonical_bounded_text(caller_request_id, max_caller_bytes) {
-    return Err(InvalidCallerRequest)
-  }
-  if max_caller_bytes > (2147483647 - 256) / 6 {
-    return Err(CapacityExceeded)
-  }
-  let writer = @encode.hashing_writer(max_caller_bytes * 6 + 256, 4, 1) catch {
-    _ => return Err(Encoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authority_scope_cid")
-    @encode.string_value(writer, authority_scope_cid)
-    @encode.key(writer, "caller_request_id")
-    @encode.string_value(writer, caller_request_id)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-logical-request/0.1")
-    @encode.end_object(writer)
-    Ok({
-      authority_scope_cid,
-      caller_request_id,
-      cid: "sha256:" + @encode.finish_hash(writer),
-    })
-  } catch {
-    _ => Err(Encoding)
+  match
+    @request_scope.prepare_logical_request_scope(
+      authority_scope_cid, caller_request_id, max_caller_bytes,
+    ) {
+    Ok(scope) => Ok(scope)
+    Err(@request_scope.InvalidAuthorityScope) => Err(InvalidAuthorityScope)
+    Err(@request_scope.InvalidCallerRequest) => Err(InvalidCallerRequest)
+    Err(@request_scope.InvalidLimits) => Err(InvalidLimits)
+    Err(@request_scope.Encoding) => Err(Encoding)
   }
 }
 
 ///|
 pub fn logical_request_scope_cid(scope : LogicalRequestScope) -> String {
-  scope.cid
+  @request_scope.logical_request_scope_cid(scope)
 }
 
 ///|
@@ -172,14 +146,14 @@ pub fn prepare_effect_dispatch_key(
     @encode.key(writer, "effect_preview_cid")
     @encode.string_value(writer, effect_preview_cid)
     @encode.key(writer, "logical_request_scope_cid")
-    @encode.string_value(writer, scope.cid)
+    @encode.string_value(writer, logical_request_scope_cid(scope))
     @encode.key(writer, "row_or_item_key")
     @json.emit_value(key, writer)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-row-idempotency-key/0.1")
     @encode.end_object(writer)
     Ok({
-      logical_request_scope_cid: scope.cid,
+      logical_request_scope_cid: logical_request_scope_cid(scope),
       effect_preview_cid,
       row_or_item_key_wire,
       cid: "sha256:" + @encode.finish_hash(writer),
