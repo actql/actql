@@ -469,3 +469,13 @@ counts from the identity-obligation formula. Run all 27 cases for feasibility,
 then perform the unchanged Linux paired assessment at one fixed release SHA.
 Preserve the existing large/reuse path and treat the registered text-1024
 Local candidate as ineligible under its unchanged cumulative text ceiling.
+
+The Native product probe now records the elapsed interval of each completed
+task at the existing one-task Host boundary. A separate Native calibration
+uses three alternating forced-choice training rounds, the median task
+interval for each eligible implementation, and a held-out ordinary selection.
+This profile is distinct from the Node Host profile and is not a paired
+acceptance sample. Its millisecond clock granularity is sufficient for
+candidate ranking diagnostics; formal timing still uses the registered
+parent-process boundary. Neither profile can replace the other merely because
+both use the same checked Program and Result oracle.

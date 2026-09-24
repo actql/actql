@@ -31,6 +31,33 @@ fn int64_option(matches : @argparse.Matches, name : String) -> Int64 {
 }
 
 ///|
+fn task_rates_option(
+  matches : @argparse.Matches,
+  name : String,
+  task_count : Int,
+) -> Array[Int64] {
+  let raw = required(matches, name)
+  if raw == "-" {
+    return []
+  }
+  let parts = raw.split(",").to_array()
+  if parts.length() != task_count {
+    abort("incorrect task estimate count --" + name)
+  }
+  let rates : Array[Int64] = []
+  for part in parts {
+    let rate : Int64 = @string.from_str(part) catch {
+      _ => abort("invalid task estimate --" + name)
+    }
+    if rate < 1L || rate > 2147483647L {
+      abort("out-of-range task estimate --" + name)
+    }
+    rates.push(rate)
+  }
+  rates
+}
+
+///|
 fn rejection_name(issue : @resources.LedgerIssue?) -> String {
   match issue {
     None => "feasible"
@@ -110,6 +137,34 @@ fn native_strategy_issue_name(
 }
 
 ///|
+/// Measure the same one-task product boundary used by the full Run helper.
+/// These millisecond intervals are calibration inputs, never acceptance
+/// timings. The wall clock is only an observation; it grants no authority.
+fn execute_timed_native_strategy_run(
+  run : @host.NativeStandardStrategyRun,
+) -> Result[Unit, @host.NativeStandardStrategyRunIssue] {
+  while true {
+    let before = @env.now()
+    match @host.execute_next_native_standard_strategy_task(run) {
+      Ok(Some(completion)) => {
+        let after = @env.now()
+        let elapsed = if after >= before { after - before } else { 0UL }
+        println(
+          "task-elapsed-ms:" +
+          completion.task.to_string() +
+          ":" +
+          elapsed.to_string(),
+        )
+      }
+      Ok(None) => return Ok(())
+      Err(issue) => return Err(issue)
+    }
+  } nobreak {
+    Err(@host.InvalidSelection)
+  }
+}
+
+///|
 fn main {
   let command = @argparse.Command("actql-native-retained-case-probe", options=[
     @argparse.OptionArg("application-root", required=true),
@@ -119,6 +174,9 @@ fn main {
     @argparse.OptionArg("expected-cid", required=true),
     @argparse.OptionArg("expected-tasks", required=true),
     @argparse.OptionArg("native-ms", default_values=["1000"]),
+    @argparse.OptionArg("local-eligible", default_values=["true"]),
+    @argparse.OptionArg("local-task-ms", default_values=["-"]),
+    @argparse.OptionArg("native-task-ms", default_values=["-"]),
     @argparse.OptionArg("source-rows", required=true),
     @argparse.OptionArg("task-rows", required=true),
     @argparse.OptionArg("columns", required=true),
@@ -141,6 +199,21 @@ fn main {
   let retained_task_root = required(matches, "retained-task-root")
   let expected_cid = required(matches, "expected-cid")
   let expected_tasks = int_option(matches, "expected-tasks")
+  let local_eligible = match required(matches, "local-eligible") {
+    "true" => true
+    "false" => false
+    _ => abort("invalid local eligibility")
+  }
+  let local_task_ms = task_rates_option(
+    matches, "local-task-ms", expected_tasks,
+  )
+  let native_task_ms = task_rates_option(
+    matches, "native-task-ms", expected_tasks,
+  )
+  if (!local_eligible && !local_task_ms.is_empty()) ||
+    (!native_task_ms.is_empty() && local_eligible && local_task_ms.is_empty()) {
+    abort("incomplete task estimate profile")
+  }
   let source_rows = int_option(matches, "source-rows")
   let task_rows = int_option(matches, "task-rows")
   let columns = int_option(matches, "columns")
@@ -287,6 +360,9 @@ fn main {
     1L,
     1L,
     false,
+    local_task_ms~,
+    native_task_ms~,
+    local_eligible~,
   ) catch {
     _ => abort("native strategy dispatch rejected")
   }
@@ -323,7 +399,7 @@ fn main {
     },
   ).unwrap()
   println("phase:strategy-execute")
-  match @host.execute_native_standard_strategy_run(run) {
+  match execute_timed_native_strategy_run(run) {
     Ok(_) => ()
     Err(@host.Closed) => abort("native strategy run closed")
     Err(@host.InvalidSelection) => abort("native strategy selection invalid")

@@ -592,6 +592,9 @@ pub fn application_native_retained_strategy_dispatch(
   local_import_ms : Int64,
   local_export_ms : Int64,
   resident : Bool,
+  local_task_ms? : Array[Int64] = [],
+  native_task_ms? : Array[Int64] = [],
+  local_eligible? : Bool = true,
 ) -> @dbhost.StrategyHostDispatch raise {
   create_application_strategy_dispatch(
     app,
@@ -601,6 +604,9 @@ pub fn application_native_retained_strategy_dispatch(
     Some((file_bytes, Some(file_work_ms))),
     local_import_ms=Some(local_import_ms),
     local_export_ms=Some(local_export_ms),
+    local_task_ms~,
+    native_task_ms~,
+    local_eligible~,
   )
 }
 

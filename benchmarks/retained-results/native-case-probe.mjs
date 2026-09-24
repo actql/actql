@@ -7,15 +7,52 @@ import {join, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
-import {retainedMatrix} from './fixtures.mjs';
+import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
 import {managedCaseConfiguration} from './managed-configuration.mjs';
+import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 
 // Registered-case native product-path diagnostic. It now retains task output
 // independently; formal four-comparator acceptance remains a separate run.
 const [caseId, ...extra] = process.argv.slice(2);
-if (!caseId || extra.length) throw new TypeError('Expected one exact registered case ID');
-const fixture = retainedMatrix().find(item => item.id === caseId);
+if (!caseId) throw new TypeError('Expected one exact registered case ID');
+const options = new Map();
+for (const arg of extra) {
+  if (arg === '--training' && !options.has('training')) {
+    options.set('training', true);
+    continue;
+  }
+  const match = /^--(native-ms|local-task-ms|native-task-ms)=(.+)$/.exec(arg);
+  if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
+  options.set(match[1], match[2]);
+}
+const registered = retainedMatrix().find(item => item.id === caseId);
+let fixture = registered;
+if (!fixture && options.get('training') === true) {
+  const [workload, layout, rowText, ...remaining] = caseId.split('/');
+  if (remaining.length || !/^[1-9][0-9]*$/.test(rowText ?? '')) {
+    throw new TypeError('InvalidNativeTrainingCase');
+  }
+  fixture = retainedCase(workload, layout, Number(rowText));
+}
 if (!fixture) throw new TypeError(`Unknown registered case: ${caseId}`);
+const nativeMs = options.get('native-ms') ?? '1000';
+const rates = name => {
+  const raw = options.get(name);
+  if (raw === undefined) return undefined;
+  const values = raw.split(',');
+  if (!values.every(value => /^(0|[1-9][0-9]*)$/.test(value) &&
+      BigInt(value) <= 2147483647n)) throw new TypeError('InvalidNativeProbeRate');
+  return values;
+};
+if (!/^(0|[1-9][0-9]*)$/.test(nativeMs) ||
+    BigInt(nativeMs) > 2147483647n) throw new TypeError('InvalidNativeProbeEstimate');
+const localRates = rates('local-task-ms');
+const nativeRates = rates('native-task-ms');
+const localEligible = registeredLocalEligibility(fixture).eligible;
+const expectedTasks = fixture.workload === workloads[1] ? 4 : 3;
+if (localRates && (!localEligible || localRates.length !== expectedTasks) ||
+    nativeRates && (nativeRates.length !== expectedTasks ||
+      localEligible && !localRates)) throw new TypeError('IncompleteNativeProbeProfile');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const scratchRoot = resolve(process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(),
   'actql-native-retained-case-probe');
@@ -41,6 +78,7 @@ try {
   const {input, limits, finalTask} = managedCaseConfiguration(
     fixture, contracts, database, directory,
   );
+  assert.equal(finalTask, expectedTasks);
   const adopted = JSON.parse(input.adoptedText);
   const files = {
     'program.json': input.programText,
@@ -76,6 +114,10 @@ try {
     '--retained-task-root', retainedTaskRoot,
     '--expected-cid', expected.rowsCid,
     '--expected-tasks', String(finalTask),
+    '--native-ms', nativeMs,
+    '--local-eligible', String(localEligible),
+    '--local-task-ms', localRates?.join(',') ?? '-',
+    '--native-task-ms', nativeRates?.join(',') ?? '-',
     '--source-rows', String(data.source_rows),
     '--task-rows', String(data.task_rows),
     '--columns', String(data.columns),
@@ -94,11 +136,22 @@ try {
   const elapsedMilliseconds = performance.now() - started;
   const result = JSON.parse(stdout.trim().split('\n').at(-1));
   const selections = stdout.split('\n').filter(line => line.startsWith('selection:'));
+  const taskIntervals = stdout.split('\n')
+    .filter(line => line.startsWith('task-elapsed-ms:'))
+    .map(line => {
+      const match = /^task-elapsed-ms:([1-9][0-9]*):(0|[1-9][0-9]*)$/.exec(line);
+      assert(match, 'InvalidNativeTaskInterval');
+      return {task: Number(match[1]), elapsedMilliseconds: Number(match[2])};
+    });
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);
+  assert.deepEqual(taskIntervals.map(value => value.task),
+    Array.from({length: finalTask}, (_, index) => index + 1));
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
-    elapsedMilliseconds, selections, result,
+    scope: registered ? 'registered-feasibility' : 'calibration-training',
+    elapsedMilliseconds, taskIntervals, selections, result,
+    selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
 } catch (error) {
   const output = String(error.stdout ?? '').trim().split('\n');
