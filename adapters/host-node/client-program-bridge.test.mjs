@@ -222,6 +222,17 @@ test('Node ABI derives the checked named Result and request identity', async () 
   });
   assert.equal(`sha256:${createHash('sha256').update(definition)
     .digest('hex')}`, programCid);
+  const semantics = checked(moon.clientProgramSemanticsJson(prepared));
+  assert.equal(`sha256:${createHash('sha256').update(semantics)
+    .digest('hex')}`, semanticsCid);
+  const stageSemantics = checked(
+    moon.clientProgramStageSemanticsJson(prepared, 0));
+  assert.equal(`sha256:${createHash('sha256').update(stageSemantics)
+    .digest('hex')}`,
+  JSON.parse(semantics).program_template.stages[0].stage_semantics_cid);
+  assert.throws(() => checked(
+    moon.clientProgramStageSemanticsJson(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'saved-request', cid('b'));
   assert.ok(request);
@@ -242,6 +253,10 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramSemanticsCid(yamlPrepared), semanticsCid);
   assert.equal(checked(moon.clientProgramDefinitionJson(yamlPrepared)),
     definition);
+  assert.equal(checked(moon.clientProgramSemanticsJson(yamlPrepared)),
+    semantics);
+  assert.equal(checked(moon.clientProgramStageSemanticsJson(yamlPrepared, 0)),
+    stageSemantics);
   assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
