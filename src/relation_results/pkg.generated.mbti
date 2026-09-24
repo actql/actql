@@ -101,7 +101,15 @@ pub fn publication_strategy(PublicationOrder) -> OrderStrategy
 
 pub fn publication_term_at(PublicationOrder, Int) -> PublicationTerm?
 
+pub fn publication_term_authored(PublicationTerm) -> Bool
+
 pub fn publication_term_count(PublicationOrder) -> Int
+
+pub fn publication_term_direction(PublicationTerm) -> @order_key.Direction
+
+pub fn publication_term_field(PublicationTerm) -> @relation_schema.FieldName
+
+pub fn publication_term_nulls(PublicationTerm) -> @order_key.NullPlacement
 
 pub fn resolve_all_orders(CheckedResults, OrderCheckLimits) -> Result[CheckedOrders, OrderCheckIssue]
 
