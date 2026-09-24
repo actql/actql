@@ -4,7 +4,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 27 have operation-specific
+The current local resource gate maps 68 routes: 28 have operation-specific
 boundary records, 8 have all four lifecycle roles, and 7 have exact and
 one-short work/workspace assurance across every production path. Another 26
 paths have path-scoped work/workspace evidence. Strict completion remains red.
@@ -17,6 +17,15 @@ kernel still scans all input occurrences before each work step. Splitting
 that check into rotating steps is unsafe without a completion-time input
 authority fence: an already-checked input can be revoked before completion.
 The input-count multiplier and full ranking boundary assurance remain open.
+
+The time-series kernel now charges its finalization poll as one work unit,
+matching its emitted-row steps. Its three-row provider fixture rejects a
+two-row output ceiling before starting, admits the exact three-row ceiling,
+and checks one charged work unit on the final quantum-one poll. A separate
+fixture stops after positive row work and reclaims the unpublished output;
+the standard Host timer covers delivered cancellation. These fixtures are
+bound to the time-series production route. Cumulative exact and one-short
+work/workspace assurance for that route is still incomplete.
 
 Global `top_k` now selects a bounded Relation task after its checked key
 assertion. Its full-input sort and requested output prefix advance at quantum

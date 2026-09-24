@@ -89,6 +89,7 @@ fn time_series_step(
           state.phase = FinishSeries
         }
       FinishSeries => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidSeriesKernel, progress, used)
         }
