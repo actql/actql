@@ -1,0 +1,52 @@
+name: Registered performance matrix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  equivalent-obligations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+      - name: Install pinned MoonBit
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Record fixed source and tools
+        run: |
+          git rev-parse HEAD
+          git status --short
+          node --version
+          moon version --all
+      - name: Run all registered equivalent-obligations cases
+        run: node benchmarks/retained-results/run-equivalent-matrix.mjs performance-artifacts/equivalent-obligations
+      - name: Preserve raw pairs and assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: equivalent-obligations-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            performance-artifacts/equivalent-obligations/case-*.json
+            performance-artifacts/equivalent-obligations/progress.json
+            performance-artifacts/equivalent-obligations/assessment.json
+            performance-artifacts/equivalent-obligations/assessment.md
+            performance-artifacts/equivalent-obligations/actql-retained-calibration-*/*.json
+          if-no-files-found: warn
+          retention-days: 30
