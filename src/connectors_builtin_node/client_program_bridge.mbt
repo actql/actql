@@ -2266,6 +2266,24 @@ struct ClientEffectPlanCursor {
 }
 
 ///|
+/// Issued only after the checked Result cursor and its Plan comparison both
+/// finish. This is payload evidence, not current authority or an apply permit.
+struct ClientEffectPlanProof {
+  preview : @strategy.CapturedEffectPreviewInputs
+  preview_index : Int
+  input : @strategy.CapturedEffectInput
+}
+
+///|
+pub(all) enum ClientEffectPlanInventoryIssue {
+  InvalidLimits
+  CapacityExceeded
+  ForeignProof(Int)
+  DuplicateProof(Int)
+  MissingProof(Int)
+}
+
+///|
 fn client_effect_plan_poison(value : ClientEffectPlanCursor) -> Unit {
   value.closed = true
   @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
@@ -2440,7 +2458,7 @@ pub fn client_program_effect_plan_next(
 pub fn client_program_effect_plan_finish(
   value : ClientEffectPlanCursor,
 ) -> Result[
-  (@execution.CompletedRelationExportReceipt, String),
+  (@execution.CompletedRelationExportReceipt, String, ClientEffectPlanProof),
   ClientEffectPlanStreamIssue,
 ] {
   if value.closed || !value.exhausted {
@@ -2461,10 +2479,92 @@ pub fn client_program_effect_plan_finish(
       return Err(Plan(issue))
     }
   }
+  let pair = match @execution.finish_completed_relation_export(value.stream) {
+    Ok(pair) => pair
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Export(issue))
+    }
+  }
   value.closed = true
-  @execution.finish_completed_relation_export(value.stream).map_err(issue => {
-    Export(issue)
-  })
+  guard @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is Some(input) else {
+    @execution.cancel_completed_relation_export_receipt(pair.0)
+    return Err(NotReady)
+  }
+  let proof = {
+    preview: value.owner.preview,
+    preview_index: value.owner.preview_index,
+    input,
+  }
+  Ok((pair.0, pair.1, proof))
+}
+
+///|
+#export_name("clientProgramEffectPlanProofMatches")
+pub fn client_program_effect_plan_proof_matches(
+  proof : ClientEffectPlanProof,
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  if !physical_equal(proof.preview, preview) ||
+    proof.preview_index != preview_index {
+    return false
+  }
+  match @strategy.captured_effect_preview_input_at(preview, preview_index) {
+    Some(input) => physical_equal(input, proof.input)
+    None => false
+  }
+}
+
+///|
+#export_name("clientProgramCheckEffectPlanProofs")
+pub fn client_program_check_effect_plan_proofs(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  proofs : Array[ClientEffectPlanProof],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, ClientEffectPlanInventoryIssue] {
+  if max_members < 1 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  let identity = @program_check.effect_program_run_preview_identity(
+    @strategy.captured_effect_preview_owner(preview),
+  )
+  let count = @publication.effect_preview_member_count(identity)
+  if count < 1 ||
+    count > max_members ||
+    proofs.length() > count ||
+    count > max_work ||
+    proofs.length() > max_work - count {
+    return Err(CapacityExceeded)
+  }
+  let seen = Array::make(count, false)
+  for proof_index in 0..<proofs.length() {
+    let proof = proofs[proof_index]
+    let member_index = proof.preview_index
+    if member_index < 0 ||
+      member_index >= count ||
+      @publication.effect_preview_member_plan_cid(identity, member_index)
+      is None ||
+      !client_program_effect_plan_proof_matches(proof, preview, member_index) {
+      return Err(ForeignProof(proof_index))
+    }
+    if seen[member_index] {
+      return Err(DuplicateProof(member_index))
+    }
+    seen[member_index] = true
+  }
+  for index in 0..<count {
+    if @publication.effect_preview_member_plan_cid(identity, index) is Some(_) &&
+      !seen[index] {
+      return Err(MissingProof(index))
+    }
+  }
+  Ok(())
 }
 
 ///|
