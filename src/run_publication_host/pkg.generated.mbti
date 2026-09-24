@@ -74,6 +74,8 @@ pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering
 
 pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesPipelineIssue]
 
+pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
+
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
@@ -267,6 +269,12 @@ pub(all) enum ClientValuesPipelineIssue {
   MissingTask
   Sequence(@lowering_relation.SequenceIssue)
   NotSingleValues
+  Encoding
+}
+
+pub(all) enum ClientValuesUnitSourceIssue {
+  Pipeline(ClientValuesAoAIdentityIssue)
+  UnsupportedSource
   Encoding
 }
 
