@@ -258,6 +258,21 @@ pub fn captured_effect_run_owner(
 }
 
 ///|
+/// Retain the checked source occurrence through capture without implying a
+/// live read pin. Physical output availability is checked at each use-site.
+pub fn captured_effect_run_source_count(value : CapturedEffectRunDAG) -> Int {
+  value.checked.computation.sources.length()
+}
+
+///|
+pub fn captured_effect_run_source_at(
+  value : CapturedEffectRunDAG,
+  index : Int,
+) -> CheckedEffectSourcePort? {
+  value.checked.computation.sources.get(index).bind(source => source)
+}
+
+///|
 fn open_captured_dag_owned(
   graph : CheckedDAG,
   source : @query.CapturedInputSource,
