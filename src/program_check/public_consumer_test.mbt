@@ -133,6 +133,7 @@ fn public_effect_preview_for_static(
   second_max_items? : Int = 1,
   first_target_cid? : String? = None,
   second_target_cid? : String? = None,
+  reverse_members? : Bool = false,
 ) -> @run_publication.EffectPreviewIdentity {
   let cid = "sha256:" + "a".repeat(64)
   let definition = definition_cid.unwrap_or(
@@ -155,22 +156,26 @@ fn public_effect_preview_for_static(
   let authoring_cid = "sha256:" + @sha.hex(@utf8.encode(authoring_body))
   let first_placeholder = "sha256:" + "b".repeat(64)
   let second_placeholder = "sha256:" + "c".repeat(64)
-  let members = public_effect_preview_member(
-      "first",
-      mapping_cid,
-      first_placeholder,
-      max_items=first_max_items,
-      target_cid=first_target_cid,
-      source_name=Some("out"),
-    ) +
-    "," +
-    public_effect_preview_member(
-      "second",
-      mapping_cid,
-      second_placeholder,
-      max_items=second_max_items,
-      target_cid=second_target_cid,
-    )
+  let first = public_effect_preview_member(
+    "first",
+    mapping_cid,
+    first_placeholder,
+    max_items=first_max_items,
+    target_cid=first_target_cid,
+    source_name=Some("out"),
+  )
+  let second = public_effect_preview_member(
+    "second",
+    mapping_cid,
+    second_placeholder,
+    max_items=second_max_items,
+    target_cid=second_target_cid,
+  )
+  let members = if reverse_members {
+    second + "," + first
+  } else {
+    first + "," + second
+  }
   let raw = "{\"version\":\"actql-effect-preview/0.1\"," +
     "\"sensitivity\":\"private\",\"retention_class\":\"authority-evidence\"," +
     "\"encryption_required\":true,\"program_semantics_cid\":\"" +
@@ -205,11 +210,15 @@ fn public_effect_preview_for_static(
     canonical
     .replace_all(
       old="\"effect_member_preview_cid\":\"" + first_placeholder + "\"",
-      new="\"effect_member_preview_cid\":\"" + member_cids[0] + "\"",
+      new="\"effect_member_preview_cid\":\"" +
+        member_cids[if reverse_members { 1 } else { 0 }] +
+        "\"",
     )
     .replace_all(
       old="\"effect_member_preview_cid\":\"" + second_placeholder + "\"",
-      new="\"effect_member_preview_cid\":\"" + member_cids[1] + "\"",
+      new="\"effect_member_preview_cid\":\"" +
+        member_cids[if reverse_members { 0 } else { 1 }] +
+        "\"",
     ),
   )
   let (preview_cid, _) = @run_publication.derive_effect_preview_identities(
@@ -931,6 +940,57 @@ test "Effect computation candidate closes the exact Mapping environment" {
     1000,
     public_effect_plan_limits(),
   ).unwrap()
+  assert_eq(
+    @strategy.checked_effect_preview_source_indexes(
+      checked_run, bound_run_preview, 4,
+    ).unwrap(),
+    [Some(0), None],
+  )
+  let reordered_preview = public_effect_preview_for_static(
+    static_candidate,
+    mapping_cid,
+    run_cid=Some(run_identity),
+    plan_cid=Some(plan_identity),
+    invocation_cid=Some(invocation_identity),
+    reverse_members=true,
+  )
+  let reordered_owner = @program_check.bind_effect_program_run_preview(
+    run_owner,
+    invocation,
+    1,
+    reordered_preview,
+    1000,
+    public_effect_plan_limits(),
+  ).unwrap()
+  assert_eq(
+    @strategy.checked_effect_preview_source_indexes(
+      checked_run, reordered_owner, 4,
+    ).unwrap(),
+    [None, Some(0)],
+  )
+  assert_true(
+    @strategy.checked_effect_preview_source_indexes(
+      checked_run, bound_run_preview, 3,
+    )
+    is Err(PreviewWorkLimit),
+  )
+  let duplicate_run = @program_check.bind_effect_program_static_run(
+    static_candidate, run_admission, run_definition,
+  ).unwrap()
+  let duplicate_preview = @program_check.bind_effect_program_run_preview(
+    duplicate_run,
+    invocation,
+    1,
+    run_preview,
+    1000,
+    public_effect_plan_limits(),
+  ).unwrap()
+  assert_true(
+    @strategy.checked_effect_preview_source_indexes(
+      checked_run, duplicate_preview, 4,
+    )
+    is Err(ForeignCandidate),
+  )
   assert_true(
     @program_check.check_effect_program_run_preview_footprints(
       bound_run_preview, 2, 2, 100,

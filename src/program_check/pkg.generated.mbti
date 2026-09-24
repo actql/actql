@@ -161,6 +161,8 @@ pub fn effect_program_run_preview_invocation(EffectProgramRunPreview) -> @run_pu
 
 pub fn effect_program_run_preview_owner(EffectProgramRunPreview) -> EffectProgramRunCandidate
 
+pub fn effect_program_run_preview_stage(EffectProgramRunPreview) -> Int
+
 pub fn effect_program_run_static_candidate(EffectProgramRunCandidate) -> EffectProgramStaticCandidate
 
 pub fn effect_program_static_checked_computation(EffectProgramStaticCandidate) -> CheckedProgram
