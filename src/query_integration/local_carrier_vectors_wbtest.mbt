@@ -3860,7 +3860,7 @@ test "registered VecA provider groups nullable RRF keys" {
 }
 
 ///|
-test "ranking initializes sort scratch within quantum and reclaims on cancel" {
+test "ranking bounds scratch and output assembly within quantum" {
   let left = direct_rrf_owner()
   let right = direct_rrf_owner()
   let owner = direct_rrf_fusion_owner(left, right)
@@ -3929,6 +3929,53 @@ test "ranking initializes sort scratch within quantum and reclaims on cancel" {
   assert_true(@execution.producer_read_available(inputs[1]))
   assert_true(@execution.completed_output_available(left_output))
   assert_true(@execution.completed_output_available(right_output))
+
+  let output_control = @bounded.control()
+  let output_execution = @local_veca.start_ranking(
+    output_control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    1000,
+    1000,
+    10000,
+  ).unwrap()
+  let mut output_started = false
+  let mut output_work = 0L
+  for _ in 0..<1000 {
+    if !output_started {
+      match @local_veca.advance_ranking(output_execution, 1).unwrap() {
+        @local_veca.RankingContinue(work~, ..) => {
+          assert_eq(work - output_work, 1L)
+          output_work = work
+          output_started = @local_veca.ranking_output_field_slots(
+              output_execution,
+            ) >
+            0
+          if output_started {
+            assert_eq(
+              @local_veca.ranking_output_field_slots(output_execution),
+              1,
+            )
+          }
+        }
+        _ => fail("ranking completed before output field assembly")
+      }
+    }
+  }
+  assert_true(output_started)
+  assert_true(@bounded.request_cancel(output_control))
+  assert_true(
+    @local_veca.advance_ranking(output_execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(output_execution), Ok(true))
+  assert_eq(@local_veca.ranking_output_field_slots(output_execution), 0)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
 }
 
 ///|

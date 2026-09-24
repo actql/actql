@@ -468,8 +468,8 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'VecA' && route.operation === 'merge_rankings' &&
-    !boundaryRoles.has('ranking_bounded_scratch_cancel_cleanup')) {
-    fail(`${label}: bounded ranking scratch fixture is missing`);
+    !boundaryRoles.has('ranking_bounded_record_output_cancel_cleanup')) {
+    fail(`${label}: bounded ranking assembly fixture is missing`);
   }
   if (route.family === 'TEA' && route.operation === 'window_events') {
     for (const role of [

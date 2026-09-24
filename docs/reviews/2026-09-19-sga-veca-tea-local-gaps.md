@@ -373,11 +373,15 @@ assurance. The binding pass is O(P + E) expected for P physical reads and E
 logical input edges, excluding the cost of exact binding checks.
 
 Per-record group and tie scratch, record-sort scratch, and fused-output sort
-scratch now initialize one entry per charged resume step. A direct ranking
-fixture reaches record-sort initialization with quantum one, observes one
-retained slot after the first step, then cancels and verifies cleanup without
-revoking either input. The resource gate requires this fixture, but it does
-not promote the ranking route to full work/workspace assurance.
+scratch now initialize one entry per charged resume step. Group-key, candidate,
+tie, and numeric record validation run in their prior failure order across
+separate steps. Output rows assemble one field per step before commit. A
+direct ranking fixture reaches record-sort and output-field assembly with
+quantum one, observes one retained slot after each first step, then cancels
+and verifies cleanup without revoking either input. The resource gate requires
+this fixture, but it does not promote the ranking route to full work/workspace
+assurance. Input-authority scans, key comparisons, and other nested value work
+still require their own non-interruptible bounds.
 
 Event deduplication no longer constructs its records-by-terms cell matrix or
 two full index arrays in `start`. The checked scratch ceiling remains an
