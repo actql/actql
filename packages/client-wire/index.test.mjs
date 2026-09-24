@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {clientHostOperations, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
-  validRequestLookup, validRunRef, validRunState} from './index.mjs';
+  validRequestLookup, validRunRef, validRunState,
+  validSubmitPreparationError} from './index.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
@@ -21,6 +22,19 @@ test('public wire accepts the exact connected request shapes', () => {
     parameters: null}), true);
   assert.equal(validClientBody('read', {connection, ref,
     resultName: 'answer', format: 'jsonl', attemptId: 'read-a'}), true);
+});
+
+test('submit preparation errors follow the public Host contract', () => {
+  for (const code of ['ClientProgramInvalidInput',
+    'ClientParametersInvalid', 'ClientParametersTooLarge',
+    'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
+    'ClientProgramRejected']) {
+    assert.equal(validSubmitPreparationError({code}), true);
+  }
+  assert.equal(validSubmitPreparationError({code: 'ClientHostFailure'}),
+    false);
+  assert.equal(validSubmitPreparationError({code: 'ClientProgramRejected',
+    diagnostics: []}), false);
 });
 
 test('public wire rejects extra fields and unscoped or implicit movement', () => {

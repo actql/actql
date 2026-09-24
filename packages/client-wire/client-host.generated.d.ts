@@ -65,6 +65,10 @@ export type WireLookupUnknownShape = Readonly<{
   reason: string;
 }>;
 
+export type WireSubmitPreparationErrorShape = Readonly<{
+  code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
+}>;
+
 export type WireRunStateShape = Readonly<{
   version: "actql-run-state/0.1";
   run_id: string;
