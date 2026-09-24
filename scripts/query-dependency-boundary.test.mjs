@@ -356,6 +356,18 @@ test('connector SDK has no concrete implementation dependency or public error ty
   assert.match(api, /^type CapabilityImplementations\[T\]$/m);
 });
 
+test('Salesforce acquisition does not own Host candidate selection', () => {
+  const acquisition = imports('connectors/salesforce/acquisition');
+  assert.ok(!acquisition.includes('connector_sdk'));
+  assert.ok(!acquisition.includes('physical_cost'));
+  const providerApi = readFileSync(
+    'src/connectors/salesforce/acquisition/pkg.generated.mbti', 'utf8');
+  assert.doesNotMatch(providerApi, /salesforce_broad_candidate/);
+  const hostApi = readFileSync(
+    'src/connectors/salesforce/host/pkg.generated.mbti', 'utf8');
+  assert.match(hostApi, /pub fn salesforce_broad_candidate\(/);
+});
+
 test('common DAG and Host have no transitive concrete connector dependency', () => {
   for (const root of ['physical_strategy', 'physical_host', 'execution_query']) {
     for (const dependency of dependencies(root)) {

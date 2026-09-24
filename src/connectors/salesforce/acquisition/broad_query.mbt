@@ -149,31 +149,6 @@ pub fn salesforce_broad_work_at(index : Int) -> SalesforceBroadWork? {
 }
 
 ///|
-/// The common planner owns comparison; this contribution does not grant I/O.
-pub fn salesforce_broad_candidate(
-  registration : @connector.CapabilityRegistration,
-  preparation : SalesforceBroadPreparation,
-  estimates : Array[@cost.SerialEstimateLine],
-  quantities : @connector.QueryQuantities,
-  max_entries : Int,
-) -> Result[
-  @planning.PreparedAcquisition[SalesforceBroadPreparation],
-  @planning.QueryPlanningIssue,
-] {
-  let duration = match @cost.assess_serial(8, estimates, max_entries) {
-    Ok(value) => value
-    Err(issue) => return Err(Cost(issue))
-  }
-  @planning.bind_acquisition_candidate(
-    registration,
-    preparation.requirement,
-    preparation,
-    duration,
-    quantities,
-  )
-}
-
-///|
 /// Each page is admitted into the exact checked input schema before the next
 /// locator is requested. The owner exposes no partial CapturedRows on failure.
 struct SalesforceBroadQuery {

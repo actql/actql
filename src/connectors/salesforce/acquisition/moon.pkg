@@ -12,7 +12,5 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_admission" @admitted,
-  "actql/actql/connector_sdk" @connector,
-  "actql/actql/physical_cost" @cost,
   "actql/actql/encode_core" @encode,
 }

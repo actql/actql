@@ -1,4 +1,30 @@
 ///|
+/// Physical-cost selection belongs to the Host assembly, not the provider's
+/// query interpretation. A selected candidate still grants no I/O authority.
+pub fn salesforce_broad_candidate(
+  registration : @connector.CapabilityRegistration,
+  preparation : @salesforce.SalesforceBroadPreparation,
+  estimates : Array[@cost.SerialEstimateLine],
+  quantities : @connector.QueryQuantities,
+  max_entries : Int,
+) -> Result[
+  @planning.PreparedAcquisition[@salesforce.SalesforceBroadPreparation],
+  @planning.QueryPlanningIssue,
+] {
+  let duration = match @cost.assess_serial(8, estimates, max_entries) {
+    Ok(value) => value
+    Err(issue) => return Err(Cost(issue))
+  }
+  @planning.bind_acquisition_candidate(
+    registration,
+    @salesforce.salesforce_broad_requirement(preparation),
+    preparation,
+    duration,
+    quantities,
+  )
+}
+
+///|
 struct SalesforceBroadHostConfiguration {
   contracts : @planning.QueryEvidenceContracts
   requirement : @planning.QueryRequirement
