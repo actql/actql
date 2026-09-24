@@ -1,5 +1,6 @@
 ///|
 struct CheckedProgram {
+  has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
@@ -311,6 +312,7 @@ fn check(
     error => raise Units(error)
   }
   {
+    has_effects: effect_headers is Some(_),
     keyed_input_proofs,
     nest_limits,
     traversal_limits,
@@ -335,6 +337,13 @@ fn check(
     analytic_numeric_slots,
     pivot_numeric_slots,
   }
+}
+
+///|
+/// Structural Effect declarations remain attached to a computation-only
+/// check. Their presence never turns its output into an Effect-free Run.
+pub fn checked_program_has_effects(program : CheckedProgram) -> Bool {
+  program.has_effects
 }
 
 ///|

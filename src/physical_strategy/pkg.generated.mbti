@@ -139,6 +139,10 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
+
+pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
+
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
 pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
@@ -203,6 +207,8 @@ pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
 
 pub fn graph_program_definition_cid(CheckedDAG) -> String
 
+pub fn graph_program_has_effects(CheckedDAG) -> Bool
+
 pub fn graph_result_count(CheckedDAG) -> Int
 
 pub fn graph_result_name(CheckedDAG, Int) -> String?
@@ -258,6 +264,8 @@ pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[Ca
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
+
+pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedEffectComputationDAG, GraphIssue]
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
@@ -487,6 +495,11 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 type CapturedDAG
 
 type CheckedDAG
+
+pub struct CheckedEffectComputationDAG {
+  candidate : @program_check.EffectProgramStaticCandidate
+  graph : CheckedDAG
+}
 
 pub(all) struct CheckedTaskIdentity {
   task : Int
