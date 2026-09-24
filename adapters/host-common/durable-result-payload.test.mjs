@@ -169,7 +169,7 @@ test('Result evidence is issued before its durable payload becomes visible',
         return snapshot;
       },
       issueDurableResultBinding(chain, physical, supplied) {
-        assert.equal(chain.runDefinition, 'run-definition');
+        assert.equal(chain.runDefinition, runDefinition);
         assert.equal(chain.definition, 'result-definition');
         assert.equal(chain.invocation, 'invocation');
         assert.equal(chain.artifact, artifact);
@@ -190,9 +190,10 @@ test('Result evidence is issued before its durable payload becomes visible',
         return durableBinding;
       },
     });
+    const runDefinition = Object.freeze({identity: cid('b')});
     const publication = Object.freeze({
       control: publicationControl,
-      runDefinition: 'run-definition',
+      runDefinition,
       definition: 'result-definition',
       evidenceContext,
       limits: publicationLimits,
@@ -256,7 +257,8 @@ test('Result evidence is issued before its durable payload becomes visible',
     assert.equal(store.status().reservedObjects, 0);
     assert.equal(await stored.prepared.release(), true);
     assert.equal(stored.prepared.status().pending, false);
-    assert.equal(store.status().objectCount, 1);
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(store.status().storedBytes, 0);
   });
 
 test('canonical batches stream to one durable object without whole-array input',

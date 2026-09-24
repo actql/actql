@@ -116,6 +116,32 @@ function payloadFailure(reason, cleanupErrors, cleanupOwners, control) {
   return failure;
 }
 
+function preparedResultOwners(physical, schema) {
+  const owners = [physical, schema];
+  const status = () => Object.freeze({
+    pending: owners.some(owner => owner.status().pending === true),
+    errors: Object.freeze(owners.flatMap(owner =>
+      owner.status().errors ?? [])),
+  });
+  const release = async () => {
+    let changed = false;
+    for (const owner of owners) {
+      if (owner.status().pending !== true) continue;
+      await owner.release();
+      changed = true;
+    }
+    return changed;
+  };
+  return Object.freeze({
+    status,
+    release,
+    async retry() {
+      await release();
+      return status();
+    },
+  });
+}
+
 /// Stream an exact completed output without materializing a whole row array in
 /// JavaScript. The ordered-row receipt and physical object identity are kept as
 /// distinct typed fields even when this codec makes their SHA-256 values equal.
@@ -164,7 +190,7 @@ export async function storeCompletedResultPublicationPayload(
 ) {
   if (!validStore(store) ||
       typeof store.createPreparedObjectWriter !== 'function' ||
-      typeof store.putSemantic !== 'function' ||
+      typeof store.putPreparedResultSchema !== 'function' ||
       !validResultControl(control) ||
       typeof control.issueResultEvidence !== 'function' ||
       publication === null || typeof publication !== 'object' ||
@@ -172,6 +198,9 @@ export async function storeCompletedResultPublicationPayload(
       typeof publication.control?.issueDurableResultBinding !== 'function' ||
       typeof publication.control?.admitCompletedResultSnapshot !==
         'function' ||
+      !/^sha256:[0-9a-f]{64}$/u.test(
+        publication.runDefinition?.identity,
+      ) ||
       !Number.isSafeInteger(result) || result < 0) {
     fail('InvalidDurableResultPayloadAdapter');
   }
@@ -218,6 +247,7 @@ export async function storeCompletedResultPublicationPayload(
         physicalSha256: physical.cid.slice('sha256:'.length),
       }, publication.limits),
     true,
+    publication.runDefinition.identity,
   );
 }
 
@@ -230,6 +260,7 @@ async function storeCompletedPayload(
   issueEvidence,
   issuePhysicalEvidence,
   preparePhysical = false,
+  schemaRunDefinitionCid,
 ) {
   signal?.throwIfAborted();
   let exportHandle;
@@ -261,13 +292,19 @@ async function storeCompletedPayload(
     }
     const publication = issueEvidence?.(exportHandle);
     if (publication !== undefined) {
-      schema = await store.putSemantic(
+      schema = await store.putPreparedResultSchema(
         orderedRows.resultSchemaWire,
         orderedRows.resultSchemaCid,
+        schemaRunDefinitionCid,
       );
+      prepared = schema.prepared;
     }
     const sealedPhysical = await writer.seal(orderedRows.orderedRowsCid);
-    prepared = sealedPhysical.prepared;
+    if (schema !== undefined) {
+      prepared = preparedResultOwners(sealedPhysical.prepared, schema.prepared);
+    } else {
+      prepared = sealedPhysical.prepared;
+    }
     const physical = Object.freeze({
       cid: sealedPhysical.cid,
       bytes: sealedPhysical.bytes,
@@ -288,13 +325,24 @@ async function storeCompletedPayload(
       orderedRows: Object.freeze({...orderedRows}),
       ...(publication === undefined ? {} : {
         publication: Object.freeze({...publication, durableBinding}),
-        schema: Object.freeze({...schema}),
+        schema: Object.freeze({
+          semanticCid: schema.semanticCid,
+          physical: schema.physical,
+          created: schema.created,
+        }),
         prepared,
       }),
     });
   } catch (reason) {
     const cleanupErrors = [];
     const cleanupOwners = [];
+    if (reason?.cleanupPending === true &&
+        reason.cleanupHandle !== undefined) {
+      cleanupOwners.push(Object.freeze({
+        pending: () => reason.cleanupHandle.status().pending === true,
+        retry: () => reason.cleanupHandle.retry(),
+      }));
+    }
     let writerCancelAttempted = false;
     let preparedReleaseAttempted = false;
     let exportCancelAttempted = false;

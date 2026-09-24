@@ -840,11 +840,9 @@ test('admitted source-free Effect Run computes through the installed Host',
       {code: 'MoonBitHostFailure'});
     } finally {
       if (storedResults !== undefined) {
-        const before = store.status();
         await releaseCompletedRunPreparedPayloads(storedResults, control);
-        assert.equal(store.status().storedBytes,
-          before.storedBytes - storedResults.results[0].physical.bytes);
-        assert.equal(store.status().objectCount, before.objectCount - 1);
+        assert.equal(store.status().storedBytes, 0);
+        assert.equal(store.status().objectCount, 0);
       }
       await store.close();
       await execution.close();
@@ -1275,11 +1273,9 @@ test('owned update Plan matches approved rows and rejects altered intent',
         moon.clientProgramReleaseEffectInputs(inputs);
       }
       if (storedResults !== undefined) {
-        const before = store.status();
         await releaseCompletedRunPreparedPayloads(storedResults, control);
-        assert.equal(store.status().storedBytes,
-          before.storedBytes - storedResults.results[0].physical.bytes);
-        assert.equal(store.status().objectCount, before.objectCount - 1);
+        assert.equal(store.status().storedBytes, 0);
+        assert.equal(store.status().objectCount, 0);
       }
       await store.close();
       await execution.close();
