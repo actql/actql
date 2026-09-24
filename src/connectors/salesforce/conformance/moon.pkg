@@ -2,7 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/connectors/salesforce/catalog",
-  "actql/actql/connectors/salesforce/acquisition",
+  "actql/actql/connectors/salesforce/host" @acquisition,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,

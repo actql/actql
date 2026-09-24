@@ -357,18 +357,20 @@ test('connector SDK has no concrete implementation dependency or public error ty
   assert.match(api, /^type CapabilityImplementations\[T\]$/m);
 });
 
-test('Salesforce acquisition does not own Host candidate selection', () => {
-  const acquisition = imports('connectors/salesforce/acquisition');
-  assert.ok(!acquisition.includes('connector_sdk'));
-  assert.ok(!acquisition.includes('physical_cost'));
-  const providerApi = readFileSync(
-    'src/connectors/salesforce/acquisition/pkg.generated.mbti', 'utf8');
-  assert.doesNotMatch(providerApi, /salesforce_broad_candidate/);
+test('Salesforce semantics do not own acquisition custody', () => {
+  const catalog = imports('connectors/salesforce/catalog');
+  for (const dependency of catalog) {
+    assert.doesNotMatch(dependency,
+      /^(?:connector_sdk|physical_cost|query_planning|execution_query|execution_relation|lowering_relation)$/);
+  }
+  assert.ok(!existsSync('src/connectors/salesforce/acquisition/moon.pkg'));
   const hostApi = readFileSync(
     'src/connectors/salesforce/host/pkg.generated.mbti', 'utf8');
   assert.match(hostApi, /pub fn salesforce_broad_candidate\(/);
-  assert.match(providerApi, /^type ManagedQuery$/m);
-  assert.doesNotMatch(providerApi, /^pub struct ManagedQuery/m);
+  assert.match(hostApi, /pub fn complete_salesforce_broad_capture\(/);
+  assert.match(hostApi, /pub fn bind_captured_salesforce_broad_input\(/);
+  assert.match(hostApi, /^type ManagedQuery$/m);
+  assert.doesNotMatch(hostApi, /^pub struct ManagedQuery/m);
 });
 
 test('common DAG and Host have no transitive concrete connector dependency', () => {

@@ -11,8 +11,8 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
-  ManagedQuery(@acquisition.ManagedQueryIssue)
-  BroadAttempt(@acquisition.SalesforceBroadAttemptIssue)
+  ManagedQuery(@salesforce_host.ManagedQueryIssue)
+  BroadAttempt(@salesforce_host.SalesforceBroadAttemptIssue)
   BroadHost(@salesforce_host.SalesforceBroadHostIssue)
   InvalidResource
 }
@@ -507,9 +507,9 @@ pub fn salesforce_prepare_managed_query(
   max_pages : Int,
   max_total_rows : Int64,
   values : @execution.ManagedOutputValues,
-) -> @acquisition.ManagedQuery raise SalesforceCatalogBridgeIssue {
+) -> @salesforce_host.ManagedQuery raise SalesforceCatalogBridgeIssue {
   match
-    @acquisition.prepare_managed_query(
+    @salesforce_host.prepare_managed_query(
       plan,
       api_version,
       { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
@@ -525,9 +525,9 @@ pub fn salesforce_prepare_managed_query(
 ///|
 #export_name("salesforceManagedQueryNextPath")
 pub fn salesforce_managed_query_next_path(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
 ) -> String? raise SalesforceCatalogBridgeIssue {
-  match @acquisition.managed_query_next_path(query) {
+  match @salesforce_host.managed_query_next_path(query) {
     Ok(path) => path
     Err(issue) => raise ManagedQuery(issue)
   }
@@ -536,11 +536,11 @@ pub fn salesforce_managed_query_next_path(
 ///|
 #export_name("salesforceManagedQueryAcceptPage")
 pub fn salesforce_managed_query_accept_page(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
   path : String,
   body : Bytes,
 ) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue {
-  match @acquisition.accept_managed_query_page(query, path, body) {
+  match @salesforce_host.accept_managed_query_page(query, path, body) {
     Ok(value) => value
     Err(issue) => raise ManagedQuery(issue)
   }
@@ -549,33 +549,33 @@ pub fn salesforce_managed_query_accept_page(
 ///|
 #export_name("salesforceManagedQueryCancel")
 pub fn salesforce_managed_query_cancel(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
 ) -> Bool {
-  @acquisition.cancel_managed_query(query)
+  @salesforce_host.cancel_managed_query(query)
 }
 
 ///|
 #export_name("salesforceManagedQueryComplete")
 pub fn salesforce_managed_query_complete(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
 ) -> Bool {
-  @acquisition.managed_query_complete(query)
+  @salesforce_host.managed_query_complete(query)
 }
 
 ///|
 #export_name("salesforceManagedQueryRowCount")
 pub fn salesforce_managed_query_row_count(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
 ) -> Int64 {
-  @acquisition.managed_query_row_count(query)
+  @salesforce_host.managed_query_row_count(query)
 }
 
 ///|
 #export_name("salesforceManagedQueryFinish")
 pub fn salesforce_managed_query_finish(
-  query : @acquisition.ManagedQuery,
+  query : @salesforce_host.ManagedQuery,
 ) -> @execution.ManagedOutputValueReceipt raise SalesforceCatalogBridgeIssue {
-  match @acquisition.finish_managed_query(query) {
+  match @salesforce_host.finish_managed_query(query) {
     Ok(value) => value
     Err(issue) => raise ManagedQuery(issue)
   }
