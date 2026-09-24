@@ -95,6 +95,55 @@ test "ordinary values document prepares one named Effect-free result" {
     client_result_row_contract_cid(result_row),
     "sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c",
   )
+  let result_plan = issue_prepared_client_result_plan(
+    prepared, 0, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(client_result_plan_name(result_plan), "answer")
+  assert_eq(
+    client_result_plan_row_contract_cid(result_plan),
+    client_result_row_contract_cid(result_row),
+  )
+  assert_eq(
+    client_result_plan_wire(result_plan),
+    (
+      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
+    ),
+  )
+  assert_eq(
+    client_result_plan_cid(result_plan),
+    "sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68",
+  )
+  assert_eq(
+    client_result_plan_cid(
+      admit_prepared_client_result_plan(
+        prepared,
+        0,
+        client_result_plan_wire(result_plan),
+        10000,
+        1000,
+        20,
+      ).unwrap(),
+    ),
+    client_result_plan_cid(result_plan),
+  )
+  assert_true(
+    admit_prepared_client_result_plan(
+      prepared,
+      0,
+      client_result_plan_wire(result_plan).replace(
+        old="\"result_name\":\"answer\"",
+        new="\"result_name\":\"foreign\"",
+      ),
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientResultPlanAdmissionIssue::MismatchedPlan),
+  )
+  assert_true(
+    issue_prepared_client_result_plan(prepared, 1, 10000, 1000, 20)
+    is Err(ClientResultPlanIssue::MissingResult),
+  )
   assert_true(
     issue_prepared_client_result_row_contract(prepared, 0, 1, 10000, 1000, 20)
     is Err(ClientResultRowContractIssue::MissingPublication),
