@@ -165,6 +165,8 @@ pub fn async_strategy_host_explain(@connectors_workers_async.ConfiguredComputeHo
 
 pub fn async_strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
+pub fn async_strategy_host_has_effects(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
 pub fn async_strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
 
 pub fn async_strategy_host_managed_input_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
@@ -1346,6 +1348,8 @@ pub fn strategy_host_cover_activation(@connectors_workers.ConfiguredComputeHost[
 pub fn strategy_host_explain(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
+pub fn strategy_host_has_effects(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
 pub fn strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
 

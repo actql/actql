@@ -95,6 +95,8 @@ pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogR
 
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
+pub fn checked_program_has_effects(CheckedProgram) -> Bool
+
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
@@ -154,6 +156,8 @@ pub fn effect_program_run_preview_invocation(EffectProgramRunPreview) -> @run_pu
 pub fn effect_program_run_preview_owner(EffectProgramRunPreview) -> EffectProgramRunCandidate
 
 pub fn effect_program_run_static_candidate(EffectProgramRunCandidate) -> EffectProgramStaticCandidate
+
+pub fn effect_program_static_checked_computation(EffectProgramStaticCandidate) -> CheckedProgram
 
 pub fn effect_program_static_definition_cid(EffectProgramStaticCandidate) -> String
 

@@ -32,6 +32,9 @@ async function runCapturedStrategyTarget(
   enableNodeCompileCache();
   const moon = await (runtime ??= import(runtimeUrl.href));
   signal?.throwIfAborted();
+  if (publishCheckedResults && moon.strategyHostHasEffects(setup)) {
+    throw new TypeError('EffectfulProgramRequiresEffectRun');
+  }
   if (!moon.strategyHostConfigureManagedIdentity(
     setup,
     publishCheckedResults,

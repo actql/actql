@@ -232,6 +232,8 @@ pub fn strategy_host_explain(@connectors_builtin.ConfiguredComputeHost[@physical
 
 pub fn strategy_host_finished(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
+pub fn strategy_host_has_effects(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
+
 pub fn strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
 
 pub fn strategy_host_managed_input_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int

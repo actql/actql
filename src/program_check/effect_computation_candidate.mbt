@@ -185,6 +185,16 @@ pub fn effect_program_static_effects(
 }
 
 ///|
+/// The exact computation owner retained by the static Effect closure. This
+/// permits physical preparation of the computation only; the returned checked
+/// Program is not an Effect apply permit or an Effect-free Run proof.
+pub fn effect_program_static_checked_computation(
+  candidate : EffectProgramStaticCandidate,
+) -> CheckedProgram {
+  candidate.computation.checked
+}
+
+///|
 pub fn effect_program_static_headers(
   candidate : EffectProgramStaticCandidate,
 ) -> @syntax.EffectHeaders {

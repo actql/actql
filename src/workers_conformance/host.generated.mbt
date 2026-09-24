@@ -367,6 +367,18 @@ pub fn strategy_host_program_definition_cid(
 }
 
 ///|
+#export_name("strategyHostHasEffects")
+pub fn strategy_host_has_effects(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool {
+  @strategy.graph_program_has_effects(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
 #export_name("strategyHostResultNames")
 pub fn strategy_host_result_names(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -7936,6 +7948,18 @@ pub fn async_strategy_host_program_definition_cid(
   host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
 ) -> String {
   @strategy.graph_program_definition_cid(
+    @strategy.captured_dag_graph(
+      @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
+    ),
+  )
+}
+
+///|
+#export_name("asyncStrategyHostHasEffects")
+pub fn async_strategy_host_has_effects(
+  host : @probe.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Bool {
+  @strategy.graph_program_has_effects(
     @strategy.captured_dag_graph(
       @host_driver.dispatch_driver_run(@probe.configured_host_driver(host)),
     ),

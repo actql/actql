@@ -579,6 +579,11 @@ pub fn configure_captured_managed_identity_policy(
   if run.managed_identity_policy_sealed || run.running is Some(_) || started {
     return false
   }
+  // This policy is for the Effect-free Result publication path. An Effectful
+  // Run must close its Preview, apply and final Receipt separately.
+  if publish_checked_results && graph_program_has_effects(run.graph) {
+    return false
+  }
   // Acquisition publication needs its own observation/receipt identity
   // capability. This managed Compute increment must reject that requirement
   // before comparing or starting any Compute candidate.
