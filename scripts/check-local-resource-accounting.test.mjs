@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 31 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 32 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -395,6 +395,11 @@ test('vector pooling retains its bounded production evidence', () => {
       entry.operation === 'pool_vectors');
     pool.environment_tests = [];
   }), /VecA pool_vectors: bounded Host cancellation assurance is missing/);
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    delete pool.resource_assurance.entrypoint.workspace.one_short_limit;
+  }), /VecA pool_vectors: entrypoint operation workspace needs exact and one-short proofs/);
 });
 
 test('nearest retains its fused Relation production entrypoint', () => {
