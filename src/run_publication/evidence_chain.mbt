@@ -775,6 +775,26 @@ pub fn validate_effect_free_publication_commit(
     Ok(_) => ()
     Err(issue) => return Err(CommitEvidence(issue))
   }
+  validate_publication_commit_references(
+    run_definition, invocation, definitions, manifest, receipt, captured_run, request,
+    attempt, index_entry,
+  )
+}
+
+///|
+/// The index binding is common to both Run kinds. The caller must first
+/// validate the kind-specific evidence chain and all Result dependencies.
+fn validate_publication_commit_references(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+) -> Result[Unit, PublicationCommitIssue] {
   if request.name != "publication_request" {
     return Err(CommitWrongContract("publication_request"))
   }

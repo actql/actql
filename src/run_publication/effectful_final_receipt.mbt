@@ -27,6 +27,99 @@ pub(all) enum EffectfulFinalChainIssue {
 } derive(Debug)
 
 ///|
+pub(all) enum EffectfulPublicationCommitIssue {
+  ResultEvidence(ResultEvidenceSetIssue)
+  DurableBinding(PublicationCommitIssue)
+  FinalChain(EffectfulFinalChainIssue)
+  Index(PublicationCommitIssue)
+} derive(Debug)
+
+///|
+/// Validate the Effectful root chain and its exact publication index. Product
+/// commit paths must use the complete Result-evidence variant below.
+pub fn validate_effectful_publication_commit(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, EffectfulPublicationCommitIssue] {
+  let final_receipt = match
+    admit_effectful_final_run_evidence_chain(
+      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+      captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(FinalChain(issue))
+  }
+  validate_publication_commit_references(
+    run_definition, invocation, definitions, manifest, final_receipt, captured_run,
+    request, attempt, index_entry,
+  ).map_err(issue => Index(issue))
+}
+
+///|
+/// Validate the Effectful final chain, Result dependencies and exact index.
+/// This does not replace apply admission, physical outcomes, or Store CAS.
+pub fn validate_effectful_publication_commit_with_result_evidence(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  bindings : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, EffectfulPublicationCommitIssue] {
+  match
+    validate_result_evidence_set(
+      definitions, artifacts, derivations, orderings, retentions,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(ResultEvidence(issue))
+  }
+  match
+    validate_durable_result_bindings(
+      run_definition, invocation, definitions, artifacts, orderings, retentions,
+      bindings, index_entry,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(DurableBinding(issue))
+  }
+  validate_effectful_publication_commit(
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
+    request, attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// Admit the complete immutable computation chain and final Effect references
 /// together. Checked Program kind, current apply authority, physical Effect
 /// Plan provenance, Result retention, and durable Store commit remain separate

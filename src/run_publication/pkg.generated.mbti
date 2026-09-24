@@ -385,6 +385,10 @@ pub fn validate_effect_free_run_evidence_chain(PublicationContract, PublicationC
 
 pub fn validate_effectful_computation_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
+pub fn validate_effectful_publication_commit(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, EffectfulPublicationCommitIssue]
+
+pub fn validate_effectful_publication_commit_with_result_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, EffectfulPublicationCommitIssue]
+
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
 pub fn validate_result_artifact_evidence(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
@@ -699,6 +703,13 @@ pub(all) enum EffectfulFinalReferenceIssue {
   FinalReceipt(PublicationContractIssue)
   ForeignFinalReference(String)
   ChangedComputationEvidence
+} derive(@debug.Debug)
+
+pub(all) enum EffectfulPublicationCommitIssue {
+  ResultEvidence(ResultEvidenceSetIssue)
+  DurableBinding(PublicationCommitIssue)
+  FinalChain(EffectfulFinalChainIssue)
+  Index(PublicationCommitIssue)
 } derive(@debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
