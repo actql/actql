@@ -191,6 +191,35 @@ pub fn client_values_host_request_identity(
 }
 
 ///|
+#export_name("clientValuesHostSourceFreeRequestIdentity")
+pub fn client_values_host_source_free_request_identity(
+  prepared : @host.PreparedClientProgram,
+  authority_scope_cid : String,
+  caller_request_id : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  @host.prepare_source_free_client_request_identity(
+    prepared, authority_scope_cid, caller_request_id,
+  )
+}
+
+///|
+#export_name("clientValuesHostAdmitSourceFreeRequestIdentity")
+pub fn client_values_host_admit_source_free_request_identity(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  program_definition_cid : String,
+  parameter_values_cid : String,
+  caller_input_intent_cid : String,
+  logical_request_scope_cid : String,
+  intent_fingerprint_cid : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  @host.admit_source_free_client_request_identity_record(
+    authority_scope_cid, caller_request_id, program_definition_cid, parameter_values_cid,
+    caller_input_intent_cid, logical_request_scope_cid, intent_fingerprint_cid,
+  )
+}
+
+///|
 /// Re-admit exactly the fields retained with a durable request. Physical
 /// record custody and current caller authorization remain Host duties.
 #export_name("clientValuesHostAdmitRequestIdentity")
@@ -278,4 +307,89 @@ pub fn client_values_host_request_relation(
     SameRequest => 1
     ChangedIntent => 2
   }
+}
+
+///|
+pub(all) enum ClientValuesHostRunAdmissionIssue {
+  Prepared(@publication.RunEvidenceValueIssue)
+  Authorization(@publication.RunEvidenceValueIssue)
+  Binding(@publication.RunPublicationAdmissionIssue)
+}
+
+///|
+/// The Host supplies current policy and authorization evidence. The common
+/// owner admits those values against this exact checked Program and compiler
+/// output before any durable Run Definition can be issued.
+#export_name("clientValuesHostAdmitRun")
+pub fn client_values_host_admit_run(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  prepared_invocation_wire : String,
+  authorization_wire : String,
+) -> Result[
+  @publication.RunPublicationAdmission,
+  ClientValuesHostRunAdmissionIssue,
+] {
+  let admitted_prepared = match
+    @publication.admit_run_evidence_value(
+      "prepared_invocation", prepared_invocation_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Prepared(issue))
+  }
+  let admitted_authorization = match
+    @publication.admit_run_evidence_value(
+      "run_authorization", authorization_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Authorization(issue))
+  }
+  match
+    @host.admit_prepared_client_run_publication(
+      prepared,
+      @host.client_values_compilation_template(compilation),
+      admitted_prepared,
+      admitted_authorization,
+      @host.client_values_compilation_compiled_plan(compilation),
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
+/// The issued Definition remains private Host material until atomically bound
+/// to one retained request. A Definition CID alone grants no start authority.
+#export_name("clientValuesHostIssueRunDefinition")
+pub fn client_values_host_issue_run_definition(
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.RunPublicationAdmissionIssue,
+] {
+  @publication.issue_run_definition(
+    admission, scope_id, run_id, input_artifact_set_cid, created_at, valid_until,
+    100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientValuesHostRunDefinitionWire")
+pub fn client_values_host_run_definition_wire(
+  definition : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_json(definition)
+}
+
+///|
+#export_name("clientValuesHostRunDefinitionCid")
+pub fn client_values_host_run_definition_cid(
+  definition : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity(definition)
 }

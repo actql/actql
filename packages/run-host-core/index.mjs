@@ -4,6 +4,8 @@ const environments = new WeakMap();
 const preparations = new WeakMap();
 const compilations = new WeakMap();
 const requests = new WeakMap();
+const admissions = new WeakMap();
+const definitions = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
@@ -61,11 +63,11 @@ export function prepare(document, format, environment, parametersWire) {
 export function compileValues(prepared) {
   const value = checked(owner.clientValuesHostCompile(
     requireHandle(preparations, prepared)), 'RunHostCompilationRejected');
-  return handle(compilations, value, 'values-compilation');
+  return handle(compilations, {value, prepared}, 'values-compilation');
 }
 
 export function privateCompilationWires(compilation) {
-  const value = requireHandle(compilations, compilation);
+  const {value} = requireHandle(compilations, compilation);
   return Object.freeze({
     executablePlan: owner.clientValuesHostPlanWire(value),
     factManifest: owner.clientValuesHostFactManifestWire(value),
@@ -85,6 +87,19 @@ export function prepareRequest(prepared, authorityScopeCid, requestId,
   const value = checked(owner.clientValuesHostRequestIdentity(
     requireHandle(preparations, prepared), authorityScopeCid, requestId,
     admittedInputIntentCid), 'RunHostRequestRejected');
+  return handle(requests, value, 'request-identity');
+}
+
+export function prepareSourceFreeRequest(prepared, compilation,
+  authorityScopeCid, requestId) {
+  if (typeof authorityScopeCid !== 'string' || typeof requestId !== 'string') {
+    throw new TypeError('InvalidRunHostRequest');
+  }
+  const {prepared: compiledFrom} = requireHandle(compilations, compilation);
+  if (compiledFrom !== prepared) throw new TypeError('ForeignRunHostCompilation');
+  const value = checked(owner.clientValuesHostSourceFreeRequestIdentity(
+    requireHandle(preparations, prepared), authorityScopeCid, requestId),
+  'RunHostRequestRejected');
   return handle(requests, value, 'request-identity');
 }
 
@@ -120,6 +135,21 @@ export function admitRequestFields(fields) {
   return handle(requests, value, 'request-identity');
 }
 
+export function admitSourceFreeRequestFields(fields) {
+  if (fields === null || typeof fields !== 'object' || Array.isArray(fields) ||
+      Object.keys(fields).sort().join('\0') !==
+        [...requestKeys].sort().join('\0') ||
+      requestKeys.some(key => typeof fields[key] !== 'string')) {
+    throw new TypeError('InvalidRunHostRequestRecord');
+  }
+  const value = checked(owner.clientValuesHostAdmitSourceFreeRequestIdentity(
+    fields.authorityScopeCid, fields.requestId,
+    fields.programDefinitionCid, fields.parameterValuesCid,
+    fields.callerInputIntentCid, fields.logicalRequestScopeCid,
+    fields.intentFingerprintCid), 'RunHostRequestRecordRejected');
+  return handle(requests, value, 'request-identity');
+}
+
 export function requestRelation(requested, retained) {
   const relation = owner.clientValuesHostRequestRelation(
     requireHandle(requests, requested), requireHandle(requests, retained));
@@ -129,4 +159,43 @@ export function requestRelation(requested, retained) {
     case 2: return 'changed_intent';
     default: throw new Error('InvalidRunHostRequestRelation');
   }
+}
+
+export function admitRun(prepared, compilation, preparedInvocationWire,
+  authorizationWire) {
+  if (typeof preparedInvocationWire !== 'string' ||
+      typeof authorizationWire !== 'string') {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const compiled = requireHandle(compilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const value = checked(owner.clientValuesHostAdmitRun(
+    requireHandle(preparations, prepared),
+    compiled.value,
+    preparedInvocationWire, authorizationWire),
+  'RunHostAdmissionRejected');
+  return handle(admissions, value, 'run-admission');
+}
+
+export function issueRunDefinition(admission, scopeId, runId,
+  inputArtifactSetCid, createdAt, validUntil) {
+  if ([scopeId, runId, inputArtifactSetCid, createdAt, validUntil]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostDefinition');
+  }
+  const value = checked(owner.clientValuesHostIssueRunDefinition(
+    requireHandle(admissions, admission), scopeId, runId,
+    inputArtifactSetCid, createdAt, validUntil),
+  'RunHostDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
+export function privateRunDefinition(definition) {
+  const value = requireHandle(definitions, definition);
+  return Object.freeze({
+    wire: owner.clientValuesHostRunDefinitionWire(value),
+    cid: owner.clientValuesHostRunDefinitionCid(value),
+  });
 }

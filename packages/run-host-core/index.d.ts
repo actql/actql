@@ -2,6 +2,8 @@ declare const environmentBrand: unique symbol;
 declare const preparedBrand: unique symbol;
 declare const compilationBrand: unique symbol;
 declare const requestBrand: unique symbol;
+declare const admissionBrand: unique symbol;
+declare const definitionBrand: unique symbol;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
@@ -17,6 +19,14 @@ export interface ValuesCompilation {
 
 export interface RequestIdentity {
   readonly [requestBrand]: true;
+}
+
+export interface RunAdmission {
+  readonly [admissionBrand]: true;
+}
+
+export interface RunDefinition {
+  readonly [definitionBrand]: true;
 }
 
 export interface RequestFields {
@@ -58,8 +68,25 @@ export function privateCompilationWires(
 export function prepareRequest(prepared: PreparedProgram,
   authorityScopeCid: string, requestId: string,
   admittedInputIntentCid: string): RequestIdentity;
+export function prepareSourceFreeRequest(prepared: PreparedProgram,
+  compilation: ValuesCompilation, authorityScopeCid: string,
+  requestId: string): RequestIdentity;
 export function requestFields(request: RequestIdentity): RequestFields;
 export function admitRequestFields(fields: RequestFields): RequestIdentity;
+export function admitSourceFreeRequestFields(fields: RequestFields):
+  RequestIdentity;
 export function requestRelation(requested: RequestIdentity,
   retained: RequestIdentity): 'different_request' | 'same_request' |
     'changed_intent';
+// Current Host policy and authorization evidence must be issued by the Host.
+// This operation only checks their binding to the compiled Program.
+export function admitRun(prepared: PreparedProgram,
+  compilation: ValuesCompilation, preparedInvocationWire: string,
+  authorizationWire: string): RunAdmission;
+export function issueRunDefinition(admission: RunAdmission, scopeId: string,
+  runId: string, inputArtifactSetCid: string, createdAt: string,
+  validUntil: string): RunDefinition;
+export function privateRunDefinition(definition: RunDefinition): Readonly<{
+  wire: string;
+  cid: string;
+}>;

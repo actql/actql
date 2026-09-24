@@ -3,9 +3,11 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {admitEnvironment, admitRequestFields, compileValues, prepare,
-  prepareRequest, privateCompilationWires, requestFields,
-  requestRelation} from './index.mjs';
+import {admitEnvironment, admitRequestFields,
+  admitSourceFreeRequestFields, admitRun, compileValues,
+  issueRunDefinition, prepare, prepareRequest, prepareSourceFreeRequest,
+  privateCompilationWires,
+  privateRunDefinition, requestFields, requestRelation} from './index.mjs';
 
 const read = name => readFileSync(new URL(`../sdk/fixtures/${name}`,
   import.meta.url), 'utf8');
@@ -101,4 +103,89 @@ test('portable Host owns the exact checked logical request relation', () => {
     {name: 'TypeError', message: 'InvalidRunHostRequestRecord'});
   assert.throws(() => requestRelation({}, restored),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
+});
+
+test('source-free request admission pins no input, not explicit empty', () => {
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const prepared = prepare(read('values.json'), 'json', environment);
+  const compilation = compileValues(prepared);
+  const scope = `sha256:${'a'.repeat(64)}`;
+  const request = prepareSourceFreeRequest(prepared, compilation,
+    scope, 'no-input-request');
+  const fields = requestFields(request);
+  assert.equal(fields.callerInputIntentCid, cid({
+    version: 'actql-caller-input-intent/0.1', selection: 'none',
+  }));
+  assert.equal(requestRelation(request,
+    admitSourceFreeRequestFields(fields)), 'same_request');
+  const explicitEmpty = cid({version: 'actql-caller-input-intent/0.1',
+    selection: 'explicit', inputs: []});
+  const altered = prepareRequest(prepared, scope, fields.requestId,
+    explicitEmpty);
+  assert.equal(requestRelation(request, altered), 'changed_intent');
+  assert.throws(() => admitSourceFreeRequestFields(requestFields(altered)),
+    {code: 'RunHostRequestRecordRejected'});
+  assert.throws(() => prepareSourceFreeRequest(prepared,
+    compileValues(prepare(read('values.json'), 'json', environment)),
+    scope, 'no-input-request'),
+  {name: 'TypeError', message: 'ForeignRunHostCompilation'});
+});
+
+test('portable Host admits exact policy evidence before Run Definition', () => {
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const prepared = prepare(read('values.json'), 'json', environment);
+  const compilation = compileValues(prepared);
+  const wires = privateCompilationWires(compilation);
+  const template = JSON.parse(wires.boundTemplate);
+  const compiled = JSON.parse(wires.compiledPlan);
+  // The test Host supplies bounded policy evidence. This fixture does not
+  // establish a product authorization policy or input selection contract.
+  const contextCid = `sha256:${'a'.repeat(64)}`;
+  const policyCid = `sha256:${'b'.repeat(64)}`;
+  const evidence = (body, self) => JSON.stringify({...body,
+    [self]: cid(body)});
+  const preparedBody = {
+    version: 'actql-prepared-invocation/0.1',
+    invocation_template_cid: template.bound_invocation_template_cid,
+    compiled_plan_cid: compiled.compiled_plan_cid,
+    execution_context_cid: contextCid,
+    host_policy_cid: policyCid,
+    policy_decision: 'allow',
+    expires_at: '2099-01-01T00:00:00.000Z',
+  };
+  const authorizationBody = {
+    version: 'actql-run-authorization/0.1',
+    prepared_invocation_cid: cid(preparedBody),
+    execution_context_cid: contextCid,
+    host_policy_cid: policyCid,
+    decision: 'allowed',
+  };
+  const admit = (p = preparedBody, a = authorizationBody) => admitRun(
+    prepared, compilation, evidence(p, 'prepared_invocation_cid'),
+    evidence(a, 'run_authorization_cid'));
+  const admission = admit();
+  const definition = privateRunDefinition(issueRunDefinition(admission,
+    'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+    '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z'));
+  const body = JSON.parse(definition.wire);
+  assert.equal(body.run_id, 'values-run');
+  assert.equal(body.compiled_plan_cid, compiled.compiled_plan_cid);
+  assert.equal(body.invocation_template_cid,
+    template.bound_invocation_template_cid);
+  assert.equal(definition.cid, without(body, 'run_definition_cid'));
+  assert.throws(() => admit({...preparedBody,
+    compiled_plan_cid: `sha256:${'0'.repeat(64)}`}),
+  {code: 'RunHostAdmissionRejected'});
+  assert.throws(() => admit(preparedBody, {...authorizationBody,
+    decision: 'denied'}), {code: 'RunHostAdmissionRejected'});
+  assert.throws(() => issueRunDefinition(admission,
+    'tenant-scope', 'late-run', `sha256:${'c'.repeat(64)}`,
+    '2099-01-01T00:00:00.000Z', '2100-01-01T00:00:00.000Z'),
+  {code: 'RunHostDefinitionRejected'});
+  assert.throws(() => issueRunDefinition({}, 'tenant-scope', 'foreign',
+    `sha256:${'c'.repeat(64)}`, '2026-09-24T00:00:00.000Z',
+    '2027-01-01T00:00:00.000Z'),
+  {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });

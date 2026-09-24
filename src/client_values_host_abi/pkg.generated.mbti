@@ -4,12 +4,17 @@ package "actql/actql/client_values_host_abi"
 import {
   "actql/actql/decode_core",
   "actql/actql/program_check",
+  "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
 }
 
 // Values
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
+
+pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
@@ -18,6 +23,8 @@ pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesC
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -41,6 +48,12 @@ pub fn client_values_host_request_relation(@run_publication_host.ClientRequestId
 
 pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
+
+pub fn client_values_host_run_definition_wire(@run_publication.PublicationContract) -> String
+
+pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
 pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 // Errors
@@ -56,6 +69,12 @@ pub(all) enum ClientValuesHostPreparationIssue {
   SuppliedSyntax(@source_value.ParseError)
   SuppliedAdmission(@decode_core.Issue)
   Program(@run_publication_host.ClientProgramPreparationIssue)
+}
+
+pub(all) enum ClientValuesHostRunAdmissionIssue {
+  Prepared(@run_publication.RunEvidenceValueIssue)
+  Authorization(@run_publication.RunEvidenceValueIssue)
+  Binding(@run_publication.RunPublicationAdmissionIssue)
 }
 
 // Type aliases
