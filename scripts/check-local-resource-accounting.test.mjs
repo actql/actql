@@ -50,7 +50,26 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 63 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 64 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('partitioned top-k loses bounded assurance if either fixture is absent', () => {
+  for (const role of [
+    'top_k_by_bounded_quantum_and_lifetime',
+    'top_k_by_bounded_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'top_k_by');
+      route.boundary_tests = route.boundary_tests.filter(test =>
+        test.role !== role);
+    }), new RegExp(`RelA top_k_by: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'top_k_by');
+    route.environment_tests = [];
+  }), /RelA top_k_by: delivered Host cancellation evidence is missing/u);
 });
 
 test('watermark loses its independent resource boundary with its fixture', () => {

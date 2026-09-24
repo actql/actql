@@ -1218,7 +1218,40 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "boundary_tests": [
+        {
+          "role": "top_k_by_bounded_quantum_and_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary Local partitioned top-k resumes and feeds two Computes"
+        },
+        {
+          "role": "top_k_by_bounded_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded partitioned top-k selects each nullable partition and reclaims"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "ordinary_top_k_by_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-partitioned-top-k-in-flight"
+        }
+      ]
     },
     {
       "inventory": "rela",

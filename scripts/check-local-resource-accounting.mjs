@@ -484,6 +484,22 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('dedupe_empty_keyed_work_workspace_exact_one_short')) {
     fail(`${label}: independent dedupe resource evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'top_k_by') {
+    if (route.selected_entrypoint?.symbol !==
+        'selected_binding_rows_execution' ||
+      route.ordinary_entrypoint?.symbol !==
+        'selected_binding_rows_execution') {
+      fail(`${label}: bounded partitioned top-k entrypoint is missing`);
+    }
+    for (const role of [
+      'top_k_by_bounded_quantum_and_lifetime',
+      'top_k_by_bounded_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   for (const operation of ['row_window', 'except', 'intersect']) {
     if (route.family === 'RelA' && route.operation === operation &&
       !boundaryRoles.has(`${operation}_empty_schema_workspace_exact_one_short`)) {
@@ -624,6 +640,10 @@ for (const [index, route] of routeEntries.entries()) {
     if (!sourceText.includes(`name: '${item.fixture}'`)) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
+  }
+  if (route.family === 'RelA' && route.operation === 'top_k_by' &&
+    !environmentRoles.has('ordinary_top_k_by_host_timer')) {
+    fail(`${label}: delivered Host cancellation evidence is missing`);
   }
   if (route.family === 'TEA' && route.operation === 'window_events') {
     for (const role of [

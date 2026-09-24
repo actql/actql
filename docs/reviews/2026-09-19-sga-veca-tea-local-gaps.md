@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 63 |
+| Operation-specific boundary records | 64 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -33,6 +33,17 @@ The `dedupe_rows` route binds a separately derived empty keyed-input fixture
 with 29 control-work units and a twelve-slot peak. Exact limits succeed and
 one-short limits fail. This does not prove nonempty grouping, representative
 tie handling, or interruption of the synchronous whole-sequence evaluator.
+`top_k_by` now has a selected bounded Relation provider. It resolves the
+canonical partition prefix before its ranking terms, compares partition keys
+incrementally, and applies the per-partition count without publishing skipped
+rows. Standard Host tests require that provider for literal, parameterized,
+and nullable-key cases, then run two downstream Computes with independent
+release and final reclamation. A quantum-one kernel fixture also cancels after
+work begins and checks cleanup. The Node standard Host delivers a timer cancel
+while the selected partitioned task is executing and observes stop and final
+cleanup. Exact and one-short resource limits for this route and unselected
+synchronous sequences remain unproved. The partition comparison within one
+resume step still needs its own maximum-width responsiveness evidence.
 
 The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
 validate output schema names without first materializing the name array. They
