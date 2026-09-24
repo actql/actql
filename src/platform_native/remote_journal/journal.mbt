@@ -5,6 +5,7 @@ pub(all) enum NativeRemoteJournalIssue {
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote.DispatchIssue)
   StaleSiteBinding
+  MissingDispatch
   StateCollision
 }
 

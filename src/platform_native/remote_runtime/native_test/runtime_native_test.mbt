@@ -354,7 +354,7 @@ test "native remote runtime owns success failure and cleanup progression" {
     is Err(@runtime.RuntimeUnsupported),
   )
   assert_eq(executions[0], 0)
-  assert_true(journal.require(unsupported) is Err(@journal.StateCollision))
+  assert_true(journal.require(unsupported) is Err(@journal.MissingDispatch))
   let first = request("dispatch-a")
   let accepted = [0]
   let accepted_execution = [-1]

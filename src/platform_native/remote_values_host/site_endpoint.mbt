@@ -38,6 +38,13 @@ pub fn open_native_remote_values_site_endpoint(
 }
 
 ///|
+pub fn NativeRemoteValuesSiteEndpoint::route(
+  self : NativeRemoteValuesSiteEndpoint,
+) -> (String, Int) {
+  (self.site_key, self.site_generation)
+}
+
+///|
 fn NativeRemoteValuesSiteEndpoint::check_dispatch(
   self : NativeRemoteValuesSiteEndpoint,
   request : @remote.DispatchRequest,

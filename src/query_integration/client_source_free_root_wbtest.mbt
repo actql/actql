@@ -522,7 +522,9 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       @remote.remote_poll_query_json(second).unwrap(),
       second_cid,
     )
-    is Err(@native_remote_values.Journal(_)),
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
   )
   assert_true(
     endpoint.dispatch_json(body, @remote.dispatch_request_identity(dispatch))
@@ -575,6 +577,10 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_true(runtime.release(second).unwrap())
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
+  assert_true(
+    endpoint.query_json(query, second_cid)
+    is Err(@native_remote_values.Journal(@native_remote_journal.Closed)),
+  )
   let reopened_journal = @native_remote_journal.open_journal(
     sqlite,
     root_path + "/values-journal.sqlite3",

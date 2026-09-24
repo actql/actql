@@ -293,7 +293,7 @@ pub fn Journal::require(
   }
   let value = match self.database.read("site_dispatch", key) {
     Ok(value) => value
-    Err(@sqlite.NotFound) => return Err(StateCollision)
+    Err(@sqlite.NotFound) => return Err(MissingDispatch)
     Err(issue) => return Err(Physical(issue))
   }
   let durable = match @remote.admit_durable_dispatch_record(value.body) {

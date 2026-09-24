@@ -1,0 +1,8 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/https_server" @https,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_values_host" @values,
+  "moonbitlang/core/encoding/utf8",
+}
