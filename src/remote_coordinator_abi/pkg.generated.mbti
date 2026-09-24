@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_admission_durable_json(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_admit_dispatch_json(String, String) -> Result[@remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchIssue]

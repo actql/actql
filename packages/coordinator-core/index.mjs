@@ -46,6 +46,26 @@ export const restoreDurable = (journal, durable) =>
 export const durableRevision = owner.coordinatorDurableRevision;
 export const durableDispatchCid = owner.coordinatorDurableDispatchCid;
 export const durableRequest = owner.coordinatorDurableRequest;
+export const acceptedSiteOutput = durable => {
+  const option = checked(owner.coordinatorAcceptedSiteOutput(durable));
+  if (option?.$tag === 0) return undefined;
+  if (option?.$tag !== 1 || !Array.isArray(option._0) ||
+      option._0.length !== 14 ||
+      !option._0.every(value => typeof value === 'string')) {
+    throw Object.assign(new Error('InvalidCoordinatorOutputProjection'),
+      {code: 'InvalidCoordinatorOutputProjection'});
+  }
+  const [evidenceCid, measurementCid, dispatchRequestCid,
+    materialGeneration, holdingEvidenceCid, managedProfileCid,
+    resultSchemaCid, logicalViewCid, representationCodecCid,
+    physicalManifestCid, measurementEvidenceCid, rowCount,
+    retainedBytes, subjectCid] = option._0;
+  return Object.freeze({evidenceCid, measurementCid, dispatchRequestCid,
+    materialGeneration, holdingEvidenceCid, managedProfileCid,
+    resultSchemaCid, logicalViewCid, representationCodecCid,
+    physicalManifestCid, measurementEvidenceCid, rowCount,
+    retainedBytes, subjectCid});
+};
 export const prepareUnknown = record =>
   checked(owner.coordinatorPrepareUnknown(record));
 export const admitResponseJson = (body, request, statusReply) =>

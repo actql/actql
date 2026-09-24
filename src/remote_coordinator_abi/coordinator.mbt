@@ -176,6 +176,44 @@ pub fn coordinator_durable_request(
 }
 
 ///|
+/// Project only the complete output triple admitted in the durable common
+/// Coordinator record. This is physical evidence, not Result publication or
+/// a read capability.
+#export_name("coordinatorAcceptedSiteOutput")
+pub fn coordinator_accepted_site_output(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> Result[Array[String]?, @remote.DispatchIssue] {
+  match
+    (
+      @remote.durable_coordinator_dispatch_record_evidence(durable),
+      @remote.durable_coordinator_dispatch_record_subject(durable),
+      @remote.durable_coordinator_dispatch_record_measurement(durable),
+    ) {
+    (None, None, None) => Ok(None)
+    (Some(evidence), Some(subject), Some(measurement)) => {
+      let request = @remote.durable_coordinator_dispatch_record_request(durable)
+      if !@remote.remote_managed_output_subject_matches_evidence(
+          subject, evidence, request,
+        ) ||
+        !@remote.remote_managed_output_subject_matches_measurement(
+          subject, measurement,
+        ) {
+        return Err(@remote.InvalidJournal)
+      }
+      let fields = [
+        @remote.remote_execution_evidence_cid(evidence),
+        @remote.remote_managed_output_measurement_cid(measurement),
+      ]
+      for field in @remote.remote_managed_output_subject_projection(subject) {
+        fields.push(field)
+      }
+      Ok(Some(fields))
+    }
+    _ => Err(@remote.InvalidJournal)
+  }
+}
+
+///|
 /// A lost transport response is unknown, not failed or safe to resubmit
 /// under a different dispatch identity.
 #export_name("coordinatorPrepareUnknown")

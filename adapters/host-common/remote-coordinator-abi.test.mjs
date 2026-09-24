@@ -3,6 +3,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/remote_coordinator_abi/remote_coordinator_abi.js';
 import {checked} from './runtime-result.mjs';
+import {acceptedSiteOutput, admitDurableJson} from
+  '../../packages/coordinator-core/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
@@ -28,6 +30,7 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
   assert.equal(moon.coordinatorIntentIsNew(admission), true);
   const initialBody = checked(moon.coordinatorAdmissionDurableJson(admission));
   const initial = checked(moon.coordinatorAdmitDurableJson(initialBody));
+  assert.equal(acceptedSiteOutput(admitDurableJson(initialBody)), undefined);
   assert.equal(moon.coordinatorDurableRevision(initial), 0);
   assert.equal(moon.coordinatorDurableDispatchCid(initial), requestCid);
 

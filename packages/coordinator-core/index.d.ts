@@ -49,6 +49,25 @@ export function restoreDurable(journal: Journal,
 export function durableRevision(durable: DurableRecord): number;
 export function durableDispatchCid(durable: DurableRecord): string;
 export function durableRequest(durable: DurableRecord): DispatchRequest;
+/** Accepted physical Site evidence, never publication or read authority. */
+export interface AcceptedSiteOutput {
+  evidenceCid: string;
+  measurementCid: string;
+  dispatchRequestCid: string;
+  materialGeneration: string;
+  holdingEvidenceCid: string;
+  managedProfileCid: string;
+  resultSchemaCid: string;
+  logicalViewCid: string;
+  representationCodecCid: string;
+  physicalManifestCid: string;
+  measurementEvidenceCid: string;
+  rowCount: string;
+  retainedBytes: string;
+  subjectCid: string;
+}
+export function acceptedSiteOutput(durable: DurableRecord):
+  Readonly<AcceptedSiteOutput> | undefined;
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;
