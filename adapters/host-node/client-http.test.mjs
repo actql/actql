@@ -6,6 +6,12 @@ import {createClientHttpHandler} from './client-http.mjs';
 const ref = {tenantId: 'tenant-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
+  status: 'succeeded', updated_at: '2026-09-24T00:00:00.000Z',
+  next_action: {kind: 'refresh_availability', results: ['answer']},
+  result_available: false, result_availability: {answer: {
+    state: 'unknown', observed_at: '2026-09-24T00:00:00.000Z',
+    reason: 'verification_pending'}}};
 
 async function withServer(handler, run) {
   const server = createServer(handler);
@@ -230,6 +236,35 @@ test('Client Host rejects foreign admissions and invalid attempt evidence',
     });
   });
 
+test('Client Host validates custom status and wait replies', async () => {
+  const connection = {mode: 'remote', owner: 'remote',
+    runners: [], consentRefs: []};
+  let reply = state;
+  const handler = createClientHttpHandler({
+    authenticate: () => 'principal-a',
+    authorizeConnection: () => true,
+    observeRun: () => reply,
+    wait: () => reply,
+  });
+  await withServer(handler, async base => {
+    const send = operation => fetch(
+      `${base}/actql/client/0.1/${operation}`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection, ref,
+          ...(operation === 'wait' ? {until: null} : {})}),
+      });
+    for (const operation of ['status', 'wait']) {
+      assert.deepEqual(await (await send(operation)).json(), state);
+    }
+    reply = {...state, status: 'not_an_engine_state'};
+    for (const operation of ['status', 'wait']) {
+      const response = await send(operation);
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+    }
+  });
+});
+
 test('local-owned Hybrid Cloud ref reaches Host authorization before use',
   async () => {
     const authorized = [];
@@ -290,7 +325,7 @@ test('wait disconnect ends only its observation and releases its listener',
       wait: ({signal}) => {
         waitCalls++;
         observedSignals.push(signal);
-        if (normal) return {kind: 'observed'};
+        if (normal) return state;
         return new Promise((resolve, reject) => {
           active++;
           const onAbort = () => {
@@ -336,7 +371,7 @@ test('wait disconnect ends only its observation and releases its listener',
       const normalController = new AbortController();
       const completed = await send('wait', {ref, until: null},
         normalController.signal);
-      assert.deepEqual(await completed.json(), {kind: 'observed'});
+      assert.deepEqual(await completed.json(), state);
       normalController.abort();
       await new Promise(resolve => setImmediate(resolve));
       assert.equal(observedSignals[1].aborted, false);

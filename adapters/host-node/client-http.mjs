@@ -201,13 +201,17 @@ export function createClientHttpHandler({
           principalId: principal,
           purpose: 'inspect',
         }) : await invoke(observeRun);
-        if (observeRun === undefined && !validRunState(state)) {
+        if (!validRunState(state)) {
           invalid('InvalidClientHostRunState');
         }
         sendJson(state);
       } else if (operation === 'wait') {
         const observer = observationAttempt(response);
-        try { sendJson(await invoke(wait, observer.signal)); }
+        try {
+          const state = await invoke(wait, observer.signal);
+          if (!validRunState(state)) invalid('InvalidClientHostRunState');
+          sendJson(state);
+        }
         finally { observer.release(); }
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
