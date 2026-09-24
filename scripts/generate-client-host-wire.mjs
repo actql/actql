@@ -6,12 +6,13 @@ import {project, structuralValidatorSource, typeOf} from
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
+const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
 const names = ['run_ref', 'connection', 'profile', 'admission',
   'lookup_found', 'lookup_not_found', 'lookup_unknown'];
 const exports = ['RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown'];
 
-export function buildClientHostWire(registry) {
+export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||
       registry.operations === null ||
       typeof registry.operations !== 'object' ||
@@ -29,6 +30,10 @@ export function buildClientHostWire(registry) {
     if (!registry.schemas?.[name]) throw new Error(`MissingClientHostSchema:${name}`);
     return [name, project(registry.schemas[name])];
   }));
+  if (protocol?.artifact_schemas?.run_state === undefined) {
+    throw new Error('MissingRunStateSchema');
+  }
+  schemas.run_state = project(protocol.artifact_schemas.run_state);
   const module = `// Generated from the registered Client–Host machine contract.\n` +
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
@@ -41,19 +46,24 @@ export function buildClientHostWire(registry) {
     `undefined);\n` +
     names.map((name, index) =>
       `export const valid${exports[index]}Shape = value => ` +
-      `valid(value, schemas.${name});\n`).join('');
+      `valid(value, schemas.${name});\n`).join('') +
+    `export const validRunStateShape = value => ` +
+    `valid(value, schemas.run_state);\n`;
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
     names.map((name, index) =>
       `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`
-    ).join('\n');
+    ).join('\n') +
+    `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n`;
   return {module, types};
 }
 
 async function main() {
   const registry = JSON.parse(await readFile(join(root, source), 'utf8'));
-  const outputs = buildClientHostWire(registry);
+  const protocol = JSON.parse(await readFile(join(root, runStateSource),
+    'utf8'));
+  const outputs = buildClientHostWire(registry, protocol);
   const files = [
     ['packages/client-wire/client-host.generated.js', outputs.module],
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],

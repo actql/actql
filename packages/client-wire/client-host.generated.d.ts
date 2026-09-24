@@ -64,3 +64,41 @@ export type WireLookupUnknownShape = Readonly<{
   kind: "unknown";
   reason: string;
 }>;
+
+export type WireRunStateShape = Readonly<{
+  version: "actql-run-state/0.1";
+  run_id: string;
+  status: "preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled";
+  updated_at: string;
+  checkpoint?: Readonly<{
+  checkpoint_id: string;
+  checkpoint_cid: string;
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+}>;
+  next_action: Readonly<{
+  kind: "resolve_checkpoint";
+  checkpoint_id: string;
+}> | Readonly<{
+  kind: "reconcile";
+  effects: readonly string[];
+}> | Readonly<{
+  kind: "read_result";
+  results: readonly string[];
+}> | Readonly<{
+  kind: "refresh_availability";
+  results: readonly string[];
+}> | Readonly<{
+  kind: "none";
+}>;
+  result_available: boolean;
+  terminal_error?: Readonly<{
+  code: string;
+  message: string;
+}>;
+  result_availability: Readonly<Record<string, Readonly<{
+  state: "available" | "unavailable" | "unknown";
+  observed_at: string;
+  reason: "confirmed_present" | "retention_expired" | "deleted" | "policy_unavailable" | "integrity_failed" | "not_published" | "store_query_failed" | "clock_uncertain" | "verification_pending";
+  cause_cid?: string;
+}>>>;
+}>;
