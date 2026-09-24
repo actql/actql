@@ -1,5 +1,7 @@
 ///|
 priv enum DedupePhase {
+  InitializeCells
+  InitializeOrders
   LoadBegin
   LoadField
   LoadTerm
@@ -29,6 +31,7 @@ priv struct DedupeState {
   limits : @storage.Limits
   prepared : @lower.PreparedEvent
   records : Int
+  cell_count : Int
   keys : Int
   terms : Int
   mut phase : DedupePhase
@@ -39,6 +42,8 @@ priv struct DedupeState {
   mut cells : Array[@value.CheckedValue?]
   mut source_order : Array[Int]
   mut target_order : Array[Int]
+  initialized_cells : Ref[Int]
+  initialized_orders : Ref[Int]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -63,6 +68,8 @@ struct DedupeExecution {
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
+  initialized_cells : Ref[Int]
+  initialized_orders : Ref[Int]
 }
 
 ///|
@@ -77,6 +84,7 @@ pub enum DedupePoll {
 pub(all) enum DedupeIssue {
   InvalidDedupeKernel
   InvalidDedupeLimits
+  DedupeInputLimit
   DedupeInputUnavailable
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)
@@ -101,6 +109,28 @@ fn dedupe_checked_multiply(left : Int, right : Int) -> Int? {
     None
   } else {
     Some(left * right)
+  }
+}
+
+///|
+fn dedupe_initialize_step(state : DedupeState) -> Unit {
+  match state.phase {
+    InitializeCells =>
+      if state.cells.length() < state.cell_count {
+        state.cells.push(None)
+        state.initialized_cells.val += 1
+      } else {
+        state.phase = InitializeOrders
+      }
+    InitializeOrders =>
+      if state.source_order.length() < state.records {
+        state.source_order.push(state.source_order.length())
+        state.target_order.push(0)
+        state.initialized_orders.val += 1
+      } else {
+        state.phase = LoadBegin
+      }
+    _ => ()
   }
 }
 
@@ -524,6 +554,10 @@ fn dedupe_step(
       return @bounded.Failed(DedupeInputUnavailable, progress, used)
     }
     match state.phase {
+      InitializeCells | InitializeOrders => {
+        used += 1
+        dedupe_initialize_step(state)
+      }
       LoadBegin | LoadField | LoadTerm | LoadVerify => {
         used += 1
         match dedupe_load_step(state) {
@@ -611,12 +645,18 @@ pub fn start_dedupe(
     @storage.carrier(source) is @carrier.EventValue(_) else {
     return Err(DedupeInputUnavailable)
   }
-  if limits.max_value_nodes < 1 || limits.max_workspace_slots < 0 {
+  if limits.max_value_nodes < 1 ||
+    limits.max_workspace_slots < 0 ||
+    limits.max_input_records < 0 {
     return Err(InvalidDedupeLimits)
   }
   let records = @storage.record_count(source)
+  if records > limits.max_input_records {
+    return Err(DedupeInputLimit)
+  }
   guard dedupe_checked_add(keys, order) is Some(terms) &&
     terms > 0 &&
+    dedupe_checked_multiply(records, terms) is Some(cell_count) &&
     dedupe_scratch(records, terms) is Some(scratch_slots) else {
     return Err(DedupeWorkspaceLimit)
   }
@@ -634,9 +674,8 @@ pub fn start_dedupe(
     Ok(value) => value
     Err(issue) => return Err(DedupeOutput(issue))
   }
-  let cells = Array::make(records * terms, None)
-  let source_order = Array::makei(records, index => index)
-  let target_order = Array::make(records, 0)
+  let initialized_cells = Ref(0)
+  let initialized_orders = Ref(0)
   let state : DedupeState = {
     input,
     source,
@@ -644,16 +683,19 @@ pub fn start_dedupe(
     limits,
     prepared: event,
     records,
+    cell_count,
     keys,
     terms,
-    phase: LoadBegin,
+    phase: InitializeCells,
     record: 0,
     field: 0,
     term: 0,
     current: None,
-    cells,
-    source_order,
-    target_order,
+    cells: [],
+    source_order: [],
+    target_order: [],
+    initialized_cells,
+    initialized_orders,
     width: 1,
     run_start: 0,
     middle: 0,
@@ -679,7 +721,16 @@ pub fn start_dedupe(
     token: Some(token),
     max_noninterruptible_value_nodes: 1,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
+    initialized_cells,
+    initialized_orders,
   })
+}
+
+///|
+/// Diagnostic progress for the bounded scratch initialization. It reports
+/// the cells and paired index entries built so far, not output progress.
+pub fn dedupe_initialization_progress(value : DedupeExecution) -> (Int, Int) {
+  (value.initialized_cells.val, value.initialized_orders.val)
 }
 
 ///|

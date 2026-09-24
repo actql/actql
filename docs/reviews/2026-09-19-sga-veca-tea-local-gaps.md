@@ -4,7 +4,7 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 24 have operation-specific
+The current local resource gate maps 68 routes: 25 have operation-specific
 boundary records, 8 have all four lifecycle roles, and 7 have exact and
 one-short work/workspace assurance across every production path. Another 26
 paths have path-scoped work/workspace evidence. Strict completion remains red.
@@ -132,6 +132,18 @@ covered on JS, Wasm, and native. The existing standard Host watermark timer
 delivers in-flight cancellation after positive work and checks stop and
 cleanup. The single watermark production entrypoint is assured; this does
 not discharge the other TEA operations or the providerless synchronous lane.
+
+Event deduplication no longer constructs its records-by-terms cell matrix or
+two full index arrays in `start`. The checked scratch ceiling remains an
+admission condition, but cells and paired indices are appended within bounded
+resume steps. A quantum-one white-box fixture observes zero initialized
+entries after start, one new cell per poll, no published output on cancellation
+partway through initialization, and zero initialization after a pre-start
+cancel request. Receiving input one record over its configured limit is
+rejected before initialization. JS, Wasm, and native exercise the same
+fixture; the standard Host has a delivered timer-cancellation path for event
+deduplication. This is operation-specific progress evidence, not yet exact
+and one-short assurance for the full sort, group, and output path.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed

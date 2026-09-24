@@ -3122,7 +3122,32 @@
       "entrypoint": {
         "path": "src/local_tea/dedupe.mbt",
         "symbol": "start_dedupe"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "dedupe_incremental_initialization_cancel_cleanup",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/dedupe_wbtest.mbt",
+          "fixture": "event dedupe initializes predicate cells within the resume quantum"
+        },
+        {
+          "role": "dedupe_scratch_workspace_admission",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/dedupe_wbtest.mbt",
+          "fixture": "event dedupe admits scratch before allocation and observes cancellation"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "dedupe_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "dedupe-events"
+        }
+      ]
     },
     {
       "inventory": "families",

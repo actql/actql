@@ -34,6 +34,8 @@ pub fn cleanup_watermark(WatermarkExecution) -> Result[Bool, WatermarkIssue]
 
 pub fn dedupe_cleanup_pending(DedupeExecution) -> Bool
 
+pub fn dedupe_initialization_progress(DedupeExecution) -> (Int, Int)
+
 pub fn dedupe_max_noninterruptible_value_bytes(DedupeExecution) -> Int
 
 pub fn dedupe_max_noninterruptible_value_nodes(DedupeExecution) -> Int
@@ -76,6 +78,7 @@ type DedupeExecution
 pub(all) enum DedupeIssue {
   InvalidDedupeKernel
   InvalidDedupeLimits
+  DedupeInputLimit
   DedupeInputUnavailable
   InvalidDedupeRecord(Int)
   InvalidDedupeValue(Int, Int)

@@ -480,6 +480,16 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'TEA' && route.operation === 'dedupe_events') {
+    for (const role of [
+      'dedupe_incremental_initialization_cancel_cleanup',
+      'dedupe_scratch_workspace_admission',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -514,6 +524,10 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'TEA' && route.operation === 'watermark_events' &&
     !environmentRoles.has('watermark_host_timer')) {
     fail(`${label}: watermark_host_timer fixture is missing`);
+  }
+  if (route.family === 'TEA' && route.operation === 'dedupe_events' &&
+    !environmentRoles.has('dedupe_host_timer')) {
+    fail(`${label}: dedupe_host_timer fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
