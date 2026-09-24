@@ -410,6 +410,25 @@ test('Node ABI derives the checked named Result and request identity', async () 
       '"result_name":"foreign"'))), {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramIssueResultPlan(prepared, 1)),
     {code: 'MoonBitHostFailure'});
+  const directRoot = checked(moon.clientProgramIssueDirectValuesResultRoot(
+    prepared, 0));
+  const directRootWire = moon.clientProgramDirectValuesResultRootWire(directRoot);
+  assert.deepEqual(JSON.parse(directRootWire), {
+    name: 'answer', ref: {node_id: 'values_0', port: 'values_0'},
+    role: 'requested_result',
+  });
+  assert.equal(moon.clientProgramDirectValuesResultRootPlanCid(directRoot),
+    moon.clientProgramResultPlanCid(resultPlan));
+  assert.equal(moon.clientProgramDirectValuesResultRootRowContractCid(directRoot),
+    moon.clientProgramLocalValuesFragmentOutputContractCid(fragment));
+  assert.equal(moon.clientProgramDirectValuesResultRootWire(checked(
+    moon.clientProgramAdmitDirectValuesResultRoot(
+      prepared, 0, directRootWire))), directRootWire);
+  assert.throws(() => checked(moon.clientProgramAdmitDirectValuesResultRoot(
+    prepared, 0, directRootWire.replace('"answer"', '"foreign"'))),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(moon.clientProgramIssueDirectValuesResultRoot(
+    prepared, 1)), {code: 'MoonBitHostFailure'});
   const wider = JSON.parse(document);
   const wideValues = wider.stages[0].steps[0].values;
   wideValues.schema.hidden = {nullable: false, type: 'string'};
@@ -436,6 +455,8 @@ test('Node ABI derives the checked named Result and request identity', async () 
     widePrepared, 0));
   assert.notEqual(moon.clientProgramLocalValuesFragmentOutputContractCid(
     wideFragment), moon.clientProgramResultRowContractCid(projectedRow));
+  assert.throws(() => checked(moon.clientProgramIssueDirectValuesResultRoot(
+    widePrepared, 0)), {code: 'MoonBitHostFailure'});
   assert.deepEqual(JSON.parse(
     moon.clientProgramLocalValuesFragmentOutputContractWire(wideFragment)), {
     additional_properties: false,
