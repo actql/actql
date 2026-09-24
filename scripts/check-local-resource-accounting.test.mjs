@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 14 with four-role boundary evidence, 13 with full work\/workspace assurance, 36 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 16 with four-role boundary evidence, 15 with full work\/workspace assurance, 38 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -424,6 +424,26 @@ test('vector pooling retains its bounded production evidence', () => {
       entry.operation === 'pool_vectors');
     delete pool.resource_assurance.entrypoint.workspace.one_short_limit;
   }), /VecA pool_vectors: entrypoint operation workspace needs exact and one-short proofs/);
+});
+
+test('temporal joins require their production resource assurance', () => {
+  for (const operation of ['interval_join', 'asof_join']) {
+    assert.match(run(undefined, routes => {
+      const join = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === operation);
+      delete join.path_assurance.entrypoint;
+    }), new RegExp(`TEA ${operation}: bounded join production assurance is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const join = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === operation);
+      delete join.resource_assurance.entrypoint;
+    }), new RegExp(`TEA ${operation}: bounded join production assurance is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const join = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === operation);
+      delete join.resource_assurance.entrypoint.work.one_short_limit;
+    }), new RegExp(`TEA ${operation}: entrypoint operation work needs exact and one-short proofs`, 'u'));
+  }
 });
 
 test('nearest retains its fused Relation production entrypoint', () => {

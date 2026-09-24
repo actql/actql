@@ -5,10 +5,16 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
-boundary records, 14 have all four lifecycle roles, and 13 have exact and
+boundary records, 16 have all four lifecycle roles, and 15 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 36 paths have path-scoped work/workspace evidence. Strict completion
+routes, 38 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The single production entrypoints for `interval_join` and `asof_join` now bind
+their independently counted exact/one-short work and workspace fixtures to
+kernel cancellation/cleanup and delivered standard Host timer cancellation.
+The route gate rejects removal of their path-scoped resource proofs. This
+does not prove the remaining TEA operations or the 68-operation release gate.
 
 The single-step `nearest` entrypoint now has a direct Relation-input fixture
 for independent 28/27 work and 23/22 workspace bounds, with cleanup after
