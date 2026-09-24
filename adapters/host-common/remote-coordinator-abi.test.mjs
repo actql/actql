@@ -18,6 +18,12 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
   const journal = checked(moon.coordinatorCreateJournal('coordinator-a'));
   const request = dispatch();
   const requestCid = moon.coordinatorDispatchCid(request);
+  assert.deepEqual(moon.coordinatorDispatchRoute(request).slice(0, 4),
+    ['coordinator-a', 'site-a', '1', 'dispatch-a']);
+  assert.equal(JSON.parse(checked(moon.coordinatorPollQueryJson(request)))
+    .dispatch_request_cid, requestCid);
+  assert.throws(() => checked(moon.coordinatorPollDispatchJson(
+    request, '{}', 1024)), {code: 'MoonBitHostFailure'});
   const admission = checked(moon.coordinatorPrepareIntent(journal, request));
   const initialBody = checked(moon.coordinatorAdmissionDurableJson(admission));
   const initial = checked(moon.coordinatorAdmitDurableJson(initialBody));
@@ -45,6 +51,33 @@ test('common Coordinator owner survives durable dispatch recovery', () => {
 
   const duplicate = checked(moon.coordinatorPrepareIntent(restarted, request));
   assert.equal(checked(moon.coordinatorCommitIntent(duplicate)), restored);
+  const reply = JSON.stringify({
+    version: 'actql-remote-dispatch-response/0.1',
+    dispatch_request_cid: requestCid,
+    revision: 2,
+    state: [3, 2, 0, 1, 0],
+  });
+  const response = checked(moon.coordinatorAdmitResponseJson(
+    reply, moon.coordinatorDurableRequest(durable), false));
+  const observed = checked(moon.coordinatorPrepareResponseObservation(
+    restored, response));
+  assert.equal(moon.coordinatorTransitionExpectedRevision(observed), 1);
+  const observedBody = checked(moon.coordinatorResponseDurableJson(
+    durable, observed, response));
+  assert.equal(JSON.parse(observedBody).revision, 2);
+  checked(moon.coordinatorCommitTransition(observed));
+  const observedDurable = checked(moon.coordinatorAdmitDurableJson(
+    observedBody));
+  const finalJournal = checked(moon.coordinatorCreateJournal('coordinator-a'));
+  const finalRecord = checked(moon.coordinatorRestoreDurable(
+    finalJournal, observedDurable));
+  assert.deepEqual(moon.coordinatorRecordStateCodes(finalRecord),
+    moon.coordinatorRecordStateCodes(restored));
+  assert.throws(() => checked(moon.coordinatorAdmitResponseJson(
+    reply.replace(requestCid, `sha256:${'f'.repeat(64)}`),
+    request, false)), {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(moon.coordinatorAdmitResponseJson(
+    reply, request, true)), {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.coordinatorPrepareIntent(
     restarted, dispatch('dispatch-other'))),
   {code: 'MoonBitHostFailure'});

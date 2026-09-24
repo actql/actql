@@ -181,6 +181,8 @@ pub fn durable_coordinator_dispatch_record_json(DurableCoordinatorDispatchRecord
 
 pub fn durable_coordinator_dispatch_record_measurement(DurableCoordinatorDispatchRecord) -> RemoteManagedOutputMeasurement?
 
+pub fn durable_coordinator_dispatch_record_request(DurableCoordinatorDispatchRecord) -> DispatchRequest
+
 pub fn durable_coordinator_dispatch_record_request_identity(DurableCoordinatorDispatchRecord) -> String
 
 pub fn durable_coordinator_dispatch_record_revision(DurableCoordinatorDispatchRecord) -> Int
