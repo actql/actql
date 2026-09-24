@@ -54,6 +54,8 @@ priv struct MatchEdgesState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
+  mut key_component : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut emit_index : Int
   mut column : Int
@@ -222,34 +224,11 @@ fn match_edge_field(
 }
 
 ///|
-fn compare_edge_values(
-  left : @value.CheckedValue,
-  right : @value.CheckedValue,
-) -> Result[Int, MatchEdgesIssue] {
-  @value.compare_key_values(left, right).map_err(issue => {
-    MatchEdgesKeyOrder(issue)
-  })
-}
-
-///|
-fn compare_optional_edge_values(
-  left : @value.CheckedValue?,
-  right : @value.CheckedValue?,
-) -> Result[Int, MatchEdgesIssue] {
-  match (left, right) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(a), Some(b)) => compare_edge_values(a, b)
-  }
-}
-
-///|
-fn compare_selected_edges(
+fn compare_selected_edges_step(
   state : MatchEdgesState,
   left : Int,
   right : Int,
-) -> Result[Int, MatchEdgesIssue] {
+) -> Result[Int?, MatchEdgesIssue] {
   guard @storage.edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
     @storage.edge_endpoints(state.source, right)
@@ -262,16 +241,63 @@ fn compare_selected_edges(
     @storage.edge_label(state.source, right) is Some(right_label) else {
     return Err(MatchEdgesInputUnavailable)
   }
-  match compare_edge_values(left_source_id, right_source_id) {
-    Err(issue) => Err(issue)
-    Ok(value) if value != 0 => Ok(value)
-    Ok(_) =>
-      match compare_edge_values(left_target_id, right_target_id) {
-        Err(issue) => Err(issue)
-        Ok(value) if value != 0 => Ok(value)
-        Ok(_) => compare_optional_edge_values(left_label, right_label)
+  while state.key_component < 3 {
+    if state.key_component == 2 && state.key_comparison is None {
+      match (left_label, right_label) {
+        (None, None) => {
+          state.key_component = 0
+          return Ok(Some(0))
+        }
+        (None, Some(_)) => {
+          state.key_component = 0
+          return Ok(Some(-1))
+        }
+        (Some(_), None) => {
+          state.key_component = 0
+          return Ok(Some(1))
+        }
+        _ => ()
       }
+    }
+    let comparison = match state.key_comparison {
+      Some(value) => value
+      None => {
+        let (a, b) = match state.key_component {
+          0 => (left_source_id, right_source_id)
+          1 => (left_target_id, right_target_id)
+          _ =>
+            match (left_label, right_label) {
+              (Some(a), Some(b)) => (a, b)
+              _ => return Err(MatchEdgesInputUnavailable)
+            }
+        }
+        let value = match @value.start_bounded_key_comparison(a, b) {
+          Ok(value) => value
+          Err(issue) => return Err(MatchEdgesKeyOrder(issue))
+        }
+        state.key_comparison = Some(value)
+        value
+      }
+    }
+    match @value.advance_bounded_key_comparison(comparison, 1) {
+      Ok(@value.KeyComparisonContinue(_)) => return Ok(None)
+      Ok(@value.KeyComparisonComplete(order~, ..)) => {
+        state.key_comparison = None
+        if order != 0 {
+          state.key_component = 0
+          return Ok(Some(order))
+        }
+        state.key_component += 1
+      }
+      Err(issue) => {
+        state.key_comparison = None
+        state.key_component = 0
+        return Err(MatchEdgesKeyOrder(issue))
+      }
+    }
   }
+  state.key_component = 0
+  Ok(Some(0))
 }
 
 ///|
@@ -501,12 +527,13 @@ fn match_edges_step(
       CompareMerge => {
         used += 1
         match
-          compare_selected_edges(
+          compare_selected_edges_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_match_edges_merge(state, comparison <= 0)
+          Ok(Some(comparison)) => emit_match_edges_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -604,6 +631,8 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
+  state.key_component = 0
+  state.key_comparison = None
   state.type_index = Map([])
   state.scratch_slots.val = 0
   state.values = []
@@ -744,6 +773,8 @@ pub fn start_match_edges(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
+    key_component: 0,
+    key_comparison: None,
     copy_index: 0,
     emit_index: 0,
     column: 0,

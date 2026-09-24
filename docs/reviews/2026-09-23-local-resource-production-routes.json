@@ -2820,6 +2820,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "node identity match admits exact work and workspace and rejects one short"
+        },
+        {
+          "role": "match_nodes_long_text_compare_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "node identity sort yields during a long text comparison"
         }
       ]
     },
@@ -2864,6 +2871,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "edge type index builds within quantum and releases on cancellation"
+        },
+        {
+          "role": "match_edges_long_text_compare_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "edge identity sort yields during a long text comparison"
         }
       ]
     },

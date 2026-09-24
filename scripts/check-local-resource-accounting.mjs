@@ -1386,6 +1386,11 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has(`${route.operation}_identity_workspace_exact_one_short`)) {
     fail(`${label}: match identity workspace evidence is missing`);
   }
+  if (route.family === 'SGA' &&
+    ['match_nodes', 'match_edges'].includes(route.operation) &&
+    !boundaryRoles.has(`${route.operation}_long_text_compare_cancel_cleanup`)) {
+    fail(`${label}: bounded long-key comparison evidence is missing`);
+  }
   if (route.family === 'SGA' && route.operation === 'match_edges' &&
     !boundaryRoles.has('match_edges_type_index_quantum_workspace_cancel')) {
     fail(`${label}: bounded type-index evidence is missing`);

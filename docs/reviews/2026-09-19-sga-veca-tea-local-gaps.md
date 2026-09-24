@@ -1780,6 +1780,14 @@ expression evaluator rather than a graph-specific interpretation. Predicate
 bindings are prepared one field at a time, expression workspace is admitted
 before use, unknown properties retain their typed source diagnostic, and the
 same standard Host path covers predicate publication and cancellation.
+The Graph match sort now compares Text, date, timestamp, decimal, and
+reference key content through a bounded typed cursor. A long shared Text
+prefix no longer occupies one resume: quantum-one node and edge fixtures
+stop during comparison, reclaim scratch, and confirm the subsequent complete
+run's canonical order on all three targets. The operation route inventory
+binds those fixtures to their production entrypoints. This closes that
+specific comparison interval; it is not a substitute for the still-red
+strict resource assurance across all 68 routes or the providerless lane.
 `match_edges` is complete. Bounded
 Graph diagnostics now emit strict node, edge, and total-degree violations in
 canonical identity order. Their output is atomic under row limits, structural

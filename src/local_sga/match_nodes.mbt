@@ -39,6 +39,7 @@ priv struct MatchNodesState {
   mut predicate_work_remaining : Int
   predicate_input : Map[String, @execution.Value]
   mut predicate_execution : @execution.PredicateExpressionExecution?
+  mut key_comparison : @value.BoundedKeyComparison?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
   scratch_count : Int
@@ -197,18 +198,38 @@ fn match_node_field(
 }
 
 ///|
-fn compare_selected_nodes(
+fn compare_selected_nodes_step(
   state : MatchNodesState,
   left : Int,
   right : Int,
-) -> Result[Int, MatchNodesIssue] {
-  guard @storage.node_identity(state.source, left) is Some(left_value) &&
-    @storage.node_identity(state.source, right) is Some(right_value) else {
-    return Err(MatchNodesInputUnavailable)
+) -> Result[Int?, MatchNodesIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      guard @storage.node_identity(state.source, left) is Some(left_value) &&
+        @storage.node_identity(state.source, right) is Some(right_value) else {
+        return Err(MatchNodesInputUnavailable)
+      }
+      let value = match
+        @value.start_bounded_key_comparison(left_value, right_value) {
+        Ok(value) => value
+        Err(issue) => return Err(MatchNodesKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
   }
-  @value.compare_key_values(left_value, right_value).map_err(issue => {
-    MatchNodesKeyOrder(issue)
-  })
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => {
+      state.key_comparison = None
+      Err(MatchNodesKeyOrder(issue))
+    }
+  }
 }
 
 ///|
@@ -428,12 +449,13 @@ fn match_nodes_step(
       CompareMerge => {
         used += 1
         match
-          compare_selected_nodes(
+          compare_selected_nodes_step(
             state,
             state.selected[state.left_index],
             state.selected[state.right_index],
           ) {
-          Ok(comparison) => emit_match_nodes_merge(state, comparison <= 0)
+          Ok(Some(comparison)) => emit_match_nodes_merge(state, comparison <= 0)
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -467,20 +489,21 @@ fn match_nodes_step(
       CompareDuplicate => {
         used += 1
         match
-          compare_selected_nodes(
+          compare_selected_nodes_step(
             state,
             state.selected[state.emit_index - 1],
             state.selected[state.emit_index],
           ) {
-          Ok(0) => {
+          Ok(Some(0)) => {
             state.emit_index += 1
             state.phase = BeginEmit
           }
-          Ok(_) => {
+          Ok(Some(_)) => {
             state.column = 0
             state.values = []
             state.phase = ReadField
           }
+          Ok(None) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
@@ -539,6 +562,7 @@ fn match_nodes_step(
 
 ///|
 fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
+  state.key_comparison = None
   if state.predicate_execution is Some(execution) {
     @execution.cancel_predicate_expression(execution) |> ignore
     state.predicate_execution = None
@@ -686,6 +710,7 @@ pub fn start_match_nodes(
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
+    key_comparison: None,
     selected: [],
     scratch: [],
     scratch_count: count,

@@ -220,6 +220,17 @@ test('graph matching loses identity workspace evidence when either fixture is re
   }
 });
 
+test('graph matching requires bounded long-key comparison evidence', () => {
+  for (const operation of ['match_nodes', 'match_edges']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_long_text_compare_cancel_cleanup`);
+    }), new RegExp(`SGA ${operation}: bounded long-key comparison evidence is missing`, 'u'));
+  }
+});
+
 test('edge matching loses bounded type-index evidence without its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'SGA' &&
