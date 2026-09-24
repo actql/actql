@@ -208,6 +208,7 @@ dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
 if (existsSync(join(root, 'src', bridgePackage,
   'client_program_bridge.mbt'))) {
+  dependencies.set('actql/actql/lowering_relation', 'lower');
   dependencies.set('actql/actql/check_environment', 'check_environment');
   dependencies.set('actql/actql/program_check', 'program_check');
   dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
