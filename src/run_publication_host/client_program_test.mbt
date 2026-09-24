@@ -84,6 +84,24 @@ test "ordinary values document prepares one named Effect-free result" {
   let semantics_cid = prepared_client_program_semantics_cid(prepared)
   assert_true(semantics_cid.has_prefix("sha256:"))
   assert_eq(semantics_cid.length(), 71)
+  let definition = emit_prepared_client_program_definition(
+    prepared, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    definition,
+    "{\"id\":\"client-values\",\"program_semantics_cid\":\"" +
+    semantics_cid +
+    "\",\"version\":\"actql-program-definition/0.1\"}",
+  )
+  assert_true(
+    emit_prepared_client_program_definition(
+      prepared,
+      definition.length() - 1,
+      1000,
+      20,
+    )
+    is Err(ClientProgramDefinitionIssue::Encoding),
+  )
   assert_eq(
     identity.program_definition_cid,
     "sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c",
@@ -158,6 +176,10 @@ test "ordinary values document prepares one named Effect-free result" {
   )
   assert_eq(prepared_client_program_semantics_cid(spaced), semantics_cid)
   assert_eq(
+    emit_prepared_client_program_definition(spaced, 10000, 1000, 20).unwrap(),
+    definition,
+  )
+  assert_eq(
     emit_prepared_client_task_aoa_steps(spaced, 0, aoa_limits, 10000, 1000, 20).unwrap(),
     steps,
   )
@@ -173,6 +195,10 @@ test "ordinary values document prepares one named Effect-free result" {
     identity.program_definition_cid,
   )
   assert_true(prepared_client_program_semantics_cid(changed) != semantics_cid)
+  assert_true(
+    emit_prepared_client_program_definition(changed, 10000, 1000, 20).unwrap() !=
+    definition,
+  )
   assert_true(
     emit_prepared_client_task_aoa_steps(changed, 0, aoa_limits, 10000, 1000, 20).unwrap() !=
     steps,
