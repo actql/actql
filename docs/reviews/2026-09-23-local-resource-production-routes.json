@@ -1260,7 +1260,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "lag_empty_schema_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/lag_sequence_wbtest.mbt",
+          "fixture": "empty lag reserves output schema before copying input names"
+        }
+      ]
     },
     {
       "inventory": "rela",

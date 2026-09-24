@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 56 |
+| Operation-specific boundary records | 57 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -28,6 +28,11 @@ Empty-input fixtures use fixed schema-width arithmetic for exact and one-short
 workspace limits. This closes a local allocation-order gap for those schema
 arrays; it does not make the enclosing providerless sequence cancellable or
 establish complete operation-level resource assurance.
+The `lag` evaluator likewise reserves its output-name entries before copying
+the input names. An empty-input fixture derives eleven simultaneously live
+slots from the checked partition/order terms and schema widths, and rejects
+one short. The route gate requires this fixture, but the record covers only
+schema workspace admission, not the complete lag path or its cancellation.
 
 The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
 use fixed control-work expectations of 354, 145, 160, and 116 units for their

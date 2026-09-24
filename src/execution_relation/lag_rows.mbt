@@ -115,12 +115,13 @@ fn[T : RelationRows] evaluate_lag_rows(
       )
     }
   }
-  let output_names = names.copy()
-  output_names.push(output_name)
-  if !reserve_slots(workspace, output_names.length()) ||
-    !spend_control(control, output_names.length()) {
+  let output_width = width + 1
+  if !reserve_slots(workspace, output_width) ||
+    !spend_control(control, output_width) {
     return Err(RowLimit)
   }
+  let output_names = names.copy()
+  output_names.push(output_name)
   let rows : Array[Array[Value]] = []
   for row in 0..<count {
     if IndexedRows::row_width(input, row) != width {

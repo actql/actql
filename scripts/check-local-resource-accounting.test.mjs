@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 56 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 57 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('generated sequence operators reject missing fixed work evidence', () => {
@@ -61,6 +61,14 @@ test('generated sequence operators reject missing fixed work evidence', () => {
       route.boundary_tests = [];
     }), new RegExp(`RelA ${operation}: fixed sequence work evidence is missing`, 'u'));
   }
+});
+
+test('lag loses its schema workspace boundary when the fixture is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'lag');
+    route.boundary_tests = [];
+  }), /RelA lag: lag schema workspace evidence is missing/u);
 });
 
 test('rows-to-Graph Bridge loses its boundary when either fixture is removed', () => {

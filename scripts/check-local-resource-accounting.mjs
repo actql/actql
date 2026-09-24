@@ -467,6 +467,10 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'RelA' && route.operation === 'lag' &&
+    !boundaryRoles.has('lag_empty_schema_workspace_exact_one_short')) {
+    fail(`${label}: lag schema workspace evidence is missing`);
+  }
   if (route.family === 'VecA' && route.operation === 'merge_rankings' &&
     !boundaryRoles.has('ranking_bounded_record_output_cancel_cleanup')) {
     fail(`${label}: bounded ranking assembly fixture is missing`);
