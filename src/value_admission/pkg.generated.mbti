@@ -72,6 +72,8 @@ pub fn[T] element_count(FrozenArray[T]) -> Int
 
 pub fn[T] elements(FrozenArray[T]) -> Array[T]
 
+pub fn emit_checked_wire_value(CheckedValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn epoch_milliseconds_timestamp(Int64) -> String?
