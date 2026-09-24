@@ -94,6 +94,8 @@ pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_
 
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
+pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
+
 pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
 
 pub fn components_limit_proof_at(ComponentsLimit, Int) -> ReidentifiedStep?
@@ -133,6 +135,14 @@ pub fn effect_computation_environment(EffectComputationCandidate) -> @check_envi
 pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.EffectHeaders
 
 pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
+
+pub fn effect_program_static_effects(EffectProgramStaticCandidate) -> @stage_results.EffectStaticCandidate
+
+pub fn effect_program_static_environment(EffectProgramStaticCandidate) -> @check_environment.WireEnvironment
+
+pub fn effect_program_static_headers(EffectProgramStaticCandidate) -> @stage_syntax.EffectHeaders
+
+pub fn effect_program_static_stage_results(EffectProgramStaticCandidate) -> @stage_results.Checked
 
 pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.DataClassification
 
@@ -293,8 +303,6 @@ pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericS
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
-
-pub fn prepare_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[@stage_results.EffectStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
@@ -792,6 +800,8 @@ pub(all) enum EffectComputationIssue {
   MissingEffects
   Computation(LocalConstructionFailure)
 }
+
+type EffectProgramStaticCandidate
 
 type EffectivePolicy
 

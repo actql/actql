@@ -8,6 +8,15 @@ struct EffectComputationCandidate {
 }
 
 ///|
+/// One exact checked computation and its complete static Effect inventory.
+/// Runtime authority, conversion implementations, captured values, Preview,
+/// and apply admission remain outstanding obligations.
+struct EffectProgramStaticCandidate {
+  computation : EffectComputationCandidate
+  effects : @results.EffectStaticCandidate
+}
+
+///|
 pub(all) enum EffectComputationIssue {
   InvalidLimits
   InvalidProgram(@syntax.SyntaxError)
@@ -97,19 +106,53 @@ pub fn effect_computation_catalog_references(
 }
 
 ///|
-/// The static Mapping/Command candidate consumes the exact owners retained
-/// above. It still cannot authorize an Effect, Preview, apply, or Run.
-pub fn prepare_effect_computation_static(
+/// The static Mapping/Command closure consumes and retains the exact checked
+/// computation owner. It still cannot authorize an Effect, Preview, apply,
+/// or Run.
+pub fn close_effect_computation_static(
   candidate : EffectComputationCandidate,
   mappings : @environment.MappingContractShapes,
   limits : @results.EffectStaticCandidateLimits,
-) -> Result[@results.EffectStaticCandidate, @results.EffectStaticCandidateIssue] {
-  @results.prepare_effect_static_candidate(
-    candidate.headers,
-    checked_stage_results(candidate.checked),
-    checked_environment(candidate.checked),
-    mappings,
-    checked_catalog_references(candidate.checked),
-    limits,
-  )
+) -> Result[EffectProgramStaticCandidate, @results.EffectStaticCandidateIssue] {
+  let effects = match
+    @results.prepare_effect_static_candidate(
+      candidate.headers,
+      checked_stage_results(candidate.checked),
+      checked_environment(candidate.checked),
+      mappings,
+      checked_catalog_references(candidate.checked),
+      limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ computation: candidate, effects, })
+}
+
+///|
+pub fn effect_program_static_effects(
+  candidate : EffectProgramStaticCandidate,
+) -> @results.EffectStaticCandidate {
+  candidate.effects
+}
+
+///|
+pub fn effect_program_static_headers(
+  candidate : EffectProgramStaticCandidate,
+) -> @syntax.EffectHeaders {
+  candidate.computation.headers
+}
+
+///|
+pub fn effect_program_static_stage_results(
+  candidate : EffectProgramStaticCandidate,
+) -> @results.Checked {
+  checked_stage_results(candidate.computation.checked)
+}
+
+///|
+pub fn effect_program_static_environment(
+  candidate : EffectProgramStaticCandidate,
+) -> @environment.WireEnvironment {
+  checked_environment(candidate.computation.checked)
 }
