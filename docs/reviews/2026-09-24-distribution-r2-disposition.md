@@ -45,3 +45,12 @@ entry point, not yet an HTTPS execute route or Cloud destination. The all-target
 MoonBit check, native Values fixture, native remote runtime gate and generated
 public API check passed locally. The fixture still verifies the physical source
 and independent rows; it does not exercise the new direct send through Cloud.
+
+At `a214fddb3`, the native Values HTTPS Site exposes `/outputs/execute` only
+when a physical destination, bounded client and durable Transfer journal are
+installed. The route passes the exact output poll into the shared Values
+sender and returns the common Transfer reply. The destination origin is fixed
+by Site configuration. The native mTLS gate verifies that an unconfigured
+route is 404 while existing dispatch, query and Output Plan behavior passes.
+All-target checking and the generated API check passed. This gate does not yet
+exercise a configured destination, Cloud payload custody or Result publication.
