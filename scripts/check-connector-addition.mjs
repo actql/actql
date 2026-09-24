@@ -47,6 +47,8 @@ const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
   'workers_conformance', 'node_host_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
 cpSync(join(root, 'scripts/templates'), join(isolated, 'scripts/templates'), {recursive:true});
+cpSync(join(root, 'scripts/native-cxx-link-driver.sh'),
+  join(isolated, 'scripts/native-cxx-link-driver.sh'));
 cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
   filter: path => !path.includes('/node_modules') && !path.includes('/reference-compute-node') && !path.includes('/connectors-builtin'),
 });
@@ -125,7 +127,10 @@ if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Er
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
   ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
-  ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/')]);
+  ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/'),
+  ['scripts/native-cxx-link-driver.sh', hash(readFileSync(
+    join(isolated, 'scripts/native-cxx-link-driver.sh')))],
+]);
 const before = snapshot();
 writeFileSync(join(isolated,'common-before.json'),JSON.stringify(
   Object.fromEntries([...before].filter(([path]) => !allowed(path))),null,2)+'\n');
