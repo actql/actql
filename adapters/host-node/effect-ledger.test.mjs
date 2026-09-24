@@ -218,6 +218,23 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
     assert.equal(ledger.commitAdmittedRowOutcome({
       claim, preview: admitted, memberIndex: 0, previewRowIndex: 0,
     }).transition.created, false);
+    const locatorCid = effect.logicalItemLocatorCid(claim.locator);
+    const terminal = ledger.currentAdmitted(locatorCid);
+    const saved = ledger.readClaimedResponse(claim);
+    const receiptArgs = [admitted, 0, 0, claim.scope, claim.locator,
+      claim.key, claim.canonicalRequestCid, terminal];
+    assert.throws(() => effect.issueRowReceiptTerminalEntry(
+      ...receiptArgs, [terminal], saved.dispatchEntryCid,
+      saved.credentialUseCid, saved.responseBytes, saved.statusCode,
+      recorded.receipt.wire, 1_000_000, 4096, 512, 16,
+    ), {code: 'MoonBitHostFailure'});
+    const history = ledger.history(locatorCid, 20).map(row =>
+      effect.admitLedgerEntry(row.entryJson, 4096, 64, 4));
+    assert.equal(effect.ledgerEntryCid(effect.issueRowReceiptTerminalEntry(
+      ...receiptArgs, history, saved.dispatchEntryCid,
+      saved.credentialUseCid, saved.responseBytes, saved.statusCode,
+      recorded.receipt.wire, 1_000_000, 4096, 512, 16,
+    )), effect.ledgerEntryCid(terminal));
     ledger.close();
     const restarted = open(root);
     t.after(() => restarted.close());
