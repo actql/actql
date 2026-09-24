@@ -2113,6 +2113,13 @@
           "fixture": "bounded cross join scans long text across resumptions"
         },
         {
+          "role": "external_product_utf8_input_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+          "fixture": "bounded cross join charges exact UTF-8 input bytes"
+        },
+        {
           "role": "external_product_input_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
