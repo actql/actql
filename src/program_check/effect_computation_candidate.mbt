@@ -64,6 +64,7 @@ pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignResolvedLimit(String)
   LimitWorkExceeded
   Inventory(@results.EffectPreviewStaticInventoryIssue)
+  PlanInventory(@results.EffectPlanInventoryIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -326,6 +327,7 @@ pub fn bind_effect_program_run_preview(
   stage_index : Int,
   preview : @run_publication.EffectPreviewIdentity,
   max_work : Int,
+  plan_limits : @results.EffectPlanIdentityLimits,
 ) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue] {
   let static_preview = match
     bind_effect_program_static_preview(
@@ -333,6 +335,7 @@ pub fn bind_effect_program_run_preview(
       stage_index,
       preview,
       max_work,
+      plan_limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Static(issue))
@@ -395,6 +398,7 @@ pub fn bind_effect_program_static_preview(
   stage_index : Int,
   preview : @run_publication.EffectPreviewIdentity,
   max_work : Int,
+  plan_limits : @results.EffectPlanIdentityLimits,
 ) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue] {
   if @run_publication.effect_preview_program_definition_cid(preview) !=
     effect_program_static_definition_cid(candidate) {
@@ -465,7 +469,17 @@ pub fn bind_effect_program_static_preview(
       preview,
       remaining.val,
     ) {
-    Ok(_) => Ok({ candidate, stage_index, preview, })
+    Ok(_) =>
+      match
+        @results.check_effect_preview_plan_inventory(
+          @results.effect_static_candidate_mapping_rules(candidate.effects),
+          stage_index,
+          preview,
+          plan_limits,
+        ) {
+        Ok(_) => Ok({ candidate, stage_index, preview, })
+        Err(issue) => Err(PlanInventory(issue))
+      }
     Err(issue) => Err(Inventory(issue))
   }
 }

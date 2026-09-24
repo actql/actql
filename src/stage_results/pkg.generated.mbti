@@ -5,6 +5,7 @@ import {
   "actql/actql/calendar_profile",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_results",
@@ -46,6 +47,8 @@ pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLim
 pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) -> Result[Checked, Issue]
 
 pub fn check_effect_preview_checked_inventory(EffectResultBindings, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewInventoryIssue]
+
+pub fn check_effect_preview_plan_inventory(EffectMappingRules, Int, @run_publication.EffectPreviewIdentity, EffectPlanIdentityLimits) -> Result[Unit, EffectPlanInventoryIssue]
 
 pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
 
@@ -163,6 +166,12 @@ pub fn effect_mapping_shapes_environment(EffectMappingShapes) -> @check_environm
 
 pub fn effect_mapping_shapes_work(EffectMappingShapes) -> Int
 
+pub fn effect_plan_pipeline_cid(EffectPlanTerminal, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn effect_plan_terminal_rule(EffectPlanTerminal) -> EffectMappingRuleBinding
+
+pub fn effect_plan_terminal_source_result(EffectPlanTerminal) -> String
+
 pub fn effect_result_binding_at(EffectResultBindings, Int) -> EffectResultBinding?
 
 pub fn effect_result_binding_count(EffectResultBindings) -> Int
@@ -204,6 +213,8 @@ pub fn effect_static_candidate_mapping_rules(EffectStaticCandidate) -> EffectMap
 pub fn effect_static_candidate_results(EffectStaticCandidate) -> EffectResultBindings
 
 pub fn effect_static_candidate_work(EffectStaticCandidate) -> Int
+
+pub fn emit_effect_plan_pipeline(EffectPlanTerminal, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn export_at(ResultWiring, Int) -> ResultExport?
 
@@ -248,6 +259,8 @@ pub fn local_source_values(PreparedLocalSource) -> @parameter_binding.BoundValue
 pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
+
+pub fn prepare_effect_plan_terminal(EffectMappingRuleBinding, Int) -> Result[EffectPlanTerminal?, EffectPlanTerminalIssue]
 
 pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
@@ -478,6 +491,41 @@ pub struct EffectMappingShapes {
   entries : Array[EffectMappingShapeBinding]
   work : Int
 }
+
+pub(all) struct EffectPlanIdentityLimits {
+  max_work : Int
+  max_fields : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPlanInventoryIssue {
+  InvalidLimits
+  InvalidStage
+  WorkLimit
+  FieldLimit
+  MissingPlan(String)
+  ForeignPlan(String)
+  OutputLimit
+  InvalidEncoding
+} derive(Eq, @debug.Debug)
+
+pub struct EffectPlanTerminal {
+  rule : EffectMappingRuleBinding
+  source_result : String
+  entity : String
+  operation : String
+  selector : String
+  selector_field : String
+  field_map : Array[(String, String)]
+  checked_changes : Int
+}
+
+pub(all) enum EffectPlanTerminalIssue {
+  InvalidLimits
+  FieldLimit
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectPreviewInventoryIssue {
   InvalidStage

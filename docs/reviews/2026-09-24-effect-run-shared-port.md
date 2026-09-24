@@ -113,6 +113,14 @@ The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current
 execution authority. This retained proof alone does not authorize an Effect.
+Result-correlated update, upsert, and delete now derive a pure AoA
+`EFFECT.plan` pipeline from the retained Result and Mapping rule owner. The
+static Preview binder recomputes its logical CID and rejects a missing or
+foreign plan CID. `id` and `match` can share the same planning graph while
+their distinct authority contracts remain separate. Literal changes are not
+silently copied into the AoA field map. This is a checked planning fragment,
+not a captured Result binding, physical payload, Preview admission, or write
+permit; the standard Effectful Run port remains open.
 
 ## Required port and owners
 
