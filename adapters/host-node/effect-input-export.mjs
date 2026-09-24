@@ -8,7 +8,7 @@ import {checked} from '../host-common/runtime-result.mjs';
  * Effect Preview or a mutation permit. The caller retains the input pin.
  */
 export async function exportPinnedEffectInput({
-  moon, execution, inputs, memberIndex, task, limits, onChunk,
+  moon, execution, inputs, memberIndex, limits, onChunk,
   signal, advanceQuantum = 256,
 }) {
   if (typeof onChunk !== 'function' ||
@@ -20,6 +20,7 @@ export async function exportPinnedEffectInput({
   if (input === undefined) {
     throw new TypeError('MissingEffectInput');
   }
+  const task = moon.clientProgramEffectInputTask(input);
   const physical = execution.effectPhysicalSource(task);
   if (physical === undefined) {
     throw new TypeError('MissingEffectPhysicalSource');

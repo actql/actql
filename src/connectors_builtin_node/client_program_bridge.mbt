@@ -1571,6 +1571,15 @@ pub fn client_program_effect_input_at(
 }
 
 ///|
+/// Physical source selection is fixed by the captured graph, not by JS.
+#export_name("clientProgramEffectInputTask")
+pub fn client_program_effect_input_task(
+  value : @strategy.CapturedEffectInput,
+) -> Int {
+  @strategy.captured_effect_input_task(value)
+}
+
+///|
 /// Private bounds for binding one admitted Preview to a captured Effect Run.
 /// These do not replace current authorization, payload proof, or apply.
 struct ClientEffectPreviewInputLimits {

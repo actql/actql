@@ -395,11 +395,11 @@ test('admitted source-free Effect Run computes through the installed Host',
           input, limits)), {code: 'MoonBitHostFailure'});
         const physical = execution.effectPhysicalSource(0);
         await assert.rejects(exportPinnedEffectInput({
-          moon, execution, inputs, memberIndex: 1, task: 0, limits,
+          moon, execution, inputs, memberIndex: 1, limits,
           onChunk() { throw new Error('UnexpectedEffectChunk'); },
         }), {message: 'MissingEffectInput'});
         await assert.rejects(exportPinnedEffectInput({
-          moon, execution, inputs, memberIndex: 0, task: 0, limits,
+          moon, execution, inputs, memberIndex: 0, limits,
           onChunk() { throw new Error('StoppedEffectConsumer'); },
         }), {message: 'StoppedEffectConsumer'});
         assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
@@ -418,7 +418,8 @@ test('admitted source-free Effect Run computes through the installed Host',
         };
         const chunks = [];
         const exported = await exportPinnedEffectInput({
-          moon, execution: observed, inputs, memberIndex: 0, task: 0,
+          moon, execution: observed, inputs, memberIndex: 0,
+          task: 999,
           limits,
           onChunk: async chunk => { chunks.push(chunk); },
         });

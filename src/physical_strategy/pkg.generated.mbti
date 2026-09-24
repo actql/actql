@@ -99,6 +99,8 @@ pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relat
 
 pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput?
 
+pub fn captured_effect_input_task(CapturedEffectInput) -> Int
+
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
