@@ -57,6 +57,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_check_effect_plan_proofs(@physical_strategy.CapturedEffectPreviewInputs, Array[ClientEffectPlanProof], Int, Int) -> Result[Unit, ClientEffectPlanInventoryIssue]
+
 pub fn client_program_check_effect_preview_target_guards(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectGuardIssue]
 
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
@@ -127,7 +129,7 @@ pub fn client_program_effect_plan_cancel_preparation(ClientEffectPlanPreparation
 
 pub fn client_program_effect_plan_cid(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanIdentityIssue]
 
-pub fn client_program_effect_plan_finish(ClientEffectPlanCursor) -> Result[(@execution_relation.CompletedRelationExportReceipt, String), ClientEffectPlanStreamIssue]
+pub fn client_program_effect_plan_finish(ClientEffectPlanCursor) -> Result[(@execution_relation.CompletedRelationExportReceipt, String, ClientEffectPlanProof), ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_import_append(ClientEffectPlanImport, String) -> Result[Unit, ClientEffectPlanStreamIssue]
 
@@ -136,6 +138,8 @@ pub fn client_program_effect_plan_import_begin(@physical_strategy.CapturedEffect
 pub fn client_program_effect_plan_import_finish(ClientEffectPlanImport) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_next(ClientEffectPlanCursor, Int, Int, Int, Int, Int, Int) -> Result[String?, ClientEffectPlanStreamIssue]
+
+pub fn client_program_effect_plan_proof_matches(ClientEffectPlanProof, @physical_strategy.CapturedEffectPreviewInputs, Int) -> Bool
 
 pub fn client_program_effect_plan_ready(ClientEffectPlanPreparation) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue]
 
@@ -1537,7 +1541,17 @@ pub(all) enum ClientEffectPlanIdentityIssue {
 
 type ClientEffectPlanImport
 
+pub(all) enum ClientEffectPlanInventoryIssue {
+  InvalidLimits
+  CapacityExceeded
+  ForeignProof(Int)
+  DuplicateProof(Int)
+  MissingProof(Int)
+}
+
 type ClientEffectPlanPreparation
+
+type ClientEffectPlanProof
 
 pub(all) enum ClientEffectPlanStreamIssue {
   InvalidMember

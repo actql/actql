@@ -69,6 +69,7 @@ export async function verifyPinnedEffectPlan({
     return Object.freeze({
       fields: moon.clientProgramEffectInputExportFields(receipt),
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
+      proof: finished._2,
     });
   } finally {
     if (receipt !== undefined) {

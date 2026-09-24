@@ -677,12 +677,27 @@ test('owned update Plan matches approved rows and rejects altered intent',
       });
       assert.deepEqual(JSON.parse(chunks.join('')), [{id: 1}, {id: 2}]);
       assert.match(verified.logicalCid, /^sha256:[0-9a-f]{64}$/);
+      assert.equal(moon.clientProgramEffectPlanProofMatches(
+        verified.proof, previewInputs, 0), true);
+      assert.doesNotThrow(() => checked(
+        moon.clientProgramCheckEffectPlanProofs(
+          previewInputs, [verified.proof], 1, 2)));
+      assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
+        previewInputs, [], 1, 2)), {code: 'MoonBitHostFailure'});
+      assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
+        previewInputs, [verified.proof, verified.proof], 2, 4)),
+      {code: 'MoonBitHostFailure'});
       const altered = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         storedResults.artifacts[0].identity, 'update', [1, 99]);
       const alteredInputs = checked(moon.clientProgramBindEffectPreviewInputs(
         owned, inputs, invocation, 0, altered.wire,
         altered.authoringCid, previewLimits));
+      assert.equal(moon.clientProgramEffectPlanProofMatches(
+        verified.proof, alteredInputs, 0), false);
+      assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
+        alteredInputs, [verified.proof], 1, 2)),
+      {code: 'MoonBitHostFailure'});
       const partial = [];
       await assert.rejects(verifyPinnedEffectPlan({
         moon, execution, previewInputs: alteredInputs, previewIndex: 0,
@@ -730,6 +745,11 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.equal(releasedChunks.length, 1);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.equal(moon.clientProgramEffectPlanProofMatches(
+        verified.proof, previewInputs, 0), false);
+      assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
+        previewInputs, [verified.proof], 1, 2)),
+      {code: 'MoonBitHostFailure'});
     } finally {
       if (inputs !== undefined) {
         moon.clientProgramReleaseEffectInputs(inputs);
