@@ -30,7 +30,7 @@ pub(all) enum RunPublicationAdmissionIssue {
 
 ///|
 /// Bind the admitted publication evidence to an already checked Program.
-/// The caller must derive these three identities from that opaque checked
+/// The caller must derive these identities from that opaque checked
 /// owner; this check does not turn arbitrary plan CIDs into compilation proof.
 pub fn admit_checked_run_publication(
   template : RunEvidenceValue,
@@ -40,11 +40,14 @@ pub fn admit_checked_run_publication(
   program_definition_cid : String,
   parameter_values_cid : String,
   program_semantics_cid : String,
+  check_environment_cid : String,
 ) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue] {
   if contract_string_from_value(template.value, "program_definition_cid") !=
     Some(program_definition_cid) ||
     contract_string_from_value(template.value, "parameter_values_cid") !=
     Some(parameter_values_cid) ||
+    contract_string_from_value(template.value, "check_environment_cid") !=
+    Some(check_environment_cid) ||
     contract_string(compiled_plan, "program_definition_cid") !=
     Some(program_definition_cid) ||
     contract_string(compiled_plan, "program_semantics_cid") !=
