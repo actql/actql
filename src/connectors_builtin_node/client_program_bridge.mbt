@@ -745,6 +745,55 @@ pub fn client_program_local_values_output_schema_cid(
 }
 
 ///|
+/// Checked Result row type from the exact publication port, after its
+/// projection. This is private Plan material, not Run admission.
+#export_name("clientProgramIssueResultRowContract")
+pub fn client_program_issue_result_row_contract(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+) -> Result[
+  @publication_host.ClientResultRowContractIdentity,
+  @publication_host.ClientResultRowContractIssue,
+] {
+  @publication_host.issue_prepared_client_result_row_contract(
+    prepared, unit, index, 100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientProgramResultRowContractWire")
+pub fn client_program_result_row_contract_wire(
+  value : @publication_host.ClientResultRowContractIdentity,
+) -> String {
+  @publication_host.client_result_row_contract_wire(value)
+}
+
+///|
+#export_name("clientProgramResultRowContractCid")
+pub fn client_program_result_row_contract_cid(
+  value : @publication_host.ClientResultRowContractIdentity,
+) -> String {
+  @publication_host.client_result_row_contract_cid(value)
+}
+
+///|
+#export_name("clientProgramResultRowContractName")
+pub fn client_program_result_row_contract_name(
+  value : @publication_host.ClientResultRowContractIdentity,
+) -> String {
+  @publication_host.client_result_row_contract_name(value)
+}
+
+///|
+#export_name("clientProgramResultRowContractUnitCid")
+pub fn client_program_result_row_contract_unit_cid(
+  value : @publication_host.ClientResultRowContractIdentity,
+) -> String {
+  @publication_host.client_result_row_contract_unit_cid(value)
+}
+
+///|
 /// Saved AoA material is rechecked against the exact prepared Program.
 #export_name("clientProgramAdmitLocalValuesAoAIdentity")
 pub fn client_program_admit_local_values_aoa_identity(

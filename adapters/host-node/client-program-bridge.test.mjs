@@ -358,6 +358,31 @@ test('Node ABI derives the checked named Result and request identity', async () 
     '{"id":{"nullable":false,"type":"number"}}');
   assert.equal(moon.clientProgramLocalValuesOutputSchemaCid(outputSchema),
     'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513');
+  const resultRow = checked(moon.clientProgramIssueResultRowContract(
+    prepared, 0, 0));
+  assert.equal(moon.clientProgramResultRowContractName(resultRow), 'rows');
+  assert.equal(moon.clientProgramResultRowContractWire(resultRow),
+    '{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"number"}},"nullable":false,"type":"object"}');
+  assert.equal(moon.clientProgramResultRowContractCid(resultRow),
+    'sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c');
+  assert.match(moon.clientProgramResultRowContractUnitCid(resultRow),
+    /^sha256:[0-9a-f]{64}$/u);
+  const wider = JSON.parse(document);
+  const wideValues = wider.stages[0].steps[0].values;
+  wideValues.schema.hidden = {nullable: false, type: 'string'};
+  wideValues.rows[0].hidden = 'a';
+  wideValues.rows[1].hidden = 'b';
+  const widePrepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(wider), 'json', environment);
+  assert.ok(widePrepared);
+  const wideOutputSchema = checked(
+    moon.clientProgramIssueLocalValuesOutputSchema(widePrepared, 0));
+  assert.notEqual(moon.clientProgramLocalValuesOutputSchemaCid(
+    wideOutputSchema), moon.clientProgramLocalValuesOutputSchemaCid(outputSchema));
+  const projectedRow = checked(moon.clientProgramIssueResultRowContract(
+    widePrepared, 0, 0));
+  assert.equal(moon.clientProgramResultRowContractCid(projectedRow),
+    moon.clientProgramResultRowContractCid(resultRow));
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
       pipeline, moon.clientProgramLocalValuesAoACid(aoa))));
@@ -374,6 +399,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramIssueLocalValuesOutputSchema(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(
+    moon.clientProgramIssueResultRowContract(prepared, 0, 1)),
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
     {code: 'MoonBitHostFailure'});
@@ -393,6 +421,10 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(checked(
     moon.clientProgramLocalValuesUnitSourceJson(annotatedPrepared, 0)),
   unitSource);
+  const annotatedRow = checked(moon.clientProgramIssueResultRowContract(
+    annotatedPrepared, 0, 0));
+  assert.equal(moon.clientProgramResultRowContractCid(annotatedRow),
+    moon.clientProgramResultRowContractCid(resultRow));
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const definition = checked(moon.clientProgramDefinitionJson(prepared));
