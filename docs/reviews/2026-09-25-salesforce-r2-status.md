@@ -57,3 +57,13 @@ the eventual Preview can bind the exact static Plan without reauthoring it in
 JavaScript. It is a static identity accessor, not input capture or an apply
 permit. Product connection and the review's fault-injection matrix remain
 open. Same-SHA Linux CI and live Salesforce are not yet verified.
+
+The installed Host now connects a live Preview input to the generation-checked
+managed Result importer and the common canonical Result cursor. For each row,
+MoonBit compares the checked Plan selector and intended changes against the
+admitted private Preview before releasing prepared Result bytes. Exact row
+count and pin liveness are checked before returning the relation receipt.
+The Host fixture verifies matching update rows, altered changes, swapped
+targets, and a released pin. This is payload evidence only: it neither admits
+current target guards nor issues an apply permit, dispatches writes, or commits
+an Effectful Run. Prepared-output sinks must reclaim partial bytes on failure.
