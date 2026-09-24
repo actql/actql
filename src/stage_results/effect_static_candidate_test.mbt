@@ -20,15 +20,19 @@ fn effect_static_candidate_environment_limits() -> @environment.Limits {
 ///|
 fn effect_static_candidate_catalogs(
   mappings : @environment.MappingContractShapes,
-) -> @environment.CatalogContents {
+) -> @environment.CatalogReferences {
   let registry = @environment.check_contract_registry(
     @environment.mapping_shape_environment(mappings),
     effect_static_candidate_environment_limits(),
   ).unwrap()
-  @environment.check_catalog_contents(
+  let catalogs = @environment.check_catalog_contents(
     registry,
     effect_static_candidate_environment_limits(),
   ).unwrap()
+  @environment.check_catalog_references(catalogs, {
+    max_work: 1000,
+    max_references: 100,
+  }).unwrap()
 }
 
 ///|
@@ -115,7 +119,9 @@ test "static Effect candidate rejects foreign Environment and Program" {
   let mappings = effect_mapping_shape_fixture()
   let catalogs = effect_static_candidate_catalogs(mappings)
   let foreign_environment = @environment.contract_registry_environment(
-    @environment.catalog_registry(command_target_catalog("crm/account")),
+    @environment.catalog_registry(
+      @environment.reference_contents(command_target_catalog("crm/account")),
+    ),
   )
   assert_true(
     prepare_effect_static_candidate(
@@ -165,7 +171,7 @@ test "static Effect candidate covers Command without Mapping members" {
   let catalogs = command_target_catalog("crm/account")
   let mappings = @environment.check_mapping_contract_shapes(
     @environment.contract_registry_environment(
-      @environment.catalog_registry(catalogs),
+      @environment.catalog_registry(@environment.reference_contents(catalogs)),
     ),
     effect_static_candidate_environment_limits(),
     100,
@@ -209,7 +215,7 @@ test "static Effect candidate includes Command input admission" {
   )
   let mappings = @environment.check_mapping_contract_shapes(
     @environment.contract_registry_environment(
-      @environment.catalog_registry(catalogs),
+      @environment.catalog_registry(@environment.reference_contents(catalogs)),
     ),
     effect_static_candidate_environment_limits(),
     100,

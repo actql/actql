@@ -24,9 +24,11 @@ The binding retains each field's admitted type and its selector, key, command
 target, or value role. The next increment rejects a Command target field that
 is not a non-null value-level ResourceRef. A further target-only selector
 matches its kind to the exact Command Contract in an identity-checked
-Connector Catalog. This is not complete Command Contract admission: role
-references, permission, recovery, current authority, and the checked Program's
-exact Environment binding remain open. Complete Mapping Contract admission,
+Connector Catalog. The static candidate now requires the Catalog's admitted
+role-reference closure as the owner of Command selection. This is not complete
+Command Contract admission: permission, recovery, current authority, and the
+checked Program's exact Environment binding remain open. Complete Mapping
+Contract admission,
 Preview, and apply permission are also still absent.
 The bounded Mapping shape binder now matches each non-Command header's exact
 authored reference and target to an identity-checked resolved body; Command
@@ -73,7 +75,7 @@ shape/rule/literal admission, and Command target/inline-input admission under
 one bounded work budget and one exact Environment owner. It rejects missing
 coverage and foreign Program/Environment inputs. It is intentionally not a
 checked Effect Set: the standard checker must still bind the Environment and
-close registered conversions, Command role references, policy, and runtime
+close registered conversions, Command semantics, policy, and runtime
 authority before execution.
 The checked Program now exposes its retained exact Environment owner, and the
 checker configuration exposes the originally supplied owner. This makes the
