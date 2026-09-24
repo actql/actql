@@ -197,6 +197,43 @@ pub fn captured_effect_preview_input_at(
 }
 
 ///|
+pub(all) enum CapturedEffectGuardIssue {
+  InvalidLimits
+  NotReady
+  Current(@effect.EffectPreviewTargetGuardIssue)
+} derive(Debug)
+
+///|
+/// Check all current target guards while every required checked input remains
+/// pinned. The caller must obtain observations under current Site authority.
+/// This preflight is not a mutation permit or evidence of payload equality.
+pub fn check_captured_effect_preview_target_guards(
+  value : CapturedEffectPreviewInputs,
+  observations : Array[@effect.EffectTargetVersionObservation],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectGuardIssue] {
+  if max_rows < 0 || max_work < 0 || observations.length() > max_rows {
+    return Err(InvalidLimits)
+  }
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  for index in 0..<value.source_indexes.length() {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return Err(NotReady)
+    }
+  }
+  @effect.check_effect_preview_target_guards(
+    @checked.effect_program_run_preview_identity(value.preview),
+    observations,
+    max_rows,
+    max_work,
+  ).map_err(issue => Current(issue))
+}
+
+///|
 pub fn release_captured_effect_preview_inputs(
   value : CapturedEffectPreviewInputs,
 ) -> Bool {

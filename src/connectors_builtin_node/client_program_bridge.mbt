@@ -1738,6 +1738,34 @@ pub fn client_program_effect_preview_input_at(
 }
 
 ///|
+/// The Site supplies current authorized observations for every guarded row.
+/// This checks the captured Preview but never issues mutation authority.
+#export_name("clientProgramCheckEffectPreviewTargetGuards")
+pub fn client_program_check_effect_preview_target_guards(
+  value : @strategy.CapturedEffectPreviewInputs,
+  row_cids : Array[String],
+  version_cids : Array[String],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectGuardIssue] {
+  if max_rows < 0 ||
+    max_rows > 100000 ||
+    max_work < 0 ||
+    max_work > 100000000 ||
+    row_cids.length() != version_cids.length() ||
+    row_cids.length() > max_rows {
+    return Err(@strategy.CapturedEffectGuardIssue::InvalidLimits)
+  }
+  let observations = Array::makei(row_cids.length(), index => @effect.EffectTargetVersionObservation::{
+    row_preview_cid: row_cids[index],
+    version_cid: version_cids[index],
+  })
+  @strategy.check_captured_effect_preview_target_guards(
+    value, observations, max_rows, max_work,
+  )
+}
+
+///|
 /// Exact Host limits for the checked Effect input stream, shared by cell and
 /// resident representations. These limits do not grant access or apply.
 #export_name("clientProgramEffectInputExportLimits")
