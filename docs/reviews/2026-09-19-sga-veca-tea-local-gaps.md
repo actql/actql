@@ -5,10 +5,16 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
-boundary records, 12 have all four lifecycle roles, and 9 have exact and
+boundary records, 12 have all four lifecycle roles, and 11 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 32 paths have path-scoped work/workspace evidence. Strict completion
+routes, 34 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The single-path `normalize_vectors` and `score_vectors` routes now bind their
+independently counted one-record work ceilings (10/9 and 18/17) and fixed
+workspace ceilings (8/7 and 30/29) to their existing Host cancellation and
+kernel cleanup tests. Both routes are fully resource-assured for these
+registered entrypoints; this does not close other VecA operations.
 
 The direct Carrier `pool_vectors` entrypoint now has independent one-record
 work boundaries (30/29) and a fixed-shape structural workspace boundary
