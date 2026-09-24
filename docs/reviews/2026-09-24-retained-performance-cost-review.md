@@ -490,10 +490,10 @@ These are observed product facts rather than quantities inferred from the
 fixture. The probe now also reads each exact task's row count, logical CID and
 byte count from its sealed holding without another file hash. The mixed
 three-task case and four-task join case match their registered cardinalities
-and final independent oracle. Full receipt metadata parity, the remaining
-logical consumer charges and independent Comparator admission still need
-explicit connection before a Native sample can enter the registered paired
-assessment.
+and final independent oracle. The later Native pair admission connects the
+acquisition metadata, task holdings, guard and comparison observations, and
+terminal release to the registered comparator. The two realizations use
+different operation work meters; their numeric totals are recorded separately.
 
 The Native rate profile is admitted against the clean revision, exact release
 binary digest, distinct training and target fixtures, all forced-choice
@@ -534,7 +534,20 @@ Native join path took about 32 seconds at 100,000 narrow rows and 332 seconds
 at 1,000,000 rows; narrow retained reuse took about 167 seconds at 1,000,000
 rows. This argues against moving the already improved large/reuse profile to
 Native wholesale. The remaining three cases are unverified in this sweep.
-The next product decision is a calibrated small-case Native profile alongside
-the existing large/reuse realization, followed by one fixed-SHA complete
-registered assessment. Do not treat feasibility or the single pair as that
-assessment.
+The calibrated Native profile is now connected to the registered small cases
+and eligible low-selectivity acquisition cases. A seven-pair local assessment
+of the 10,000-row narrow acquisition at `17e8cf005` passed its ratio gate:
+the point estimate was 0.447 and the 95% interval was 0.430-0.471. This is
+one macOS case, not acceptance of the 27-case Linux matrix.
+
+The Linux matrix at the preceding `4870f181d` revision exposed the remaining
+large-case problem in the Node realization. In one retained-reuse narrow
+10,000-row pair, the product took 2,866 ms against 596 ms for the matched
+comparator. Parent and worker preparation took 618 and 616 ms respectively;
+worker execution took 1,340 ms. Removing only one preparation cannot meet the
+1.25 ratio. The in-process managed-profile diagnostic completed two tasks,
+then rejected the next task because its logical-content identity obligation
+had no compatible managed implementation. Selection must not bypass that
+obligation. The next implementation unit is a product path that avoids the
+duplicated preparation and establishes required identity during bounded output
+retention while preserving downstream consumption and cleanup.
