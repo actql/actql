@@ -10696,7 +10696,8 @@
     "plan_result": "sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993",
-    "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20"
+    "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
+    "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -72723,6 +72724,25 @@
               }
             }
           }
+        }
+      }
+    },
+    "caller_input_intent": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-caller-input-intent-0.1.json",
+      "title": "actql-caller-input-intent-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "selection"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-caller-input-intent/0.1"
+        },
+        "selection": {
+          "const": "none"
         }
       }
     }

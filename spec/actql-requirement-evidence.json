@@ -9793,6 +9793,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/caller-input-intent.product-4e87cf6ac980",
+      "statement_sha256": "4f39d41ed83e8c4d53eac13bda71cd8bdcb306a5ece664627488042abffe5233",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "logical-request",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/caller-input-intent.product-eef51c5ab812",
+      "statement_sha256": "f796ac88aca2eec798c0b6e20d4bcd311290f7e63dca104bd1fce3415a9dfdc5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "logical-request",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/preview-strength.a-blind-preview-may-be-displayed-but-must-not-be",
       "statement_sha256": "0001cd20fc6fa33d1f49a7bb3e65805551d321a2283de442bfd9d354eb4de62e",
       "status": "pending",

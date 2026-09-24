@@ -1764,6 +1764,8 @@ LogicalRequestScope = CID({version: "actql-logical-request/0.1",
 IntentFingerprint = CID({version: "actql-logical-request-intent/0.1",
   caller_input_intent_cid, parameter_values_cid,
   program_definition_cid})
+NoInputIntent = CID({version: "actql-caller-input-intent/0.1",
+  selection: "none"})
 LogicalItemLocator = CID({version: "actql-logical-item/0.1",
   logical_request_scope_cid, unit_namespace, effect_id,
   item_correlation})
@@ -1813,6 +1815,16 @@ derivation the adapter inserts and validates the stamp. Both business-payload
 CID and final transport digest are retained. Retention/recovery horizon and
 attempt/cost/deadline bounds persist across recovery. Missing/expired records
 are not proof of a first request; expiry never clears unknown uncertainty.
+
+<!-- requirement-block: caller-input-intent.product-4e87cf6ac980 caller-input-intent.product-eef51c5ab812 -->
+
+For a source-free Program with no input selection, the Host MUST use the fixed
+`NoInputIntent` body and verify its CID at request admission and readmission.
+Its canonical bytes and CID are pinned in
+`portability/corpus/caller-input-intent.json`. An explicitly selected empty
+input is not absence and MUST use a different input contract and identity.
+The fixed CID may be shared across Programs because the Program, Parameter
+Values and request scope are bound separately above.
 
 <a id="preview-strength"></a>
 

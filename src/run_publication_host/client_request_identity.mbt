@@ -101,6 +101,51 @@ fn valid_client_request_cid(value : String) -> Bool {
 }
 
 ///|
+/// The only 0.1 source-free caller input intent. An explicitly selected empty
+/// input is a different intent and must not use this identity.
+pub fn source_free_caller_input_intent_cid() -> String {
+  "sha256:" +
+  @sha.hex(
+    @utf8.encode(
+      "{\"selection\":\"none\",\"version\":\"actql-caller-input-intent/0.1\"}",
+    ),
+  )
+}
+
+///|
+pub fn prepare_source_free_client_request_identity(
+  prepared : PreparedClientProgram,
+  authority_scope_cid : String,
+  caller_request_id : String,
+) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
+  prepare_client_request_identity(
+    prepared,
+    authority_scope_cid,
+    caller_request_id,
+    source_free_caller_input_intent_cid(),
+  )
+}
+
+///|
+pub fn admit_source_free_client_request_identity_record(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  program_definition_cid : String,
+  parameter_values_cid : String,
+  caller_input_intent_cid : String,
+  logical_request_scope_cid : String,
+  intent_fingerprint_cid : String,
+) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
+  if caller_input_intent_cid != source_free_caller_input_intent_cid() {
+    return Err(InvalidInputIntent)
+  }
+  admit_client_request_identity_record(
+    authority_scope_cid, caller_request_id, program_definition_cid, parameter_values_cid,
+    caller_input_intent_cid, logical_request_scope_cid, intent_fingerprint_cid,
+  )
+}
+
+///|
 /// Compute the closed logical request key and immutable checked intent.
 /// Physical storage must still atomically bind this identity to exactly one
 /// owner-issued Run record before dispatch; this function performs no I/O.

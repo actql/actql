@@ -2258,6 +2258,16 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invo
 }
 
 ///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-caller-input-intent-0.1.json\",\"title\":\"actql-caller-input-intent-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"selection\"],\"properties\":{\"version\":{\"const\":\"actql-caller-input-intent/0.1\"},\"selection\":{\"const\":\"none\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 14, 3, 344)
+  assert_eq(@canonical_json.cid_value(value, 344, 14, 3), "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d")
+  assert_eq(@canonical_json.measure_value(value, 344, 14, 3), 344)
+}
+
+///|
 test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template" {
   let input = @json.parse([
     "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-bound-invocation-template-0.1.json\",\"title\":\"actql-bound-invocation-template-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"program_definition_cid\",\"parameter_values_cid\",\"invocation_bindings_cid\",\"check_environment_cid\",\"grammar_manifest_cid\",\"required_profile_contracts\",\"barrier_contract_manifest_cid\",\"source_evidence\",\"bound_invocation_template_cid\"],\"properties\":{\"version\":{\"const\":\"actql-bound-invocation-template/0.1\"},\"program_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"parameter_values_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"invocation_bindings_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"check_environment_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"grammar_manifest_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"required_profile_contracts\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties",

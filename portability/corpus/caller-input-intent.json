@@ -1,0 +1,11 @@
+{
+  "version": "actql-caller-input-intent-vectors/0.1",
+  "cases": [
+    {
+      "id": "no input specified",
+      "body": {"version": "actql-caller-input-intent/0.1", "selection": "none"},
+      "expected_canonical_bytes": "{\"selection\":\"none\",\"version\":\"actql-caller-input-intent/0.1\"}",
+      "expected_cid": "sha256:6ae68bff5e3ede5f6636cec5d87431d3a84b2c2b11af0698dd555a27e4c59d1f"
+    }
+  ]
+}

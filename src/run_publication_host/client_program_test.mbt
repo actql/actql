@@ -1163,6 +1163,38 @@ test "ordinary values document prepares one named Effect-free result" {
   )
   let scope_cid = "sha256:" + "a".repeat(64)
   let input_cid = "sha256:" + "b".repeat(64)
+  assert_eq(
+    source_free_caller_input_intent_cid(),
+    "sha256:6ae68bff5e3ede5f6636cec5d87431d3a84b2c2b11af0698dd555a27e4c59d1f",
+  )
+  let source_free = prepare_source_free_client_request_identity(
+    prepared, scope_cid, "no-input-request",
+  ).unwrap()
+  let source_free_identity = prepared_client_identity(prepared)
+  assert_eq(
+    admit_source_free_client_request_identity_record(
+      scope_cid,
+      "no-input-request",
+      source_free_identity.program_definition_cid,
+      source_free_identity.parameter_values_cid,
+      source_free_caller_input_intent_cid(),
+      client_request_scope_cid(source_free),
+      client_request_intent_cid(source_free),
+    ).unwrap(),
+    source_free,
+  )
+  assert_true(
+    admit_source_free_client_request_identity_record(
+      scope_cid,
+      "no-input-request",
+      source_free_identity.program_definition_cid,
+      source_free_identity.parameter_values_cid,
+      input_cid,
+      client_request_scope_cid(source_free),
+      client_request_intent_cid(source_free),
+    )
+    is Err(InvalidInputIntent),
+  )
   let request = prepare_client_request_identity(
     prepared, scope_cid, "saved-request", input_cid,
   ).unwrap()
