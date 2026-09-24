@@ -139,6 +139,21 @@ Document schema CIDs. It does not change Unit Definition identity or permit a
 schema-valid Plan to run without that semantic validation. Issuance and
 validation remain implementation work.
 
+## Plan fact manifest body
+
+The language requires a content-addressed `actql-plan-fact-manifest/0.1`
+containing resolved limits, fixed laws and Contract facts, while the existing
+Executable Plan schema already defines their closed `plan_facts` union and a
+`plan_fact_manifest_cid`. The standalone manifest body was not registered.
+The adopted body carries the same `plan_facts` array, its version and its own
+CID. The Executable Plan must reproduce the referenced array exactly; array
+order is identity-bearing and no fact is silently inserted or dropped during
+admission. This fills a missing structural preimage without adding fact kinds,
+changing Program Definition identity, or authorizing an incomplete Plan.
+The new manifest schema and artifact-registry CIDs change. A compiler must
+still derive the complete facts from checked owners and validate their laws,
+dependencies, resolved minima, executable consumers and current Host policy.
+
 ## Canonical group null placement
 
 The normative owner is [group](../spec/language.md#group). Its final output uses
