@@ -11268,7 +11268,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.actql-compiled-plan",
-      "statement_sha256": "ee601475cc6c77188cf966f871dde46f7482a3db90d3f10757b2e5f89ced8825",
+      "statement_sha256": "083bbc1261ce70bb01b5c0253948a7d4ab82ed716780403226d7525e36a51906",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
