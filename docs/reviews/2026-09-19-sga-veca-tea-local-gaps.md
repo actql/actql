@@ -18,6 +18,10 @@ two-consumer and timer-cancel routes remain the product-path regression.
 Standard Host fixtures also complete the producers with ordinary limits and
 then reject each binary receiver under its own zero-node input budget, without
 publishing a result or reclaiming either producer prematurely.
+The Node standard Host delivers a timer cancellation after positive receiving
+input work in a 100-row-by-empty cross join, then observes stop,
+nonpublication, and final reclamation. This distinguishes input admission
+from the earlier cancellation fixture that starts after a pair is emitted.
 The Workers fixture was refreshed from the pinned generator. These changes
 close the review's binary input and stale-fixture findings, not the strict
 68-route resource assurance or the providerless synchronous lane.

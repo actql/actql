@@ -2185,6 +2185,13 @@
           "fixture": "external-cross-join-in-flight"
         },
         {
+          "role": "external_product_empty_right_admission_timer_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "external-cross-join-empty-right-admission"
+        },
+        {
           "role": "external_product_mixed_stage_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],

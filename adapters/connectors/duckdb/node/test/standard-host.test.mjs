@@ -6082,6 +6082,8 @@ async function exerciseStrategyGraph(
   }
   for (const {name: cancellationName, program: cancellationProgram} of [
     {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
+    {name: 'external-cross-join-empty-right-admission',
+      program: externalCrossJoinProgram},
     {name: 'split-external-cross-join-in-flight', program: splitCrossJoinProgram},
     {name: 'external-append-in-flight', program: externalAppendProgram},
     {name: 'direct-cross-join-in-flight', program: directCrossJoinProgram},
@@ -6091,6 +6093,10 @@ async function exerciseStrategyGraph(
     const cancellableCrossJoinProgram = structuredClone(cancellationProgram);
     const appendCancellation = cancellationName.includes('append');
     const directCancellation = cancellationName.startsWith('direct-');
+    const emptyRightAdmission = cancellationName ===
+      'external-cross-join-empty-right-admission';
+    const sourceRows = emptyRightAdmission ? 100 :
+      appendCancellation && !directCancellation ? 49 : 10;
     const directStage = appendCancellation ? 'append_a' : 'crossed';
     const leftValues = directCancellation
       ? cancellableCrossJoinProgram.stages.find(
@@ -6103,11 +6109,11 @@ async function exerciseStrategyGraph(
       : cancellableCrossJoinProgram.stages.find(
         stage => stage.id === 'cross_right').steps[0].values;
     leftValues.rows = Array.from(
-      {length: appendCancellation && !directCancellation ? 49 : 10},
+      {length: sourceRows},
       (_, index) => ({id: index}),
     );
     rightValues.rows = Array.from(
-      {length: appendCancellation && !directCancellation ? 49 : 10},
+      {length: emptyRightAdmission ? 0 : sourceRows},
       (_, index) => appendCancellation
         ? {id: index + 10} : {tag: `tag${index}`},
     );
@@ -6123,6 +6129,7 @@ async function exerciseStrategyGraph(
     let crossJoinCancellationExecution;
     let crossJoinManagedStarts = 0;
     let crossJoinPairProgress = 0n;
+    let crossJoinAdmissionWork = 0n;
     let crossJoinCancellationScheduled = false;
     let crossJoinCancellationDeliveredAt;
     let crossJoinStopObservedAt;
@@ -6171,8 +6178,13 @@ async function exerciseStrategyGraph(
                     assert(observation.work <= BigInt(actualQuantum));
                   }
                   if (start === 3 && observation?.complete === false &&
-                      observation.progress > 0n && observation.work > 0n) {
-                    crossJoinPairProgress += observation.progress;
+                      observation.work > 0n &&
+                      (emptyRightAdmission || observation.progress > 0n)) {
+                    if (emptyRightAdmission) {
+                      crossJoinAdmissionWork += observation.work;
+                    } else {
+                      crossJoinPairProgress += observation.progress;
+                    }
                     if (!crossJoinCancellationScheduled) {
                       crossJoinCancellationScheduled = true;
                       setTimeout(() => crossJoinCancellation.abort(), 0);
@@ -6193,8 +6205,14 @@ async function exerciseStrategyGraph(
         crossJoinCancellation.signal,
       );
       assert.equal(crossJoinManagedStarts, 3);
-      assert.equal(crossJoinPairProgress > 0n, true,
-        `${externalCrossJoinCancellationCase.name}: pair work must precede abort`);
+      assert.equal(
+        emptyRightAdmission
+          ? crossJoinAdmissionWork > 0n && crossJoinPairProgress === 0n
+          : crossJoinPairProgress > 0n,
+        true,
+        `${externalCrossJoinCancellationCase.name}: ` +
+          'kernel work must precede abort',
+      );
       assert.equal(crossJoinCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(crossJoinCancellationDeliveredAt), true);
       assert.equal(Number.isFinite(crossJoinStopObservedAt), true);
