@@ -644,7 +644,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     writer.seal("https-ready").unwrap() |> ignore
     let requests = if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_DRIVER")
       is Some(_) {
-      7
+      8
     } else {
       8
     }
