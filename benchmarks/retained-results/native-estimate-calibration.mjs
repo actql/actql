@@ -9,6 +9,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
+import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -129,6 +130,8 @@ try {
     localTaskMilliseconds, nativeTaskMilliseconds,
     method: 'three alternating forced-choice Native rounds; median task interval rounded up to milliseconds',
     acceptanceEligible: false, observations, ordinary};
+  admitNativeEstimateProfile({profile, trainingFixture: training,
+    targetFixture: target, revision, binaryDigest});
   await writeFile(destination, JSON.stringify({status: 'completed', ...profile}, null, 2));
   console.log(JSON.stringify({event: 'finished', revision,
     trainingCaseId: training.id, targetCaseId: target.id,

@@ -487,3 +487,9 @@ product facts rather than quantities inferred from the fixture. Per-task
 compute charges, receipt metadata parity, and the independent Comparator
 admission still need explicit connection before a Native sample can enter the
 registered paired assessment.
+
+The Native rate profile is admitted against the clean revision, exact release
+binary digest, distinct training and target fixtures, all forced-choice
+observations, and recomputed per-task medians. Changing a saved rate cannot
+silently change ordinary selection. This admission grants selection evidence
+only; it does not establish holding or matched Comparator equivalence.
