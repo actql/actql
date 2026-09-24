@@ -521,5 +521,7 @@ view without the installed Host's exact representation-specific export.
 The Effect input port now uses this representation-neutral Result pin set.
 Its cell exporter rejects a resident representation explicitly; a resident
 input only proves exact physical custody until the Host presents the same
-concrete output and establishes its checked view and payload. A failed later
-pin releases earlier member pins without rerunning the producer.
+concrete output and establishes its checked view and payload. Concrete
+resident use checks the committed generation and the checked owner and port;
+release or producer revocation invalidates that use. A failed later pin
+releases earlier member pins without rerunning the producer.

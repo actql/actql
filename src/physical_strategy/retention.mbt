@@ -187,12 +187,7 @@ pub fn[T] borrow_captured_managed_result_output(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !captured_resident_result_borrow_matches_managed(borrow, output) ||
-    !@execution.managed_completed_output_matches_port(
-      output,
-      @execution.managed_result_occurrence_owner(occurrence),
-      @ports.port_target(@execution.managed_result_occurrence_port(occurrence)),
-    ) {
+  if !captured_resident_result_borrow_matches_managed(borrow, output) {
     release_captured_resident_result_borrow(borrow) |> ignore
     return Err(ForeignCandidate)
   }
@@ -213,12 +208,7 @@ pub fn borrow_captured_carrier_result_output(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !captured_resident_result_borrow_matches_carrier(borrow, output) ||
-    !@execution.carrier_managed_completed_output_matches_port(
-      output,
-      @execution.managed_result_occurrence_owner(occurrence),
-      @ports.port_target(@execution.managed_result_occurrence_port(occurrence)),
-    ) {
+  if !captured_resident_result_borrow_matches_carrier(borrow, output) {
     release_captured_resident_result_borrow(borrow) |> ignore
     return Err(ForeignCandidate)
   }
@@ -279,7 +269,14 @@ pub fn[T] captured_resident_result_borrow_matches_managed(
   match borrow.reference {
     Managed(reference) =>
       captured_resident_result_borrow_available(borrow) &&
-      @execution.managed_completed_reference_matches(reference, output)
+      @execution.managed_completed_reference_matches(reference, output) &&
+      @execution.managed_completed_output_matches_port(
+        output,
+        @execution.managed_result_occurrence_owner(borrow.occurrence),
+        @ports.port_target(
+          @execution.managed_result_occurrence_port(borrow.occurrence),
+        ),
+      )
     Carrier(_) => false
   }
 }
@@ -292,7 +289,14 @@ pub fn captured_resident_result_borrow_matches_carrier(
   match borrow.reference {
     Carrier(reference) =>
       captured_resident_result_borrow_available(borrow) &&
-      @execution.carrier_managed_completed_reference_matches(reference, output)
+      @execution.carrier_managed_completed_reference_matches(reference, output) &&
+      @execution.carrier_managed_completed_output_matches_port(
+        output,
+        @execution.managed_result_occurrence_owner(borrow.occurrence),
+        @ports.port_target(
+          @execution.managed_result_occurrence_port(borrow.occurrence),
+        ),
+      )
     Managed(_) => false
   }
 }
