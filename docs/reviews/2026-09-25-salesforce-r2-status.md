@@ -114,3 +114,19 @@ claimed row does not create another claim. The frontier remains readable after
 one Result pin is released, while current apply checks correctly reject that
 released input. This is durable progress reconciliation, not the missing
 standard Effectful submit, whole-set permit, or physical mutation path.
+
+The common MoonBit apply preflight now checks each selected route against its
+Preview capability-evidence CID and authored row policy. Ordinary `halt`
+requires a serial single-row route with ordered requests and identifiable
+per-row outcomes. `continue` can use a collection route only with per-item
+atomicity and exact row-result identity. Both require a declared manual or
+exact unknown-outcome reconciliation path; provider idempotency support is
+recorded separately. Salesforce's REST Collections documentation confirms
+ordered SaveResult/UpsertResult responses and independent row handling when
+`allOrNone` is false: [create](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-composite-sobjects-collections-create.html),
+[update](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-composite-sobjects-collections-update.html),
+[upsert](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-composite-sobjects-collections-upsert.html).
+Those provider facts do not prove ActQL's serial scheduling, current registered
+capability issuer, or physical send authority. The Host fixture currently
+supplies route codes for the common check; it is not the product admission
+source and no write is dispatched by that fixture.
