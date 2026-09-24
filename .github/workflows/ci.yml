@@ -78,6 +78,7 @@ jobs:
         run: npm run check:native-http-client
       - name: Verify registered Native retained product path
         run: |
+          moon build --target js --release
           moon build src/cmd/native_retained_case_probe --target native --release
           node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100
           node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000
