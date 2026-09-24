@@ -46,7 +46,7 @@ pub fn admit_effect_preview_apply_identity(
     }
     for row_index in 0..<row_count {
       let key = expected_rows[row_index]
-      if key.logical_request_scope_cid != scope.cid {
+      if key.logical_request_scope_cid != logical_request_scope_cid(scope) {
         return Err(ForeignKeyScope(member_index, row_index))
       }
       if key.effect_preview_cid != preview_cid {
@@ -134,14 +134,15 @@ fn admit_effect_member_slice(
     let index = @publication.effect_preview_row_index(
       preview, member_index, expected,
     ).unwrap()
-    if keys[offset].logical_request_scope_cid != scope.cid ||
+    if keys[offset].logical_request_scope_cid !=
+      logical_request_scope_cid(scope) ||
       keys[offset].effect_preview_cid != preview_cid ||
       @publication.effect_preview_row_key(preview, member_index, index) !=
       Some(keys[offset].cid) {
       return Err(ForeignKey(offset))
     }
     let locator = locators[offset]
-    if locator.logical_request_scope_cid != scope.cid ||
+    if locator.logical_request_scope_cid != logical_request_scope_cid(scope) ||
       locator.effect_id != effect_id ||
       @publication.effect_preview_row_correlation_wire(
         preview, member_index, index,

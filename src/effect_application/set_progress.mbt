@@ -413,7 +413,7 @@ pub fn effect_set_frontier_from_preview_ledger_entries(
       let key = keys[member_index][row_index]
       let basis = expected_bases[member_index][row_index]
       if basis.effect_preview_cid != preview_cid ||
-        basis.logical_request_scope_cid != scope.cid ||
+        basis.logical_request_scope_cid != logical_request_scope_cid(scope) ||
         basis.dispatch_key_cid != key.cid ||
         basis.logical_item_locator_cid != locator.cid ||
         admit_effect_member_slice(

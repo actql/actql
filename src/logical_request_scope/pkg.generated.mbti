@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/logical_request_scope"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn logical_request_scope_authority(LogicalRequestScope) -> String
+
+pub fn logical_request_scope_caller_id(LogicalRequestScope) -> String
+
+pub fn logical_request_scope_cid(LogicalRequestScope) -> String
+
+pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalRequestScope, LogicalRequestScopeIssue]
+
+// Errors
+
+// Types and methods
+type LogicalRequestScope
+
+pub(all) enum LogicalRequestScopeIssue {
+  InvalidAuthorityScope
+  InvalidCallerRequest
+  InvalidLimits
+  Encoding
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

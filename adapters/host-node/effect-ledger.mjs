@@ -24,7 +24,7 @@ export function openEffectLedger({
   maxBatchRows = 1000,
   maxNodes = 64,
   maxDepth = 4,
-  maxCallerBytes = 4096,
+  maxCallerBytes = 256,
 }) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {

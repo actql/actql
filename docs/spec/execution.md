@@ -1613,6 +1613,11 @@ not inherit earlier success; D6 is not cross-request event deduplication.
 The authenticated tenant/workspace plus caller request ID identifies one logical
 request. A CLI without a caller ID creates, persists and returns one; a new
 business request gets a new ID, while resume/recovery carries the original.
+The 0.1 caller ID is nonempty, NFC/LF-canonical, contains no C0/C1 control or
+DEL character, and is at most 256 UTF-8 bytes. A caller may impose a tighter
+limit before durable admission. Both Client ingress and Effect dispatch use
+the same logical-request owner and canonical preimage; a stored nonconforming
+key is rejected rather than silently normalized during recovery.
 The request fingerprint binds Program Definition, effective parameters and
 caller input intent, not physical workers, attempts, secrets or wall clocks.
 The same scoped ID with a different fingerprint MUST fail as a conflict.

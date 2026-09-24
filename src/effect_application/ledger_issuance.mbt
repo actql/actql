@@ -28,8 +28,8 @@ pub fn prepare_effect_ledger_basis(
   reservation_evidence_cid : String,
   retention_contract_cid : String,
 ) -> Result[EffectLedgerBasis, EffectLedgerIssue] {
-  if locator.logical_request_scope_cid != scope.cid ||
-    key.logical_request_scope_cid != scope.cid ||
+  if locator.logical_request_scope_cid != logical_request_scope_cid(scope) ||
+    key.logical_request_scope_cid != logical_request_scope_cid(scope) ||
     !effect_cid_valid(unit_definition_cid) ||
     !effect_cid_valid(original_membership_cid) ||
     !effect_cid_valid(intent_fingerprint_cid) ||
@@ -44,7 +44,7 @@ pub fn prepare_effect_ledger_basis(
     return Err(InvalidIdentity)
   }
   Ok({
-    logical_request_scope_cid: scope.cid,
+    logical_request_scope_cid: logical_request_scope_cid(scope),
     logical_item_locator_cid: locator.cid,
     unit_definition_cid,
     original_membership_cid,
