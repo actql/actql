@@ -442,6 +442,81 @@ test('admitted source-free Effect Run computes through the installed Host',
     }
   });
 
+test('two Effect members hold one completed Result independently', async () => {
+  const {document, environment} = await effectFixture();
+  const source = JSON.parse(document);
+  source.stages[0].effects.save_again = structuredClone(
+    source.stages[0].effects.save);
+  const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+    JSON.stringify(source), 'json', environment, undefined, []);
+  const prepared = moon.clientProgramEffectPreparationReady(outcome);
+  assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
+  const evidence = publicationEvidence(
+    moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+    moon.clientProgramEffectSemanticsCid(prepared),
+    moon.clientProgramEffectEnvironmentCid(prepared));
+  const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+  const definition = checked(moon.strategyIssueRunDefinition(
+    admission, 'tenant-a-scope', 'two-effect-compute', cid('c'),
+    '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+    100000, 10000, 64));
+  const bound = moon.clientProgramBindEffectRun(
+    prepared, admission, definition);
+  assert.ok(bound);
+  const [registry, contract] = await Promise.all([
+    readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+      import.meta.url), 'utf8'),
+    readFile(new URL('../../spec/contracts/actql-aoa.json',
+      import.meta.url), 'utf8'),
+  ]);
+  const values = JSON.stringify(
+    JSON.parse(contract).execution_contracts['REL.values']);
+  const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+    bound, registry, values, 1n, 0n, 0n, 0n);
+  assert.ok(owned);
+  assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 2);
+  const execution = await runCapturedInternalStrategy(
+    moon.clientProgramLocalEffectHostRuntime(owned));
+  try {
+    assert.equal(execution.status, 'host-tasks-completed');
+    assert.throws(() => checked(moon.clientProgramPinEffectSources(
+      owned, 1)), {code: 'MoonBitHostFailure'});
+    const inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+    try {
+      assert.equal(moon.clientProgramEffectInputCount(inputs), 2);
+      const first = moon.clientProgramEffectInputAt(inputs, 0);
+      const second = moon.clientProgramEffectInputAt(inputs, 1);
+      assert.ok(first);
+      assert.ok(second);
+      assert.notEqual(first, second);
+      assert.equal(moon.clientProgramEffectInputTask(first), 0);
+      assert.equal(moon.clientProgramEffectInputTask(second), 0);
+      assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), true);
+      assert.equal(moon.clientProgramReleaseEffectInput(first), true);
+      assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.equal(moon.clientProgramEffectInputAvailable(inputs, 1), true);
+      const chunks = [];
+      const limits = moon.clientProgramEffectInputExportLimits(
+        ...effectInputExportArgs(outputLimits));
+      const exported = await exportPinnedEffectInput({
+        moon, execution, inputs, memberIndex: 1, limits,
+        onChunk: async chunk => { chunks.push(chunk); },
+      });
+      assert.deepEqual(JSON.parse(chunks.join('')), [{id: 1}, {id: 2}]);
+      assert.deepEqual(exported.fields, ['id']);
+      assert.equal(moon.clientProgramReleaseEffectInput(first), false);
+      assert.throws(() => checked(moon.clientProgramPinEffectSources(
+        owned, 2)), {code: 'MoonBitHostFailure'});
+    } finally {
+      assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+    }
+    assert.equal(moon.clientProgramEffectInputAvailable(inputs, 1), false);
+  } finally {
+    await execution.close();
+    assert.equal(execution.cleanupPending(), false);
+  }
+});
+
 test('private Plan binding uses the escaped checked Unit Result name', async () => {
   const {document, environment} = await checkedFixture();
   const renamed = JSON.parse(document);
