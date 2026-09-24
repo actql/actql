@@ -160,6 +160,12 @@ export function openSqliteEffectLedger(root, {
           FOREIGN KEY (dispatch_entry_cid)
             REFERENCES effect_ledger_entries (entry_cid)
         ) STRICT;
+        CREATE UNIQUE INDEX IF NOT EXISTS effect_response_locator
+          ON effect_ledger_responses (logical_item_locator_cid);
+        CREATE UNIQUE INDEX IF NOT EXISTS effect_batch_member_locator
+          ON effect_ledger_batch_members (logical_item_locator_cid);
+        CREATE UNIQUE INDEX IF NOT EXISTS effect_outcome_locator
+          ON effect_ledger_outcomes (logical_item_locator_cid);
       `);
       const metadata = database.prepare(
         'SELECT value FROM effect_ledger_metadata WHERE key = ?',
@@ -543,6 +549,11 @@ export function openSqliteEffectLedger(root, {
               logicalItemLocatorCid) {
           fail('EffectDispatchNotOwned');
         }
+        const locatorDispatch = uniqueLocatorDispatch(logicalItemLocatorCid,
+          readResponseLocators, readBatchLocators);
+        if (locatorDispatch !== undefined) {
+          fail('EffectPhysicalResponseCollision');
+        }
         const currentUsage = usage.get();
         if (currentUsage.entries >= maxEntries ||
             currentUsage.bytes > maxStoredBytes - responseBytes.byteLength) {
@@ -620,7 +631,9 @@ export function openSqliteEffectLedger(root, {
           return Object.freeze({created: false, batchOwnerCid});
         }
         for (const member of indexed) {
-          if (readResponse.get(member.dispatch_entry_cid) !== undefined ||
+          if (uniqueLocatorDispatch(member.logical_item_locator_cid,
+              readResponseLocators, readBatchLocators) !== undefined ||
+              readResponse.get(member.dispatch_entry_cid) !== undefined ||
               readBatchMember.get(member.dispatch_entry_cid) !== undefined ||
               readHead.get(member.logical_item_locator_cid)
                 ?.logical_request_scope_cid !== logicalRequestScopeCid ||
