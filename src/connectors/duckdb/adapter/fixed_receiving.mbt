@@ -8,7 +8,9 @@ struct FixedComputeReceiving {
   mut stream : @execution.AdmittedOutputStream?
   mut pending : PhysicalBatch?
   mut pending_row : Int
+  mut pending_text : String?
   stream_chunk_rows : Int
+  stream_batch_bytes : Int
   mut open : Bool
   mut finished : Bool
 }
@@ -84,7 +86,7 @@ fn prepare_fixed_compute_receiving_impl(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let (retained, stream, chunk_rows) = match streaming {
+  let (retained, stream, chunk_rows, batch_bytes) = match streaming {
     Some((wire, batch_bytes, chunk_rows)) =>
       match
         @execution.prepare_admitted_output_stream(
@@ -96,7 +98,7 @@ fn prepare_fixed_compute_receiving_impl(
           batch_bytes,
           capture_value_measurement=true,
         ) {
-        Ok(stream) => (None, Some(stream), chunk_rows)
+        Ok(stream) => (None, Some(stream), chunk_rows, batch_bytes)
         Err(issue) => {
           cancel_physical_result(received)
           return Err(Stream(issue))
@@ -110,7 +112,7 @@ fn prepare_fixed_compute_receiving_impl(
           physical.max_rows,
           retention,
         ) {
-        Ok(value) => (Some(value), None, 0)
+        Ok(value) => (Some(value), None, 0, 0)
         Err(issue) => {
           cancel_physical_result(received)
           return Err(Retention(issue))
@@ -124,7 +126,9 @@ fn prepare_fixed_compute_receiving_impl(
     stream,
     pending: None,
     pending_row: 0,
+    pending_text: None,
     stream_chunk_rows: chunk_rows,
+    stream_batch_bytes: batch_bytes,
     open: true,
     finished: false,
   })
@@ -147,6 +151,7 @@ pub fn abort_fixed_compute_receiving(value : FixedComputeReceiving) -> Unit {
   value.stream = None
   value.pending = None
   value.pending_row = 0
+  value.pending_text = None
 }
 
 ///|

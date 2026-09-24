@@ -30,12 +30,17 @@ export async function createManagedExampleHost(limits) {
       }
       if (runs.size >= capacity.attempts) throw new TypeError('ExampleRunRecordLimit');
       if (active) throw new TypeError('ManagedExampleHoldingActive');
+      if (typeof input.nativeMilliseconds !== 'string' ||
+          !/^\d{1,18}$/.test(input.nativeMilliseconds)) {
+        throw new Error('Invalid example configuration');
+      }
       const phases = {};
       let phaseStarted = performance.now();
       const finishPhase = name => {
         phases[name] = performance.now() - phaseStarted;
         phaseStarted = performance.now();
       };
+      signal?.throwIfAborted();
       const tasks = await prepareExampleTaskManifest(input);
       phases.parentPreparationCalls = 0;
       phases.parentTaskManifestCalls = 1;

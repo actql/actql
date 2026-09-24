@@ -118,6 +118,28 @@ pub fn drain_duckdb_compute_stream_row(
 }
 
 ///|
+pub fn drain_duckdb_compute_stream_batch(
+  value : DuckDBComputeAttempt,
+  max_bytes : Int,
+  max_rows : Int,
+) -> Result[String?, DuckDBComputeIssue] {
+  guard value.live &&
+    value.streaming &&
+    value.stream_receipt is None &&
+    value.receiving is Some(receiving) else {
+    return Err(InvalidState)
+  }
+  match
+    @duckdb.drain_fixed_compute_stream_batch(receiving, max_bytes, max_rows) {
+    Ok(batch) => Ok(batch)
+    Err(issue) => {
+      abort_duckdb_compute_attempt(value)
+      Err(Receiving(issue))
+    }
+  }
+}
+
+///|
 pub fn finish_duckdb_compute_stream_result(
   value : DuckDBComputeAttempt,
 ) -> Result[

@@ -85,6 +85,8 @@ pub fn decode_physical_type(@decode_core.Cursor) -> Result[PhysicalType, ValueIs
 
 pub fn decode_transport_columns(String, TransportColumnLimits) -> Result[Array[@decode_core.Cursor], TransportColumnIssue]
 
+pub fn drain_fixed_compute_stream_batch(FixedComputeReceiving, Int, Int) -> Result[String?, FixedComputeReceivingIssue]
+
 pub fn drain_fixed_compute_stream_row(FixedComputeReceiving) -> Result[String?, FixedComputeReceivingIssue]
 
 pub fn drain_native_output_row(NativeReceiving) -> Result[String?, NativeReceivingIssue]

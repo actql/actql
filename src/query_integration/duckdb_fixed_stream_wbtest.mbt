@@ -161,6 +161,57 @@ test "DuckDB stream retains one whole pending chunk and rejects invalid chunks b
 }
 
 ///|
+test "DuckDB stream batches canonical rows without crossing the byte cap" {
+  let compute = @duckdb.prepare_fixed_compute(
+    duckdb_captured_input(),
+    "held",
+    native_compile_limits(),
+  ).unwrap()
+  let receiver = streamed_fixed_receiver(compute, chunk_rows=2)
+  @duckdb.receive_fixed_compute_stream_chunk(receiver, 2, [
+    input_cursor("[\"4008000000000000\",\"4000000000000000\"]"),
+  ]).unwrap()
+  assert_true(
+    @duckdb.drain_fixed_compute_stream_batch(receiver, 0, 2)
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_eq(
+    @duckdb.drain_fixed_compute_stream_batch(receiver, 12, 2).unwrap(),
+    Some("[{\"id\":3}"),
+  )
+  assert_true(
+    @duckdb.finish_fixed_compute_stream_receiving(receiver) is Err(InvalidState),
+  )
+  assert_true(
+    @duckdb.receive_fixed_compute_stream_chunk(receiver, 1, [
+      input_cursor("[\"4000000000000000\"]"),
+    ])
+    is Err(InvalidState),
+  )
+  assert_eq(
+    @duckdb.drain_fixed_compute_stream_batch(receiver, 12, 2).unwrap(),
+    Some(",{\"id\":2}"),
+  )
+  assert_true(
+    @duckdb.drain_fixed_compute_stream_batch(receiver, 12, 2).unwrap() is None,
+  )
+  @duckdb.finish_fixed_compute_stream_receiving(receiver).unwrap() |> ignore
+
+  let combined = streamed_fixed_receiver(compute, chunk_rows=2)
+  @duckdb.receive_fixed_compute_stream_chunk(combined, 2, [
+    input_cursor("[\"4008000000000000\",\"4000000000000000\"]"),
+  ]).unwrap()
+  assert_eq(
+    @duckdb.drain_fixed_compute_stream_batch(combined, 64, 2).unwrap(),
+    Some("[{\"id\":3},{\"id\":2}"),
+  )
+  assert_true(
+    @duckdb.drain_fixed_compute_stream_batch(combined, 64, 2).unwrap() is None,
+  )
+  @duckdb.finish_fixed_compute_stream_receiving(combined).unwrap() |> ignore
+}
+
+///|
 fn streamed_fixed_receiver(
   compute : @duckdb.FixedCompute,
   chunk_rows? : Int = 1,

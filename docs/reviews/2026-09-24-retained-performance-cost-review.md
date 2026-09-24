@@ -612,3 +612,13 @@ preparation without treating a parent assertion as worker authority. The
 managed Host cycle and three-target package checks passed locally. This is a
 structural reduction in preparation calls, not a measured 27-case performance
 pass; the large-case control and output path still needs product-level work.
+
+The retained DuckDB receiver now drains up to 64 canonical rows per Host call,
+subject to the already admitted frame-byte ceiling. One encoded row is held
+provisionally when it would cross that ceiling; the next physical chunk and
+finish remain blocked until it is drained. The same stream admission, row
+order, digest, Store seal, and cleanup path remain in use. This removes the
+per-row MoonBit-to-JavaScript call from the selected large-case path without
+changing the required output scan. Three-target query integration and the real
+DuckDB retained Host cycle passed locally. Its actual time benefit and the
+remaining gap belong to the final fixed-SHA matrix, not this correctness gate.

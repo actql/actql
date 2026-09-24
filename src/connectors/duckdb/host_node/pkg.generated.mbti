@@ -131,6 +131,8 @@ pub fn compute_host_stream_begin(ComputeNodeRun, String, @execution_relation.Row
 
 pub fn compute_host_stream_drain(ComputeNodeRun) -> String? raise NodeHostFailure
 
+pub fn compute_host_stream_drain_batch(ComputeNodeRun, Int, Int) -> String? raise NodeHostFailure
+
 pub fn compute_host_stream_finish(ComputeNodeRun) -> (ComputeStreamNodeReceipt, String) raise NodeHostFailure
 
 pub fn compute_host_stream_identity(ComputeStreamNodeReceipt) -> (String, Int, Int, Int)

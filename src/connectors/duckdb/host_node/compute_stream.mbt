@@ -74,6 +74,27 @@ pub fn compute_host_stream_drain(
 }
 
 ///|
+#export_name("computeHostStreamDrainBatch")
+pub fn compute_host_stream_drain_batch(
+  run : ComputeNodeRun,
+  max_bytes : Int,
+  max_rows : Int,
+) -> String? raise NodeHostFailure {
+  if run.closed {
+    raise InvalidCommand
+  }
+  match
+    @duckdb_compute.drain_duckdb_compute_stream_batch(
+      run.attempt,
+      max_bytes,
+      max_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Compute(issue)
+  }
+}
+
+///|
 #export_name("computeHostStreamFinish")
 pub fn compute_host_stream_finish(
   run : ComputeNodeRun,

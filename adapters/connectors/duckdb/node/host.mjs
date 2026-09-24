@@ -784,23 +784,11 @@ async function runHostCompute(
     checked(moon.computeHostStreamAccept(run, rows(chunk.rowCount), text));
     if (measureCost) semantic.outputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
     const storageStarted = measureCost ? performance.now() : 0;
-    let parts = [], bufferedBytes = 0;
-    const flush = async () => {
-      if (!parts.length) return;
-      // Storage framing only: canonical text comes exclusively from MoonBit.
-      // One bounded frame avoids issuing a filesystem write for every row.
-      const output = parts.join('');
-      parts = []; bufferedBytes = 0;
-      const writeStarted = measureCost ? performance.now() : 0;
-      await writer.append(output);
-      if (measureCost) semantic.outputWriteMilliseconds += performance.now() - writeStarted;
-      if (measureCost) semantic.outputWriteCalls++;
-      signal?.throwIfAborted();
-    };
     for (;;) {
       signal?.throwIfAborted();
       const drainStarted = measureCost ? performance.now() : 0;
-      const batch = checked(moon.computeHostStreamDrain(run));
+      const batch = checked(moon.computeHostStreamDrainBatch(
+        run, retained.maxFrameBytes, Math.min(64, limits.maxChunkRows ?? 64)));
       if (measureCost) semantic.outputDrainMilliseconds += performance.now() - drainStarted;
       if (batch == null) break;
       if (measureCost) {
@@ -809,10 +797,11 @@ async function runHostCompute(
       }
       const bytes = Buffer.byteLength(batch, 'utf8');
       if (bytes > retained.maxFrameBytes) throw new DuckDBTransportError('RetainedFrameLimit');
-      if (bytes > retained.maxFrameBytes - bufferedBytes) await flush();
-      parts.push(batch); bufferedBytes += bytes;
+      const writeStarted = measureCost ? performance.now() : 0;
+      await writer.append(batch);
+      if (measureCost) semantic.outputWriteMilliseconds += performance.now() - writeStarted;
+      if (measureCost) semantic.outputWriteCalls++;
     }
-    await flush();
     if (measureCost) semantic.outputStorageMilliseconds += performance.now() - storageStarted;
   };
   const finishOutput = async fields => {

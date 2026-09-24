@@ -63,7 +63,28 @@ pub fn application_task_manifest(
   data : DataProfile,
 ) -> Array[@strategy.CheckedTaskIdentity] raise {
   core_application_task_manifest(
-    program_json, environment_json, environment_cid, parameter_json, data,
+    program_json,
+    environment_json,
+    environment_cid,
+    parameter_json,
+    Some(data),
+  )
+}
+
+///|
+#cfg(not(target="js"))
+pub fn application_task_manifest_default(
+  program_json : String,
+  environment_json : String,
+  environment_cid : String,
+  parameter_json : String,
+) -> Array[@strategy.CheckedTaskIdentity] raise {
+  core_application_task_manifest(
+    program_json,
+    environment_json,
+    environment_cid,
+    parameter_json,
+    None,
   )
 }
 

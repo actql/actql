@@ -57,7 +57,10 @@ pub fn receive_fixed_compute_stream_chunk(
   rows : Int,
   columns : Array[@decode.Cursor],
 ) -> Result[Unit, FixedComputeReceivingIssue] {
-  if !value.open || value.stream is None || value.pending is Some(_) {
+  if !value.open ||
+    value.stream is None ||
+    value.pending is Some(_) ||
+    value.pending_text is Some(_) {
     return Err(InvalidState)
   }
   if rows > value.stream_chunk_rows {
@@ -87,6 +90,10 @@ pub fn drain_fixed_compute_stream_row(
     abort_fixed_compute_receiving(value)
     return Err(InputUnavailable)
   }
+  if value.pending_text is Some(text) {
+    value.pending_text = None
+    return Ok(Some(text))
+  }
   guard value.pending is Some(batch) else { return Ok(None) }
   let row = value.pending_row
   match
@@ -111,10 +118,63 @@ pub fn drain_fixed_compute_stream_row(
 }
 
 ///|
+/// Cross the Host boundary once for a bounded run of canonical rows. A row
+/// that would exceed this frame remains provisional until the next drain; it
+/// cannot permit another physical chunk or a successful finish meanwhile.
+pub fn drain_fixed_compute_stream_batch(
+  value : FixedComputeReceiving,
+  max_bytes : Int,
+  max_rows : Int,
+) -> Result[String?, FixedComputeReceivingIssue] {
+  if max_bytes <= 0 ||
+    max_bytes > value.stream_batch_bytes ||
+    max_rows <= 0 ||
+    max_rows > 64 {
+    return Err(Physical(InvalidLimits))
+  }
+  let output = StringBuilder()
+  let mut bytes = 0
+  let mut rows = 0
+  while rows < max_rows {
+    match drain_fixed_compute_stream_row(value) {
+      Err(issue) => return Err(issue)
+      Ok(None) => break
+      Ok(Some(text)) => {
+        let length = match @scalar.admit_utf8_length(text, max_bytes) {
+          Ok(length) => length
+          Err(_) => {
+            if rows == 0 {
+              return Ok(Some(text))
+            }
+            value.pending_text = Some(text)
+            break
+          }
+        }
+        if length > max_bytes - bytes {
+          value.pending_text = Some(text)
+          break
+        }
+        output.write_string(text)
+        bytes += length
+        rows += 1
+      }
+    }
+  }
+  if rows == 0 {
+    Ok(None)
+  } else {
+    Ok(Some(output.to_string()))
+  }
+}
+
+///|
 pub fn finish_fixed_compute_stream_receiving(
   value : FixedComputeReceiving,
 ) -> Result[(FixedComputeStreamReceipt, String), FixedComputeReceivingIssue] {
-  guard value.open && value.stream is Some(stream) && value.pending is None else {
+  guard value.open &&
+    value.stream is Some(stream) &&
+    value.pending is None &&
+    value.pending_text is None else {
     return Err(InvalidState)
   }
   if !fixed_compute_inputs_available(value.compute) {

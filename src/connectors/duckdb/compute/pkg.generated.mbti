@@ -43,6 +43,8 @@ pub fn[T] complete_managed_duckdb_compute_attempt(ManagedDuckDBCompletion[T], Ma
 
 pub fn[T] complete_managed_input_duckdb(ManagedInputDuckDBCompletion[T], @execution_relation.ManagedOutputValueReceipt, @execution_relation.ManagedRetainedOutput[T]) -> Result[@execution_relation.ManagedCompletedOutput[T], DuckDBComputeIssue]
 
+pub fn drain_duckdb_compute_stream_batch(DuckDBComputeAttempt, Int, Int) -> Result[String?, DuckDBComputeIssue]
+
 pub fn drain_duckdb_compute_stream_row(DuckDBComputeAttempt) -> Result[String?, DuckDBComputeIssue]
 
 pub fn duckdb_bound_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @adapter.FixedCompute, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@adapter.FixedCompute], DuckDBComputeCandidateIssue]

@@ -92,10 +92,10 @@ export async function runExample({ database, environment, environmentCid, progra
 export async function prepareExampleTaskManifest({programText, environmentText,
   environmentCid, parameterText, dataProfile}) {
   const data = snapshotDataProfile(dataProfile);
-  if (!data) throw new Error('Task manifest requires a data profile');
   const app = await import(runtimeUrl);
-  return checked(app.applicationTaskManifest(programText, environmentText,
-    environmentCid, parameterText, data));
+  const args = [programText, environmentText, environmentCid, parameterText];
+  return checked(data ? app.applicationTaskManifest(...args, data)
+    : app.applicationTaskManifestDefault(...args));
 }
 
 export async function prepareExampleText({database, environmentCid, programText,

@@ -350,14 +350,10 @@ fn core_application_task_manifest(
   environment_json : String,
   environment_cid : String,
   parameter_json : String,
-  data : DataProfile,
+  data : DataProfile?,
 ) -> Array[@strategy.CheckedTaskIdentity] raise {
   let prelude = prepare_application_graph_prelude(
-    program_json,
-    environment_json,
-    environment_cid,
-    parameter_json,
-    Some(data),
+    program_json, environment_json, environment_cid, parameter_json, data,
   )
   let graph = @strategy.prepare_checked_dag(
     prelude.checked,
