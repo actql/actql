@@ -14,8 +14,8 @@ pub(all) struct ClientProgramPreparationLimits {
 pub(all) enum ClientProgramPreparationIssue {
   Syntax(@syntax.SyntaxError)
   EffectNotSupported(String)
-  NeedsInputs
-  Check(@checked.LocalConstructionFailure)
+  NeedsInputs(@checked.InputRequests)
+  Check(@checked.CheckDiagnostic)
   MissingCheckedStage(Int)
   MissingStageIdentity(Int)
   Lowering(@lower.Issue)
@@ -212,9 +212,8 @@ pub fn prepare_effect_free_client_program(
   let checked = match
     @checked.check_parsed(parsed, environment, supplied, limits.checking) {
     Checked(value) => value
-    NeedsInputs(_) => return Err(NeedsInputs)
-    Rejected(diagnostic) =>
-      return Err(Check(@checked.diagnostic_cause(diagnostic)))
+    NeedsInputs(requests) => return Err(NeedsInputs(requests))
+    Rejected(diagnostic) => return Err(Check(diagnostic))
   }
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)

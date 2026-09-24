@@ -73,8 +73,8 @@ pub(all) struct ClientProgramIdentity {
 pub(all) enum ClientProgramPreparationIssue {
   Syntax(@stage_syntax.SyntaxError)
   EffectNotSupported(String)
-  NeedsInputs
-  Check(@program_check.LocalConstructionFailure)
+  NeedsInputs(@program_check.InputRequests)
+  Check(@program_check.CheckDiagnostic)
   MissingCheckedStage(Int)
   MissingStageIdentity(Int)
   Lowering(@lowering_relation.Issue)
