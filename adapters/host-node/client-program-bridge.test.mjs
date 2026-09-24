@@ -8,6 +8,8 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
+import {installNodeClientProgramPreparation} from
+  './client-program-preparation.mjs';
 import {runCapturedStrategy, runPublishedCapturedStrategy} from './entry.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
@@ -247,13 +249,13 @@ test('Node ABI binds separately supplied Parameters through the shared checker',
     const ready = outcome => moon.clientProgramPreparationReady(outcome);
     assert.equal(issue(prepare(json, 'json', undefined)), 'needs_inputs');
     assert.equal(issue(prepare(json, 'json', '{"n":"bad"}')),
-      'check_rejected');
+      'check_invalid_input');
     assert.equal(issue(prepare(json, 'json', '{"n":null}')),
-      'check_rejected');
+      'check_invalid_input');
     assert.equal(issue(prepare(json, 'json', '{"n":2')),
       'supplied_syntax');
     assert.equal(issue(prepare(json, 'json', `{"n":"${'x'.repeat(65536)}"}`)),
-      'supplied_syntax');
+      'supplied_too_large');
     assert.equal(issue(prepare(json, 'auto', '{"n":2}')),
       'invalid_format');
     const supplied = ready(prepare(json, 'json', '{"n":2}'));
@@ -298,6 +300,87 @@ test('Node ABI binds separately supplied Parameters through the shared checker',
     assert.notEqual(withDefault, json);
     assert.ok(ready(prepare(withDefault, 'json', undefined)));
   });
+
+test('public submit rejects checker failures before Run admission', async () => {
+  const {environment} = await checkedFixture();
+  const document = await readFile(new URL('parameter-values.json', fixture),
+    'utf8');
+  const prepareSubmit = installNodeClientProgramPreparation({
+    moon, environment});
+  let admissions = 0;
+  let admittedIdentity;
+  const server = createServer(createClientHttpHandler({
+    authenticate: header => header === 'Bearer scoped-token'
+      ? 'principal-a' : undefined,
+    authorizeConnection: () => true,
+    negotiate: () => ({
+      version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+      durability: 'volatile', scopeRef: 'principal-a', capabilities: [],
+      limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+        maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+        maxRows: 100, maxBatchRows: 10,
+        maxBatchRetainedValueBytes: 2048},
+    }),
+    prepareSubmit,
+    maxRequestBytes: 100000,
+    submit: ({preparedProgram, requestId}) => {
+      admissions++;
+      admittedIdentity = moon.clientProgramRequestIdentity(preparedProgram,
+        cid('a'), requestId, cid('b'));
+      return {ref: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+        runDefinitionCid: cid('c')}, durability: 'volatile', revision: 0};
+    },
+  }));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const origin = `http://127.0.0.1:${server.address().port}/`;
+    const submit = parameters => fetch(new URL('actql/client/0.1/submit',
+      origin), {
+      method: 'POST', headers: {authorization: 'Bearer scoped-token',
+        'content-type': 'application/json'},
+      body: JSON.stringify({connection: {mode: 'local', owner: 'local',
+        runners: [], consentRefs: []}, requestId: 'saved-parameter-id',
+      kind: 'aql', input: {text: document, format: 'json'}, parameters}),
+    });
+    for (const [parameters, status, code] of [
+      [null, 422, 'ClientProgramNeedsInputs'],
+      [{n: null}, 422, 'ClientProgramRejected'],
+      [{n: 'bad'}, 422, 'ClientProgramRejected'],
+      [{n: 2, extra: true}, 422, 'ClientProgramRejected'],
+      [{n: 'x'.repeat(65536)}, 413, 'ClientParametersTooLarge'],
+    ]) {
+      const response = await submit(parameters);
+      assert.equal(response.status, status);
+      assert.deepEqual(await response.json(), {code});
+    }
+    assert.equal(admissions, 0);
+    const client = await connectClient({mode: 'local', owner: 'local',
+      endpoint: origin, token: 'scoped-token'});
+    try {
+      await assert.rejects(client.aql(document, {format: 'json',
+        requestId: 'sdk-invalid-parameter', parameters: {n: null}}),
+      {code: 'ClientProgramRejected'});
+      assert.equal(admissions, 0);
+    } finally {
+      client.close();
+    }
+    const prepared = prepareSubmit({kind: 'aql',
+      input: {text: document, format: 'json'}, parameters: {n: 2}});
+    assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
+    const objectPrepared = prepareSubmit({kind: 'program',
+      input: JSON.parse(document), parameters: {n: 2}});
+    assert.equal(moon.clientProgramSemanticsCid(objectPrepared),
+      moon.clientProgramSemanticsCid(prepared));
+    const accepted = await submit({n: 2});
+    assert.equal(accepted.status, 200);
+    assert.equal(admissions, 1);
+    assert.equal(moon.clientRequestParametersCid(admittedIdentity),
+      moon.clientRequestParametersCid(moon.clientProgramRequestIdentity(
+        prepared, cid('a'), 'saved-parameter-id', cid('b'))));
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+});
 
 test('Node publication admission rejects evidence from another checked Program',
   async t => {
