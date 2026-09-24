@@ -483,11 +483,19 @@ pub fn issue_effect_free_captured_run(
   let body = @encode.finish(writer) catch {
     _ => return Err(CaptureIssuanceEncoding)
   }
-  match
+  let captured = match
     seal_publication_contract(
       "captured_run", body, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(CaptureIssuanceContract(issue))
+    Ok(value) => value
+    Err(issue) => return Err(CaptureIssuanceContract(issue))
+  }
+  match
+    validate_effect_free_run_evidence_chain(
+      run_definition, invocation, definitions, artifacts, manifest, receipt, captured,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok(captured)
+    Err(issue) => Err(CaptureIssuanceChain(issue))
   }
 }
