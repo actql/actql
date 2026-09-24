@@ -127,6 +127,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
+pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
+
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
 
 pub fn issue_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnesses, ClientPublicationWitnessIssue]
@@ -200,6 +202,11 @@ pub(all) enum ClientDirectResultRootIssue {
   RequiresResultTransformation
   Encoding
 }
+
+pub(all) enum ClientEmptyInvocationBindingsIssue {
+  BindingsDeclared
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage

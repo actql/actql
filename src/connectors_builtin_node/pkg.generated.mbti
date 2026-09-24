@@ -68,6 +68,8 @@ pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
+pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
+
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
 pub fn client_program_issue_local_values_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]

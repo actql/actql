@@ -60,6 +60,8 @@ pub fn parse(String, Limits, format? : Format, source_path? : String) -> Result[
 
 pub fn parse_bytes(Bytes, Limits, format? : Format, source_path? : String) -> Result[Program, SyntaxError]
 
+pub fn program_binding_names(Program) -> Array[String]
+
 pub fn program_body(Program) -> @decode_core.Cursor
 
 pub fn program_usage(Program) -> ProgramUsage
