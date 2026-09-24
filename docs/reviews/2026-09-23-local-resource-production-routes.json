@@ -2581,7 +2581,16 @@
       "entrypoint": {
         "path": "src/local_sga/match_nodes.mbt",
         "symbol": "start_match_nodes"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "bounded_scratch_initialization_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "node identity match admits workspace before execution and cleans cancel"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -2595,7 +2604,16 @@
       "entrypoint": {
         "path": "src/local_sga/match_edges.mbt",
         "symbol": "start_match_edges"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "bounded_scratch_initialization_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded edge match admits workspace and cleans cancellation"
+        }
+      ]
     },
     {
       "inventory": "families",

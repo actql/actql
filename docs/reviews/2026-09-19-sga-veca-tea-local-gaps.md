@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 39 |
+| Operation-specific boundary records | 41 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -20,6 +20,14 @@ and checked by `check:local-resource-accounting`.
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+
+Graph node and edge matching now initialize sort scratch one slot per bounded
+resume step rather than allocating the entire input-sized array in `start`.
+Their registered fixtures observe zero scratch at start, one charged slot
+after a quantum-one advance, and empty scratch after in-flight cancellation
+and cleanup. This establishes bounded initialization for those entrypoints;
+it is not independent exact/one-short work and workspace assurance for each
+full matching route.
 
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component

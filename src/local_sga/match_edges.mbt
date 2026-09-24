@@ -1,5 +1,6 @@
 ///|
 priv enum MatchEdgesPhase {
+  InitializeScratch
   SelectEdges
   PreparePredicate
   EvaluatePredicate
@@ -39,6 +40,8 @@ priv struct MatchEdgesState {
   mut predicate_execution : @execution.PredicateExpressionExecution?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
+  scratch_count : Int
+  scratch_slots : Ref[Int]
   mut width : Int
   mut run_start : Int
   mut middle : Int
@@ -61,6 +64,7 @@ struct MatchEdgesExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  scratch_slots : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -353,6 +357,16 @@ fn match_edges_step(
       return @bounded.Failed(MatchEdgesInputUnavailable, progress, used)
     }
     match state.phase {
+      InitializeScratch => {
+        if state.scratch.length() == state.scratch_count {
+          state.phase = SelectEdges
+          continue
+        }
+        state.scratch.push(None)
+        state.scratch_slots.val += 1
+        used += 1
+        progress += 1
+      }
       SelectEdges =>
         if state.source_index < @storage.edge_count(state.source) {
           if edge_matches_types(state, state.source_index) {
@@ -570,6 +584,7 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
+  state.scratch_slots.val = 0
   state.values = []
   state.predicate_input.clear()
   true
@@ -643,6 +658,7 @@ pub fn start_match_edges(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let scratch_slots = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port(
       preparation,
@@ -674,7 +690,7 @@ pub fn start_match_edges(
     live,
     accepted,
     port,
-    phase: SelectEdges,
+    phase: InitializeScratch,
     source_index: 0,
     select_all,
     predicate,
@@ -685,7 +701,9 @@ pub fn start_match_edges(
     predicate_input: Map([]),
     predicate_execution: None,
     selected: [],
-    scratch: Array::make(count, None),
+    scratch: [],
+    scratch_count: count,
+    scratch_slots,
     width: 1,
     run_start: 0,
     middle: 0,
@@ -712,6 +730,7 @@ pub fn start_match_edges(
     session,
     token: Some(token),
     accepted,
+    scratch_slots,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -722,6 +741,12 @@ pub fn match_edges_max_noninterruptible_value_nodes(
   value : MatchEdgesExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+/// Structural scratch entries retained by the bounded initialization phase.
+pub fn match_edges_scratch_slots(value : MatchEdgesExecution) -> Int {
+  value.scratch_slots.val
 }
 
 ///|

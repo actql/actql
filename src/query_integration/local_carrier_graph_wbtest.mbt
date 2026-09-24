@@ -2624,13 +2624,20 @@ test "node identity match admits workspace before execution and cleans cancel" {
   )
   let control = @bounded.control()
   let execution = start(control, 8).unwrap()
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 0)
+  assert_true(
+    @local_sga.advance_match_nodes(execution, 1).unwrap()
+    is @local_sga.MatchNodesContinue(progress=1L, work=1L),
+  )
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 1)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_match_nodes(execution, 1).unwrap()
-    is @local_sga.MatchNodesStopped(_, progress=0L, work=0L),
+    is @local_sga.MatchNodesStopped(_, progress=1L, work=1L),
   )
   assert_true(@local_sga.match_nodes_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_nodes(execution), Ok(true))
+  assert_eq(@local_sga.match_nodes_scratch_slots(execution), 0)
   assert_false(@local_sga.match_nodes_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
   assert_true(@graphs.discard_completed(graph))
@@ -2798,13 +2805,20 @@ test "bounded edge match admits workspace and cleans cancellation" {
   )
   let control = @bounded.control()
   let execution = start(control, 10).unwrap()
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
+  assert_true(
+    @local_sga.advance_match_edges(execution, 1).unwrap()
+    is @local_sga.MatchEdgesContinue(progress=1L, work=1L),
+  )
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 1)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     @local_sga.advance_match_edges(execution, 1).unwrap()
-    is @local_sga.MatchEdgesStopped(_, progress=0L, work=0L),
+    is @local_sga.MatchEdgesStopped(_, progress=1L, work=1L),
   )
   assert_true(@local_sga.match_edges_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
   assert_false(@local_sga.match_edges_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
   assert_true(@graphs.discard_completed(graph))
