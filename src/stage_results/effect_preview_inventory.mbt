@@ -13,12 +13,12 @@ pub(all) enum EffectPreviewInventoryIssue {
 /// checked Stage. This is an inventory check, not a Preview, authority, or
 /// apply permit. The caller must separately bind the Preview to this Program
 /// and to the exact Captured Run before any mutation can be dispatched.
-pub fn check_effect_preview_checked_inventory(
+fn check_effect_preview_checked_inventory_usage(
   bindings : EffectResultBindings,
   stage_index : Int,
   preview : @publication.EffectPreviewIdentity,
   max_work : Int,
-) -> Result[Unit, EffectPreviewInventoryIssue] {
+) -> Result[Int, EffectPreviewInventoryIssue] {
   if stage_index < 0 || stage_at(bindings.owner, stage_index) is None {
     return Err(InvalidStage)
   }
@@ -71,5 +71,21 @@ pub fn check_effect_preview_checked_inventory(
       return Err(FailurePolicyMismatch(id))
     }
   }
-  Ok(())
+  Ok(max_work - remaining)
+}
+
+///|
+pub fn check_effect_preview_checked_inventory(
+  bindings : EffectResultBindings,
+  stage_index : Int,
+  preview : @publication.EffectPreviewIdentity,
+  max_work : Int,
+) -> Result[Unit, EffectPreviewInventoryIssue] {
+  match
+    check_effect_preview_checked_inventory_usage(
+      bindings, stage_index, preview, max_work,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
+  }
 }
