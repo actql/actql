@@ -494,3 +494,61 @@ test "event windows admit capacity before allocation and clean cancellation" {
   assert_false(event_window_cleanup_pending(execution))
   assert_true(@records.discard_completed(source))
 }
+
+///|
+test "fixed event window admits exact control work across resumes" {
+  let producer = event_window_producer()
+  let owner = event_window_owner(producer, "{\"kind\":\"fixed\",\"size\":10}")
+  let source = event_window_source(producer, [4.0], Ref(true))
+  // Begin one record, read three fields, prepare membership, seek once,
+  // build and commit one window, then finish: exactly nine control steps.
+  for (limit, accepted) in [(9, true), (8, false)] {
+    let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      read,
+      event_window_limits(),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(limit),
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match advance_event_window(execution, 1).unwrap() {
+          EventWindowContinue(work~, ..) => {
+            assert_true(work >= charged && work - charged <= 1L)
+            charged = work
+          }
+          EventWindowComplete(output, work~, ..) => {
+            assert_true(work >= charged && work - charged <= 1L)
+            charged = work
+            assert_true(accepted)
+            assert_eq(
+              @storage.record_count(@records.completed_storage(output).unwrap()),
+              1,
+            )
+            assert_true(@records.discard_completed(output))
+            terminal = true
+          }
+          EventWindowFailed(EventWindowWorkLimit, work~, ..) => {
+            assert_true(work >= charged && work - charged <= 1L)
+            charged = work
+            assert_false(accepted)
+            assert_true(event_window_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("unexpected fixed-window work result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, limit.to_int64())
+    assert_true(cleanup_event_window(execution).unwrap())
+    assert_true(@records.producer_read_available(read))
+  }
+  assert_true(@records.discard_completed(source))
+}

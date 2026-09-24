@@ -381,6 +381,7 @@ for (const [index, route] of routeEntries.entries()) {
       'moon:query_integration': 'query_integration',
       'moon:execution_relation': 'execution_relation',
       'moon:local_sga': 'local_sga',
+      'moon:local_tea': 'local_tea',
     }[item.suite];
     if (!suiteDirectory ||
       JSON.stringify(item.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||

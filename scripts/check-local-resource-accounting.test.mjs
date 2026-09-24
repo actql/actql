@@ -41,7 +41,17 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 22 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 24 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 23 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 24 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('fixed event window work evidence must remain executable', () => {
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    window.boundary_tests.find(item =>
+      item.role === 'window_fixed_control_work_exact_one_short').fixture =
+      'missing-fixed-window-control-work';
+  }), /TEA window_events: missing operation boundary fixture missing-fixed-window-control-work/);
 });
 
 test('global top-k loses its bounded ordinary evidence when removed', () => {
