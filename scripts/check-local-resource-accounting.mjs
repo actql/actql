@@ -529,6 +529,21 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  for (const [operation, prefix] of [
+    ['interval_join', 'interval'],
+    ['asof_join', 'asof'],
+  ]) {
+    if (route.family === 'TEA' && route.operation === operation) {
+      for (const role of [
+        `${prefix}_metadata_workspace_preflight`,
+        `${prefix}_output_workspace_exact_one_short`,
+      ]) {
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {

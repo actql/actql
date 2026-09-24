@@ -613,9 +613,11 @@ fn bounded_asof_step(
             field.contract,
             state.admitted_limits,
           )
-          is Some(value) &&
-          reserve_slots(state.workspace, 1) else {
+          is Some(value) else {
           return bounded_asof_failure(InvalidExecution, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_asof_failure(Rows(RowLimit), progress, used)
         }
         state.checked_row.push(value)
         state.column += 1

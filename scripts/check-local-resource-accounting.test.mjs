@@ -54,6 +54,21 @@ test('temporal joins retain delivered Host cancellation evidence', () => {
   }
 });
 
+test('temporal joins retain exact output workspace evidence', () => {
+  for (const [operation, prefix] of [
+    ['interval_join', 'interval'],
+    ['asof_join', 'asof'],
+  ]) {
+    const role = `${prefix}_output_workspace_exact_one_short`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('time-series output and Host cancellation evidence must remain bound', () => {
   assert.match(run(undefined, routes => {
     const series = routes.routes.find(entry => entry.family === 'TEA' &&

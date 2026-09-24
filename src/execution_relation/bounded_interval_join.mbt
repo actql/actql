@@ -392,9 +392,11 @@ fn bounded_interval_step(
             field.contract,
             state.admitted_limits,
           )
-          is Some(value) &&
-          reserve_slots(state.workspace, 1) else {
+          is Some(value) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_interval_failure(Rows(RowLimit), progress, used)
         }
         state.checked_row.push(value)
         state.column += 1
