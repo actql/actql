@@ -81,6 +81,8 @@ test('one collection response covers every row without duplicate send',
     concurrent.close();
     const restarted = open();
     t.after(() => restarted.close());
+    assert.throws(() => restarted.readClaimedResponse(claims[0]),
+      {code: 'EffectResponseKindMismatch'});
     const retry = await captureClaimedEffectCollectionResponse({
       ledger: restarted, claims, requestCid: cid('f'), execute,
     });
@@ -300,5 +302,41 @@ test('single custody keeps original binding across caller edits',
     });
     assert.equal(retry.claimed, false);
     assert.equal(retry.ownership.action, 3);
+    assert.equal(sends, 1);
+  });
+
+test('read-only recovery checks the exact durable claim without sending',
+  async t => {
+    const {open, claim} = await fixture(t);
+    const ledger = open();
+    t.after(() => ledger.close());
+    assert.equal(ledger.readClaimedResponse(claim), undefined);
+    assert.equal(ledger.current(control.logicalItemLocatorCid(claim.locator)),
+      undefined);
+    let sends = 0;
+    const sent = await captureClaimedEffectResponse({
+      ledger, claim, requestCid: claim.canonicalRequestCid,
+      execute: async () => {
+        sends += 1;
+        return {observation: {useCid: cid('4'), statusCode: 429,
+          body: Buffer.from('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]')}};
+      },
+    });
+    assert.equal(sent.claimed, true);
+    ledger.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const stored = restarted.readClaimedResponse(claim);
+    assert.deepEqual(stored.responseBytes,
+      Buffer.from('[{"errorCode":"REQUEST_LIMIT_EXCEEDED"}]'));
+    assert.equal(sends, 1);
+    assert.throws(() => restarted.readClaimedResponse({
+      ...claim, canonicalRequestCid: cid('9'),
+    }), {code: 'EffectDispatchBindingMismatch'});
+    assert.throws(() => restarted.readClaimedResponse({
+      ...claim, basis: control.ledgerBasis(claim.scope, claim.locator,
+        claim.key, cid('c'), cid('d'), cid('e'), cid('9'), cid('0'),
+        'unavailable', cid('1'), cid('2')),
+    }), {code: 'EffectLedgerIntentConflict'});
     assert.equal(sends, 1);
   });
