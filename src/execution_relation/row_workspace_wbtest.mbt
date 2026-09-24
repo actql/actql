@@ -9,6 +9,17 @@ test "workspace release underflow poisons later reservations" {
 }
 
 ///|
+test "row slot addition rejects overflow before any reservation" {
+  assert_eq(checked_row_slots_add(2147483646, 1), Some(2147483647))
+  assert_eq(checked_row_slots_add(2147483647, 1), None)
+  assert_eq(checked_row_slots_add(-1, 1), None)
+  let workspace = row_workspace(4)
+  assert_true(checked_row_slots_add(2147483647, 3) is None)
+  assert_eq(workspace.live, 0)
+  assert_eq(workspace.peak, 0)
+}
+
+///|
 test "slot scope releases temporary entries and retains exact survivors" {
   let workspace = row_workspace(8)
   let scope = begin_slot_scope(workspace, 2).unwrap()

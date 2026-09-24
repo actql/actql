@@ -246,7 +246,8 @@ fn[T : RelationRows] evaluate_pivot_rows(
   if !reserve_slots(workspace, index_count) ||
     !reserve_slots(workspace, axis_count) ||
     !reserve_slots(workspace, axis_count) ||
-    !spend_control(control, index_count + axis_count) {
+    !spend_control(control, index_count) ||
+    !spend_control(control, axis_count) {
     return Err(RowLimit)
   }
   let order : Array[ColumnOrder] = []

@@ -291,12 +291,15 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         return Err(AsOfTopTie(left_row, prior, other))
       }
       if best is Some(_) || @lower.asof_join_kind(kernel) == @join.Left {
-        if rows.length() == ceiling ||
-          !reserve_slots(workspace, 1 + names.length()) ||
-          !spend_control(control, 1 + names.length()) {
+        guard checked_row_slots_add(names.length(), 1) is Some(row_slots) else {
           return Err(RowLimit)
         }
-        retained += 1 + names.length()
+        if rows.length() == ceiling ||
+          !reserve_slots(workspace, row_slots) ||
+          !spend_control(control, row_slots) {
+          return Err(RowLimit)
+        }
+        retained += row_slots
         let row = columns.map(pair => {
           if pair.0 {
             IndexedRows::read_cell(left, left_row, pair.1)

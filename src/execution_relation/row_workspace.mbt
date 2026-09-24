@@ -15,6 +15,15 @@ fn row_workspace(limit : Int) -> RowWorkspace {
 }
 
 ///|
+fn checked_row_slots_add(left : Int, right : Int) -> Int? {
+  if left < 0 || right < 0 || right > 2147483647 - left {
+    None
+  } else {
+    Some(left + right)
+  }
+}
+
+///|
 fn reserve_slots(w : RowWorkspace, count : Int) -> Bool {
   if w.live < 0 || count < 0 || count > w.limit - w.live {
     return false

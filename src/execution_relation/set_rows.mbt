@@ -198,11 +198,14 @@ fn[L : RelationRows, R : RelationRows] evaluate_set_rows(
     left_position = left_end
   }
   let rows : Array[Array[Value]] = []
+  guard checked_row_slots_add(width, 1) is Some(row_work) else {
+    return Err(RowLimit)
+  }
   for row in 0..<IndexedRows::row_count(left) {
     if keep[row] {
       if rows.length() >= max_rows ||
         !reserve_slots(workspace, width) ||
-        !spend_control(control, width + 1) {
+        !spend_control(control, row_work) {
         return Err(RowLimit)
       }
       let values = Array::makei(width, column => {
