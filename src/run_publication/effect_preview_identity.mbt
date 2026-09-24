@@ -25,6 +25,7 @@ pub struct EffectPreviewIdentity {
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
   member_effect_plan_cids : Array[String?]
+  member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
@@ -590,6 +591,7 @@ pub fn admit_effect_preview_identity(
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
   let member_effect_plan_cids : Array[String?] = []
+  let member_max_items : Array[Int64] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
@@ -621,6 +623,13 @@ pub fn admit_effect_preview_identity(
     member_effect_plan_cids.push(
       optional_string(@json.object_field(effect, "effect_plan_logical_cid")),
     )
+    match @json.object_field(effect, "max_items") {
+      Some(@json.Number(limit)) if limit > 0.0 &&
+        limit <= 9007199254740991.0 &&
+        limit == limit.to_int64().to_double() =>
+        member_max_items.push(limit.to_int64())
+      _ => return Err(InvalidMember)
+    }
     let contract = if effect_kind == "command" {
       match
         (
@@ -771,6 +780,7 @@ pub fn admit_effect_preview_identity(
     member_effect_ids,
     member_effect_kinds,
     member_effect_plan_cids,
+    member_max_items,
     member_contracts,
     member_failure_policies,
     member_footprints,
@@ -854,6 +864,16 @@ pub fn effect_preview_member_plan_cid(
     Some(cid) => cid
     None => None
   }
+}
+
+///|
+/// The resolved, positive-safe-integer scope bound retained by the private
+/// Preview. It is not an apply permit or proof of an authored guard.
+pub fn effect_preview_member_max_items(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> Int64? {
+  value.member_max_items.get(index)
 }
 
 ///|
