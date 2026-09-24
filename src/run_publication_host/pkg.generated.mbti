@@ -160,6 +160,8 @@ pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
+pub fn prepare_client_effect_request_identity(PreparedClientEffectComputation, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
+
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
