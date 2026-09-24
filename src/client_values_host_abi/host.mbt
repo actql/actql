@@ -377,7 +377,9 @@ pub fn client_values_host_issue_allowed_run(
       "\",\"policy_decision\":\"allow\",\"expires_at\":\"" +
       expires_at +
       "\"}",
-      100000, 10000, 100,
+      100000,
+      10000,
+      100,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Prepared(issue))
@@ -393,7 +395,9 @@ pub fn client_values_host_issue_allowed_run(
       "\",\"host_policy_cid\":\"" +
       host_policy_cid +
       "\",\"decision\":\"allowed\"}",
-      100000, 10000, 100,
+      100000,
+      10000,
+      100,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Authorization(issue))
@@ -569,4 +573,81 @@ pub fn client_values_host_check_run_binding(
     @host.prepared_client_program_semantics_cid(prepared),
     @host.prepared_client_check_environment_cid(prepared),
   )
+}
+
+///|
+pub(all) enum ClientValuesHostDispatchIssue {
+  Binding(@host.ClientValuesRunBindingIssue)
+  Dispatch(@host.ClientValuesDispatchIssue)
+}
+
+///|
+/// Host policy selects a Site, grant and budget before this call. The common
+/// owner fixes the checked Run, task, authority and source-free input. This
+/// creates an identity only; durable dispatch admission precedes Site I/O.
+#export_name("clientValuesHostPrepareDispatch")
+pub fn client_values_host_prepare_dispatch(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  obligations_cid : String,
+  budget_cid : String,
+  evidence_issuer_capability_cid : String,
+  grant_cid : String,
+) -> Result[@remote.DispatchRequest, ClientValuesHostDispatchIssue] {
+  let bound = match
+    @host.bind_source_free_client_values_run(
+      prepared, compilation, admission, definition,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  match
+    @host.prepare_source_free_client_values_dispatch(
+      bound,
+      request,
+      task_attempt,
+      dispatch_id,
+      {
+        site_key,
+        site_generation,
+        runtime_bundle_cid,
+        connector_registration,
+        connector_revision,
+        strategy_revision,
+        obligations_cid,
+        budget_cid,
+        evidence_issuer_capability_cid,
+        grant_cid,
+      },
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Dispatch(issue))
+  }
+}
+
+///|
+#export_name("clientValuesHostDispatchCid")
+pub fn client_values_host_dispatch_cid(
+  request : @remote.DispatchRequest,
+) -> String {
+  @remote.dispatch_request_identity(request)
+}
+
+///|
+#export_name("clientValuesHostDispatchWire")
+pub fn client_values_host_dispatch_wire(
+  request : @remote.DispatchRequest,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.dispatch_request_json(request)
 }

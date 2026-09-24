@@ -278,3 +278,41 @@ export function checkRunBinding(prepared, admission, definition) {
     requireHandle(preparations, prepared), admitted.value,
     requireHandle(definitions, definition)), 'RunHostBindingRejected');
 }
+
+const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
+  'siteGeneration', 'runtimeBundleCid', 'connectorRegistration',
+  'connectorRevision', 'strategyRevision', 'obligationsCid', 'budgetCid',
+  'evidenceIssuerCapabilityCid', 'grantCid'];
+
+// The current Host authorization and Site policy decision precede issuance.
+// The returned canonical wire is identity material, not a Site credential.
+export function issueSourceFreeDispatch(prepared, compilation, admission,
+  definition, request, selection) {
+  if (selection === null || typeof selection !== 'object' ||
+      Array.isArray(selection) ||
+      Object.keys(selection).sort().join('\0') !==
+        [...siteSelectionKeys].sort().join('\0') ||
+      !Number.isSafeInteger(selection.taskAttempt) ||
+      !Number.isSafeInteger(selection.siteGeneration) ||
+      siteSelectionKeys.slice(1).filter(key => key !== 'siteGeneration')
+        .some(key => typeof selection[key] !== 'string')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const dispatch = checked(owner.clientValuesHostPrepareDispatch(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), requireHandle(requests, request),
+    selection.taskAttempt, selection.dispatchId, selection.siteKey,
+    selection.siteGeneration, selection.runtimeBundleCid,
+    selection.connectorRegistration, selection.connectorRevision,
+    selection.strategyRevision, selection.obligationsCid,
+    selection.budgetCid, selection.evidenceIssuerCapabilityCid,
+    selection.grantCid), 'RunHostDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostDispatchRejected')});
+}

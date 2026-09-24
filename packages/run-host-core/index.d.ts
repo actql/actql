@@ -114,3 +114,22 @@ export function prepareRunStart(requested: RequestIdentity,
   'reconcile_reserved_dispatch';
 export function checkRunBinding(prepared: PreparedProgram,
   admission: RunAdmission, definition: RunDefinition): void;
+export interface ValuesSiteSelection {
+  readonly taskAttempt: number;
+  readonly dispatchId: string;
+  readonly siteKey: string;
+  readonly siteGeneration: number;
+  readonly runtimeBundleCid: string;
+  readonly connectorRegistration: string;
+  readonly connectorRevision: string;
+  readonly strategyRevision: string;
+  readonly obligationsCid: string;
+  readonly budgetCid: string;
+  readonly evidenceIssuerCapabilityCid: string;
+  readonly grantCid: string;
+}
+/** Call only after current Host authorization and Site selection. */
+export function issueSourceFreeDispatch(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;

@@ -151,6 +151,53 @@ test "native Values task installation binds the checked Run before Compute" {
   )
   assert_eq(@host.client_values_run_binding_task_key(checked), "values_0")
   assert_eq(@host.client_values_run_binding_result_name(checked), "answer")
+  let request = @host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "site-values-request",
+  ).unwrap()
+  let site : @host.ClientValuesSiteSelection = {
+    site_key: "site-a",
+    site_generation: 1,
+    runtime_bundle_cid: "sha256:" + "1".repeat(64),
+    connector_registration: "local",
+    connector_revision: "local/1",
+    strategy_revision: "strategy/1",
+    obligations_cid: "sha256:" + "2".repeat(64),
+    budget_cid: "sha256:" + "3".repeat(64),
+    evidence_issuer_capability_cid: "sha256:" + "4".repeat(64),
+    grant_cid: "sha256:" + "5".repeat(64),
+  }
+  let dispatch = @host.prepare_source_free_client_values_dispatch(
+    checked, request, 1, "site-values-dispatch", site,
+  ).unwrap()
+  assert_eq(
+    @remote.dispatch_request_task_scope(dispatch),
+    (@publication.publication_contract_identity(definition), "values_0"),
+  )
+  assert_eq(@remote.dispatch_request_budget_cid(dispatch), site.budget_cid)
+  let foreign_input = @host.prepare_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "site-values-request",
+    "sha256:" + "e".repeat(64),
+  ).unwrap()
+  assert_true(
+    @host.prepare_source_free_client_values_dispatch(
+      checked, foreign_input, 1, "site-values-dispatch", site,
+    )
+    is Err(@host.ClientValuesDispatchIssue::ForeignRequest),
+  )
+  assert_true(
+    @host.prepare_source_free_client_values_dispatch(
+      checked,
+      request,
+      1,
+      "site-values-dispatch",
+      { ..site, connector_registration: "duckdb", },
+    )
+    is Err(@host.ClientValuesDispatchIssue::UnsupportedSite),
+  )
   let foreign_definition = @publication.seal_publication_contract(
     "run_definition",
     "{\"version\":\"actql-run-definition/0.1\"," +

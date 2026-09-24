@@ -53,6 +53,17 @@ pub fn coordinator_dispatch_json(
 }
 
 ///|
+/// Re-admit a checked Host-issued dispatch wire at the durable Coordinator
+/// boundary. The CID proves byte identity, not Site grant authority.
+#export_name("coordinatorAdmitDispatchJson")
+pub fn coordinator_admit_dispatch_json(
+  body : String,
+  claimed_cid : String,
+) -> Result[@remote.DispatchRequest, @remote.DispatchIssue] {
+  @remote.admit_dispatch_request_json(body, claimed_cid)
+}
+
+///|
 #export_name("coordinatorDispatchRoute")
 pub fn coordinator_dispatch_route(
   request : @remote.DispatchRequest,

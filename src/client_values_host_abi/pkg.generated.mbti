@@ -4,6 +4,7 @@ package "actql/actql/client_values_host_abi"
 import {
   "actql/actql/decode_core",
   "actql/actql/program_check",
+  "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
@@ -30,6 +31,10 @@ pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -
 
 pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
+pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String
+
+pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
@@ -45,6 +50,8 @@ pub fn client_values_host_plan_node_id(@run_publication_host.ClientValuesCompila
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
+
+pub fn client_values_host_prepare_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesHostDispatchIssue]
 
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
@@ -88,6 +95,11 @@ pub struct ClientValuesHostAllowedRun {
 pub(all) enum ClientValuesHostCompilationIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Compilation(@run_publication_host.ClientValuesCompilationIssue)
+}
+
+pub(all) enum ClientValuesHostDispatchIssue {
+  Binding(@run_publication_host.ClientValuesRunBindingIssue)
+  Dispatch(@run_publication_host.ClientValuesDispatchIssue)
 }
 
 pub(all) enum ClientValuesHostPreparationIssue {

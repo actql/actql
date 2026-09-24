@@ -31,6 +31,8 @@ export function createJournal(authority: string): Journal;
 export function prepareDispatch(input: DispatchInput): DispatchRequest;
 export function dispatchCid(request: DispatchRequest): string;
 export function dispatchJson(request: DispatchRequest): string;
+export function admitDispatchJson(body: string,
+  claimedCid: string): DispatchRequest;
 export function dispatchRoute(request: DispatchRequest): string[];
 export function pollDispatchJson(request: DispatchRequest,
   inputBindingBody: string, maxBindingBytes: number): string;

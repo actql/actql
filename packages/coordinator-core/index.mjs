@@ -24,6 +24,8 @@ export const prepareDispatch = input => checked(owner.coordinatorPrepareDispatch
 
 export const dispatchCid = owner.coordinatorDispatchCid;
 export const dispatchJson = request => checked(owner.coordinatorDispatchJson(request));
+export const admitDispatchJson = (body, claimedCid) =>
+  checked(owner.coordinatorAdmitDispatchJson(body, claimedCid));
 export const dispatchRoute = owner.coordinatorDispatchRoute;
 export const pollDispatchJson = (request, inputBindingBody,
   maxBindingBytes) => checked(owner.coordinatorPollDispatchJson(

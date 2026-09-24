@@ -8,6 +8,8 @@ import {
 // Values
 pub fn coordinator_admission_durable_json(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_admit_dispatch_json(String, String) -> Result[@remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_admit_durable_json(String) -> Result[@remote_site_protocol.DurableCoordinatorDispatchRecord, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_admit_response_json(String, @remote_site_protocol.DispatchRequest, Bool) -> Result[@remote_site_protocol.RemoteDispatchResponse, @remote_site_protocol.DispatchIssue]
