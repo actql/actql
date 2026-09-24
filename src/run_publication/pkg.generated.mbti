@@ -19,6 +19,8 @@ pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, 
 
 pub fn admit_effectful_final_receipt_references(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReferenceIssue]
 
+pub fn admit_effectful_final_run_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalChainIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -644,6 +646,11 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   MemberStateMismatch(Int)
   MemberOutcomeMismatch(Int)
   SetStatusMismatch
+} derive(@debug.Debug)
+
+pub(all) enum EffectfulFinalChainIssue {
+  Computation(RunEvidenceChainIssue)
+  FinalReferences(EffectfulFinalReferenceIssue)
 } derive(@debug.Debug)
 
 pub(all) enum EffectfulFinalReceiptIssuanceIssue {
