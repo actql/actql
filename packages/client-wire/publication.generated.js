@@ -3,7 +3,6 @@
 const schemas = {
   "delivery_attempt": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "version",
       "attempt_id",
@@ -16,6 +15,7 @@ const schemas = {
       "requested_at",
       "delivery_attempt_cid"
     ],
+    "additionalProperties": false,
     "properties": {
       "version": {
         "const": "actql-delivery-attempt/0.1"
@@ -60,7 +60,6 @@ const schemas = {
   },
   "delivery_record": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "version",
       "delivery_attempt_cid",
@@ -72,6 +71,7 @@ const schemas = {
       "cleanup_owner_cids",
       "delivery_record_cid"
     ],
+    "additionalProperties": false,
     "properties": {
       "version": {
         "const": "actql-delivery-record/0.1"
@@ -187,7 +187,6 @@ const schemas = {
   },
   "result_delivery_receipt": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "version",
       "run_definition_cid",
@@ -202,6 +201,7 @@ const schemas = {
       "egress_admission_cid",
       "result_delivery_receipt_cid"
     ],
+    "additionalProperties": false,
     "properties": {
       "version": {
         "const": "actql-result-delivery-receipt/0.1"
@@ -256,25 +256,40 @@ const schemas = {
 };
 
 function valid(value, schema) {
+  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
+  if (schema.not && valid(value, schema.not)) return false;
   if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;
   if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;
   if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;
   if (schema.enum && !schema.enum.includes(value)) return false;
-  if (schema.type === 'string') return typeof value === 'string' &&
-    (schema.minLength === undefined || [...value].length >= schema.minLength) &&
-    (schema.maxLength === undefined || value.length <= schema.maxLength) &&
-    (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));
+  if (typeof value === 'string' &&
+      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||
+        (schema.maxLength !== undefined && value.length > schema.maxLength) ||
+        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))
+    return false;
+  if (schema.type === 'string') return typeof value === 'string';
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
     (schema.maximum === undefined || value <= schema.maximum);
+  if (schema.type === 'boolean') return typeof value === 'boolean';
   if (schema.type === 'array') return Array.isArray(value) &&
+    (schema.minItems === undefined || value.length >= schema.minItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
   if (schema.type === 'object' || schema.properties || schema.required) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
     if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;
+    if (schema.minProperties !== undefined &&
+        Object.keys(value).length < schema.minProperties) return false;
+    if (schema.propertyNames && Object.keys(value).some(key =>
+        !valid(key, schema.propertyNames))) return false;
     if (schema.additionalProperties === false &&
         Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;
+    if (schema.additionalProperties &&
+        typeof schema.additionalProperties === 'object' &&
+        Object.entries(value).some(([key, item]) =>
+          !Object.hasOwn(schema.properties ?? {}, key) &&
+          !valid(item, schema.additionalProperties))) return false;
     return Object.entries(schema.properties ?? {}).every(([key, field]) =>
       !Object.hasOwn(value, key) || valid(value[key], field));
   }

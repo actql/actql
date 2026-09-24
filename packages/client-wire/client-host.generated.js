@@ -3,12 +3,12 @@
 const schemas = {
   "run_ref": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "tenantId",
       "authorityScopeCid",
       "runDefinitionCid"
     ],
+    "additionalProperties": false,
     "properties": {
       "tenantId": {
         "type": "string",
@@ -28,13 +28,13 @@ const schemas = {
   },
   "connection": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "mode",
       "owner",
       "consentRefs",
       "runners"
     ],
+    "additionalProperties": false,
     "properties": {
       "mode": {
         "enum": [
@@ -92,7 +92,6 @@ const schemas = {
   },
   "profile": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "version",
       "mode",
@@ -102,6 +101,7 @@ const schemas = {
       "capabilities",
       "limits"
     ],
+    "additionalProperties": false,
     "properties": {
       "version": {
         "const": "actql-client-host/0.1"
@@ -143,7 +143,6 @@ const schemas = {
       },
       "limits": {
         "type": "object",
-        "additionalProperties": false,
         "required": [
           "maxReadWireBytes",
           "maxRowWireBytes",
@@ -153,6 +152,7 @@ const schemas = {
           "maxBatchRows",
           "maxBatchRetainedValueBytes"
         ],
+        "additionalProperties": false,
         "properties": {
           "maxReadWireBytes": {
             "type": "integer",
@@ -188,21 +188,21 @@ const schemas = {
   },
   "admission": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "ref",
       "durability",
       "revision"
     ],
+    "additionalProperties": false,
     "properties": {
       "ref": {
         "type": "object",
-        "additionalProperties": false,
         "required": [
           "tenantId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
+        "additionalProperties": false,
         "properties": {
           "tenantId": {
             "type": "string",
@@ -234,7 +234,6 @@ const schemas = {
   },
   "lookup_found": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "kind",
       "requestId",
@@ -242,6 +241,7 @@ const schemas = {
       "durability",
       "lookupExpiresAt"
     ],
+    "additionalProperties": false,
     "properties": {
       "kind": {
         "const": "found"
@@ -254,12 +254,12 @@ const schemas = {
       },
       "ref": {
         "type": "object",
-        "additionalProperties": false,
         "required": [
           "tenantId",
           "authorityScopeCid",
           "runDefinitionCid"
         ],
+        "additionalProperties": false,
         "properties": {
           "tenantId": {
             "type": "string",
@@ -293,10 +293,10 @@ const schemas = {
   },
   "lookup_not_found": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "kind"
     ],
+    "additionalProperties": false,
     "properties": {
       "kind": {
         "const": "not_found"
@@ -305,11 +305,11 @@ const schemas = {
   },
   "lookup_unknown": {
     "type": "object",
-    "additionalProperties": false,
     "required": [
       "kind",
       "reason"
     ],
+    "additionalProperties": false,
     "properties": {
       "kind": {
         "const": "unknown"
@@ -321,6 +321,447 @@ const schemas = {
         "maxLength": 256
       }
     }
+  },
+  "run_state": {
+    "type": "object",
+    "required": [
+      "version",
+      "run_id",
+      "status",
+      "updated_at",
+      "next_action",
+      "result_available",
+      "result_availability"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "version": {
+        "const": "actql-run-state/0.1"
+      },
+      "run_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "status": {
+        "enum": [
+          "preparing",
+          "running",
+          "waiting_checkpoint",
+          "resuming",
+          "needs_reconciliation",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "updated_at": {
+        "type": "string",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+      },
+      "checkpoint": {
+        "type": "object",
+        "required": [
+          "checkpoint_id",
+          "checkpoint_cid",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpoint_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "checkpoint_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "run_scope",
+              "read_access",
+              "data_egress",
+              "cost_scope",
+              "effect_set"
+            ]
+          }
+        }
+      },
+      "next_action": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "checkpoint_id"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "resolve_checkpoint"
+              },
+              "checkpoint_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "effects"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "reconcile"
+              },
+              "effects": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "results"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "read_result"
+              },
+              "results": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind",
+              "results"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "refresh_availability"
+              },
+              "results": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "none"
+              }
+            }
+          }
+        ]
+      },
+      "result_available": {
+        "type": "boolean"
+      },
+      "terminal_error": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^ACTQL_E_[A-Z0-9_]+$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "result_availability": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "state",
+            "observed_at",
+            "reason"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "enum": [
+                "available",
+                "unavailable",
+                "unknown"
+              ]
+            },
+            "observed_at": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "reason": {
+              "enum": [
+                "confirmed_present",
+                "retention_expired",
+                "deleted",
+                "policy_unavailable",
+                "integrity_failed",
+                "not_published",
+                "store_query_failed",
+                "clock_uncertain",
+                "verification_pending"
+              ]
+            },
+            "cause_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "available"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "const": "confirmed_present"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unavailable"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "enum": [
+                      "retention_expired",
+                      "deleted",
+                      "policy_unavailable",
+                      "integrity_failed",
+                      "not_published"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unknown"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "enum": [
+                      "store_query_failed",
+                      "clock_uncertain",
+                      "verification_pending"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "propertyNames": {
+          "minLength": 1
+        }
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "const": "waiting_checkpoint"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "checkpoint"
+          ],
+          "properties": {
+            "next_action": {
+              "type": "object",
+              "required": [
+                "kind",
+                "checkpoint_id"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "resolve_checkpoint"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "const": "needs_reconciliation"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "next_action": {
+              "type": "object",
+              "required": [
+                "kind",
+                "effects"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "reconcile"
+                }
+              }
+            }
+          },
+          "not": {
+            "required": [
+              "checkpoint"
+            ]
+          }
+        }
+      },
+      {
+        "if": {
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "const": "succeeded"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "next_action": {
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "read_result",
+                    "refresh_availability",
+                    "none"
+                  ]
+                }
+              }
+            }
+          },
+          "not": {
+            "required": [
+              "checkpoint"
+            ]
+          }
+        }
+      },
+      {
+        "if": {
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "preparing",
+                "running",
+                "resuming",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "next_action": {
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "none"
+                }
+              }
+            }
+          },
+          "not": {
+            "required": [
+              "checkpoint"
+            ]
+          }
+        }
+      }
+    ]
   }
 };
 const operationKeys = {
@@ -375,25 +816,40 @@ const operationKeys = {
 };
 
 function valid(value, schema) {
+  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
+  if (schema.not && valid(value, schema.not)) return false;
   if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;
   if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;
   if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;
   if (schema.enum && !schema.enum.includes(value)) return false;
-  if (schema.type === 'string') return typeof value === 'string' &&
-    (schema.minLength === undefined || [...value].length >= schema.minLength) &&
-    (schema.maxLength === undefined || value.length <= schema.maxLength) &&
-    (schema.pattern === undefined || new RegExp(schema.pattern, 'u').test(value));
+  if (typeof value === 'string' &&
+      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||
+        (schema.maxLength !== undefined && value.length > schema.maxLength) ||
+        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))
+    return false;
+  if (schema.type === 'string') return typeof value === 'string';
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
     (schema.maximum === undefined || value <= schema.maximum);
+  if (schema.type === 'boolean') return typeof value === 'boolean';
   if (schema.type === 'array') return Array.isArray(value) &&
+    (schema.minItems === undefined || value.length >= schema.minItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
   if (schema.type === 'object' || schema.properties || schema.required) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
     if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;
+    if (schema.minProperties !== undefined &&
+        Object.keys(value).length < schema.minProperties) return false;
+    if (schema.propertyNames && Object.keys(value).some(key =>
+        !valid(key, schema.propertyNames))) return false;
     if (schema.additionalProperties === false &&
         Object.keys(value).some(key => !Object.hasOwn(schema.properties, key))) return false;
+    if (schema.additionalProperties &&
+        typeof schema.additionalProperties === 'object' &&
+        Object.entries(value).some(([key, item]) =>
+          !Object.hasOwn(schema.properties ?? {}, key) &&
+          !valid(item, schema.additionalProperties))) return false;
     return Object.entries(schema.properties ?? {}).every(([key, field]) =>
       !Object.hasOwn(value, key) || valid(value[key], field));
   }
@@ -409,3 +865,4 @@ export const validAdmissionShape = value => valid(value, schemas.admission);
 export const validLookupFoundShape = value => valid(value, schemas.lookup_found);
 export const validLookupNotFoundShape = value => valid(value, schemas.lookup_not_found);
 export const validLookupUnknownShape = value => valid(value, schemas.lookup_unknown);
+export const validRunStateShape = value => valid(value, schemas.run_state);
