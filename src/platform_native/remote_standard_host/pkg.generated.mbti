@@ -85,6 +85,8 @@ pub fn prepare_native_remote_standard_direct_run_admission(@remote_site_protocol
 
 pub fn prepare_native_remote_standard_input_failure(String, () -> Bool) -> Result[NativeRemoteStandardInputFailure, NativeRemoteStandardHostIssue]
 
+pub fn prepare_native_remote_standard_output_from_export(@remote_site_protocol.DispatchRequest, Int, @run_publication_host.PublicationOutputExport, () -> Bool, NativeRemoteStandardTaskLimits, @remote_site_protocol.RemoteDispatchBudget) -> @remote_runtime.NativeRemotePhysicalExecution
+
 pub fn prepare_native_remote_standard_physical_admission(NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardPhysicalAdmission, NativeRemoteStandardInputFailure]
 
 pub fn prepare_native_remote_standard_physical_run_admission(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardPhysicalRunAdmission, NativeRemoteStandardInputFailure]

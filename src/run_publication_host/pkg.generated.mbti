@@ -123,7 +123,13 @@ pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_compilation_compiled_plan(ClientValuesCompilation) -> @run_publication.PublicationContract
 
+pub fn client_values_compilation_output_contract_cid(ClientValuesCompilation) -> String
+
 pub fn client_values_compilation_plan(ClientValuesCompilation) -> ClientValuesExecutablePlan
+
+pub fn client_values_compilation_plan_node_id(ClientValuesCompilation) -> String
+
+pub fn client_values_compilation_result_names(ClientValuesCompilation) -> Array[String]
 
 pub fn client_values_compilation_template(ClientValuesCompilation) -> @run_publication.RunEvidenceValue
 
@@ -527,6 +533,8 @@ pub struct ClientValuesCompilation {
   plan : ClientValuesExecutablePlan
   template : @run_publication.RunEvidenceValue
   compiled_plan : @run_publication.PublicationContract
+  fragment : ClientValuesFragmentNode
+  result_names : Array[String]
 }
 
 pub(all) enum ClientValuesCompilationAdmissionIssue {
@@ -538,6 +546,7 @@ pub(all) enum ClientValuesCompilationIssue {
   Plan(ClientValuesExecutablePlanIssue)
   Material(ClientExecutionMaterialIssue)
   AoA(ClientValuesAoAIdentityIssue)
+  Fragment(ClientValuesFragmentIssue)
   Template(@run_publication.RunEvidenceValueIssue)
   CompiledPlan(@run_publication.PublicationContractIssue)
 }

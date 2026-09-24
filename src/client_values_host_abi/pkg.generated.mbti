@@ -38,6 +38,10 @@ pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClient
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
+pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_plan_node_id(@run_publication_host.ClientValuesCompilation) -> String
+
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
@@ -61,6 +65,8 @@ pub fn client_values_host_request_program_cid(@run_publication_host.ClientReques
 pub fn client_values_host_request_relation(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity) -> Int
 
 pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_result_names(@run_publication_host.ClientValuesCompilation) -> Array[String]
 
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
 

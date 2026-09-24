@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_local_host"
+
+import {
+  "actql/actql/connectors/local/driver",
+  "actql/actql/connectors_builtin",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_strategy",
+  "actql/actql/run_publication_host",
+  "moonbitlang/core/ref",
+}
+
+// Values
+pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionIssue]
+
+pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+// Errors
+
+// Types and methods
+pub struct LocalValuesExecution {
+  run : @physical_strategy.CapturedDAG
+  operations : @driver.LocalManagedDispatchOperations[Int]
+  completed : @execution_relation.ManagedCompletedOutput[Int]
+  available : @ref.Ref[Bool]
+}
+pub fn LocalValuesExecution::close(Self) -> Bool
+pub fn LocalValuesExecution::completed_output(Self) -> @execution_relation.ManagedCompletedOutput[Int]
+pub fn LocalValuesExecution::material(Self) -> @execution_relation.ManagedRetainedOutput[Int]?
+pub fn LocalValuesExecution::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
+pub fn LocalValuesExecution::rows(Self) -> Result[Array[String], LocalValuesExecutionIssue]
+
+pub(all) enum LocalValuesExecutionIssue {
+  InvalidLimits
+  UnsupportedGraph
+  MissingLocalModule
+  Driver(@driver.LocalDispatchIssue)
+  FinalizationLimit
+  MissingOutput
+}
+
+pub struct LocalValuesResultExport {
+  stream : @run_publication_host.PublicationOutputExport
+  bridge : @execution_relation.ManagedPublicationBridge[Int]
+  mut closed : Bool
+}
+pub fn LocalValuesResultExport::close(Self) -> Unit
+pub fn LocalValuesResultExport::output_export(Self) -> @run_publication_host.PublicationOutputExport
+
+pub(all) enum LocalValuesResultExportIssue {
+  MissingOutput
+  UnknownResult
+  Bridge(@execution_relation.ManagedProducerBridgeIssue)
+  Export(@run_publication_host.PublicationOutputExportIssue)
+}
+
+// Type aliases
+
+// Traits
