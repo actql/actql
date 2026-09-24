@@ -21,6 +21,27 @@ struct CapturedEffectSourceArtifact {
 }
 
 ///|
+pub fn captured_effect_source_holding_cid(
+  source : CapturedEffectSourceArtifact,
+) -> String {
+  source.holding_cid
+}
+
+///|
+pub fn captured_effect_source_artifact_cid(
+  source : CapturedEffectSourceArtifact,
+) -> String {
+  source.artifact.identity
+}
+
+///|
+pub fn captured_effect_source_store_authority_cid(
+  source : CapturedEffectSourceArtifact,
+) -> String {
+  contract_string(source.artifact, "store_authority_cid").unwrap()
+}
+
+///|
 /// One admitted source-state update staged by the captured observation. It is
 /// embedded only after its ObservationSet and checkpoint value identity agree.
 struct PendingSourceStateAdvance {

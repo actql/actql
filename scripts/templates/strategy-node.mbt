@@ -756,14 +756,38 @@ pub fn strategy_admit_captured_effect_source_artifact(
   member_index : Int,
   invocation : @publication.PublicationContract,
   artifact : @publication.PublicationContract,
-  holding_cid : String,
+  store_authority_cid : String,
 ) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
   match @publication.admit_captured_effect_source_artifact(
-    preview, member_index, invocation, artifact, holding_cid,
+    preview, member_index, invocation, artifact, store_authority_cid,
   ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceHoldingCid")
+pub fn strategy_captured_effect_source_holding_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_holding_cid(source)
+}
+
+///|
+#export_name("strategyCapturedEffectSourceArtifactCid")
+pub fn strategy_captured_effect_source_artifact_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_artifact_cid(source)
+}
+
+///|
+#export_name("strategyCapturedEffectSourceStoreAuthorityCid")
+pub fn strategy_captured_effect_source_store_authority_cid(
+  source : @publication.CapturedEffectSourceArtifact,
+) -> String {
+  @publication.captured_effect_source_store_authority_cid(source)
 }
 
 ///|

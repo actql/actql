@@ -27,10 +27,11 @@ import {
 import {resolve} from 'node:path';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
-// Physical holdings: Transfer material, encrypted publication evidence and
-// the Local Host's encrypted continuation evidence.
+// Physical holdings: Transfer material, Effect source exports, encrypted
+// publication evidence, and the Local Host's continuation evidence.
 const physicalHoldingNamespaces = Object.freeze([
-  'remote-transfer', 'publication-private', 'local-continuation-private',
+  'remote-transfer', 'effect-source', 'publication-private',
+  'local-continuation-private',
 ]);
 const localContinuationEvidenceNames = Object.freeze([
   'captured_input', 'invocation_request', 'prepared_invocation',

@@ -8,7 +8,8 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
-import {exportPinnedEffectInput} from './effect-input-export.mjs';
+import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
+  preparePinnedEffectSourcePayload} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
@@ -515,11 +516,8 @@ test('Host admits and retains the exact checked Effect Run Definition',
 test('admitted source-free Effect Run computes through the installed Host',
   async t => {
     const {document, environment, mappingCid} = await effectFixture();
-    const alignedDocument = JSON.parse(document);
-    alignedDocument.results.rows = alignedDocument.results.answer;
-    delete alignedDocument.results.answer;
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      JSON.stringify(alignedDocument), 'json', environment, undefined, []);
+      document, 'json', environment, undefined, []);
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
@@ -661,6 +659,8 @@ test('admitted source-free Effect Run computes through the installed Host',
         owned, 0)), {code: 'MoonBitHostFailure'});
       const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
       let previewInputs;
+      let sourcePayload;
+      let sourceHoldingCid;
       try {
         assert.equal(moon.clientProgramEffectInputCount(inputs), 1);
         assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
@@ -671,16 +671,62 @@ test('admitted source-free Effect Run computes through the installed Host',
           owned, 1)), {code: 'MoonBitHostFailure'});
         const input = moon.clientProgramEffectInputAt(inputs, 0);
         assert.ok(input);
-        const {result_definition_cid: ignoredDefinition,
-          ordering_evidence_cid: ignoredOrdering,
-          result_artifact_cid: ignoredIdentity, ...sourceBody} =
-          JSON.parse(storedResults.artifacts[0].wire);
-        const sourceArtifact = control.seal('effect_source_artifact',
-          JSON.stringify({...sourceBody,
-            version: 'actql-effect-source-artifact/0.1',
-            source_result: 'rows', source_binding_cid: cid('c'),
-            store_authority_cid: store.storeAuthorityCid}),
-          publicationLimits);
+        const beforeSource = store.status();
+        await assert.rejects(preparePinnedEffectSourcePayload({
+          moon, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: 1, control, invocation: invocationContract,
+          retention, sourceBindingCid: cid('c'),
+          contractLimits: publicationLimits,
+        }), {message: 'EffectSourceByteLimit'});
+        assert.equal(store.status().reservedBytes,
+          beforeSource.reservedBytes);
+        assert.equal(store.status().objectCount, beforeSource.objectCount);
+        await assert.rejects(preparePinnedEffectSourcePayload({
+          moon, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: outputLimits.maxWireBytes,
+          control: {issueEffectSourceArtifactFromExport() {
+            throw new Error('SourceArtifactRejected');
+          }}, invocation: invocationContract, retention,
+          sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+        }), {message: 'SourceArtifactRejected'});
+        assert.equal(store.status().reservedBytes,
+          beforeSource.reservedBytes);
+        assert.equal(store.status().storedBytes,
+          beforeSource.storedBytes);
+        let sourceWriters = 0;
+        let holdingCommits = 0;
+        const sourceStore = {
+          storeAuthorityCid: store.storeAuthorityCid,
+          createPreparedObjectWriter(maxBytes) {
+            sourceWriters++;
+            return store.createPreparedObjectWriter(maxBytes);
+          },
+          async commitPhysicalHolding(...args) {
+            holdingCommits++;
+            const result = await store.commitPhysicalHolding(...args);
+            if (holdingCommits === 1) {
+              throw new Error('LostEffectSourceCommitAck');
+            }
+            return result;
+          },
+        };
+        sourcePayload = await preparePinnedEffectSourcePayload({
+          moon, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store: sourceStore, maxBytes: outputLimits.maxWireBytes,
+          control, invocation: invocationContract, retention,
+          sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+        });
+        const sourceArtifact = sourcePayload.summary.artifact;
+        assert.equal(JSON.parse(sourceArtifact.wire).source_result, 'rows');
+        assert.equal(JSON.parse(storedResults.artifacts[0].wire)
+          .result_definition_cid, storedResults.definitions[0].identity);
+        assert.equal(storedResults.results[0].occurrence.name, 'answer');
         const preview = effectInputPreview(
           prepared, evidence, definition, invocation, mappingCid,
           sourceArtifact.identity);
@@ -691,9 +737,19 @@ test('admitted source-free Effect Run computes through the installed Host',
         const admittedPreview = control.admitEffectComputationPreview(
           preview.wire, runDefinitionContract, authoringContext,
           publicationLimits);
-        const effectSources = [control.admitCapturedEffectSourceArtifact(
-          admittedPreview, 0, invocationContract, sourceArtifact,
-          store.storeAuthorityCid)];
+        const commitSource = () => commitPinnedEffectSourceHolding({
+          payload: sourcePayload, store: sourceStore, control,
+          preview: admittedPreview,
+          memberIndex: 0, invocation: invocationContract,
+        });
+        await assert.rejects(commitSource(),
+          {message: 'LostEffectSourceCommitAck'});
+        const sourceHolding = await commitSource();
+        assert.equal(sourceWriters, 1);
+        assert.equal(holdingCommits, 2);
+        sourceHoldingCid = sourceHolding.holdingCid;
+        assert.deepEqual(await store.inspectPhysicalHolding(
+          sourceHoldingCid), sourceHolding.record);
         const runEvidence = evidence.slice(0, 3).map((value, index) =>
           control.admitRunEvidence(
             ['bound_invocation_template', 'prepared_invocation',
@@ -710,7 +766,7 @@ test('admitted source-free Effect Run computes through the installed Host',
             rule_catalog_cid: cid('1'), entries: [],
           }), publicationLimits);
         const captureOptions = {
-          execution, storedResults, control, admission: runAdmission,
+          execution, store, storedResults, control, admission: runAdmission,
           runDefinition: runDefinitionContract,
           invocation: invocationContract,
           observation: control.admitRunEvidence('observation_set',
@@ -721,12 +777,25 @@ test('admitted source-free Effect Run computes through the installed Host',
           captureEvidence: {pendingSourceStateAdvances: [],
             modelEvidence: []},
           preview: admittedPreview, plans: [],
-          effectSources,
+          effectSourceHoldings: [sourceHolding],
           contractLimits: publicationLimits,
         };
-        const computation = issueCompletedEffectfulComputationEvidence(
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          store: {storeAuthorityCid: store.storeAuthorityCid,
+            async commitPhysicalHolding() {
+              throw new Error('EffectSourceSyncFailed');
+            }},
+        }), {message: 'EffectSourceSyncFailed'});
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          effectSourceHoldings: [{...sourceHolding,
+            record: {...sourceHolding.record, manifest_cid: cid('9')}}],
+        }), {code: 'InvalidCompletedEffectSourceHolding'});
+        const computation = await issueCompletedEffectfulComputationEvidence(
           captureOptions);
-        assert.throws(() => issueCompletedEffectfulComputationEvidence({
+        assert.equal(sourceWriters, 1);
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions, storedResults: {...storedResults},
         }), {code: 'InvalidCompletedEffectfulComputationOptions'});
         assert.equal(computation.manifest.name, 'result_manifest');
@@ -740,7 +809,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           control.admitEffectComputationPreview(
             foreignArtifactPreview.wire, runDefinitionContract,
             authoringContext, publicationLimits);
-        assert.throws(() => issueCompletedEffectfulComputationEvidence({
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions,
           preview: foreignAdmittedPreview, plans: [],
         }), {code: 'MoonBitHostFailure'});
@@ -789,7 +858,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.ok(other);
         const otherExecution = await runCapturedEffectComputation(other);
         try {
-          assert.throws(() => issueCompletedEffectfulComputationEvidence({
+          await assert.rejects(issueCompletedEffectfulComputationEvidence({
             ...captureOptions, execution: otherExecution,
           }), {code: 'InvalidCompletedEffectfulComputationOptions'});
           assert.throws(() => checked(
@@ -839,7 +908,27 @@ test('admitted source-free Effect Run computes through the installed Host',
           [{id: 1}, {id: 2}]);
         assert.deepEqual(exported.fields, ['id']);
         assert.match(exported.logicalCid, /^sha256:[0-9a-f]{64}$/);
+        assert.match(exported.schemaCid, /^sha256:[0-9a-f]{64}$/);
+        assert.equal(exported.rowCount, 2);
+        assert.equal(sourcePayload.summary.logicalCid, exported.logicalCid);
+        assert.equal(sourcePayload.summary.schemaCid, exported.schemaCid);
+        assert.equal(sourcePayload.summary.rowCount, exported.rowCount);
+        assert.equal(sourcePayload.physical.cid,
+          `sha256:${createHash('sha256')
+            .update(chunks.join('')).digest('hex')}`);
+        const storedChunks = [];
+        await store.consumePhysicalHolding(sourceHoldingCid, 0,
+          chunk => storedChunks.push(Buffer.from(chunk)));
+        assert.equal(Buffer.concat(storedChunks).toString('utf8'),
+          chunks.join(''));
       } finally {
+        if (sourceHoldingCid !== undefined) {
+          assert.equal((await store.retirePhysicalHolding(
+            sourceHoldingCid)).deleted, true);
+        }
+        if (sourcePayload?.prepared.status().pending === true) {
+          await sourcePayload.prepared.release();
+        }
         assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
       }
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);

@@ -2404,6 +2404,59 @@ pub fn client_program_effect_input_export_fields(
 }
 
 ///|
+#export_name("clientProgramEffectInputExportSchemaCid")
+pub fn client_program_effect_input_export_schema_cid(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> String {
+  @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+}
+
+///|
+#export_name("clientProgramEffectInputExportRowCount")
+pub fn client_program_effect_input_export_row_count(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Int {
+  @execution.completed_relation_export_measurement(receipt).row_count
+}
+
+///|
+/// Issue source evidence from the pinned checked occurrence and the completed
+/// export receipt. Store custody is still a separate adapter obligation.
+#export_name("clientProgramIssueEffectSourceArtifact")
+pub fn client_program_issue_effect_source_artifact(
+  input : @strategy.CapturedEffectInput,
+  receipt : @execution.CompletedRelationExportReceipt,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  source_binding_cid : String,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.EffectSourceArtifactIssue,
+] {
+  @publication.issue_effect_source_artifact(
+    invocation,
+    retention,
+    @execution.managed_result_occurrence_name(
+      @strategy.captured_effect_input_occurrence(input),
+    ),
+    source_binding_cid,
+    store_authority_cid,
+    client_program_effect_input_export_logical_cid(receipt),
+    client_program_effect_input_export_schema_cid(receipt),
+    client_program_effect_input_export_row_count(receipt),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramEffectInputExportReleaseReceipt")
 pub fn client_program_effect_input_export_release_receipt(
   receipt : @execution.CompletedRelationExportReceipt,
