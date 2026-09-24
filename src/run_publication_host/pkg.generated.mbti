@@ -27,6 +27,8 @@ pub fn admit_prepared_client_publication_limit_set(PreparedClientProgram, Array[
 
 pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array[String], Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationPlanFactIssue]
 
+pub fn admit_prepared_client_result_plan(PreparedClientProgram, Int, String, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanAdmissionIssue]
+
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
@@ -56,6 +58,14 @@ pub fn client_request_parameters_cid(ClientRequestIdentity) -> String
 pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
+
+pub fn client_result_plan_cid(ClientResultPlanIdentity) -> String
+
+pub fn client_result_plan_name(ClientResultPlanIdentity) -> String
+
+pub fn client_result_plan_row_contract_cid(ClientResultPlanIdentity) -> String
+
+pub fn client_result_plan_wire(ClientResultPlanIdentity) -> String
 
 pub fn client_result_row_contract_cid(ClientResultRowContractIdentity) -> String
 
@@ -100,6 +110,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
+
+pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue]
 
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
@@ -254,6 +266,31 @@ pub(all) enum ClientRequestIdentityRelation {
   SameRequest
   ChangedIntent
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientResultPlanAdmissionIssue {
+  Issue(ClientResultPlanIssue)
+  MismatchedPlan
+}
+
+pub struct ClientResultPlanIdentity {
+  wire : String
+  cid : String
+  result_name : String
+  unit_definition_cid : String
+  unit_result_name : String
+  unit_result_ordinal : Int
+  row_contract_cid : String
+}
+
+pub(all) enum ClientResultPlanIssue {
+  InvalidLimits
+  MissingResult
+  MissingPublication
+  MismatchedPublication
+  MissingProjection
+  RowContract(ClientResultRowContractIssue)
+  Encoding
+}
 
 pub struct ClientResultRowContractIdentity {
   unit_definition_cid : String

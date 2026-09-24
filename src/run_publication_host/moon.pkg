@@ -22,6 +22,8 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/value_contract" @contract,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_results" @results,
+  "actql/actql/order_key" @order,
 }
 
 import {
