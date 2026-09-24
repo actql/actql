@@ -743,7 +743,22 @@ pub fn salesforce_collection_write_response_row_count(
 pub fn salesforce_collection_write_response_row_applied(
   response : @catalog.WriteCollectionResponse,
   index : Int,
-) -> Bool {
-  @catalog.write_collection_result_at(response, index)
-  is Some(@catalog.RowApplied(_, _))
+) -> Bool raise SalesforceCatalogBridgeIssue {
+  match @catalog.write_collection_bound_result_at(response, index) {
+    Some((_, @catalog.RowApplied(_, _))) => true
+    Some((_, @catalog.RowFailed(_))) => false
+    None => raise InvalidResource
+  }
+}
+
+///|
+#export_name("salesforceCollectionWriteResponseRowCid")
+pub fn salesforce_collection_write_response_row_cid(
+  response : @catalog.WriteCollectionResponse,
+  index : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  match @catalog.write_collection_bound_result_at(response, index) {
+    Some((cid, _)) => cid
+    None => raise InvalidResource
+  }
 }
