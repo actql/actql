@@ -1382,7 +1382,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "json_pick_leaf_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/json_pick_domains_wbtest.mbt",
+          "fixture": "json pick admits independently counted leaf work and workspace"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1692,7 +1701,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "dedupe_empty_keyed_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/dedupe_sequence_wbtest.mbt",
+          "fixture": "empty keyed dedupe admits independently counted work and workspace"
+        }
+      ]
     },
     {
       "inventory": "rela",

@@ -476,6 +476,14 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('watermark_fixed_work_workspace_exact_one_short')) {
     fail(`${label}: independent watermark resource evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'json_pick' &&
+    !boundaryRoles.has('json_pick_leaf_work_workspace_exact_one_short')) {
+    fail(`${label}: independent json pick resource evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'dedupe_rows' &&
+    !boundaryRoles.has('dedupe_empty_keyed_work_workspace_exact_one_short')) {
+    fail(`${label}: independent dedupe resource evidence is missing`);
+  }
   for (const operation of ['row_window', 'except', 'intersect']) {
     if (route.family === 'RelA' && route.operation === operation &&
       !boundaryRoles.has(`${operation}_empty_schema_workspace_exact_one_short`)) {

@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 61 |
+| Operation-specific boundary records | 63 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -25,6 +25,14 @@ calculated 24 units of control work and an eleven-slot workspace peak. Exact
 limits succeed and either one-short limit fails. This proves that evaluator's
 fixed mark-policy resource boundary, not its in-flight cancellation or every
 watermark variant.
+The `json_pick` route also binds an independently counted one-row object
+fixture: 26 control-work units and a twelve-slot workspace peak for a
+single leaf. Exact limits succeed and either one-short limit fails. This
+does not establish in-flight cancellation or every path and value variant.
+The `dedupe_rows` route binds a separately derived empty keyed-input fixture
+with 29 control-work units and a twelve-slot peak. Exact limits succeed and
+one-short limits fail. This does not prove nonempty grouping, representative
+tie handling, or interruption of the synchronous whole-sequence evaluator.
 
 The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
 validate output schema names without first materializing the name array. They

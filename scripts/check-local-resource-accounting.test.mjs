@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 61 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 63 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('watermark loses its independent resource boundary with its fixture', () => {
@@ -59,6 +59,22 @@ test('watermark loses its independent resource boundary with its fixture', () =>
       entry.operation === 'watermark_rows');
     route.boundary_tests = [];
   }), /RelA watermark_rows: independent watermark resource evidence is missing/u);
+});
+
+test('json pick loses its independent resource boundary with its fixture', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'json_pick');
+    route.boundary_tests = [];
+  }), /RelA json_pick: independent json pick resource evidence is missing/u);
+});
+
+test('dedupe loses its independent resource boundary with its fixture', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'dedupe_rows');
+    route.boundary_tests = [];
+  }), /RelA dedupe_rows: independent dedupe resource evidence is missing/u);
 });
 
 test('generated sequence operators reject missing fixed work evidence', () => {

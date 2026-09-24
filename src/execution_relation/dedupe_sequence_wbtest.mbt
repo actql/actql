@@ -151,6 +151,47 @@ test "global dedupe handles empty input and rejects only first-place ties" {
 }
 
 ///|
+test "empty keyed dedupe admits independently counted work and workspace" {
+  let owner = bound_pipeline(dedupe_source("[]", "[\"k\"]", ""))
+  let input : Table = {
+    owner,
+    id: @lower.kernel_input(row_kernel(owner, 1)),
+    names: ["k", "rank", "payload"],
+    rows: [],
+  }
+  // Fifteen name-index units; two key/order slots; five field-name bytes;
+  // two dedupe-index terms; two sort terms; three retained schema entries.
+  let exact_work = 15 + 2 + 5 + 2 + 2 + 3
+  // Two input-name arrays (six), key/order terms (two), index terms (two),
+  // and the sort's two terms overlap at the twelve-slot peak.
+  let exact_workspace = 6 + 2 + 2 + 2
+  for
+    (work, space, success) in [
+      (exact_work, exact_workspace, true),
+      (exact_work - 1, exact_workspace, false),
+      (exact_work, exact_workspace - 1, false),
+    ] {
+    let control = { remaining: work, max_frames: 10, }
+    let workspace = row_workspace(space)
+    let result = evaluate_dedupe_selection(
+      row_kernel(owner, 1),
+      input,
+      0,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    if success {
+      assert_eq(result.unwrap(), [])
+      assert_eq(control.remaining, 0)
+      assert_eq(workspace.peak, exact_workspace)
+    } else {
+      assert_true(result is Err(RowLimit))
+    }
+  }
+}
+
+///|
 test "unselected dedupe top tie fails the sequence without publishing an earlier output" {
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
