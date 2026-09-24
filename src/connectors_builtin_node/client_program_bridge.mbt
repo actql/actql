@@ -587,6 +587,36 @@ pub fn client_program_check_plan_fact_manifest_identity(
 }
 
 ///|
+/// Encode a complete fact array after its individual owners have assembled it.
+#export_name("clientProgramEncodePlanFactManifestIdentity")
+pub fn client_program_encode_plan_fact_manifest_identity(
+  plan_facts_wire : String,
+) -> Result[
+  @publication_host.PlanFactManifestIdentity,
+  @publication_host.PlanFactManifestIdentityIssue,
+] {
+  @publication_host.encode_plan_fact_manifest_identity(
+    plan_facts_wire, 100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientProgramPlanFactManifestWire")
+pub fn client_program_plan_fact_manifest_wire(
+  value : @publication_host.PlanFactManifestIdentity,
+) -> String {
+  @publication_host.plan_fact_manifest_identity_wire(value)
+}
+
+///|
+#export_name("clientProgramPlanFactManifestCid")
+pub fn client_program_plan_fact_manifest_cid(
+  value : @publication_host.PlanFactManifestIdentity,
+) -> String {
+  @publication_host.plan_fact_manifest_identity_cid(value)
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
