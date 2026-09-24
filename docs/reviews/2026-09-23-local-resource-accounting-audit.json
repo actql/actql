@@ -30,6 +30,7 @@
     {"family": "SGA", "operation": "degree", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
+    {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},

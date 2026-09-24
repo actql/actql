@@ -2946,6 +2946,18 @@
           "in_flight_cancel": "subgraph_fused_in_flight_host_timer",
           "cleanup": "subgraph_cancel_cleanup"
         }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subgraph_literal_control_work_exact_one_short",
+            "one_short_limit": "subgraph_literal_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "subgraph_combined_workspace_exact",
+            "one_short_limit": "subgraph_combined_workspace_one_short"
+          }
+        }
       }
     },
     {
