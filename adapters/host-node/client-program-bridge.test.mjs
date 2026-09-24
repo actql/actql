@@ -469,6 +469,34 @@ test('Node ABI derives the checked named Result and request identity', async () 
     prepared, moon.clientProgramLocalValuesPlanGraphWire(graph)
       .replace('"answer"', '"foreign"'))),
   {code: 'MoonBitHostFailure'});
+  const executable = checked(
+    moon.clientProgramIssueLocalValuesExecutablePlan(prepared));
+  const executableBody = JSON.parse(
+    moon.clientProgramLocalValuesExecutablePlanWire(executable));
+  const factManifest = JSON.parse(
+    moon.clientProgramLocalValuesPlanFactManifestWire(executable));
+  assert.equal(executableBody.version, 'actql-executable-plan/0.1');
+  assert.equal(executableBody.executable_plan_cid,
+    moon.clientProgramLocalValuesExecutablePlanCid(executable));
+  assert.equal(executableBody.executable_plan_cid,
+    hashWithoutSelf(executableBody, 'executable_plan_cid'));
+  assert.deepEqual(executableBody.nodes, [JSON.parse(fragmentWire)]);
+  assert.deepEqual(executableBody.data_edges, []);
+  assert.deepEqual(executableBody.root_refs, [JSON.parse(directRootWire)]);
+  assert.deepEqual(executableBody.required_profiles, []);
+  assert.deepEqual(executableBody.source_state_requirements, []);
+  assert.deepEqual(executableBody.plan_facts, factManifest.plan_facts);
+  assert.equal(executableBody.plan_fact_manifest_cid,
+    factManifest.plan_fact_manifest_cid);
+  assert.equal(factManifest.plan_fact_manifest_cid,
+    hashWithoutSelf(factManifest, 'plan_fact_manifest_cid'));
+  assert.deepEqual(executableBody.execution_material.result_plan_logical_cids,
+    {answer: moon.clientProgramResultPlanCid(resultPlan)});
+  assert.equal(executableBody.execution_material.aoa_contract_cid,
+    'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');
+  assert.equal(executableBody.resolved_limits.length, 2);
+  assert.equal(executableBody.limit_bindings.length, 2);
+  assert.ok(executableBody.bound_witnesses.length > 1);
   assert.equal(moon.clientProgramDirectValuesResultRootPlanCid(directRoot),
     moon.clientProgramResultPlanCid(resultPlan));
   assert.equal(moon.clientProgramDirectValuesResultRootRowContractCid(directRoot),

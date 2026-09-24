@@ -917,6 +917,74 @@ pub fn client_program_local_values_plan_graph_wire(
 }
 
 ///|
+pub(all) enum ClientProgramValuesPlanBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Plan(@publication_host.ClientValuesExecutablePlanIssue)
+}
+
+///|
+/// Issue the complete private Plan for the installed direct Values profile.
+/// The pinned manifest bodies are admitted before compilation; this operation
+/// does not grant Host Run authority or expose Plan material on public wire.
+#export_name("clientProgramIssueLocalValuesExecutablePlan")
+pub fn client_program_issue_local_values_executable_plan(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientValuesExecutablePlan,
+  ClientProgramValuesPlanBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  match
+    @publication_host.issue_prepared_client_values_executable_plan(
+      prepared,
+      manifests,
+      client_local_sequence_limits(),
+      1000,
+      10000,
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(plan) => Ok(plan)
+    Err(issue) => Err(Plan(issue))
+  }
+}
+
+///|
+#export_name("clientProgramLocalValuesExecutablePlanWire")
+pub fn client_program_local_values_executable_plan_wire(
+  value : @publication_host.ClientValuesExecutablePlan,
+) -> String {
+  @publication_host.client_values_executable_plan_wire(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesExecutablePlanCid")
+pub fn client_program_local_values_executable_plan_cid(
+  value : @publication_host.ClientValuesExecutablePlan,
+) -> String {
+  @publication_host.client_values_executable_plan_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesPlanFactManifestWire")
+pub fn client_program_local_values_plan_fact_manifest_wire(
+  value : @publication_host.ClientValuesExecutablePlan,
+) -> String {
+  @publication_host.client_values_executable_plan_fact_manifest_wire(value)
+}
+
+///|
 /// Checked Result row type from the exact publication port, after its
 /// projection. This is private Plan material, not Run admission.
 #export_name("clientProgramIssueResultRowContract")

@@ -74,6 +74,8 @@ pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.Prep
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
+pub fn client_program_issue_local_values_executable_plan(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesExecutablePlan, ClientProgramValuesPlanBridgeIssue]
+
 pub fn client_program_issue_local_values_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
 
 pub fn client_program_issue_local_values_output_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[@execution_relation.RelationSchemaIdentity, @run_publication_host.ClientValuesOutputSchemaIssue]
@@ -94,6 +96,10 @@ pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoA
 
 pub fn client_program_local_values_aoa_wire(@run_publication_host.ClientValuesAoAIdentity) -> String
 
+pub fn client_program_local_values_executable_plan_cid(@run_publication_host.ClientValuesExecutablePlan) -> String
+
+pub fn client_program_local_values_executable_plan_wire(@run_publication_host.ClientValuesExecutablePlan) -> String
+
 pub fn client_program_local_values_fragment_output_contract_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_program_local_values_fragment_output_contract_wire(@run_publication_host.ClientValuesFragmentNode) -> String
@@ -105,6 +111,8 @@ pub fn client_program_local_values_output_schema_cid(@execution_relation.Relatio
 pub fn client_program_local_values_output_schema_wire(@execution_relation.RelationSchemaIdentity) -> String
 
 pub fn client_program_local_values_pipeline_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesPipelineIssue]
+
+pub fn client_program_local_values_plan_fact_manifest_wire(@run_publication_host.ClientValuesExecutablePlan) -> String
 
 pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientValuesPlanGraph) -> String
 
@@ -1462,6 +1470,11 @@ pub(all) enum ClientProgramBridgeIssue {
 pub(all) enum ClientProgramBridgeOutcome {
   Prepared(@run_publication_host.PreparedClientProgram)
   Rejected(ClientProgramBridgeIssue)
+}
+
+pub(all) enum ClientProgramValuesPlanBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Plan(@run_publication_host.ClientValuesExecutablePlanIssue)
 }
 
 type StrategyHostManagedResultImport
