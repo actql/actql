@@ -88,12 +88,17 @@ export async function recoverProjectedEffectResponse({
 // terminal Effect fact; no write credential or new send is available here.
 export async function readAuthorizedEffectOutcomes(options) {
   const {ledger, claims, batch = false} = options;
-  const {stored, binding} = await readAuthorizedEffectResponse(options);
+  const ownedClaims = batch && Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims)
+    : !batch && claims ? snapshotEffectDispatchClaim(claims) : undefined;
+  const {stored, binding} = await readAuthorizedEffectResponse({
+    ...options, claims: ownedClaims,
+  });
   if (stored === undefined) return Object.freeze({outcomes: undefined,
     binding});
   const read = batch ? ledger.readClaimedBatchOutcomes
     : ledger.readClaimedOutcome;
   if (typeof read !== 'function') fail('InvalidEffectOutcomeRead');
-  const outcomes = read.call(ledger, claims);
+  const outcomes = read.call(ledger, ownedClaims);
   return Object.freeze({outcomes, binding});
 }

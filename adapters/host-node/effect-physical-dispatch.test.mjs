@@ -102,6 +102,20 @@ test('exact single claim reopens physical outcome custody without a send',
       authorizeEvidenceRead: () => true,
     });
     assert.equal(authorized.outcomes.outcomeCid, cid('5'));
+    const mutableClaim = {...claim};
+    let releaseRead;
+    const readGate = new Promise(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: mutableClaim, commonMoon: moon,
+      expectedRequestCid: claim.canonicalRequestCid,
+      authorizeEvidenceRead: async () => {
+        await readGate;
+        return true;
+      },
+    });
+    mutableClaim.canonicalRequestCid = cid('9');
+    releaseRead();
+    assert.equal((await pendingRead).outcomes.outcomeCid, cid('5'));
     await assert.rejects(readAuthorizedEffectOutcomes({
       ledger: reopened, claims: claim, commonMoon: moon,
       expectedRequestCid: claim.canonicalRequestCid,
@@ -174,6 +188,21 @@ test('exact Collections claim reopens distinct row outcome custody',
     });
     assert.deepEqual(authorized.outcomes.map(outcome => outcome.outcomeCid),
       [cid('5'), cid('6')]);
+    const mutableClaims = [...claims];
+    let releaseRead;
+    const readGate = new Promise(resolve => { releaseRead = resolve; });
+    const pendingRead = readAuthorizedEffectOutcomes({
+      ledger: reopened, claims: mutableClaims, batch: true, commonMoon: moon,
+      expectedRequestCid: claims[0].canonicalRequestCid,
+      authorizeEvidenceRead: async () => {
+        await readGate;
+        return true;
+      },
+    });
+    mutableClaims.reverse();
+    releaseRead();
+    assert.deepEqual((await pendingRead).outcomes.map(outcome =>
+      outcome.outcomeCid), [cid('5'), cid('6')]);
     assert.throws(() => reopened.readClaimedBatchOutcomes(
       [...claims].reverse()), {code: 'EffectCollectionResponseBindingMismatch'});
     const retry = await captureClaimedEffectCollectionResponse({
