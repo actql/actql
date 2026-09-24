@@ -1053,7 +1053,7 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
 }
 
 ///|
-test "Events to rows scans each source field once per record" {
+test "Events to rows scans once and enforces projection limits" {
   let source_owner = @lower.bind_parameters(
     @lower.prepare(
       @pipeline.check(
@@ -1135,7 +1135,8 @@ test "Events to rows scans each source field once per record" {
     0,
     @records.producer_read_view(events_input).unwrap(),
     1,
-    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    // One row container and six scalar values need seven value nodes.
+    { max_nodes: 7, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
     100,
     1000,
   ).unwrap()
@@ -1158,6 +1159,69 @@ test "Events to rows scans each source field once per record" {
     }
   }
   assert_eq(@local_bridge.cleanup_events_to_rows(projection), Ok(true))
+  let one_short_width = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    5,
+    1000,
+  )
+  assert_true(
+    one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
+  )
+  let one_short_value = @local_bridge.start_events_view_to_rows(
+    @bounded.control(),
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 6, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+  ).unwrap()
+  let mut value_failed = false
+  for _ in 0..<25 {
+    if value_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.RelationOutput(@execution.CaptureLimit),
+        ..
+      ) => value_failed = true
+      _ => abort("one-short Events projection did not reject output")
+    }
+  }
+  assert_true(value_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_events_view_to_rows(
+    control,
+    task_test_completion(projection_owner),
+    prepared_sequence(projection_owner),
+    0,
+    @records.producer_read_view(events_input).unwrap(),
+    1,
+    { max_nodes: 7, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Continue(..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_events_to_rows(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_events_to_rows(cancelled), Ok(true))
   assert_true(@execution.completed_output_available(source))
   assert_true(@records.completed_available(events))
   assert_true(@records.discard_completed(events))
