@@ -366,6 +366,55 @@ test "Captured Run issuance rejects a foreign Receipt before exposure" {
 }
 
 ///|
+test "Effect-free Captured Run rejects a final Effectful Receipt" {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let receipt_body = @json.object_without_field(
+    captured_test_value(publication_contract_json(chain.receipt)),
+    "receipt_identity_cid",
+  ).unwrap()
+  let final_body = captured_test_wire(receipt_body).replace(
+    old="{\"aoa_ir_version\":",
+    new="{\"effect_preview_cid\":\"" +
+      ordering_test_cid("1") +
+      "\",\"effect_set_apply_receipt_cid\":\"" +
+      ordering_test_cid("2") +
+      "\",\"captured_run_cid\":\"" +
+      ordering_test_cid("3") +
+      "\",\"aoa_ir_version\":",
+  )
+  let final_receipt = seal_publication_contract(
+    "run_receipt", final_body, 65536, 4096, 32,
+  ).unwrap()
+  assert_eq(
+    issue_effect_free_captured_run(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      final_receipt,
+      [snapshot],
+      [],
+      chain.authoring,
+      chain.models,
+      65536,
+      4096,
+      32,
+    ).unwrap_err(),
+    CaptureIssuanceChain(EvidenceNotEffectFree),
+  )
+}
+
+///|
 test "pending source-state advance binds the captured ObservationSet" {
   let chain = captured_run_test_chain()
   let next_cid = "sha256:f743721c5679bdef371b58eaa6b2a0df9d869c2653301090ea92a75025881f8b"
