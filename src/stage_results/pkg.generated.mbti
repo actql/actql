@@ -31,7 +31,7 @@ pub fn attached_work(AttachedImports) -> Int
 
 pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
 
-pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogContents, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
+pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogReferences, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
 
 pub fn bind_effect_mapping_rules(EffectMappingShapes, Int) -> Result[EffectMappingRules, EffectMappingRuleIssue]
 
@@ -92,6 +92,8 @@ pub fn effect_command_target_issue_stage(EffectCommandTargetIssue) -> Int
 pub fn effect_command_targets_catalogs(EffectCommandTargets) -> @check_environment.CatalogContents
 
 pub fn effect_command_targets_effects(EffectCommandTargets) -> EffectResultBindings
+
+pub fn effect_command_targets_references(EffectCommandTargets) -> @check_environment.CatalogReferences
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
@@ -245,7 +247,7 @@ pub fn local_source_wiring(PreparedLocalSource) -> ResultWiring
 
 pub fn operations(Checked) -> @stage_parameters.CollectedOperations
 
-pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogContents, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
+pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
 pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
@@ -366,7 +368,7 @@ pub(all) enum EffectCommandTargetIssueKind {
 
 pub struct EffectCommandTargets {
   effects : EffectResultBindings
-  catalogs : @check_environment.CatalogContents
+  references : @check_environment.CatalogReferences
   entries : Array[EffectCommandTargetBinding]
   work : Int
 }
