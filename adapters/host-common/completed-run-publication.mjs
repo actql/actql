@@ -341,18 +341,18 @@ export function releaseCompletedRunPreparedPayloads(storedResults, control) {
 // Bind an already retained Effectful computation to its exact private
 // Preview. The prepared Store owners remain with the caller until the final
 // publication commit or an explicit release; issuing evidence is not commit.
-export function issueCompletedEffectfulComputationEvidence(options) {
+export async function issueCompletedEffectfulComputationEvidence(options) {
   if (!exactKeys(options, [
-    'execution', 'storedResults', 'control', 'admission', 'runDefinition',
+    'execution', 'store', 'storedResults', 'control', 'admission', 'runDefinition',
     'invocation', 'observation', 'normalizationJournal', 'authoringContext',
     'receiptEvidence', 'captureEvidence', 'preview', 'plans',
-    'effectSources',
+    'effectSourceHoldings',
     'contractLimits',
   ])) fail('InvalidCompletedEffectfulComputationOptions');
   const {
-    execution, storedResults, control, admission, runDefinition,
+    execution, store, storedResults, control, admission, runDefinition,
     invocation, observation, normalizationJournal, authoringContext,
-    receiptEvidence, captureEvidence, preview, plans, effectSources,
+    receiptEvidence, captureEvidence, preview, plans, effectSourceHoldings,
     contractLimits,
   } = options;
   validateExecution(execution);
@@ -366,7 +366,13 @@ export function issueCompletedEffectfulComputationEvidence(options) {
       !Array.isArray(storedResults.definitions) ||
       !Array.isArray(storedResults.artifacts) ||
       !Array.isArray(plans) ||
-      !Array.isArray(effectSources) ||
+      !Array.isArray(effectSourceHoldings) ||
+      typeof store?.commitPhysicalHolding !== 'function' ||
+      typeof store.storeAuthorityCid !== 'string' ||
+      !['capturedEffectSourceHoldingCid',
+        'capturedEffectSourceArtifactCid',
+        'capturedEffectSourceStoreAuthorityCid'].every(name =>
+        typeof control?.[name] === 'function') ||
       !exactKeys(receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
@@ -378,6 +384,22 @@ export function issueCompletedEffectfulComputationEvidence(options) {
         'issueEffectfulCapturedRun'].every(name =>
         typeof control?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulComputationOptions');
+  }
+  for (const holding of effectSourceHoldings) {
+    const source = holding?.source;
+    const record = holding?.record;
+    if (record?.namespace !== 'effect-source' ||
+        record?.holding_cid !==
+          control.capturedEffectSourceHoldingCid(source) ||
+        record.manifest_cid !==
+          control.capturedEffectSourceArtifactCid(source) ||
+        control.capturedEffectSourceStoreAuthorityCid(source) !==
+          store.storeAuthorityCid) {
+      fail('InvalidCompletedEffectSourceHolding');
+    }
+    // An existing exact record must be re-synced, not merely visible.
+    // No payload is re-exported on this reconciliation path.
+    await store.commitPhysicalHolding(record, []);
   }
   const definitions = storedResults.definitions;
   const artifacts = storedResults.artifacts;
@@ -398,7 +420,7 @@ export function issueCompletedEffectfulComputationEvidence(options) {
       captureEvidence.pendingSourceStateAdvances,
     authoringContext,
     modelEvidence: captureEvidence.modelEvidence,
-    effectSources,
+    effectSources: effectSourceHoldings.map(value => value.source),
   }, preview, plans, contractLimits);
   return Object.freeze({manifest, computationReceipt: receipt, capturedRun});
 }

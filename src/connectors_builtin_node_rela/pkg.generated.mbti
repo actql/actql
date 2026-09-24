@@ -124,6 +124,10 @@ pub fn client_program_effect_input_export_ready(@execution_relation.CompletedRes
 
 pub fn client_program_effect_input_export_release_receipt(@execution_relation.CompletedRelationExportReceipt) -> Unit
 
+pub fn client_program_effect_input_export_row_count(@execution_relation.CompletedRelationExportReceipt) -> Int
+
+pub fn client_program_effect_input_export_schema_cid(@execution_relation.CompletedRelationExportReceipt) -> String
+
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
@@ -183,6 +187,8 @@ pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientE
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
+
+pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
@@ -351,6 +357,12 @@ pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessP
 pub fn strategy_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
 
 pub fn strategy_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
+pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
+
+pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 

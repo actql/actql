@@ -2795,15 +2795,51 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
-function physicalHolding(holdingCid, manifestCid, objects) {
+function physicalHolding(holdingCid, manifestCid, objects,
+  namespace = 'remote-transfer') {
   return Object.freeze({
     version: 'actql-local-physical-holding/0.1',
-    namespace: 'remote-transfer',
+    namespace,
     holding_cid: holdingCid,
     manifest_cid: manifestCid,
     objects: Object.freeze(objects.map(object => Object.freeze({...object}))),
   });
 }
+
+test('Effect source and other physical holdings release independently',
+  async t => {
+    const setup = await fixture(t);
+    const source = await preparePhysical(setup.store, 'source rows');
+    const sourceHolding = physicalHolding(
+      digest('effect source holding'), digest('effect source artifact'),
+      [{cid: source.cid, byte_count: source.bytes}], 'effect-source');
+    await setup.store.commitPhysicalHolding(sourceHolding,
+      [source.prepared]);
+    const otherHolding = physicalHolding(
+      digest('other holding'), sourceHolding.manifest_cid,
+      sourceHolding.objects);
+    await setup.store.sharePhysicalHolding(sourceHolding.holding_cid,
+      otherHolding);
+    assert.equal(setup.store.status().storedBytes, source.bytes);
+    await setup.store.close();
+    const reopened = await openLocalPublicationStore(setup.configuration,
+      contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      sourceHolding.holding_cid), sourceHolding);
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      otherHolding.holding_cid), otherHolding);
+    assert.equal((await reopened.retirePhysicalHolding(
+      sourceHolding.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, source.bytes);
+    const chunks = [];
+    await reopened.consumePhysicalHolding(otherHolding.holding_cid,
+      0, chunk => chunks.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(chunks).toString('utf8'), 'source rows');
+    assert.equal((await reopened.retirePhysicalHolding(
+      otherHolding.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, 0);
+  });
 
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');

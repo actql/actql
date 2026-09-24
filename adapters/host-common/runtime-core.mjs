@@ -1871,19 +1871,45 @@ function publicationControl(moon) {
       ));
     },
     admitCapturedEffectSourceArtifact(preview, memberIndex, invocation,
-      artifact, holdingCid) {
+      artifact, storeAuthorityCid) {
       const ownedPreview = computationPreviewTokens.get(preview);
       if (ownedPreview === undefined ||
           !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          typeof holdingCid !== 'string') {
+          typeof storeAuthorityCid !== 'string') {
         throw new TypeError('Invalid captured Effect source artifact');
       }
       return inspectEffectSource(checked(
         moon.strategyAdmitCapturedEffectSourceArtifact(
           ownedPreview, memberIndex, token(invocation), token(artifact),
-          holdingCid,
+          storeAuthorityCid,
         ),
       ));
+    },
+    issueEffectSourceArtifactFromExport(input, receipt, invocation,
+      retention, sourceBindingCid, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'Effect source Artifact');
+      if (typeof moon.clientProgramIssueEffectSourceArtifact !== 'function' ||
+          typeof sourceBindingCid !== 'string' ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect source Artifact export');
+      }
+      return inspect(checked(moon.clientProgramIssueEffectSourceArtifact(
+        input, receipt, token(invocation), token(retention),
+        sourceBindingCid, storeAuthorityCid, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
+      )));
+    },
+    capturedEffectSourceHoldingCid(source) {
+      return moon.strategyCapturedEffectSourceHoldingCid(
+        effectSourceToken(source));
+    },
+    capturedEffectSourceArtifactCid(source) {
+      return moon.strategyCapturedEffectSourceArtifactCid(
+        effectSourceToken(source));
+    },
+    capturedEffectSourceStoreAuthorityCid(source) {
+      return moon.strategyCapturedEffectSourceStoreAuthorityCid(
+        effectSourceToken(source));
     },
     admitCompletedResultSnapshot(exportHandle, limits) {
       issuanceLimits(limits, 'completed Result snapshot');

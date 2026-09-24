@@ -41,6 +41,12 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
+pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
+
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
@@ -180,6 +186,8 @@ pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
+pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
 
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
@@ -706,6 +714,14 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   MemberOutcomeMismatch(Int)
   SetStatusMismatch
 } derive(@debug.Debug)
+
+pub(all) enum EffectSourceArtifactIssue {
+  EffectSourceWrongContract
+  EffectSourceInvalidBinding
+  EffectSourceInvalidMeasurement
+  EffectSourceEncoding
+  EffectSourceContract(PublicationContractIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectfulFinalChainIssue {
   Computation(RunEvidenceChainIssue)

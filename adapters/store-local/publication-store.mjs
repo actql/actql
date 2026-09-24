@@ -540,7 +540,8 @@ export async function openLocalPublicationStore(
       'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
     ]) ||
         value.version !== 'actql-local-physical-holding/0.1' ||
-        !['remote-transfer', 'publication-private'].includes(value.namespace) ||
+        !['remote-transfer', 'publication-private', 'effect-source']
+          .includes(value.namespace) ||
         !cidPattern.test(value.holding_cid) ||
         !cidPattern.test(value.manifest_cid) ||
         !Array.isArray(value.objects) ||
