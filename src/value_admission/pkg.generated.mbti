@@ -22,6 +22,8 @@ pub fn admit_number_usage(@value_contract.Contract, @decode_core.Cursor, Limits)
 
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn advance_bounded_key_comparison(BoundedKeyComparison, Int) -> Result[BoundedKeyComparisonPoll, KeyOrderIssue]
+
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
@@ -118,6 +120,8 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 
 pub fn reference_wire(ReferenceValue) -> String
 
+pub fn start_bounded_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
+
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
 pub fn text_value(String, Int) -> Value?
@@ -128,6 +132,13 @@ pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 // Types and methods
 type ArrayBuilder
+
+type BoundedKeyComparison
+
+pub enum BoundedKeyComparisonPoll {
+  KeyComparisonContinue(work~ : Int)
+  KeyComparisonComplete(order~ : Int, work~ : Int)
+}
 
 pub struct CheckedValue {
   contract : @value_contract.Contract
