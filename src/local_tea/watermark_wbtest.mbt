@@ -176,9 +176,12 @@ fn sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
 }
 
 ///|
-fn limits(workspace? : Int = 1000) -> @storage.Limits {
+fn limits(
+  workspace? : Int = 1000,
+  max_input_records? : Int = 10,
+) -> @storage.Limits {
   {
-    max_input_records: 10,
+    max_input_records,
     max_records: 10,
     max_fields_per_record: 10,
     max_value_bytes: 1000,

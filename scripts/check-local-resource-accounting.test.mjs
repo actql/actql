@@ -41,7 +41,21 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 24 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 25 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('dedupe initialization and Host timer evidence must remain executable', () => {
+  assert.match(run(undefined, routes => {
+    const dedupe = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'dedupe_events');
+    dedupe.boundary_tests = dedupe.boundary_tests.filter(item =>
+      item.role !== 'dedupe_incremental_initialization_cancel_cleanup');
+  }), /TEA dedupe_events: dedupe_incremental_initialization_cancel_cleanup fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const dedupe = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'dedupe_events');
+    dedupe.environment_tests = [];
+  }), /TEA dedupe_events: dedupe_host_timer fixture is missing/);
 });
 
 test('watermark resource and Host evidence must remain executable', () => {
