@@ -81,7 +81,8 @@ async function checkedFixture() {
   return {document, environment};
 }
 
-async function effectFixture() {
+async function effectFixture({splitSource = false,
+  splitEffectSource = 'consumer'} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -122,12 +123,21 @@ async function effectFixture() {
     'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
   environmentDocument.mapping_contracts = [mapping];
+  if (splitSource) {
+    environmentDocument.host_policy_profile.capacity = JSON.parse(
+      canonicalJson({
+        ...environmentDocument.host_policy_profile.capacity,
+        max_graph_construction_edges: 1000,
+        max_graph_construction_input_rows: 1000,
+        max_graph_construction_nodes: 1000,
+      }));
+  }
   environmentDocument.evidence_bundle_cid = hashWithoutSelf(
     environmentDocument, 'evidence_bundle_cid');
   const environment = moon.clientProgramCheckEnvironment(
     JSON.stringify(environmentDocument),
     environmentDocument.evidence_bundle_cid,
-    false, false, true, false, false, false, false,
+    false, false, true, splitSource, false, false, false,
   );
   assert.ok(environment);
   const document = JSON.parse(documentBody);
@@ -138,6 +148,44 @@ async function effectFixture() {
       from: {result: 'rows'},
     }},
   };
+  if (splitSource) {
+    delete document.stages[0].effects;
+    document.stages.push({
+      id: 'middle',
+      inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
+      steps: [
+        {graph: {
+          nodes: {from: 'rows', id: 'id', fields: []},
+          edges: {from: 'rows', source: 'id', target: 'id', fields: []},
+        }, as: 'g'},
+        {from: 'g', normalize_graph: true, as: 'normalized'},
+        {from: 'normalized', node_rows: true, as: 'projected'},
+        {from: 'projected', take: 2, as: 'selected'},
+      ],
+      results: {
+        rows: {from: 'selected', fields: ['id']},
+        early: {from: 'projected', fields: ['id']},
+      },
+    }, {
+      id: 'consumer',
+      inputs: {rows: {result: {stage: 'middle', result: 'rows'}}},
+      steps: [{take: 2, as: 'selected'}],
+      results: {rows: {from: 'selected', fields: ['id']}},
+      effects: {save: {create: {
+        target: 'connector://crm/account', mapping: mapping.mapping_ref,
+        from: {result: 'rows'},
+      }}},
+    });
+    document.results.answer.from.stage = 'consumer';
+    if (splitEffectSource !== 'consumer') {
+      document.stages.pop();
+      document.results.answer.from.stage = 'middle';
+      document.stages[1].effects = {save: {create: {
+        target: 'connector://crm/account', mapping: mapping.mapping_ref,
+        from: {result: splitEffectSource === 'early' ? 'early' : 'rows'},
+      }}};
+    }
+  }
   return {document: JSON.stringify(document), environment,
     mappingCid: mapping.mapping_contract_cid};
 }
@@ -547,6 +595,74 @@ test('two Effect members hold one completed Result independently', async () => {
     assert.equal(execution.cleanupPending(), false);
   }
 });
+
+test('Effect sources retain exact physical producers across split Stages',
+  async () => {
+    for (const [splitEffectSource, expectedTask] of [
+      ['consumer', 5], ['middle', 4], ['early', 3],
+    ]) {
+      const {document, environment} = await effectFixture({
+        splitSource: true, splitEffectSource,
+      });
+      const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+        document, 'json', environment, undefined, []);
+      const prepared = moon.clientProgramEffectPreparationReady(outcome);
+      assert.ok(prepared,
+        `${splitEffectSource}: ${moon.clientProgramEffectPreparationIssueCode(outcome)}`);
+      const evidence = publicationEvidence(
+        moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+        moon.clientProgramEffectSemanticsCid(prepared),
+        moon.clientProgramEffectEnvironmentCid(prepared));
+      const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+      const definition = checked(moon.strategyIssueRunDefinition(
+        admission, 'tenant-a-scope', 'split-effect-compute', cid('c'),
+        '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+        100000, 10000, 64));
+      const bound = moon.clientProgramBindEffectRun(
+        prepared, admission, definition);
+      assert.ok(bound);
+      const [registry, contract] = await Promise.all([
+        readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+          import.meta.url), 'utf8'),
+        readFile(new URL('../../spec/contracts/actql-aoa.json',
+          import.meta.url), 'utf8'),
+      ]);
+      const values = JSON.stringify(
+        JSON.parse(contract).execution_contracts['REL.values']);
+      const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+        bound, registry, values, 1n, 0n, 0n, 0n);
+      assert.ok(owned);
+      const execution = await runCapturedInternalStrategy(
+        moon.clientProgramLocalEffectHostRuntime(owned));
+      try {
+        assert.equal(execution.status, 'host-tasks-completed',
+          execution.failure?.stack);
+        const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+        try {
+          const input = moon.clientProgramEffectInputAt(inputs, 0);
+          assert.ok(input);
+          assert.equal(moon.clientProgramEffectInputTask(input), expectedTask);
+          assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), true);
+          const chunks = [];
+          const limits = moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits));
+          const exported = await exportPinnedEffectInput({
+            moon, execution, inputs, memberIndex: 0, limits,
+            onChunk: async chunk => { chunks.push(chunk); },
+          });
+          assert.deepEqual(JSON.parse(chunks.join('')), [{id: 1}, {id: 2}]);
+          assert.deepEqual(exported.fields, ['id']);
+          assert.throws(() => checked(moon.clientProgramPinEffectSources(
+            owned, 1)), {code: 'MoonBitHostFailure'});
+        } finally {
+          assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+        }
+      } finally {
+        await execution.close();
+        assert.equal(execution.cleanupPending(), false);
+      }
+    }
+  });
 
 test('private Plan binding uses the escaped checked Unit Result name', async () => {
   const {document, environment} = await checkedFixture();
