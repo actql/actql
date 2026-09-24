@@ -17,6 +17,7 @@ struct RunPublicationAdmission {
 pub(all) enum RunPublicationAdmissionIssue {
   RunAdmissionWrongEvidence
   RunAdmissionWrongPlan
+  RunAdmissionCheckedProgramMismatch
   RunAdmissionTemplateMismatch
   RunAdmissionPreparedMismatch
   RunAdmissionExecutionContextMismatch
@@ -44,6 +45,32 @@ pub(all) enum EffectPreviewRunBindingIssue {
   PreviewRunForeignPlan
   PreviewRunForeignInvocation
 } derive(Eq, Debug)
+
+///|
+/// Bind the admitted publication evidence to an already checked Program.
+/// The caller must derive these three identities from that opaque checked
+/// owner; this check does not turn arbitrary plan CIDs into compilation proof.
+pub fn admit_checked_run_publication(
+  template : RunEvidenceValue,
+  prepared : RunEvidenceValue,
+  authorization : RunEvidenceValue,
+  compiled_plan : PublicationContract,
+  program_definition_cid : String,
+  parameter_values_cid : String,
+  program_semantics_cid : String,
+) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue] {
+  if contract_string_from_value(template.value, "program_definition_cid") !=
+    Some(program_definition_cid) ||
+    contract_string_from_value(template.value, "parameter_values_cid") !=
+    Some(parameter_values_cid) ||
+    contract_string(compiled_plan, "program_definition_cid") !=
+    Some(program_definition_cid) ||
+    contract_string(compiled_plan, "program_semantics_cid") !=
+    Some(program_semantics_cid) {
+    return Err(RunAdmissionCheckedProgramMismatch)
+  }
+  admit_run_publication(template, prepared, authorization, compiled_plan)
+}
 
 ///|
 /// Admit the exact authority that permits a Run to start. A syntactically

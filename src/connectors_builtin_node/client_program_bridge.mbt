@@ -130,6 +130,27 @@ pub fn client_program_semantics_cid(
 }
 
 ///|
+/// Bind publication admission to the same opaque checked Program that the
+/// Host will execute. The returned handle is in-process authority, never a
+/// Client wire value.
+#export_name("clientProgramAdmitPublication")
+pub fn client_program_admit_publication(
+  prepared : @publication_host.PreparedClientProgram,
+  template : @publication.RunEvidenceValue,
+  invocation : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  plan : @publication.PublicationContract,
+) -> @publication.RunPublicationAdmission? {
+  match
+    @publication_host.admit_prepared_client_run_publication(
+      prepared, template, invocation, authorization, plan,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("clientProgramResultName")
 pub fn client_program_result_name(
   prepared : @publication_host.PreparedClientProgram,
@@ -258,7 +279,7 @@ pub fn client_program_open_source_free_local_host(
   }
   let registry = match
     @connector.prepare_capability_registry(
-      [{ name: "local", acquisition: false, fixed_compute: true, }],
+      [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
       1,
       100,
     ) {
