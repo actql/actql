@@ -409,6 +409,10 @@ test('nearest retains its fused Relation production entrypoint', () => {
     delete nearest.additional_dispatch;
   }), /VecA nearest: fused Relation input entrypoint is missing/);
   for (const role of [
+    'nearest_work_exact',
+    'nearest_work_one_short',
+    'nearest_workspace_exact_one_short',
+    'nearest_kernel_initialization_cancel_cleanup',
     'nearest_mixed_carrier_relation_host',
     'nearest_relation_roles_host',
   ]) {

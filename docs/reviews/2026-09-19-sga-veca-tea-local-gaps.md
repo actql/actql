@@ -2229,9 +2229,13 @@ full route resource assurance.
 The nearest-neighbor route now records the fused
 `start_nearest_inputs_with_relations` production entrypoint separately from
 `start_nearest_inputs`. Existing standard Host fixtures cover mixed Vectors and
-Relation inputs and inferred Relation roles. Neither entrypoint yet has
-operation-specific exact/one-short resource and delivered-cancellation proof,
-so this route is not counted as four-role or fully assured.
+Relation inputs and inferred Relation roles. A direct Vectors-input fixture
+now counts 28/27 control-work units with quantum one, admits 23 structural
+workspace slots and rejects 22 before starting. It also verifies cancellation
+during incremental identity initialization and cleanup of the private output.
+The Relation-input path lacks matching exact/one-short evidence, and neither
+path has a delivered Host cancellation fixture. This route therefore remains
+outside four-role and full resource assurance.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.
