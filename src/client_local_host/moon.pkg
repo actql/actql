@@ -7,6 +7,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/run_publication" @publication,
   "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/physical_cost" @cost,
   "actql/actql/canonical_json" @identity,

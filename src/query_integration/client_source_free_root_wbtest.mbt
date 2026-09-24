@@ -75,7 +75,6 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     None,
     preparation,
   ).unwrap()
-  let graph = @publication_host.prepared_client_graph(prepared)
   assert_true(
     @publication_host.prepare_client_task_sequence(
       prepared,
@@ -105,7 +104,10 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     prepared,
     @identity.stringify_value(registered_body(), 100000, 10000, 100),
     @identity.stringify_value(registered_values(), 100000, 10000, 100),
-    1L, 0L, 0L, 0L,
+    1L,
+    0L,
+    0L,
+    0L,
   ).unwrap()
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
@@ -115,10 +117,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     @client_local_host.execute_source_free_values(setup, 0, 1000)
     is Err(@client_local_host.InvalidLimits),
   )
-  let execution = @client_local_host.execute_source_free_values(
-    setup, 16, 1000,
-  ).unwrap()
-  let completed = execution.completed_output()
+  let execution = @client_local_host.execute_source_free_values(setup, 16, 1000).unwrap()
   assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
   assert_true(@strategy.captured_task_completed(run, 0))
   assert_eq(@strategy.next_captured_task(run), None)
@@ -128,61 +127,49 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     max_depth: 20,
     max_work: 10000,
   }
-  let bridge = @execution.prepare_managed_publication_bridge(
-    completed,
-    execution.material().unwrap(),
-    100,
-    values,
-    100,
-    10000,
-  ).unwrap()
-  for row in execution.rows().unwrap() {
-    @execution.append_managed_publication_bridge_wire(bridge, row, {
-      max_bytes: 100,
-      max_nodes: 20,
-      max_depth: 4,
-      max_text_bytes: 100,
-    }).unwrap()
+  let row_limits : @execution.RetainedRowDecodeLimits = {
+    max_bytes: 100,
+    max_nodes: 20,
+    max_depth: 4,
+    max_text_bytes: 100,
   }
-  let output = @execution.finish_managed_publication_bridge(bridge).unwrap()
-  let definition = @publication.prepare_result_definition(
-    @strategy.graph_program_definition_cid(graph),
-    "answer",
-  ).unwrap()
-  let result = @publication_host.prepare_result_publication_export(
-    output,
-    @strategy.graph_result_occurrence(graph, 0).unwrap(),
-    @publication.result_definition_contract(definition),
-    {
-      max_result_fields: 10,
-      max_result_mapping_work: 100,
-      max_result_order_work: 100,
-      max_result_workspace_entries: 100,
-      max_rows: 100,
-      values,
-      payload_wire: {
-        max_columns: 10,
-        max_order_work: 100,
-        max_bytes: 10000,
-        max_nodes: 1000,
-        max_depth: 20,
-      },
-      logical_wire: {
-        max_columns: 10,
-        max_order_work: 100,
-        max_bytes: 10000,
-        max_nodes: 1000,
-        max_depth: 20,
-      },
-      schema: {
-        max_fields: 10,
-        max_bytes: 10000,
-        max_nodes: 1000,
-        max_depth: 20,
-      },
-      max_batch_bytes: 64,
+  let export_limits : @publication_host.PublicationOutputExportLimits = {
+    max_result_fields: 10,
+    max_result_mapping_work: 100,
+    max_result_order_work: 100,
+    max_result_workspace_entries: 100,
+    max_rows: 100,
+    values,
+    payload_wire: {
+      max_columns: 10,
+      max_order_work: 100,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
     },
-  ).unwrap()
+    logical_wire: {
+      max_columns: 10,
+      max_order_work: 100,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+    schema: {
+      max_fields: 10,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+    },
+    max_batch_bytes: 64,
+  }
+  assert_true(
+    execution.prepare_result_export(1, row_limits, 100, 10000, export_limits)
+    is Err(@client_local_host.UnknownResult),
+  )
+  let result_owner = execution
+    .prepare_result_export(0, row_limits, 100, 10000, export_limits)
+    .unwrap()
+  let result = result_owner.output_export()
   let text = StringBuilder()
   while result.next().unwrap() is Some(chunk) {
     text.write_string(chunk)
@@ -190,10 +177,13 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   text.write_string(result.finish().unwrap())
   assert_eq(text.to_string(), "[{\"id\":1},{\"id\":2}]")
   assert_eq(result.result_fields().unwrap(), ["id"])
-  result.cancel()
-  @execution.close_managed_publication_bridge(bridge)
+  result_owner.close()
   assert_true(execution.close())
   assert_true(execution.rows() is Err(@client_local_host.MissingOutput))
+  assert_true(
+    execution.prepare_result_export(0, row_limits, 100, 10000, export_limits)
+    is Err(@client_local_host.LocalValuesResultExportIssue::MissingOutput),
+  )
   let usage = @resources.ledger_usage(ledger)
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
