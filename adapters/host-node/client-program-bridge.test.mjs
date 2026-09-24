@@ -198,7 +198,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
   approvedValues = [], targetRows = approvedValues.map((_, index) =>
     index + 1), memberIds = ['save'],
-  memberBoundaries = memberIds.map((_, index) => cid(String(index)))) {
+  memberBoundaries = memberIds.map((_, index) => cid(String(index))),
+  scope) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -274,8 +275,16 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   });
   preview.effect_preview_cid = checked(moon.strategyEffectPreviewIdentities(
     canonicalJson(preview), 20000, 1000, 20))[0];
+  const keys = scope === undefined ? undefined : preview.effects.map(member =>
+    member.changes.map(change => {
+      const key = checked(moon.strategyEffectDispatchKey(
+        scope, preview.effect_preview_cid,
+        canonicalJson(change.target_row_identity), 128, 8, 3));
+      change.row_idempotency_key = moon.strategyEffectDispatchKeyCid(key);
+      return key;
+    }));
   return {wire: canonicalJson(preview), authoringCid:
-    authoring.authoring_context_cid};
+    authoring.authoring_context_cid, keys};
 }
 
 test('internal Client bridge retains Effect closure without public apply',
@@ -667,11 +676,14 @@ test('owned update Plan matches approved rows and rejects altered intent',
         outputLimits, contractLimits: publicationLimits,
       });
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+      const requestScope = checked(moon.strategyEffectLogicalRequestScope(
+        cid('e'), 'two-effect-request', 128));
       const previewFor = (values, targets = values.map((_, index) =>
         index + 1)) => effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         storedResults.artifacts[0].identity, 'update', values,
-        targets, memberIds);
+        targets, memberIds, memberIds.map((_, index) =>
+          cid(String(index))), requestScope);
       const preview = previewFor([1, 2]);
       const previewLimits = moon.clientProgramEffectPreviewInputLimits(
         20000, 1000, 20, 1000, 100, 20000, 1000, 20,
@@ -697,6 +709,26 @@ test('owned update Plan matches approved rows and rejects altered intent',
           previewInputs, sources, contracts, capabilities, authorities,
           2, 8));
       assert.doesNotThrow(() => checkCurrent());
+      const checkKeys = keys => checked(
+        moon.clientProgramCheckEffectPreviewApplyKeys(
+          previewInputs, requestScope, keys, 4, 10));
+      assert.doesNotThrow(() => checkKeys(preview.keys));
+      assert.throws(() => checked(
+        moon.clientProgramCheckEffectPreviewApplyKeys(
+          previewInputs, requestScope, preview.keys, 4, 5)),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkKeys(preview.keys.slice(0, 1)),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkKeys(preview.keys.map(rows =>
+        [rows[1], rows[0]])), {code: 'MoonBitHostFailure'});
+      const foreignScope = checked(moon.strategyEffectLogicalRequestScope(
+        cid('e'), 'foreign-request', 128));
+      const foreignKey = checked(moon.strategyEffectDispatchKey(
+        foreignScope, JSON.parse(preview.wire).effect_preview_cid,
+        canonicalJson(1), 128, 8, 3));
+      assert.throws(() => checkKeys([
+        [foreignKey, preview.keys[0][1]], preview.keys[1],
+      ]), {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent({capabilities: [cid('d')]}),
       {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent({sources: [cid('c'), cid('f')]}),
@@ -795,6 +827,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.equal(releasedChunks.length, 1);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.throws(() => checkKeys(preview.keys),
+        {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent(),
       {code: 'MoonBitHostFailure'});
       assert.equal(moon.clientProgramEffectPlanProofMatches(

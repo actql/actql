@@ -1901,6 +1901,22 @@ pub fn client_program_check_effect_preview_current_bindings(
 }
 
 ///|
+/// Verify the complete derived key inventory using this captured Preview,
+/// not another reading of its transported body. No mutation is authorized.
+#export_name("clientProgramCheckEffectPreviewApplyKeys")
+pub fn client_program_check_effect_preview_apply_keys(
+  value : @strategy.CapturedEffectPreviewInputs,
+  scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectApplyKeyIssue] {
+  @strategy.check_captured_effect_preview_apply_keys(
+    value, scope, keys, max_rows, max_work,
+  )
+}
+
+///|
 /// Exact Host limits for the checked Effect input stream, shared by cell and
 /// resident representations. These limits do not grant access or apply.
 #export_name("clientProgramEffectInputExportLimits")
