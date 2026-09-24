@@ -8,6 +8,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitPublicationContract, validatePublicationChain,
   validatePublicationRecordTransition,
   issueResultManifest,
+  issueResultOccurrenceEvidence, issueCompleteResultArtifact,
+  issueDurableResultBinding,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
@@ -84,17 +86,50 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
       version: 'actql-result-definition/0.1',
       program_definition_cid: fixed('6'), result_name: 'answer',
     }, 'result_definition_cid');
-    const artifact = admit('result_artifact', {
-      version: 'actql-result-artifact/0.1',
-      result_definition_cid: definition.cid,
-      invocation_cid: invocation.cid,
-      logical_result_cid: fixed('7'), result_schema_cid: fixed('8'),
-      ordering_evidence_cid: fixed('9'), actual_row_count: 1,
-      actual_completeness: 'complete',
+    const schemaWire = JSON.stringify({value: {nullable: false,
+      type: 'integer'}});
+    const schemaCid = cid(JSON.parse(schemaWire));
+    const occurrence = issueResultOccurrenceEvidence(definition, {
+      logicalValueCid: fixed('7'), resultSchemaCid: schemaCid,
+      computationContractCid: fixed('3'), inputRelationCids: [],
+      scopeCid: fixed('5'),
+      effectiveDataPolicyCid: fixed('a'),
+      issuerId: 'common-host', authorityScopeCid: fixed('d'),
+    }, limits);
+    const retention = admit('result_retention_policy', {
+      version: 'actql-result-retention-policy/0.1',
+      retention_contract_cid: fixed('b'),
       effective_data_policy_cid: fixed('a'),
-      effective_retention_policy_cid: fixed('b'),
-      provenance_evidence_cids: [fixed('c')],
-    }, 'result_artifact_cid');
+      available_until: '2026-09-18T01:00:00.000Z',
+      delete_by: '2026-09-18T02:00:00.000Z',
+      extension_ceiling_at: '2026-09-18T03:00:00.000Z',
+      metadata_retention_policy_cid: fixed('c'),
+      metadata_delete_by: '2026-09-18T04:00:00.000Z',
+      clock_contract_cid: fixed('d'),
+    }, 'effective_retention_policy_cid');
+    const artifact = issueCompleteResultArtifact(definition, invocation,
+      occurrence, retention, 1, limits);
+    assert.equal(JSON.parse(artifact.wire).ordering_evidence_cid,
+      occurrence.ordering.cid);
+    const physical = {codecContractCid: fixed('d'),
+      resultFields: ['value'], resultSchemaWire: schemaWire,
+      materialGenerationCid: fixed('e'), storeAuthorityCid: fixed('f'),
+      rowCount: 1, byteCount: 10, physicalSha256: 'e'.repeat(64)};
+    const binding = issueDurableResultBinding(run, definition,
+      invocation, artifact, occurrence.ordering, retention, physical, limits);
+    assert.equal(JSON.parse(binding.wire).run_definition_cid, run.cid);
+    assert.equal(JSON.parse(binding.wire).logical_result_cid, fixed('7'));
+    assert.throws(() => issueDurableResultBinding(run, definition,
+      invocation, artifact, occurrence.ordering, retention,
+      {...physical, rowCount: 2}, limits),
+    {code: 'RunHostDurableBindingRejected'});
+    const {effective_retention_policy_cid: _identity,
+      ...retentionBody} = JSON.parse(retention.wire);
+    assert.throws(() => issueCompleteResultArtifact(definition, invocation,
+      occurrence, admit('result_retention_policy', {
+        ...retentionBody, effective_data_policy_cid: fixed('f'),
+      }, 'effective_retention_policy_cid'), 1, limits),
+    {code: 'RunHostResultArtifactRejected'});
     const manifest = issueResultManifest(run, invocation, [definition],
       [artifact], limits);
     validatePublicationChain(run, invocation, [definition], [artifact],

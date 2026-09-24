@@ -43,7 +43,13 @@ pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesC
 
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
+pub fn client_values_host_issue_complete_result_artifact(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.ResultOrderingEvidence, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultArtifactIssuanceIssue]
+
+pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
+
 pub fn client_values_host_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultManifestIssuanceIssue]
+
+pub fn client_values_host_issue_result_occurrence_evidence(@run_publication.PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, @run_publication.ResultEvidenceIssuanceIssue]
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
@@ -84,6 +90,10 @@ pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestI
 pub fn client_values_host_result_definitions(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]
 
 pub fn client_values_host_result_names(@run_publication_host.ClientValuesCompilation) -> Array[String]
+
+pub fn client_values_host_result_occurrence_derivation(@run_publication.ResultOrderingEvidence) -> @run_publication.PublicationContract
+
+pub fn client_values_host_result_occurrence_ordering(@run_publication.ResultOrderingEvidence) -> @run_publication.PublicationContract
 
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
 

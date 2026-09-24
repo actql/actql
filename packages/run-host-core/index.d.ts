@@ -5,6 +5,7 @@ declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
 declare const publicationBrand: unique symbol;
+declare const resultOccurrenceBrand: unique symbol;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
@@ -40,6 +41,12 @@ export interface PublicationLimits {
   readonly maxWireBytes: number;
   readonly maxNodes: number;
   readonly maxDepth: number;
+}
+
+export interface ResultOccurrenceEvidence {
+  readonly token: {readonly [resultOccurrenceBrand]: true};
+  readonly derivation: PublicationContract;
+  readonly ordering: PublicationContract;
 }
 
 export interface RequestFields {
@@ -161,6 +168,37 @@ export function issueResultManifest(runDefinition: PublicationContract,
   definitions: readonly PublicationContract[],
   artifacts: readonly PublicationContract[],
   limits: PublicationLimits): PublicationContract;
+/** Facts must come from the exact completed, checked Result export. */
+export function issueResultOccurrenceEvidence(
+  definition: PublicationContract, facts: Readonly<{
+    logicalValueCid: string;
+    resultSchemaCid: string;
+    computationContractCid: string;
+    inputRelationCids: readonly string[];
+    scopeCid: string;
+    effectiveDataPolicyCid: string;
+    issuerId: string;
+    authorityScopeCid: string;
+  }>, limits: PublicationLimits): ResultOccurrenceEvidence;
+export function issueCompleteResultArtifact(definition: PublicationContract,
+  invocation: PublicationContract, evidence: ResultOccurrenceEvidence,
+  retention: PublicationContract, actualRowCount: number,
+  limits: PublicationLimits): PublicationContract;
+/** Physical facts must come from an independently held Store object. */
+export function issueDurableResultBinding(
+  runDefinition: PublicationContract, definition: PublicationContract,
+  invocation: PublicationContract, artifact: PublicationContract,
+  ordering: PublicationContract, retention: PublicationContract,
+  physical: Readonly<{
+    codecContractCid: string;
+    resultFields: readonly string[];
+    resultSchemaWire: string;
+    materialGenerationCid: string;
+    storeAuthorityCid: string;
+    rowCount: number;
+    byteCount: number;
+    physicalSha256: string;
+  }>, limits: PublicationLimits): PublicationContract;
 export function validatePublicationChain(runDefinition: PublicationContract,
   invocation: PublicationContract,
   definitions: readonly PublicationContract[],

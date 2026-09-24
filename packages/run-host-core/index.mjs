@@ -7,6 +7,7 @@ const requests = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
+const resultOccurrences = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
@@ -343,7 +344,8 @@ export function issueSourceFreeDispatch(prepared, compilation, admission,
 function publicationLimits(limits) {
   if (limits === null || typeof limits !== 'object' ||
       !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
-        Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
+        Number.isSafeInteger(limits[key]) && limits[key] > 0 &&
+        limits[key] <= 2147483647)) {
     throw new TypeError('InvalidRunHostPublicationLimits');
   }
   return limits;
@@ -371,6 +373,74 @@ export function admitPublicationContract(name, wire, limits) {
 
 function publicationToken(contract) {
   return requireHandle(publicationContracts, contract?.token);
+}
+
+function nonnegativeCount(value) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) {
+    throw new TypeError('InvalidRunHostPublicationCount');
+  }
+  return value;
+}
+
+export function issueResultOccurrenceEvidence(definition, facts, limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      !['logicalValueCid', 'resultSchemaCid', 'computationContractCid',
+        'scopeCid', 'effectiveDataPolicyCid', 'issuerId',
+        'authorityScopeCid'].every(key => typeof facts[key] === 'string') ||
+      !Array.isArray(facts.inputRelationCids) ||
+      !facts.inputRelationCids.every(value => typeof value === 'string')) {
+    throw new TypeError('InvalidRunHostResultEvidence');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const value = checked(owner.clientValuesHostIssueResultOccurrenceEvidence(
+    publicationToken(definition), facts.logicalValueCid,
+    facts.resultSchemaCid, facts.computationContractCid,
+    facts.inputRelationCids, facts.scopeCid,
+    facts.effectiveDataPolicyCid, facts.issuerId,
+    facts.authorityScopeCid, maxWireBytes, maxNodes, maxDepth),
+  'RunHostResultEvidenceRejected');
+  const token = handle(resultOccurrences, value, 'result-occurrence');
+  return Object.freeze({token,
+    derivation: publicationContract(
+      owner.clientValuesHostResultOccurrenceDerivation(value)),
+    ordering: publicationContract(
+      owner.clientValuesHostResultOccurrenceOrdering(value))});
+}
+
+export function issueCompleteResultArtifact(definition, invocation,
+  evidence, retention, actualRowCount, limits) {
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssueCompleteResultArtifact(
+      publicationToken(definition), publicationToken(invocation),
+      requireHandle(resultOccurrences, evidence?.token),
+      publicationToken(retention), nonnegativeCount(actualRowCount),
+      maxWireBytes, maxNodes, maxDepth),
+    'RunHostResultArtifactRejected'));
+}
+
+export function issueDurableResultBinding(runDefinition, definition,
+  invocation, artifact, ordering, retention, physical, limits) {
+  if (physical === null || typeof physical !== 'object' ||
+      !['codecContractCid', 'resultSchemaWire', 'materialGenerationCid',
+        'storeAuthorityCid', 'physicalSha256'].every(key =>
+        typeof physical[key] === 'string') ||
+      !Array.isArray(physical.resultFields) ||
+      !physical.resultFields.every(value => typeof value === 'string')) {
+    throw new TypeError('InvalidRunHostDurableBinding');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssueDurableResultBinding(
+      publicationToken(runDefinition), publicationToken(definition),
+      publicationToken(invocation), publicationToken(artifact),
+      publicationToken(ordering), publicationToken(retention),
+      physical.codecContractCid, physical.resultFields,
+      physical.resultSchemaWire, physical.materialGenerationCid,
+      physical.storeAuthorityCid, nonnegativeCount(physical.rowCount),
+      nonnegativeCount(physical.byteCount), physical.physicalSha256,
+      maxWireBytes, maxNodes, maxDepth),
+    'RunHostDurableBindingRejected'));
 }
 
 export function issueResultManifest(runDefinition, invocation,

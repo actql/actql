@@ -756,6 +756,99 @@ pub fn client_values_host_issue_result_manifest(
 }
 
 ///|
+/// The Host supplies identities from the checked Result export and current
+/// policy; the shared owner seals the derivation and occurrence witness.
+#export_name("clientValuesHostIssueResultOccurrenceEvidence")
+pub fn client_values_host_issue_result_occurrence_evidence(
+  definition : @publication.PublicationContract,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  issuer_id : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.ResultOrderingEvidence, @publication.ResultEvidenceIssuanceIssue] {
+  @publication.issue_result_occurrence_evidence(
+    definition, logical_value_cid, result_schema_cid,
+    computation_contract_cid, input_relation_cids, scope_cid,
+    effective_data_policy_cid, issuer_id, authority_scope_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientValuesHostResultOccurrenceDerivation")
+pub fn client_values_host_result_occurrence_derivation(
+  evidence : @publication.ResultOrderingEvidence,
+) -> @publication.PublicationContract {
+  @publication.result_ordering_derivation_contract(evidence)
+}
+
+///|
+#export_name("clientValuesHostResultOccurrenceOrdering")
+pub fn client_values_host_result_occurrence_ordering(
+  evidence : @publication.ResultOrderingEvidence,
+) -> @publication.PublicationContract {
+  @publication.result_ordering_evidence_contract(evidence)
+}
+
+///|
+/// The Result Artifact is issued from admitted invocation, retention and
+/// owner-sealed ordering evidence, never from an adapter-built body.
+#export_name("clientValuesHostIssueCompleteResultArtifact")
+pub fn client_values_host_issue_complete_result_artifact(
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  evidence : @publication.ResultOrderingEvidence,
+  retention : @publication.PublicationContract,
+  actual_row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.ResultArtifactIssuanceIssue] {
+  @publication.issue_complete_result_artifact(
+    definition, invocation, evidence, retention, actual_row_count,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Store physical observations are supplied after independent holding and
+/// verification; the owner validates semantic references before issuance.
+#export_name("clientValuesHostIssueDurableResultBinding")
+pub fn client_values_host_issue_durable_result_binding(
+  run_definition : @publication.PublicationContract,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  codec_contract_cid : String,
+  result_fields : Array[String],
+  result_schema_wire : String,
+  material_generation_cid : String,
+  store_authority_cid : String,
+  row_count : Int,
+  byte_count : Int,
+  physical_sha256 : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.DurableResultBindingIssue] {
+  @publication.issue_durable_result_binding(
+    run_definition, definition, invocation, artifact, ordering, retention,
+    codec_contract_cid, result_fields, result_schema_wire,
+    material_generation_cid, store_authority_cid, row_count, byte_count,
+    physical_sha256, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// The shared owner checks the exact Named Result inventory and references.
 #export_name("clientValuesHostValidatePublicationChain")
 pub fn client_values_host_validate_publication_chain(
