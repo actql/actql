@@ -6,9 +6,9 @@ fn effect_static_candidate_limits(
   {
     max_members: members,
     max_work: work,
-    max_value_nodes: 20,
-    max_value_depth: 10,
-    max_value_text_bytes: 100,
+    max_admission_nodes: 20,
+    max_admission_depth: 10,
+    max_admission_text_bytes: 100,
   }
 }
 
@@ -62,6 +62,12 @@ test "static Effect candidate closes one Mapping inventory and shared work" {
   assert_eq(
     effect_command_target_count(
       effect_static_candidate_command_targets(candidate),
+    ),
+    0,
+  )
+  assert_eq(
+    effect_command_input_count(
+      effect_static_candidate_command_inputs(candidate),
     ),
     0,
   )
@@ -182,4 +188,65 @@ test "static Effect candidate covers Command without Mapping members" {
     ),
     2,
   )
+  assert_eq(
+    effect_command_input_count(
+      effect_static_candidate_command_inputs(candidate),
+    ),
+    2,
+  )
+}
+
+///|
+test "static Effect candidate includes Command input admission" {
+  let effects = "{\"command\":{\"command\":{\"target\":{\"field\":\"ref\"},\"contract\":\"command:crm.invoke.v1\",\"from\":{\"result\":\"r\"},\"input\":{\"value\":{\"field\":\"amount\"}}}}}"
+  let (checked, headers) = effect_binding_inputs(
+    effects,
+    reference_nullable=Some(false),
+  )
+  let catalogs = command_target_catalog(
+    "crm/account",
+    input_fields="{\"value\":{\"nullable\":false,\"type\":\"number\"}}",
+  )
+  let mappings = @environment.check_mapping_contract_shapes(
+    @environment.contract_registry_environment(
+      @environment.catalog_registry(catalogs),
+    ),
+    effect_static_candidate_environment_limits(),
+    100,
+  ).unwrap()
+  let candidate = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    catalogs,
+    effect_static_candidate_limits(),
+  ).unwrap()
+  assert_eq(
+    effect_command_input_count(
+      effect_static_candidate_command_inputs(candidate),
+    ),
+    2,
+  )
+  let invalid = effects.replace(old="\"amount\"", new="\"ref\"")
+  let (checked, headers) = effect_binding_inputs(
+    invalid,
+    reference_nullable=Some(false),
+  )
+  let issue = prepare_effect_static_candidate(
+    headers,
+    checked,
+    @environment.mapping_shape_environment(mappings),
+    mappings,
+    catalogs,
+    effect_static_candidate_limits(),
+  ).unwrap_err()
+  match issue {
+    CommandInputs(inner) =>
+      assert_eq(
+        effect_command_input_issue_kind(inner),
+        IncompatibleField("value"),
+      )
+    _ => assert_true(false)
+  }
 }

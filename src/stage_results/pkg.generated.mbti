@@ -14,6 +14,7 @@ import {
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -27,6 +28,8 @@ pub fn attached_imports(AttachedImports) -> ResultImports
 pub fn attached_stage(AttachedImports) -> @stage_parameters.CollectedStage
 
 pub fn attached_work(AttachedImports) -> Int
+
+pub fn bind_effect_command_inputs(EffectCommandTargets, EffectCommandInputLimits) -> Result[EffectCommandInputs, EffectCommandInputIssue]
 
 pub fn bind_effect_command_targets(EffectResultBindings, @check_environment.CatalogContents, Int) -> Result[EffectCommandTargets, EffectCommandTargetIssue]
 
@@ -45,6 +48,32 @@ pub fn check(@stage_parameters.CollectedOperations, @relation_results.Limits) ->
 pub fn check_effect_preview_checked_inventory(EffectResultBindings, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewInventoryIssue]
 
 pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+
+pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
+
+pub fn effect_command_input_count(EffectCommandInputs) -> Int
+
+pub fn effect_command_input_field_at(EffectCommandInputBinding, Int) -> EffectCommandInputField?
+
+pub fn effect_command_input_field_contract(EffectCommandInputField) -> @value_contract.Contract
+
+pub fn effect_command_input_field_count(EffectCommandInputBinding) -> Int
+
+pub fn effect_command_input_field_name(EffectCommandInputField) -> String
+
+pub fn effect_command_input_field_value(EffectCommandInputField) -> EffectCommandInputValue
+
+pub fn effect_command_input_issue_effect(EffectCommandInputIssue) -> String
+
+pub fn effect_command_input_issue_kind(EffectCommandInputIssue) -> EffectCommandInputIssueKind
+
+pub fn effect_command_input_issue_stage(EffectCommandInputIssue) -> Int
+
+pub fn effect_command_input_target(EffectCommandInputBinding) -> EffectCommandTargetBinding
+
+pub fn effect_command_inputs_targets(EffectCommandInputs) -> EffectCommandTargets
+
+pub fn effect_command_inputs_usage(EffectCommandInputs) -> (Int, Int, Int)
 
 pub fn effect_command_target_at(EffectCommandTargets, Int) -> EffectCommandTargetBinding?
 
@@ -160,6 +189,8 @@ pub fn effect_result_field_binding_field(EffectResultFieldBinding) -> @relation_
 
 pub fn effect_result_field_binding_role(EffectResultFieldBinding) -> EffectResultFieldRole
 
+pub fn effect_static_candidate_command_inputs(EffectStaticCandidate) -> EffectCommandInputs
+
 pub fn effect_static_candidate_command_targets(EffectStaticCandidate) -> EffectCommandTargets
 
 pub fn effect_static_candidate_mapping_literals(EffectStaticCandidate) -> EffectMappingLiterals
@@ -267,6 +298,53 @@ pub(all) struct CollectionLimits {
   max_nodes : Int
   max_text_bytes : Int
 } derive(Eq, @debug.Debug)
+
+pub struct EffectCommandInputBinding {
+  target : EffectCommandTargetBinding
+  fields : Array[EffectCommandInputField]
+}
+
+pub struct EffectCommandInputField {
+  name : String
+  contract : @value_contract.Contract
+  value : EffectCommandInputValue
+}
+
+pub struct EffectCommandInputIssue {
+  kind : EffectCommandInputIssueKind
+  stage_index : Int
+  effect_id : String
+}
+
+pub(all) enum EffectCommandInputIssueKind {
+  InvalidLimits
+  WorkLimit
+  InvalidContract
+  MissingField(String)
+  UnknownField(String)
+  IncompatibleField(String)
+  IncompatibleLiteral(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct EffectCommandInputLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectCommandInputValue {
+  ResultField(@relation_schema.Field)
+  Literal(@value_admission.CheckedValue)
+}
+
+pub struct EffectCommandInputs {
+  targets : EffectCommandTargets
+  entries : Array[EffectCommandInputBinding]
+  work : Int
+  nodes : Int
+  text_bytes : Int
+}
 
 pub struct EffectCommandTargetBinding {
   effect : EffectResultBinding
@@ -453,6 +531,7 @@ pub struct EffectStaticCandidate {
   mapping_rules : EffectMappingRules
   mapping_literals : EffectMappingLiterals
   command_targets : EffectCommandTargets
+  command_inputs : EffectCommandInputs
   work : Int
 }
 
@@ -466,15 +545,16 @@ pub(all) enum EffectStaticCandidateIssue {
   MappingRules(EffectMappingRuleIssue)
   MappingLiterals(EffectMappingLiteralIssue)
   CommandTargets(EffectCommandTargetIssue)
+  CommandInputs(EffectCommandInputIssue)
   IncompleteInventory
 }
 
 pub(all) struct EffectStaticCandidateLimits {
   max_members : Int
   max_work : Int
-  max_value_nodes : Int
-  max_value_depth : Int
-  max_value_text_bytes : Int
+  max_admission_nodes : Int
+  max_admission_depth : Int
+  max_admission_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ImportIssue {
