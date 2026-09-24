@@ -54,6 +54,12 @@ test('time-series output and Host cancellation evidence must remain bound', () =
   assert.match(run(undefined, routes => {
     const series = routes.routes.find(entry => entry.family === 'TEA' &&
       entry.operation === 'time_series');
+    series.boundary_tests = series.boundary_tests.filter(item =>
+      item.role !== 'time_series_output_value_work_exact_one_short');
+  }), /TEA time_series: time_series_output_value_work_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const series = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'time_series');
     series.environment_tests = [];
   }), /TEA time_series: time_series_host_timer fixture is missing/);
 });

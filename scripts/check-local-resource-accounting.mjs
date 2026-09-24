@@ -497,6 +497,7 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'TEA' && route.operation === 'time_series') {
     for (const role of [
       'time_series_output_exact_one_short_and_finish_work',
+      'time_series_output_value_work_exact_one_short',
       'time_series_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
