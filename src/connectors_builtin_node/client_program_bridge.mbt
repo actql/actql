@@ -871,6 +871,52 @@ pub fn client_program_local_values_fragment_output_contract_wire(
 }
 
 ///|
+/// Checked graph material for the installed source-free Values profile.
+/// Other Plan evidence and Host authorization remain separate.
+#export_name("clientProgramIssueLocalValuesPlanGraph")
+pub fn client_program_issue_local_values_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientValuesPlanGraph,
+  @publication_host.ClientValuesPlanGraphIssue,
+] {
+  @publication_host.issue_prepared_client_values_plan_graph(
+    prepared,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitLocalValuesPlanGraph")
+pub fn client_program_admit_local_values_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+  saved_wire : String,
+) -> Result[
+  @publication_host.ClientValuesPlanGraph,
+  @publication_host.ClientValuesPlanGraphAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_values_plan_graph(
+    prepared,
+    saved_wire,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramLocalValuesPlanGraphWire")
+pub fn client_program_local_values_plan_graph_wire(
+  value : @publication_host.ClientValuesPlanGraph,
+) -> String {
+  @publication_host.client_values_plan_graph_wire(value)
+}
+
+///|
 /// Checked Result row type from the exact publication port, after its
 /// projection. This is private Plan material, not Run admission.
 #export_name("clientProgramIssueResultRowContract")

@@ -34,6 +34,8 @@ pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.Prep
 
 pub fn client_program_admit_local_values_fragment(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentAdmissionIssue]
 
+pub fn client_program_admit_local_values_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientValuesPlanGraph, @run_publication_host.ClientValuesPlanGraphAdmissionIssue]
+
 pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
 pub fn client_program_admit_publication_binding_set(@run_publication_host.PreparedClientProgram, Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationBindingSetIssue]
@@ -76,6 +78,8 @@ pub fn client_program_issue_local_values_fragment(@run_publication_host.Prepared
 
 pub fn client_program_issue_local_values_output_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[@execution_relation.RelationSchemaIdentity, @run_publication_host.ClientValuesOutputSchemaIssue]
 
+pub fn client_program_issue_local_values_plan_graph(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesPlanGraph, @run_publication_host.ClientValuesPlanGraphIssue]
+
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
 
 pub fn client_program_issue_publication_witnesses(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationWitnesses, @run_publication_host.ClientPublicationWitnessIssue]
@@ -101,6 +105,8 @@ pub fn client_program_local_values_output_schema_cid(@execution_relation.Relatio
 pub fn client_program_local_values_output_schema_wire(@execution_relation.RelationSchemaIdentity) -> String
 
 pub fn client_program_local_values_pipeline_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesPipelineIssue]
+
+pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientValuesPlanGraph) -> String
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
