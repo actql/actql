@@ -101,13 +101,7 @@ pub fn verify_salesforce_broad_records(SalesforceBroadIssuer, SalesforceBroadAtt
 // Errors
 
 // Types and methods
-pub struct ManagedQuery {
-  plan : @catalog.ReadProjection
-  read : @catalog.QueryRead
-  values : @execution_relation.ManagedOutputValues
-  columns : Array[Int]
-  mut open : Bool
-}
+type ManagedQuery
 
 pub(all) enum ManagedQueryIssue {
   InvalidOutputSchema
