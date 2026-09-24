@@ -8352,6 +8352,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/capture-and-replay.effectful-final-run-receipt-binds-complete-prior-chain",
+      "statement_sha256": "65517755aac0958b9dfb095ccb557408a04108e3ea3775100aa5a9c1fef275c3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/capture-and-replay.an-effect-free-run-must-use-its-single-run-receipt-as-the-final-receipt",
       "statement_sha256": "7f54a31785b2c6b1677698479a6ff3116109a2d2bff7ab77759d2294ac1a7da9",
       "status": "pending",
