@@ -302,6 +302,67 @@ test('bounded physical responses survive restart without becoming outcomes',
       response.responseBytes);
   });
 
+test('one logical row cannot acquire a second physical response', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson);
+  append(ledger, 1, cid('2'), secondJson);
+  const response = {
+    logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: locator,
+    dispatchEntryCid: cid('2'),
+    credentialUseCid: cid('c'),
+    statusCode: 201,
+    responseBytes: Buffer.from('first'),
+  };
+  assert.equal(ledger.recordResponse(response).created, true);
+  append(ledger, 2, cid('3'), '{"state":"dispatching-again"}');
+  assert.throws(() => ledger.recordResponse({
+    ...response, dispatchEntryCid: cid('3'),
+    responseBytes: Buffer.from('second'),
+  }), {code: 'EffectPhysicalResponseCollision'});
+  const secondLocator = cid('d');
+  ledger.append({logicalRequestScopeCid: scope,
+    logicalItemLocatorCid: secondLocator, expectedRevision: 0,
+    entryCid: cid('4'), entryJson: secondJson});
+  assert.throws(() => ledger.recordBatchResponse({
+    logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+    statusCode: 200, responseBytes: Buffer.from('batch'),
+    members: [
+      {logicalItemLocatorCid: locator, dispatchEntryCid: cid('3')},
+      {logicalItemLocatorCid: secondLocator, dispatchEntryCid: cid('4')},
+    ],
+  }), {code: 'EffectDispatchNotOwned'});
+  assert.equal(ledger.response(cid('3')), undefined);
+  assert.equal(ledger.response(cid('4')), undefined);
+  assert.deepEqual(ledger.response(cid('2')).responseBytes,
+    Buffer.from('first'));
+});
+
+test('a sealed batch row cannot be reused by a later single response',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => ledger.close());
+    append(ledger, 0, cid('1'), firstJson);
+    append(ledger, 1, cid('2'), secondJson);
+    assert.equal(ledger.recordBatchResponse({
+      logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+      statusCode: 200, responseBytes: Buffer.from('[{"success":true}]'),
+      members: [{logicalItemLocatorCid: locator,
+        dispatchEntryCid: cid('2')}],
+    }).created, true);
+    append(ledger, 2, cid('3'), '{"state":"dispatching-again"}');
+    assert.throws(() => ledger.recordResponse({
+      logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('3'), credentialUseCid: cid('c'),
+      statusCode: 201, responseBytes: Buffer.from('second'),
+    }), {code: 'EffectPhysicalResponseCollision'});
+    assert.equal(ledger.response(cid('3')), undefined);
+    assert.equal(ledger.response(cid('2')).batchCount, 1);
+  });
+
 test('response metadata tampering fails physical integrity checks', async t => {
   const root = await fixture(t);
   const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
