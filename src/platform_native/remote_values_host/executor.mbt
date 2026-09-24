@@ -20,6 +20,13 @@ pub(all) enum NativeRemoteValuesHostIssue {
 }
 
 ///|
+/// One checked Values implementation selected before Site admission. The
+/// runtime callback stays private to this composition boundary.
+struct NativeRemoteValuesTaskExecutor {
+  executor : @runtime.NativeRemoteTaskExecutor
+}
+
+///|
 fn values_failure(
   code : String,
   cleanup : () -> Bool,
@@ -49,7 +56,7 @@ pub fn install_native_remote_values_task_executor(
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
   limits : NativeRemoteValuesTaskLimits,
-) -> Result[@runtime.NativeRemoteTaskExecutor, NativeRemoteValuesHostIssue] {
+) -> Result[NativeRemoteValuesTaskExecutor, NativeRemoteValuesHostIssue] {
   if limits.finalization_quantum < 1 ||
     limits.max_finalization_rounds < 1 ||
     limits.bridge_max_entries < 1 ||
@@ -151,7 +158,7 @@ pub fn install_native_remote_values_task_executor(
     },
   )
   match executor {
-    Ok(value) => Ok(value)
+    Ok(value) => Ok({ executor: value, })
     Err(issue) => Err(Runtime(issue))
   }
 }
@@ -165,7 +172,7 @@ pub fn open_native_remote_values_site_runtime(
   active_runtime : @bundle.NativeActiveRuntimeBinding,
   operation_capability_cid : String,
   issuer_capability_cid : String,
-  executor : @runtime.NativeRemoteTaskExecutor,
+  executor : NativeRemoteValuesTaskExecutor,
   journal : @journal.Journal,
   bundles : @bundle.NativeRuntimeBundleStore,
   budgets : Array[@remote.RemoteDispatchBudget],
@@ -179,7 +186,7 @@ pub fn open_native_remote_values_site_runtime(
       active_runtime,
       operation_capability_cid,
       issuer_capability_cid,
-      [executor],
+      [executor.executor],
     ) {
     Ok(value) => value
     Err(issue) => return Err(Runtime(issue))

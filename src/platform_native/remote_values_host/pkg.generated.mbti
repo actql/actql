@@ -14,9 +14,9 @@ import {
 }
 
 // Values
-pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, String, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[@remote_runtime.NativeRemoteTaskExecutor, NativeRemoteValuesHostIssue]
+pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, String, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[NativeRemoteValuesTaskExecutor, NativeRemoteValuesHostIssue]
 
-pub fn open_native_remote_values_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, @remote_runtime.NativeRemoteTaskExecutor, @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteValuesHostIssue]
+pub fn open_native_remote_values_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, NativeRemoteValuesTaskExecutor, @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteValuesHostIssue]
 
 // Errors
 
@@ -28,6 +28,8 @@ pub(all) enum NativeRemoteValuesHostIssue {
   InvalidLimits
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
 }
+
+type NativeRemoteValuesTaskExecutor
 
 pub(all) struct NativeRemoteValuesTaskLimits {
   finalization_quantum : Int
