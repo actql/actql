@@ -38,10 +38,16 @@ function responseCode(error) {
       error?.code === 'ClientAuthenticationDenied' ||
       error?.code === 'ClientConnectionDenied') return 403;
   if (error?.code === 'ResultUnavailable') return 410;
-  if (error?.code === 'ClientRequestTooLarge') return 413;
+  if (error?.code === 'ClientRequestTooLarge' ||
+      error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'ClientProgramInvalidInput' ||
+      error?.code === 'ClientParametersInvalid' ||
       error?.code === 'InvalidRunStateRequest' ||
       error?.code === 'InvalidResultAccessRequest') return 400;
+  if (error?.code === 'ClientProgramNeedsInputs' ||
+      error?.code === 'ClientProgramRejected' ||
+      error?.code === 'ClientProgramUnsupported') return 422;
   if (error?.code === 'UnknownClientOperation') return 404;
   if (error?.code === 'ClientOperationUnavailable') return 501;
   if (error?.code === 'ResultAttemptLookupUnavailable') return 501;
@@ -99,7 +105,7 @@ function observationAttempt(response) {
 export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
-  reconcile, deliveryAttempt,
+  reconcile, deliveryAttempt, prepareSubmit,
   maxRequestBytes = 65536,
 }) {
   if (typeof authenticate !== 'function' ||
@@ -140,7 +146,7 @@ export function createClientHttpHandler({
         }));
       } catch { authorized = false; }
       if (authorized !== true) invalid('ClientConnectionDenied');
-      const invoke = async (handler, signal) => {
+      const invoke = async (handler, signal, preparedProgram) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         return handler(Object.freeze({
           principalId: principal,
@@ -149,6 +155,7 @@ export function createClientHttpHandler({
             .filter(([key]) => key !== 'connection' && key !== 'ref')),
           ...(ref === undefined ? {} : {ref}),
           ...(signal === undefined ? {} : {signal}),
+          ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
       };
       const sendJson = value => {
@@ -162,7 +169,12 @@ export function createClientHttpHandler({
         }
         sendJson(profile);
       } else if (operation === 'submit') {
-        const admission = await invoke(submit);
+        const preparedProgram = prepareSubmit === undefined ? undefined :
+          await invoke(prepareSubmit);
+        if (prepareSubmit !== undefined && preparedProgram === undefined) {
+          invalid('InvalidClientHostPreparation');
+        }
+        const admission = await invoke(submit, undefined, preparedProgram);
         if (!validClientAdmission(admission, connection)) {
           invalid('InvalidClientHostAdmission');
         }

@@ -184,14 +184,33 @@ pub fn client_program_preparation_issue_code(
       Some(
         match issue {
           InvalidFormat => "invalid_format"
-          SuppliedSyntax(_) => "supplied_syntax"
-          SuppliedAdmission(_) => "supplied_admission"
+          SuppliedSyntax(error) =>
+            match error.issue {
+              @source.InputLimit | @source.NodeLimit | @source.DepthLimit =>
+                "supplied_too_large"
+              _ => "supplied_syntax"
+            }
+          SuppliedAdmission(error) =>
+            match error.kind {
+              @decode.BudgetExceeded => "supplied_too_large"
+              _ => "supplied_admission"
+            }
           Preparation(owner) =>
             match owner {
               Syntax(_) => "program_syntax"
               EffectNotSupported(_) => "effect_not_supported"
               NeedsInputs(_) => "needs_inputs"
-              Check(_) => "check_rejected"
+              Check(diagnostic) =>
+                match @program_check.diagnostic_category(diagnostic) {
+                  @program_check.InvalidInput => "check_invalid_input"
+                  @program_check.InvalidConfiguration =>
+                    "check_invalid_configuration"
+                  @program_check.UnsupportedImplementation =>
+                    "check_unsupported"
+                  @program_check.CompileLimit => "check_compile_limit"
+                  @program_check.MissingInput => "check_missing_input"
+                  @program_check.UnclassifiedFailure => "check_unclassified"
+                }
               MissingCheckedStage(_) => "missing_checked_stage"
               MissingStageIdentity(_) => "missing_stage_identity"
               Lowering(_) => "lowering_rejected"
