@@ -523,6 +523,36 @@ pub fn client_program_admit_publication_plan_facts(
 }
 
 ///|
+/// Issue the checked Result-publication Plan subset for this private ABI.
+#export_name("clientProgramIssuePublicationPlanFacts")
+pub fn client_program_issue_publication_plan_facts(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientPublicationPlanFacts,
+  @publication_host.ClientPublicationPlanFactIssue,
+] {
+  @publication_host.issue_prepared_client_publication_plan_facts(
+    prepared, 1000, 100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientProgramPublicationPlanFactLimits")
+pub fn client_program_publication_plan_fact_limits(
+  facts : @publication_host.ClientPublicationPlanFacts,
+) -> Array[String] {
+  @publication_host.client_publication_plan_fact_limits(facts)
+}
+
+///|
+#export_name("clientProgramPublicationPlanFactBindings")
+pub fn client_program_publication_plan_fact_bindings(
+  facts : @publication_host.ClientPublicationPlanFacts,
+) -> Array[String] {
+  @publication_host.client_publication_plan_fact_bindings(facts)
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
