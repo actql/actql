@@ -10,6 +10,8 @@ import {performance} from 'node:perf_hooks';
 import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
 import {managedCaseConfiguration} from './managed-configuration.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
+import {productAcquisitionMetadata} from
+  '../../adapters/connectors/duckdb/node/bench/equivalent-acquisition-metadata.mjs';
 
 // Registered-case native product-path diagnostic. It now retains task output
 // independently; formal four-comparator acceptance remains a separate run.
@@ -21,7 +23,7 @@ for (const arg of extra) {
     options.set('training', true);
     continue;
   }
-  const match = /^--(native-ms|local-task-ms|native-task-ms)=(.+)$/.exec(arg);
+  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database)=(.+)$/.exec(arg);
   if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
   options.set(match[1], match[2]);
 }
@@ -68,13 +70,18 @@ try {
     evidence: await text('spec/contracts/actql-query-process-evidence.json'),
     receipts: await text('spec/contracts/actql-query-two-receipt.json'),
   };
-  const database = join(directory, 'source.duckdb');
+  const database = options.has('source-database')
+    ? resolve(options.get('source-database')) : join(directory, 'source.duckdb');
   const retainedTaskRoot = join(directory, 'retained-task');
   await mkdir(retainedTaskRoot);
-  await run(process.execPath, [
-    join(root, 'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'),
-    database, fixture.workload, fixture.layout, String(fixture.rows),
-  ], {cwd: root, timeout: fixture.limits.timeoutMs});
+  if (options.has('source-database')) {
+    assert(existsSync(database), 'NativeMatchedSourceUnavailable');
+  } else {
+    await run(process.execPath, [
+      join(root, 'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'),
+      database, fixture.workload, fixture.layout, String(fixture.rows),
+    ], {cwd: root, timeout: fixture.limits.timeoutMs});
+  }
   const {input, limits, finalTask} = managedCaseConfiguration(
     fixture, contracts, database, directory,
   );
@@ -132,7 +139,7 @@ try {
     '--transfer-cap', String(limits.transfer_bytes),
     '--retained-cap', String(limits.retained_bytes),
     '--execution-cap', String(limits.execution_bytes),
-  ], {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 65536});
+  ], {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 1048576});
   const elapsedMilliseconds = performance.now() - started;
   const result = JSON.parse(stdout.trim().split('\n').at(-1));
   const selections = stdout.split('\n').filter(line => line.startsWith('selection:'));
@@ -191,6 +198,10 @@ try {
       result.acquisition[key] >= 0, `InvalidNativeAcquisitionUsage:${key}`);
   }
   assert.equal(result.acquisition.comparison_rows, fixture.rows);
+  const acquisitionEvidenceMetadata = productAcquisitionMetadata(
+    fixture,
+    result.acquisition_evidence,
+  );
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: finalTask}, (_, index) => index + 1));
   assert.deepEqual(taskUsages.map(value => value.task),
@@ -211,6 +222,8 @@ try {
     executionMilliseconds: result.execution_us / 1000,
     cleanupMilliseconds: result.cleanup_us / 1000,
     taskIntervals, taskUsages, taskHoldings, selections, result,
+    acquisitionEvidenceMetadata,
+    sourceMode: options.has('source-database') ? 'existing' : 'generated',
     selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
 } catch (error) {

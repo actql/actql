@@ -367,6 +367,38 @@ fn main {
   let comparison = @duckdb_acquisition.duckdb_native_observation_demand_usage(
     acquisition_observation,
   )
+  let validation_receipt = @duckdb_acquisition.duckdb_native_observation_receipt_at(
+    acquisition_observation, 0,
+  ).unwrap()
+  let output_receipt = @duckdb_acquisition.duckdb_native_observation_receipt_at(
+    acquisition_observation, 1,
+  ).unwrap()
+  let source_record = @duckdb_acquisition.duckdb_native_observation_record_at(
+    acquisition_observation, 0,
+  ).unwrap()
+  let filter_record = @duckdb_acquisition.duckdb_native_observation_record_at(
+    acquisition_observation, 1,
+  ).unwrap()
+  let select_record = @duckdb_acquisition.duckdb_native_observation_record_at(
+    acquisition_observation, 2,
+  ).unwrap()
+  let acquisition_evidence = "{\"receipts\":[" +
+    @encode.document_text(validation_receipt.0) +
+    "," +
+    @encode.document_text(output_receipt.0) +
+    "],\"records\":[" +
+    @encode.document_text(source_record.0) +
+    "," +
+    @encode.document_text(filter_record.0) +
+    "," +
+    @encode.document_text(select_record.0) +
+    "],\"observation\":" +
+    @encode.document_text(
+      @duckdb_acquisition.duckdb_native_observation_document(
+        acquisition_observation,
+      ),
+    ) +
+    "}"
   println("phase:acquisition-output")
   let output = @host.native_acquisition_runtime_output(acquisition).unwrap()
   println("phase:source")
@@ -583,7 +615,9 @@ fn main {
     usage.transferred_bytes.to_string() +
     ",\"peak_retention_bytes\":" +
     usage.peak_retention_bytes.to_string() +
-    "},\"acquisition\":{\"guard_work\":" +
+    "},\"acquisition_evidence\":" +
+    acquisition_evidence +
+    ",\"acquisition\":{\"guard_work\":" +
     guard_work.to_string() +
     ",\"guard_bytes\":" +
     guard_bytes.to_string() +
