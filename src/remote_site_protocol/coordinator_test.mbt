@@ -30,6 +30,13 @@ test "Coordinator intent is durable before it authorizes a send" {
   let (kind, record) = commit_coordinator_dispatch_intent(admission, true).unwrap()
   assert_eq(kind, NewDispatch)
   assert_true(coordinator_dispatch_intent_matches_request(record, request))
+  assert_true(coordinator_exact_retransmission_eligible(record, request))
+  assert_false(
+    coordinator_exact_retransmission_eligible(
+      record,
+      coordinator_request("dispatch-b", 2),
+    ),
+  )
 }
 
 ///|
@@ -347,4 +354,5 @@ test "Coordinator unknown state restores without inventing a Site fact" {
   ).unwrap()
   assert_eq(coordinator_dispatch_record_state_codes(restored), state)
   assert_false(coordinator_completion_evidence_available(restored))
+  assert_true(coordinator_exact_retransmission_eligible(restored, request))
 }

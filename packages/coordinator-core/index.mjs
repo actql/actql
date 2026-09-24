@@ -61,3 +61,5 @@ export const responseDurableJson = (durable, transition, response) =>
 export const commitTransition = transition =>
   checked(owner.coordinatorCommitTransition(transition));
 export const recordStateCodes = owner.coordinatorRecordStateCodes;
+export const exactRetransmissionEligible =
+  owner.coordinatorExactRetransmissionEligible;

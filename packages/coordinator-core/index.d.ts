@@ -62,3 +62,5 @@ export function responseDurableJson(durable: DurableRecord,
 /** Call only after the exact next durable body was atomically persisted. */
 export function commitTransition(transition: Transition): void;
 export function recordStateCodes(record: IntentRecord): string[];
+export function exactRetransmissionEligible(record: IntentRecord,
+  request: DispatchRequest): boolean;

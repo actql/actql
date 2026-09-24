@@ -266,3 +266,14 @@ pub fn coordinator_record_state_codes(
 ) -> Array[String] {
   @remote.coordinator_dispatch_record_state_codes(record)
 }
+
+///|
+/// Check the common owner's exact-send recovery condition. The environment
+/// adapter must first query the authenticated Site and retain any uncertainty.
+#export_name("coordinatorExactRetransmissionEligible")
+pub fn coordinator_exact_retransmission_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  @remote.coordinator_exact_retransmission_eligible(record, request)
+}

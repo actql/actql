@@ -197,6 +197,23 @@ pub fn coordinator_dispatch_intent_matches_request(
 }
 
 ///|
+/// An exact transport retransmission may recover an intent with no accepted
+/// Site observation. It reuses the same dispatch and input binding; the Site
+/// journal must deduplicate it before physical execution. An observed Site
+/// record is reconciled by query instead.
+pub fn coordinator_exact_retransmission_eligible(
+  record : CoordinatorDispatchIntentRecord,
+  request : DispatchRequest,
+) -> Bool {
+  coordinator_dispatch_intent_matches_request(record, request) &&
+  record.site_revision == -1 &&
+  (
+    record.progress == CoordinatorIntentDurable ||
+    record.progress == CoordinatorOutcomeUnknown
+  )
+}
+
+///|
 fn coordinator_progress_code(progress : CoordinatorDispatchProgress) -> Int {
   match progress {
     CoordinatorIntentDurable => 0
