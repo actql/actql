@@ -1009,6 +1009,56 @@ test('portable control validates Receipt and Captured Run references',
     computationChain, computationEvidence, preview,
     [{name: 'Foreign', wire: '{}'}], limits),
   {code: 'MoonBitHostFailure'});
+  const memberReceipt = control.seal('effect_apply_receipt',
+    JSON.stringify({
+      version: 'actql-effect-apply-receipt/0.1',
+      effect_preview_cid: previewBody.effect_preview_cid,
+      effect_member_preview_cid:
+        previewBody.effects[0].effect_member_preview_cid,
+      applied: [], accepted: [], unknown: [], failed: [],
+      unattempted: [], status: 'applied',
+      outcome: {state: 'applied', result: {}},
+    }), limits);
+  const setReceipt = control.seal('effect_set_apply_receipt',
+    JSON.stringify({
+      version: 'actql-effect-set-apply-receipt/0.1',
+      effect_preview_cid: previewBody.effect_preview_cid,
+      apply_policy: 'attempt_all',
+      effects: [{
+        effect_id: 'WriteOne',
+        effect_member_preview_cid:
+          previewBody.effects[0].effect_member_preview_cid,
+        state: 'applied', replayed: false,
+        member_receipt_cid: memberReceipt.identity,
+      }],
+      status: 'applied',
+    }), limits);
+  const finalChain = {
+    runDefinition: run, invocation: invoked,
+    definitions: [definition], artifacts: [artifact], manifest,
+    computationReceipt: receipt, capturedRun: effectfulCaptured,
+  };
+  const finalReceipt = control.issueEffectfulFinalRunReceipt(
+    finalChain, preview, {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits);
+  assert.equal(JSON.parse(finalReceipt.wire).captured_run_cid,
+    effectfulCaptured.identity);
+  assert.equal(JSON.parse(finalReceipt.wire).effect_preview_cid,
+    previewBody.effect_preview_cid);
+  assert.notEqual(finalReceipt.identity, receipt.identity);
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    finalChain, {}, {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits),
+  {name: 'TypeError', message: 'Foreign Effect computation Preview'});
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    finalChain, preview, {setWire: setReceipt.wire,
+      memberWires: []}, limits),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => control.issueEffectfulFinalRunReceipt(
+    {...finalChain, capturedRun: captured}, preview,
+    {setWire: setReceipt.wire,
+      memberWires: [memberReceipt.wire]}, limits),
+  {code: 'MoonBitHostFailure'});
   const payloadWire = JSON.stringify(resultRows);
   const payloadBytes = Buffer.byteLength(payloadWire, 'utf8');
   const physicalCid = `sha256:${createHash('sha256')

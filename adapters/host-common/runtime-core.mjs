@@ -1906,6 +1906,30 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       )));
     },
+    issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
+      issuanceLimits(limits, 'final Effectful Run Receipt');
+      if (chain === null || typeof chain !== 'object' ||
+          !Array.isArray(chain.definitions) ||
+          !Array.isArray(chain.artifacts) ||
+          receipts === null || typeof receipts !== 'object' ||
+          typeof receipts.setWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid final Effectful Run Receipt');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(moon.strategyIssueEffectfulFinalRunReceipt(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth,
+      )));
+    },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
         previous === undefined ? undefined : token(previous),

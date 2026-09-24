@@ -866,6 +866,46 @@ pub fn strategy_issue_effectful_captured_run(
 }
 
 ///|
+/// Issue the final Effectful Receipt only from an admitted computation chain
+/// and the exact private Preview and Effect Set receipts. This is not apply
+/// authority or a durable publication commit.
+#export_name("strategyIssueEffectfulFinalRunReceipt")
+pub fn strategy_issue_effectful_final_run_receipt(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let final_receipt = match @publication.issue_effectful_final_run_receipt(
+    run_definition, computation_receipt, captured_run, preview,
+    set_receipt_wire, member_receipt_wires,
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+  match @publication.admit_effectful_final_run_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest,
+    computation_receipt, captured_run, preview,
+    set_receipt_wire, member_receipt_wires,
+    @publication.publication_contract_json(final_receipt),
+    max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(_) => final_receipt
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,
