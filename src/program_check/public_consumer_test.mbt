@@ -48,6 +48,35 @@ fn public_checked(
 }
 
 ///|
+test "checked Program retains its exact admitted Environment owner" {
+  let (_, source, configured, evidence, limits) = public_input_fixture()
+  let checked = public_checked(
+    @program_check.check_parsed_with_evidence(
+      source,
+      configured,
+      None,
+      evidence,
+      limits,
+    ),
+  )
+  let retained = @program_check.checked_environment(checked)
+  assert_true(
+    physical_equal(
+      retained,
+      @program_check.checking_environment_wire(configured),
+    ),
+  )
+  let (_, _, foreign, _, _) = public_input_fixture()
+  assert_eq(
+    @environment.cid(retained),
+    @environment.cid(@program_check.checking_environment_wire(foreign)),
+  )
+  assert_false(
+    physical_equal(retained, @program_check.checking_environment_wire(foreign)),
+  )
+}
+
+///|
 fn public_input_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
