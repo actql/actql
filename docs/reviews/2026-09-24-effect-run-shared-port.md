@@ -124,6 +124,15 @@ Result Artifact CID. Static checked-Stage admission rejects a different
 source name, and the captured computation-chain check requires the exact
 Artifact in that Captured Run. These checks do not yet prove the captured
 rows' Effect Plan output or authorize apply.
+The common checked Result-set export sequence now serves Effect-free
+publication and is exercised with a real Effectful computation in a Host
+integration fixture. That fixture exports its complete Result inventory
+through the durable Store, and its private Preview references the issued
+Artifact rather than a placeholder CID. Partial export failure releases
+earlier prepared payloads; foreign occurrence evidence is rejected before it
+can be returned. The standard Effectful Host caller is still absent. This is
+a prepared, unpublished computation result set, not a Captured Run, final
+Receipt, mutation permit, or durable commit.
 
 ## Required port and owners
 
