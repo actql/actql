@@ -112,6 +112,10 @@ test('binding set covers every checked Unit Result port', async () => {
     checked(moon.clientProgramPublicationRowsLimitJson(prepared, 0, index)),
     checked(moon.clientProgramPublicationBytesLimitJson(prepared, 0, index)),
   ]);
+  const issued = checked(moon.clientProgramIssuePublicationPlanFacts(prepared));
+  assert.deepEqual(moon.clientProgramPublicationPlanFactLimits(issued), limits);
+  assert.deepEqual(moon.clientProgramPublicationPlanFactBindings(issued),
+    bindings);
   assert.equal(new Set(bindings.map(body => JSON.parse(body).binding_cid))
     .size, 4);
   assert.equal(new Set(limits.map(body => JSON.parse(body).resolved_limit_cid))
@@ -363,6 +367,12 @@ test('Node ABI derives the checked named Result and request identity', async () 
     moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
   const bytesBindingBody = checked(
     moon.clientProgramPublicationBytesBindingJson(prepared, 0, 0));
+  const issuedFacts = checked(
+    moon.clientProgramIssuePublicationPlanFacts(prepared));
+  assert.deepEqual(moon.clientProgramPublicationPlanFactLimits(issuedFacts),
+    [rowsLimitBody, bytesLimitBody]);
+  assert.deepEqual(moon.clientProgramPublicationPlanFactBindings(issuedFacts),
+    [rowsBindingBody, bytesBindingBody]);
   const rowsBinding = JSON.parse(rowsBindingBody);
   const bytesBinding = JSON.parse(bytesBindingBody);
   assert.deepEqual([
