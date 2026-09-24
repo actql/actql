@@ -103,6 +103,17 @@ export function admitCheckedOutputPlan(durable: DurableRecord,
     maxReferencedBytes: number | bigint}>): CheckedOutputPlan;
 export function checkedOutputPlanCid(plan: CheckedOutputPlan): string;
 export function checkedOutputIntentCid(plan: CheckedOutputPlan): string;
+/** Admitted Site claims, not verified publication or a read grant. */
+export function checkedOutputPublicationFacts(plan: CheckedOutputPlan):
+  Readonly<{
+    resultDefinitionCid: string;
+    logicalRelationCid: string;
+    resultSchemaCid: string;
+    orderingEvidenceCid: string;
+    codecContractCid: string;
+    rowCount: bigint;
+    materialGenerationCid: string;
+  }>;
 export function prepareOutputIntent(journal: Journal,
   plan: CheckedOutputPlan): OutputIntentAdmission;
 export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;

@@ -107,6 +107,26 @@ pub fn coordinator_checked_output_intent_cid(
 }
 
 ///|
+/// Publication facts are projected from the fully admitted Site plan.
+/// They remain claims until the payload and Store evidence are independently
+/// checked; this projection does not authorize publication or reading.
+#export_name("coordinatorCheckedOutputPublicationFacts")
+pub fn coordinator_checked_output_publication_facts(
+  checked : CoordinatorCheckedOutputPlan,
+) -> Array[String] {
+  let request = @remote.remote_output_plan_payload_request(checked.plan)
+  [
+    @payload.publication_payload_request_result_definition(request),
+    @payload.publication_payload_request_logical_relation(request),
+    @payload.publication_payload_request_schema(request),
+    @payload.publication_payload_request_ordering_evidence(request),
+    @payload.publication_payload_request_codec(request),
+    @payload.publication_payload_request_row_count(request).to_string(),
+    @payload.publication_payload_material_identity(request),
+  ]
+}
+
+///|
 /// The common owner checks that the same dispatch and Result occurrence was
 /// already admitted before preparing an output intent for durable storage.
 #export_name("coordinatorPrepareOutputIntent")

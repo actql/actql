@@ -587,12 +587,12 @@ const _M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDec
 function _M0DTPC15error5Error82actql_2factql_2fremote__transfer_2eRemoteTransferWireStop_2eRemoteTransferWireStop() {}
 _M0DTPC15error5Error82actql_2factql_2fremote__transfer_2eRemoteTransferWireStop_2eRemoteTransferWireStop.prototype.$tag = 12;
 const _M0DTPC15error5Error82actql_2factql_2fremote__transfer_2eRemoteTransferWireStop_2eRemoteTransferWireStop__ = new _M0DTPC15error5Error82actql_2factql_2fremote__transfer_2eRemoteTransferWireStop_2eRemoteTransferWireStop();
-function _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop() {}
-_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop.prototype.$tag = 11;
-const _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__ = new _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop();
 function _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop() {}
-_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop.prototype.$tag = 10;
+_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop.prototype.$tag = 11;
 const _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__ = new _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop();
+function _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop() {}
+_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop.prototype.$tag = 10;
+const _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__ = new _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop();
 function _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure() {}
 _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure.prototype.$tag = 9;
 const _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure__ = new _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure();
@@ -1376,9 +1376,6 @@ function _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailur
   this._0 = param0;
 }
 _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok.prototype.$tag = 1;
-function $f64_convert_i64(a) {
-  return Number(BigInt.asIntN(64, a));
-}
 function _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(param0) {
   this._0 = param0;
 }
@@ -1387,6 +1384,47 @@ function _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2O
   this._0 = param0;
 }
 _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok.prototype.$tag = 1;
+function _M0TP35actql5actql20publication__payload25PublicationPayloadRequest(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) {
+  this.store_authority_cid = param0;
+  this.publication_attempt_cid = param1;
+  this.material_generation_cid = param2;
+  this.result_definition_cid = param3;
+  this.logical_relation_cid = param4;
+  this.result_schema_cid = param5;
+  this.ordering_evidence_cid = param6;
+  this.durable_codec_cid = param7;
+  this.max_bytes = param8;
+  this.row_count = param9;
+  this.request_cid = param10;
+  this.body = param11;
+}
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function $f64_convert_i64(a) {
+  return Number(BigInt.asIntN(64, a));
+}
 function _M0TP35actql5actql18physical__manifest13PhysicalChunk(param0, param1, param2) {
   this.cid = param0;
   this.byte_length = param1;
@@ -1426,44 +1464,6 @@ function _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalMa
   this._0 = param0;
 }
 _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok.prototype.$tag = 1;
-function _M0TP35actql5actql20publication__payload25PublicationPayloadRequest(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) {
-  this.store_authority_cid = param0;
-  this.publication_attempt_cid = param1;
-  this.material_generation_cid = param2;
-  this.result_definition_cid = param3;
-  this.logical_relation_cid = param4;
-  this.result_schema_cid = param5;
-  this.ordering_evidence_cid = param6;
-  this.durable_codec_cid = param7;
-  this.max_bytes = param8;
-  this.row_count = param9;
-  this.request_cid = param10;
-  this.body = param11;
-}
-function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql12decode__core10ObjectViewRP35actql5actql16remote__transfer22RemoteTransferWireStopE3Err(param0) {
   this._0 = param0;
 }
@@ -2070,8 +2070,8 @@ const _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS205 = "\
 const _M0FP35actql5actql6sha25614initial__state = [1779033703, -1150833019, 1013904242, -1521486534, 1359893119, -1694144372, 528734635, 1541459225];
 const _M0FP35actql5actql6sha25616round__constants = [1116352408, 1899447441, -1245643825, -373957723, 961987163, 1508970993, -1841331548, -1424204075, -670586216, 310598401, 607225278, 1426881987, 1925078388, -2132889090, -1680079193, -1046744716, -459576895, -272742522, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, -1740746414, -1473132947, -1341970488, -1084653625, -958395405, -710438585, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, -2117940946, -1838011259, -1564481375, -1474664885, -1035236496, -949202525, -778901479, -694614492, -200395387, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, -2067236844, -1933114872, -1866530822, -1538233109, -1090935817, -965641998];
 const _M0FP35actql5actql12encode__core6quotedN6digitsS82 = "0123456789abcdef";
-const _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163 = "sha256:";
 const _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187 = "sha256:";
+const _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163 = "sha256:";
 const _M0FP35actql5actql16remote__transfer20valid__transfer__cidN7_2abindS751 = "sha256:";
 const _M0FP35actql5actql22remote__site__protocol10valid__cidN7_2abindS1659 = "sha256:";
 const _M0FP35actql5actql22remote__site__protocol33coordinator__progress__from__codeN6constrS3726 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(0);
@@ -2106,8 +2106,8 @@ const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evide
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3577 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3578 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3579 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS209 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS210 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS211 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS212 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3609 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3617 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3618 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -2118,9 +2118,9 @@ const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operatio
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3623 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3624 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3625 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS211 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS212 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS213 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS213 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS214 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS215 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS455 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(8);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS456 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(9);
 const _M0FP35actql5actql16canonical__value17nfc__quick__checkN6constrS229 = new _M0DTPC16result6ResultGbRP35actql5actql16canonical__value22TextNormalizationErrorE2Ok(false);
@@ -13470,726 +13470,6 @@ function _M0FP35actql5actql12encode__core19finish__hash__usage(w) {
   const _nodes = _bind$2._2;
   return new _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok({ _0: _hash, _1: _bytes, _2: _nodes });
 }
-function _M0FP35actql5actql18physical__manifest10valid__cid(value) {
-  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163, 0, _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163.length))) {
-    return false;
-  }
-  let _tmp = 7;
-  while (true) {
-    const index = _tmp;
-    if (index < 71) {
-      const unit = index >>> 0 < value.length ? value.charCodeAt(index) : $oob();
-      if (!(unit >= 48 && unit <= 57 || unit >= 97 && unit <= 102)) {
-        return false;
-      }
-      _tmp = index + 1 | 0;
-      continue;
-    } else {
-      break;
-    }
-  }
-  return true;
-}
-function _M0FP35actql5actql18physical__manifest14emit__manifest(manifest, max_manifest_bytes) {
-  const nodes = (Math.imul(manifest.chunks.length, 4) | 0) + 16 | 0;
-  let writer;
-  let _try_err;
-  _L: {
-    _L$2: {
-      const _bind = _M0FP35actql5actql12encode__core6writer(max_manifest_bytes, nodes, 3);
-      if (_bind.$tag === 1) {
-        const _ok = _bind;
-        writer = _ok._0;
-      } else {
-        const _err = _bind;
-        _try_err = _err._0;
-        break _L$2;
-      }
-      break _L;
-    }
-    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS384;
-  }
-  let _try_err$2;
-  _L$2: {
-    const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
-    if (_bind.$tag === 1) {
-      const _ok = _bind;
-      _ok._0;
-    } else {
-      const _err = _bind;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "chunks");
-    if (_bind$2.$tag === 1) {
-      const _ok = _bind$2;
-      _ok._0;
-    } else {
-      const _err = _bind$2;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$3 = _M0FP35actql5actql12encode__core12begin__array(writer);
-    if (_bind$3.$tag === 1) {
-      const _ok = _bind$3;
-      _ok._0;
-    } else {
-      const _err = _bind$3;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$4 = manifest.chunks;
-    const _bind$5 = _bind$4.length;
-    let _tmp = 0;
-    while (true) {
-      const _ = _tmp;
-      if (_ < _bind$5) {
-        const chunk = _bind$4[_];
-        const _bind$6 = _M0FP35actql5actql12encode__core13begin__object(writer);
-        if (_bind$6.$tag === 1) {
-          const _ok = _bind$6;
-          _ok._0;
-        } else {
-          const _err = _bind$6;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "byte_length");
-        if (_bind$7.$tag === 1) {
-          const _ok = _bind$7;
-          _ok._0;
-        } else {
-          const _err = _bind$7;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$8 = _M0FP35actql5actql12encode__core13number__value(writer, $f64_convert_i64(BigInt.asIntN(64, chunk.byte_length)));
-        if (_bind$8.$tag === 1) {
-          const _ok = _bind$8;
-          _ok._0;
-        } else {
-          const _err = _bind$8;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "cid");
-        if (_bind$9.$tag === 1) {
-          const _ok = _bind$9;
-          _ok._0;
-        } else {
-          const _err = _bind$9;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$10 = _M0FP35actql5actql12encode__core13string__value(writer, chunk.cid);
-        if (_bind$10.$tag === 1) {
-          const _ok = _bind$10;
-          _ok._0;
-        } else {
-          const _err = _bind$10;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
-        if (_bind$11.$tag === 1) {
-          const _ok = _bind$11;
-          _ok._0;
-        } else {
-          const _err = _bind$11;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$12 = _M0FP35actql5actql12encode__core13number__value(writer, chunk.row_count + 0);
-        if (_bind$12.$tag === 1) {
-          const _ok = _bind$12;
-          _ok._0;
-        } else {
-          const _err = _bind$12;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        const _bind$13 = _M0FP35actql5actql12encode__core11end__object(writer);
-        if (_bind$13.$tag === 1) {
-          const _ok = _bind$13;
-          _ok._0;
-        } else {
-          const _err = _bind$13;
-          _try_err$2 = _err._0;
-          break _L$2;
-        }
-        _tmp = _ + 1 | 0;
-        continue;
-      } else {
-        break;
-      }
-    }
-    const _bind$6 = _M0FP35actql5actql12encode__core10end__array(writer);
-    if (_bind$6.$tag === 1) {
-      const _ok = _bind$6;
-      _ok._0;
-    } else {
-      const _err = _bind$6;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "codec_contract_cid");
-    if (_bind$7.$tag === 1) {
-      const _ok = _bind$7;
-      _ok._0;
-    } else {
-      const _err = _bind$7;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$8 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.codec_contract_cid);
-    if (_bind$8.$tag === 1) {
-      const _ok = _bind$8;
-      _ok._0;
-    } else {
-      const _err = _bind$8;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
-    if (_bind$9.$tag === 1) {
-      const _ok = _bind$9;
-      _ok._0;
-    } else {
-      const _err = _bind$9;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$10 = _M0FP35actql5actql12encode__core13number__value(writer, manifest.row_count + 0);
-    if (_bind$10.$tag === 1) {
-      const _ok = _bind$10;
-      _ok._0;
-    } else {
-      const _err = _bind$10;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "schema_contract_cid");
-    if (_bind$11.$tag === 1) {
-      const _ok = _bind$11;
-      _ok._0;
-    } else {
-      const _err = _bind$11;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$12 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.schema_contract_cid);
-    if (_bind$12.$tag === 1) {
-      const _ok = _bind$12;
-      _ok._0;
-    } else {
-      const _err = _bind$12;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$13 = _M0FP35actql5actql12encode__core3key(writer, "version");
-    if (_bind$13.$tag === 1) {
-      const _ok = _bind$13;
-      _ok._0;
-    } else {
-      const _err = _bind$13;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$14 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-managed-physical-manifest/0.1");
-    if (_bind$14.$tag === 1) {
-      const _ok = _bind$14;
-      _ok._0;
-    } else {
-      const _err = _bind$14;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$15 = _M0FP35actql5actql12encode__core3key(writer, "view_contract_cid");
-    if (_bind$15.$tag === 1) {
-      const _ok = _bind$15;
-      _ok._0;
-    } else {
-      const _err = _bind$15;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$16 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.view_contract_cid);
-    if (_bind$16.$tag === 1) {
-      const _ok = _bind$16;
-      _ok._0;
-    } else {
-      const _err = _bind$16;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$17 = _M0FP35actql5actql12encode__core11end__object(writer);
-    if (_bind$17.$tag === 1) {
-      const _ok = _bind$17;
-      _ok._0;
-    } else {
-      const _err = _bind$17;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    let _bind$18;
-    let _p;
-    _L$3: {
-      _L$4: {
-        const _bind$19 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
-        let _tmp$2;
-        if (_bind$19.$tag === 1) {
-          const _ok = _bind$19;
-          _tmp$2 = _ok._0;
-        } else {
-          const _err = _bind$19;
-          _p = _err._0;
-          break _L$4;
-        }
-        _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp$2._0);
-        break _L$3;
-      }
-      _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
-    }
-    let body;
-    if (_bind$18.$tag === 1) {
-      const _ok = _bind$18;
-      body = _ok._0;
-    } else {
-      const _err = _bind$18;
-      _try_err$2 = _err._0;
-      break _L$2;
-    }
-    const _bind$19 = _M0FP35actql5actql6sha2569text__hex(body);
-    let hex;
-    if (_bind$19.$tag === 1) {
-      const _Ok = _bind$19;
-      hex = _Ok._0;
-    } else {
-      return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS387;
-    }
-    return new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok({ _0: body, _1: `sha256:${hex}`, _2: body.length });
-  }
-  if (_try_err$2.$tag === 6) {
-    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS385;
-  } else {
-    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS386;
-  }
-}
-function _M0FP35actql5actql18physical__manifest5admit(version, schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes) {
-  let _tmp;
-  const _p = "actql-managed-physical-manifest/0.1";
-  if (!(version === _p)) {
-    _tmp = true;
-  } else {
-    _tmp = max_chunks < 0 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || (row_count < 0 || (!_M0FP35actql5actql18physical__manifest10valid__cid(schema_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(view_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(codec_contract_cid) || (chunk_cids.length !== chunk_byte_lengths.length || chunk_cids.length !== chunk_row_counts.length)))))));
-  }
-  if (_tmp) {
-    return _M0FP35actql5actql18physical__manifest5admitN6constrS388;
-  }
-  if (chunk_cids.length > max_chunks) {
-    return _M0FP35actql5actql18physical__manifest5admitN6constrS389;
-  }
-  let rows = 0n;
-  let referenced = 0n;
-  const chunks = [];
-  const _bind = chunk_cids.length;
-  let _tmp$2 = 0;
-  while (true) {
-    const index = _tmp$2;
-    if (index < _bind) {
-      const cid = chunk_cids[index];
-      const bytes = _M0MPC15array5Array2atGsE(chunk_byte_lengths, index);
-      const chunk_rows = _M0MPC15array5Array2atGiE(chunk_row_counts, index);
-      if (!_M0FP35actql5actql18physical__manifest10valid__cid(cid) || (!(BigInt.asIntN(64, bytes) >= BigInt.asIntN(64, 0n) && BigInt.asIntN(64, bytes) <= BigInt.asIntN(64, 9007199254740991n)) || chunk_rows < 0)) {
-        return _M0FP35actql5actql18physical__manifest5admitN6constrS390;
-      }
-      const chunk_rows64 = BigInt.asUintN(64, BigInt(chunk_rows));
-      if (BigInt.asIntN(64, rows) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - chunk_rows64)) || BigInt.asIntN(64, referenced) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - bytes))) {
-        return _M0FP35actql5actql18physical__manifest5admitN6constrS391;
-      }
-      rows = BigInt.asUintN(64, rows + chunk_rows64);
-      referenced = BigInt.asUintN(64, referenced + bytes);
-      if (BigInt.asIntN(64, referenced) > BigInt.asIntN(64, max_referenced_bytes)) {
-        return _M0FP35actql5actql18physical__manifest5admitN6constrS392;
-      }
-      _M0MPC15array5Array4pushGsE(chunks, new _M0TP35actql5actql18physical__manifest13PhysicalChunk(cid, bytes, chunk_rows));
-      _tmp$2 = index + 1 | 0;
-      continue;
-    } else {
-      break;
-    }
-  }
-  if (BigInt.asUintN(64, rows) !== BigInt.asUintN(64, BigInt.asUintN(64, BigInt(row_count)))) {
-    return _M0FP35actql5actql18physical__manifest5admitN6constrS393;
-  }
-  const pending = new _M0TP35actql5actql18physical__manifest16PhysicalManifest(schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunks, "pending", 0, referenced);
-  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(pending, max_manifest_bytes);
-  let _bind$3;
-  if (_bind$2.$tag === 1) {
-    const _Ok = _bind$2;
-    _bind$3 = _Ok._0;
-  } else {
-    const _Err = _bind$2;
-    const _issue = _Err._0;
-    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-  }
-  const _manifest_cid = _bind$3._1;
-  const _metadata_bytes = _bind$3._2;
-  return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(new _M0TP35actql5actql18physical__manifest16PhysicalManifest(pending.schema_contract_cid, pending.view_contract_cid, pending.codec_contract_cid, pending.row_count, pending.chunks, _manifest_cid, _metadata_bytes, pending.referenced_bytes));
-}
-function _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(value) {
-  if (value.$tag === 1) {
-    const _Ok = value;
-    const _result = _Ok._0;
-    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(_result);
-  } else {
-    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
-  }
-}
-function _M0FP35actql5actql18physical__manifest14manifest__text(object, key) {
-  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
-  let _tmp;
-  if (_bind.$tag === 1) {
-    const _ok = _bind;
-    _tmp = _ok._0;
-  } else {
-    return _bind;
-  }
-  return _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core4text(_tmp));
-}
-function _M0FP35actql5actql18physical__manifest17manifest__count64(object, key) {
-  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
-  let _tmp;
-  if (_bind.$tag === 1) {
-    const _ok = _bind;
-    _tmp = _ok._0;
-  } else {
-    return _bind;
-  }
-  const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core13safe__integer(_tmp));
-  let value;
-  if (_bind$2.$tag === 1) {
-    const _ok = _bind$2;
-    value = _ok._0;
-  } else {
-    return _bind$2;
-  }
-  if (BigInt.asIntN(64, value) < BigInt.asIntN(64, 0n) || BigInt.asIntN(64, value) > BigInt.asIntN(64, 9007199254740991n)) {
-    return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
-  }
-  return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(value);
-}
-function _M0FP35actql5actql18physical__manifest15manifest__count(object, key) {
-  const _bind = _M0FP35actql5actql18physical__manifest17manifest__count64(object, key);
-  let value;
-  if (_bind.$tag === 1) {
-    const _ok = _bind;
-    value = _ok._0;
-  } else {
-    return _bind;
-  }
-  if (BigInt.asIntN(64, value) > BigInt.asIntN(64, 2147483647n)) {
-    return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
-  }
-  return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(Number(BigInt.asIntN(32, value)) | 0);
-}
-function _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest) {
-  const chunks = manifest.chunks;
-  const _tmp = manifest.schema_contract_cid;
-  const _tmp$2 = manifest.view_contract_cid;
-  const _tmp$3 = manifest.codec_contract_cid;
-  const _tmp$4 = manifest.row_count;
-  const _p = new Array(chunks.length);
-  const _p$2 = chunks.length;
-  let _tmp$5 = 0;
-  while (true) {
-    const _p$3 = _tmp$5;
-    if (_p$3 < _p$2) {
-      const _p$4 = chunks[_p$3];
-      _p[_p$3] = _p$4.cid;
-      _tmp$5 = _p$3 + 1 | 0;
-      continue;
-    } else {
-      break;
-    }
-  }
-  const _p$3 = new Array(chunks.length);
-  const _p$4 = chunks.length;
-  let _tmp$6 = 0;
-  while (true) {
-    const _p$5 = _tmp$6;
-    if (_p$5 < _p$4) {
-      const _p$6 = chunks[_p$5];
-      _p$3[_p$5] = _p$6.byte_length;
-      _tmp$6 = _p$5 + 1 | 0;
-      continue;
-    } else {
-      break;
-    }
-  }
-  const _p$5 = new Array(chunks.length);
-  const _p$6 = chunks.length;
-  let _tmp$7 = 0;
-  while (true) {
-    const _p$7 = _tmp$7;
-    if (_p$7 < _p$6) {
-      const _p$8 = chunks[_p$7];
-      _p$5[_p$7] = _p$8.row_count;
-      _tmp$7 = _p$7 + 1 | 0;
-      continue;
-    } else {
-      break;
-    }
-  }
-  const rebuilt = _M0FP35actql5actql18physical__manifest5admit("actql-managed-physical-manifest/0.1", _tmp, _tmp$2, _tmp$3, _tmp$4, _p, _p$3, _p$5, chunks.length, manifest.metadata_bytes, manifest.referenced_bytes);
-  if (rebuilt.$tag === 1) {
-    const _Ok = rebuilt;
-    const _value = _Ok._0;
-    return _value.manifest_cid === manifest.manifest_cid && (_value.metadata_bytes === manifest.metadata_bytes && BigInt.asUintN(64, _value.referenced_bytes) === BigInt.asUintN(64, manifest.referenced_bytes)) ? new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_value) : _M0FP35actql5actql18physical__manifest17rebuild__manifestN6constrS394;
-  } else {
-    const _Err = rebuilt;
-    const _issue = _Err._0;
-    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-  }
-}
-function _M0FP35actql5actql18physical__manifest14manifest__json(manifest) {
-  const _bind = _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest);
-  let admitted;
-  if (_bind.$tag === 1) {
-    const _Ok = _bind;
-    admitted = _Ok._0;
-  } else {
-    const _Err = _bind;
-    const _issue = _Err._0;
-    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-  }
-  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(admitted, admitted.metadata_bytes);
-  if (_bind$2.$tag === 1) {
-    const _Ok = _bind$2;
-    const _x = _Ok._0;
-    const _body = _x._0;
-    const _cid = _x._1;
-    const _bytes = _x._2;
-    return _cid === admitted.manifest_cid && _bytes === admitted.metadata_bytes ? new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_body) : _M0FP35actql5actql18physical__manifest14manifest__jsonN6constrS395;
-  } else {
-    const _Err = _bind$2;
-    const _issue = _Err._0;
-    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-  }
-}
-function _M0FP35actql5actql18physical__manifest11admit__json(body, claimed_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
-  if (max_chunks < 0 || (max_chunks > 536870907 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || body.length > max_manifest_bytes)))) {
-    return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS396;
-  }
-  let _try_err;
-  _L: {
-    const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
-    const max_nodes = (Math.imul(max_chunks, 4) | 0) + 16 | 0;
-    const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, new _M0TP35actql5actql13source__value11ParseLimits(max_manifest_bytes, max_nodes, 3), "<memory>");
-    let node;
-    if (_bind.$tag === 1) {
-      const _Ok = _bind;
-      node = _Ok._0;
-    } else {
-      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
-      break _L;
-    }
-    const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, new _M0TP35actql5actql12decode__core6Limits(max_nodes, 3, max_manifest_bytes, max_manifest_bytes)));
-    let cursor;
-    if (_bind$2.$tag === 1) {
-      const _ok = _bind$2;
-      cursor = _ok._0;
-    } else {
-      const _err = _bind$2;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _bind$3 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(cursor, ["chunks", "codec_contract_cid", "row_count", "schema_contract_cid", "version", "view_contract_cid"]));
-    let object;
-    if (_bind$3.$tag === 1) {
-      const _ok = _bind$3;
-      object = _ok._0;
-    } else {
-      const _err = _bind$3;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _bind$4 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, "chunks"));
-    let chunks_cursor;
-    if (_bind$4.$tag === 1) {
-      const _ok = _bind$4;
-      chunks_cursor = _ok._0;
-    } else {
-      const _err = _bind$4;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _bind$5 = _M0FP35actql5actql12decode__core13array__length(chunks_cursor);
-    let chunk_count;
-    if (_bind$5 === undefined) {
-      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
-      break _L;
-    } else {
-      const _Some = _bind$5;
-      chunk_count = _Some;
-    }
-    if (chunk_count > max_chunks) {
-      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS398;
-    }
-    const chunk_cids = [];
-    const chunk_byte_lengths = [];
-    const chunk_row_counts = [];
-    let _tmp = 0;
-    while (true) {
-      const index = _tmp;
-      if (index < chunk_count) {
-        const _bind$6 = _M0FP35actql5actql12decode__core11element__at(chunks_cursor, index);
-        let chunk_cursor;
-        if (_bind$6 === undefined) {
-          _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
-          break _L;
-        } else {
-          const _Some = _bind$6;
-          chunk_cursor = _Some;
-        }
-        const _bind$7 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(chunk_cursor, ["byte_length", "cid", "row_count"]));
-        let chunk;
-        if (_bind$7.$tag === 1) {
-          const _ok = _bind$7;
-          chunk = _ok._0;
-        } else {
-          const _err = _bind$7;
-          _try_err = _err._0;
-          break _L;
-        }
-        const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(chunk, "cid");
-        let _tmp$2;
-        if (_bind$8.$tag === 1) {
-          const _ok = _bind$8;
-          _tmp$2 = _ok._0;
-        } else {
-          const _err = _bind$8;
-          _try_err = _err._0;
-          break _L;
-        }
-        _M0MPC15array5Array4pushGsE(chunk_cids, _tmp$2);
-        const _bind$9 = _M0FP35actql5actql18physical__manifest17manifest__count64(chunk, "byte_length");
-        let _tmp$3;
-        if (_bind$9.$tag === 1) {
-          const _ok = _bind$9;
-          _tmp$3 = _ok._0;
-        } else {
-          const _err = _bind$9;
-          _try_err = _err._0;
-          break _L;
-        }
-        _M0MPC15array5Array4pushGsE(chunk_byte_lengths, _tmp$3);
-        const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(chunk, "row_count");
-        let _tmp$4;
-        if (_bind$10.$tag === 1) {
-          const _ok = _bind$10;
-          _tmp$4 = _ok._0;
-        } else {
-          const _err = _bind$10;
-          _try_err = _err._0;
-          break _L;
-        }
-        _M0MPC15array5Array4pushGiE(chunk_row_counts, _tmp$4);
-        _tmp = index + 1 | 0;
-        continue;
-      } else {
-        break;
-      }
-    }
-    const _bind$6 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "version");
-    let _tmp$2;
-    if (_bind$6.$tag === 1) {
-      const _ok = _bind$6;
-      _tmp$2 = _ok._0;
-    } else {
-      const _err = _bind$6;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _tmp$3 = _tmp$2;
-    const _bind$7 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "schema_contract_cid");
-    let _tmp$4;
-    if (_bind$7.$tag === 1) {
-      const _ok = _bind$7;
-      _tmp$4 = _ok._0;
-    } else {
-      const _err = _bind$7;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _tmp$5 = _tmp$4;
-    const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "view_contract_cid");
-    let _tmp$6;
-    if (_bind$8.$tag === 1) {
-      const _ok = _bind$8;
-      _tmp$6 = _ok._0;
-    } else {
-      const _err = _bind$8;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _tmp$7 = _tmp$6;
-    const _bind$9 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "codec_contract_cid");
-    let _tmp$8;
-    if (_bind$9.$tag === 1) {
-      const _ok = _bind$9;
-      _tmp$8 = _ok._0;
-    } else {
-      const _err = _bind$9;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _tmp$9 = _tmp$8;
-    const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(object, "row_count");
-    let _tmp$10;
-    if (_bind$10.$tag === 1) {
-      const _ok = _bind$10;
-      _tmp$10 = _ok._0;
-    } else {
-      const _err = _bind$10;
-      _try_err = _err._0;
-      break _L;
-    }
-    const _bind$11 = _M0FP35actql5actql18physical__manifest5admit(_tmp$3, _tmp$5, _tmp$7, _tmp$9, _tmp$10, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes);
-    let admitted;
-    if (_bind$11.$tag === 1) {
-      const _Ok = _bind$11;
-      admitted = _Ok._0;
-    } else {
-      const _Err = _bind$11;
-      const _issue = _Err._0;
-      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-    }
-    const _bind$12 = _M0FP35actql5actql18physical__manifest14manifest__json(admitted);
-    let canonical;
-    if (_bind$12.$tag === 1) {
-      const _Ok = _bind$12;
-      canonical = _Ok._0;
-    } else {
-      const _Err = _bind$12;
-      const _issue = _Err._0;
-      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
-    }
-    let _tmp$11;
-    if (!(canonical === body)) {
-      _tmp$11 = true;
-    } else {
-      const _p = admitted.manifest_cid;
-      _tmp$11 = !(_p === claimed_cid);
-    }
-    if (_tmp$11) {
-      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS399;
-    } else {
-      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(admitted);
-    }
-  }
-  return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS397;
-}
 function _M0FP35actql5actql20publication__payload18valid__sha256__cid(value) {
   if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187, 0, _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187.length))) {
     return false;
@@ -14997,6 +14277,726 @@ function _M0FP35actql5actql20publication__payload42admit__publication__payload__
     return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(request);
   }
   return _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS407;
+}
+function _M0FP35actql5actql18physical__manifest10valid__cid(value) {
+  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163, 0, _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163.length))) {
+    return false;
+  }
+  let _tmp = 7;
+  while (true) {
+    const index = _tmp;
+    if (index < 71) {
+      const unit = index >>> 0 < value.length ? value.charCodeAt(index) : $oob();
+      if (!(unit >= 48 && unit <= 57 || unit >= 97 && unit <= 102)) {
+        return false;
+      }
+      _tmp = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+function _M0FP35actql5actql18physical__manifest14emit__manifest(manifest, max_manifest_bytes) {
+  const nodes = (Math.imul(manifest.chunks.length, 4) | 0) + 16 | 0;
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql12encode__core6writer(max_manifest_bytes, nodes, 3);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        writer = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS384;
+  }
+  let _try_err$2;
+  _L$2: {
+    const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "chunks");
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$3 = _M0FP35actql5actql12encode__core12begin__array(writer);
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$4 = manifest.chunks;
+    const _bind$5 = _bind$4.length;
+    let _tmp = 0;
+    while (true) {
+      const _ = _tmp;
+      if (_ < _bind$5) {
+        const chunk = _bind$4[_];
+        const _bind$6 = _M0FP35actql5actql12encode__core13begin__object(writer);
+        if (_bind$6.$tag === 1) {
+          const _ok = _bind$6;
+          _ok._0;
+        } else {
+          const _err = _bind$6;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "byte_length");
+        if (_bind$7.$tag === 1) {
+          const _ok = _bind$7;
+          _ok._0;
+        } else {
+          const _err = _bind$7;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$8 = _M0FP35actql5actql12encode__core13number__value(writer, $f64_convert_i64(BigInt.asIntN(64, chunk.byte_length)));
+        if (_bind$8.$tag === 1) {
+          const _ok = _bind$8;
+          _ok._0;
+        } else {
+          const _err = _bind$8;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "cid");
+        if (_bind$9.$tag === 1) {
+          const _ok = _bind$9;
+          _ok._0;
+        } else {
+          const _err = _bind$9;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$10 = _M0FP35actql5actql12encode__core13string__value(writer, chunk.cid);
+        if (_bind$10.$tag === 1) {
+          const _ok = _bind$10;
+          _ok._0;
+        } else {
+          const _err = _bind$10;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
+        if (_bind$11.$tag === 1) {
+          const _ok = _bind$11;
+          _ok._0;
+        } else {
+          const _err = _bind$11;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$12 = _M0FP35actql5actql12encode__core13number__value(writer, chunk.row_count + 0);
+        if (_bind$12.$tag === 1) {
+          const _ok = _bind$12;
+          _ok._0;
+        } else {
+          const _err = _bind$12;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$13 = _M0FP35actql5actql12encode__core11end__object(writer);
+        if (_bind$13.$tag === 1) {
+          const _ok = _bind$13;
+          _ok._0;
+        } else {
+          const _err = _bind$13;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        _tmp = _ + 1 | 0;
+        continue;
+      } else {
+        break;
+      }
+    }
+    const _bind$6 = _M0FP35actql5actql12encode__core10end__array(writer);
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "codec_contract_cid");
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$8 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.codec_contract_cid);
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$10 = _M0FP35actql5actql12encode__core13number__value(writer, manifest.row_count + 0);
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "schema_contract_cid");
+    if (_bind$11.$tag === 1) {
+      const _ok = _bind$11;
+      _ok._0;
+    } else {
+      const _err = _bind$11;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$12 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.schema_contract_cid);
+    if (_bind$12.$tag === 1) {
+      const _ok = _bind$12;
+      _ok._0;
+    } else {
+      const _err = _bind$12;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$13 = _M0FP35actql5actql12encode__core3key(writer, "version");
+    if (_bind$13.$tag === 1) {
+      const _ok = _bind$13;
+      _ok._0;
+    } else {
+      const _err = _bind$13;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$14 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-managed-physical-manifest/0.1");
+    if (_bind$14.$tag === 1) {
+      const _ok = _bind$14;
+      _ok._0;
+    } else {
+      const _err = _bind$14;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$15 = _M0FP35actql5actql12encode__core3key(writer, "view_contract_cid");
+    if (_bind$15.$tag === 1) {
+      const _ok = _bind$15;
+      _ok._0;
+    } else {
+      const _err = _bind$15;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$16 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.view_contract_cid);
+    if (_bind$16.$tag === 1) {
+      const _ok = _bind$16;
+      _ok._0;
+    } else {
+      const _err = _bind$16;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$17 = _M0FP35actql5actql12encode__core11end__object(writer);
+    if (_bind$17.$tag === 1) {
+      const _ok = _bind$17;
+      _ok._0;
+    } else {
+      const _err = _bind$17;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    let _bind$18;
+    let _p;
+    _L$3: {
+      _L$4: {
+        const _bind$19 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
+        let _tmp$2;
+        if (_bind$19.$tag === 1) {
+          const _ok = _bind$19;
+          _tmp$2 = _ok._0;
+        } else {
+          const _err = _bind$19;
+          _p = _err._0;
+          break _L$4;
+        }
+        _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp$2._0);
+        break _L$3;
+      }
+      _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+    }
+    let body;
+    if (_bind$18.$tag === 1) {
+      const _ok = _bind$18;
+      body = _ok._0;
+    } else {
+      const _err = _bind$18;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$19 = _M0FP35actql5actql6sha2569text__hex(body);
+    let hex;
+    if (_bind$19.$tag === 1) {
+      const _Ok = _bind$19;
+      hex = _Ok._0;
+    } else {
+      return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS387;
+    }
+    return new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok({ _0: body, _1: `sha256:${hex}`, _2: body.length });
+  }
+  if (_try_err$2.$tag === 6) {
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS385;
+  } else {
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS386;
+  }
+}
+function _M0FP35actql5actql18physical__manifest5admit(version, schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  let _tmp;
+  const _p = "actql-managed-physical-manifest/0.1";
+  if (!(version === _p)) {
+    _tmp = true;
+  } else {
+    _tmp = max_chunks < 0 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || (row_count < 0 || (!_M0FP35actql5actql18physical__manifest10valid__cid(schema_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(view_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(codec_contract_cid) || (chunk_cids.length !== chunk_byte_lengths.length || chunk_cids.length !== chunk_row_counts.length)))))));
+  }
+  if (_tmp) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS388;
+  }
+  if (chunk_cids.length > max_chunks) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS389;
+  }
+  let rows = 0n;
+  let referenced = 0n;
+  const chunks = [];
+  const _bind = chunk_cids.length;
+  let _tmp$2 = 0;
+  while (true) {
+    const index = _tmp$2;
+    if (index < _bind) {
+      const cid = chunk_cids[index];
+      const bytes = _M0MPC15array5Array2atGsE(chunk_byte_lengths, index);
+      const chunk_rows = _M0MPC15array5Array2atGiE(chunk_row_counts, index);
+      if (!_M0FP35actql5actql18physical__manifest10valid__cid(cid) || (!(BigInt.asIntN(64, bytes) >= BigInt.asIntN(64, 0n) && BigInt.asIntN(64, bytes) <= BigInt.asIntN(64, 9007199254740991n)) || chunk_rows < 0)) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS390;
+      }
+      const chunk_rows64 = BigInt.asUintN(64, BigInt(chunk_rows));
+      if (BigInt.asIntN(64, rows) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - chunk_rows64)) || BigInt.asIntN(64, referenced) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - bytes))) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS391;
+      }
+      rows = BigInt.asUintN(64, rows + chunk_rows64);
+      referenced = BigInt.asUintN(64, referenced + bytes);
+      if (BigInt.asIntN(64, referenced) > BigInt.asIntN(64, max_referenced_bytes)) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS392;
+      }
+      _M0MPC15array5Array4pushGsE(chunks, new _M0TP35actql5actql18physical__manifest13PhysicalChunk(cid, bytes, chunk_rows));
+      _tmp$2 = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  if (BigInt.asUintN(64, rows) !== BigInt.asUintN(64, BigInt.asUintN(64, BigInt(row_count)))) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS393;
+  }
+  const pending = new _M0TP35actql5actql18physical__manifest16PhysicalManifest(schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunks, "pending", 0, referenced);
+  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(pending, max_manifest_bytes);
+  let _bind$3;
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    _bind$3 = _Ok._0;
+  } else {
+    const _Err = _bind$2;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+  const _manifest_cid = _bind$3._1;
+  const _metadata_bytes = _bind$3._2;
+  return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(new _M0TP35actql5actql18physical__manifest16PhysicalManifest(pending.schema_contract_cid, pending.view_contract_cid, pending.codec_contract_cid, pending.row_count, pending.chunks, _manifest_cid, _metadata_bytes, pending.referenced_bytes));
+}
+function _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(value) {
+  if (value.$tag === 1) {
+    const _Ok = value;
+    const _result = _Ok._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(_result);
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+}
+function _M0FP35actql5actql18physical__manifest14manifest__text(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  return _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core4text(_tmp));
+}
+function _M0FP35actql5actql18physical__manifest17manifest__count64(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core13safe__integer(_tmp));
+  let value;
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    value = _ok._0;
+  } else {
+    return _bind$2;
+  }
+  if (BigInt.asIntN(64, value) < BigInt.asIntN(64, 0n) || BigInt.asIntN(64, value) > BigInt.asIntN(64, 9007199254740991n)) {
+    return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(value);
+}
+function _M0FP35actql5actql18physical__manifest15manifest__count(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__count64(object, key);
+  let value;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    value = _ok._0;
+  } else {
+    return _bind;
+  }
+  if (BigInt.asIntN(64, value) > BigInt.asIntN(64, 2147483647n)) {
+    return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(Number(BigInt.asIntN(32, value)) | 0);
+}
+function _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest) {
+  const chunks = manifest.chunks;
+  const _tmp = manifest.schema_contract_cid;
+  const _tmp$2 = manifest.view_contract_cid;
+  const _tmp$3 = manifest.codec_contract_cid;
+  const _tmp$4 = manifest.row_count;
+  const _p = new Array(chunks.length);
+  const _p$2 = chunks.length;
+  let _tmp$5 = 0;
+  while (true) {
+    const _p$3 = _tmp$5;
+    if (_p$3 < _p$2) {
+      const _p$4 = chunks[_p$3];
+      _p[_p$3] = _p$4.cid;
+      _tmp$5 = _p$3 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$3 = new Array(chunks.length);
+  const _p$4 = chunks.length;
+  let _tmp$6 = 0;
+  while (true) {
+    const _p$5 = _tmp$6;
+    if (_p$5 < _p$4) {
+      const _p$6 = chunks[_p$5];
+      _p$3[_p$5] = _p$6.byte_length;
+      _tmp$6 = _p$5 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$5 = new Array(chunks.length);
+  const _p$6 = chunks.length;
+  let _tmp$7 = 0;
+  while (true) {
+    const _p$7 = _tmp$7;
+    if (_p$7 < _p$6) {
+      const _p$8 = chunks[_p$7];
+      _p$5[_p$7] = _p$8.row_count;
+      _tmp$7 = _p$7 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const rebuilt = _M0FP35actql5actql18physical__manifest5admit("actql-managed-physical-manifest/0.1", _tmp, _tmp$2, _tmp$3, _tmp$4, _p, _p$3, _p$5, chunks.length, manifest.metadata_bytes, manifest.referenced_bytes);
+  if (rebuilt.$tag === 1) {
+    const _Ok = rebuilt;
+    const _value = _Ok._0;
+    return _value.manifest_cid === manifest.manifest_cid && (_value.metadata_bytes === manifest.metadata_bytes && BigInt.asUintN(64, _value.referenced_bytes) === BigInt.asUintN(64, manifest.referenced_bytes)) ? new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_value) : _M0FP35actql5actql18physical__manifest17rebuild__manifestN6constrS394;
+  } else {
+    const _Err = rebuilt;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql18physical__manifest14manifest__json(manifest) {
+  const _bind = _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest);
+  let admitted;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    admitted = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(admitted, admitted.metadata_bytes);
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    const _x = _Ok._0;
+    const _body = _x._0;
+    const _cid = _x._1;
+    const _bytes = _x._2;
+    return _cid === admitted.manifest_cid && _bytes === admitted.metadata_bytes ? new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_body) : _M0FP35actql5actql18physical__manifest14manifest__jsonN6constrS395;
+  } else {
+    const _Err = _bind$2;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql18physical__manifest11admit__json(body, claimed_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  if (max_chunks < 0 || (max_chunks > 536870907 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || body.length > max_manifest_bytes)))) {
+    return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS396;
+  }
+  let _try_err;
+  _L: {
+    const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
+    const max_nodes = (Math.imul(max_chunks, 4) | 0) + 16 | 0;
+    const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, new _M0TP35actql5actql13source__value11ParseLimits(max_manifest_bytes, max_nodes, 3), "<memory>");
+    let node;
+    if (_bind.$tag === 1) {
+      const _Ok = _bind;
+      node = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, new _M0TP35actql5actql12decode__core6Limits(max_nodes, 3, max_manifest_bytes, max_manifest_bytes)));
+    let cursor;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      cursor = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$3 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(cursor, ["chunks", "codec_contract_cid", "row_count", "schema_contract_cid", "version", "view_contract_cid"]));
+    let object;
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      object = _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$4 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, "chunks"));
+    let chunks_cursor;
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      chunks_cursor = _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$5 = _M0FP35actql5actql12decode__core13array__length(chunks_cursor);
+    let chunk_count;
+    if (_bind$5 === undefined) {
+      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+      break _L;
+    } else {
+      const _Some = _bind$5;
+      chunk_count = _Some;
+    }
+    if (chunk_count > max_chunks) {
+      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS398;
+    }
+    const chunk_cids = [];
+    const chunk_byte_lengths = [];
+    const chunk_row_counts = [];
+    let _tmp = 0;
+    while (true) {
+      const index = _tmp;
+      if (index < chunk_count) {
+        const _bind$6 = _M0FP35actql5actql12decode__core11element__at(chunks_cursor, index);
+        let chunk_cursor;
+        if (_bind$6 === undefined) {
+          _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+          break _L;
+        } else {
+          const _Some = _bind$6;
+          chunk_cursor = _Some;
+        }
+        const _bind$7 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(chunk_cursor, ["byte_length", "cid", "row_count"]));
+        let chunk;
+        if (_bind$7.$tag === 1) {
+          const _ok = _bind$7;
+          chunk = _ok._0;
+        } else {
+          const _err = _bind$7;
+          _try_err = _err._0;
+          break _L;
+        }
+        const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(chunk, "cid");
+        let _tmp$2;
+        if (_bind$8.$tag === 1) {
+          const _ok = _bind$8;
+          _tmp$2 = _ok._0;
+        } else {
+          const _err = _bind$8;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGsE(chunk_cids, _tmp$2);
+        const _bind$9 = _M0FP35actql5actql18physical__manifest17manifest__count64(chunk, "byte_length");
+        let _tmp$3;
+        if (_bind$9.$tag === 1) {
+          const _ok = _bind$9;
+          _tmp$3 = _ok._0;
+        } else {
+          const _err = _bind$9;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGsE(chunk_byte_lengths, _tmp$3);
+        const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(chunk, "row_count");
+        let _tmp$4;
+        if (_bind$10.$tag === 1) {
+          const _ok = _bind$10;
+          _tmp$4 = _ok._0;
+        } else {
+          const _err = _bind$10;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGiE(chunk_row_counts, _tmp$4);
+        _tmp = index + 1 | 0;
+        continue;
+      } else {
+        break;
+      }
+    }
+    const _bind$6 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "version");
+    let _tmp$2;
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _tmp$2 = _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$3 = _tmp$2;
+    const _bind$7 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "schema_contract_cid");
+    let _tmp$4;
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _tmp$4 = _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$5 = _tmp$4;
+    const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "view_contract_cid");
+    let _tmp$6;
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _tmp$6 = _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$7 = _tmp$6;
+    const _bind$9 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "codec_contract_cid");
+    let _tmp$8;
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _tmp$8 = _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$9 = _tmp$8;
+    const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(object, "row_count");
+    let _tmp$10;
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _tmp$10 = _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$11 = _M0FP35actql5actql18physical__manifest5admit(_tmp$3, _tmp$5, _tmp$7, _tmp$9, _tmp$10, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes);
+    let admitted;
+    if (_bind$11.$tag === 1) {
+      const _Ok = _bind$11;
+      admitted = _Ok._0;
+    } else {
+      const _Err = _bind$11;
+      const _issue = _Err._0;
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+    }
+    const _bind$12 = _M0FP35actql5actql18physical__manifest14manifest__json(admitted);
+    let canonical;
+    if (_bind$12.$tag === 1) {
+      const _Ok = _bind$12;
+      canonical = _Ok._0;
+    } else {
+      const _Err = _bind$12;
+      const _issue = _Err._0;
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+    }
+    let _tmp$11;
+    if (!(canonical === body)) {
+      _tmp$11 = true;
+    } else {
+      const _p = admitted.manifest_cid;
+      _tmp$11 = !(_p === claimed_cid);
+    }
+    if (_tmp$11) {
+      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS399;
+    } else {
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(admitted);
+    }
+  }
+  return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS397;
 }
 function _M0IP35actql5actql16remote__transfer19RemoteTransferIssuePB2Eq5equal(_x_576, _x_577) {
   switch (_x_576) {
@@ -25088,7 +25088,7 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__si
           const _measurement = _Some$3;
           const request = durable.request;
           if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
-            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS210;
+            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS212;
           }
           const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
           const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
@@ -25110,7 +25110,7 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__si
       }
     }
   }
-  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS209;
+  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS211;
 }
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json(durable, store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, transfer_route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin) {
   _L: {
@@ -25128,7 +25128,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
       }
       break _L;
     }
-    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS211;
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS213;
   }
   const request = durable.request;
   const key = _M0FP35actql5actql22remote__site__protocol31dispatch__request__journal__key(request);
@@ -25140,7 +25140,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
     _tmp = !(_p === coordinator_authority);
   }
   if (_tmp) {
-    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS212;
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS214;
   }
   let route;
   switch (transfer_route) {
@@ -25153,7 +25153,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
       break;
     }
     default: {
-      return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS213;
+      return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS215;
     }
   }
   const _bind = _M0FP35actql5actql22remote__site__protocol31prepare__remote__output__intent(request, new _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin));
@@ -25190,6 +25190,11 @@ function _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__out
   const _p = checked.output;
   const _p$2 = _p.intent;
   return _p$2.intent_cid;
+}
+function _M0FP35actql5actql24remote__coordinator__abi48coordinator__checked__output__publication__facts(checked) {
+  const _p = checked.plan;
+  const request = _p.payload_request;
+  return [request.result_definition_cid, request.logical_relation_cid, request.result_schema_cid, request.ordering_evidence_cid, request.durable_codec_cid, _M0MPC15int645Int6418to__string_2einner(request.row_count, 10), request.material_generation_cid];
 }
 function _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent(journal, checked) {
   const _tmp = checked.output;
@@ -25370,4 +25375,4 @@ function _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__stat
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible(record, request) {
   return _M0FP35actql5actql22remote__site__protocol44coordinator__exact__retransmission__eligible(record, request);
 }
-export { _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json as coordinatorIssueOutputPlanPollJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi40coordinator__output__initial__poll__json as coordinatorOutputInitialPollJson, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi40coordinator__durable__output__poll__json as coordinatorDurableOutputPollJson, _M0FP35actql5actql24remote__coordinator__abi49coordinator__admit__output__transfer__reply__json as coordinatorAdmitOutputTransferReplyJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__output__transfer__request__cid as coordinatorOutputTransferRequestCid, _M0FP35actql5actql24remote__coordinator__abi42coordinator__prepare__output__result__json as coordinatorPrepareOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }
+export { _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json as coordinatorIssueOutputPlanPollJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi48coordinator__checked__output__publication__facts as coordinatorCheckedOutputPublicationFacts, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi40coordinator__output__initial__poll__json as coordinatorOutputInitialPollJson, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi40coordinator__durable__output__poll__json as coordinatorDurableOutputPollJson, _M0FP35actql5actql24remote__coordinator__abi49coordinator__admit__output__transfer__reply__json as coordinatorAdmitOutputTransferReplyJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__output__transfer__request__cid as coordinatorOutputTransferRequestCid, _M0FP35actql5actql24remote__coordinator__abi42coordinator__prepare__output__result__json as coordinatorPrepareOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }

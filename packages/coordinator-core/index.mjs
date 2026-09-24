@@ -111,6 +111,19 @@ export const admitCheckedOutputPlan = (durable, pollBody, planBody,
 };
 export const checkedOutputPlanCid = owner.coordinatorCheckedOutputPlanCid;
 export const checkedOutputIntentCid = owner.coordinatorCheckedOutputIntentCid;
+export const checkedOutputPublicationFacts = plan => {
+  const facts = owner.coordinatorCheckedOutputPublicationFacts(plan);
+  if (!Array.isArray(facts) || facts.length !== 7 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidCoordinatorOutputPublicationFacts');
+  }
+  const [resultDefinitionCid, logicalRelationCid, resultSchemaCid,
+    orderingEvidenceCid, codecContractCid, rowCount, materialGenerationCid] =
+    facts;
+  return Object.freeze({resultDefinitionCid, logicalRelationCid,
+    resultSchemaCid, orderingEvidenceCid, codecContractCid,
+    rowCount: BigInt(rowCount), materialGenerationCid});
+};
 export const prepareOutputIntent = (journal, plan) =>
   checked(owner.coordinatorPrepareOutputIntent(journal, plan));
 export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;

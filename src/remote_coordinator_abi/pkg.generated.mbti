@@ -26,6 +26,8 @@ pub fn coordinator_checked_output_intent_cid(CoordinatorCheckedOutputPlan) -> St
 
 pub fn coordinator_checked_output_plan_cid(CoordinatorCheckedOutputPlan) -> String
 
+pub fn coordinator_checked_output_publication_facts(CoordinatorCheckedOutputPlan) -> Array[String]
+
 pub fn coordinator_commit_intent(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_commit_output_intent(@remote_site_protocol.CoordinatorOutputAdmission) -> Result[@remote_site_protocol.CoordinatorOutputRecord, @remote_site_protocol.DispatchIssue]
