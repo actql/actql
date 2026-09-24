@@ -122,6 +122,17 @@ admission prerequisite only: the existing Store and publication coordinator
 still accept Effect-free chains exclusively. No Effectful durable commit or
 ordinary Effectful Run success is claimed by this change.
 
+The local Store's `putPublicationContract` path writes complete contract wire
+into an immutable physical object and links it by semantic CID. Its commit
+reader compares those stored bytes with the supplied wire. The private Effect
+Preview requires encrypted retention and is not in that Store's current
+Run-publication admission registry. Simply adding Preview to the metadata
+inventory would either fail admission or persist private Preview plaintext.
+Effectful commit integration must provide encrypted private-evidence custody
+in the existing Store, bind it to MoonBit's exact Preview admission, and
+verify it after reopen. The Store still must not duplicate canonical identity
+or final-chain rules in JavaScript.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
