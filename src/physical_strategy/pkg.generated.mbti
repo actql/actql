@@ -41,7 +41,7 @@ pub fn begin_resident_environment(CapturedDAG, Int, Int64) -> Result[ResidentEnv
 
 pub fn begin_resident_transfer(CapturedDAG, ResidentTable, Int64, Int64) -> Result[ResidentTransfer, RunIssue]
 
-pub fn bind_captured_effect_preview_inputs(CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
+pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @program_check.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
 
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
