@@ -58,6 +58,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
+
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_program_compilation_executable_plan_wire(@run_publication_host.ClientValuesCompilation) -> String

@@ -237,6 +237,26 @@ pub fn client_program_admit_publication(
 }
 
 ///|
+/// The normal Node Host checks the exact issued Definition before writing
+/// the request journal. Two individually valid Runs cannot be interchanged.
+#export_name("clientProgramCheckRunBinding")
+pub fn client_program_check_run_binding(
+  prepared : @publication_host.PreparedClientProgram,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  let identity = @publication_host.prepared_client_identity(prepared)
+  @publication.check_run_publication_program_binding(
+    admission,
+    definition,
+    identity.program_definition_cid,
+    @publication_host.prepared_client_program_semantics_cid(prepared),
+    @publication_host.prepared_client_check_environment_cid(prepared),
+  )
+  is Ok(_)
+}
+
+///|
 #export_name("clientProgramResultName")
 pub fn client_program_result_name(
   prepared : @publication_host.PreparedClientProgram,

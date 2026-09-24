@@ -251,7 +251,8 @@ function publicationEvidence(program, parameters, semantics,
 
 // This fixture provides missing compiler/Host policy evidence. Its checked
 // Program identity and the physical Result bytes come from product owners.
-function checkedValuesPublicationPlan(prepared, control) {
+function checkedValuesPublicationPlan(prepared, control,
+  executionContextCid = cid('a')) {
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'published-values-request', cid('b'));
   const compilation = checked(moon.clientProgramCompileLocalValues(prepared));
@@ -269,14 +270,16 @@ function checkedValuesPublicationPlan(prepared, control) {
       version: 'actql-prepared-invocation/0.1',
       invocation_template_cid: template.identity,
       compiled_plan_cid: compiledPlan.identity,
-      execution_context_cid: cid('a'), host_policy_cid: cid('b'),
+      execution_context_cid: executionContextCid,
+      host_policy_cid: cid('b'),
       policy_decision: 'allow', expires_at: '2099-01-01T00:00:00.000Z',
     }), publicationLimits);
   const authorization = control.sealRunEvidence('run_authorization',
     JSON.stringify({
       version: 'actql-run-authorization/0.1',
       prepared_invocation_cid: preparedEvidence.identity,
-      execution_context_cid: cid('a'), host_policy_cid: cid('b'),
+      execution_context_cid: executionContextCid,
+      host_policy_cid: cid('b'),
       decision: 'allowed',
     }), publicationLimits);
   const admission = control.admitCheckedClientRunPublication(
@@ -287,6 +290,8 @@ function checkedValuesPublicationPlan(prepared, control) {
     createdAt: '2026-09-24T00:00:00.000Z',
     validUntil: '2027-01-01T00:00:00.000Z',
   }, publicationLimits);
+  control.checkClientRunDefinitionBinding(prepared, admission,
+    runDefinition);
   const effectiveDataPolicyCid = cid('d');
   const observation = control.sealRunEvidence('observation_set',
     JSON.stringify({
@@ -1121,6 +1126,49 @@ test('checked source-free Program executes through the standard Local Host',
       await execution.close();
       assert.equal(execution.cleanupPending(), false);
     }
+  });
+
+test('normal Node Run issuance rejects a valid foreign Definition before journaling',
+  async t => {
+    const {document, environment} = await checkedFixture();
+    const preparedA = moon.clientProgramPrepareEffectFree(
+      document, 'json', environment);
+    assert.ok(preparedA);
+    const otherDocument = JSON.parse(document);
+    otherDocument.stages[0].steps[0].values.rows[1].id = 3;
+    const preparedB = moon.clientProgramPrepareEffectFree(
+      JSON.stringify(otherDocument), 'json', environment);
+    assert.ok(preparedB);
+    const control = runtimeCore(moon).publicationControl;
+    const planA = checkedValuesPublicationPlan(preparedA, control);
+    const planB = checkedValuesPublicationPlan(preparedB, control);
+    const otherContext = checkedValuesPublicationPlan(preparedA, control,
+      cid('f'));
+    assert.throws(() => control.checkClientRunDefinitionBinding(
+      preparedA, planA.admission, planB.runDefinition),
+    /Run Definition differs from checked Program/u);
+    assert.throws(() => control.checkClientRunDefinitionBinding(
+      preparedA, planA.admission, otherContext.runDefinition),
+    /Run Definition differs from checked Program/u);
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'foreign-run-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const request = moon.clientProgramRequestIdentity(preparedA,
+      cid('a'), 'foreign-definition-request', cid('b'));
+    await assert.rejects(journal.admitOrLookupDefinition(request, {
+      tenantId: 'tenant-a',
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition: () => {
+        control.checkClientRunDefinitionBinding(preparedA,
+          planA.admission, planB.runDefinition);
+        return planB.runDefinition;
+      },
+    }, moon, control), /Run Definition differs from checked Program/u);
+    assert.equal(journal.lookup({tenantId: 'tenant-a',
+      authorityScopeCid: cid('a'), requestId: 'foreign-definition-request'},
+    moon), undefined);
   });
 
 test('public Values submit computes and reads its real Local Result',

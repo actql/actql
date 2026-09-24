@@ -1738,6 +1738,13 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
+      if (typeof moon.clientProgramCheckRunBinding !== 'function' ||
+          !moon.clientProgramCheckRunBinding(checkedProgram,
+            admissionToken(admission), token(definition))) {
+        throw new TypeError('Run Definition differs from checked Program');
+      }
+    },
     issueRunDefinition(admission, definition, limits) {
       issuanceLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
