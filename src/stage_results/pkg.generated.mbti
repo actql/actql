@@ -534,6 +534,7 @@ pub(all) enum EffectPreviewInventoryIssue {
   MissingMember(String)
   KindMismatch(String)
   FailurePolicyMismatch(String)
+  SourceMismatch(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum EffectPreviewStaticInventoryIssue {

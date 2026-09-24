@@ -325,6 +325,16 @@ fn effect_context_preview_inventory_matches(
       Some(expected) {
       return false
     }
+    if effect_preview_member_source_result(preview, index) is Some(name) {
+      guard effect_preview_member_result_artifact_cid(preview, index)
+        is Some(expected_artifact) &&
+        @json.object_field(context, "result_artifacts") is Some(artifacts) &&
+        @json.object_field(artifacts, name) is Some(artifact) &&
+        evidence_string(artifact, "result_artifact_cid") ==
+        Some(expected_artifact) else {
+        return false
+      }
+    }
   }
   true
 }
