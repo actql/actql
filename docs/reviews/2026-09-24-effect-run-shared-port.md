@@ -219,3 +219,8 @@ reference. It does not prove the checked Program kind, physical apply outcome,
 current authority, or durable publication commit. The existing synthetic
 reference fixture is not a standard Host Effectful execution test. Those
 remaining proofs must be connected before this port is marked complete.
+Final Receipt admission now also requires the captured Effect, Effect Plan,
+and Effect Plan logical-CID inventories to name the same exact members as the
+private Preview. This is inventory closure only. The synthetic plan values in
+the reference fixture do not prove AoA plan identities or replace the missing
+product Captured Run issuer.
