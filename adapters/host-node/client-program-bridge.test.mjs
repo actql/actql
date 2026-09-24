@@ -11,9 +11,11 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {exportPinnedEffectInput} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installNodeClientProgramPreparation} from
+import {installNodeClientEffectProgramPreparation,
+  installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {runCapturedInternalStrategy, runCapturedStrategy,
+import {runCapturedEffectComputation, runCapturedInternalStrategy,
+  runCapturedStrategy,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
@@ -333,6 +335,35 @@ test('internal Client bridge retains Effect closure without public apply',
     {code: 'MoonBitHostFailure'});
   });
 
+test('installed Effect preparation retains the checked Program owner',
+  async () => {
+    const {document, environment} = await effectFixture();
+    const prepare = installNodeClientEffectProgramPreparation({
+      moon, environment, evidence: [],
+    });
+    const owned = prepare({kind: 'program', input: JSON.parse(document),
+      parameters: null});
+    const direct = moon.clientProgramEffectPreparationReady(
+      moon.clientProgramPrepareEffectComputationWithParameters(
+        document, 'json', environment, undefined, []));
+    assert.ok(owned && direct);
+    assert.equal(moon.clientProgramEffectDefinitionCid(owned),
+      moon.clientProgramEffectDefinitionCid(direct));
+    assert.equal(moon.clientProgramEffectEnvironmentCid(owned),
+      moon.clientProgramEffectEnvironmentCid(direct));
+    assert.throws(() => prepare({kind: 'aql',
+      input: {text: document, format: 'auto'}, parameters: null}),
+    {code: 'ClientProgramInvalidInput'});
+    assert.throws(() => prepare({kind: 'aql',
+      input: {text: document.replace('mapping:crm.account.v1',
+        'mapping:crm.foreign.v1'), format: 'json'}, parameters: null}),
+    {code: 'ClientProgramRejected'});
+    assert.throws(() => installNodeClientProgramPreparation({
+      moon, environment,
+    })({kind: 'program', input: JSON.parse(document), parameters: null}),
+    {code: 'ClientProgramUnsupported'});
+  });
+
 test('Effectful Client request identity binds checked intent before Run',
   async t => {
     const create = await effectFixture({writeKind: 'create'});
@@ -389,6 +420,94 @@ test('Effectful Client request identity binds checked intent before Run',
     assert.equal(reopened.lookup({tenantId: 'tenant-a',
       authorityScopeCid: cid('a'), requestId: 'write-request'}, moon)
       .ref.runDefinitionCid, cid('d'));
+  });
+
+test('Host admits and retains the exact checked Effect Run Definition',
+  async t => {
+    const first = await effectFixture({writeKind: 'create'});
+    const second = await effectFixture({writeKind: 'update'});
+    const prepare = fixture => {
+      const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+        fixture.document, 'json', fixture.environment, undefined, []);
+      const value = moon.clientProgramEffectPreparationReady(outcome);
+      assert.ok(value, moon.clientProgramEffectPreparationIssueCode(outcome));
+      return value;
+    };
+    const prepared = prepare(first);
+    const changed = prepare(second);
+    const request = moon.clientProgramEffectRequestIdentity(
+      prepared, cid('a'), 'effect-run-request', cid('b'));
+    const changedRequest = moon.clientProgramEffectRequestIdentity(
+      changed, cid('a'), 'effect-run-request', cid('b'));
+    const control = runtimeCore(moon).publicationControl;
+    const evidence = publicationEvidence(
+      moon.clientRequestProgramCid(request),
+      moon.clientRequestParametersCid(request),
+      moon.clientProgramEffectSemanticsCid(prepared),
+      moon.clientProgramEffectEnvironmentCid(prepared));
+    const bound = evidence.slice(0, 3).map((value, index) =>
+      control.admitRunEvidence(
+        ['bound_invocation_template', 'prepared_invocation',
+          'run_authorization'][index],
+        moon.strategyRunEvidenceJson(value), publicationLimits));
+    const plan = control.admit('compiled_plan',
+      moon.strategyPublicationContractJson(evidence[3]),
+      publicationLimits);
+    const admission = control.admitCheckedClientEffectRunPublication(
+      prepared, ...bound, plan);
+    assert.equal(admission.kind, 'run-publication-admission');
+    assert.throws(() => control.admitCheckedClientEffectRunPublication(
+      changed, ...bound, plan),
+    /Publication evidence differs from checked Effect/u);
+    const definition = control.issueRunDefinition(admission, {
+      scopeId: 'tenant-a-scope', runId: 'checked-effect-run',
+      inputArtifactSetCid: cid('c'),
+      createdAt: '2026-09-24T00:00:00.000Z',
+      validUntil: '2027-01-01T00:00:00.000Z',
+    }, publicationLimits);
+    const boundRun = control.bindCheckedClientEffectRun(
+      prepared, admission, definition);
+    assert.ok(boundRun);
+    assert.throws(() => control.bindCheckedClientEffectRun(
+      changed, admission, definition),
+    /Run Definition differs from checked Effect/u);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    const host = moon.clientProgramOpenSourceFreeLocalEffectHost(
+      boundRun, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(host);
+    await assert.rejects(runCapturedEffectComputation({}),
+      {name: 'TypeError', message: 'InvalidCapturedEffectComputation'});
+    const execution = await runCapturedEffectComputation(host);
+    try {
+      assert.equal(execution.status, 'host-tasks-completed');
+      assert.equal(moon.clientProgramLocalEffectSourceCount(host), 1);
+    } finally {
+      await execution.close();
+    }
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'effect-admission-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(path);
+    assert.equal(journal.acceptDefinition(request, {
+      tenantId: 'tenant-a', runDefinition: definition,
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    }, moon, control).inserted, true);
+    journal.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    assert.equal(reopened.resolveDefinition(request,
+      {tenantId: 'tenant-a'}, moon, control).runDefinition.wire,
+    definition.wire);
+    assert.throws(() => reopened.resolveDefinition(changedRequest,
+      {tenantId: 'tenant-a'}, moon, control),
+    {code: 'ClientRequestIntentConflict'});
   });
 
 test('admitted source-free Effect Run computes through the installed Host',

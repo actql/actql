@@ -23,14 +23,47 @@ const issueCodes = Object.freeze({
   binding_rejected: 'ClientProgramRejected',
   graph_rejected: 'ClientProgramRejected',
 });
-if (Object.values(issueCodes).some(code =>
-  code !== 'ClientProgramPreparationFailure' &&
-  !validSubmitPreparationError({code}))) {
+const effectIssueCodes = Object.freeze({
+  invalid_format: 'ClientProgramInvalidInput',
+  supplied_syntax: 'ClientParametersInvalid',
+  supplied_admission: 'ClientParametersInvalid',
+  invalid_input_owner: 'ClientParametersInvalid',
+  program_syntax: 'ClientProgramInvalidInput',
+  effect_candidate_rejected: 'ClientProgramRejected',
+  effect_mapping_rejected: 'ClientProgramRejected',
+  effect_static_rejected: 'ClientProgramRejected',
+  stage_rejected: 'ClientProgramRejected',
+  graph_rejected: 'ClientProgramRejected',
+});
+if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
+  .some(code => code !== 'ClientProgramPreparationFailure' &&
+    !validSubmitPreparationError({code}))) {
   throw new Error('StaleClientProgramErrorProjection');
 }
 
 function fail(code, cause) {
   throw Object.assign(new Error(code, {cause}), {code});
+}
+
+function serializeProgram({kind, input, parameters}) {
+  let document, format, supplied;
+  try {
+    if (kind === 'aql') {
+      document = input.text;
+      format = input.format;
+    } else if (kind === 'program') {
+      document = JSON.stringify(input);
+      format = 'json';
+    } else {
+      fail('ClientProgramInvalidInput');
+    }
+    supplied = parameters === null ? undefined :
+      JSON.stringify(parameters);
+  } catch (cause) {
+    if (cause?.code === 'ClientProgramInvalidInput') throw cause;
+    fail('ClientProgramInvalidInput', cause);
+  }
+  return {document, format, supplied};
 }
 
 export function installNodeClientProgramPreparation({moon, environment}) {
@@ -41,24 +74,8 @@ export function installNodeClientProgramPreparation({moon, environment}) {
       environment === undefined) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
-  return Object.freeze(({kind, input, parameters}) => {
-    let document, format, supplied;
-    try {
-      if (kind === 'aql') {
-        document = input.text;
-        format = input.format;
-      } else if (kind === 'program') {
-        document = JSON.stringify(input);
-        format = 'json';
-      } else {
-        fail('ClientProgramInvalidInput');
-      }
-      supplied = parameters === null ? undefined :
-        JSON.stringify(parameters);
-    } catch (cause) {
-      if (cause?.code === 'ClientProgramInvalidInput') throw cause;
-      fail('ClientProgramInvalidInput', cause);
-    }
+  return Object.freeze(request => {
+    const {document, format, supplied} = serializeProgram(request);
     const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
       document, format, environment, supplied);
     const prepared = moon.clientProgramPreparationReady(outcome);
@@ -66,6 +83,38 @@ export function installNodeClientProgramPreparation({moon, environment}) {
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
     const code = issueCodes[category];
+    if (issue === undefined || code === undefined) {
+      fail('ClientProgramPreparationFailure');
+    }
+    fail(code, issue);
+  });
+}
+
+// Internal Effect preparation shares Client serialization and checked Program
+// admission. The public submit remains Effect-free until apply and final
+// publication are connected; this handle is not a send permit.
+export function installNodeClientEffectProgramPreparation({moon, environment,
+  evidence = []}) {
+  if (!moon ||
+      typeof moon.clientProgramPrepareEffectComputationWithParameters !==
+        'function' ||
+      typeof moon.clientProgramEffectPreparationReady !== 'function' ||
+      typeof moon.clientProgramEffectPreparationIssue !== 'function' ||
+      typeof moon.clientProgramEffectPreparationIssueCode !== 'function' ||
+      environment === undefined || !Array.isArray(evidence) ||
+      evidence.length > 1024) {
+    throw new TypeError('InvalidClientEffectPreparationInstallation');
+  }
+  const ownedEvidence = Object.freeze([...evidence]);
+  return Object.freeze(request => {
+    const {document, format, supplied} = serializeProgram(request);
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, format, environment, supplied, ownedEvidence);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    if (prepared !== undefined) return prepared;
+    const issue = moon.clientProgramEffectPreparationIssue(outcome);
+    const category = moon.clientProgramEffectPreparationIssueCode(outcome);
+    const code = effectIssueCodes[category];
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
     }

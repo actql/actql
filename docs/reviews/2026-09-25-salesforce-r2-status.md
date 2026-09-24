@@ -197,3 +197,12 @@ owner-bound admission rejected it. The fixture now derives that CID from the
 checked Effect request identity and rejects changed Program Definition,
 Parameter Values, Program Semantics, or Check Environment evidence. This
 closes an early binding gap, not the later current-authority/apply boundary.
+
+The common Host publication control now carries that Effect admission as an
+opaque owned token through Run Definition issuance and checked Effect Run
+binding. The installed Effect preparation shares the Client serializer but
+remains separate from public submit. An explicit compute-only Host entry uses
+the existing strategy runtime, retains the captured Effect owner, and rejects
+an invalid owner. A Node/SQLite test runs checked Values-to-Effect Compute,
+reopens the exact request definition, and rejects changed intent. No public
+Effectful submit, mutation, or final publication is implied by this entry.
