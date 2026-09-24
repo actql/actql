@@ -200,12 +200,19 @@ export async function importResidentStrategyInput(environment, producer, tableBy
   }
   let started = false;
   let storageReadBytes = 0, storageReadUnconfirmed = false;
+  let nativeScalarStaging = false;
   try {
     const result = await owned.database.run(limits, async session => {
       const discard = () => {};
       await session.command(checked(moon.residentImportSql(table, false)), [], discard);
       const sql = checked(moon.residentImportSql(table, true));
       const material = checked(moon.residentImportMaterial(table));
+      const scalarNames = material != null && boundedTransport(limits) && limits.threads === 1
+        ? moon.residentImportScalarNames(table)?._0 : undefined;
+      const scalarScanSql = scalarNames == null ? undefined
+        : moon.residentImportScanSql(table, limits.maxSqlBytes);
+      const scalarStaging = scalarScanSql != null && scalarNames?.length === columns;
+      nativeScalarStaging = scalarStaging;
       const appender = material != null && limits.threads === 1
         ? await session.openResidentAppender(checked(moon.residentImportTableName(table)), columns)
         : undefined;
@@ -233,9 +240,38 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         const stream = checked(moon.residentImportStreamBegin(table, count,
           {max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes, max_work: wire.max_order_work},
           wire, maxFrameBytes));
+        const scalarTypes = scalarStaging && appender?.types;
+        if (scalarStaging && (!scalarTypes || scalarTypes.length !== columns ||
+            scalarTypes.some(type => !['DOUBLE', 'BOOLEAN', 'VARCHAR'].includes(type.id)))) {
+          throw new DuckDBTransportError('InvalidScalarImportType');
+        }
         const frames = createMoonBitRetainedRowFrames(moon,
           {maxBytes: wire.max_bytes, maxRows: count,
-          maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, row => {
+            maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, row => {
+          if (scalarStaging) {
+            const source = JSON.parse(row);
+            if (source === null || Array.isArray(source) || typeof source !== 'object' ||
+                Object.keys(source).length !== columns) {
+              throw new DuckDBTransportError('InvalidScalarImportRow');
+            }
+            const values = scalarNames.map((name, index) => {
+              if (!Object.hasOwn(source, name)) throw new DuckDBTransportError('InvalidScalarImportRow');
+              const value = source[name];
+              const type = scalarTypes[index];
+              if (value === null ||
+                  (type.id === 'DOUBLE' && typeof value === 'number' && Number.isFinite(value)) ||
+                  (type.id === 'BOOLEAN' && typeof value === 'boolean') ||
+                  (type.id === 'VARCHAR' && typeof value === 'string')) return value;
+              throw new DuckDBTransportError('InvalidScalarImportRow');
+            });
+            appender.appendScalars(values);
+            if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
+              appender.flush();
+              appendedSinceFlush = 0;
+              return yieldToHost().then(() => signal?.throwIfAborted());
+            }
+            return;
+          }
           const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
           return append(parameters);
         });
@@ -249,11 +285,27 @@ export async function importResidentStrategyInput(environment, producer, tableBy
           storageReadUnconfirmed = false;
           frames.finish();
           signal?.throwIfAborted();
-          checked(moon.residentImportStreamFinish(stream));
-          // Verify the complete immutable input before flushing its final
-          // partial batch. Earlier writes remain transaction-local on failure.
           await batch?.finish();
           appender?.finish();
+          if (scalarStaging) {
+            const transport = {max_bytes: limits.maxTransportBytes,
+              max_nodes: Math.min(2147483647, limits.maxCells + limits.maxColumns * 2),
+              max_columns: columns, max_rows: limits.maxChunkRows,
+              max_text_bytes: limits.maxTransportBytes};
+            const physicalLimits = {max_rows: count, max_cells: count * columns,
+              max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes};
+            let physical;
+            const fields = await session.command(scalarScanSql, [], chunk => {
+              signal?.throwIfAborted();
+              physical ??= checked(moon.residentImportPhysicalBegin(stream,
+                fieldsFrame(chunk.fields), physicalLimits, wire.max_order_work, transport));
+              checked(moon.residentImportPhysicalAccept(stream, physical,
+                rows(chunk.rowCount), JSON.stringify(chunk.columns), transport));
+            });
+            physical ??= checked(moon.residentImportPhysicalBegin(stream,
+              fieldsFrame(fields), physicalLimits, wire.max_order_work, transport));
+          }
+          checked(moon.residentImportStreamFinish(stream));
         } finally {
           frames.cancel();
           moon.residentImportStreamCancel(stream);
@@ -282,6 +334,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
     }));
     checked(moon.residentTransferComplete(owned.graph, transfer));
     return Object.freeze({ table, importedRows: count, importedCells: count * columns, batchRows,
+      nativeScalarStaging,
       usage: Object.freeze({...result.usage, storageReadBytes,
         transportBytes: result.usage.transportBytes + storageReadBytes}) });
   } catch (error) {

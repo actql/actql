@@ -41,6 +41,8 @@ pub fn[T] append_managed_computed_physical_output(ManagedComputedPhysicalOutput[
 
 pub fn append_managed_physical_output(ManagedPhysicalOutput, Int, Array[@decode_core.Cursor]) -> Result[Unit, ManagedPhysicalOutputIssue]
 
+pub fn append_resident_import_physical(ResidentImportStream, PhysicalResult, Int, Array[@decode_core.Cursor]) -> Result[Unit, FixedImportStreamIssue]
+
 pub fn append_resident_import_stream(ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
 
 pub fn attach_fixed_import_demand(FixedImportStream, FixedCompute, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[Unit, FixedImportStreamIssue]
@@ -417,6 +419,8 @@ pub fn prepare_producer_parameter(@execution_relation.ProducerRead, Int, Int) ->
 
 pub fn prepare_resident_import(@execution_relation.ProducerStorage, String, Int, Int) -> Result[ResidentImport, NativeQueryIssue]
 
+pub fn prepare_resident_import_physical(ResidentImportStream, Array[(String, PhysicalType)], PhysicalResultLimits, Int) -> Result[PhysicalResult, PhysicalResultIssue]
+
 pub fn prepare_resident_import_stream(ResidentImport, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, Int) -> Result[ResidentImportStream, FixedImportStreamIssue]
 
 pub fn prepare_resident_query(FixedQuery, String, Int) -> Result[ResidentQuery, NativeQueryIssue]
@@ -454,6 +458,8 @@ pub fn resident_import_parameter(ResidentImport, Int, Int) -> Result[PhysicalPar
 pub fn resident_import_receiver_sql(ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[String, NativeQueryIssue]
 
 pub fn resident_import_row_count(ResidentImport) -> Int
+
+pub fn resident_import_scalar_names(ResidentImport) -> Array[String]?
 
 pub fn resident_import_scan_sql(ResidentImport, Int) -> Result[String, NativeQueryIssue]
 

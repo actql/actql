@@ -58,6 +58,31 @@ export function createPhysicalAppender(appender, maxColumns, batch) {
       pending = true;
       try { flushBuffered(); } finally { pending = false; }
     },
+    appendScalars(row, beforeWrite) {
+      if (!live || pending || !columns || !Array.isArray(row) || row.length !== types.length ||
+          types.some(type => !['DOUBLE', 'BOOLEAN', 'VARCHAR'].includes(type.id))) {
+        throw new PhysicalValueError('InvalidScalarImport');
+      }
+      pending = true;
+      try {
+        let bytes = 16;
+        for (let i = 0; i < types.length; i++) {
+          const value = row[i];
+          const id = types[i].id;
+          if (value !== null && !((id === 'DOUBLE' && typeof value === 'number' && Number.isFinite(value)) ||
+              (id === 'BOOLEAN' && typeof value === 'boolean') ||
+              (id === 'VARCHAR' && typeof value === 'string'))) {
+            throw new PhysicalValueError('InvalidScalarImport');
+          }
+          bytes += 8 + (typeof value === 'string' ? Buffer.byteLength(value, 'utf8') : 1);
+        }
+        beforeWrite?.(bytes);
+        if (bufferedRows >= batch.rows || bufferedBytes + bytes > batch.bytes) flushBuffered();
+        for (let i = 0; i < columns.length; i++) columns[i].push(row[i]);
+        bufferedRows++;
+        bufferedBytes += bytes;
+      } finally { pending = false; }
+    },
     append(parameters, beforeWrite) {
       if (!live || pending) throw new PhysicalValueError('AppenderUnavailable');
       if (!Array.isArray(parameters) || parameters.length !== types.length) {

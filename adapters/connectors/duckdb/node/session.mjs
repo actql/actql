@@ -159,6 +159,26 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
         if (!live) throw new DuckDBTransportError('AppenderUnavailable');
       };
       return Object.freeze({
+        types: physical.types,
+        appendScalars(values) {
+          try {
+            ensure();
+            pending = true;
+            try {
+              physical.appendScalars(values, bytes => {
+                if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
+                  throw new DuckDBTransportError('ChunkBytes');
+                }
+                chargeBytes(bytes);
+              });
+            } finally { pending = false; }
+            usage.appendedRows++;
+          } catch (error) {
+            live = false;
+            recordAppenderFailure(error);
+            throw error;
+          }
+        },
         append(parameters) {
           try {
             ensure();

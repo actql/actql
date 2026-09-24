@@ -53,6 +53,60 @@ pub fn append_resident_import_stream(
 }
 
 ///|
+/// Check the native staging table against the same retained-content stream
+/// used by the row importer. Physical parsing alone is never import evidence.
+pub fn prepare_resident_import_physical(
+  stream : ResidentImportStream,
+  fields : Array[(String, PhysicalType)],
+  limits : PhysicalResultLimits,
+  max_metadata_work : Int,
+) -> Result[PhysicalResult, PhysicalResultIssue] {
+  prepare_physical_result(
+    @execution.producer_storage_schema(stream.owner.storage),
+    fields,
+    limits,
+    max_metadata_work,
+  )
+}
+
+///|
+pub fn append_resident_import_physical(
+  stream : ResidentImportStream,
+  physical : PhysicalResult,
+  rows : Int,
+  columns : Array[@decode.Cursor],
+) -> Result[Unit, FixedImportStreamIssue] {
+  let batch = match admit_physical_chunk(physical, rows, columns) {
+    Ok(batch) => batch
+    Err(issue) => {
+      @execution.cancel_retained_storage_scan(stream.scan) |> ignore
+      return Err(Physical(issue))
+    }
+  }
+  let count = resident_import_column_count(stream.owner)
+  if rows == 0 {
+    return Ok(())
+  }
+  let values = Array::makei(count, column => {
+    physical_batch_cell(batch, 0, column).unwrap()
+  })
+  for row in 0..<physical_batch_rows(batch) {
+    for column in 0..<count {
+      guard physical_batch_cell(batch, row, column) is Some(value) else {
+        @execution.cancel_retained_storage_scan(stream.scan) |> ignore
+        return Err(Content(Unavailable))
+      }
+      values[column] = value
+    }
+    match @execution.append_retained_storage_scan_values(stream.scan, values) {
+      Ok(_) => ()
+      Err(issue) => return Err(Content(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn finish_resident_import_stream(
   stream : ResidentImportStream,
 ) -> Result[@execution.VerifiedStorageScan, FixedImportStreamIssue] {

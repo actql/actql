@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DuckDBInstance, INTEGER, VARCHAR} from '@duckdb/node-api';
+import {DuckDBInstance, DOUBLE, BOOLEAN, INTEGER, VARCHAR} from '@duckdb/node-api';
 import {createPhysicalAppender} from '../physical-appender.mjs';
 import {exportPhysicalValue, physicalType} from '../physical-values.mjs';
 
@@ -54,6 +54,27 @@ test('bounded column chunks append complete rows and retain failure ownership', 
   assert.throws(() => adapter.flush(), /native chunk failure/);
   assert.throws(() => adapter.append([{type: {id: 'INTEGER'}, value: '5'}]),
     {code: 'AppenderUnavailable'});
+});
+
+test('scalar batches preserve exact doubles and reject malformed rows before native write', () => {
+  const chunks = [];
+  const native = {columnCount: 3,
+    columnType: index => [DOUBLE, BOOLEAN, VARCHAR][index],
+    appendDataChunk: chunk => chunks.push([0, 1, 2].map(index => chunk.getColumnValues(index)))};
+  const appender = createPhysicalAppender(native, 3, {rows: 2, bytes: 1024});
+  const charges = [];
+  assert.throws(() => appender.appendScalars([-0, 'true', 'é'], bytes => charges.push(bytes)),
+    {code: 'InvalidScalarImport'});
+  assert.deepEqual(charges, []);
+  appender.appendScalars([-0, true, 'é'], bytes => charges.push(bytes));
+  appender.appendScalars([1e308, false, null], bytes => charges.push(bytes));
+  appender.flush();
+  assert.equal(chunks.length, 1);
+  assert.equal(Object.is(chunks[0][0][0], -0), true);
+  assert.deepEqual(chunks[0][0].slice(1), [1e308]);
+  assert.deepEqual(chunks[0][1], [true, false]);
+  assert.deepEqual(chunks[0][2], ['é', null]);
+  assert.equal(charges.length, 2);
 });
 
 test('real appender preserves adopted physical scalar extremes, null and duplicate order', async () => {

@@ -224,6 +224,34 @@ pub fn resident_import_column_count(value : ResidentImport) -> Int {
 }
 
 ///|
+/// A narrow physical staging path. The native table remains provisional until
+/// a typed scan establishes the exact retained content receipt. Other shapes
+/// continue through the portable row importer.
+pub fn resident_import_scalar_names(value : ResidentImport) -> Array[String]? {
+  if !resident_import_available(value) {
+    return None
+  }
+  let schema = @execution.producer_storage_schema(value.storage)
+  if @schema.field_count(schema) == 0 || !physical_column_names_unique(schema) {
+    return None
+  }
+  let names = []
+  for index in 0..<@schema.field_count(schema) {
+    let field = @schema.field_at(schema, index).unwrap()
+    let name = @schema.reference_name(field.name)
+    if name.to_lower() == "rowid" {
+      return None
+    }
+    match field.contract.shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return None
+    }
+    names.push(name)
+  }
+  Some(names)
+}
+
+///|
 pub fn resident_import_parameter(
   value : ResidentImport,
   row : Int,

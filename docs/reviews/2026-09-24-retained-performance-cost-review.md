@@ -228,6 +228,30 @@ its materialized output before an independently durable file holding is
 established. Its short diagnostic timing therefore cannot replace the
 registered retained comparison until that completion boundary is implemented.
 
+At clean `bbef1ad52`, the registered wide-reuse case
+`retained-large-output-downstream-reuse/numeric-64/10000` completed seven
+alternating equivalent-obligations pairs with ordinary candidate selection. It
+still failed: the execution ratio was 1.7041, with a 95% interval of
+1.5323–1.8611 against the 1.25 limit. This is one local case, not the 27-case
+Linux result. In one product run the first resident import took about 2.25
+seconds; the 10,000-by-64 native Appender alone took about 0.09–0.11 seconds
+in a separate microbenchmark. The retained file's row-by-row MoonBit decode,
+physical parameter encoding, and JS conversion therefore remain a stronger
+candidate than native append for removing import cost. Different revisions
+and machine loads prevent attributing the ratio change to one commit.
+
+The next structural change stages eligible Number/Boolean/Text retained rows
+through bounded native scalar batches, then scans the provisional DuckDB table
+in insertion order through MoonBit's typed physical admission and the exact
+retained-content verifier. No table becomes a resident input before the full
+receipt matches and the transaction commits. Other shapes keep the existing
+row importer. Direct native file import into a long-lived resident database was
+not selected: DuckDB's file allowlist must be installed before external access
+is disabled, and this resident environment can receive later retained inputs.
+Re-enabling external access or leaving it open would weaken the existing
+session boundary. The new staging path is a correctness-checked implementation
+candidate, not yet a performance acceptance result.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall
