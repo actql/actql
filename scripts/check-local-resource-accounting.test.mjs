@@ -311,6 +311,15 @@ test('subgraph literal control-work evidence must remain executable', () => {
   }), /SGA subgraph: missing operation boundary fixture missing-subgraph-control-work/);
 });
 
+test('subgraph false-edge bounds must remain bound to its route', () => {
+  assert.match(run(undefined, routes => {
+    const subgraph = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'subgraph');
+    subgraph.boundary_tests = subgraph.boundary_tests.filter(item =>
+      item.role !== 'subgraph_false_edge_work_workspace_exact_one_short');
+  }), /SGA subgraph: false-edge work\/workspace fixture is missing/);
+});
+
 for (const operation of ['node_rows', 'edge_rows']) {
   test(`${operation} loses its Bridge boundary record when removed`, () => {
     assert.match(run(undefined, routes => {

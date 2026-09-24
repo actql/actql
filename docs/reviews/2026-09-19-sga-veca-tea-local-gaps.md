@@ -207,6 +207,12 @@ from predicate expression and output-value budgets. Kernel cancellation,
 cleanup, and the fused standard Host timer remain connected to the same
 production entrypoint. This is literal-path evidence, not full work/workspace
 assurance for the Relation-selector and predicate variants.
+The literal false-edge branch has its own fixed 19/18 control-work and 17/16
+workspace regression. It checks two retained nodes, no edges, quantum-one
+progress, and cleanup on both limit failures across JS, Wasm, and native.
+The resource gate requires this fixture on the `subgraph` production route.
+This adds a formal branch proof; Relation selectors and evaluated predicates
+remain outside full route assurance.
 
 The Event window kernel now applies a cumulative control-work ceiling across
 bounded resumes. Fixed and sliding one-record fixtures independently count

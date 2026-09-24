@@ -2916,6 +2916,13 @@
           "fixture": "subgraph admits exact literal-selection control work"
         },
         {
+          "role": "subgraph_false_edge_work_workspace_exact_one_short",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/subgraph_wbtest.mbt",
+          "fixture": "subgraph false edge branch retains exact work and workspace bounds"
+        },
+        {
           "role": "subgraph_cancel_cleanup",
           "suite": "moon:local_sga",
           "targets": ["js", "wasm", "native"],
