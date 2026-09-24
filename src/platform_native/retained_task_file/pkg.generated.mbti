@@ -16,7 +16,9 @@ type NativeRetainedTaskFile
 pub fn NativeRetainedTaskFile::append(Self, String) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::available(Self) -> Bool
 pub fn NativeRetainedTaskFile::open_reader(Self) -> Result[NativeRetainedTaskReader, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::reclaim_readers(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::release(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::release_confirmed(Self) -> Bool
 pub fn NativeRetainedTaskFile::seal(Self, String, Int) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::stored_bytes(Self) -> Int64?
 

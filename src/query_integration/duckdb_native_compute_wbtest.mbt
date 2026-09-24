@@ -70,6 +70,7 @@ fn native_compute_setup(
 fn native_compute_strategy_selection(
   run : @strategy.CapturedDAG,
   registry : @connector.CapabilityRegistry,
+  retained_extra? : Int64 = 0L,
 ) -> @strategy.StrategyRevision {
   let retention = @duckdb_compute.duckdb_task_retention_capacity(
     fixed_compute_attempt_limits(),
@@ -84,7 +85,12 @@ fn native_compute_strategy_selection(
   for task in [1, 2, 3] {
     for registration in 0..<2 {
       let lines : Array[@cost.SerialEstimateLine] = if registration == 0 {
-        [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(10L), }]
+        [
+          {
+            work_slots: [0, 1, 2, 3, 4],
+            milliseconds: Some(if retained_extra > 0L { 1000L } else { 10L }),
+          },
+        ]
       } else {
         [
           { work_slots: [0, 2, 3, 5, 6, 7], milliseconds: Some(1L), },
@@ -104,7 +110,7 @@ fn native_compute_strategy_selection(
           lines,
           {
             transfer_bytes: 100000L,
-            retained_bytes: retention,
+            retained_bytes: retention + retained_extra,
             execution_bytes: 134217728L,
           },
           100,
@@ -114,6 +120,111 @@ fn native_compute_strategy_selection(
   }
   @strategy.revise_strategy(run, offers, registry, None).unwrap() |> ignore
   @strategy.captured_dag_strategy(run).unwrap()
+}
+
+///|
+test "native selected DuckDB seals independent output before completion" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let (run, issuer) = captured_graph_fixture()
+  let registry = search_registry()
+  let registration = @connector.capability_registration_at(registry, 1).unwrap()
+  let driver = @host_driver.open_dispatch_driver(run)
+  let limits = duckdb_dispatch_module_limits()
+  let implementation = @duckdb_driver.prepare_duckdb_dispatch_module(
+    driver,
+    registry,
+    registration,
+    dispatch_test_generated(run).map(
+      @execution.generated_completion_preparation,
+    ),
+    limits,
+  ).unwrap()
+  @duckdb_driver.configure_duckdb_retained_output(
+    implementation,
+    100000L,
+    Some(1L),
+  ).unwrap()
+  let revision = native_compute_strategy_selection(
+    run,
+    registry,
+    retained_extra=100000L,
+  )
+  assert_true(
+    physical_equal(
+      @strategy.strategy_registration(revision, 1).unwrap(),
+      registration,
+    ),
+  )
+  let entries = @connector.install_capability_implementations(
+    registry,
+    [
+      (
+        registration,
+        fn(_context : Unit, task, selected, request) {
+          @duckdb_driver.prepare_duckdb_dispatch(
+            implementation, task, selected, request,
+          )
+        },
+      ),
+    ],
+    1,
+  ).unwrap()
+  let host = @host_driver.open_dispatch_host(
+    driver,
+    entries,
+    limits.capacity,
+    100,
+    10000,
+  ).unwrap()
+  let task = @host_driver.prepare_next_installed_task(host, ())
+    .unwrap()
+    .unwrap()
+  let setup = @duckdb_driver.take_duckdb_dispatch(implementation, host, task).unwrap()
+  assert_eq(
+    @duckdb_driver.configured_strategy_output_file_bytes(setup),
+    Some(100000L),
+  )
+  let database = @native_duckdb.load_library(path)
+    .unwrap()
+    .open_database(@native_duckdb.restricted_open_limits(16777216L))
+    .unwrap()
+  let runtime = @native_host.start_native_strategy_compute_runtime(
+    setup,
+    database,
+    native_compute_import_limits(),
+    100000L,
+    16777216L,
+    retained_profile={
+      root_path: root,
+      run_occurrence: "native-selected-" + @env.now().to_string(),
+      max_file_bytes: 100000L,
+      wire: {
+        max_columns: 8,
+        max_order_work: 1000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 32,
+      },
+      max_batch_bytes: 4096,
+      max_chunk_rows: 2,
+    },
+  ).unwrap()
+  assert_false(@strategy.captured_task_completed(run, 1))
+  let output = @native_host.execute_native_strategy_compute_runtime(runtime).unwrap()
+  assert_true(@strategy.captured_task_completed(run, 1))
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is None)
+  assert_true(
+    @native_host.close_native_strategy_compute_runtime(runtime).unwrap(),
+  )
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  @host_driver.stop_dispatch_driver(driver)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

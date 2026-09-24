@@ -13,7 +13,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/platform_native/http_client",
-  "actql/actql/platform_native/run_publication",
+  "actql/actql/platform_native/retained_task_file",
   "actql/actql/platform_native/trusted_clock",
   "actql/actql/run_publication_host",
   "moonbitlang/core/debug",
@@ -26,15 +26,15 @@ pub fn close_native_acquisition_runtime(NativeAcquisitionRuntime) -> Unit
 
 pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
 
-pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Bool, @physical_resources.LedgerIssue]
+pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
-pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, @physical_resources.LedgerIssue]
+pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
-pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, @physical_resources.LedgerIssue]
+pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
 pub fn consult_native_standard_policy(NativeStandardPolicyConsultation) -> Result[Unit, NativeStandardPolicyIssue]
 
-pub fn execute_and_publish_native_standard_strategy_run(NativeStandardStrategyRun, @run_publication.NativeRunPublicationService, @run_publication.NativeEffectFreeRunContext, Array[@run_publication.NativeCapturedResultPublicationContext], @run_publication.NativeRunPublicationIntent, @run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication.NativeRunPublicationResult, NativeStandardRunPublicationIssue]
+pub fn execute_and_publish_native_standard_strategy_run(NativeStandardStrategyRun, @actql/actql/platform_native/run_publication.NativeRunPublicationService, @actql/actql/platform_native/run_publication.NativeEffectFreeRunContext, Array[@actql/actql/platform_native/run_publication.NativeCapturedResultPublicationContext], @actql/actql/platform_native/run_publication.NativeRunPublicationIntent, @actql/actql/platform_native/run_publication.NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[@actql/actql/platform_native/run_publication.NativeRunPublicationResult, NativeStandardRunPublicationIssue]
 
 pub fn execute_native_acquisition_runtime(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeObservation, NativeAcquisitionFailure]
 
@@ -42,9 +42,9 @@ pub fn execute_native_compute_runtime(NativeComputeRuntime) -> Result[@execution
 
 pub fn execute_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Unit, NativeStandardStrategyRunIssue]
 
-pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeFailure]
+pub fn execute_native_strategy_compute_runtime(NativeStrategyComputeRuntime, retained_source? : (@execution_relation.ProducerRead) -> NativeComputeRetainedInput?) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeFailure]
 
-pub fn execute_native_strategy_compute_task(NativeStrategyComputeRun, @driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeRunIssue]
+pub fn execute_native_strategy_compute_task(NativeStrategyComputeRun, @driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64, retained_profile? : NativeStrategyRetainedOutputProfile) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeRunIssue]
 
 pub fn execute_next_native_standard_strategy_task(NativeStandardStrategyRun) -> Result[NativeStandardStrategyTaskCompletion?, NativeStandardStrategyRunIssue]
 
@@ -60,7 +60,7 @@ pub fn native_strategy_compute_run_task_count(NativeStrategyComputeRun) -> Int
 
 pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeIssue]
 
-pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
+pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
 
@@ -70,7 +70,7 @@ pub fn start_native_acquisition_runtime(@host.NativeHostConfiguration, String, @
 
 pub fn start_native_compute_runtime(@driver.ComputeHostConfiguration, @native.Database, NativeComputeImportLimits) -> Result[NativeComputeRuntime, NativeComputeExecutionIssue]
 
-pub fn start_native_strategy_compute_runtime(@driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue]
+pub fn start_native_strategy_compute_runtime(@driver.StrategyComputeHostConfiguration, @native.Database, NativeComputeImportLimits, Int64, Int64, retained_profile? : NativeStrategyRetainedOutputProfile) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue]
 
 // Errors
 
@@ -108,6 +108,8 @@ pub(all) enum NativeComputeExecutionIssue {
   Fields(@adapter.PhysicalFieldsIssue)
   Columns(@adapter.TransportColumnIssue)
   Compute(@compute.DuckDBComputeIssue)
+  RetainedFile(@retained_task_file.NativeRetainedTaskFileIssue)
+  RowFrames(@actql/actql/run_publication.DurableResultRowFrameIssue)
 }
 
 pub(all) struct NativeComputeFailure {
@@ -122,6 +124,8 @@ pub(all) struct NativeComputeImportLimits {
   max_sql_bytes : Int
   max_batch_rows : Int
 }
+
+type NativeComputeRetainedInput
 
 type NativeComputeRuntime
 
@@ -158,8 +162,8 @@ pub(all) enum NativeStandardPolicyIssue {
 
 pub(all) enum NativeStandardRunPublicationIssue {
   Strategy(NativeStandardStrategyRunIssue)
-  Preparation(@run_publication.NativeCapturedRunPublicationPreparationIssue)
-  Publication(@run_publication.NativePreparedCapturedRunPublication, @run_publication.NativeRunPublicationIssue)
+  Preparation(@actql/actql/platform_native/run_publication.NativeCapturedRunPublicationPreparationIssue)
+  Publication(@actql/actql/platform_native/run_publication.NativePreparedCapturedRunPublication, @actql/actql/platform_native/run_publication.NativeRunPublicationIssue)
 }
 
 type NativeStandardStrategyRun
@@ -176,6 +180,11 @@ pub(all) enum NativeStandardStrategyRunIssue {
 pub(all) struct NativeStandardStrategyTaskCompletion {
   task : Int
   output : @execution_relation.CompletedOutput
+}
+
+pub(all) enum NativeStrategyComputeCleanupIssue {
+  Ledger(@physical_resources.LedgerIssue)
+  FileRelease(@retained_task_file.NativeRetainedTaskFileIssue)
 }
 
 pub(all) struct NativeStrategyComputeFailure {
@@ -200,6 +209,15 @@ pub(all) enum NativeStrategyComputeRunIssue {
 }
 
 type NativeStrategyComputeRuntime
+
+pub(all) struct NativeStrategyRetainedOutputProfile {
+  root_path : String
+  run_occurrence : String
+  max_file_bytes : Int64
+  wire : @execution_relation.RowWireLimits
+  max_batch_bytes : Int
+  max_chunk_rows : Int
+}
 
 // Type aliases
 

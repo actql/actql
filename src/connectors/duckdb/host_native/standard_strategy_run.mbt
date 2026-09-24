@@ -11,6 +11,7 @@ struct NativeStandardStrategyRun {
   transfer_bytes : Int64
   database_memory_bytes : Int64
   database_path : String
+  retained_profile : NativeStrategyRetainedOutputProfile?
   mut accepting : Bool
   mut complete : Bool
   mut dispatch_stopped : Bool
@@ -56,8 +57,12 @@ pub fn open_native_standard_strategy_run(
   execution_bytes : Int64,
   library? : @native_duckdb.Library? = None,
   database_path? : String = "",
+  retained_profile? : NativeStrategyRetainedOutputProfile,
 ) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue] {
   if transfer_bytes < 0 || execution_bytes <= 0 {
+    return Err(InvalidSelection)
+  }
+  if retained_profile is Some(profile) && profile.max_file_bytes <= 0L {
     return Err(InvalidSelection)
   }
   Ok({
@@ -68,6 +73,7 @@ pub fn open_native_standard_strategy_run(
     transfer_bytes,
     database_memory_bytes: execution_bytes,
     database_path,
+    retained_profile,
     accepting: true,
     complete: false,
     dispatch_stopped: false,
@@ -197,6 +203,7 @@ pub fn execute_next_native_standard_strategy_task(
       run.import_limits,
       run.transfer_bytes,
       run.database_memory_bytes,
+      retained_profile?=run.retained_profile,
     ) {
     Ok(output) => Ok(Some({ task: task_index, output, }))
     Err(issue) => {
@@ -279,7 +286,7 @@ pub fn native_standard_strategy_run_task_count(
 /// result or error keeps the owner retryable; it is never inferred as cleanup.
 pub fn close_native_standard_strategy_run(
   run : NativeStandardStrategyRun,
-) -> Result[Bool, @resources.LedgerIssue] {
+) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   run.accepting = false
   run.stop_dispatch()
   close_native_strategy_compute_run(run.runtimes)

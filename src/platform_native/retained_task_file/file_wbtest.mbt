@@ -40,6 +40,24 @@ test "native retained task file seals before a fresh verified read" {
 }
 
 ///|
+test "native retained task owner reclaims a stopped reader before unlink" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let occurrence = "task-file-reader-cleanup-" + @env.now().to_string()
+  let file = begin_native_retained_task_file(root, occurrence, 3L).unwrap()
+  file.append("abc").unwrap()
+  file.seal("sha256:" + @sha256.hex(b"abc"), 3).unwrap()
+  let reader = file.open_reader().unwrap()
+  assert_eq(reader.next(1).unwrap().bytes, b"a")
+  assert_true(file.release() is Err(InvalidState))
+  file.reclaim_readers().unwrap()
+  assert_true(reader.next(1) is Err(InvalidState))
+  file.release().unwrap()
+  assert_true(file.release_confirmed())
+}
+
+///|
 test "native retained task file cannot admit incomplete or mismatched content" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
     return

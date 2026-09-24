@@ -10,6 +10,25 @@ pub(all) enum NativeStrategyComputeIssue {
 }
 
 ///|
+/// Physical policy for a selected task's independent native file holding.
+/// The exact byte reservation is supplied by the configured DuckDB dispatch.
+pub(all) struct NativeStrategyRetainedOutputProfile {
+  root_path : String
+  run_occurrence : String
+  max_file_bytes : Int64
+  wire : @execution.RowWireLimits
+  max_batch_bytes : Int
+  max_chunk_rows : Int
+}
+
+///|
+/// A failed physical release remains distinct from common ledger cleanup.
+pub(all) enum NativeStrategyComputeCleanupIssue {
+  Ledger(@resources.LedgerIssue)
+  FileRelease(@retained_file.NativeRetainedTaskFileIssue)
+}
+
+///|
 pub(all) struct NativeStrategyComputeFailure {
   primary : NativeStrategyComputeIssue
   rollback : @native_duckdb.NativeDuckDBIssue?
@@ -29,6 +48,12 @@ struct NativeStrategyComputeRuntime {
   compute_limits : @duckdb_compute.DuckDBComputeLimits
   imports : Array[NativeComputeImportPlan]
   authority : NativeComputeRuntimeAuthority
+  retained_profile : NativeStrategyRetainedOutputProfile?
+  retained_bytes : Int64?
+  retained_file : Ref[@retained_file.NativeRetainedTaskFile?]
+  mut retained_output : @execution.RetainedOutputHandle[
+    @retained_file.NativeRetainedTaskFile,
+  ]?
   mut output : @execution.CompletedOutput?
   mut started : Bool
   mut physical_active : Bool
@@ -78,6 +103,7 @@ pub fn start_native_strategy_compute_runtime(
   import_limits : NativeComputeImportLimits,
   transfer_bytes : Int64,
   execution_bytes : Int64,
+  retained_profile? : NativeStrategyRetainedOutputProfile,
 ) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue] {
   let compute = @duckdb_driver.configured_strategy_compute_configuration(setup)
   let transport = @duckdb_driver.configured_compute_transport(compute)
@@ -97,6 +123,40 @@ pub fn start_native_strategy_compute_runtime(
       return Err(Physical(issue))
     }
   }
+  let retained_bytes = @duckdb_driver.configured_strategy_output_file_bytes(
+    setup,
+  )
+  match (retained_bytes, retained_profile) {
+    (Some(bytes), Some(profile)) if bytes > 0L &&
+      bytes == profile.max_file_bytes &&
+      profile.root_path != "" &&
+      profile.run_occurrence != "" &&
+      profile.max_batch_bytes > 0 &&
+      profile.max_batch_bytes <= transport.max_bytes &&
+      profile.max_chunk_rows > 0 &&
+      profile.max_chunk_rows <= transport.max_rows => ()
+    (None, None) | (Some(0L), None) => ()
+    _ => {
+      database.close()
+      return Err(Physical(InvalidLimits))
+    }
+  }
+  let retained_file : Ref[@retained_file.NativeRetainedTaskFile?] = Ref(None)
+  let retained_storage : (Int64, () -> Bool)? = match retained_bytes {
+    Some(bytes) if bytes > 0L =>
+      Some(
+        (
+          bytes,
+          fn() {
+            match retained_file.val {
+              Some(file) => file.release_confirmed()
+              None => true
+            }
+          },
+        ),
+      )
+    _ => None
+  }
   let authority : NativeComputeRuntimeAuthority = { settled: None, live: true, }
   let task = match
     @duckdb_driver.start_configured_strategy_compute_host(
@@ -108,6 +168,7 @@ pub fn start_native_strategy_compute_runtime(
       },
       transfer_bytes,
       execution_bytes,
+      retained_storage?,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -128,6 +189,10 @@ pub fn start_native_strategy_compute_runtime(
     compute_limits,
     imports,
     authority,
+    retained_profile,
+    retained_bytes,
+    retained_file,
+    retained_output: None,
     output: None,
     started: false,
     physical_active: false,
@@ -141,6 +206,7 @@ pub fn start_native_strategy_compute_runtime(
 /// and only then cross the common DAG completion boundary.
 pub fn execute_native_strategy_compute_runtime(
   runtime : NativeStrategyComputeRuntime,
+  retained_source? : (@execution.ProducerRead) -> NativeComputeRetainedInput?,
 ) -> Result[@execution.CompletedOutput, NativeStrategyComputeFailure] {
   if runtime.started || runtime.task_disposed {
     return Err({
@@ -150,6 +216,36 @@ pub fn execute_native_strategy_compute_runtime(
     })
   }
   runtime.started = true
+  let retained : NativeComputeRetainedOutput? = match
+    (runtime.retained_profile, runtime.retained_bytes) {
+    (Some(profile), Some(bytes)) => {
+      let file = match
+        @retained_file.begin_native_retained_task_file(
+          profile.root_path,
+          profile.run_occurrence + "-task-" + runtime.task_index.to_string(),
+          bytes,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          close_native_strategy_database(runtime)
+          let settlement = dispose_native_strategy_task(runtime)
+          return Err({
+            primary: Physical(RetainedFile(issue)),
+            rollback: None,
+            settlement,
+          })
+        }
+      }
+      runtime.retained_file.val = Some(file)
+      Some({
+        file,
+        wire: profile.wire,
+        max_batch_bytes: profile.max_batch_bytes,
+        max_chunk_rows: profile.max_chunk_rows,
+      })
+    }
+    _ => None
+  }
   runtime.physical_active = true
   match runtime.database.begin_transaction() {
     Err(issue) => {
@@ -164,6 +260,7 @@ pub fn execute_native_strategy_compute_runtime(
     Ok(_) => ()
   }
   let mut failure : NativeComputeExecutionIssue? = None
+  let attempt = @duckdb_driver.captured_duckdb_attempt(runtime.task)
   for plan in runtime.imports {
     if failure is None {
       match
@@ -171,13 +268,14 @@ pub fn execute_native_strategy_compute_runtime(
           runtime.database,
           plan,
           runtime.transport.max_bytes,
+          attempt~,
+          retained_source?,
         ) {
         Ok(_) => ()
         Err(issue) => failure = Some(issue)
       }
     }
   }
-  let attempt = @duckdb_driver.captured_duckdb_attempt(runtime.task)
   if failure is None {
     match
       execute_native_compute_query(
@@ -185,8 +283,9 @@ pub fn execute_native_strategy_compute_runtime(
         runtime.database,
         runtime.transport,
         runtime.compute_limits,
+        retained?,
       ) {
-      Ok(_) => ()
+      Ok(output) => runtime.retained_output = output
       Err(issue) => failure = Some(issue)
     }
   }
@@ -265,17 +364,36 @@ pub fn native_strategy_compute_runtime_output(
 /// retryable through another call and is never converted to confirmed cleanup.
 pub fn close_native_strategy_compute_runtime(
   runtime : NativeStrategyComputeRuntime,
-) -> Result[Bool, @resources.LedgerIssue] {
+) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   runtime.authority.live = false
   close_native_strategy_database(runtime)
   let execution = @duckdb_driver.captured_duckdb_execution(runtime.task)
   match @strategy.settle_task_execution(runtime.graph, execution, true) {
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()
   }
   if !runtime.task_disposed {
     @strategy.close_task_execution(runtime.graph, execution)
     runtime.task_disposed = true
   }
-  @strategy.refresh_task_execution_cleanup(runtime.graph, execution)
+  let file_failure = match runtime.retained_file.val {
+    Some(file) =>
+      match file.reclaim_readers() {
+        Err(issue) => Some(issue)
+        Ok(_) =>
+          match file.release() {
+            Ok(_) => None
+            Err(issue) => Some(issue)
+          }
+      }
+    None => None
+  }
+  let common = @strategy.refresh_task_execution_cleanup(
+    runtime.graph,
+    execution,
+  )
+  if file_failure is Some(issue) {
+    return Err(FileRelease(issue))
+  }
+  common.map_err(issue => Ledger(issue))
 }

@@ -26,6 +26,28 @@ pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun {
 }
 
 ///|
+/// An exact producer binding, not matching by CID or filesystem path.
+fn native_strategy_retained_input(
+  run : NativeStrategyComputeRun,
+  input : @execution.ProducerRead,
+) -> NativeComputeRetainedInput? {
+  for entry in run.entries {
+    guard entry.runtime.retained_output is Some(handle) &&
+      entry.runtime.retained_profile is Some(profile) else {
+      continue
+    }
+    if @execution.retained_producer_payload(handle, input) is Some(file) {
+      return Some({
+        file,
+        wire: profile.wire,
+        max_batch_bytes: profile.max_batch_bytes,
+      })
+    }
+  }
+  None
+}
+
+///|
 /// Execute one already selected task and retain its common runtime owner. The
 /// owner is recorded before physical execution, so a failed attempt cannot
 /// lose cleanup responsibility.
@@ -36,6 +58,7 @@ pub fn execute_native_strategy_compute_task(
   import_limits : NativeComputeImportLimits,
   transfer_bytes : Int64,
   execution_bytes : Int64,
+  retained_profile? : NativeStrategyRetainedOutputProfile,
 ) -> Result[@execution.CompletedOutput, NativeStrategyComputeRunIssue] {
   if !run.accepting {
     database.close()
@@ -43,15 +66,20 @@ pub fn execute_native_strategy_compute_task(
   }
   let runtime = match
     start_native_strategy_compute_runtime(
-      setup, database, import_limits, transfer_bytes, execution_bytes,
+      setup,
+      database,
+      import_limits,
+      transfer_bytes,
+      execution_bytes,
+      retained_profile?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Start(issue))
   }
   run.entries.push({ runtime, released: false, })
-  execute_native_strategy_compute_runtime(runtime).map_err(issue => {
-    Execution(issue)
-  })
+  execute_native_strategy_compute_runtime(runtime, retained_source=input => {
+    native_strategy_retained_input(run, input)
+  }).map_err(issue => Execution(issue))
 }
 
 ///|
@@ -67,10 +95,10 @@ pub fn native_strategy_compute_run_task_count(
 /// call retries only owners that remain unresolved.
 pub fn close_native_strategy_compute_run(
   run : NativeStrategyComputeRun,
-) -> Result[Bool, @resources.LedgerIssue] {
+) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   run.accepting = false
   let mut pending = false
-  let mut first_failure : @resources.LedgerIssue? = None
+  let mut first_failure : NativeStrategyComputeCleanupIssue? = None
   for offset in 0..<run.entries.length() {
     let entry = run.entries[run.entries.length() - offset - 1]
     if !entry.released {

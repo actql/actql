@@ -86,6 +86,7 @@ fn prepare_native_publication_local_run() -> (
 ///|
 fn prepare_native_publication_duckdb_run(
   library_path : String,
+  retained_root? : String,
 ) -> (
   @strategy.CapturedDAG,
   @native_host.NativeStandardStrategyRun,
@@ -94,15 +95,33 @@ fn prepare_native_publication_duckdb_run(
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let registration = @connector.capability_registration_at(registry, 1).unwrap()
+  let host = @dbhost.configure_strategy_dispatch(
+    run,
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    registration,
+    dispatch_test_generated(run),
+    dispatch_test_limits(),
+  ).unwrap()
+  if retained_root is Some(_) {
+    @dbhost.configure_dispatch_retained_output(host, 100000L, Some(1L)).unwrap()
+  }
   @strategy.configure_strategy_search(run, {
     max_offers: 3,
     max_strategies: 8,
     max_work: 1000,
     max_revisions: 1,
   }).unwrap()
-  let retention = @duckdb_compute.duckdb_task_retention_capacity(
-    fixed_compute_attempt_limits(),
-  ).unwrap()
+  let retention = if retained_root is Some(_) {
+    @duckdb_compute.duckdb_stream_retention_capacity(
+      fixed_compute_attempt_limits(),
+    ).unwrap() +
+    100000L
+  } else {
+    @duckdb_compute.duckdb_task_retention_capacity(
+      fixed_compute_attempt_limits(),
+    ).unwrap()
+  }
   let offers = Array::makei(3, index => {
     @strategy.prepare_task_offer(
       run,
@@ -122,14 +141,6 @@ fn prepare_native_publication_duckdb_run(
     ).unwrap()
   })
   ignore(@strategy.revise_strategy(run, offers, registry, None).unwrap())
-  let host = @dbhost.configure_strategy_dispatch(
-    run,
-    registry,
-    @connector.capability_registration_at(registry, 0).unwrap(),
-    registration,
-    dispatch_test_generated(run),
-    dispatch_test_limits(),
-  ).unwrap()
   let library = @native_duckdb.load_library(library_path).unwrap()
   let runtime_owner = @native_host.open_native_standard_strategy_run(
     host,
@@ -137,6 +148,20 @@ fn prepare_native_publication_duckdb_run(
     100000L,
     1000000L,
     library=Some(library),
+    retained_profile?=retained_root.map(path => {
+      root_path: path,
+      run_occurrence: "native-standard-" + @env.now().to_string(),
+      max_file_bytes: 100000L,
+      wire: {
+        max_columns: 10,
+        max_order_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 32,
+      },
+      max_batch_bytes: 4096,
+      max_chunk_rows: 100,
+    }),
   ).unwrap()
   (run, runtime_owner, issuer)
 }
@@ -581,6 +606,30 @@ test "standard DuckDB output reaches the durable native publication commit" {
   verify_native_publication_run(
     run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
   )
+}
+
+///|
+test "native standard Host reads each retained DuckDB input from a fresh file" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
+    return
+  }
+  let (captured, owner, issuer) = prepare_native_publication_duckdb_run(
+    library,
+    retained_root=root,
+  )
+  @native_host.execute_native_standard_strategy_run(owner).unwrap()
+  assert_true(@native_host.native_standard_strategy_run_complete(owner))
+  assert_eq(@native_host.native_standard_strategy_run_task_count(owner), 3)
+  let target = @strategy.captured_task_target(captured, 3).unwrap()
+  let output = @strategy.captured_task_output(captured, 3, target).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is None)
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

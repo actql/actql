@@ -11,6 +11,7 @@ struct NativeRetainedTaskFile {
   mut cid : String?
   mut released : Bool
   readers : Ref[Int]
+  opened_readers : Array[NativeRetainedTaskReader]
 }
 
 ///|
@@ -74,6 +75,7 @@ pub fn begin_native_retained_task_file(
     cid: None,
     released: false,
     readers: Ref(0),
+    opened_readers: [],
   })
 }
 
@@ -132,6 +134,15 @@ pub fn NativeRetainedTaskFile::stored_bytes(
 }
 
 ///|
+/// The common execution may return reserved holding capacity only after this
+/// owner confirms removal and directory durability.
+pub fn NativeRetainedTaskFile::release_confirmed(
+  self : NativeRetainedTaskFile,
+) -> Bool {
+  self.released
+}
+
+///|
 pub fn NativeRetainedTaskFile::open_reader(
   self : NativeRetainedTaskFile,
 ) -> Result[NativeRetainedTaskReader, NativeRetainedTaskFileIssue] {
@@ -146,14 +157,37 @@ pub fn NativeRetainedTaskFile::open_reader(
     Err(issue) => return Err(Filesystem(issue))
   }
   self.readers.val += 1
-  Ok({
+  let opened = {
     reader,
     hash: @sha256.hasher(),
     cid,
     eof: false,
     closed: false,
     readers: self.readers,
-  })
+  }
+  self.opened_readers.push(opened)
+  Ok(opened)
+}
+
+///|
+/// Called only after the execution owner has stopped accepting reader work.
+/// Failed closes retain their exact reader handles for a later cleanup retry.
+pub fn NativeRetainedTaskFile::reclaim_readers(
+  self : NativeRetainedTaskFile,
+) -> Result[Unit, NativeRetainedTaskFileIssue] {
+  let mut first : NativeRetainedTaskFileIssue? = None
+  for reader in self.opened_readers {
+    if !reader.closed {
+      match reader.close() {
+        Ok(_) => ()
+        Err(issue) => if first is None { first = Some(issue) }
+      }
+    }
+  }
+  match first {
+    Some(issue) => Err(issue)
+    None => Ok(())
+  }
 }
 
 ///|

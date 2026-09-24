@@ -25,6 +25,27 @@ pub(all) enum NativeComputeExecutionIssue {
   Fields(@duckdb.PhysicalFieldsIssue)
   Columns(@duckdb.TransportColumnIssue)
   Compute(@duckdb_compute.DuckDBComputeIssue)
+  RetainedFile(@retained_file.NativeRetainedTaskFileIssue)
+  RowFrames(@publication.DurableResultRowFrameIssue)
+}
+
+///|
+/// Selected native output holding. The file owner is created only after the
+/// common task has admitted the exact attempt and its byte reservation.
+priv struct NativeComputeRetainedOutput {
+  file : @retained_file.NativeRetainedTaskFile
+  wire : @execution.RowWireLimits
+  max_batch_bytes : Int
+  max_chunk_rows : Int
+}
+
+///|
+/// Exact retained producer selected from a prior task in the same Run. No
+/// pathname or caller-supplied CID is accepted by the consumer import.
+struct NativeComputeRetainedInput {
+  file : @retained_file.NativeRetainedTaskFile
+  wire : @execution.RowWireLimits
+  max_batch_bytes : Int
 }
 
 ///|
@@ -37,6 +58,7 @@ pub(all) struct NativeComputeFailure {
 
 ///|
 priv struct NativeComputeImportPlan {
+  port : Int
   imported : @duckdb.FixedImport
   rows : Int
   columns : Int
@@ -115,6 +137,7 @@ fn native_compute_import_plans(
     cells += rows * columns
     if rows == 0 {
       plans.push({
+        port,
         imported,
         rows,
         columns,
@@ -156,6 +179,7 @@ fn native_compute_import_plans(
       }
     }
     plans.push({
+      port,
       imported,
       rows,
       columns,
@@ -221,6 +245,8 @@ fn execute_native_compute_import(
   database : @native_duckdb.Database,
   plan : NativeComputeImportPlan,
   max_bytes : Int,
+  attempt? : @duckdb_compute.DuckDBComputeAttempt,
+  retained_source? : (@execution.ProducerRead) -> NativeComputeRetainedInput?,
 ) -> Result[Unit, NativeComputeExecutionIssue] {
   match
     run_native_compute_command(
@@ -231,6 +257,17 @@ fn execute_native_compute_import(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  let input = @duckdb.fixed_import_input(plan.imported)
+  if @execution.producer_read_retained_material(input) is Some(_) {
+    guard attempt is Some(owner) &&
+      retained_source is Some(resolve) &&
+      resolve(input) is Some(source) else {
+      return Err(RuntimeState)
+    }
+    return execute_native_compute_retained_import(
+      database, owner, plan, source, max_bytes,
+    )
   }
   let mut row = 0
   while row < plan.rows {
@@ -267,12 +304,162 @@ fn execute_native_compute_import(
 }
 
 ///|
+/// A fresh bounded reader verifies physical bytes and the portable input
+/// stream verifies exact content, demand, and logical work before query use.
+/// Imported rows remain inside the uncommitted native transaction until both
+/// verifiers finish.
+fn execute_native_compute_retained_import(
+  database : @native_duckdb.Database,
+  attempt : @duckdb_compute.DuckDBComputeAttempt,
+  plan : NativeComputeImportPlan,
+  source : NativeComputeRetainedInput,
+  max_bytes : Int,
+) -> Result[Unit, NativeComputeExecutionIssue] {
+  if source.max_batch_bytes <= 0 ||
+    source.file.stored_bytes() is None ||
+    source.max_batch_bytes > source.wire.max_bytes {
+    return Err(RuntimeState)
+  }
+  let frame_bytes = Int::min(65536, source.max_batch_bytes)
+  let frames = match
+    @publication.prepare_durable_result_row_frames(
+      source.wire.max_bytes,
+      plan.rows,
+      Int::min(16777216, source.max_batch_bytes),
+      source.wire.max_depth,
+      frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RowFrames(issue))
+  }
+  match
+    @duckdb_compute.begin_duckdb_compute_input_stream(
+      attempt,
+      plan.port,
+      source.wire,
+      source.max_batch_bytes,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Compute(issue))
+  }
+  let reader = match source.file.open_reader() {
+    Ok(value) => value
+    Err(issue) => return Err(RetainedFile(issue))
+  }
+  let mut parameters : Array[@duckdb.PhysicalParameter] = []
+  let mut batch_rows = 0
+  let mut rows = 0
+  let mut eof = false
+  while !eof {
+    let chunk = match reader.next(frame_bytes) {
+      Ok(value) => value
+      Err(issue) => {
+        reader.close() |> ignore
+        return Err(RetainedFile(issue))
+      }
+    }
+    let decoded = match
+      @publication.feed_durable_result_row_frames(frames, chunk.bytes) {
+      Ok(value) => value
+      Err(issue) => {
+        reader.close() |> ignore
+        return Err(RowFrames(issue))
+      }
+    }
+    for row in decoded {
+      if rows >= plan.rows {
+        reader.close() |> ignore
+        return Err(ImportRows)
+      }
+      let values = match
+        @duckdb_compute.append_duckdb_compute_input_stream(
+          attempt,
+          plan.port,
+          row,
+          {
+            max_bytes: source.max_batch_bytes,
+            max_nodes: source.wire.max_nodes,
+            max_depth: source.wire.max_depth,
+            max_text_bytes: source.max_batch_bytes,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          reader.close() |> ignore
+          return Err(Compute(issue))
+        }
+      }
+      if values.length() != plan.columns {
+        reader.close() |> ignore
+        return Err(ParameterCount)
+      }
+      for value in values {
+        parameters.push(value)
+      }
+      rows += 1
+      batch_rows += 1
+      if batch_rows == plan.batch_rows {
+        match
+          run_native_compute_command(
+            database,
+            plan.batch_sql,
+            parameters,
+            max_bytes,
+          ) {
+          Ok(_) => ()
+          Err(issue) => {
+            reader.close() |> ignore
+            return Err(issue)
+          }
+        }
+        parameters = []
+        batch_rows = 0
+      }
+    }
+    eof = chunk.eof
+  }
+  let summary = match @publication.finish_durable_result_row_frames(frames) {
+    Ok(value) => value
+    Err(issue) => {
+      reader.close() |> ignore
+      return Err(RowFrames(issue))
+    }
+  }
+  if summary.rows != plan.rows || rows != plan.rows {
+    reader.close() |> ignore
+    return Err(ImportRows)
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) => {
+      reader.close() |> ignore
+      return Err(RetainedFile(issue))
+    }
+  }
+  if batch_rows > 0 {
+    match
+      run_native_compute_command(database, plan.tail_sql, parameters, max_bytes) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  @duckdb_compute.finish_duckdb_compute_input_stream(attempt, plan.port).map_err(issue => {
+      Compute(issue)
+    },
+  )
+}
+
+///|
 fn execute_native_compute_query(
   attempt : @duckdb_compute.DuckDBComputeAttempt,
   database : @native_duckdb.Database,
   transport : @duckdb.TransportColumnLimits,
   compute_limits : @duckdb_compute.DuckDBComputeLimits,
-) -> Result[Unit, NativeComputeExecutionIssue] {
+  retained? : NativeComputeRetainedOutput,
+) -> Result[
+  @execution.RetainedOutputHandle[@retained_file.NativeRetainedTaskFile]?,
+  NativeComputeExecutionIssue,
+] {
   let compute = @duckdb_compute.duckdb_compute_attempt_plan(attempt)
   if !@duckdb_compute.duckdb_compute_inputs_ready(attempt) {
     return Err(RuntimeState)
@@ -328,7 +515,18 @@ fn execute_native_compute_query(
       return Err(Runtime(issue))
     }
   }
-  match @duckdb_compute.begin_duckdb_compute_result(attempt, fields) {
+  let begun = match retained {
+    Some(output) =>
+      @duckdb_compute.begin_duckdb_compute_stream_result(
+        attempt,
+        fields,
+        output.wire,
+        output.max_batch_bytes,
+        output.max_chunk_rows,
+      )
+    None => @duckdb_compute.begin_duckdb_compute_result(attempt, fields)
+  }
+  match begun {
     Ok(_) => ()
     Err(issue) => {
       query.close() |> ignore
@@ -347,16 +545,44 @@ fn execute_native_compute_query(
             return Err(Columns(issue))
           }
         }
-        match
-          @duckdb_compute.receive_duckdb_compute_chunk(
-            attempt,
-            chunk.row_count,
-            columns,
-          ) {
+        let received = match retained {
+          Some(_) =>
+            @duckdb_compute.receive_duckdb_compute_stream_chunk(
+              attempt,
+              chunk.row_count,
+              columns,
+            )
+          None =>
+            @duckdb_compute.receive_duckdb_compute_chunk(
+              attempt,
+              chunk.row_count,
+              columns,
+            )
+        }
+        match received {
           Ok(_) => ()
           Err(issue) => {
             query.close() |> ignore
             return Err(Compute(issue))
+          }
+        }
+        if retained is Some(output) {
+          while true {
+            match @duckdb_compute.drain_duckdb_compute_stream_row(attempt) {
+              Ok(Some(batch)) =>
+                match output.file.append(batch) {
+                  Ok(_) => ()
+                  Err(issue) => {
+                    query.close() |> ignore
+                    return Err(RetainedFile(issue))
+                  }
+                }
+              Ok(None) => break
+              Err(issue) => {
+                query.close() |> ignore
+                return Err(Compute(issue))
+              }
+            }
           }
         }
       }
@@ -370,9 +596,41 @@ fn execute_native_compute_query(
   if !query.close() {
     return Err(RuntimeState)
   }
-  @duckdb_compute.finish_duckdb_compute_result(attempt).map_err(issue => {
-    Compute(issue)
-  })
+  match retained {
+    None =>
+      @duckdb_compute.finish_duckdb_compute_result(attempt)
+      .map(_ => None)
+      .map_err(issue => Compute(issue))
+    Some(output) => {
+      let (receipt, tail) = match
+        @duckdb_compute.finish_duckdb_compute_stream_result(attempt) {
+        Ok(value) => value
+        Err(issue) => return Err(Compute(issue))
+      }
+      match output.file.append(tail) {
+        Ok(_) => ()
+        Err(issue) => return Err(RetainedFile(issue))
+      }
+      let (cid, bytes, _, _) = @execution.output_stream_identity(receipt)
+      match output.file.seal(cid, bytes) {
+        Ok(_) => ()
+        Err(issue) => return Err(RetainedFile(issue))
+      }
+      let handle = @execution.retain_admitted_output_stream(
+        receipt,
+        output.file,
+        fn() { output.file.available() },
+      )
+      match
+        @duckdb_compute.stage_retained_duckdb_compute_material(
+          attempt,
+          @execution.retained_output_material(handle),
+        ) {
+        Ok(_) => Ok(Some(handle))
+        Err(issue) => Err(Compute(issue))
+      }
+    }
+  }
 }
 
 ///|
