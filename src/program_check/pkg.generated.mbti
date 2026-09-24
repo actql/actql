@@ -84,6 +84,8 @@ pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor
 
 pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
 
+pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
+
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked

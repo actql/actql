@@ -81,6 +81,10 @@ The checked Program now exposes its retained exact Environment owner, and the
 checker configuration exposes the originally supplied owner. This makes the
 future Program-to-Effect binding an ownership comparison, not a CID-only
 reconstruction. The ordinary checker still rejects nonempty Effects.
+The Program check also retains the exact admitted Catalog role-reference
+closure. Downstream Command selection can reuse that proof without repeating
+Catalog hashing, while still checking the exact Program owner and current
+execution authority. This retained proof alone does not authorize an Effect.
 
 ## Required port and owners
 

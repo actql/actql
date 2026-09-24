@@ -10,6 +10,7 @@ struct CheckedProgram {
   window_limits : Array[Array[WindowLimit]]
   input_completeness : Array[Array[InputCompletenessRequirement]]
   expression_profiles : @context.ExpressionProfiles
+  catalog_references : @environment.CatalogReferences
   identity : @context.ProgramSourceIdentity
   requirements : @context.StageRequirementClosure
   gates : @context.ProgramIncomingGates
@@ -169,6 +170,7 @@ fn check(
   }
   check_supported_source(program, budget)
   let conversions : Array[ProofConversion] = []
+  let references : Array[@environment.CatalogReferences] = []
   let (identity, requirements, gates, contracts, units) = construct_local(
     program,
     supplied,
@@ -182,6 +184,7 @@ fn check(
     calendar~,
     text_rank~,
     conversion_out=Some(conversions),
+    references_out=Some(references),
     capacity_inputs~,
   )
   let conversion = Some(conversions[0])
@@ -316,6 +319,7 @@ fn check(
     window_limits,
     input_completeness,
     expression_profiles,
+    catalog_references: references[0],
     identity,
     requirements,
     gates,
@@ -611,6 +615,16 @@ pub fn checked_environment(
   @environment.capacity_environment(
     @context.selected_capacity(checked_selected_policy(program)),
   )
+}
+
+///|
+/// Return the exact Catalog role-reference closure admitted during this
+/// Program check. This is static evidence, not current authority or an Effect
+/// execution permit; consumers must retain its owner and bind exact members.
+pub fn checked_catalog_references(
+  program : CheckedProgram,
+) -> @environment.CatalogReferences {
+  program.catalog_references
 }
 
 ///|
