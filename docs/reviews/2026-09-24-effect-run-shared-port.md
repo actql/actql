@@ -177,3 +177,17 @@ payload and reordered-row rejection, and unchanged send and credential-use
 counts. The decision is supplied by a trusted Host caller; the standard
 Effectful Host entry has not yet connected that authority. The existing
 capture entry still performs current write admission for new sends.
+
+The follow-up review at `89ef91382f20dc092c398ce920860fa82a57e149`
+(`02-salesforce-effects (1).md`) separates four findings. SF-24-1 is closed
+by owned claim snapshots and restart tests; SF-24-2 is closed by regenerating
+the Workers composition and verifying its bridge. SF-24-R1 is addressed at the
+physical response component: an exact, currently authorized evidence read can
+reproject a stored response without obtaining a new write grant or sending a
+second request. Its standard Host authority binding remains part of the open
+Effectful Run port, not a completed product recovery claim. SF-24-G1 remains
+open: the standard checker rejects nonempty Effects, and the normal Host has
+not yet admitted and published a multi-member Effect Set. Local HTTPS and
+SQLite tests do not substitute for that path or for live Salesforce org
+verification. The supplied review's CI status belongs to its fixed SHA; a
+new required CI result must be checked against the final implementation SHA.
