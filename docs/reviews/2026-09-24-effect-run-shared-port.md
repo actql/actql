@@ -259,6 +259,13 @@ they are not live Salesforce-org tests.
 The common adapter now assembles scoped credential calls and owns exact
 evidence-read authorization, claim verification, and Ledger lookup. Provider
 code still derives the operation, request identity, and typed interpretation.
-The remaining review work is a shared MoonBit Acquisition evidence/capture
-owner and the standard Effectful Host Run path. Neither is complete merely
-because the adapters now share these procedures.
+The Salesforce and DuckDB broad Acquisition paths now delegate issuance,
+exact retained-row and transport verification, and one-shot capture to the
+same MoonBit `QueryEvidenceCustody` owner. Provider-specific page or native
+execution remains separate. This does not claim that every Acquisition
+implementation has migrated, or that the standard Effectful Host Run path is
+complete merely because the adapters and these broad paths share procedures.
+The shared registration pins the trusted transport verifier before execution;
+attempt selection, issuer liveness, exact retained rows, foreign records, and
+one-shot capture are exercised by the Salesforce and DuckDB broad integration
+fixtures. The query integration suite passes 546/546 on JS, Wasm, and native.

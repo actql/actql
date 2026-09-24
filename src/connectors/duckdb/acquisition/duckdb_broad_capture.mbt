@@ -2,10 +2,11 @@
 /// Same-process immutable observation, not durable Run publication.
 struct DuckDBBroadObservation {
   records : DuckDBBroadRecords
-  document : @encode.EncodedDocument
-  cid : String
-  bytes : Int
-  nodes : Int
+  captured : @planning.QueryEvidenceCaptured[
+    DuckDBQueryIssuer,
+    DuckDBBroadAttempt,
+    DuckDBBroadRetention,
+  ]
 }
 
 ///|
@@ -25,21 +26,24 @@ pub fn capture_duckdb_broad_query(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  match @planning.build_query_observation_artifact(records.artifacts, limits) {
-    Ok((document, cid, bytes, nodes)) => {
-      let observation : DuckDBBroadObservation = {
-        records,
-        document,
-        cid,
-        bytes,
-        nodes,
-      }
+  match
+    @planning.capture_query_evidence(
+      records.issued,
+      issuer.registration,
+      records.authority.token,
+      issuer,
+      attempt,
+      records.retention,
+      limits,
+    ) {
+    Ok(captured) => {
+      let observation : DuckDBBroadObservation = { records, captured, }
       attempt.state = Captured(observation)
       Ok(observation)
     }
     Err(issue) => {
       abort_duckdb_broad_attempt(attempt)
-      Err(duckdb_artifact_issue(issue))
+      Err(duckdb_custody_issue(issue))
     }
   }
 }
@@ -48,19 +52,19 @@ pub fn capture_duckdb_broad_query(
 pub fn duckdb_broad_observation_document(
   value : DuckDBBroadObservation,
 ) -> @encode.EncodedDocument {
-  value.document
+  @planning.query_evidence_capture_document(value.captured)
 }
 
 ///|
 pub fn duckdb_broad_observation_cid(value : DuckDBBroadObservation) -> String {
-  value.cid
+  @planning.query_evidence_capture_cid(value.captured)
 }
 
 ///|
 pub fn duckdb_broad_observation_usage(
   value : DuckDBBroadObservation,
 ) -> (Int, Int) {
-  (value.bytes, value.nodes)
+  @planning.query_evidence_capture_usage(value.captured)
 }
 
 ///|
@@ -79,6 +83,18 @@ pub fn bind_captured_duckdb_broad_input(
   guard attempt.state is Captured(actual) && physical_equal(actual, observation) else {
     return Err(ForeignObservation)
   }
+  match
+    @planning.verify_query_evidence_captured(
+      observation.captured,
+      issuer.registration,
+      observation.records.authority.token,
+      issuer,
+      attempt,
+      observation.records.retention,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(duckdb_custody_issue(issue))
+  }
   @execution.bind_live_completed_input(
     receiver,
     input_index,
@@ -87,7 +103,16 @@ pub fn bind_captured_duckdb_broad_input(
     fn() {
       verify_duckdb_broad_records(issuer, attempt, observation.records) is Ok(_) &&
       attempt.state is Captured(actual) &&
-      physical_equal(actual, observation)
+      physical_equal(actual, observation) &&
+      @planning.verify_query_evidence_captured(
+        observation.captured,
+        issuer.registration,
+        observation.records.authority.token,
+        issuer,
+        attempt,
+        observation.records.retention,
+      )
+      is Ok(_)
     },
   ).map_err(issue => Consumer(issue))
 }
