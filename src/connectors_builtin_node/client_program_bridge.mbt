@@ -708,6 +708,43 @@ pub fn client_program_local_values_unit_source_json(
 }
 
 ///|
+/// Checked output schema for the same Values task and AoA identity.
+#export_name("clientProgramIssueLocalValuesOutputSchema")
+pub fn client_program_issue_local_values_output_schema(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[
+  @execution.RelationSchemaIdentity,
+  @publication_host.ClientValuesOutputSchemaIssue,
+] {
+  @publication_host.issue_prepared_client_values_output_schema(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramLocalValuesOutputSchemaWire")
+pub fn client_program_local_values_output_schema_wire(
+  value : @execution.RelationSchemaIdentity,
+) -> String {
+  @execution.relation_schema_wire(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesOutputSchemaCid")
+pub fn client_program_local_values_output_schema_cid(
+  value : @execution.RelationSchemaIdentity,
+) -> String {
+  @execution.relation_schema_cid(value)
+}
+
+///|
 /// Saved AoA material is rechecked against the exact prepared Program.
 #export_name("clientProgramAdmitLocalValuesAoAIdentity")
 pub fn client_program_admit_local_values_aoa_identity(
