@@ -102,6 +102,92 @@ test "ordinary values document prepares one named Effect-free result" {
     20,
   ).unwrap()
   assert_true(rows_limit != bytes_limit)
+  let rows_binding = emit_prepared_client_publication_binding(
+    prepared,
+    0,
+    0,
+    Rows,
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let bytes_binding = emit_prepared_client_publication_binding(
+    prepared,
+    0,
+    0,
+    Bytes,
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  assert_true(rows_binding != bytes_binding)
+  assert_true(
+    admit_prepared_client_publication_binding(
+      prepared,
+      0,
+      0,
+      Rows,
+      rows_binding,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_publication_binding(
+      prepared,
+      0,
+      0,
+      Bytes,
+      rows_binding,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingAdmissionIssue::MismatchedBinding),
+  )
+  let wrong_port = rows_binding.replace(
+    old="\"result_name\":\"rows\"",
+    new="\"result_name\":\"answer\"",
+  )
+  assert_true(
+    admit_prepared_client_publication_binding(
+      prepared,
+      0,
+      0,
+      Rows,
+      wrong_port,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingAdmissionIssue::MismatchedBinding),
+  )
+  assert_true(
+    emit_prepared_client_publication_binding(
+      prepared,
+      0,
+      1,
+      Rows,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingIssue::MissingPublication),
+  )
+  assert_true(
+    emit_prepared_client_publication_binding(
+      prepared,
+      0,
+      0,
+      Rows,
+      rows_binding.length() - 1,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationBindingIssue::Encoding),
+  )
   assert_true(
     emit_prepared_client_publication_limit(
       prepared,
