@@ -63,9 +63,13 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
+
 pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput
+
+pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
@@ -106,6 +110,8 @@ pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relatio
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
+
+pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> CapturedOutputPin?
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
@@ -291,7 +297,11 @@ pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.Captur
 
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
 
+pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
+
 pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedResultOutputSet, RunIssue]
 
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
 
@@ -391,9 +401,13 @@ pub fn refresh_task_execution_cleanup(CapturedDAG, TaskExecution) -> Result[Bool
 
 pub fn release_captured_effect_input(CapturedEffectInput) -> Bool
 
+pub fn release_captured_effect_inputs(CapturedEffectInputs) -> Bool
+
 pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) -> Result[Bool, @physical_resources.LedgerIssue]
 
 pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
+
+pub fn release_captured_result_output_set(CapturedResultOutputSet) -> Bool
 
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -540,9 +554,13 @@ type CapturedDAG
 
 type CapturedEffectInput
 
+type CapturedEffectInputs
+
 type CapturedEffectRunDAG
 
 type CapturedOutputPin
+
+type CapturedResultOutputSet
 
 type CheckedDAG
 
