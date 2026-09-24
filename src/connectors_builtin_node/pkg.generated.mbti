@@ -61,6 +61,8 @@ pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) 
 
 pub fn client_program_result_name(@run_publication_host.PreparedClientProgram, Int) -> String?
 
+pub fn client_program_semantic_document_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
 pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
