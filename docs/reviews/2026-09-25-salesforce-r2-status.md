@@ -206,6 +206,19 @@ projection binding, member/set receipt derivation and product caller remain
 open. Local Salesforce Site tests pass 120/120 at this increment; this is not
 a live-org or same-SHA Linux CI result.
 
+The common MoonBit row check now binds a closed canonical `EffectOutcome`
+projection to the exact admitted Preview member and row. Salesforce single
+and Collections projections use it; a shifted Collections row or foreign
+member is rejected. This is typed shape and row binding, not proof that the
+physical response produced the projection. The Host Ledger can also reopen
+an outcome record only through its original exact dispatch claim and saved
+response. A common evidence-read path checks current read authorization
+before that access. Real SQLite restart tests cover single and Collections
+custody, distinct row owners, foreign order, and zero resend. The Site suite
+passes 122/122 and common publication tests pass 124/124 on JS, Wasm, and
+native. Semantic outcome Receipt issuance and terminal transitions remain
+open; these physical records must not be counted as successful writes.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
