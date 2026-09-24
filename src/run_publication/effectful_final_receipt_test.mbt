@@ -10,6 +10,46 @@ fn final_test_receipt_field(
 }
 
 ///|
+fn final_test_source_artifact(
+  chain : CapturedRunTestChain,
+) -> PublicationContract {
+  let source = chain.artifact
+  let value = captured_test_value(publication_contract_json(source))
+  let body = "{\"version\":\"actql-effect-source-artifact/0.1\"," +
+    "\"source_result\":\"rows\",\"source_binding_cid\":\"" +
+    ordering_test_cid("a") +
+    "\",\"invocation_cid\":\"" +
+    publication_contract_identity(chain.invocation) +
+    "\",\"store_authority_cid\":\"" +
+    ordering_test_cid("d") +
+    "\",\"logical_result_cid\":\"" +
+    final_test_receipt_field(value, "logical_result_cid") +
+    "\",\"result_schema_cid\":\"" +
+    final_test_receipt_field(value, "result_schema_cid") +
+    "\",\"actual_row_count\":1,\"actual_completeness\":\"complete\"," +
+    "\"effective_data_policy_cid\":\"" +
+    final_test_receipt_field(value, "effective_data_policy_cid") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    final_test_receipt_field(value, "effective_retention_policy_cid") +
+    "\",\"provenance_evidence_cids\":[]}"
+  seal_publication_contract("effect_source_artifact", body, 65536, 4096, 32).unwrap()
+}
+
+///|
+fn final_test_source(
+  chain : CapturedRunTestChain,
+  preview : EffectPreviewIdentity,
+) -> CapturedEffectSourceArtifact {
+  admit_captured_effect_source_artifact(
+    preview,
+    0,
+    chain.invocation,
+    final_test_source_artifact(chain),
+    ordering_test_cid("d"),
+  ).unwrap()
+}
+
+///|
 fn final_test_preview_wire(
   chain : CapturedRunTestChain,
   member_cid : String,
@@ -46,8 +86,10 @@ fn final_test_preview_wire(
     "\",\"effect_identity_cid\":\"" +
     cid +
     (if plan { "\",\"effect_plan_logical_cid\":\"" + cid } else { "" }) +
-    "\",\"source_result\":\"answer\",\"result_artifact_cid\":\"" +
-    artifact_cid.unwrap_or(publication_contract_identity(chain.artifact)) +
+    "\",\"source_result\":\"rows\",\"result_artifact_cid\":\"" +
+    artifact_cid.unwrap_or(
+      publication_contract_identity(final_test_source_artifact(chain)),
+    ) +
     "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
     cid +
     "\",\"capability_evidence_cid\":\"" +
@@ -182,6 +224,23 @@ fn final_test_captured_with_plan_inventory(
     )
     .replace(old="\"effect_plans\":{}", new="\"effect_plans\":" + plans_wire)
     .replace(old="\"effects\":{}", new="\"effects\":{\"WriteOne\":{}}")
+    .replace(
+      old="\"effect_source_artifacts\":{}",
+      new="\"effect_source_artifacts\":{\"WriteOne\":" +
+        publication_contract_json(final_test_source_artifact(chain)) +
+        "}",
+    )
+    .replace(
+      old="\"effect_source_holding_cids\":{}",
+      new="\"effect_source_holding_cids\":{\"WriteOne\":\"" +
+        effect_source_artifact_holding_cid(
+          final_test_source_artifact(chain),
+          "WriteOne",
+          publication_contract_identity(chain.run),
+          ordering_test_cid("d"),
+        ).unwrap() +
+        "\"}",
+    )
   let context_value = captured_test_value(context_body_wire)
   let context_cid = @json.cid_value(context_value, 65536, 4096, 32) catch {
     _ => abort("Invalid Effect Context identity")
@@ -217,6 +276,7 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     chain.manifest,
     chain.receipt,
     [snapshot],
+    [final_test_source(chain, final_test_preview(chain))],
     [],
     chain.authoring,
     chain.models,
@@ -253,6 +313,7 @@ test "Effectful capture issuer owns its exact Preview plan inventory" {
       chain.manifest,
       chain.receipt,
       [snapshot],
+      [final_test_source(chain, preview)],
       [],
       chain.authoring,
       chain.models,
@@ -291,7 +352,7 @@ test "Effectful capture issuer owns its exact Preview plan inventory" {
   )
   assert_true(
     issue([("WriteOne", "{}")], foreign_artifact)
-    is Err(CaptureIssuanceChain(EvidenceInventoryMismatch("captured_effects"))),
+    is Err(CaptureIssuanceInventoryMismatch("effect_source_artifacts")),
   )
 }
 
@@ -942,6 +1003,33 @@ test "Effectful computation chain checks exact captured Result values" {
       32,
     )
     is Ok(_),
+  )
+  let holding = effect_source_artifact_holding_cid(
+    final_test_source_artifact(chain),
+    "WriteOne",
+    publication_contract_identity(chain.run),
+    ordering_test_cid("d"),
+  ).unwrap()
+  let foreign_holding = final_test_reseal_captured_context(
+    captured,
+    holding,
+    ordering_test_cid("f"),
+  )
+  assert_true(
+    validate_effectful_computation_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      foreign_holding,
+      preview,
+      65536,
+      4096,
+      32,
+    )
+    is Err(EvidenceInventoryMismatch("captured_effects")),
   )
   assert_true(
     validate_effect_free_run_evidence_chain(

@@ -338,6 +338,18 @@ Current target observations, authorization, and freshness checks still occur
 at their boundaries in [Checkpoints and Resolutions](#checkpoints) and [Effect preview, approval, and application](#effect-application); they bind Preview/apply evidence rather
 than replacing the computation's ObservationSet.
 
+<!-- requirement-block: capture-and-replay.effect-source-artifacts-have-an-independent-exact-inventory capture-and-replay.effect-source-holding-is-independent capture-and-replay.effect-source-current-authority-is-checked-at-use capture-and-replay.public-result-is-not-a-substitute-for-effect-source -->
+An Effectful Captured Run MUST retain an exact private inventory of the Stage
+Result Artifacts consumed by Effect members, separate from the Program Result
+Manifest inventory. Each entry binds the checked source Result occurrence,
+source binding, Invocation, logical Relation, schema, policies, and Store
+authority to the Preview member. Its holding is independent of publication
+holding even when both share one immutable physical allocation. The holding
+identity alone is not current availability or apply authority: durable Store
+custody and current authorization MUST be checked at their respective use
+boundaries. A differently named Program Result MUST NOT stand in for the
+Effect source, and a missing source MUST NOT be inferred from a public Result.
+
 Receipt dependencies are acyclic:
 
 ```text

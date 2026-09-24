@@ -298,6 +298,10 @@ fn same_names(left : Array[String], right : Array[String]) -> Bool {
 fn effect_context_preview_inventory_matches(
   context : @json.CanonicalValue,
   preview : EffectPreviewIdentity,
+  invocation_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
 ) -> Bool {
   guard @json.object_field(context, "effects") is Some(effects) &&
     evidence_inventory_names(effects) is Some(effect_names) &&
@@ -306,6 +310,15 @@ fn effect_context_preview_inventory_matches(
     return false
   }
   let plan_names : Array[String] = []
+  guard @json.object_field(context, "effect_source_artifacts")
+    is Some(source_artifacts) &&
+    @json.object_field(context, "effect_source_holding_cids")
+    is Some(source_holdings) &&
+    evidence_inventory_names(source_artifacts) is Some(source_names) &&
+    evidence_inventory_names(source_holdings) is Some(holding_names) else {
+    return false
+  }
+  let expected_source_names : Array[String] = []
   for index in 0..<preview.member_effect_ids.length() {
     if effect_preview_member_plan_cid(preview, index) is Some(_) {
       plan_names.push(preview.member_effect_ids[index])
@@ -326,17 +339,40 @@ fn effect_context_preview_inventory_matches(
       return false
     }
     if effect_preview_member_source_result(preview, index) is Some(name) {
+      let effect_id = preview.member_effect_ids[index]
+      expected_source_names.push(effect_id)
       guard effect_preview_member_result_artifact_cid(preview, index)
         is Some(expected_artifact) &&
-        @json.object_field(context, "result_artifacts") is Some(artifacts) &&
-        @json.object_field(artifacts, name) is Some(artifact) &&
+        effect_preview_member_source_binding_cid(preview, index)
+        is Some(source_binding_cid) &&
+        @json.object_field(source_artifacts, effect_id) is Some(artifact) &&
+        evidence_identity_valid(
+          artifact, "result_artifact_cid", max_wire_bytes, max_nodes, max_depth,
+        ) &&
+        evidence_string(artifact, "version") ==
+        Some("actql-effect-source-artifact/0.1") &&
         evidence_string(artifact, "result_artifact_cid") ==
-        Some(expected_artifact) else {
+        Some(expected_artifact) &&
+        evidence_string(artifact, "source_result") == Some(name) &&
+        evidence_string(artifact, "source_binding_cid") ==
+        Some(source_binding_cid) &&
+        evidence_string(artifact, "invocation_cid") == Some(invocation_cid) &&
+        evidence_string(source_holdings, effect_id) is Some(holding_cid) &&
+        evidence_string(artifact, "store_authority_cid")
+        is Some(store_authority_cid) &&
+        effect_source_holding_identity(
+          expected_artifact,
+          effect_id,
+          preview.run_identity_cid,
+          store_authority_cid,
+        ) ==
+        Some(holding_cid) else {
         return false
       }
     }
   }
-  true
+  same_names(source_names, expected_source_names) &&
+  same_names(holding_names, expected_source_names)
 }
 
 ///|
@@ -584,6 +620,12 @@ fn validate_computation_run_evidence_chain(
     None =>
       if !evidence_empty_object(@json.object_field(effect_context, "effects")) ||
         !evidence_empty_object(
+          @json.object_field(effect_context, "effect_source_artifacts"),
+        ) ||
+        !evidence_empty_object(
+          @json.object_field(effect_context, "effect_source_holding_cids"),
+        ) ||
+        !evidence_empty_object(
           @json.object_field(effect_context, "effect_plans"),
         ) ||
         !evidence_empty_object(
@@ -593,7 +635,12 @@ fn validate_computation_run_evidence_chain(
       }
     Some(effect_preview) =>
       if !effect_context_preview_inventory_matches(
-          effect_context, effect_preview,
+          effect_context,
+          effect_preview,
+          invocation.identity,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
         ) {
         return Err(EvidenceInventoryMismatch("captured_effects"))
       }

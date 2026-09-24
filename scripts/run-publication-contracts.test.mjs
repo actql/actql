@@ -4,10 +4,49 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
   correctedContracts,
+  effectSourceArtifactSchema,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+
+test('independent Effect-source Artifact and holding 0.1 vectors', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(JSON.stringify(body)).digest('hex')}`;
+  const body = {
+    actual_completeness: 'complete', actual_row_count: 2,
+    effective_data_policy_cid: cid('1'),
+    effective_retention_policy_cid: cid('2'),
+    invocation_cid: cid('3'), logical_result_cid: cid('4'),
+    provenance_evidence_cids: [], result_schema_cid: cid('5'),
+    source_binding_cid: cid('6'), source_result: 'rows',
+    store_authority_cid: cid('7'),
+    version: 'actql-effect-source-artifact/0.1',
+  };
+  const artifactCid =
+    'sha256:da81971101ba8f06a0255950099bd0328faada17ee200634ac6a27149052d0bc';
+  assert.equal(hash(body), artifactCid);
+  assert.notEqual(hash({...body, source_result: 'answer'}), artifactCid);
+  assert.notEqual(hash({...body, source_binding_cid: cid('9')}), artifactCid);
+  assert.notEqual(hash({...body, store_authority_cid: cid('9')}),
+    artifactCid);
+  const holdingBody = {
+    effect_id: 'WriteOne', result_artifact_cid: artifactCid,
+    run_identity_cid: cid('8'), store_authority_cid: cid('7'),
+    version: 'actql-effect-source-holding/0.1',
+  };
+  assert.equal(hash(holdingBody),
+    'sha256:9f02433c84d076d9e0ee3f99c347850248ac8632da29f411c1788ded9a40a073');
+  assert.notEqual(hash({...holdingBody, run_identity_cid: cid('9')}),
+    hash(holdingBody));
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const schema = effectSourceArtifactSchema();
+  assert.deepEqual(schema.required.toSorted(),
+    [...Object.keys(body), 'result_artifact_cid'].toSorted());
+  assert.equal(registry.artifact_schema_cids.effect_source_artifact,
+    machineCid(schema));
+});
 
 test('independent Effect row Outcome Receipt 0.1 vector and schema pin', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');
@@ -163,7 +202,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c',
       captured_run:
-        'sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422',
+        'sha256:6395cccc33f41c6b20ccc6131bc58a3c1da1b21413a3d34f0b17eebef5e87b9a',
     },
   );
 });

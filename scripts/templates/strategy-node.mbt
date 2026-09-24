@@ -750,6 +750,23 @@ pub fn strategy_admit_captured_result_snapshot(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceArtifact")
+pub fn strategy_admit_captured_effect_source_artifact(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  holding_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match @publication.admit_captured_effect_source_artifact(
+    preview, member_index, invocation, artifact, holding_cid,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyAdmitPendingSourceStateAdvance")
 pub fn strategy_admit_pending_source_state_advance(
   complete_wire : String,
@@ -838,6 +855,7 @@ pub fn strategy_issue_effectful_captured_run(
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
   advances : Array[@publication.PendingSourceStateAdvance],
   authoring : @publication.RunEvidenceValue,
   models : Array[@publication.RunEvidenceValue],
@@ -857,7 +875,7 @@ pub fn strategy_issue_effectful_captured_run(
   }
   match @publication.issue_effectful_captured_run(
     run_definition, invocation, definitions, artifacts, manifest, receipt,
-    snapshots, advances, authoring, models, preview, plans,
+    snapshots, sources, advances, authoring, models, preview, plans,
     max_wire_bytes, max_nodes, max_depth,
   ) {
     Ok(value) => value

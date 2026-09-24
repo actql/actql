@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:20a242f3cc6061c6fd4aaa2a30f6bd19227daf69876acb3b0e73dba165e718e5",
+  "artifact_registry_cid": "sha256:4595b8c32a481b6a47aca1c83e2a6513c20ceb2aba8b476bf3e9f15e849ec7b4",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10708,8 +10708,9 @@
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
-    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422",
-    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27"
+    "captured_run": "sha256:6395cccc33f41c6b20ccc6131bc58a3c1da1b21413a3d34f0b17eebef5e87b9a",
+    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
+    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -72284,7 +72285,9 @@
             "authoring_context",
             "model_invocation_evidence",
             "model_invocation_evidence_cids",
-            "effect_context_cid"
+            "effect_context_cid",
+            "effect_source_artifacts",
+            "effect_source_holding_cids"
           ],
           "properties": {
             "version": {
@@ -72527,6 +72530,95 @@
             "effect_context_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "effect_source_artifacts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "source_binding_cid",
+                  "source_result",
+                  "invocation_cid",
+                  "logical_result_cid",
+                  "result_schema_cid",
+                  "actual_row_count",
+                  "actual_completeness",
+                  "effective_data_policy_cid",
+                  "effective_retention_policy_cid",
+                  "provenance_evidence_cids",
+                  "result_artifact_cid",
+                  "store_authority_cid"
+                ],
+                "properties": {
+                  "version": {
+                    "const": "actql-effect-source-artifact/0.1"
+                  },
+                  "invocation_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "logical_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "result_schema_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "actual_row_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "actual_completeness": {
+                    "enum": [
+                      "complete",
+                      "partial"
+                    ]
+                  },
+                  "effective_data_policy_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "effective_retention_policy_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "provenance_evidence_cids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  },
+                  "result_artifact_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "source_binding_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "source_result": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "store_authority_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            },
+            "effect_source_holding_cids": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
             }
           }
         },
@@ -72788,6 +72880,85 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "effect_source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_binding_cid",
+        "source_result",
+        "invocation_cid",
+        "logical_result_cid",
+        "result_schema_cid",
+        "actual_row_count",
+        "actual_completeness",
+        "effective_data_policy_cid",
+        "effective_retention_policy_cid",
+        "provenance_evidence_cids",
+        "result_artifact_cid",
+        "store_authority_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-effect-source-artifact/0.1"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_result_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "actual_row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "actual_completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_retention_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "provenance_evidence_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_result": {
+          "type": "string",
+          "minLength": 1
+        },
+        "store_authority_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
