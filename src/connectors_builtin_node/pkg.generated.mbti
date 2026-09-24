@@ -55,6 +55,8 @@ pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
+pub fn client_program_issue_local_values_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
+
 pub fn client_program_issue_local_values_output_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[@execution_relation.RelationSchemaIdentity, @run_publication_host.ClientValuesOutputSchemaIssue]
 
 pub fn client_program_issue_publication_plan_facts(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientPublicationPlanFacts, @run_publication_host.ClientPublicationPlanFactIssue]
@@ -66,6 +68,12 @@ pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgra
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
 pub fn client_program_local_values_aoa_wire(@run_publication_host.ClientValuesAoAIdentity) -> String
+
+pub fn client_program_local_values_fragment_output_contract_cid(@run_publication_host.ClientValuesFragmentNode) -> String
+
+pub fn client_program_local_values_fragment_output_contract_wire(@run_publication_host.ClientValuesFragmentNode) -> String
+
+pub fn client_program_local_values_fragment_wire(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_program_local_values_output_schema_cid(@execution_relation.RelationSchemaIdentity) -> String
 
