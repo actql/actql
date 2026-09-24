@@ -16,6 +16,8 @@ import {runCapturedInternalStrategy, runCapturedStrategy,
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {canonicalJson} from
+  '../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
@@ -134,7 +136,57 @@ async function effectFixture() {
       from: {result: 'rows'},
     }},
   };
-  return {document: JSON.stringify(document), environment};
+  return {document: JSON.stringify(document), environment,
+    mappingCid: mapping.mapping_contract_cid};
+}
+
+function effectInputPreview(prepared, evidence, definition, invocation,
+  mappingCid) {
+  const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
+  const authoring = {
+    version: 'actql-authoring-context/0.1',
+    program_definition_cid: definitionCid, annotations: [],
+  };
+  authoring.authoring_context_cid = `sha256:${createHash('sha256')
+    .update(canonicalJson(authoring)).digest('hex')}`;
+  const preview = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: moon.clientProgramEffectSemanticsCid(prepared),
+    program_definition_cid: definitionCid,
+    invocation_cid: moon.strategyPublicationContractIdentity(invocation),
+    run_identity_cid: moon.strategyPublicationContractIdentity(definition),
+    compiled_plan_cid: moon.strategyPublicationContractIdentity(evidence[3]),
+    check_environment_cid: moon.clientProgramEffectEnvironmentCid(prepared),
+    authoring_context: authoring, barrier_provenance_cids: [],
+    model_derived: false, model_task_contract_cids: [],
+    model_invocation_evidence_cids: [], model_response_artifact_cids: [],
+    effects: [{
+      effect_id: 'save', effect_kind: 'create',
+      target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
+      resolved_mapping_contract_cid: mappingCid,
+      effect_identity_cid: cid('a'), source_result: 'rows',
+      result_artifact_cid: cid('b'), preview_strength: 'full_diff',
+      source_binding_cid: cid('c'), capability_evidence_cid: cid('d'),
+      authority_scope_cid: cid('e'),
+      write_footprint: {
+        kind: 'collection', resource_identity_scheme_cid: cid('f'),
+        provider_namespace: 'salesforce', provider_boundary_cid: cid('0'),
+        resource_kind: 'Account', provider_object_identity_cids: [],
+      },
+      count: 0, max_items: 2, required_permissions: ['write'],
+      approval: 'none', on_item_failure: 'halt', changes: [], row_order: [],
+      effect_member_preview_cid: cid('1'), executed: false,
+    }],
+    executed: false, effect_preview_cid: cid('2'),
+  };
+  preview.effects[0].effect_member_preview_cid =
+    checked(moon.strategyEffectPreviewIdentities(canonicalJson(preview),
+      20000, 1000, 20))[1];
+  preview.effect_preview_cid = checked(moon.strategyEffectPreviewIdentities(
+    canonicalJson(preview), 20000, 1000, 20))[0];
+  return {wire: canonicalJson(preview), authoringCid:
+    authoring.authoring_context_cid};
 }
 
 test('internal Client bridge retains Effect closure without public apply',
@@ -165,7 +217,7 @@ test('internal Client bridge retains Effect closure without public apply',
 
 test('admitted source-free Effect Run computes through the installed Host',
   async () => {
-    const {document, environment} = await effectFixture();
+    const {document, environment, mappingCid} = await effectFixture();
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
@@ -180,6 +232,19 @@ test('admitted source-free Effect Run computes through the installed Host',
       admission, 'tenant-a-scope', 'effect-compute', cid('c'),
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
       100000, 10000, 64));
+    const observation = checked(moon.strategyRunEvidenceSeal(
+      'observation_set', JSON.stringify({
+        version: 'actql-observation-set/0.1',
+        invocation_template_cid: moon.strategyRunEvidenceIdentity(
+          evidence[0]),
+        source_evidence_cids: [], captured_input_artifact_cids: [],
+        consistency: 'no_external_sources', capture_started_at: null,
+        capture_completed_at: null,
+        replayability: {materialized: false, availability_evidence_cids: []},
+        data_policy_cid: cid('d'),
+      }), 100000, 10000, 64));
+    const invocation = checked(moon.strategyIssueRunInvocation(
+      evidence[0], observation, 100000, 10000, 64));
     const bound = moon.clientProgramBindEffectRun(
       prepared, admission, definition);
     assert.ok(bound);
@@ -227,6 +292,39 @@ test('admitted source-free Effect Run computes through the installed Host',
           owned, 1)), {code: 'MoonBitHostFailure'});
         const input = moon.clientProgramEffectInputAt(inputs, 0);
         assert.ok(input);
+        const preview = effectInputPreview(
+          prepared, evidence, definition, invocation, mappingCid);
+        const previewLimits = moon.clientProgramEffectPreviewInputLimits(
+          20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+          1, 2, 100, 100);
+        assert.ok(previewLimits);
+        const foreignPreview = effectInputPreview(
+          prepared, evidence, definition, invocation, cid('9'));
+        assert.throws(() => checked(
+          moon.clientProgramBindEffectPreviewInputs(
+            owned, inputs, invocation, 0, foreignPreview.wire,
+            foreignPreview.authoringCid, previewLimits)),
+        {code: 'MoonBitHostFailure'});
+        const previewInputs = checked(
+          moon.clientProgramBindEffectPreviewInputs(
+            owned, inputs, invocation, 0, preview.wire,
+            preview.authoringCid, previewLimits));
+        assert.equal(moon.clientProgramEffectPreviewInputAt(
+          previewInputs, 0), input);
+        const other = moon.clientProgramOpenSourceFreeLocalEffectHost(
+          bound, registry, values, 1n, 0n, 0n, 0n);
+        assert.ok(other);
+        const otherExecution = await runCapturedInternalStrategy(
+          moon.clientProgramLocalEffectHostRuntime(other));
+        try {
+          assert.throws(() => checked(
+            moon.clientProgramBindEffectPreviewInputs(
+              other, inputs, invocation, 0, preview.wire,
+              preview.authoringCid, previewLimits)),
+          {code: 'MoonBitHostFailure'});
+        } finally {
+          await otherExecution.close();
+        }
         const limits = moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits));
         assert.ok(limits);
