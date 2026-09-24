@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {invocationBindingsMatch, ownInvocationAuthorization,
-  ownInvocationContext} from './owned-invocation-context.mjs';
+import {invocationBindingsMatch, invokeScopedCredentialOperation,
+  ownInvocationAuthorization, ownInvocationContext} from
+  './owned-invocation-context.mjs';
 
 test('owned invocation context snapshots scalar bindings and limits', () => {
   const grant = {};
@@ -41,4 +42,32 @@ test('scope ownership rejects nested caller data instead of retaining it',
     assert.throws(() => ownInvocationAuthorization({
       grant: {}, useId: 'use-1', scope: {tenant: {value: 'foreign'}},
     }), {code: 'InvalidOwnedInvocationContext'});
+  });
+
+test('scoped invoker owns the call and rejects a foreign operation',
+  async () => {
+    const scope = {tenant: 'tenant-a', operation: 'read'};
+    const calls = [];
+    const callResource = async call => {
+      calls.push(call);
+      scope.tenant = 'tenant-b';
+      return {statusCode: 200};
+    };
+    await invokeScopedCredentialOperation({
+      authorization: {grant: {}, useId: 'use-1', scope},
+      credential: {resolveSecret: () => {}}, callResource,
+      operation: 'read', method: 'GET', path: '/records',
+      maxResponseBytes: 64,
+    });
+    assert.equal(calls[0].scope.tenant, 'tenant-a');
+    assert.deepEqual(calls[0].operations.get('read'), {
+      method: 'GET', path: '/records',
+    });
+    await assert.rejects(async () => invokeScopedCredentialOperation({
+      authorization: {grant: {}, useId: 'use-2', scope},
+      credential: {}, callResource,
+      operation: 'write', method: 'POST', path: '/records', body: '{}',
+      maxRequestBytes: 64, maxResponseBytes: 64,
+    }), {code: 'InvalidOwnedInvocationContext'});
+    assert.equal(calls.length, 1);
   });

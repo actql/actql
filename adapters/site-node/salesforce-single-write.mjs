@@ -2,7 +2,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
-import {ownInvocationContext} from
+import {invokeScopedCredentialOperation, ownInvocationContext} from
   '../host-common/owned-invocation-context.mjs';
 
 const count = value => Number.isSafeInteger(value) && value > 0;
@@ -83,17 +83,15 @@ export async function sendRawSalesforceSingleRecord({
   checked(moon.salesforceRecheckSingleWriteRequest(
     request, currentObservation));
   signal?.throwIfAborted();
-  const response = await context.callbacks.callResource({
-    ...context.credential,
-    ...context.authorization,
-    operations: new Map([[operation, Object.freeze({
-      method: moon.salesforceSingleWriteRequestMethod(request),
-      path: moon.salesforceSingleWriteRequestPath(request),
-      body: moon.salesforceSingleWriteRequestBody(request),
-    })]]),
+  const response = await invokeScopedCredentialOperation({
+    authorization: context.authorization,
+    credential: context.credential,
+    callResource: context.callbacks.callResource, operation,
+    method: moon.salesforceSingleWriteRequestMethod(request),
+    path: moon.salesforceSingleWriteRequestPath(request),
+    body: moon.salesforceSingleWriteRequestBody(request),
     maxRequestBytes: context.limits.maxRequestBytes,
     maxResponseBytes: context.limits.maxResponseBytes,
-    returnRejectedResponse: true,
     signal,
   });
   const observation = Object.freeze({

@@ -2,8 +2,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
-import {invocationBindingsMatch, ownInvocationAuthorization,
-  ownInvocationContext, ownInvocationLimits} from
+import {invocationBindingsMatch, invokeScopedCredentialOperation,
+  ownInvocationAuthorization, ownInvocationContext, ownInvocationLimits} from
   '../host-common/owned-invocation-context.mjs';
 
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
@@ -42,18 +42,12 @@ function validateAuthorization(authorization, operation, originalScope) {
   return authorization.scope;
 }
 
-function operations(scope, path) {
-  return new Map([[scope.operation, Object.freeze({method: 'GET', path})]]);
-}
-
 async function scopedGet({authorization, path, maxBytes, credential,
   callResource, signal}) {
-  return await callResource({
-    ...credential,
-    ...authorization,
-    operations: operations(authorization.scope, path),
+  return await invokeScopedCredentialOperation({
+    authorization, credential, callResource,
+    operation: authorization.scope.operation, method: 'GET', path,
     maxResponseBytes: maxBytes,
-    returnRejectedResponse: true,
     signal,
   });
 }
