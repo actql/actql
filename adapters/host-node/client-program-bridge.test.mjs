@@ -131,6 +131,13 @@ test('binding set covers every checked Unit Result port', async () => {
     'plan_fact_manifest_cid');
   const manifest = JSON.stringify({...manifestBody,
     plan_fact_manifest_cid: manifestCid});
+  const encodedManifest = checked(
+    moon.clientProgramEncodePlanFactManifestIdentity(
+      JSON.stringify(manifestBody.plan_facts)));
+  assert.equal(moon.clientProgramPlanFactManifestCid(encodedManifest),
+    manifestCid);
+  assert.deepEqual(JSON.parse(moon.clientProgramPlanFactManifestWire(
+    encodedManifest)), JSON.parse(manifest));
   assert.equal(checked(moon.clientProgramCheckPlanFactManifestIdentity(
     manifest, JSON.stringify(manifestBody.plan_facts))), manifestCid);
   assert.throws(() => checked(
