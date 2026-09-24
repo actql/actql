@@ -53,72 +53,21 @@ pub fn append_resident_import_stream(
 }
 
 ///|
-/// Scalar staging uses the same exact retained-content verifier as the typed
-/// importer. It avoids materializing physical parameters when the bounded
-/// native appender checks the corresponding scalar row.
-pub fn append_resident_import_scalar_stream(
-  stream : ResidentImportStream,
-  row : String,
-  limits : @execution.RetainedRowDecodeLimits,
-) -> Result[Unit, FixedImportStreamIssue] {
-  match @execution.append_retained_storage_scan_wire(stream.scan, row, limits) {
-    Ok(_) => Ok(())
-    Err(issue) => Err(Content(issue))
-  }
-}
-
-///|
-/// Check the native staging table against the same retained-content stream
-/// used by the row importer. Physical parsing alone is never import evidence.
-pub fn prepare_resident_import_physical(
-  stream : ResidentImportStream,
-  fields : Array[(String, PhysicalType)],
-  limits : PhysicalResultLimits,
-  max_metadata_work : Int,
-) -> Result[PhysicalResult, PhysicalResultIssue] {
-  prepare_physical_result(
-    @execution.producer_storage_schema(stream.owner.storage),
-    fields,
-    limits,
-    max_metadata_work,
-  )
-}
-
-///|
-pub fn append_resident_import_physical(
-  stream : ResidentImportStream,
-  physical : PhysicalResult,
+/// Check the installed Store's verified canonical-byte read against the exact
+/// producer receipt. The caller must also have staged those rows into the
+/// provisional native table and completed the native Appender successfully.
+pub fn resident_import_canonical_copy_matches(
+  owner : ResidentImport,
+  cid : String,
+  bytes : Int,
   rows : Int,
-  columns : Array[@decode.Cursor],
-) -> Result[Unit, FixedImportStreamIssue] {
-  let batch = match admit_physical_chunk(physical, rows, columns) {
-    Ok(batch) => batch
-    Err(issue) => {
-      @execution.cancel_retained_storage_scan(stream.scan) |> ignore
-      return Err(Physical(issue))
-    }
-  }
-  let count = resident_import_column_count(stream.owner)
-  if rows == 0 {
-    return Ok(())
-  }
-  let values = Array::makei(count, column => {
-    physical_batch_cell(batch, 0, column).unwrap()
-  })
-  for row in 0..<physical_batch_rows(batch) {
-    for column in 0..<count {
-      guard physical_batch_cell(batch, row, column) is Some(value) else {
-        @execution.cancel_retained_storage_scan(stream.scan) |> ignore
-        return Err(Content(Unavailable))
-      }
-      values[column] = value
-    }
-    match @execution.append_retained_storage_scan_values(stream.scan, values) {
-      Ok(_) => ()
-      Err(issue) => return Err(Content(issue))
-    }
-  }
-  Ok(())
+) -> Bool {
+  @execution.retained_storage_canonical_copy_matches(
+    owner.storage,
+    cid,
+    bytes,
+    rows,
+  )
 }
 
 ///|

@@ -335,6 +335,21 @@ Store digest, ordered row admission, exact receipt and later consumer checks
 remain required. The real-DuckDB standard Host and three-target adapter tests
 pass. Performance at this later revision is not yet an acceptance result.
 
+At clean `c270e651b`, that first change did not establish a speed win. The
+single wide/reuse case's seven pairs produced a broad 1.031–1.662 ratio
+interval, and the first import still took roughly one second in a representative
+pair. The row-level MoonBit decode and logical rehash replaced the removed
+DuckDB readback. The next change therefore uses the installed Store's stronger
+existing fact: these canonical bytes were sealed against the output receipt CID,
+and a fulfilled Store read rehashes those exact bytes before it returns. For
+eligible scalar rows, the Host checks the sealed CID before import, parses and
+appends bounded rows, then matches the Store-verified byte count, framing row
+count and live exact receipt after Appender finish. A noncanonical physical
+copy keeps the typed scan path. No consumer receives the provisional table
+before the transaction commits. This avoids another full semantic decode and
+rehash of a trusted immutable copy; the fixed Host, Store and physical Appender
+remain the explicit trust boundary. The 27-case gate remains outstanding.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall

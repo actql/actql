@@ -824,6 +824,8 @@ pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
 
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
 
+pub fn retained_storage_canonical_copy_matches(ProducerStorage, String, Int, Int) -> Bool
+
 pub fn reuse_retained_scan_identity(RetainedProducerScan, RetainedScanReuse) -> Bool
 
 pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool

@@ -401,21 +401,15 @@ pub fn resident_has_table(@physical_strategy.CapturedDAG, @driver.DuckDBResident
 
 pub fn resident_import_batch(@driver.DuckDBResidentTable, Int, Int, Int) -> (Int, String) raise NodeHostFailure
 
+pub fn resident_import_canonical_copy_matches(@driver.DuckDBResidentTable, String, Int, Int) -> Bool
+
 pub fn resident_import_count(@driver.DuckDBResidentTable, Bool) -> Int raise NodeHostFailure
 
 pub fn resident_import_material(@driver.DuckDBResidentTable) -> @execution_relation.RetainedOutputMaterial? raise NodeHostFailure
 
 pub fn resident_import_parameter(@driver.DuckDBResidentTable, Int, Int, Int, Int) -> String raise NodeHostFailure
 
-pub fn resident_import_physical_accept(@adapter.ResidentImportStream, @adapter.PhysicalResult, Int, String, @adapter.TransportColumnLimits) -> Unit raise NodeHostFailure
-
-pub fn resident_import_physical_begin(@adapter.ResidentImportStream, String, @adapter.PhysicalResultLimits, Int, @adapter.TransportColumnLimits) -> @adapter.PhysicalResult raise NodeHostFailure
-
-pub fn resident_import_scalar_append(@adapter.ResidentImportStream, String, @execution_relation.RetainedRowDecodeLimits) -> Unit raise NodeHostFailure
-
 pub fn resident_import_scalar_names(@driver.DuckDBResidentTable) -> Array[String]?
-
-pub fn resident_import_scan_sql(@driver.DuckDBResidentTable, Int) -> String?
 
 pub fn resident_import_sql(@driver.DuckDBResidentTable, Bool) -> String raise NodeHostFailure
 

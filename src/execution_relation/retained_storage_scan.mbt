@@ -151,3 +151,25 @@ pub fn verified_storage_scan_matches(
   scan.receipt.rows == producer_storage_row_count(storage) &&
   producer_storage_available(storage)
 }
+
+///|
+/// For an installed Store that sealed the canonical output bytes against the
+/// receipt CID and verified those same bytes during this read. This comparison
+/// is not itself a Store read or authority to trust an arbitrary claimed CID.
+/// The physical adapter must also prove that its provisional import finished.
+pub fn retained_storage_canonical_copy_matches(
+  storage : ProducerStorage,
+  cid : String,
+  bytes : Int,
+  rows : Int,
+) -> Bool {
+  guard producer_storage_available(storage) &&
+    storage.output.representation is Some(material) else {
+    return false
+  }
+  let receipt = material.receipt
+  physical_equal(storage.schema, receipt.schema) &&
+  receipt.cid == cid &&
+  receipt.bytes == bytes &&
+  receipt.rows == rows
+}

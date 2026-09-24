@@ -32,6 +32,33 @@ test "full retained storage scan is bounded and exact without constructing a con
 }
 
 ///|
+test "verified canonical Store copy stays bound to the live retained receipt" {
+  let live = Ref(true)
+  let (output, _) = retained_fixture(capture_fixture(), live)
+  let storage = prepare_producer_storage(output, 1000, 10000).unwrap()
+  let receipt = storage.output.representation.unwrap().receipt
+  let (cid, bytes, _, rows) = output_stream_identity(receipt)
+  assert_true(
+    retained_storage_canonical_copy_matches(storage, cid, bytes, rows),
+  )
+  assert_false(
+    retained_storage_canonical_copy_matches(storage, cid, bytes - 1, rows),
+  )
+  assert_false(
+    retained_storage_canonical_copy_matches(storage, cid, bytes, rows - 1),
+  )
+  assert_false(
+    retained_storage_canonical_copy_matches(
+      storage, "sha256:wrong", bytes, rows,
+    ),
+  )
+  live.val = false
+  assert_false(
+    retained_storage_canonical_copy_matches(storage, cid, bytes, rows),
+  )
+}
+
+///|
 test "typed storage transfer preserves exact provenance and rejects reordered values" {
   let owner = capture_fixture()
   for mode in 0..<3 {

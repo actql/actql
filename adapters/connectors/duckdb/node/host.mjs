@@ -207,9 +207,11 @@ export async function importResidentStrategyInput(environment, producer, tableBy
       await session.command(checked(moon.residentImportSql(table, false)), [], discard);
       const sql = checked(moon.residentImportSql(table, true));
       const material = checked(moon.residentImportMaterial(table));
+      const body = material == null ? undefined : retainedStorageBody(material);
       const scalarNames = material != null && boundedTransport(limits) && limits.threads === 1
         ? moon.residentImportScalarNames(table)?._0 : undefined;
-      const scalarStaging = scalarNames?.length === columns;
+      const scalarStaging = scalarNames?.length === columns &&
+        moon.residentImportCanonicalCopyMatches(table, body.cid, body.bytes, count);
       nativeScalarStaging = scalarStaging;
       const appender = material != null && limits.threads === 1
         ? await session.openResidentAppender(checked(moon.residentImportTableName(table)), columns)
@@ -227,7 +229,6 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         }
       };
       if (material != null) {
-        const body = retainedStorageBody(material);
         const {wire, maxFrameBytes} = retainedStorageContract(material);
         if (maxFrameBytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
           throw new DuckDBTransportError('RetainedFrameLimit');
@@ -235,7 +236,7 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         const decode = {max_bytes: maxFrameBytes,
           max_nodes: Math.min(wire.max_nodes, maxFrameBytes),
           max_depth: Math.min(64, wire.max_depth), max_text_bytes: maxFrameBytes};
-        const stream = checked(moon.residentImportStreamBegin(table, count,
+        const stream = scalarStaging ? undefined : checked(moon.residentImportStreamBegin(table, count,
           {max_nodes: wire.max_nodes, max_text_bytes: wire.max_bytes, max_work: wire.max_order_work},
           wire, maxFrameBytes));
         const scalarTypes = scalarStaging && appender?.types;
@@ -262,7 +263,6 @@ export async function importResidentStrategyInput(environment, producer, tableBy
                   (type.id === 'VARCHAR' && typeof value === 'string')) return value;
               throw new DuckDBTransportError('InvalidScalarImportRow');
             });
-            checked(moon.residentImportScalarAppend(stream, row, decode));
             appender.appendScalars(values);
             if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
               appender.flush();
@@ -276,20 +276,28 @@ export async function importResidentStrategyInput(environment, producer, tableBy
         });
         try {
           storageReadUnconfirmed = true;
-          await body.consume(async chunk => {
+          const verified = await body.consume(async chunk => {
             checked(moon.residentTransferCharge(owned.graph, transfer, BigInt(chunk.byteLength)));
             storageReadBytes += chunk.byteLength;
             await frames.feed(chunk, signal);
           }, signal);
           storageReadUnconfirmed = false;
-          frames.finish();
+          const framed = frames.finish();
           signal?.throwIfAborted();
           await batch?.finish();
           appender?.finish();
-          checked(moon.residentImportStreamFinish(stream));
+          if (scalarStaging) {
+            if ((verified !== undefined &&
+                  (verified.cid !== body.cid || verified.bytes !== body.bytes)) ||
+                framed.bytes !== body.bytes || storageReadBytes !== body.bytes ||
+                !moon.residentImportCanonicalCopyMatches(table,
+                  body.cid, body.bytes, framed.rows)) {
+              throw new DuckDBTransportError('RetainedCopyMismatch');
+            }
+          } else checked(moon.residentImportStreamFinish(stream));
         } finally {
           frames.cancel();
-          moon.residentImportStreamCancel(stream);
+          if (stream) moon.residentImportStreamCancel(stream);
         }
         return;
       }
