@@ -516,42 +516,30 @@ pub fn bind_captured_salesforce_broad_input(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard attempt.state is Captured(actual) && physical_equal(actual, observation) else {
-    return Err(ForeignObservation)
-  }
-  match
-    @planning.verify_query_evidence_captured(
-      observation.captured,
-      issuer.registration,
-      observation.records.authority.token,
-      issuer,
-      attempt,
-      observation.records.retention,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(salesforce_custody_issue(issue))
-  }
-  @execution.bind_live_completed_input(
+  @planning.bind_captured_query_evidence_input(
+    observation.captured,
+    observation.records.issued,
+    issuer.registration,
+    observation.records.authority.token,
+    issuer,
+    attempt,
+    observation.records.retention,
     receiver,
     input_index,
     expected_producer,
-    observation.records.retention.completion.output,
     fn() {
       verify_salesforce_broad_records(issuer, attempt, observation.records)
       is Ok(_) &&
       attempt.state is Captured(actual) &&
-      physical_equal(actual, observation) &&
-      @planning.verify_query_evidence_captured(
-        observation.captured,
-        issuer.registration,
-        observation.records.authority.token,
-        issuer,
-        attempt,
-        observation.records.retention,
-      )
-      is Ok(_)
+      physical_equal(actual, observation)
     },
-  ).map_err(issue => Consumer(issue))
+  ).map_err(issue => {
+    match issue {
+      @planning.Evidence(issue) => salesforce_custody_issue(issue)
+      @planning.ForeignObservation => ForeignObservation
+      @planning.Consumer(issue) => Consumer(issue)
+    }
+  })
 }
 
 ///|
