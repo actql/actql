@@ -12,6 +12,9 @@ export type OutputIntentAdmission = {
   readonly [ownerHandle]: 'output-intent-admission'
 };
 export type OutputRecord = {readonly [ownerHandle]: 'output-record'};
+export type DurableOutputRecord = {
+  readonly [ownerHandle]: 'durable-output-record'
+};
 
 export interface DispatchInput {
   coordinatorAuthority: string;
@@ -85,6 +88,15 @@ export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;
 /** Call only after the matching output intent and plan were persisted. */
 export function commitOutputIntent(admission: OutputIntentAdmission): OutputRecord;
 export function outputRecordStatus(record: OutputRecord): string[];
+export function outputAdmissionDurableJson(plan: CheckedOutputPlan): string;
+export function admitDurableOutputJson(body: string, dispatch: DurableRecord,
+  expectedResultDefinitionCid: string,
+  limits: Readonly<{maxChunks: number; maxManifestBytes: number;
+    maxReferencedBytes: number | bigint}>): DurableOutputRecord;
+export function restoreDurableOutput(journal: Journal,
+  durable: DurableOutputRecord): OutputRecord;
+export function durableOutputRevision(durable: DurableOutputRecord): number;
+export function durableOutputJson(durable: DurableOutputRecord): string;
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;

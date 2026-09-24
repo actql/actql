@@ -17,40 +17,14 @@ pub fn coordinator_admit_checked_output_plan(
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
 ) -> Result[CoordinatorCheckedOutputPlan, @remote.DispatchIssue] {
-  let output = match @remote.admit_remote_poll_output_plan_json(poll_body) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let request = @remote.remote_poll_output_request(output)
-  let retained = @remote.durable_coordinator_dispatch_record_request(durable)
-  if @remote.dispatch_request_identity(request) !=
-    @remote.dispatch_request_identity(retained) ||
-    @remote.remote_output_intent_projection(
-      @remote.remote_poll_output_intent(output),
-    ).result_definition_cid != expected_result_definition_cid {
-    return Err(@remote.DispatchIdentityMismatch)
-  }
-  match coordinator_accepted_site_output(durable) {
-    Ok(Some(_)) => ()
-    _ => return Err(@remote.InvalidJournal)
-  }
-  guard @remote.durable_coordinator_dispatch_record_subject(durable)
-    is Some(subject) else {
-    return Err(@remote.InvalidJournal)
-  }
-  let plan = match
-    @remote.admit_remote_output_plan_json(
-      plan_body,
-      output,
-      subject,
-      max_chunks,
-      max_manifest_bytes,
-      max_referenced_bytes,
+  match
+    @remote.admit_coordinator_output_plan(
+      durable, poll_body, plan_body, expected_result_definition_cid, max_chunks,
+      max_manifest_bytes, max_referenced_bytes,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+    Ok((output, plan)) => Ok({ output, plan, })
+    Err(issue) => Err(issue)
   }
-  Ok({ output, plan, })
 }
 
 ///|
@@ -112,4 +86,62 @@ pub fn coordinator_output_record_status(
   record : @remote.CoordinatorOutputRecord,
 ) -> Array[String] {
   @remote.coordinator_output_record_status(record)
+}
+
+///|
+/// Physical storage must persist these exact bytes before committing the
+/// prepared output intent in the in-process owner.
+#export_name("coordinatorOutputAdmissionDurableJson")
+pub fn coordinator_output_admission_durable_json(
+  checked : CoordinatorCheckedOutputPlan,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_admission_durable_json(
+    checked.output,
+    checked.plan,
+  )
+}
+
+///|
+#export_name("coordinatorAdmitDurableOutputJson")
+pub fn coordinator_admit_durable_output_json(
+  body : String,
+  dispatch : @remote.DurableCoordinatorDispatchRecord,
+  expected_result_definition_cid : String,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[@remote.DurableCoordinatorOutputRecord, @remote.DispatchIssue] {
+  @remote.admit_durable_coordinator_output_record(
+    @utf8.encode(body),
+    dispatch,
+    expected_result_definition_cid,
+    max_chunks,
+    max_manifest_bytes,
+    max_referenced_bytes,
+  )
+}
+
+///|
+#export_name("coordinatorRestoreDurableOutput")
+pub fn coordinator_restore_durable_output(
+  journal : @remote.CoordinatorDispatchJournal,
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> Result[@remote.CoordinatorOutputRecord, @remote.DispatchIssue] {
+  @remote.restore_durable_coordinator_output_record(journal, durable)
+}
+
+///|
+#export_name("coordinatorDurableOutputRevision")
+pub fn coordinator_durable_output_revision(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> Int {
+  @remote.durable_coordinator_output_record_revision(durable)
+}
+
+///|
+#export_name("coordinatorDurableOutputJson")
+pub fn coordinator_durable_output_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> String {
+  @remote.durable_coordinator_output_record_json(durable)
 }

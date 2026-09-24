@@ -91,6 +91,28 @@ export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;
 export const commitOutputIntent = admission =>
   checked(owner.coordinatorCommitOutputIntent(admission));
 export const outputRecordStatus = owner.coordinatorOutputRecordStatus;
+export const outputAdmissionDurableJson = plan =>
+  checked(owner.coordinatorOutputAdmissionDurableJson(plan));
+export const admitDurableOutputJson = (body, dispatch,
+  expectedResultDefinitionCid, {maxChunks, maxManifestBytes,
+    maxReferencedBytes}) => {
+  if (typeof body !== 'string' ||
+      typeof expectedResultDefinitionCid !== 'string' ||
+      !Number.isSafeInteger(maxChunks) || maxChunks < 1 ||
+      !Number.isSafeInteger(maxManifestBytes) || maxManifestBytes < 1 ||
+      !(typeof maxReferencedBytes === 'bigint' &&
+        maxReferencedBytes > 0n && maxReferencedBytes <= 9223372036854775807n ||
+        Number.isSafeInteger(maxReferencedBytes) && maxReferencedBytes > 0)) {
+    throw new TypeError('InvalidCoordinatorDurableOutputInput');
+  }
+  return checked(owner.coordinatorAdmitDurableOutputJson(
+    body, dispatch, expectedResultDefinitionCid, maxChunks,
+    maxManifestBytes, BigInt(maxReferencedBytes)));
+};
+export const restoreDurableOutput = (journal, durable) =>
+  checked(owner.coordinatorRestoreDurableOutput(journal, durable));
+export const durableOutputRevision = owner.coordinatorDurableOutputRevision;
+export const durableOutputJson = owner.coordinatorDurableOutputJson;
 export const prepareUnknown = record =>
   checked(owner.coordinatorPrepareUnknown(record));
 export const admitResponseJson = (body, request, statusReply) =>
