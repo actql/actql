@@ -140,11 +140,24 @@ context, and rejects missing, duplicate, or foreign Plan entries. The Node
 Host bridge uses the same issuer and keeps Preview ownership opaque. Plan
 values remain bounded context observations; their physical payload match is
 still required before apply. This issuance does not commit publication.
+The checked `EFFECT.plan` terminal now projects selector and mapped values
+from one admitted canonical Result row under an explicit work bound. Missing
+selector or source fields fail instead of becoming null or omitted values.
+This pure projection is not yet bound to the captured Result view and does not
+merge checked literal changes, issue intent identity, or permit a mutation.
 The Node Host bridge can now issue the final Effectful Receipt from the same
 opaque Preview and an exact computation chain. MoonBit checks the complete
 computation and set/member receipt reference closure before returning it;
 foreign Preview handles and missing member receipts are rejected. This does
 not prove physical Effect outcomes, grant apply, or commit the final Receipt.
+
+The fixed-SHA review in `02-salesforce-effects (2).md` flagged logical Stage
+numbers being used as physical producer Tasks. Current code already separates
+`CheckedEffectSourcePort.stage` and `.task`: commit `261413bd3` binds the
+checked Result target through the expanded DAG mapping, and both pin paths use
+the mapped Task. Do not reintroduce a parallel resolver. A split Effect source
+pin/rollback/product-path regression remains necessary beyond the existing
+coordinate checks; the standard multi-member Run remains open.
 
 ## Required port and owners
 
