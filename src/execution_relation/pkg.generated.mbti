@@ -614,6 +614,8 @@ pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
 
+pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
+
 pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
 
 pub fn numeric_aggregate_execution_with_seal((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?, (Int, String, Int) -> Bool) -> NumericAggregateExecution
@@ -1074,6 +1076,7 @@ pub(all) enum CompletedExportIssue {
   Wire(RowWireIssue)
   Schema(RelationSchemaIdentityIssue)
   ResultView(CompletedResultViewIssue)
+  CanonicalRow
 }
 
 pub(all) enum CompletedImportIssue {

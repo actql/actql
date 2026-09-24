@@ -87,6 +87,7 @@ pub(all) enum CompletedExportIssue {
   Wire(RowWireIssue)
   Schema(RelationSchemaIdentityIssue)
   ResultView(CompletedResultViewIssue)
+  CanonicalRow
 }
 
 ///|
@@ -474,6 +475,50 @@ pub fn next_completed_output_export(
   let result = next_completed_export_row(value)
   value.reading = false
   result
+}
+
+///|
+/// Return the next checked Result row as an owned canonical value alongside
+/// the same bounded bytes already hashed by the export. Only one row is
+/// parsed at a time; no environment adapter reconstructs the full Relation.
+/// The leading array delimiter is part of the stored byte batch, but not of
+/// the row value. A conversion failure poisons this export occurrence.
+pub fn next_completed_output_export_canonical_row(
+  value : CompletedOutputExport,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> Result[(Int, String, @identity.CanonicalValue)?, CompletedExportIssue] {
+  if max_nodes < 1 || max_depth < 1 || max_utf16_units < 0 {
+    return Err(CanonicalRow)
+  }
+  let index = value.row
+  let batch = match next_completed_output_export(value) {
+    Ok(Some(batch)) => batch
+    Ok(None) => return Ok(None)
+    Err(issue) => return Err(issue)
+  }
+  if batch.length() < 2 ||
+    batch[0].to_int() != (if index == 0 { 91 } else { 44 }) {
+    value.source = None
+    return Err(CanonicalRow)
+  }
+  let row = @identity.from_json(
+    @json.parse(batch[1:].to_owned()),
+    max_nodes,
+    max_depth,
+    max_utf16_units,
+  ) catch {
+    _ => {
+      value.source = None
+      return Err(CanonicalRow)
+    }
+  }
+  if @identity.object_field_count(row) is None {
+    value.source = None
+    return Err(CanonicalRow)
+  }
+  Ok(Some((index, batch, row)))
 }
 
 ///|
