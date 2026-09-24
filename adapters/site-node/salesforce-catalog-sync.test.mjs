@@ -758,6 +758,10 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(mutableLimits.maxDepth, 0);
   assert.equal(sent.claimed, true);
   assert.equal(sent.physical.kind, 'typed-success-response');
+  assert.equal(first.readClaimedOutcome(options.claim).outcomeCid,
+    sent.outcomeReceipt.identity);
+  assert.equal(JSON.parse(sent.outcomeReceipt.wire).row_preview_cid,
+    rowPreviewCid);
   const sentOutcome = checked(salesforceMoon.salesforceProjectSingleEffectOutcome(
     options.admittedPreview, 0, 0, outbound, sent.physical.response,
     4096, 2048, 128, 8));
@@ -786,6 +790,7 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(retry.claimed, false);
   assert.equal(retry.ownership.action, 3);
   assert.equal(retry.recovered.kind, 'typed-success-response');
+  assert.equal(retry.outcomeReceipt.identity, sent.outcomeReceipt.identity);
   const recoveredOutcome = checked(
     salesforceMoon.salesforceProjectSingleEffectOutcome(
       options.admittedPreview, 0, 0, outbound, retry.recovered.response,
@@ -1284,6 +1289,12 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.equal(mutableLimits.maxDepth, 0);
     assert.equal(sent.claimed, true);
     assert.equal(sent.physical.kind, 'typed-row-response');
+    assert.equal(sent.outcomeReceipts.length, 2);
+    assert.deepEqual(first.readClaimedBatchOutcomes(claims)
+      .map(value => value.outcomeCid), sent.outcomeReceipts.map(
+      value => value.identity));
+    assert.notEqual(sent.outcomeReceipts[0].identity,
+      sent.outcomeReceipts[1].identity);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
       sent.physical.result, 0)), true);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
@@ -1301,6 +1312,8 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.deepEqual(retry.ownership.actions, [3, 3]);
     assert.equal(retry.recovered.kind, 'typed-row-response');
     assert.equal(retry.recovered.rowCount, 2);
+    assert.deepEqual(retry.outcomeReceipts.map(value => value.identity),
+      sent.outcomeReceipts.map(value => value.identity));
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
       retry.recovered.result, 0)), true);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(

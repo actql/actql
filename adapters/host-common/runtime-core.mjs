@@ -73,6 +73,27 @@ function effectApplicationControl(moon) {
     admitMemberRow: (...args) => checked(
       moon.strategyEffectMemberRowAdmit(...args),
     ),
+    previewMemberKind: moon.strategyEffectPreviewMemberKind,
+    previewOrderedRowCid: moon.strategyEffectPreviewOrderedRowCid,
+    issueRowOutcomeReceipt: (...args) => {
+      const value = checked(moon.strategyIssueEffectRowOutcomeReceipt(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    admitRowOutcomeReceipt: (...args) => {
+      const value = checked(moon.strategyAdmitEffectRowOutcomeReceipt(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
+    issueRowReceiptTerminalEntry: (...args) => checked(
+      moon.strategyIssueEffectRowReceiptTerminalEntry(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),

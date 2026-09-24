@@ -9716,6 +9716,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/reconciliation.effect-row-outcome-receipt-binds-saved-response",
+      "statement_sha256": "a9f9ed962438a3deaa0045a16d89ad56b7c4c54b57109ba34130dc90a30e98d7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "reconciliation",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/reconciliation.a-completed-operation-must-not-be-cancelled",
       "statement_sha256": "116baef7caa86374a2928d72535cd99c68b0f4bbd656b1f8b3b9766a589f2334",
       "status": "pending",
@@ -12489,7 +12500,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "64cafc62aa2e71b9cb99d0359f7a3147d86528a70c9e7e7eb4dbcfeba01234d6",
+      "statement_sha256": "9db19a16dbbb10e0cd13d9847261c0666b8c44176eddb42cac1b273376c4d1b3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

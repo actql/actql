@@ -15,6 +15,8 @@ pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String,
 
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
 
+pub fn admit_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
 pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue]
 
 pub fn admit_effectful_final_receipt_references(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReferenceIssue]
@@ -151,6 +153,8 @@ pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
+pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
@@ -170,6 +174,8 @@ pub fn issue_durable_result_binding(PublicationContract, PublicationContract, Pu
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+
+pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
@@ -675,6 +681,9 @@ pub(all) enum EffectPreviewRunBindingIssue {
 pub(all) enum EffectRowOutcomeIssue {
   InvalidRow
   ForeignRow
+  InvalidDispatch
+  ForeignResponse
+  Encoding
   Outcome(PublicationContractIssue)
 } derive(@debug.Debug)
 

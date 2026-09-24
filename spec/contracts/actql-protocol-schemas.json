@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:ddf9e6e94f1b7d53b0000bb9ea976c755c5169ff1e3f64b6269eae6b9d7ab962",
+  "artifact_registry_cid": "sha256:20a242f3cc6061c6fd4aaa2a30f6bd19227daf69876acb3b0e73dba165e718e5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10708,7 +10708,8 @@
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
-    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422"
+    "captured_run": "sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422",
+    "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -72530,6 +72531,263 @@
           }
         },
         "captured_run_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "effect_row_outcome_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "effect_preview_cid",
+        "effect_member_preview_cid",
+        "row_preview_cid",
+        "dispatch_entry_cid",
+        "credential_use_cid",
+        "response_physical_sha256",
+        "response_byte_count",
+        "http_status_code",
+        "typed_outcome",
+        "typed_outcome_cid",
+        "receipt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-effect-row-outcome-receipt/0.1"
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "credential_use_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_physical_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "response_byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "http_status_code": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "typed_outcome": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "result"
+              ],
+              "properties": {
+                "state": {
+                  "const": "applied"
+                },
+                "result": {}
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "operation_ref",
+                "poll_contract",
+                "cancel_capability",
+                "result_schema",
+                "reconciliation_contract"
+              ],
+              "properties": {
+                "state": {
+                  "const": "accepted"
+                },
+                "operation_ref": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$actql_ref",
+                    "version",
+                    "resource_kind",
+                    "provider_namespace",
+                    "provider_identity_cid",
+                    "authority_scope_cid",
+                    "boundary_cid",
+                    "identity_cid"
+                  ],
+                  "properties": {
+                    "$actql_ref": {
+                      "const": "resource"
+                    },
+                    "version": {
+                      "const": "actql-resource-ref/0.1"
+                    },
+                    "resource_kind": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "provider_namespace": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "provider_identity_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "authority_scope_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "boundary_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "identity_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "poll_contract": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "cancel_capability": {
+                  "enum": [
+                    "supported",
+                    "unsupported"
+                  ]
+                },
+                "result_schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                "expiration": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reconciliation_contract": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "cid"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "error"
+              ],
+              "properties": {
+                "state": {
+                  "const": "failed"
+                },
+                "error": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "details": {}
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "typed_outcome_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "receipt_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
