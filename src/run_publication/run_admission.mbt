@@ -174,6 +174,16 @@ pub fn run_publication_compiled_plan_cid(
 }
 
 ///|
+/// The exact Invocation Template retained by this admitted Run. A physical
+/// executor uses this identity to reject a different valid compilation before
+/// opening its task owner; the CID alone grants no execution authority.
+pub fn run_publication_template_cid(
+  admission : RunPublicationAdmission,
+) -> String {
+  admission.template.identity
+}
+
+///|
 /// Bind an admitted Run to the exact checked Program identities supplied by
 /// its owner. This closes the Plan, Template, and Run references; it does not
 /// prove that execution or Effect application has occurred.

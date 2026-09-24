@@ -116,6 +116,14 @@ test "Run Definition is issued only from exact admitted allow authority" {
   let prepared = admission_test_prepared(template, plan, "allow")
   let authorization = admission_test_authorization(prepared, "allowed", false)
   let admission = admit_run_publication(template, prepared, authorization, plan).unwrap()
+  assert_eq(
+    run_publication_template_cid(admission),
+    run_evidence_value_identity(template),
+  )
+  assert_eq(
+    run_publication_compiled_plan_cid(admission),
+    publication_contract_identity(plan),
+  )
   let definition = issue_run_definition(
     admission,
     "scope",
