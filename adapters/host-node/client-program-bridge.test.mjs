@@ -24,6 +24,12 @@ import {validRunState} from '../../packages/client-wire/index.mjs';
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const hashWithoutSelf = (value, selfKey) => {
+  const body = {...value};
+  delete body[selfKey];
+  return `sha256:${createHash('sha256').update(JSON.stringify(body))
+    .digest('hex')}`;
+};
 const evidenceCid =
   'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904';
 const programCid =
@@ -233,6 +239,33 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.throws(() => checked(
     moon.clientProgramStageSemanticsJson(prepared, 1)),
   {code: 'MoonBitHostFailure'});
+  const rowsLimitBody = checked(
+    moon.clientProgramPublicationRowsLimitJson(prepared, 0, 0));
+  const bytesLimitBody = checked(
+    moon.clientProgramPublicationBytesLimitJson(prepared, 0, 0));
+  const rowsLimit = JSON.parse(rowsLimitBody);
+  const bytesLimit = JSON.parse(bytesLimitBody);
+  const unit =
+    'unit:sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d';
+  assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
+    [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
+  assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
+    bytesLimit.unit, bytesLimit.effective_max],
+  ['rows', 2, 'bytes', 1000]);
+  assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.role),
+    ['host_ceiling', 'proven_upper_bound']);
+  for (const limit of [rowsLimit, bytesLimit]) {
+    assert.equal(limit.version, 'actql-resolved-limit/0.1');
+    assert.equal(limit.resolved_limit_cid,
+      hashWithoutSelf(limit, 'resolved_limit_cid'));
+    for (const witness of limit.candidates) {
+      assert.equal(witness.witness_cid,
+        hashWithoutSelf(witness, 'witness_cid'));
+    }
+  }
+  assert.throws(() => checked(
+    moon.clientProgramPublicationRowsLimitJson(prepared, 0, 1)),
+  {code: 'MoonBitHostFailure'});
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'saved-request', cid('b'));
   assert.ok(request);
@@ -257,6 +290,12 @@ test('Node ABI derives the checked named Result and request identity', async () 
     semantics);
   assert.equal(checked(moon.clientProgramStageSemanticsJson(yamlPrepared, 0)),
     stageSemantics);
+  assert.equal(checked(
+    moon.clientProgramPublicationRowsLimitJson(yamlPrepared, 0, 0)),
+  rowsLimitBody);
+  assert.equal(checked(
+    moon.clientProgramPublicationBytesLimitJson(yamlPrepared, 0, 0)),
+  bytesLimitBody);
   assert.equal(checked(moon.clientProgramLocalAoASteps(yamlPrepared, 0)), steps);
   assert.equal(moon.clientProgramPrepareEffectFree(document, 'auto', environment),
     undefined);
