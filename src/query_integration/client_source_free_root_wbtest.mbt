@@ -111,20 +111,15 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     @builtin.configured_host_driver(setup),
   )
   let ledger = @strategy.captured_dag_ledger(run)
-  let installed = @builtin.configured_local_module(
-    @builtin.configured_host_modules(setup),
-  ).unwrap()
-  let available = Ref(true)
-  let (operations, completed) = run_local_managed_test_task(
-    installed,
-    run,
-    0,
-    [],
-    [],
-    1,
-    available,
+  assert_true(
+    @client_local_host.execute_source_free_values(setup, 0, 1000)
+    is Err(@client_local_host.InvalidLimits),
   )
-  assert_eq(local_managed_test_rows(operations), ["{\"id\":1}", "{\"id\":2}"])
+  let execution = @client_local_host.execute_source_free_values(
+    setup, 16, 1000,
+  ).unwrap()
+  let completed = execution.completed_output()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
   assert_true(@strategy.captured_task_completed(run, 0))
   assert_eq(@strategy.next_captured_task(run), None)
   let values : @execution.ValueLimits = {
@@ -135,13 +130,13 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   }
   let bridge = @execution.prepare_managed_publication_bridge(
     completed,
-    (operations.material)().unwrap(),
+    execution.material().unwrap(),
     100,
     values,
     100,
     10000,
   ).unwrap()
-  for row in local_managed_test_rows(operations) {
+  for row in execution.rows().unwrap() {
     @execution.append_managed_publication_bridge_wire(bridge, row, {
       max_bytes: 100,
       max_nodes: 20,
@@ -197,12 +192,8 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_eq(result.result_fields().unwrap(), ["id"])
   result.cancel()
   @execution.close_managed_publication_bridge(bridge)
-  available.val = false
-  (operations.close)()
-  (operations.cleanup_refresh)() |> ignore
-  @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
-  @strategy.refresh_captured_retention(run)
+  assert_true(execution.close())
+  assert_true(execution.rows() is Err(@client_local_host.MissingOutput))
   let usage = @resources.ledger_usage(ledger)
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
