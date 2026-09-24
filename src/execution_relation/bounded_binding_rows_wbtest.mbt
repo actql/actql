@@ -780,6 +780,49 @@ test "bounded partitioned top-k selects each nullable partition and reclaims" {
 }
 
 ///|
+test "bounded partitioned top-k admits exact work and workspace" {
+  let rows = "[{\"id\":1,\"group\":\"a\",\"score\":1}," +
+    "{\"id\":2,\"group\":\"a\",\"score\":2}]"
+  // Fixed corpus: two rows, three columns, one partition term and one sort
+  // term. The expected ceiling is not computed from the run's used budget.
+  for
+    (work, slots, should_complete) in [
+      (56, 23, true),
+      (55, 23, false),
+      (56, 22, false),
+    ] {
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      rows,
+      top_k_by=true,
+      max_work=work,
+      max_entries=slots,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_binding_rows(execution, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(should_complete)
+            assert_eq(completed_row_count(output), 1)
+            assert_true(completed_cell(output, 0, 1) is Some(Number(2.0)))
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("partitioned top-k resource boundary changed")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
 test "partitioned top-k yields inside a long text comparison" {
   let prefix = "x".repeat(400)
   let rows = "[{\"id\":1,\"group\":\"" +

@@ -508,6 +508,7 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'top_k_by_bounded_quantum_and_lifetime',
       'top_k_by_bounded_cancel_cleanup',
+      'top_k_by_work_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

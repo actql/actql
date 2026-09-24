@@ -1241,6 +1241,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded partitioned top-k selects each nullable partition and reclaims"
+        },
+        {
+          "role": "top_k_by_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded partitioned top-k admits exact work and workspace"
         }
       ],
       "environment_tests": [
@@ -1251,7 +1258,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-partitioned-top-k-in-flight"
         }
-      ]
+      ],
+      "path_assurance": {
+        "ordinary_entrypoint": {
+          "exact_limit": "top_k_by_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_by_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_by_host_timer",
+          "cleanup": "top_k_by_bounded_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",

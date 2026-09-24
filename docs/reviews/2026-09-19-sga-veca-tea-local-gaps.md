@@ -14,12 +14,19 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
-| Path-scoped work/workspace assurance | 47 |
+| Path-scoped work/workspace assurance | 48 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+The ordinary partitioned `top_k_by` route now binds a fixed two-row,
+one-partition fixture to its bounded evaluator: work 56 and peak workspace
+23 pass, while work 55 and workspace 22 fail before publication. Quantum-one
+execution, output order, borrowed-input availability, cleanup, and the
+existing Node Host timer cancellation remain separate checks. This assures
+that ordinary path only; the selected and synchronous whole-sequence paths
+remain open.
 The `watermark_rows` route now binds a fixed one-row fixture with independently
 calculated 24 units of control work and an eleven-slot workspace peak. Exact
 limits succeed and either one-short limit fails. This proves that evaluator's

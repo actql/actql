@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 48 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -75,6 +75,7 @@ test('partitioned top-k loses bounded assurance if either fixture is absent', ()
   for (const role of [
     'top_k_by_bounded_quantum_and_lifetime',
     'top_k_by_bounded_cancel_cleanup',
+    'top_k_by_work_workspace_exact_one_short',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&
@@ -327,8 +328,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 48 |',
     '| Path-scoped work/workspace assurance | 47 |',
-    '| Path-scoped work/workspace assurance | 46 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(
