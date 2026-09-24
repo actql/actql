@@ -177,3 +177,50 @@ test "standard Client preparation retains source-free Effect closure" {
     is Err(_),
   )
 }
+
+///|
+test "Effectful Client request uses the common checked intent and scope" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let scope = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  let input = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  let request = prepare_client_effect_request_identity(
+    prepared, scope, "write-request", input,
+  ).unwrap()
+  assert_eq(
+    client_request_program_cid(request),
+    prepared_client_effect_computation_definition_cid(prepared),
+  )
+  let body = "{\"caller_input_intent_cid\":\"" +
+    input +
+    "\",\"parameter_values_cid\":\"" +
+    client_request_parameters_cid(request) +
+    "\",\"program_definition_cid\":\"" +
+    prepared_client_effect_computation_definition_cid(prepared) +
+    "\",\"version\":\"actql-logical-request-intent/0.1\"}"
+  assert_eq(
+    client_request_intent_cid(request),
+    "sha256:" + @sha.hex(@utf8.encode(body)),
+  )
+  let replay = prepare_client_effect_request_identity(
+    prepared, scope, "write-request", input,
+  ).unwrap()
+  assert_true(client_request_identity_relation(request, replay) is SameRequest)
+  let changed = prepare_client_effect_request_identity(
+    prepared, scope, "write-request", "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  ).unwrap()
+  assert_true(
+    client_request_identity_relation(request, changed) is ChangedIntent,
+  )
+  assert_true(
+    prepare_client_effect_request_identity(prepared, scope, "", input)
+    is Err(InvalidRequestId),
+  )
+}

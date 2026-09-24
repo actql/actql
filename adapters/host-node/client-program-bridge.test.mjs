@@ -330,6 +330,64 @@ test('internal Client bridge retains Effect closure without public apply',
     {code: 'MoonBitHostFailure'});
   });
 
+test('Effectful Client request identity binds checked intent before Run',
+  async t => {
+    const create = await effectFixture({writeKind: 'create'});
+    const update = await effectFixture({writeKind: 'update'});
+    const prepare = fixture => {
+      const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+        fixture.document, 'json', fixture.environment, undefined, []);
+      const value = moon.clientProgramEffectPreparationReady(outcome);
+      assert.ok(value,
+        moon.clientProgramEffectPreparationIssueCode(outcome));
+      return value;
+    };
+    const original = prepare(create);
+    const changed = prepare(update);
+    const request = moon.clientProgramEffectRequestIdentity(
+      original, cid('a'), 'write-request', cid('b'));
+    const replay = moon.clientProgramEffectRequestIdentity(
+      original, cid('a'), 'write-request', cid('b'));
+    const conflict = moon.clientProgramEffectRequestIdentity(
+      changed, cid('a'), 'write-request', cid('b'));
+    const next = moon.clientProgramEffectRequestIdentity(
+      original, cid('a'), 'another-request', cid('b'));
+    assert.ok(request && replay && conflict && next);
+    assert.equal(moon.clientRequestProgramCid(request),
+      moon.clientProgramEffectDefinitionCid(original));
+    const expectedIntent = `sha256:${createHash('sha256').update(JSON.stringify({
+      caller_input_intent_cid: cid('b'),
+      parameter_values_cid: moon.clientRequestParametersCid(request),
+      program_definition_cid: moon.clientProgramEffectDefinitionCid(original),
+      version: 'actql-logical-request-intent/0.1',
+    })).digest('hex')}`;
+    assert.equal(moon.clientRequestIntentCid(request), expectedIntent);
+    assert.equal(moon.clientRequestRelation(request, replay), 1);
+    assert.equal(moon.clientRequestRelation(request, conflict), 2);
+    assert.equal(moon.clientRequestRelation(request, next), 0);
+    assert.equal(moon.clientProgramEffectRequestIdentity(
+      original, cid('a'), '', cid('b')), undefined);
+    assert.equal(moon.clientProgramEffectRequestIdentity(
+      original, cid('a'), 'write-request', 'foreign'), undefined);
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'effect-request-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const admission = {tenantId: 'tenant-a', runDefinitionCid: cid('d'),
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
+    const journal = openClientRequestJournal(path);
+    assert.equal(journal.accept(request, admission, moon).inserted, true);
+    journal.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    assert.equal(reopened.accept(replay, {...admission,
+      runDefinitionCid: cid('e')}, moon).inserted, false);
+    assert.throws(() => reopened.accept(conflict, admission, moon),
+      {code: 'ClientRequestIntentConflict'});
+    assert.equal(reopened.lookup({tenantId: 'tenant-a',
+      authorityScopeCid: cid('a'), requestId: 'write-request'}, moon)
+      .ref.runDefinitionCid, cid('d'));
+  });
+
 test('admitted source-free Effect Run computes through the installed Host',
   async t => {
     const {document, environment, mappingCid} = await effectFixture();

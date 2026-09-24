@@ -180,3 +180,12 @@ Local Program through that entry. The full selected bridge still passes
 the split-Stage SGA and Effect source tests. The grouped documentation gate,
 MoonBit format check, and 61 Host/boundary tests passed locally. This fixes
 the packaging regression, not R2-G1 or the missing live-org validation.
+
+Effectful checked computations now derive the same scoped Client request
+identity and immutable intent preimage as Effect-free Programs. The retained
+Effect closure supplies its checked Program Definition and effective
+Parameter Values, not a caller-supplied raw document hash. A real SQLite
+request journal test verifies same-key replay after reopen and rejects a
+changed Effect intent under that key. MoonBit's JS, Wasm, and native tests
+verify the common preimage and invalid request ID. This closes the request
+identity prerequisite, not public Effectful submit, apply, or publication.
