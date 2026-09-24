@@ -325,6 +325,26 @@ test "final Effectful Receipt references one exact prior chain" {
     4096,
     32,
   ).unwrap()
+  let complete = admit_effectful_final_run_evidence_chain(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    preview,
+    set_wire,
+    member_wires,
+    final_wire,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(complete),
+    publication_contract_identity(final_receipt),
+  )
   let issued = issue_effectful_final_run_receipt(
     chain.run,
     chain.receipt,
@@ -702,6 +722,32 @@ test "Effectful computation chain checks exact captured Result values" {
       32,
     )
     is Err(EvidenceReferenceMismatch("captured_result_values")),
+  )
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    altered,
+  )
+  assert_true(
+    admit_effectful_final_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      altered,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      65536,
+      4096,
+      32,
+    )
+    is Err(Computation(EvidenceReferenceMismatch("captured_result_values"))),
   )
 }
 
