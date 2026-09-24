@@ -128,13 +128,16 @@ reader compares those stored bytes with the supplied wire. The private Effect
 Preview requires encrypted retention and is not in that Store's current
 Run-publication admission registry. Simply adding Preview to the metadata
 inventory would either fail admission or persist private Preview plaintext.
-The existing Store now has a keyed AES-GCM private semantic-object path that
-reuses its allocation, alias durability, and physical digest checks. Local
-tests verify ciphertext at rest, same-CID retry, key and name rejection, and
-reopen with a separately supplied key. This physical path is not a private
-Preview admission, publication metadata holding, or read authorization.
-Effectful commit integration must bind it to MoonBit's exact Preview admission,
-retain and retire its allocation with the Run, and verify it after reopen.
+The Store now prepares keyed AES-GCM private evidence through its existing
+prepared-object custody and can place that ciphertext under a separate
+`publication-private` physical holding. It deliberately creates no semantic
+alias before a durable holding: such an alias would survive a crash without
+an owner. Local tests verify ciphertext at rest, uncommitted reclamation,
+binding to the exact name and semantic CID, key rejection, holding retirement,
+and reopen with a separately supplied key. This physical path is not private
+Preview admission, read authorization, or Effectful publication metadata.
+Effectful commit integration must bind it to MoonBit's exact Preview admission
+and carry the holding through apply, final commit, and Run retention policy.
 The Store must not duplicate canonical identity or final-chain rules in JS.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
