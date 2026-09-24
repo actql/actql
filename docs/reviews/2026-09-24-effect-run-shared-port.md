@@ -140,6 +140,11 @@ context, and rejects missing, duplicate, or foreign Plan entries. The Node
 Host bridge uses the same issuer and keeps Preview ownership opaque. Plan
 values remain bounded context observations; their physical payload match is
 still required before apply. This issuance does not commit publication.
+The Node Host bridge can now issue the final Effectful Receipt from the same
+opaque Preview and an exact computation chain. MoonBit checks the complete
+computation and set/member receipt reference closure before returning it;
+foreign Preview handles and missing member receipts are rejected. This does
+not prove physical Effect outcomes, grant apply, or commit the final Receipt.
 
 ## Required port and owners
 
