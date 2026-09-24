@@ -587,11 +587,29 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(
   if self.closed {
     return Err(Closed)
   }
+  open_native_remote_observed_output_manifest_reader(
+    self.runtime, self.journal, request, completion, max_chunk_bytes,
+  )
+}
+
+///|
+/// Borrow the exact retained Site output as a manifest-preserving source.
+/// The caller retains ownership of the runtime, journal and returned reader.
+pub fn open_native_remote_observed_output_manifest_reader(
+  runtime : @runtime.NativeRemoteRuntime,
+  journal : @journal.Journal,
+  request : @remote.DispatchRequest,
+  completion : @runtime.NativeRemoteRuntimeCompletion,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputManifestReader,
+  NativeRemoteStandardSiteComponentIssue,
+] {
   if completion.dispatch_request_cid !=
     @remote.dispatch_request_identity(request) {
     return Err(Runtime(@runtime.OutputReaderUnavailable))
   }
-  let observed = match self.journal.observation(request) {
+  let observed = match journal.observation(request) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
@@ -606,7 +624,7 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(
   if projection.length() < 2 {
     return Err(Runtime(@runtime.OutputReaderUnavailable))
   }
-  self.runtime
+  runtime
   .open_output_manifest_reader(request, projection[1], max_chunk_bytes)
   .map_err(issue => Runtime(issue))
 }

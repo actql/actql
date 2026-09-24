@@ -71,6 +71,8 @@ pub fn native_remote_standard_transfer_destination_use_id(NativeRemoteStandardTr
 
 pub fn native_remote_standard_transfer_request(NativeRemoteStandardTransferInput) -> @remote_transfer.RemoteTransferRequest
 
+pub fn open_native_remote_observed_output_manifest_reader(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteComponentIssue]
+
 pub fn open_native_remote_standard_site_component(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget], @http_client.Client, String, String) -> Result[NativeRemoteStandardSiteComponent, NativeRemoteStandardSiteComponentIssue]
 
 pub fn open_native_remote_standard_site_distribution(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget], @http_client.Client, String, String) -> Result[NativeRemoteStandardSiteDistribution, NativeRemoteStandardSiteDistributionIssue]
