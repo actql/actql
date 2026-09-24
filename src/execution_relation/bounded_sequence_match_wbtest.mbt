@@ -343,6 +343,40 @@ test "bounded sequence startup work exhaustion remains a resource error" {
 }
 
 ///|
+test "bounded sequence startup charges independently counted field probes" {
+  // The four-column fixture resolves key, id, and clock. Their checked
+  // field-name probes charge key=22, id=13, and clock=11 units. Each probe
+  // includes both names and one comparison unit, for 46 units in total.
+  let (_, short, input) = bounded_sequence_try_fixture(empty=true, max_work=45)
+  let schema = producer_read_schema(input)
+  assert_eq(
+    @schema.reference_name(@schema.field_at(schema, 0).unwrap().name),
+    "clock",
+  )
+  assert_eq(
+    @schema.reference_name(@schema.field_at(schema, 1).unwrap().name),
+    "id",
+  )
+  assert_eq(
+    @schema.reference_name(@schema.field_at(schema, 2).unwrap().name),
+    "key",
+  )
+  assert_true(short is Err(Rows(RowLimit)))
+  let (control, exact, _) = bounded_sequence_try_fixture(
+    empty=true,
+    max_work=46,
+  )
+  let execution = exact.unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_sequence_match(execution, 1).unwrap()
+    is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(execution)
+}
+
+///|
 test "bounded sequence input row limit is a resource error" {
   let (_, result, _) = bounded_sequence_try_fixture(max_rows=4)
   assert_true(result is Err(Rows(RowLimit)))

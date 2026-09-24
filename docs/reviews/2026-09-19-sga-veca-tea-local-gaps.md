@@ -15,8 +15,10 @@ in-flight kernel cancellation, output-limit cleanup, and ordinary Node
 standard-Host timer cancellation fixtures. Removing any of these roles
 fails the resource gate. The existing exact/one-short work fixture measures
 its expected budget from the implementation itself, so it is not promoted
-to independent work assurance. Sequence workspace exact/one-short evidence
-and the remaining full-route proof stay open.
+to independent full-run work assurance. A separate empty-input fixture now
+uses 46 independently counted field-probe units at startup and rejects 45
+before execution, while preserving stop and cleanup. Full-run work and
+workspace exact/one-short evidence remain open.
 
 The bounded interval and as-of join constructors now check their complete
 structural metadata dimensions before resolving fields or constructing the
