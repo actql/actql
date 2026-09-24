@@ -105,9 +105,10 @@ task output. Closing the ordinary output port prevents new pins while an
 existing pin keeps the allocation charged and avoids revoking its borrowed
 view solely because of port close. The original completion must still be
 available. Managed and external resident outputs are rejected by this pin:
-their physical owner must supply an equivalent retention proof. The pin is not
-yet bound to an Effect source occurrence or accepted as Preview input, so it
-does not close `CapturedEffectInput` or the standard Effect Run port.
+their physical owner must supply an equivalent retention proof. The Effect
+source port can now bind that pin to the exact checked Result occurrence for
+cell-backed terminal outputs. It is not yet a complete Preview input or the
+standard Effect Run port.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current
@@ -331,3 +332,14 @@ different name. The graph reserves bounded work for every Effect member and
 retains the source occurrence for downstream capture. It is static provenance
 only: output liveness, a consumer holding, row values, and apply admission
 still require the captured execution and current authority.
+
+The initial `CapturedEffectInput` port now pins a completed cell-backed output
+through its exact checked member source, bound preparation and Result target.
+The common pin also rejects a foreign Program owner and retains the backing
+allocation after the ordinary output port closes. It does not copy cells or
+authorize a write. Nonterminal Result targets and managed/resident outputs
+remain unsupported here until they have equally exact physical retention;
+the Host must not reacquire or rerun them as a fallback. Projection of the
+authored Result view, captured row identity, Preview and apply admission,
+multi-member Run execution, and final publication remain open under
+COMMON-SF-05.

@@ -84,6 +84,48 @@ test "captured output waits for every independent consumer pin" {
 }
 
 ///|
+test "checked Result pin rejects a foreign owner and retains its exact output" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  let (foreign, foreign_issuer) = captured_graph_fixture()
+  let foreign_graph = @strategy.captured_dag_graph(foreign)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let foreign_occurrence = @strategy.graph_result_occurrence(foreign_graph, 0).unwrap()
+  assert_true(
+    @strategy.pin_captured_result_output(run, task, foreign_occurrence, 1)
+    is Err(ForeignCandidate),
+  )
+  assert_true(
+    @strategy.pin_captured_result_output(run, 0, occurrence, 1)
+    is Err(ForeignCandidate),
+  )
+  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
+  let borrowed = @strategy.captured_output_pin_materialized(pin)
+  assert_true(@execution.completed_output_available(borrowed))
+  @mock.close_mock_query_issuer(issuer)
+  for index in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, index)
+  }
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_true(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes > 0L,
+  )
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+  @mock.close_mock_query_issuer(foreign_issuer)
+  @strategy.stop_captured_dag(foreign)
+  @strategy.close_captured_task_output(foreign, 0)
+}
+
+///|
 test "capture cleanup confirmation does not erase completed child retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)
