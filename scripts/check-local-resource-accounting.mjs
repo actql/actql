@@ -1180,6 +1180,23 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: bounded Host cancellation assurance is missing`);
     }
   }
+  if (route.family === 'VecA' && route.operation === 'score_vectors') {
+    for (const role of [
+      'score_empty_work_exact_one_short',
+      'score_record_work_exact_one_short',
+      'score_workspace_exact',
+      'score_workspace_one_short',
+      'score_kernel_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+    if (!environmentRoles.has('score_host_in_flight_cancel') ||
+      pathAssurance.entrypoint === undefined) {
+      fail(`${label}: bounded Host cancellation assurance is missing`);
+    }
+  }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
     for (const role of [
       'shortest_workspace_exact_one_short',
