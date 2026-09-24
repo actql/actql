@@ -92,6 +92,7 @@ priv struct SessionState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -174,6 +175,7 @@ pub(all) enum SessionIssue {
   DuplicateSessionIdentity(Int)
   SessionArithmetic(Int)
   SessionIdentityLimit
+  SessionControlWorkLimit
   SessionWorkspaceLimit
   SessionOutput(@records.Issue)
   SessionExecutionIssue(@bounded.Issue)
@@ -828,6 +830,9 @@ fn session_step(
     if !session_source_available(state.source) {
       return @bounded.Failed(SessionInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(SessionControlWorkLimit, progress, used)
+    }
     used += 1
     let outcome = match state.phase {
       InitializeCells | InitializeRecords => {
@@ -870,6 +875,7 @@ fn session_step(
       return @bounded.Failed(issue, progress, used)
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -919,7 +925,14 @@ fn start_session_with_source(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit : Int,
 ) -> Result[SessionExecution, SessionIssue] {
+  if control_work_limit < 0 {
+    return Err(InvalidSessionLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(SessionControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard session_checked_add(keys.length(), 2) is Some(terms) &&
     session_checked_multiply(records, terms) is Some(cell_count) else {
@@ -1011,6 +1024,7 @@ fn start_session_with_source(
     emit: 0,
     emit_field: 0,
     emit_fields: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, session_step, cleanup_session_state, @records.discard_completed,
@@ -1039,6 +1053,7 @@ pub fn start_session(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
@@ -1066,6 +1081,7 @@ pub fn start_session(
     limits,
     storage_bytes,
     available,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 
@@ -1078,6 +1094,7 @@ pub fn start_session_relation(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
@@ -1108,6 +1125,7 @@ pub fn start_session_relation(
     limits,
     storage_bytes,
     available,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 
@@ -1120,6 +1138,7 @@ pub fn start_session_view(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[SessionExecution, SessionIssue] {
   let owner = @lower.sequence_owner(sequence)
   let reference = @lifecycle.producer_view_read_reference(input)
@@ -1148,6 +1167,7 @@ pub fn start_session_view(
     limits,
     storage_bytes,
     available,
+    control_work_limit.unwrap_or(limits.max_work),
   )
 }
 

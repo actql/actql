@@ -214,6 +214,8 @@ if (!Array.isArray(assuredPaths)) {
         'external_input_entrypoint',
         'same_stage_entrypoint',
         'zero_input_entrypoint',
+        'relation_entrypoint',
+        'view_entrypoint',
       ]
         .includes(claim?.path) ||
       route[claim.path] === undefined ||
@@ -343,6 +345,14 @@ for (const [index, route] of routeEntries.entries()) {
     productionSources.push([
       'zero_input_entrypoint', route.zero_input_entrypoint,
     ]);
+  }
+  if (route.relation_entrypoint !== undefined) {
+    productionSources.push([
+      'relation_entrypoint', route.relation_entrypoint,
+    ]);
+  }
+  if (route.view_entrypoint !== undefined) {
+    productionSources.push(['view_entrypoint', route.view_entrypoint]);
   }
   for (const [role, value] of productionSources) {
     if (typeof value.path !== 'string' ||
@@ -490,9 +500,19 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
-  if (route.family === 'TEA' && route.operation === 'session' &&
-    !boundaryRoles.has('session_incremental_initialization_cancel_cleanup')) {
-    fail(`${label}: session_incremental_initialization_cancel_cleanup fixture is missing`);
+  if (route.family === 'TEA' && route.operation === 'session') {
+    if (route.relation_entrypoint?.symbol !== 'start_session_relation' ||
+      route.view_entrypoint?.symbol !== 'start_session_view') {
+      fail(`${label}: all three session source entrypoints must be registered`);
+    }
+    for (const role of [
+      'session_incremental_initialization_cancel_cleanup',
+      'session_control_work_exact_one_short',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'TEA' && route.operation === 'time_series') {
     for (const role of [
@@ -607,6 +627,8 @@ for (const [index, route] of routeEntries.entries()) {
     ...(route.external_input_entrypoint ? ['external_input_entrypoint'] : []),
     ...(route.same_stage_entrypoint ? ['same_stage_entrypoint'] : []),
     ...(route.zero_input_entrypoint ? ['zero_input_entrypoint'] : []),
+    ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
+    ...(route.view_entrypoint ? ['view_entrypoint'] : []),
   ];
   const pathAssurance = route.path_assurance ?? {};
   const proofPaths = new Map();
@@ -1169,11 +1191,15 @@ if (errors.length > 0) {
     'entrypoint',
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+    ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
+    ...(route.view_entrypoint ? ['view_entrypoint'] : []),
   ].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
   const fullyAssuredRoutes = routeEntries.filter(route => [
     'entrypoint',
     ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
     ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+    ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
+    ...(route.view_entrypoint ? ['view_entrypoint'] : []),
   ].every(pathName => route.path_assurance?.[pathName] !== undefined &&
     route.resource_assurance?.[pathName] !== undefined)).length;
   const resourceAssuredPaths = routeEntries.reduce((count, route) =>

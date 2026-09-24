@@ -48,6 +48,7 @@ fn finish_session(execution : SessionExecution) -> @records.Completed {
           DuplicateSessionIdentity(_) => abort("duplicate session identity")
           SessionArithmetic(_) => abort("session arithmetic")
           SessionIdentityLimit => abort("session identity limit")
+          SessionControlWorkLimit => abort("session control work limit")
           SessionWorkspaceLimit => abort("session workspace limit")
           SessionOutput(@records.Storage(@storage.ValueLimit)) =>
             abort("session output value limit")
@@ -280,6 +281,73 @@ test "session scratch initialization advances within the resume quantum" {
   )
   assert_eq(session_initialization_progress(stopped), (0, 0))
   assert_true(cleanup_session(stopped).unwrap())
+  assert_true(@records.discard_completed(source))
+}
+
+///|
+test "session admits exact and one-short cumulative control work" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [0.0], live)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // One row and one key take six scratch initialization steps, eighteen
+  // field-loading steps, five ordering steps, one group step, five identity
+  // steps, and nine output/finalization steps: 44 charged control units.
+  for (budget, accepted) in [(44, true), (43, false)] {
+    let execution = start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      event_window_limits(fields=6),
+      4096L,
+      fn() { live.val },
+      control_work_limit=Some(budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<45 {
+      if terminal {
+        break
+      }
+      match advance_session(execution, 1).unwrap() {
+        SessionContinue(work~, ..) => assert_true(work <= budget.to_int64())
+        SessionComplete(output, progress~, work~) => {
+          assert_true(accepted)
+          assert_eq((progress, work), (1L, 44L))
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        SessionFailed(SessionControlWorkLimit, progress~, work~) => {
+          assert_false(accepted)
+          assert_eq((progress, work), (1L, 43L))
+          assert_true(session_cleanup_pending(execution))
+          terminal = true
+        }
+        SessionFailed(issue, ..) => {
+          assert_eq(issue, SessionControlWorkLimit)
+          fail("unexpected session failure")
+        }
+        _ => fail("unexpected session control-work outcome")
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_session(execution).unwrap())
+    assert_true(@records.producer_read_available(input))
+  }
+  assert_true(
+    start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      event_window_limits(fields=6),
+      4096L,
+      fn() { live.val },
+      control_work_limit=Some(0),
+    )
+    is Err(SessionControlWorkLimit),
+  )
   assert_true(@records.discard_completed(source))
 }
 

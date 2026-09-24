@@ -17,6 +17,14 @@ same bounded row kernel, so their resource proofs are explicitly shared;
 their cancellation delivery is tested separately. The legacy synchronous
 entrypoint remains unassured, so `distinct` is not fully closed by this record.
 
+The `session` kernel now enforces a cumulative control-work ceiling across
+bounded resumes. A one-row fixture accepts its independently counted 44
+steps, rejects 43 before completion, and refuses a zero-work start before
+allocating output. The route inventory now names stored, Relation, and
+Carrier-view entrypoints separately. The new work fixture covers the stored
+entrypoint; the other two source forms and their exact path-specific
+resource and lifecycle evidence remain open.
+
 Finite-list ranking now indexes exact physical input ports during setup,
 while preserving every logical occurrence, including repeated use of one
 material. A revoked-input fixture verifies failure, nonpublication, and
