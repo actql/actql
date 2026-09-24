@@ -6,10 +6,12 @@ This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
-one-short structural workspace admission, one field of bounded work before
+one-short structural workspace admission and admitted-value work on fixed
+two-row numeric-ID fixtures. They also check one field of bounded work before
 cancellation, stop, cleanup, and continued availability of the Graph input.
-They run on JS, Wasm, and native. They do not establish exact work limits or
-full per-operation resource assurance. The Node standard Host now delivers
+They run on JS, Wasm, and native. Wider schema and value-kind variants still
+need operation-scoped work/workspace evidence before full resource assurance.
+The Node standard Host now delivers
 cancellation after positive work in each projection task and checks stop,
 nonpublication, and cleanup. The fixture's 100 declared nodes and 100 edge
 rows require 200 Graph input-row occurrences; the former limit of 100 rejected

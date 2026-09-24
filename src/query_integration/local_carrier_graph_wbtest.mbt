@@ -6069,6 +6069,7 @@ test "Graph bridge cancellation stops before cleanup and preserves inputs" {
 fn graph_rows_projection_workspace_and_cancel(
   projection : String,
   width : Int,
+  exact_work : Int,
 ) -> Unit raise {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -6115,6 +6116,65 @@ fn graph_rows_projection_workspace_and_cancel(
     )
     is Err(@local_bridge.GraphWorkspaceLimit),
   )
+  let short_work : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: exact_work - 1,
+  }
+  let rejected = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    short_work,
+    width,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut saw_work_limit = false
+  for _ in 0..<100 {
+    match @local_bridge.advance_graph_to_rows(rejected, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(
+        @local_bridge.GraphRelationOutput(@execution.CaptureLimit),
+        ..
+      ) => {
+        saw_work_limit = true
+        break
+      }
+      _ => fail("Graph projection did not reject one-short value work")
+    }
+  }
+  assert_true(saw_work_limit)
+  assert_true(@local_bridge.graph_to_rows_cleanup_pending(rejected))
+  assert_eq(@local_bridge.cleanup_graph_to_rows(rejected), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  let exact : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: exact_work,
+  }
+  let accepted = @local_bridge.start_graph_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    1,
+    input,
+    10,
+    exact,
+    width,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let rows = finish_graph_to_rows(accepted)
+  assert_eq(@execution.completed_row_count(rows), 2)
+  assert_eq(@local_bridge.cleanup_graph_to_rows(accepted), Ok(true))
   let control = @bounded.control()
   let execution = @local_bridge.start_graph_to_rows(
     control,
@@ -6150,13 +6210,16 @@ fn graph_rows_projection_workspace_and_cancel(
 }
 
 ///|
-test "Graph node rows admit exact workspace and stop after field work" {
-  graph_rows_projection_workspace_and_cancel("node_rows", 2)
+test "Graph node rows admit exact work and workspace and stop after field work" {
+  // Two rows: one row node, two value nodes, 11 field-name bytes,
+  // and five/six text bytes respectively.
+  graph_rows_projection_workspace_and_cancel("node_rows", 2, 39)
 }
 
 ///|
-test "Graph edge rows admit exact workspace and stop after field work" {
-  graph_rows_projection_workspace_and_cancel("edge_rows", 4)
+test "Graph edge rows admit exact work and workspace and stop after field work" {
+  // Each row has one row node, four value nodes, and 15 field-name bytes.
+  graph_rows_projection_workspace_and_cancel("edge_rows", 4, 40)
 }
 
 ///|
