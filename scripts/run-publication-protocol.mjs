@@ -62,6 +62,10 @@ const selected = Object.freeze({
     schema: 'effect_preview',
     identity: 'effect_preview_cid',
   }),
+  effect_source_artifact: Object.freeze({
+    schema: 'effect_source_artifact',
+    identity: 'result_artifact_cid',
+  }),
   effect_row_outcome_receipt: Object.freeze({
     schema: 'effect_row_outcome_receipt',
     identity: 'receipt_cid',

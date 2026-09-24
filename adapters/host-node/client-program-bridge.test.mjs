@@ -671,9 +671,19 @@ test('admitted source-free Effect Run computes through the installed Host',
           owned, 1)), {code: 'MoonBitHostFailure'});
         const input = moon.clientProgramEffectInputAt(inputs, 0);
         assert.ok(input);
+        const {result_definition_cid: ignoredDefinition,
+          ordering_evidence_cid: ignoredOrdering,
+          result_artifact_cid: ignoredIdentity, ...sourceBody} =
+          JSON.parse(storedResults.artifacts[0].wire);
+        const sourceArtifact = control.seal('effect_source_artifact',
+          JSON.stringify({...sourceBody,
+            version: 'actql-effect-source-artifact/0.1',
+            source_result: 'rows', source_binding_cid: cid('c'),
+            store_authority_cid: store.storeAuthorityCid}),
+          publicationLimits);
         const preview = effectInputPreview(
           prepared, evidence, definition, invocation, mappingCid,
-          storedResults.artifacts[0].identity);
+          sourceArtifact.identity);
         const authoringContext = control.admitRunEvidence(
           'authoring_context',
           canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -681,6 +691,9 @@ test('admitted source-free Effect Run computes through the installed Host',
         const admittedPreview = control.admitEffectComputationPreview(
           preview.wire, runDefinitionContract, authoringContext,
           publicationLimits);
+        const effectSources = [control.admitCapturedEffectSourceArtifact(
+          admittedPreview, 0, invocationContract, sourceArtifact,
+          store.storeAuthorityCid)];
         const runEvidence = evidence.slice(0, 3).map((value, index) =>
           control.admitRunEvidence(
             ['bound_invocation_template', 'prepared_invocation',
@@ -708,6 +721,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           captureEvidence: {pendingSourceStateAdvances: [],
             modelEvidence: []},
           preview: admittedPreview, plans: [],
+          effectSources,
           contractLimits: publicationLimits,
         };
         const computation = issueCompletedEffectfulComputationEvidence(
@@ -736,7 +750,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.ok(previewLimits);
         const foreignPreview = effectInputPreview(
           prepared, evidence, definition, invocation, cid('9'),
-          storedResults.artifacts[0].identity);
+          sourceArtifact.identity);
         assert.throws(() => checked(
           moon.clientProgramBindEffectPreviewInputs(
             owned, inputs, invocation, 0, foreignPreview.wire,

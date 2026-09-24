@@ -346,12 +346,14 @@ export function issueCompletedEffectfulComputationEvidence(options) {
     'execution', 'storedResults', 'control', 'admission', 'runDefinition',
     'invocation', 'observation', 'normalizationJournal', 'authoringContext',
     'receiptEvidence', 'captureEvidence', 'preview', 'plans',
+    'effectSources',
     'contractLimits',
   ])) fail('InvalidCompletedEffectfulComputationOptions');
   const {
     execution, storedResults, control, admission, runDefinition,
     invocation, observation, normalizationJournal, authoringContext,
-    receiptEvidence, captureEvidence, preview, plans, contractLimits,
+    receiptEvidence, captureEvidence, preview, plans, effectSources,
+    contractLimits,
   } = options;
   validateExecution(execution);
   const owner = completedResultOwners.get(storedResults);
@@ -364,6 +366,7 @@ export function issueCompletedEffectfulComputationEvidence(options) {
       !Array.isArray(storedResults.definitions) ||
       !Array.isArray(storedResults.artifacts) ||
       !Array.isArray(plans) ||
+      !Array.isArray(effectSources) ||
       !exactKeys(receiptEvidence, [
         'bindings', 'sourceEvidence', 'modelEvidence',
         'barrierAttemptReceiptCids',
@@ -395,6 +398,7 @@ export function issueCompletedEffectfulComputationEvidence(options) {
       captureEvidence.pendingSourceStateAdvances,
     authoringContext,
     modelEvidence: captureEvidence.modelEvidence,
+    effectSources,
   }, preview, plans, contractLimits);
   return Object.freeze({manifest, computationReceipt: receipt, capturedRun});
 }

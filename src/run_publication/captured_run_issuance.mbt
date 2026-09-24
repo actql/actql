@@ -11,6 +11,16 @@ struct CapturedResultSnapshot {
 }
 
 ///|
+/// A private Effect-source artifact and an independent Store holding. The
+/// artifact describes the checked Stage Result, not a published Program
+/// Result. Store availability is checked separately at publication commit.
+struct CapturedEffectSourceArtifact {
+  effect_id : String
+  artifact : PublicationContract
+  holding_cid : String
+}
+
+///|
 /// One admitted source-state update staged by the captured observation. It is
 /// embedded only after its ObservationSet and checkpoint value identity agree.
 struct PendingSourceStateAdvance {
@@ -169,6 +179,48 @@ pub fn admit_captured_result_snapshot(
 }
 
 ///|
+/// Bind one retained Stage Result artifact to the exact Preview member. This
+/// admission does not turn a caller-supplied CID into physical Store custody.
+pub fn admit_captured_effect_source_artifact(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  store_authority_cid : String,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_effect_id(preview, member_index)
+    is Some(effect_id) &&
+    effect_preview_member_source_result(preview, member_index)
+    is Some(source_result) &&
+    effect_preview_member_source_binding_cid(preview, member_index)
+    is Some(source_binding_cid) &&
+    effect_preview_member_result_artifact_cid(preview, member_index)
+    is Some(artifact_cid) else {
+    return Err(CaptureIssuanceInventoryMismatch("effect_source_artifacts"))
+  }
+  if invocation.name != "run_invocation" ||
+    artifact.name != "effect_source_artifact" ||
+    artifact.identity != artifact_cid ||
+    contract_string(artifact, "store_authority_cid") !=
+    Some(store_authority_cid) ||
+    contract_string(artifact, "source_result") != Some(source_result) ||
+    contract_string(artifact, "source_binding_cid") != Some(source_binding_cid) ||
+    contract_string(artifact, "invocation_cid") != Some(invocation.identity) {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_artifact"))
+  }
+  guard effect_source_artifact_holding_cid(
+      artifact,
+      effect_id,
+      preview.run_identity_cid,
+      store_authority_cid,
+    )
+    is Some(holding_cid) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_holding"))
+  }
+  Ok({ effect_id, artifact, holding_cid, })
+}
+
+///|
 /// Admit one exact pending checkpoint update. This does not commit source
 /// state; it only fixes the evidence later consumed by the source-state CAS.
 pub fn admit_pending_source_state_advance(
@@ -297,6 +349,7 @@ fn captured_model_evidence(
 ///|
 fn seal_effect_context(
   snapshots : Array[CapturedResultSnapshot],
+  sources : Array[CapturedEffectSourceArtifact],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -349,6 +402,20 @@ fn seal_effect_context(
       @encode.key(writer, name)
       @encode.begin_object(writer)
       @encode.end_object(writer)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "effect_source_artifacts")
+    @encode.begin_object(writer)
+    for source in sources {
+      @encode.key(writer, source.effect_id)
+      @json.emit_value(source.artifact.value, writer)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "effect_source_holding_cids")
+    @encode.begin_object(writer)
+    for source in sources {
+      @encode.key(writer, source.effect_id)
+      @encode.string_value(writer, source.holding_cid)
     }
     @encode.end_object(writer)
     @encode.key(writer, "model_invocation_evidence")
@@ -449,6 +516,7 @@ pub fn issue_effect_free_captured_run(
     manifest,
     receipt,
     snapshots,
+    [],
     advances,
     authoring,
     models,
@@ -472,6 +540,7 @@ pub fn issue_effectful_captured_run(
   manifest : PublicationContract,
   receipt : PublicationContract,
   snapshots : Array[CapturedResultSnapshot],
+  sources : Array[CapturedEffectSourceArtifact],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -489,6 +558,7 @@ pub fn issue_effectful_captured_run(
     manifest,
     receipt,
     snapshots,
+    sources,
     advances,
     authoring,
     models,
@@ -509,6 +579,7 @@ fn issue_captured_computation_run(
   manifest : PublicationContract,
   receipt : PublicationContract,
   snapshots : Array[CapturedResultSnapshot],
+  sources : Array[CapturedEffectSourceArtifact],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -555,6 +626,37 @@ fn issue_captured_computation_run(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let ordered_sources = sources.copy()
+  ordered_sources.sort_by((left, right) => {
+    @canonical.compare_utf16(left.effect_id, right.effect_id)
+  })
+  let mut expected_source_count = 0
+  match preview {
+    None =>
+      if !ordered_sources.is_empty() {
+        return Err(CaptureIssuanceInventoryMismatch("effect_source_artifacts"))
+      }
+    Some(identity) => {
+      for index in 0..<identity.member_effect_ids.length() {
+        if effect_preview_member_source_result(identity, index) is Some(_) {
+          expected_source_count += 1
+          let matches = ordered_sources.filter(source => {
+            source.effect_id == identity.member_effect_ids[index]
+          })
+          if matches.length() != 1 ||
+            matches[0].artifact.identity !=
+            effect_preview_member_result_artifact_cid(identity, index).unwrap() {
+            return Err(
+              CaptureIssuanceInventoryMismatch("effect_source_artifacts"),
+            )
+          }
+        }
+      }
+      if ordered_sources.length() != expected_source_count {
+        return Err(CaptureIssuanceInventoryMismatch("effect_source_artifacts"))
+      }
+    }
+  }
   let ordered_models = match captured_model_evidence(receipt, models) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -597,8 +699,8 @@ fn issue_captured_computation_run(
   plans.sort_by(fn(left, right) { @canonical.compare_utf16(left.0, right.0) })
   let effect_context = match
     seal_effect_context(
-      ordered_snapshots, advances, authoring, ordered_models, preview, plans, max_wire_bytes,
-      max_nodes, max_depth,
+      ordered_snapshots, ordered_sources, advances, authoring, ordered_models, preview,
+      plans, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

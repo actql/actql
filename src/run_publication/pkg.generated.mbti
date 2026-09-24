@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn admit_captured_effect_source_artifact(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
+
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
 
 pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
@@ -155,6 +157,8 @@ pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
 
+pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, String) -> String?
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
@@ -177,7 +181,7 @@ pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContrac
 
 pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
-pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
 
@@ -418,6 +422,8 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 // Errors
 
 // Types and methods
+type CapturedEffectSourceArtifact
+
 type CapturedResultSnapshot
 
 pub(all) enum CapturedRunIssuanceIssue {

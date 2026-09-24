@@ -245,6 +245,50 @@
       }
     },
     {
+      "requirement_id": "actql.execution/capture-and-replay.effect-source-artifacts-have-an-independent-exact-inventory",
+      "statement_sha256": "6fbb99e2006e224784b5c92ed19f6b5b7c848216592b5d0af63a60e36c8a25c5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/capture-and-replay.effect-source-holding-is-independent",
+      "statement_sha256": "e08537803371ca925bb4333d3e29cfcd7302ba123d54e0eeb76b417f42811f2a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/capture-and-replay.effect-source-current-authority-is-checked-at-use",
+      "statement_sha256": "e65497e5c8d17e2ec832da121439e090c3cf9a577ea3085f5a25102c63371e9b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/capture-and-replay.public-result-is-not-a-substitute-for-effect-source",
+      "statement_sha256": "f2b7a9e245f61ce1b49cfae7fd084bc3dbefd2864b55090d3b9420f3cac11b0f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "capture-and-replay",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/capture-and-replay.an-artifact-must-not-require-a-future-artifact-s-cid-in",
       "statement_sha256": "001306da1cf4811ec245fc432b8a2c68db0a3e3c851fde8922437bdeadf1ee25",
       "status": "pending",

@@ -943,6 +943,15 @@ test('portable control validates Receipt and Captured Run references',
     modelEvidence: [],
   }, limits);
   const receiptBody = JSON.parse(receipt.wire);
+  const {result_definition_cid: ignoredDefinition,
+    ordering_evidence_cid: ignoredOrdering,
+    result_artifact_cid: ignoredIdentity, ...artifactBody} =
+    JSON.parse(artifact.wire);
+  const sourceArtifact = control.seal('effect_source_artifact',
+    JSON.stringify({...artifactBody,
+      version: 'actql-effect-source-artifact/0.1',
+      source_result: 'rows', source_binding_cid: cid('9'),
+      store_authority_cid: cid('d')}), limits);
   const previewBody = {
     version: 'actql-effect-preview/0.1', sensitivity: 'private',
     retention_class: 'authority-evidence', encryption_required: true,
@@ -959,7 +968,7 @@ test('portable control validates Receipt and Captured Run references',
       effect_id: 'WriteOne', effect_kind: 'update', target: 'Object',
       mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('9'),
       effect_identity_cid: cid('9'), effect_plan_logical_cid: cid('9'),
-      source_result: 'answer', result_artifact_cid: artifact.identity,
+      source_result: 'rows', result_artifact_cid: sourceArtifact.identity,
       preview_strength: 'full_diff', source_binding_cid: cid('9'),
       capability_evidence_cid: cid('9'), authority_scope_cid: cid('9'),
       write_footprint: {kind: 'exact_targets',
@@ -1009,6 +1018,8 @@ test('portable control validates Receipt and Captured Run references',
     artifacts: [artifact], manifest, receipt,
   };
   const computationEvidence = {snapshots: [snapshot],
+    effectSources: [control.admitCapturedEffectSourceArtifact(
+      preview, 0, invoked, sourceArtifact, cid('d'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
   const effectfulCaptured = control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,

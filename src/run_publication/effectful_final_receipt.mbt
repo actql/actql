@@ -231,7 +231,14 @@ pub fn admit_effectful_final_receipt_references(
     Some(preview.authoring_context_cid) {
     return Err(ForeignPreview("authoring_context_cid"))
   }
-  if !effect_context_preview_inventory_matches(context, preview) {
+  if !effect_context_preview_inventory_matches(
+      context,
+      preview,
+      preview.invocation_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     return Err(ForeignEffectInventory)
   }
   let set_receipt = match

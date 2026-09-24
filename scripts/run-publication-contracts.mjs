@@ -62,6 +62,23 @@ export function resultArtifactSchema() {
   };
 }
 
+export function effectSourceArtifactSchema() {
+  const artifact = resultArtifactSchema();
+  artifact.required = artifact.required.map(field =>
+    field === 'result_definition_cid' ? 'source_binding_cid' : field);
+  artifact.required.splice(2, 0, 'source_result');
+  artifact.required.push('store_authority_cid');
+  artifact.required = artifact.required.filter(field =>
+    field !== 'ordering_evidence_cid');
+  artifact.properties.version = {const: 'actql-effect-source-artifact/0.1'};
+  delete artifact.properties.result_definition_cid;
+  delete artifact.properties.ordering_evidence_cid;
+  artifact.properties.source_binding_cid = clone(cid);
+  artifact.properties.source_result = {type: 'string', minLength: 1};
+  artifact.properties.store_authority_cid = clone(cid);
+  return artifact;
+}
+
 export function effectRowOutcomeReceiptSchema(outcome) {
   return {
     type: 'object',
@@ -236,6 +253,7 @@ function replaceNested(schema, replacements, root = true) {
 export function correctedContracts(registry, cli) {
   const next = clone(registry);
   const artifact = resultArtifactSchema();
+  const effectSourceArtifact = effectSourceArtifactSchema();
   const manifest = clone(next.artifact_schemas.result_manifest);
   manifest.properties.results.additionalProperties = clone(artifact);
   const receipt = clone(next.artifact_schemas.run_receipt);
@@ -286,6 +304,19 @@ export function correctedContracts(registry, cli) {
   next.artifact_schemas.run_state = state;
   next.artifact_schemas.effect_row_outcome_receipt =
     effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
+  next.artifact_schemas.effect_source_artifact = effectSourceArtifact;
+  const effectContext = next.artifact_schemas.captured_run
+    .properties.effect_context;
+  for (const field of ['effect_source_artifacts',
+    'effect_source_holding_cids']) {
+    if (!effectContext.required.includes(field)) effectContext.required.push(field);
+  }
+  effectContext.properties.effect_source_artifacts = {
+    type: 'object', additionalProperties: clone(effectSourceArtifact),
+  };
+  effectContext.properties.effect_source_holding_cids = {
+    type: 'object', additionalProperties: clone(cid),
+  };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schemas[name] = replaceNested(schema, replacements);
   }
@@ -307,6 +338,8 @@ export function checkContracts(registry, cli) {
     registry.artifact_schemas.result_manifest.properties.results.additionalProperties,
     artifact,
   );
+  assert.deepEqual(registry.artifact_schemas.effect_source_artifact,
+    effectSourceArtifactSchema());
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('compiler_version'));
   assert.ok(registry.artifact_schemas.run_receipt.required.includes('aoa_ir_version'));
   assert.deepEqual(registry.artifact_schemas.run_receipt.oneOf, [

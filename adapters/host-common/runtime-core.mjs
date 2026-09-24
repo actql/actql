@@ -1605,6 +1605,7 @@ function publicationControl(moon) {
   const evidenceTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const snapshotTokens = new WeakMap();
+  const effectSourceTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
@@ -1660,6 +1661,18 @@ function publicationControl(moon) {
     const result = snapshotTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign captured Result snapshot');
+    }
+    return result;
+  };
+  const inspectEffectSource = source => {
+    const value = Object.freeze({kind: 'captured-effect-source-artifact'});
+    effectSourceTokens.set(value, source);
+    return value;
+  };
+  const effectSourceToken = value => {
+    const result = effectSourceTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign captured Effect source artifact');
     }
     return result;
   };
@@ -1857,6 +1870,21 @@ function publicationControl(moon) {
         ),
       ));
     },
+    admitCapturedEffectSourceArtifact(preview, memberIndex, invocation,
+      artifact, holdingCid) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          typeof holdingCid !== 'string') {
+        throw new TypeError('Invalid captured Effect source artifact');
+      }
+      return inspectEffectSource(checked(
+        moon.strategyAdmitCapturedEffectSourceArtifact(
+          ownedPreview, memberIndex, token(invocation), token(artifact),
+          holdingCid,
+        ),
+      ));
+    },
     admitCompletedResultSnapshot(exportHandle, limits) {
       issuanceLimits(limits, 'completed Result snapshot');
       return inspectSnapshot(checked(
@@ -1949,6 +1977,7 @@ function publicationControl(moon) {
           !Array.isArray(chain.definitions) ||
           !Array.isArray(chain.artifacts) ||
           !Array.isArray(evidence.snapshots) ||
+          !Array.isArray(evidence.effectSources) ||
           !Array.isArray(evidence.pendingSourceStateAdvances) ||
           !Array.isArray(evidence.modelEvidence) ||
           !Array.isArray(plans) ||
@@ -1965,6 +1994,7 @@ function publicationControl(moon) {
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.receipt),
         evidence.snapshots.map(snapshotToken),
+        evidence.effectSources.map(effectSourceToken),
         evidence.pendingSourceStateAdvances.map(sourceAdvanceToken),
         evidenceToken(evidence.authoringContext),
         evidence.modelEvidence.map(evidenceToken), ownedPreview,
