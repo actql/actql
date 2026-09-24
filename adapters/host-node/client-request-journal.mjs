@@ -320,6 +320,32 @@ export function openClientRequestJournal(directory, {
           retained.row, publicationControl, maxRunDefinitionWireBytes),
       });
     },
+    // A resend can resolve an already accepted request before issuing a new
+    // plan or Run Definition. The shared owner compares the checked intent;
+    // absence does not prove that a concurrent submission cannot still land.
+    resolveDefinition(identity, {tenantId}, requestControl,
+      publicationControl) {
+      ensureOpen();
+      if (!text(tenantId) || !requestControl ||
+          typeof requestControl.clientRequestRelation !== 'function') {
+        fail('InvalidClientRequestLookup');
+      }
+      const fields = checkedIdentity(identity, requestControl);
+      const retained = lookupRecord({tenantId,
+        authorityScopeCid: fields.authorityScopeCid,
+        requestId: fields.requestId}, requestControl);
+      if (retained === undefined) return undefined;
+      const relation = requestControl.clientRequestRelation(identity,
+        retainedIdentity(retained.row, requestControl));
+      if (relation !== 1) {
+        fail(relation === 2 ? 'ClientRequestIntentConflict' :
+          'ClientRequestJournalCorrupt');
+      }
+      return Object.freeze({...retained.found,
+        runDefinition: retainedRunDefinition(
+          retained.row, publicationControl, maxRunDefinitionWireBytes),
+      });
+    },
     close() {
       if (closed) return;
       closed = true;
