@@ -766,6 +766,28 @@ pub fn client_program_issue_local_values_fragment(
 }
 
 ///|
+/// Replan saved private Fragment bytes against the checked Program owner.
+#export_name("clientProgramAdmitLocalValuesFragment")
+pub fn client_program_admit_local_values_fragment(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  saved_wire : String,
+) -> Result[
+  @publication_host.ClientValuesFragmentNode,
+  @publication_host.ClientValuesFragmentAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_values_fragment(
+    prepared,
+    task,
+    saved_wire,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 #export_name("clientProgramLocalValuesFragmentWire")
 pub fn client_program_local_values_fragment_wire(
   value : @publication_host.ClientValuesFragmentNode,
