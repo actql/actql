@@ -51,6 +51,14 @@ pub struct CheckedEffectComputationDAG {
 }
 
 ///|
+/// The same computation graph retained with its exact admitted Run owner.
+/// This is not a captured input, Preview, or Effect apply permit.
+pub struct CheckedEffectRunDAG {
+  computation : CheckedEffectComputationDAG
+  run : @checked.EffectProgramRunCandidate
+}
+
+///|
 pub fn prepare_checked_effect_computation_dag(
   candidate : @checked.EffectProgramStaticCandidate,
   owners : Array[@lower.BoundPrepared],
@@ -81,6 +89,34 @@ pub fn checked_effect_computation_owner(
   value : CheckedEffectComputationDAG,
 ) -> @checked.EffectProgramStaticCandidate {
   value.candidate
+}
+
+///|
+/// Keep the original checked Effect and Run owners together. A second static
+/// candidate with equal CIDs cannot replace the graph's checked owner.
+pub fn bind_checked_effect_run_dag(
+  computation : CheckedEffectComputationDAG,
+  run : @checked.EffectProgramRunCandidate,
+) -> Result[CheckedEffectRunDAG, RunIssue] {
+  if !physical_equal(
+      computation.candidate,
+      @checked.effect_program_run_static_candidate(run),
+    ) {
+    return Err(ForeignCandidate)
+  }
+  Ok({ computation, run, })
+}
+
+///|
+pub fn checked_effect_run_graph(value : CheckedEffectRunDAG) -> CheckedDAG {
+  value.computation.graph
+}
+
+///|
+pub fn checked_effect_run_owner(
+  value : CheckedEffectRunDAG,
+) -> @checked.EffectProgramRunCandidate {
+  value.run
 }
 
 ///|
