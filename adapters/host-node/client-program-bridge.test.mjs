@@ -118,7 +118,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
 });
 
 test('Node publication admission rejects evidence from another checked Program',
-  async () => {
+  async t => {
     const {document, environment} = await checkedFixture();
     const prepared = moon.clientProgramPrepareEffectFree(
       document, 'json', environment);
@@ -139,8 +139,34 @@ test('Node publication admission rejects evidence from another checked Program',
         moon.strategyRunEvidenceJson(value), limits));
     const plan = control.admit('compiled_plan',
       moon.strategyPublicationContractJson(evidence[3]), limits);
-    assert.equal(control.admitCheckedClientRunPublication(
-      prepared, ...bound, plan).kind, 'run-publication-admission');
+    const admitted = control.admitCheckedClientRunPublication(
+      prepared, ...bound, plan);
+    assert.equal(admitted.kind, 'run-publication-admission');
+    const definition = control.issueRunDefinition(admitted, {
+      scopeId: 'tenant-a-scope',
+      runId: 'checked-values-run',
+      inputArtifactSetCid: cid('c'),
+      createdAt: '2026-09-24T00:00:00.000Z',
+      validUntil: '2027-01-01T00:00:00.000Z',
+    }, limits);
+    await mkdir(scratch, {recursive: true});
+    const path = await mkdtemp(join(scratch.pathname, 'admission-'));
+    t.after(() => rm(path, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(path);
+    const accepted = journal.acceptDefinition(identity, {
+      tenantId: 'tenant-a', runDefinition: definition,
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    }, moon, control);
+    assert.equal(accepted.inserted, true);
+    assert.equal(accepted.ref.runDefinitionCid, definition.identity);
+    journal.close(); // Lose the acceptance reply before using the Run ref.
+    const restarted = openClientRequestJournal(path);
+    t.after(() => restarted.close());
+    const retained = restarted.lookupDefinition({
+      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      requestId: 'saved-request',
+    }, moon, control);
+    assert.equal(retained.runDefinition.wire, definition.wire);
     const changed = moon.clientProgramPrepareEffectFree(
       document.replace('"id": 2', '"id": 3'), 'json', environment);
     assert.ok(changed);
@@ -149,6 +175,12 @@ test('Node publication admission rejects evidence from another checked Program',
     assert.throws(() => control.admitCheckedClientRunPublication(
       changed, ...bound, plan),
     /Publication evidence differs from checked Program/u);
+    const changedRequest = moon.clientProgramRequestIdentity(
+      changed, cid('a'), 'saved-request', cid('b'));
+    assert.throws(() => restarted.acceptDefinition(changedRequest, {
+      tenantId: 'tenant-a', runDefinition: definition,
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    }, moon, control), {code: 'ClientRequestIntentConflict'});
     const foreignSemantics = publicationEvidence(
       moon.clientRequestProgramCid(identity),
       moon.clientRequestParametersCid(identity), cid('f'));
