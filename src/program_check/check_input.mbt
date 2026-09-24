@@ -41,6 +41,16 @@ pub fn checking_environment(
 }
 
 ///|
+/// Observe the exact admitted wire owner configured for a check. A later
+/// checked Program must retain this owner before any downstream Effect closure
+/// can use its Catalog and Mapping evidence.
+pub fn checking_environment_wire(
+  value : CheckEnvironment,
+) -> @environment.WireEnvironment {
+  value.wire
+}
+
+///|
 /// Check an admitted Program using its original immutable admission. Current
 /// input restrictions still apply; semantic checking uses the current values,
 /// environment and compilation budget. No parser or Host I/O is invoked.
