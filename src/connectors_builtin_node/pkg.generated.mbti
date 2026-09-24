@@ -561,6 +561,8 @@ pub fn strategy_publication_seal(String, String, Int, Int, Int) -> @run_publicat
 
 pub fn strategy_publication_setup_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_publication_snapshot_state(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> String raise NodeHostFailure
+
 pub fn strategy_publication_unknown_retry_action(Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_record_result_access_grant(@run_publication.ResultAccessProgress, Bool) -> Bool

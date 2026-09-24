@@ -1537,6 +1537,21 @@ test('portable control validates Receipt and Captured Run references',
     reason: 'confirmed_present',
     state: 'available',
   });
+  const contradictoryStateService = installRunStateService({
+    store: Object.freeze({
+      ...deliveryStore,
+      latestRecordContract: () => deliveryStore.readPublicationContract(
+        deliveryIndexValue.public_index_entry_cid, 'public_index_entry'),
+    }),
+    control,
+    authority: stateAuthority,
+    now: () => accessTime,
+    limits,
+  });
+  await assert.rejects(
+    inspectAuthorizedRunState(contradictoryStateService, stateRequest),
+    {code: 'InvalidCommittedPublicationState'},
+  );
   const clientHost = createServer(createClientHttpHandler({
     authenticate: authorization => authorization === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
@@ -1634,6 +1649,8 @@ test('portable control validates Receipt and Captured Run references',
         deliveryStore.confirmCommittedIndex(key),
       readPublicationContract: (identity, name) =>
         deliveryStore.readPublicationContract(identity, name),
+      latestRecordContract: identity =>
+        deliveryStore.latestRecordContract(identity),
       observeTrustedClock: (identity, at) =>
         deliveryStore.observeTrustedClock(identity, at),
       readCommittedResultRetentionExtension: (key, definition) =>

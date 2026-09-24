@@ -38,6 +38,7 @@ export function installRunStateService(configuration) {
       typeof configuration.store !== 'object' ||
       typeof configuration.store.confirmCommittedIndex !== 'function' ||
       typeof configuration.store.readPublicationContract !== 'function' ||
+      typeof configuration.store.latestRecordContract !== 'function' ||
       typeof configuration.store.observeTrustedClock !== 'function' ||
       typeof configuration.store.withCommittedResult !== 'function' ||
       typeof configuration.store.readCommittedResultRetentionExtension !==
@@ -54,6 +55,8 @@ export function installRunStateService(configuration) {
       typeof configuration.control.resultRetentionClockContractCid !==
         'function' ||
       typeof configuration.control.runDefinitionRunId !== 'function' ||
+      typeof configuration.control.projectCommittedPublicationState !==
+        'function' ||
       typeof configuration.control.issueSucceededRunState !== 'function' ||
       !authorities.has(configuration.authority) ||
       typeof configuration.now !== 'function' ||
@@ -246,6 +249,20 @@ export async function inspectAuthorizedRunState(service, request) {
   }
   const entry = await installed.store.confirmCommittedIndex(indexKey);
   if (entry === undefined) fail('RunStateAccessDenied');
+  const [index, record] = await Promise.all([
+    installed.store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry'),
+    installed.store.latestRecordContract(entry.publication_attempt_cid),
+  ]);
+  try {
+    if (installed.control.projectCommittedPublicationState(record, index) !==
+        'succeeded') {
+      fail('InvalidCommittedPublicationState');
+    }
+  } catch (error) {
+    if (error instanceof RunStateAccessError) throw error;
+    fail('InvalidCommittedPublicationState', error);
+  }
   const manifest = await installed.store.readPublicationContract(
     entry.result_manifest_cid, 'result_manifest',
   );

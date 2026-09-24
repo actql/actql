@@ -2402,6 +2402,12 @@ function publicationControl(moon) {
       }
       return moon.strategyTrustedClockNotBefore(previous, observedAt);
     },
+    projectCommittedPublicationState(record, index) {
+      return checked(moon.strategyPublicationSnapshotState(
+        record === undefined ? undefined : token(record),
+        token(index),
+      ));
+    },
     issueSucceededRunState(request, limits) {
       issuanceLimits(limits, 'Succeeded Run state');
       if (request === null || typeof request !== 'object' ||
