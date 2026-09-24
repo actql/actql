@@ -138,6 +138,12 @@ test('session initialization and Host timer evidence must remain executable', ()
     session.boundary_tests = session.boundary_tests.filter(item =>
       item.role !== 'session_control_work_exact_one_short');
   }), /TEA session: session_control_work_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const session = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'session');
+    session.boundary_tests = session.boundary_tests.filter(item =>
+      item.role !== 'session_output_workspace_exact_one_short');
+  }), /TEA session: session_output_workspace_exact_one_short fixture is missing/);
   for (const source of ['relation_entrypoint', 'view_entrypoint']) {
     assert.match(run(undefined, routes => {
       const session = routes.routes.find(entry => entry.family === 'TEA' &&
