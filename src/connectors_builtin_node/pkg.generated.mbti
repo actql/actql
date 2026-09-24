@@ -33,6 +33,8 @@ pub fn client_program_admit_publication_binding_set(@run_publication_host.Prepar
 
 pub fn client_program_admit_publication_bytes_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
 
+pub fn client_program_admit_publication_fact_entries(@run_publication_host.PreparedClientProgram, Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationFactEntryIssue]
+
 pub fn client_program_admit_publication_plan_facts(@run_publication_host.PreparedClientProgram, Array[String], Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationPlanFactIssue]
 
 pub fn client_program_admit_publication_rows_binding(@run_publication_host.PreparedClientProgram, Int, Int, String) -> Result[Unit, @run_publication_host.ClientPublicationBindingAdmissionIssue]
@@ -66,6 +68,8 @@ pub fn client_program_publication_bytes_binding_json(@run_publication_host.Prepa
 pub fn client_program_publication_bytes_limit_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationLimitIssue]
 
 pub fn client_program_publication_plan_fact_bindings(@run_publication_host.ClientPublicationPlanFacts) -> Array[String]
+
+pub fn client_program_publication_plan_fact_entries(@run_publication_host.ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_program_publication_plan_fact_limits(@run_publication_host.ClientPublicationPlanFacts) -> Array[String]
 

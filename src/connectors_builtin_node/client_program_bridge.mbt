@@ -553,6 +553,27 @@ pub fn client_program_publication_plan_fact_bindings(
 }
 
 ///|
+/// Return the checked Result-publication entries for Plan fact assembly.
+#export_name("clientProgramPublicationPlanFactEntries")
+pub fn client_program_publication_plan_fact_entries(
+  facts : @publication_host.ClientPublicationPlanFacts,
+) -> Array[String] {
+  @publication_host.client_publication_plan_fact_entries(facts)
+}
+
+///|
+/// Check saved Result-publication entries against the prepared Program.
+#export_name("clientProgramAdmitPublicationFactEntries")
+pub fn client_program_admit_publication_fact_entries(
+  prepared : @publication_host.PreparedClientProgram,
+  entries : Array[String],
+) -> Result[Unit, @publication_host.ClientPublicationFactEntryIssue] {
+  @publication_host.admit_prepared_client_publication_fact_entries(
+    prepared, entries, 1000, 100000, 10000, 100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
