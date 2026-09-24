@@ -15,6 +15,7 @@ export type OutputRecord = {readonly [ownerHandle]: 'output-record'};
 export type DurableOutputRecord = {
   readonly [ownerHandle]: 'durable-output-record'
 };
+export type OutputTransition = {readonly [ownerHandle]: 'output-transition'};
 
 export interface DispatchInput {
   coordinatorAuthority: string;
@@ -97,6 +98,17 @@ export function restoreDurableOutput(journal: Journal,
   durable: DurableOutputRecord): OutputRecord;
 export function durableOutputRevision(durable: DurableOutputRecord): number;
 export function durableOutputJson(durable: DurableOutputRecord): string;
+export function prepareOutputUnknown(record: OutputRecord): OutputTransition;
+export function prepareOutputSuccessJson(record: OutputRecord,
+  body: string): OutputTransition;
+export function outputTransitionExpectedRevision(
+  transition: OutputTransition): number;
+export function outputTransitionDurableJson(durable: DurableOutputRecord,
+  transition: OutputTransition): string;
+/** Call only after the exact next output body was atomically persisted. */
+export function commitOutputTransition(
+  transition: OutputTransition): OutputRecord;
+export function outputResultJson(record: OutputRecord): string;
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;

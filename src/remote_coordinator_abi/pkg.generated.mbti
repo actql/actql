@@ -28,6 +28,8 @@ pub fn coordinator_commit_intent(@remote_site_protocol.CoordinatorDispatchIntent
 
 pub fn coordinator_commit_output_intent(@remote_site_protocol.CoordinatorOutputAdmission) -> Result[@remote_site_protocol.CoordinatorOutputRecord, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_commit_output_transition(@remote_site_protocol.CoordinatorOutputTransition) -> Result[@remote_site_protocol.CoordinatorOutputRecord, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_commit_transition(@remote_site_protocol.CoordinatorDispatchTransition) -> Result[Unit, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_create_journal(String) -> Result[@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchIssue]
@@ -58,6 +60,12 @@ pub fn coordinator_output_intent_is_new(@remote_site_protocol.CoordinatorOutputA
 
 pub fn coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
 
+pub fn coordinator_output_result_json(@remote_site_protocol.CoordinatorOutputRecord) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_output_transition_durable_json(@remote_site_protocol.DurableCoordinatorOutputRecord, @remote_site_protocol.CoordinatorOutputTransition) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_output_transition_expected_revision(@remote_site_protocol.CoordinatorOutputTransition) -> Int
+
 pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_poll_query_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
@@ -67,6 +75,10 @@ pub fn coordinator_prepare_dispatch(String, String, String, Int, String, String,
 pub fn coordinator_prepare_intent(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.CoordinatorDispatchIntentAdmission, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_output_intent(@remote_site_protocol.CoordinatorDispatchJournal, CoordinatorCheckedOutputPlan) -> Result[@remote_site_protocol.CoordinatorOutputAdmission, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_prepare_output_success_json(@remote_site_protocol.CoordinatorOutputRecord, String) -> Result[@remote_site_protocol.CoordinatorOutputTransition, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_prepare_output_unknown(@remote_site_protocol.CoordinatorOutputRecord) -> Result[@remote_site_protocol.CoordinatorOutputTransition, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_response_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.RemoteDispatchResponse) -> Result[@remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.DispatchIssue]
 

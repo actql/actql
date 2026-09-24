@@ -113,6 +113,19 @@ export const restoreDurableOutput = (journal, durable) =>
   checked(owner.coordinatorRestoreDurableOutput(journal, durable));
 export const durableOutputRevision = owner.coordinatorDurableOutputRevision;
 export const durableOutputJson = owner.coordinatorDurableOutputJson;
+export const prepareOutputUnknown = record =>
+  checked(owner.coordinatorPrepareOutputUnknown(record));
+export const prepareOutputSuccessJson = (record, body) =>
+  checked(owner.coordinatorPrepareOutputSuccessJson(record, body));
+export const outputTransitionExpectedRevision =
+  owner.coordinatorOutputTransitionExpectedRevision;
+export const outputTransitionDurableJson = (durable, transition) =>
+  checked(owner.coordinatorOutputTransitionDurableJson(durable, transition));
+/** Call only after the exact next output body was atomically persisted. */
+export const commitOutputTransition = transition =>
+  checked(owner.coordinatorCommitOutputTransition(transition));
+export const outputResultJson = record =>
+  checked(owner.coordinatorOutputResultJson(record));
 export const prepareUnknown = record =>
   checked(owner.coordinatorPrepareUnknown(record));
 export const admitResponseJson = (body, request, statusReply) =>

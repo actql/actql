@@ -145,3 +145,53 @@ pub fn coordinator_durable_output_json(
 ) -> String {
   @remote.durable_coordinator_output_record_json(durable)
 }
+
+///|
+#export_name("coordinatorPrepareOutputUnknown")
+pub fn coordinator_prepare_output_unknown(
+  record : @remote.CoordinatorOutputRecord,
+) -> Result[@remote.CoordinatorOutputTransition, @remote.DispatchIssue] {
+  @remote.prepare_coordinator_output_unknown(record)
+}
+
+///|
+#export_name("coordinatorPrepareOutputSuccessJson")
+pub fn coordinator_prepare_output_success_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> Result[@remote.CoordinatorOutputTransition, @remote.DispatchIssue] {
+  @remote.prepare_coordinator_output_success_json(record, body)
+}
+
+///|
+#export_name("coordinatorOutputTransitionExpectedRevision")
+pub fn coordinator_output_transition_expected_revision(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Int {
+  @remote.coordinator_output_transition_expected_revision(transition)
+}
+
+///|
+#export_name("coordinatorOutputTransitionDurableJson")
+pub fn coordinator_output_transition_durable_json(
+  durable : @remote.DurableCoordinatorOutputRecord,
+  transition : @remote.CoordinatorOutputTransition,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_transition_durable_json(durable, transition)
+}
+
+///|
+#export_name("coordinatorCommitOutputTransition")
+pub fn coordinator_commit_output_transition(
+  transition : @remote.CoordinatorOutputTransition,
+) -> Result[@remote.CoordinatorOutputRecord, @remote.DispatchIssue] {
+  @remote.commit_coordinator_output_transition(transition, true)
+}
+
+///|
+#export_name("coordinatorOutputResultJson")
+pub fn coordinator_output_result_json(
+  record : @remote.CoordinatorOutputRecord,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_record_result_json(record)
+}
