@@ -4,11 +4,20 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 35 have operation-specific
-boundary records, 16 have all four lifecycle roles, and 15 have exact and
+The current local resource gate maps 68 routes: 36 have operation-specific
+boundary records, 17 have all four lifecycle roles, and 16 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 38 paths have path-scoped work/workspace evidence. Strict completion
+routes, 39 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The registered rows-to-Events Bridge now has independently counted 32/31
+construction-work and 13/12 peak structural-workspace limits for two
+three-field records. The workspace bound includes the second record's
+scratch fields overlapping the retained builder and new copy. The fixed
+fixture also stops after one private record and reclaims the unpublished
+builder. The ordinary Node Host's `to-events-bridge` case
+delivers cancellation during that same Bridge stage. This proves one
+operation path, not the remaining Events or Vectors projections.
 
 The single production entrypoints for `interval_join` and `asof_join` now bind
 their independently counted exact/one-short work and workspace fixtures to

@@ -12,6 +12,7 @@ priv struct RowsToEventsState {
   mut output : @records.OutputBuilder?
   schema : @schema.Schema
   value_limits : @value.Limits
+  max_workspace_slots : Int
   mut phase : RowsToEventsPhase
   mut row : Int
   mut column : Int
@@ -161,6 +162,18 @@ fn rows_to_events_step(
         }
       ReadCell =>
         if state.column < @schema.field_count(state.schema) {
+          guard state.output is Some(output) else {
+            return @bounded.Failed(InvalidKernel, progress, used)
+          }
+          let retained = @records.output_workspace_slots(output)
+          if retained > state.max_workspace_slots ||
+            state.fields.length() >= state.max_workspace_slots - retained {
+            return @bounded.Failed(
+              Output(@records.Storage(@storage.WorkspaceLimit)),
+              progress,
+              used,
+            )
+          }
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
             @execution.producer_read_checked_cell(
               state.input,
@@ -180,6 +193,18 @@ fn rows_to_events_step(
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        let retained = @records.output_workspace_slots(output)
+        let fields = state.fields.length()
+        // append_record copies the scratch fields into retained storage.
+        if retained > state.max_workspace_slots ||
+          fields > state.max_workspace_slots - retained ||
+          fields > state.max_workspace_slots - retained - fields - 2 {
+          return @bounded.Failed(
+            Output(@records.Storage(@storage.WorkspaceLimit)),
+            progress,
+            used,
+          )
         }
         used += 1
         match @records.append_record(output, state.fields) {
@@ -259,6 +284,7 @@ fn start_rows_to_records(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    max_workspace_slots: limits.max_workspace_slots,
     phase: BeginRow,
     row: 0,
     column: 0,
