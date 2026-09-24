@@ -68,6 +68,13 @@ export function executionShape(compilation: ValuesCompilation): Readonly<{
   outputContractCid: string;
   resultNames: readonly string[];
 }>;
+/** Complete checked inventory; these identities are not read grants. */
+export function resultDefinitions(prepared: PreparedProgram,
+  compilation: ValuesCompilation): readonly Readonly<{
+  name: string;
+  cid: string;
+  wire: string;
+}>[];
 // The Host establishes authority scope and admitted input intent. An identity
 // handle or its fields do not grant Run access or permission to dispatch.
 export function prepareRequest(prepared: PreparedProgram,

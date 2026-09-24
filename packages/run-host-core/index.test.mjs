@@ -9,6 +9,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
   executionShape,
+  resultDefinitions,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
@@ -37,6 +38,22 @@ test('portable Host package compiles the ordinary Values Program', () => {
       'sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c',
     resultNames: ['answer'],
   });
+  const definitions = resultDefinitions(prepared, compilation);
+  const programCid = requestFields(prepareSourceFreeRequest(prepared,
+    compilation, `sha256:${'a'.repeat(64)}`, 'inventory-request'))
+    .programDefinitionCid;
+  const definitionCid = cid({version: 'actql-result-definition/0.1',
+    program_definition_cid: programCid, result_name: 'answer'});
+  assert.deepEqual(definitions, [{
+    name: 'answer',
+    cid: definitionCid,
+    wire: JSON.stringify({program_definition_cid: programCid,
+      result_definition_cid: definitionCid,
+      result_name: 'answer', version: 'actql-result-definition/0.1'}),
+  }]);
+  assert.throws(() => resultDefinitions(prepare(read('values.json'),
+    'json', environment), compilation),
+  {name: 'TypeError', message: 'ForeignRunHostCompilation'});
   const wires = privateCompilationWires(compilation);
   const plan = JSON.parse(wires.executablePlan);
   const facts = JSON.parse(wires.factManifest);

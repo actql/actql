@@ -73,6 +73,8 @@ pub fn client_values_host_request_relation(@run_publication_host.ClientRequestId
 
 pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_values_host_result_definitions(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]
+
 pub fn client_values_host_result_names(@run_publication_host.ClientValuesCompilation) -> Array[String]
 
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String

@@ -201,6 +201,57 @@ pub fn client_values_host_result_names(
 }
 
 ///|
+/// The complete checked Result inventory for the single Values task. The
+/// flattened triples are name, CID and canonical body in declaration order.
+/// These identities do not authorize publication or payload access.
+#export_name("clientValuesHostResultDefinitions")
+pub fn client_values_host_result_definitions(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+) -> Result[Array[String], @publication.PublicationInventoryIssue] {
+  let names = @host.client_values_compilation_result_names(compilation)
+  let tasks : Array[Int] = []
+  for _ in names {
+    tasks.push(0)
+  }
+  let inventory = match
+    @publication.prepare_checked_publication_inventory(
+      @host.prepared_client_identity(prepared).program_definition_cid,
+      names,
+      tasks,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let definitions : Array[String] = []
+  for index = 0; index < names.length(); index = index + 1 {
+    let name = match
+      @publication.checked_publication_inventory_name(inventory, index) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let cid = match
+      @publication.checked_publication_inventory_definition_cid(
+        inventory, index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let wire = match
+      @publication.checked_publication_inventory_definition_json(
+        inventory, index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    definitions.push(name)
+    definitions.push(cid)
+    definitions.push(wire)
+  }
+  Ok(definitions)
+}
+
+///|
 /// The Host must first admit caller input intent and authority scope. This
 /// owner then binds the checked Program and effective Parameter Values to the
 /// caller request ID; neither the CID nor this handle grants authorization.
