@@ -11102,6 +11102,50 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/planning-wire.result-plan-logical-identity",
+      "statement_sha256": "6ba0ffe434a15cd8085f3d3f8cf63f8a0eaf56bf71ade49c9559f12ceb35438f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "planning-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/planning-wire.result-plan-logical-identity.second",
+      "statement_sha256": "886b4863e9c22c65bdb7c994989f210ecf0e336ce669a1ce218c0dd371ed7543",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "planning-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/planning-wire.result-plan-root-binding",
+      "statement_sha256": "337f24d7d0701c6d74622a343d909a719fbef41d16a713fb713aa84f918f4cc5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "planning-wire",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/planning-wire.result-plan-root-binding.second",
+      "statement_sha256": "f197924b03c48097b11b9a939d32052eb6a608529687ff0440c062fc629e3b4c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "planning-wire",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/planning-wire.the-public-actql-plan-result-0-2-projection-must-not-expose-bound-scalar-or",
       "statement_sha256": "e4a93d4690f8bb5e4015ad9d6abccaf6311839d2d1fa8a5f5c4c521ca0dfb580",
       "status": "pending",
@@ -11488,7 +11532,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "d741f9a256fded67af2fc6b4294ed3fd9c9c86e56cde0eccfdf69519e9112431",
+      "statement_sha256": "9f723ef3a2366f883c55e128e91de2e7d03530f0e2db6b4967d529418df06f78",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
