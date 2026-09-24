@@ -48,17 +48,17 @@ pub fn rows_to_graph_cleanup_pending(RowsToGraphExecution) -> Bool
 
 pub fn rows_to_vectors_cleanup_pending(RowsToVectorsExecution) -> Bool
 
-pub fn start_completed_relation_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.Completed, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+pub fn start_completed_relation_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.Completed, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
-pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
-pub fn start_events_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int) -> Result[EventsToRowsExecution, EventsBridgeIssue]
+pub fn start_events_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
-pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphRowsExecution, GraphBridgeIssue]
+pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
-pub fn start_graph_to_rows_from_carrier_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphRowsExecution, GraphBridgeIssue]
+pub fn start_graph_to_rows_from_carrier_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
-pub fn start_graph_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphRowsExecution, GraphBridgeIssue]
+pub fn start_graph_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
 pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]
 
@@ -66,9 +66,9 @@ pub fn start_rows_to_graph(@bounded_execution.Control, @lowering_relation.Prepar
 
 pub fn start_rows_to_vectors(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToVectorsExecution, EventsBridgeIssue]
 
-pub fn start_vectors_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
+pub fn start_vectors_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
 
-pub fn start_vectors_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
+pub fn start_vectors_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[VectorsToRowsExecution, EventsBridgeIssue]
 
 pub fn vectors_to_rows_cleanup_pending(VectorsToRowsExecution) -> Bool
 
@@ -77,6 +77,7 @@ pub fn vectors_to_rows_cleanup_pending(VectorsToRowsExecution) -> Bool
 // Types and methods
 pub(all) enum EventsBridgeIssue {
   InvalidKernel
+  ControlWorkLimit
   InputUnavailable
   InvalidRow(Int)
   InvalidRecord(Int)
@@ -100,6 +101,7 @@ pub(all) enum GraphBridgeIssue {
   GraphInputUnavailable
   InvalidGraphRecord(Int)
   GraphWorkspaceLimit
+  GraphControlWorkLimit
   GraphRelationOutput(@execution_relation.CaptureIssue)
   GraphCompletion(@execution_relation.TrustedOutputIssue)
   GraphExecution(@bounded_execution.Issue)

@@ -1120,6 +1120,7 @@ fn advance_execution(
                 value.limits.max_workspace_slots,
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
+                control_work_limit=Some(value.limits.max_work),
               )
             } else if value.carrier_inputs.is_empty() {
               guard input is Some(input) else { return fail_execution(value) }
@@ -1140,6 +1141,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                control_work_limit=Some(value.limits.max_work),
               )
             } else {
               guard input is Some(input) else { return fail_execution(value) }
@@ -1159,6 +1161,7 @@ fn advance_execution(
                 value.limits.max_workspace_slots,
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
+                control_work_limit=Some(value.limits.max_work),
               )
             }
             match started {

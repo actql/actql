@@ -1100,6 +1100,7 @@ test "Events projection production entrypoint enforces value and width limits" {
     6,
     1000,
     [external],
+    control_work_limit=Some(26),
   ).unwrap()
   let mut exact_done = false
   for _ in 0..<40 {
@@ -1121,6 +1122,35 @@ test "Events projection production entrypoint enforces value and width limits" {
   }
   assert_true(exact_done)
   assert_eq(@local_bridge.cleanup_events_to_rows(exact), Ok(true))
+  let one_short_work = @local_bridge.start_events_to_rows(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    projection_input,
+    2,
+    { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    6,
+    1000,
+    [external],
+    control_work_limit=Some(25),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<40 {
+    if work_failed {
+      break
+    }
+    match @local_bridge.advance_events_to_rows(one_short_work, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
+        assert_eq(work, 25L)
+        work_failed = true
+      }
+      _ => abort("one-short Events projection did not reject work")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_work), Ok(true))
   let one_short_width = @local_bridge.start_events_to_rows(
     @bounded.control(),
     task_test_completion(owner),

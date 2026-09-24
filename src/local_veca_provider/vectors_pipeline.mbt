@@ -725,6 +725,7 @@ fn advance_execution(
               limits,
               value.limits.max_workspace_slots,
               value.max_value_bytes,
+              control_work_limit=Some(value.limits.max_work),
             )
           None => {
             guard value.transformed is Some(output) &&
@@ -756,6 +757,7 @@ fn advance_execution(
               value.limits.max_workspace_slots,
               value.max_value_bytes,
               inputs,
+              control_work_limit=Some(value.limits.max_work),
             )
           }
         }
