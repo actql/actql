@@ -3703,6 +3703,13 @@
           "fixture": "bounded sequence initializes allow state one pattern per resume"
         },
         {
+          "role": "sequence_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence work boundary charges output before row allocation"
+        },
+        {
           "role": "sequence_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -3721,10 +3728,22 @@
       ],
       "path_assurance": {
         "entrypoint": {
-          "exact_limit": "sequence_workspace_exact_one_short",
-          "one_short_limit": "sequence_workspace_exact_one_short",
+          "exact_limit": "sequence_work_exact_one_short",
+          "one_short_limit": "sequence_work_exact_one_short",
           "in_flight_cancel": "sequence_host_in_flight_cancel",
           "cleanup": "sequence_wide_init_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "sequence_work_exact_one_short",
+            "one_short_limit": "sequence_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "sequence_workspace_exact_one_short",
+            "one_short_limit": "sequence_workspace_exact_one_short"
+          }
         }
       }
     },

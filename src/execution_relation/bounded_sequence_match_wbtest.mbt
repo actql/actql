@@ -314,20 +314,15 @@ fn finish_bounded_sequence(
 
 ///|
 test "bounded sequence work boundary charges output before row allocation" {
-  let maximum = 100000
-  let (_, measured, _) = bounded_sequence_fixture(max_work=maximum)
-  assert_true(
-    finish_bounded_sequence(measured) is BoundedSequenceMatchComplete(_, ..),
-  )
-  let required = maximum -
-    bounded_sequence_match_state(measured).control.remaining
-  assert_true(required > 0)
-  cleanup_bounded_sequence_match(measured).unwrap() |> ignore
-
+  // Fixed five-row, two-pattern fixture: field resolution, two indexed
+  // orders, identity checks, demanded predicates, matches, and emitted rows
+  // consume 621 logical work units. Do not derive this limit from the kernel.
+  let required = 621
   let (_, exact, _) = bounded_sequence_fixture(max_work=required)
   assert_true(
     finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),
   )
+  assert_eq(bounded_sequence_match_state(exact).control.remaining, 0)
   cleanup_bounded_sequence_match(exact).unwrap() |> ignore
 
   let (_, short, _) = bounded_sequence_fixture(max_work=required - 1)

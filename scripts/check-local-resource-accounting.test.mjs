@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 22 with four-role boundary evidence, 21 with full work\/workspace assurance, 46 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource summary rejects stale route counts', () => {
@@ -58,14 +58,23 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 47 |',
     '| Path-scoped work/workspace assurance | 46 |',
-    '| Path-scoped work/workspace assurance | 45 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(
     run(undefined, undefined, ['--check-summary'], stale),
     /resource gaps ledger summary is stale/,
   );
+});
+
+test('sequence loses assurance without its independent work fixture', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'sequence');
+    route.boundary_tests = route.boundary_tests.filter(test =>
+      test.role !== 'sequence_work_exact_one_short');
+  }), /TEA sequence: entrypoint operation work lacks an executable fixture/u);
 });
 
 test('Events projection loses its boundary evidence when the fixture is removed', () => {

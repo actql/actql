@@ -13,8 +13,8 @@ and checked by `check:local-resource-accounting`.
 | Production routes | 68 |
 | Operation-specific boundary records | 39 |
 | Four-role lifecycle assurance | 22 |
-| Full route work/workspace assurance | 21 |
-| Path-scoped work/workspace assurance | 46 |
+| Full route work/workspace assurance | 22 |
+| Path-scoped work/workspace assurance | 47 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -1875,6 +1875,11 @@ kernel stop, publishes no partial result, completes cleanup, and returns held
 and reserved bytes to zero. At `d4fb3d6da`, the Events input crosses a
 physical standard Host task boundary into bounded sequence matching. Its
 Relation output reaches publication and two independently released consumers.
+The fixed five-row, two-pattern kernel fixture now pins 621 control-work
+units independently of the observed run. Exact and one-short work, together
+with the independently calculated 58-slot workspace peak, bind the bounded
+sequence entrypoint to the resource gate. Removing the work fixture makes
+that assurance fail. This does not prove the remaining providerless routes.
 Event
 windows now preserve the Events
 Carrier in typed lowering and emit the registered fixed-label or
