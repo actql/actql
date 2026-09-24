@@ -203,3 +203,12 @@ not yet admitted and published a multi-member Effect Set. Local HTTPS and
 SQLite tests do not substitute for that path or for live Salesforce org
 verification. The supplied review's CI status belongs to its fixed SHA; a
 new required CI result must be checked against the final implementation SHA.
+
+The 0.1 final Effectful Run Receipt now has a MoonBit-owned reference closure
+and an issuer that derives its body from the prior computation Receipt. The
+closure admits the exact Captured Run, private Preview, member receipts and
+Effect Set receipt, and rejects altered computation evidence or a foreign
+reference. It does not prove the checked Program kind, physical apply outcome,
+current authority, or durable publication commit. The existing synthetic
+reference fixture is not a standard Host Effectful execution test. Those
+remaining proofs must be connected before this port is marked complete.
