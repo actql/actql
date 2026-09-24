@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/retained_task_file"
+
+import {
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/sha256",
+}
+
+// Values
+pub fn begin_native_retained_task_file(String, String, Int64) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue]
+
+// Errors
+
+// Types and methods
+type NativeRetainedTaskFile
+pub fn NativeRetainedTaskFile::append(Self, String) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::available(Self) -> Bool
+pub fn NativeRetainedTaskFile::open_reader(Self) -> Result[NativeRetainedTaskReader, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::release(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::seal(Self, String, Int) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::stored_bytes(Self) -> Int64?
+
+pub(all) enum NativeRetainedTaskFileIssue {
+  InvalidLimit
+  InvalidState
+  ContentMismatch
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  Hash(@sha256.HashFailure)
+}
+
+type NativeRetainedTaskReader
+pub fn NativeRetainedTaskReader::close(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskReader::finish(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskReader::next(Self, Int) -> Result[@filesystem.NativeFileChunk, NativeRetainedTaskFileIssue]
+
+// Type aliases
+
+// Traits

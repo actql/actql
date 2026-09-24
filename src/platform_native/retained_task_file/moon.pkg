@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/sha256",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
