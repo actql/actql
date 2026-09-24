@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 44 |
+| Operation-specific boundary records | 45 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -1387,6 +1387,14 @@ native. The same path establishes the independently derived Named Result
 identity. Cancellation after partial snapshot work confirms stop separately
 from cleanup and reclaims the unpublished output without revoking either
 input.
+
+The Graph diff wrapper now applies the selected cumulative work ceiling to
+output append and final completion as well as the bounded diff core. A
+ten-node, ten-edge identical-input regression executes with quantum one,
+then checks the same path at its observed full work count and one less.
+The one-short path fails without completion and cleanup remains explicit.
+This guards the output tail; its observed count is not an independent
+work formula or full workspace assurance for every diff shape.
 
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the

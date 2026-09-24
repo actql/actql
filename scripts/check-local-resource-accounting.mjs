@@ -1321,6 +1321,10 @@ for (const [index, route] of routeEntries.entries()) {
       !boundaryRoles.has('path_emit_control_work_ceiling'))) {
     fail(`${label}: traversal work evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'graph_diff' &&
+    !boundaryRoles.has('graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup')) {
+    fail(`${label}: Graph diff tail-work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

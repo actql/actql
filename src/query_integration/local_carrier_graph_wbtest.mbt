@@ -8036,7 +8036,21 @@ test "Graph equality bounds nested value comparison work" {
 
 ///|
 test "Graph diff cancellation stops partial snapshots before cleanup" {
-  let source_owner = carrier_graph_source_owner()
+  let mut source_rows = "["
+  for id in 1..<=10 {
+    if id > 1 {
+      source_rows += ","
+    }
+    source_rows += "{\"id\":" +
+      id.to_string() +
+      ",\"src\":" +
+      id.to_string() +
+      ",\"dst\":" +
+      id.to_string() +
+      ",\"node_name\":\"same\",\"weight\":1}"
+  }
+  source_rows += "]"
+  let source_owner = carrier_graph_source_owner_with_rows(source_rows)
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_diff_owner(source_owner)
   let sequence = prepared_sequence(owner)
@@ -8080,7 +8094,7 @@ test "Graph diff cancellation stops partial snapshots before cleanup" {
     @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
     1,
     { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
-    100,
+    1000,
     1000,
     1000,
     [external],
@@ -8098,6 +8112,79 @@ test "Graph diff cancellation stops partial snapshots before cleanup" {
   assert_true(@local_sga.graph_diff_cleanup_pending(execution))
   assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
   assert_false(@local_sga.graph_diff_cleanup_pending(execution))
+  let reference = @local_sga.start_graph_diff(
+    @bounded.control(),
+    task_test_completion(owner),
+    sequence,
+    2,
+    @graphs.prepare_step_read(owner, 2, 0, left).unwrap(),
+    @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    1000,
+    1000,
+    1000,
+    [external],
+  ).unwrap()
+  let mut charged = 0
+  let mut finished = false
+  while !finished {
+    match @local_sga.advance_graph_diff(reference, 1).unwrap() {
+      @local_sga.GraphDiffContinue(work~, ..) => charged = work.to_int()
+      @local_sga.GraphDiffComplete(output, work~, ..) => {
+        charged = work.to_int()
+        assert_true(@execution.completed_output_available(output))
+        finished = true
+      }
+      _ => fail("reference graph diff failed")
+    }
+  }
+  assert_eq(@local_sga.cleanup_graph_diff(reference), Ok(true))
+  assert_true(charged > 2)
+  // The paired ceilings guard the emit/finalize tail, not an independent
+  // full-route work formula for every graph shape.
+  for ceiling in [charged - 1, charged] {
+    let limited = @local_sga.start_graph_diff(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      @graphs.prepare_step_read(owner, 2, 0, left).unwrap(),
+      @graphs.prepare_step_read(owner, 2, 1, right).unwrap(),
+      1,
+      {
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: ceiling,
+      },
+      1000,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    let mut terminal = false
+    let mut reported = 0
+    while !terminal {
+      match @local_sga.advance_graph_diff(limited, 1).unwrap() {
+        @local_sga.GraphDiffContinue(work~, ..) => reported = work.to_int()
+        @local_sga.GraphDiffComplete(output, work~, ..) => {
+          reported = work.to_int()
+          assert_eq(ceiling, charged)
+          assert_true(@execution.completed_output_available(output))
+          terminal = true
+        }
+        @local_sga.GraphDiffFailed(@local_sga.GraphDiffWorkLimit, work~, ..) => {
+          reported = work.to_int()
+          assert_eq(ceiling, charged - 1)
+          terminal = true
+        }
+        _ => fail("graph diff ignored its total work ceiling")
+      }
+    }
+    assert_eq(reported, ceiling)
+    assert_eq(@local_sga.cleanup_graph_diff(limited), Ok(true))
+  }
   assert_true(@graphs.discard_completed(left))
   assert_true(@graphs.discard_completed(right))
   assert_true(@execution.completed_output_available(source))

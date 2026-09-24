@@ -2942,7 +2942,16 @@
       "entrypoint": {
         "path": "src/local_sga/graph_diff.mbt",
         "symbol": "start_graph_diff"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "Graph diff cancellation stops partial snapshots before cleanup"
+        }
+      ]
     },
     {
       "inventory": "families",
