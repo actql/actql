@@ -24,8 +24,12 @@ The direct one-record session fixture now independently counts ten scratch
 slots and twelve temporary emission slots. It completes with 22 workspace
 slots and fails at 21 after consuming the input, without publishing a
 partial output; cleanup retains ownership. This proof is linked to the
-session production route, but relation/view source variants and task-wide
-resource accounting remain open.
+session production route. Relation-backed and Events-view sessions now run the
+same one-record fixture with exact 44/43 work and 22/21 workspace boundaries.
+The view fixture constructs a real Events material through the registered
+provider, then verifies cleanup leaves it available for final reclamation.
+These are fixed-shape kernel-path proofs, not full task-wide accounting or
+all-variant resource assurance.
 
 The bounded interval and as-of join constructors now check their complete
 structural metadata dimensions before resolving fields or constructing the
