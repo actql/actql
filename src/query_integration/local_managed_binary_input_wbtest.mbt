@@ -1,5 +1,8 @@
 ///|
-fn run_binary_receiver_input_limit(cross : Bool) -> Unit raise {
+fn run_binary_receiver_input_boundary(
+  cross : Bool,
+  cancel_during_scan : Bool,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_cross_external_chain=cross,
     local_values_append_chain=!cross,
@@ -32,7 +35,11 @@ fn run_binary_receiver_input_limit(cross : Bool) -> Unit raise {
       retained_entries: rows.retained_entries,
       operation_entries: rows.operation_entries,
       input_values: {
-        max_nodes: 0,
+        max_nodes: if cancel_during_scan {
+          rows.input_values.max_nodes
+        } else {
+          0
+        },
         max_text_bytes: rows.input_values.max_text_bytes,
         max_depth: rows.input_values.max_depth,
         max_work: rows.input_values.max_work,
@@ -101,22 +108,33 @@ fn run_binary_receiver_input_limit(cross : Bool) -> Unit raise {
     [local_managed_test_rows(left_ops), local_managed_test_rows(right_ops)],
     require_provider=true,
   )
-  let mut rejected = false
-  let mut polls = 0
-  while !rejected && polls < 100 {
-    polls += 1
-    match (operations.advance)(1) {
-      Err(
-        @local_driver.Configuration(@connector.Execution(@execution.InputLimit))
-      ) => rejected = true
-      Ok(observation) => {
-        assert_false(observation.complete)
-        assert_true(observation.work <= 1L)
+  if cancel_during_scan {
+    let first = (operations.advance)(1).unwrap()
+    assert_false(first.complete)
+    assert_eq(first.progress, 0L)
+    assert_true(first.work <= 1L)
+    assert_true((operations.request_cancel)())
+    assert_true((operations.advance)(1) is Err(_))
+  } else {
+    let mut rejected = false
+    let mut polls = 0
+    while !rejected && polls < 100 {
+      polls += 1
+      match (operations.advance)(1) {
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.InputLimit)
+          )
+        ) => rejected = true
+        Ok(observation) => {
+          assert_false(observation.complete)
+          assert_true(observation.work <= 1L)
+        }
+        _ => fail("binary receiver did not report its input value limit")
       }
-      _ => fail("binary receiver did not report its input value limit")
     }
+    assert_true(rejected)
   }
-  assert_true(rejected)
   assert_true((operations.execution_stopped)())
   assert_true((operations.output_row)(0) is Err(_))
   assert_true(
@@ -149,10 +167,16 @@ fn run_binary_receiver_input_limit(cross : Bool) -> Unit raise {
 
 ///|
 test "standard Host rejects cross join receiving input value limit" {
-  run_binary_receiver_input_limit(true)
+  run_binary_receiver_input_boundary(true, false)
 }
 
 ///|
 test "standard Host rejects append receiving input value limit" {
-  run_binary_receiver_input_limit(false)
+  run_binary_receiver_input_boundary(false, false)
+}
+
+///|
+test "standard Host cancels binary receivers during input admission" {
+  run_binary_receiver_input_boundary(true, true)
+  run_binary_receiver_input_boundary(false, true)
 }

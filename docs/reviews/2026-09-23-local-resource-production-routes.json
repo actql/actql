@@ -2020,6 +2020,13 @@
           "fixture": "standard Host rejects append receiving input value limit"
         },
         {
+          "role": "append_external_host_input_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_binary_input_wbtest.mbt",
+          "fixture": "standard Host cancels binary receivers during input admission"
+        },
+        {
           "role": "append_external_nested_input_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -2341,6 +2348,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_binary_input_wbtest.mbt",
           "fixture": "standard Host rejects cross join receiving input value limit"
+        },
+        {
+          "role": "external_product_host_input_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_binary_input_wbtest.mbt",
+          "fixture": "standard Host cancels binary receivers during input admission"
         },
         {
           "role": "external_product_self_input_occurrences",

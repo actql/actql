@@ -327,6 +327,9 @@ two-consumer and timer-cancel routes remain the product-path regression.
 Standard Host fixtures also complete the producers with ordinary limits and
 then reject each binary receiver under its own zero-node input budget, without
 publishing a result or reclaiming either producer prematurely.
+The portable standard Host now also cancels each receiver after its first
+admission step, before row output, and verifies stop, nonpublication, borrowed
+producer availability, and final ledger reclamation on all three targets.
 The Node standard Host delivers a timer cancellation after positive receiving
 input work in a 100-row-by-empty cross join, then observes stop,
 nonpublication, and final reclamation. This distinguishes input admission

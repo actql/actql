@@ -910,9 +910,11 @@ test('binary receivers need their input admission fixtures', () => {
   for (const [operation, role] of [
     ['append', 'append_external_input_value_exact_one_short'],
     ['append', 'append_external_host_receiving_input_limit'],
+    ['append', 'append_external_host_input_cancel_cleanup'],
     ['append', 'append_external_nested_input_cancel_cleanup'],
     ['cross_join', 'external_product_input_value_exact_one_short'],
     ['cross_join', 'external_product_host_receiving_input_limit'],
+    ['cross_join', 'external_product_host_input_cancel_cleanup'],
     ['cross_join', 'external_product_self_input_occurrences'],
     ['cross_join', 'external_product_empty_output_input_admission'],
     ['cross_join', 'external_product_empty_singleton_quantum'],
