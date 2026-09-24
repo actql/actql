@@ -5,7 +5,8 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRequestFields, admitRun, compileValues,
-  issueRunDefinition, prepare, prepareRequest, prepareRunStart,
+  checkRunBinding, issueRunDefinition, prepare, prepareRequest,
+  prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
   privateRunDefinition, requestFields, requestRelation} from './index.mjs';
@@ -185,6 +186,11 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
   assert.equal(definition.cid, without(body, 'run_definition_cid'));
   const restoredDefinition = admitRunDefinition(definition.wire);
   assert.deepEqual(privateRunDefinition(restoredDefinition), definition);
+  checkRunBinding(prepared, admission, restoredDefinition);
+  assert.throws(() => checkRunBinding(
+    prepare(read('values.json'), 'json', environment), admission,
+    restoredDefinition),
+  {name: 'TypeError', message: 'ForeignRunHostAdmission'});
   const request = prepareSourceFreeRequest(prepared, compilation, contextCid,
     'durable-run-request');
   const restoredRequest = admitSourceFreeRequestFields(prepared, compilation,

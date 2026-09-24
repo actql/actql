@@ -183,7 +183,7 @@ export function admitRun(prepared, compilation, preparedInvocationWire,
     compiled.value,
     preparedInvocationWire, authorizationWire),
   'RunHostAdmissionRejected');
-  return handle(admissions, value, 'run-admission');
+  return handle(admissions, {value, prepared}, 'run-admission');
 }
 
 export function issueRunDefinition(admission, scopeId, runId,
@@ -193,7 +193,7 @@ export function issueRunDefinition(admission, scopeId, runId,
     throw new TypeError('InvalidRunHostDefinition');
   }
   const value = checked(owner.clientValuesHostIssueRunDefinition(
-    requireHandle(admissions, admission), scopeId, runId,
+    requireHandle(admissions, admission).value, scopeId, runId,
     inputArtifactSetCid, createdAt, validUntil),
   'RunHostDefinitionRejected');
   return handle(definitions, value, 'run-definition');
@@ -230,4 +230,14 @@ export function prepareRunStart(requested, retained, definition,
     case 1: return 'reconcile_reserved_dispatch';
     default: throw new Error('InvalidRunHostStartAction');
   }
+}
+
+export function checkRunBinding(prepared, admission, definition) {
+  const admitted = requireHandle(admissions, admission);
+  if (admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostAdmission');
+  }
+  checked(owner.clientValuesHostCheckRunBinding(
+    requireHandle(preparations, prepared), admitted.value,
+    requireHandle(definitions, definition)), 'RunHostBindingRejected');
 }

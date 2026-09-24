@@ -18,6 +18,8 @@ pub fn client_values_host_admit_run_definition(String) -> Result[@run_publicatio
 
 pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
+
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
 pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String

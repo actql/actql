@@ -96,3 +96,5 @@ export function prepareRunStart(requested: RequestIdentity,
   retainedRunDefinitionCid: string, dispatchReserved: boolean,
   currentAuthorization: boolean): 'reserve_dispatch' |
   'reconcile_reserved_dispatch';
+export function checkRunBinding(prepared: PreparedProgram,
+  admission: RunAdmission, definition: RunDefinition): void;

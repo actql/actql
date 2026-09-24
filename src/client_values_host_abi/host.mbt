@@ -431,3 +431,22 @@ pub fn client_values_host_prepare_run_start(
     Err(issue) => Err(issue)
   }
 }
+
+///|
+/// Check a restored Definition against the same checked Program, Template,
+/// Compiled Plan and Host-issued admission evidence before physical start.
+#export_name("clientValuesHostCheckRunBinding")
+pub fn client_values_host_check_run_binding(
+  prepared : @host.PreparedClientProgram,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+) -> Result[Unit, @publication.RunProgramBindingIssue] {
+  let identity = @host.prepared_client_identity(prepared)
+  @publication.check_run_publication_program_binding(
+    admission,
+    definition,
+    identity.program_definition_cid,
+    @host.prepared_client_program_semantics_cid(prepared),
+    @host.prepared_client_check_environment_cid(prepared),
+  )
+}
