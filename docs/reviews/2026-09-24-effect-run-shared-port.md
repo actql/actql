@@ -563,6 +563,13 @@ final physical Task rather than Task 1. This closes the coordinate defect,
 not the full review acceptance list. Split-source pin lifetime, rollback,
 local HTTPS write suppression, and the ordinary multi-member Effectful Run
 through final publication still require product-path evidence.
+
+The installed Effect input exporter now derives its physical producer Task
+from the pinned MoonBit owner. Its Host caller no longer selects a Task.
+The Node integration control supplies a conflicting extra Task property and
+observes the checked producer instead. This prevents a Stage/Task coordinate
+regression at the Host boundary, but does not replace a split-source physical
+pin-and-release integration test.
 Its cell exporter rejects a resident representation explicitly; a resident
 input only proves exact physical custody until the Host presents the same
 concrete output and establishes its checked view and payload. Concrete
