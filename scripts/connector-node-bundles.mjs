@@ -224,6 +224,8 @@ if (existsSync(join(root, 'src', bridgePackage,
 // continue to match that adapter. Other generated bridge packages do not gain
 // the dependency.
 if (hasLocalCarrierBridge) {
+  dependencies.set('actql/actql/local_sga_provider', 'local_sga_provider');
+  dependencies.set('actql/actql/managed_graph_storage', 'graph_storage');
   dependencies.set(
     'actql/actql/managed_carrier_runtime',
     'carrier_runtime',

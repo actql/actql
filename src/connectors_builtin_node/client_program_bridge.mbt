@@ -1356,28 +1356,71 @@ fn client_program_configure_local_host(
     max_depth: 100,
     max_work: 100000,
   }
+  let execution : @execution.SequenceExecutionLimits = {
+    rows: {
+      max_rows: 100,
+      metadata_entries: 10000,
+      retained_entries: 10000,
+      operation_entries: 10000,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let measurement : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let graph_limits : @graph_storage.Limits = {
+    max_input_rows: 100,
+    max_nodes: 100,
+    max_edges: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 10000,
+    max_retained_value_bytes: 10000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+  let mut retained_bytes = 0L
+  let mut execution_bytes = 0L
+  for sequence in generated {
+    guard @execution.generated_sequence_capacity(
+        sequence, execution, measurement,
+      )
+      is Some(sequence_capacity) else {
+      return reject_client_local_run(run)
+    }
+    let retained = @execution.execution_capacity_retained_bytes(
+      sequence_capacity,
+    )
+    let executing = @execution.execution_capacity_execution_bytes(
+      sequence_capacity,
+    )
+    if retained > retained_bytes {
+      retained_bytes = retained
+    }
+    if executing > execution_bytes {
+      execution_bytes = executing
+    }
+  }
+  let providers = match
+    @execution.execution_capacity(retained_bytes, execution_bytes) {
+    Some(sequence_capacity) =>
+      [@local_sga_provider.provider(graph_limits, 10000L, sequence_capacity)]
+    None => return reject_client_local_run(run)
+  }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
-    managed_providers: [],
+    managed_providers: providers,
     managed_capacity: capacity,
-    execution: {
-      rows: {
-        max_rows: 100,
-        metadata_entries: 10000,
-        retained_entries: 10000,
-        operation_entries: 10000,
-        input_values: values,
-        output_values: values,
-      },
-      max_work: 100000,
-      max_frames: 100,
-    },
-    measurement: {
-      max_work: 10000,
-      max_bytes: 10000,
-      max_nodes: 10000,
-      max_depth: 100,
-    },
+    execution,
+    measurement,
     max_work: 100,
   }
   let bundle : @connector.CapabilityBundle[

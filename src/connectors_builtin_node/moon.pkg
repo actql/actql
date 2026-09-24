@@ -37,6 +37,8 @@ import {
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/local_sga_provider",
+  "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/stage_results" @effect_results,
 }
