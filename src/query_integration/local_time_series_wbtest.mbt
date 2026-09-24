@@ -79,6 +79,10 @@ test "registered time-series provider emits a bounded UTC grid" {
   )
   let provider = local_time_series_provider(generated)
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  assert_true(
+    @local_connector.start_managed_provider(provider, generated, [], 2, 1000)
+    is Err(_),
+  )
   let execution = @local_connector.start_managed_provider(
     provider,
     generated,
@@ -92,7 +96,10 @@ test "registered time-series provider emits a bounded UTC grid" {
     advances += 1
     match @local_connector.advance_managed_provider(execution, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
-      @local_connector.Complete(value, ..) => output = Some(value)
+      @local_connector.Complete(value, work~, ..) => {
+        assert_eq(work, 1L)
+        output = Some(value)
+      }
       @local_connector.CarrierComplete(_, ..) =>
         fail("time-series provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("time-series provider failed")

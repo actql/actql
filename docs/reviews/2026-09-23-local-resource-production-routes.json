@@ -3112,7 +3112,32 @@
       "entrypoint": {
         "path": "src/local_tea/time_series.mbt",
         "symbol": "start_time_series"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "time_series_output_exact_one_short_and_finish_work",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "fixture": "registered time-series provider emits a bounded UTC grid"
+        },
+        {
+          "role": "time_series_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "fixture": "time-series cancellation stops before cleanup"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "time_series_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "time-series"
+        }
+      ]
     },
     {
       "inventory": "families",

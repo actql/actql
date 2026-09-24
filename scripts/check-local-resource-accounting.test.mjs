@@ -41,7 +41,21 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 26 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('time-series output and Host cancellation evidence must remain bound', () => {
+  assert.match(run(undefined, routes => {
+    const series = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'time_series');
+    series.boundary_tests = series.boundary_tests.filter(item =>
+      item.role !== 'time_series_output_exact_one_short_and_finish_work');
+  }), /TEA time_series: time_series_output_exact_one_short_and_finish_work fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const series = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'time_series');
+    series.environment_tests = [];
+  }), /TEA time_series: time_series_host_timer fixture is missing/);
 });
 
 test('session initialization and Host timer evidence must remain executable', () => {
