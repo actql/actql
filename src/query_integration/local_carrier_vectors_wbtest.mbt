@@ -3860,6 +3860,78 @@ test "registered VecA provider groups nullable RRF keys" {
 }
 
 ///|
+test "ranking initializes sort scratch within quantum and reclaims on cancel" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let control = @bounded.control()
+  let execution = @local_veca.start_ranking(
+    control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+    1000,
+    1000,
+    10000,
+  ).unwrap()
+  assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+  let mut last_work = 0L
+  let mut scratch_started = false
+  for _ in 0..<100 {
+    if !scratch_started {
+      match @local_veca.advance_ranking(execution, 1).unwrap() {
+        @local_veca.RankingContinue(work~, ..) => {
+          assert_eq(work - last_work, 1L)
+          last_work = work
+          scratch_started = @local_veca.ranking_scratch_slots(execution) > 0
+          if scratch_started {
+            assert_eq(@local_veca.ranking_scratch_slots(execution), 1)
+          }
+        }
+        _ => fail("ranking completed before scratch initialization")
+      }
+    }
+  }
+  assert_true(scratch_started)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_ranking(execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+  assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+}
+
+///|
 fn run_direct_nearest_provider(
   owner : @lower.BoundPrepared,
   inputs : Array[@local_connector.ManagedProviderInput],

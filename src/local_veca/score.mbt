@@ -10,6 +10,7 @@ priv enum ScorePhase {
   ScoreValidateQuery
   ScoreInitializeScratch
   ScoreBeginRecord
+  ScoreInitializeIdentities
   ScoreReadField
   ScoreMatchIdentity
   ScoreValidateIdentities
@@ -167,12 +168,12 @@ fn begin_score_record(state : ScoreState) -> Result[Unit, ScoreIssue] {
   state.identity_probe = 0
   state.current_field = None
   state.source_vector = None
-  state.identity_values = Array::make(state.identity_count, None)
+  state.identity_values = []
   state.collected_identities = []
   state.component = 0
   state.fold = None
   state.finished_score = 0.0
-  state.phase = ScoreReadField
+  state.phase = ScoreInitializeIdentities
   Ok(())
 }
 
@@ -474,6 +475,13 @@ fn score_step(
           }
         } else {
           state.phase = ScorePreparePass
+        }
+      ScoreInitializeIdentities =>
+        if state.identity_values.length() < state.identity_count {
+          state.identity_values.push(None)
+          used += 1
+        } else {
+          state.phase = ScoreReadField
         }
       ScoreReadField => {
         let count = @storage.record_field_count(state.source, state.record).unwrap_or(

@@ -467,6 +467,10 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'VecA' && route.operation === 'merge_rankings' &&
+    !boundaryRoles.has('ranking_bounded_scratch_cancel_cleanup')) {
+    fail(`${label}: bounded ranking scratch fixture is missing`);
+  }
   if (route.family === 'TEA' && route.operation === 'window_events') {
     for (const role of [
       'window_control_work_exact_one_short',

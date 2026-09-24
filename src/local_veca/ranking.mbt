@@ -41,8 +41,11 @@ pub enum RankingInput {
 ///|
 priv enum RankingPhase {
   BeginRecord
+  InitializeGroupValues
+  InitializeTieValues
   ReadField
   FinishRecord
+  InitializeRecordScratch
   PrepareRecordSort
   PrepareRecordMerge
   MergeRecords
@@ -53,6 +56,7 @@ priv enum RankingPhase {
   FindFusionEnd
   FoldFusion
   FinishFusion
+  InitializeFusedScratch
   PrepareOutputSort
   PrepareOutputMerge
   MergeOutputs
@@ -91,6 +95,7 @@ priv struct RankingState {
   mut rank_value : Double?
   mut records : Array[RankingRecord]
   mut record_scratch : Array[RankingRecord?]
+  scratch_slots : Ref[Int]
   mut record_order : RankingRecordOrder
   mut width : Int
   mut run_start : Int
@@ -209,6 +214,7 @@ struct RankingExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  scratch_slots : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -442,12 +448,12 @@ fn ranking_input_available(state : RankingState) -> RankingIssue? {
 ///|
 fn begin_ranking_record(state : RankingState) -> Unit {
   state.field = 0
-  state.group_values = Array::make(state.by.length(), None)
+  state.group_values = []
   state.candidate_value = None
-  state.tie_values = Array::make(state.tie.length(), None)
+  state.tie_values = []
   state.score_value = None
   state.rank_value = None
-  state.phase = ReadField
+  state.phase = InitializeGroupValues
 }
 
 ///|
@@ -624,14 +630,16 @@ fn start_ranking_record_sort(
   order : RankingRecordOrder,
 ) -> Unit {
   state.record_order = order
-  state.record_scratch = Array::make(state.records.length(), None)
+  state.record_scratch = []
+  state.scratch_slots.val = 0
   state.width = 1
-  state.phase = PrepareRecordSort
+  state.phase = InitializeRecordScratch
 }
 
 ///|
 fn finish_ranking_record_sort(state : RankingState) -> Unit {
   state.record_scratch = []
+  state.scratch_slots.val = 0
   state.validate_index = 0
   match state.record_order {
     InputCandidateOrder => state.phase = ValidateDuplicates
@@ -1024,6 +1032,20 @@ fn ranking_step(
           state.input += 1
           state.row = 0
         }
+      InitializeGroupValues =>
+        if state.group_values.length() < state.by.length() {
+          state.group_values.push(None)
+          used += 1
+        } else {
+          state.phase = InitializeTieValues
+        }
+      InitializeTieValues =>
+        if state.tie_values.length() < state.tie.length() {
+          state.tie_values.push(None)
+          used += 1
+        } else {
+          state.phase = ReadField
+        }
       ReadField => {
         let schema = ranking_input_schema(state.inputs[state.input])
         if state.field < @schema.field_count(schema) {
@@ -1043,6 +1065,14 @@ fn ranking_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      InitializeRecordScratch =>
+        if state.record_scratch.length() < state.records.length() {
+          state.record_scratch.push(None)
+          state.scratch_slots.val += 1
+          used += 1
+        } else {
+          state.phase = PrepareRecordSort
+        }
       PrepareRecordSort =>
         if state.width >= state.records.length() {
           finish_ranking_record_sort(state)
@@ -1100,9 +1130,10 @@ fn ranking_step(
           begin_ranking_fusion(state)
         } else {
           state.records = []
-          state.fused_scratch = Array::make(state.fused.length(), None)
+          state.fused_scratch = []
+          state.scratch_slots.val = 0
           state.width = 1
-          state.phase = PrepareOutputSort
+          state.phase = InitializeFusedScratch
         }
       FindFusionEnd => {
         used += 1
@@ -1125,9 +1156,18 @@ fn ranking_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      InitializeFusedScratch =>
+        if state.fused_scratch.length() < state.fused.length() {
+          state.fused_scratch.push(None)
+          state.scratch_slots.val += 1
+          used += 1
+        } else {
+          state.phase = PrepareOutputSort
+        }
       PrepareOutputSort =>
         if state.width >= state.fused.length() {
           state.fused_scratch = []
+          state.scratch_slots.val = 0
           state.emit_index = 0
           state.emit_rank = 0
           state.emitted_group = None
@@ -1221,6 +1261,7 @@ fn cleanup_ranking_state(state : RankingState) -> Bool {
   state.record_scratch = []
   state.fused = []
   state.fused_scratch = []
+  state.scratch_slots.val = 0
   state.candidate_value = None
   state.emitted_group = None
   true
@@ -1404,6 +1445,7 @@ pub fn start_ranking_inputs(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
+  let scratch_slots = Ref(0)
   let port = match
     @execution.prepare_trusted_output_port_with_inputs(
       preparation,
@@ -1452,6 +1494,7 @@ pub fn start_ranking_inputs(
     rank_value: None,
     records: [],
     record_scratch: [],
+    scratch_slots,
     record_order: InputCandidateOrder,
     width: 1,
     run_start: 0,
@@ -1489,6 +1532,7 @@ pub fn start_ranking_inputs(
     session,
     token: Some(token),
     accepted,
+    scratch_slots,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1529,6 +1573,12 @@ pub fn ranking_max_noninterruptible_value_nodes(
   value : RankingExecution,
 ) -> Int {
   value.max_noninterruptible_value_nodes
+}
+
+///|
+/// Structural sort scratch retained by the current bounded phase.
+pub fn ranking_scratch_slots(value : RankingExecution) -> Int {
+  value.scratch_slots.val
 }
 
 ///|

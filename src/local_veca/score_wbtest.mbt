@@ -231,9 +231,10 @@ test "score enforces cumulative one-record control work" {
   let producer = producer_owner()
   let source = single_scored_source(producer)
   let owner = score_owner(producer)
-  // Query validation: 2; scratch: 1; record start and field/identity scan:
-  // 7; score fold and finish: 3; emit fields, score, commit, and finish: 5.
-  for (ceiling, accepted) in [(18, true), (17, false)] {
+  // Query validation: 2; scratch: 1; record start, identity scratch,
+  // and field/identity scan: 8; score fold and finish: 3; emit fields,
+  // score, commit, and finish: 5.
+  for (ceiling, accepted) in [(19, true), (18, false)] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_score_with_control_work_limit(
       @bounded.control(),

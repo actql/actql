@@ -53,6 +53,15 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 41 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('ranking loses bounded scratch evidence when its fixture is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'ranking_bounded_scratch_cancel_cleanup');
+  }), /VecA merge_rankings: bounded ranking scratch fixture is missing/u);
+});
+
 test('resource summary rejects stale route counts', () => {
   const gaps = readFileSync(join(
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',

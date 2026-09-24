@@ -4246,6 +4246,13 @@
       },
       "boundary_tests": [
         {
+          "role": "ranking_bounded_scratch_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking initializes sort scratch within quantum and reclaims on cancel"
+        },
+        {
           "role": "ranking_inflight_input_loss_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

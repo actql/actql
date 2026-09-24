@@ -83,7 +83,7 @@ Host timer-cancellation fixture. The two independently reached Host paths
 now cover both registered nearest production entrypoints.
 
 The single-path `normalize_vectors` and `score_vectors` routes now bind their
-independently counted one-record work ceilings (10/9 and 18/17) and fixed
+independently counted one-record work ceilings (10/9 and 19/18) and fixed
 workspace ceilings (8/7 and 30/29) to their existing Host cancellation and
 kernel cleanup tests. Both routes are fully resource-assured for these
 registered entrypoints; this does not close other VecA operations.
@@ -371,6 +371,13 @@ material separately at each logical position; the existing standard Host
 repeated-input fixture is a semantic regression, not full ranking resource
 assurance. The binding pass is O(P + E) expected for P physical reads and E
 logical input edges, excluding the cost of exact binding checks.
+
+Per-record group and tie scratch, record-sort scratch, and fused-output sort
+scratch now initialize one entry per charged resume step. A direct ranking
+fixture reaches record-sort initialization with quantum one, observes one
+retained slot after the first step, then cancels and verifies cleanup without
+revoking either input. The resource gate requires this fixture, but it does
+not promote the ranking route to full work/workspace assurance.
 
 Event deduplication no longer constructs its records-by-terms cell matrix or
 two full index arrays in `start`. The checked scratch ceiling remains an
@@ -2331,8 +2338,10 @@ to zero. Workers generation and all 24 Workers tests pass from the same source.
 This closes `score_vectors` without treating the remaining VecA operations as
 complete.
 The scoring kernel now enforces cumulative control work across resumes.
-Independent fixed fixtures count 3/2 units on empty input and 18/17 units
+Independent fixed fixtures count 3/2 units on empty input and 19/18 units
 for one record, with zero-work admission rejected before output allocation.
+Per-record identity scratch now initializes one slot per charged resume step;
+the exact one-record work count includes that step.
 The three-record ordering workspace admits 30 slots and rejects 29 before
 execution. Kernel cancellation, cleanup, and the delivered Host timer are
 bound to the production route. Metric, identity-width, and output-value work

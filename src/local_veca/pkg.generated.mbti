@@ -70,6 +70,8 @@ pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int
 
 pub fn ranking_producer_input(@execution_relation.ProducerRead) -> RankingInput
 
+pub fn ranking_scratch_slots(RankingExecution) -> Int
+
 pub fn ranking_stopped(RankingExecution) -> Bool
 
 pub fn ranking_supplied_input(@execution_relation.SuppliedRelationRead) -> RankingInput
