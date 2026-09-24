@@ -4,7 +4,7 @@
 /// neither a Preview nor an apply permit, and it does not copy Result cells.
 struct CapturedEffectInput {
   source : CheckedEffectSourcePort
-  pin : CapturedOutputPin
+  borrow : CapturedResultBorrow
 }
 
 ///|
@@ -57,8 +57,8 @@ pub fn pin_captured_effect_sources(
   for source in sources {
     match source {
       Some(source) => {
-        let pin = captured_result_output_set_pin_at(pins, pin_index).unwrap()
-        entries.push(Some({ source, pin, }))
+        let borrow = captured_result_output_set_borrow_at(pins, pin_index).unwrap()
+        entries.push(Some({ source, borrow, }))
         pin_index += 1
       }
       None => entries.push(None)
@@ -246,8 +246,8 @@ pub fn pin_captured_effect_source(
     source.member_index == member_index else {
     return Err(ForeignCandidate)
   }
-  let pin = match
-    pin_captured_result_output(
+  let borrow = match
+    borrow_captured_result_output(
       run.captured,
       source.task,
       source.occurrence,
@@ -256,39 +256,12 @@ pub fn pin_captured_effect_source(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ source, pin, })
+  Ok({ source, borrow, })
 }
 
 ///|
-/// Borrow an exact checked Result occurrence from its completed task. This
-/// remains Host-private retention, not permission to disclose the Result or
-/// use it as an Effect input. A different Program owner cannot relabel it.
-pub fn pin_captured_result_output(
-  run : CapturedDAG,
-  task : Int,
-  occurrence : @execution.ManagedResultOccurrence,
-  max_pins : Int,
-) -> Result[CapturedOutputPin, RunIssue] {
-  let owner = @execution.managed_result_occurrence_owner(occurrence)
-  let port = @execution.managed_result_occurrence_port(occurrence)
-  let target = @ports.port_target(port)
-  guard run.graph.owners.get(task) is Some(actual) &&
-    physical_equal(actual, owner) else {
-    return Err(ForeignCandidate)
-  }
-  if captured_task_target(run, task) != Some(target) {
-    return Err(UnsupportedGraph)
-  }
-  let pin = match pin_captured_task_output(run, task, target, max_pins) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let output = captured_output_pin_materialized(pin)
-  if !@execution.completed_output_matches_port(output, owner, target) {
-    release_captured_output_pin(pin) |> ignore
-    return Err(ForeignCandidate)
-  }
-  Ok(pin)
+pub fn captured_effect_input_member_index(value : CapturedEffectInput) -> Int {
+  value.source.member_index
 }
 
 ///|
@@ -296,7 +269,7 @@ pub fn pin_captured_result_output(
 pub fn captured_effect_input_occurrence(
   value : CapturedEffectInput,
 ) -> @execution.ManagedResultOccurrence {
-  value.source.occurrence
+  captured_result_borrow_occurrence(value.borrow)
 }
 
 ///|
@@ -306,7 +279,7 @@ pub fn captured_effect_input_occurrence(
 pub fn captured_effect_input_output(
   value : CapturedEffectInput,
 ) -> @execution.CompletedOutput {
-  captured_output_pin_materialized(value.pin)
+  captured_result_borrow_output(value.borrow)
 }
 
 ///|
@@ -328,9 +301,8 @@ pub fn start_captured_effect_input_export(
   @execution.CompletedResultRelationExportPreparation,
   @execution.CompletedExportIssue,
 ] {
-  @execution.start_completed_result_relation_export(
-    captured_effect_input_output(value),
-    value.source.occurrence,
+  start_captured_result_borrow_export(
+    value.borrow,
     result_view,
     max_rows,
     values,
@@ -345,5 +317,5 @@ pub fn start_captured_effect_input_export(
 /// End the Effect consumer's retention once its Preview input has been safely
 /// captured or abandoned. This does not acknowledge any mutation outcome.
 pub fn release_captured_effect_input(value : CapturedEffectInput) -> Bool {
-  release_captured_output_pin(value.pin)
+  release_captured_result_borrow(value.borrow)
 }

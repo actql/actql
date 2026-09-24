@@ -33,7 +33,7 @@ pub(all) enum PublicationOutputExportIssue {
 /// in this portable owner.
 struct PublicationOutputExport {
   stream : @execution.CompletedOutputExport
-  mut retained : @strategy.CapturedOutputPin?
+  mut retained : @strategy.CapturedResultBorrow?
   replay_values : @execution.ValueLimits
   replay_wire : @execution.RowWireLimits
   max_batch_bytes : Int
@@ -156,17 +156,17 @@ pub fn prepare_captured_result_publication_export(
   } else {
     max_pins
   }
-  let pin = match
-    @strategy.pin_captured_result_output(run, task, occurrence, ceiling) {
+  let borrow = match
+    @strategy.borrow_captured_result_output(run, task, occurrence, ceiling) {
     Ok(value) => value
     Err(issue) => return Err(Retain(issue))
   }
-  let materialized = @strategy.captured_output_pin_materialized(pin)
+  let materialized = @strategy.captured_result_borrow_output(borrow)
   let selected = match converted_output {
     None => materialized
     Some(converted) => {
       if !@execution.completed_output_same_occurrence(materialized, converted) {
-        @strategy.release_captured_output_pin(pin) |> ignore
+        @strategy.release_captured_result_borrow(borrow) |> ignore
         return Err(Output(ForeignMaterial))
       }
       converted
@@ -175,16 +175,16 @@ pub fn prepare_captured_result_publication_export(
   match
     prepare_result_publication_export(
       selected,
-      occurrence,
+      @strategy.captured_result_borrow_occurrence(borrow),
       definition,
       limits,
     ) {
     Ok(output_export) => {
-      output_export.retained = Some(pin)
+      output_export.retained = Some(borrow)
       Ok(output_export)
     }
     Err(issue) => {
-      @strategy.release_captured_output_pin(pin) |> ignore
+      @strategy.release_captured_result_borrow(borrow) |> ignore
       Err(issue)
     }
   }
@@ -217,7 +217,7 @@ pub fn prepare_all_captured_result_publication_exports(
         result,
         limits,
         converted_output?=converted,
-        max_pins~, 
+        max_pins~,
       ) {
       Ok(output) => outputs.push(output)
       Err(issue) => {
@@ -584,8 +584,8 @@ pub fn PublicationOutputExport::cancel(self : PublicationOutputExport) -> Unit {
     }
     None => @execution.cancel_completed_output_export(self.stream)
   }
-  if self.retained is Some(pin) {
-    @strategy.release_captured_output_pin(pin) |> ignore
+  if self.retained is Some(borrow) {
+    @strategy.release_captured_result_borrow(borrow) |> ignore
     self.retained = None
   }
 }

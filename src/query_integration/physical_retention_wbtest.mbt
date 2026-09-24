@@ -219,7 +219,7 @@ test "checked Result pin set retains repeated consumers until joint release" {
 }
 
 ///|
-test "checked Result view streams from a pin after its task port closes" {
+test "checked Result view streams from a borrow after its task port closes" {
   let (run, issuer) = captured_graph_fixture()
   let graph = @strategy.captured_dag_graph(run)
   for task in 1..<@strategy.graph_task_count(graph) {
@@ -227,12 +227,11 @@ test "checked Result view streams from a pin after its task port closes" {
   }
   let task = @strategy.graph_result_task(graph, 0).unwrap()
   let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
-  let pin = @strategy.pin_captured_result_output(run, task, occurrence, 1).unwrap()
-  let output = @strategy.captured_output_pin_materialized(pin)
+  let borrow = @strategy.borrow_captured_result_output(run, task, occurrence, 1).unwrap()
+  let output = @strategy.captured_result_borrow_output(borrow)
   @strategy.close_captured_task_output(run, task)
-  let preparation = @execution.start_completed_result_relation_export(
-    output,
-    occurrence,
+  let preparation = @strategy.start_captured_result_borrow_export(
+    borrow,
     {
       max_fields: 10,
       max_mapping_work: 100,
@@ -265,7 +264,7 @@ test "checked Result view streams from a pin after its task port closes" {
   text.write_string(tail)
   assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
   assert_eq(@execution.completed_relation_export_field_names(receipt), ["id"])
-  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_true(@strategy.release_captured_result_borrow(borrow))
   assert_false(@execution.completed_output_available(output))
   @execution.cancel_completed_relation_export_receipt(receipt)
   for index in 0..<@strategy.graph_task_count(graph) {
@@ -288,24 +287,66 @@ test "publication and Effect borrow the same checked Result independently" {
   let task = @strategy.graph_result_task(graph, 0).unwrap()
   let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  let effect_pin = @strategy.pin_captured_result_output(
+  let effect_borrow = @strategy.borrow_captured_result_output(
     run, task, occurrence, 2,
   ).unwrap()
+  let limits = native_publication_export_limits()
   let publication = @publication_host.prepare_captured_result_publication_export(
     run,
     0,
-    native_publication_export_limits(),
+    limits,
     max_pins=2,
   ).unwrap()
   @strategy.close_captured_task_output(run, task)
-  assert_true(@strategy.release_captured_output_pin(effect_pin))
+  let effect_view = @strategy.start_captured_result_borrow_export(
+    effect_borrow,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  ).unwrap()
+  while true {
+    let (done, _) = @execution.advance_completed_result_relation_export(
+      effect_view, 1,
+    ).unwrap()
+    if done {
+      break
+    }
+  }
+  let effect_stream = @execution.finish_completed_result_relation_export_preparation(
+    effect_view,
+  ).unwrap()
+  let effect_text = StringBuilder()
+  while @execution.next_completed_output_export(effect_stream).unwrap()
+        is Some(chunk) {
+    effect_text.write_string(chunk)
+  }
+  let (effect_receipt, effect_tail) = @execution.finish_completed_relation_export(
+    effect_stream,
+  ).unwrap()
+  effect_text.write_string(effect_tail)
+  assert_true(@strategy.release_captured_result_borrow(effect_borrow))
   assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   let text = StringBuilder()
   while publication.next().unwrap() is Some(chunk) {
     text.write_string(chunk)
   }
   text.write_string(publication.finish().unwrap())
+  assert_eq(text.to_string(), effect_text.to_string())
   assert_eq(text.to_string(), "[{\"id\":3},{\"id\":2}]")
+  assert_eq(
+    publication.result_fields().unwrap(),
+    @execution.completed_relation_export_field_names(effect_receipt),
+  )
+  @execution.cancel_completed_relation_export_receipt(effect_receipt)
   publication.cancel()
   publication.cancel()
   for index in 0..<@strategy.graph_task_count(graph) {
