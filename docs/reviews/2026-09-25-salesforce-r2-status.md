@@ -89,3 +89,11 @@ inventory accepts either proof order and rejects an omitted or duplicated
 member. A same-boundary collection footprint is rejected before export,
 whereas separate provider boundaries admit the two-member payload check.
 This fixture performs no mutation and does not establish whole-set apply.
+
+The admitted Preview owner also retains each member's existing source,
+resolved Contract, capability-evidence, and authority-scope CID. A common
+captured-Run check now compares complete current-observation inventories
+against those exact bindings while all Result pins remain live. The Site
+must still authenticate and refresh those observations; equal caller-supplied
+CIDs are not an apply permit. The two-member Host fixture rejects a missing
+entry, each changed CID, and reuse after pin release.
