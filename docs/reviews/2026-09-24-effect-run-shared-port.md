@@ -284,3 +284,20 @@ cannot increase either guard. The comparison is budgeted and does not replace
 the later complete-scope count, Contract and Host ceilings, physical payload
 equivalence, or current apply admission. The standard Effectful Host path is
 still open.
+
+## Common/Salesforce review at 871cc14c
+
+The five findings in the fixed-SHA review are assessed against the current product
+path, not treated as five unfixed defects at the reviewed SHA:
+
+| Finding | Disposition | Product evidence |
+| --- | --- | --- |
+| COMMON-SF-01 | Addressed | The shared owned invocation context snapshots scalar scope and limits before I/O. Catalog and Query compare later authority with that binding; local HTTPS tests mutate the original scope during a request and reject a foreign continuation. |
+| COMMON-SF-02 | Addressed at physical custody | The common dispatch owner stores bounded raw single or Collections bytes before provider projection. Projection receives only the stored response. SQLite restart tests retain those bytes and never resend an uncertain write. Complete apply admission remains part of COMMON-SF-05. |
+| COMMON-SF-03 | Addressed for the two reviewed broad paths | Salesforce and DuckDB use one MoonBit `QueryEvidenceCustody` owner for issuance, exact verification and one-shot capture. Their physical page/native execution remains provider-owned. This does not assert every Acquisition implementation has migrated. |
+| COMMON-SF-04 | Addressed for the reviewed calls | Shared invocation assembly and evidence-read recovery own scope matching, current read authorization, exact Ledger lookup and projection ordering. The provider supplies operation/request identity and typed interpretation. A local SQLite test also projects a stored response through the common recovery API after restart. |
+| COMMON-SF-05 | Open; completion blocker | The standard Host still rejects nonempty Effects. Checked/captured owner, complete multi-member apply permit, final receipt publication and restart-safe standard Run tests must be connected before Salesforce or the shared Effect port is complete. |
+
+These local fixtures are not live Salesforce verification. The isolated org,
+credential reference and write permission have not been supplied; no existing
+Smooth Cloud connection may be substituted.
