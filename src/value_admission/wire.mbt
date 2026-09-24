@@ -112,3 +112,13 @@ pub fn emit_wire_value(
     }
   }
 }
+
+///|
+/// Emit the retained canonical value without exposing the checked value's
+/// mutable construction representation to another package.
+pub fn emit_checked_wire_value(
+  value : CheckedValue,
+  output : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_wire_value(value.value, output)
+}
