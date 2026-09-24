@@ -232,6 +232,70 @@ async function releasePreparedResults(exported, primary, control) {
   throw failure;
 }
 
+async function exportCompletedRunResultSet({
+  execution, store, control, runDefinition, invocation, results,
+  outputLimits, contractLimits, signal,
+}, exported) {
+  validateExecution(execution);
+  if (!Array.isArray(results) ||
+      results.length !== execution.resultInventory.length ||
+      !contract(runDefinition) || !contract(invocation) ||
+      typeof control?.publicationPreparedReleaseAction !== 'function' ||
+      typeof control?.publicationCleanupOwnerAction !== 'function') {
+    fail('InvalidCompletedRunResultSet');
+  }
+  for (let index = 0; index < results.length; index++) {
+    signal?.throwIfAborted();
+    const result = results[index];
+    if (!exactKeys(result, ['retention', 'evidenceContext']) ||
+        !contract(result.retention) ||
+        result.evidenceContext === null ||
+        typeof result.evidenceContext !== 'object') {
+      fail('InvalidCompletedRunResultSet');
+    }
+    const stored = await execution.storePublicationResult(index, store, {
+      outputLimits, contractLimits, runDefinition, invocation,
+      retention: result.retention,
+      evidenceContext: result.evidenceContext,
+    }, signal);
+    const expected = execution.publicationInventory.occurrences[index];
+    if (stored?.occurrence?.name !== expected.name ||
+        stored?.occurrence?.task !== expected.task ||
+        stored?.occurrence?.definition?.identity !==
+          expected.definitionContract.identity ||
+        !contract(stored?.publication?.artifact) ||
+        !contract(stored?.publication?.derivation) ||
+        !contract(stored?.publication?.ordering) ||
+        !contract(stored?.publication?.durableBinding) ||
+        stored?.publication?.snapshot === undefined) {
+      if (stored?.prepared !== undefined) exported.push(stored);
+      fail('InvalidCompletedRunPublicationExport');
+    }
+    exported.push(stored);
+  }
+  return Object.freeze({
+    results: Object.freeze([...exported]),
+    definitions: Object.freeze(execution.publicationInventory.occurrences
+      .map(value => value.definitionContract)),
+    artifacts: Object.freeze(exported.map(
+      value => value.publication.artifact)),
+  });
+}
+
+// Prepare the exact checked Named Result inventory for either Run kind.
+// This is not publication: the caller retains every prepared Store owner
+// until the enclosing chain is committed or explicitly released.
+export async function storeCompletedRunResultSet(options) {
+  const exported = [];
+  try {
+    return await exportCompletedRunResultSet(options, exported);
+  } catch (error) {
+    if (exported.length === 0 &&
+        member(error, 'cleanupPending') !== true) throw error;
+    await releasePreparedResults(exported, error, options?.control);
+  }
+}
+
 export async function publishCompletedEffectFreeRun(options) {
   validateOptions(options);
   const {
@@ -256,31 +320,10 @@ export async function publishCompletedEffectFreeRun(options) {
   } = options;
   const exported = [];
   try {
-    for (let index = 0; index < results.length; index++) {
-      signal?.throwIfAborted();
-      const stored = await execution.storePublicationResult(index, store, {
-        outputLimits,
-        contractLimits,
-        runDefinition,
-        invocation,
-        retention: results[index].retention,
-        evidenceContext: results[index].evidenceContext,
-      }, signal);
-      const expected = execution.publicationInventory.occurrences[index];
-      if (stored?.occurrence?.name !== expected.name ||
-          stored?.occurrence?.task !== expected.task ||
-          stored?.occurrence?.definition?.identity !==
-            expected.definitionContract.identity ||
-          !contract(stored?.publication?.artifact) ||
-          !contract(stored?.publication?.derivation) ||
-          !contract(stored?.publication?.ordering) ||
-          !contract(stored?.publication?.durableBinding) ||
-          stored?.publication?.snapshot === undefined) {
-        if (stored?.prepared !== undefined) exported.push(stored);
-        fail('InvalidCompletedRunPublicationExport');
-      }
-      exported.push(stored);
-    }
+    await exportCompletedRunResultSet({
+      execution, store, control, runDefinition, invocation, results,
+      outputLimits, contractLimits, signal,
+    }, exported);
     signal?.throwIfAborted();
     const definitions = execution.publicationInventory.occurrences
       .map(value => value.definitionContract);
