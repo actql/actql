@@ -4,6 +4,7 @@ declare const compilationBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
+declare const publicationBrand: unique symbol;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
@@ -27,6 +28,18 @@ export interface RunAdmission {
 
 export interface RunDefinition {
   readonly [definitionBrand]: true;
+}
+
+export interface PublicationContract {
+  readonly token: {readonly [publicationBrand]: true};
+  readonly cid: string;
+  readonly wire: string;
+}
+
+export interface PublicationLimits {
+  readonly maxWireBytes: number;
+  readonly maxNodes: number;
+  readonly maxDepth: number;
 }
 
 export interface RequestFields {
@@ -140,3 +153,20 @@ export function issueSourceFreeDispatch(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, request: RequestIdentity,
   selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
+/** Canonical contract admission is not publication or read authorization. */
+export function admitPublicationContract(name: string, wire: string,
+  limits: PublicationLimits): PublicationContract;
+export function issueResultManifest(runDefinition: PublicationContract,
+  invocation: PublicationContract,
+  definitions: readonly PublicationContract[],
+  artifacts: readonly PublicationContract[],
+  limits: PublicationLimits): PublicationContract;
+export function validatePublicationChain(runDefinition: PublicationContract,
+  invocation: PublicationContract,
+  definitions: readonly PublicationContract[],
+  artifacts: readonly PublicationContract[], manifest: PublicationContract,
+  limits: PublicationLimits): void;
+/** Physical CAS and durable persistence remain Store effects. */
+export function validatePublicationRecordTransition(
+  previous: PublicationContract | undefined, next: PublicationContract,
+  uncommittedConfirmed: boolean): void;

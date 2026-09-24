@@ -702,3 +702,87 @@ pub fn client_values_host_dispatch_wire(
 ) -> Result[String, @remote.DispatchIssue] {
   @remote.dispatch_request_json(request)
 }
+
+///|
+/// Portable publication contract admission for a Host or Store adapter.
+/// Admission checks the canonical body and self identity; it grants no read
+/// or publication authority.
+#export_name("clientValuesHostAdmitPublicationContract")
+pub fn client_values_host_admit_publication_contract(
+  name : String,
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.PublicationContractIssue] {
+  @publication.admit_publication_contract(
+    name, wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientValuesHostPublicationContractIdentity")
+pub fn client_values_host_publication_contract_identity(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_identity(contract)
+}
+
+///|
+#export_name("clientValuesHostPublicationContractWire")
+pub fn client_values_host_publication_contract_wire(
+  contract : @publication.PublicationContract,
+) -> String {
+  @publication.publication_contract_json(contract)
+}
+
+///|
+/// The owner derives the complete named inventory; the adapter cannot
+/// substitute an arbitrary Manifest for admitted Definitions and Artifacts.
+#export_name("clientValuesHostIssueResultManifest")
+pub fn client_values_host_issue_result_manifest(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.ResultManifestIssuanceIssue] {
+  @publication.issue_result_manifest(
+    run_definition, invocation, definitions, artifacts,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// The shared owner checks the exact Named Result inventory and references.
+#export_name("clientValuesHostValidatePublicationChain")
+pub fn client_values_host_validate_publication_chain(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication.RunPublicationChainIssue] {
+  @publication.validate_run_publication_chain(
+    run_definition, invocation, definitions, artifacts, manifest,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Physical CAS and durable write remain Store effects.
+#export_name("clientValuesHostValidatePublicationRecordTransition")
+pub fn client_values_host_validate_publication_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+  uncommitted_confirmed : Bool,
+) -> Result[Unit, @publication.PublicationTransitionIssue] {
+  @publication.validate_publication_record_transition(
+    previous, next, uncommitted_confirmed,
+  )
+}

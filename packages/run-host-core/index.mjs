@@ -6,6 +6,7 @@ const compilations = new WeakMap();
 const requests = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
+const publicationContracts = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
@@ -337,4 +338,73 @@ export function issueSourceFreeDispatch(prepared, compilation, admission,
   return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
     wire: checked(owner.clientValuesHostDispatchWire(dispatch),
       'RunHostDispatchRejected')});
+}
+
+function publicationLimits(limits) {
+  if (limits === null || typeof limits !== 'object' ||
+      !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+        Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
+    throw new TypeError('InvalidRunHostPublicationLimits');
+  }
+  return limits;
+}
+
+function publicationContract(value) {
+  const token = handle(publicationContracts, value, 'publication-contract');
+  return Object.freeze({token,
+    cid: owner.clientValuesHostPublicationContractIdentity(value),
+    wire: owner.clientValuesHostPublicationContractWire(value)});
+}
+
+// Canonical admission and chain decisions belong to the portable owner.
+// A contract handle is in-process only and conveys no publication authority.
+export function admitPublicationContract(name, wire, limits) {
+  if (typeof name !== 'string' || typeof wire !== 'string') {
+    throw new TypeError('InvalidRunHostPublicationContract');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const value = checked(owner.clientValuesHostAdmitPublicationContract(
+    name, wire, maxWireBytes, maxNodes, maxDepth),
+  'RunHostPublicationContractRejected');
+  return publicationContract(value);
+}
+
+function publicationToken(contract) {
+  return requireHandle(publicationContracts, contract?.token);
+}
+
+export function issueResultManifest(runDefinition, invocation,
+  definitions, artifacts, limits) {
+  if (!Array.isArray(definitions) || !Array.isArray(artifacts)) {
+    throw new TypeError('InvalidRunHostPublicationChain');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(owner.clientValuesHostIssueResultManifest(
+    publicationToken(runDefinition), publicationToken(invocation),
+    definitions.map(publicationToken), artifacts.map(publicationToken),
+    maxWireBytes, maxNodes, maxDepth), 'RunHostResultManifestRejected'));
+}
+
+export function validatePublicationChain(runDefinition, invocation,
+  definitions, artifacts, manifest, limits) {
+  if (!Array.isArray(definitions) || !Array.isArray(artifacts)) {
+    throw new TypeError('InvalidRunHostPublicationChain');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  checked(owner.clientValuesHostValidatePublicationChain(
+    publicationToken(runDefinition), publicationToken(invocation),
+    definitions.map(publicationToken), artifacts.map(publicationToken),
+    publicationToken(manifest), maxWireBytes, maxNodes, maxDepth),
+  'RunHostPublicationChainRejected');
+}
+
+export function validatePublicationRecordTransition(previous, next,
+  uncommittedConfirmed) {
+  if (typeof uncommittedConfirmed !== 'boolean') {
+    throw new TypeError('InvalidRunHostPublicationTransition');
+  }
+  checked(owner.clientValuesHostValidatePublicationRecordTransition(
+    previous === undefined ? undefined : publicationToken(previous),
+    publicationToken(next), uncommittedConfirmed),
+  'RunHostPublicationTransitionRejected');
 }

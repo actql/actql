@@ -5,6 +5,9 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
+  admitPublicationContract, validatePublicationChain,
+  validatePublicationRecordTransition,
+  issueResultManifest,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
@@ -26,6 +29,87 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('portable Host re-admits exact publication evidence', () => {
+  const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const prepared = prepare(read('values.json'), 'json', environment);
+  const definition = resultDefinitions(prepared, compileValues(prepared))[0];
+  const admitted = admitPublicationContract('result_definition',
+    definition.wire, limits);
+  assert.equal(admitted.cid, definition.cid);
+  assert.equal(admitted.wire, definition.wire);
+  const altered = JSON.parse(definition.wire);
+  altered.result_name = 'different';
+  assert.throws(() => admitPublicationContract('result_definition',
+    JSON.stringify(altered), limits),
+  {code: 'RunHostPublicationContractRejected'});
+  assert.throws(() => admitPublicationContract('result_artifact',
+    definition.wire, limits),
+  {code: 'RunHostPublicationContractRejected'});
+  assert.throws(() => validatePublicationChain(admitted, admitted,
+    [admitted], [admitted], admitted, limits),
+  {code: 'RunHostPublicationChainRejected'});
+  assert.throws(() => validatePublicationRecordTransition(undefined,
+    admitted, false),
+  {code: 'RunHostPublicationTransitionRejected'});
+  assert.throws(() => admitPublicationContract('result_definition',
+    definition.wire, {maxWireBytes: 0, maxNodes: 100, maxDepth: 10}),
+  {name: 'TypeError', message: 'InvalidRunHostPublicationLimits'});
+});
+
+test('portable Host issues a Manifest for exact admitted Result evidence',
+  () => {
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const fixed = value => `sha256:${value.repeat(64)}`;
+    const admit = (name, body, identityField) => {
+      const complete = {...body, [identityField]: cid(body)};
+      return admitPublicationContract(name, JSON.stringify(complete), limits);
+    };
+    const run = admit('run_definition', {
+      version: 'actql-run-definition/0.1', scope_id: 'scope', run_id: 'run',
+      compiled_plan_cid: fixed('3'), invocation_template_cid: fixed('1'),
+      authorization_context_cid: fixed('4'),
+      input_artifact_set_cid: fixed('5'),
+      created_at: '2026-09-18T00:00:00.000Z',
+      valid_until: '2026-09-18T01:00:00.000Z',
+    }, 'run_definition_cid');
+    const invocation = admit('run_invocation', {
+      version: 'actql-run-invocation/0.1',
+      invocation_template_cid: fixed('1'),
+      observation_set_cid: fixed('2'),
+    }, 'invocation_cid');
+    const definition = admit('result_definition', {
+      version: 'actql-result-definition/0.1',
+      program_definition_cid: fixed('6'), result_name: 'answer',
+    }, 'result_definition_cid');
+    const artifact = admit('result_artifact', {
+      version: 'actql-result-artifact/0.1',
+      result_definition_cid: definition.cid,
+      invocation_cid: invocation.cid,
+      logical_result_cid: fixed('7'), result_schema_cid: fixed('8'),
+      ordering_evidence_cid: fixed('9'), actual_row_count: 1,
+      actual_completeness: 'complete',
+      effective_data_policy_cid: fixed('a'),
+      effective_retention_policy_cid: fixed('b'),
+      provenance_evidence_cids: [fixed('c')],
+    }, 'result_artifact_cid');
+    const manifest = issueResultManifest(run, invocation, [definition],
+      [artifact], limits);
+    validatePublicationChain(run, invocation, [definition], [artifact],
+      manifest, limits);
+    assert.equal(JSON.parse(manifest.wire).results.answer
+      .result_artifact_cid, artifact.cid);
+    assert.throws(() => issueResultManifest(run, invocation, [definition],
+      [], limits), {code: 'RunHostResultManifestRejected'});
+    assert.throws(() => validatePublicationChain(run, invocation,
+      [definition], [], manifest, limits),
+    {code: 'RunHostPublicationChainRejected'});
+    assert.throws(() => validatePublicationChain(run, invocation,
+      [definition], [artifact], definition, limits),
+    {code: 'RunHostPublicationChainRejected'});
+  });
 
 test('portable Host package compiles the ordinary Values Program', () => {
   const environment = admitEnvironment(environmentWire, evidenceCid,

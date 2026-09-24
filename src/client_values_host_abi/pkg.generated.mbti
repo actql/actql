@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
+
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
@@ -41,6 +43,8 @@ pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesC
 
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
+pub fn client_values_host_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultManifestIssuanceIssue]
+
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
@@ -54,6 +58,10 @@ pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironmen
 pub fn client_values_host_prepare_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesHostDispatchIssue]
 
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
+
+pub fn client_values_host_publication_contract_identity(@run_publication.PublicationContract) -> String
+
+pub fn client_values_host_publication_contract_wire(@run_publication.PublicationContract) -> String
 
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
@@ -84,6 +92,10 @@ pub fn client_values_host_run_definition_wire(@run_publication.PublicationContra
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_validate_publication_chain(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunPublicationChainIssue]
+
+pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
 
 // Errors
 
