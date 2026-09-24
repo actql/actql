@@ -553,6 +553,16 @@ and final release leaves the ledger empty. This checks common physical custody
 only. It does not turn a managed Result into an Effect payload or publication
 view without the installed Host's exact representation-specific export.
 The Effect input port now uses this representation-neutral Result pin set.
+
+The fixed-SHA `02-salesforce-effects (2).md` review identified a logical
+Stage/physical Task mismatch. The current graph owner already records both
+coordinates and resolves the checked Result port through its own expansion;
+both single and batch pins use the physical Task. A mixed graph-to-Relation
+source fixture now asserts that an Effect source at logical Stage 1 binds the
+final physical Task rather than Task 1. This closes the coordinate defect,
+not the full review acceptance list. Split-source pin lifetime, rollback,
+local HTTPS write suppression, and the ordinary multi-member Effectful Run
+through final publication still require product-path evidence.
 Its cell exporter rejects a resident representation explicitly; a resident
 input only proves exact physical custody until the Host presents the same
 concrete output and establishes its checked view and payload. Concrete
