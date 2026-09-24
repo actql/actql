@@ -31,8 +31,12 @@ if (destination === root || destination.startsWith(root + sep)) {
 }
 const training = parseCase(trainingId);
 const target = retainedMatrix().find(value => value.id === targetId);
+// The smallest registered target has no smaller valid fixture. Use the next
+// registered size as a disjoint training source, as the Node profile does.
 if (!target || training.id === target.id || training.workload !== target.workload ||
-    training.layout !== target.layout || training.rows >= target.rows) {
+    training.layout !== target.layout ||
+    !(training.rows < target.rows ||
+      target.rows === 100 && training.rows === 1000)) {
   throw new TypeError('InvalidNativeHeldOutCalibrationPair');
 }
 const localEligible = registeredLocalEligibility(training).eligible;

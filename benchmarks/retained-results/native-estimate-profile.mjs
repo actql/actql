@@ -20,7 +20,9 @@ export function admitNativeEstimateProfile({profile, trainingFixture,
   assert.notEqual(trainingFixture.id, targetFixture.id);
   assert.equal(trainingFixture.workload, targetFixture.workload);
   assert.equal(trainingFixture.layout, targetFixture.layout);
-  assert(trainingFixture.rows < targetFixture.rows);
+  assert(trainingFixture.rows < targetFixture.rows ||
+    targetFixture.rows === 100 && trainingFixture.rows === 1000,
+  'InvalidNativeHeldOutTrainingSize');
   assert.equal(profile.trainingSourceDefinitionSha256,
     cid(trainingFixture.createSourceSql));
   assert.equal(profile.targetSourceDefinitionSha256,
