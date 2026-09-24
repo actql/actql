@@ -250,11 +250,53 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_eq(result.result_fields().unwrap(), ["id"])
   result.cancel()
   @execution.close_managed_publication_bridge(bridge)
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let effect_borrow = @strategy.borrow_captured_managed_result_output(
+    run, 0, occurrence, completed, 2,
+  ).unwrap()
+  let publication_borrow = @strategy.borrow_captured_managed_result_output(
+    run, 0, occurrence, completed, 2,
+  ).unwrap()
+  assert_true(
+    @strategy.borrow_captured_managed_result_output(
+      run, 0, occurrence, completed, 2,
+    )
+    is Err(@strategy.Physical(@resources.HoldingLimit)),
+  )
+  @strategy.close_captured_task_output(run, 0)
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  assert_true(
+    @strategy.borrow_captured_managed_result_output(
+      run, 0, occurrence, completed, 2,
+    )
+    is Err(@strategy.NotReady),
+  )
+  assert_true(
+    @strategy.captured_resident_result_borrow_available(effect_borrow),
+  )
+  assert_true(
+    @strategy.captured_resident_result_borrow_matches_managed(
+      effect_borrow, completed,
+    ),
+  )
+  assert_true(@strategy.release_captured_resident_result_borrow(effect_borrow))
+  assert_false(
+    @strategy.captured_resident_result_borrow_available(effect_borrow),
+  )
+  assert_true(
+    @strategy.captured_resident_result_borrow_available(publication_borrow),
+  )
+  assert_false(@strategy.release_captured_resident_result_borrow(effect_borrow))
   available.val = false
   (operations.close)()
   (operations.cleanup_refresh)() |> ignore
+  assert_false(
+    @strategy.captured_resident_result_borrow_available(publication_borrow),
+  )
+  assert_true(
+    @strategy.release_captured_resident_result_borrow(publication_borrow),
+  )
   @strategy.stop_captured_dag(run)
-  @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)
   let usage = @resources.ledger_usage(ledger)
   assert_eq(usage.reserved_execution_bytes, 0L)
