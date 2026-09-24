@@ -147,6 +147,11 @@ under the derived holding. An independent fixture fixes the 0.1 preimage and
 checks that changing Run or Store authority changes the holding while leaving
 the semantic Preview CID unchanged. The fixture retires the holding afterward;
 ordinary apply, final commit, restart recovery, and retention are still open.
+The local Store can now re-open that exact encrypted holding, compare its
+decrypted wire with the admitted Preview binding, and confirm directory
+durability without re-encrypting or sending an Effect. A failed confirmation
+sync remains retryable against the same ciphertext. This closes physical
+holding reconciliation only; it is not a committed Effectful Run index.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
