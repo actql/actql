@@ -61,6 +61,8 @@ pub fn client_program_check_effect_plan_proofs(@physical_strategy.CapturedEffect
 
 pub fn client_program_check_effect_preview_apply_keys(@physical_strategy.CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyKeyIssue]
 
+pub fn client_program_check_effect_preview_capabilities(@physical_strategy.CapturedEffectPreviewInputs, Array[@effect_application.EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectCapabilityIssue]
+
 pub fn client_program_check_effect_preview_current_bindings(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectCurrentBindingIssue]
 
 pub fn client_program_check_effect_preview_target_guards(@physical_strategy.CapturedEffectPreviewInputs, Array[String], Array[String], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectGuardIssue]
@@ -80,6 +82,12 @@ pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.C
 pub fn client_program_direct_values_result_root_row_contract_cid(@run_publication_host.ClientDirectResultRoot) -> String
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
+
+pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
+
+pub fn client_program_effect_apply_capability_idempotency_mode(@effect_application.EffectApplyCapabilityObservation) -> String
+
+pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_application.EffectApplyCapabilityObservation) -> String
 
 pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 

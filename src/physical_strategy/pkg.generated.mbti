@@ -219,6 +219,8 @@ pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_jso
 
 pub fn check_captured_effect_preview_apply_keys(CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
 
+pub fn check_captured_effect_preview_capabilities(CapturedEffectPreviewInputs, Array[@effect_application.EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, CapturedEffectCapabilityIssue]
+
 pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInputs, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
 
 pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
@@ -647,6 +649,11 @@ pub(all) enum CapturedEffectApplyKeyIssue {
   CapacityExceeded
   NotReady
   Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectCapabilityIssue {
+  NotReady
+  Current(@effect_application.EffectApplyCapabilityIssue)
 } derive(@debug.Debug)
 
 pub(all) enum CapturedEffectCurrentBindingIssue {
