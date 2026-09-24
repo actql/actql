@@ -223,6 +223,18 @@ pub fn effect_ledger_entry_wire(entry : EffectLedgerEntry) -> String {
 }
 
 ///|
+pub fn effect_ledger_entry_state_code(entry : EffectLedgerEntry) -> Int {
+  match entry.state {
+    Prepared => 0
+    Dispatching => 1
+    Applied => 2
+    Accepted => 3
+    Failed => 4
+    Unknown => 5
+  }
+}
+
+///|
 /// The physical adapter must additionally confirm that this exact entry is
 /// the durable Store head. A valid in-memory entry alone is not send authority.
 pub fn effect_ledger_entry_admits_dispatch(

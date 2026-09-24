@@ -43,6 +43,29 @@ fn effect_receipt_failed_row_ids(
 }
 
 ///|
+/// Read one row's partition from an admitted member receipt. The caller must
+/// separately establish that the corresponding Ledger head is durable and
+/// that any terminal row receipt owns the saved physical response.
+pub fn effect_apply_receipt_row_state(
+  receipt : PublicationContract,
+  row_cid : String,
+) -> String? {
+  if receipt.name != "effect_apply_receipt" {
+    return None
+  }
+  for field in ["applied", "accepted", "unknown", "unattempted"] {
+    match effect_receipt_row_ids(receipt.value, field) {
+      Some(rows) if rows.contains(row_cid) => return Some(field)
+      _ => ()
+    }
+  }
+  match effect_receipt_failed_row_ids(receipt.value) {
+    Some(rows) if rows.contains(row_cid) => Some("failed")
+    _ => None
+  }
+}
+
+///|
 fn effect_apply_receipt_consistent(value : @json.CanonicalValue) -> Bool {
   let applied = match effect_receipt_row_ids(value, "applied") {
     Some(rows) => rows

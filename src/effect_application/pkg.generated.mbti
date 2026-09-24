@@ -22,6 +22,8 @@ pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewId
 
 pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
+pub fn check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[LogicalItemLocator], Array[EffectDispatchKey], Array[EffectLedgerBasis], Array[EffectLedgerEntry?], Array[Bool], Array[@run_publication.PublicationContract?], String, Int, Int, Int, Int) -> Result[Unit, EffectMemberReceiptEvidenceIssue]
+
 pub fn check_effect_preview_apply_capabilities(@run_publication.EffectPreviewIdentity, Array[EffectApplyCapabilityObservation], Int, Int) -> Result[Unit, EffectApplyCapabilityIssue]
 
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
@@ -59,6 +61,8 @@ pub fn effect_ledger_entry_locator_cid(EffectLedgerEntry) -> String
 pub fn effect_ledger_entry_matches_basis(EffectLedgerEntry, EffectLedgerBasis) -> Bool
 
 pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
+
+pub fn effect_ledger_entry_state_code(EffectLedgerEntry) -> Int
 
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
 
@@ -283,6 +287,16 @@ pub(all) struct EffectMemberProgress {
   policy : EffectItemFailurePolicy
   rows : Array[EffectItemProgress]
 }
+
+pub(all) enum EffectMemberReceiptEvidenceIssue {
+  InvalidInventory
+  ActivePhysicalOwner(Int)
+  ForeignLedgerHead(Int)
+  MissingTerminalReceipt(Int)
+  ForeignTerminalReceipt(Int)
+  RowPartitionMismatch(Int)
+  MemberReceipt(@run_publication.EffectApplyReceiptBindingIssue)
+} derive(@debug.Debug)
 
 pub(all) enum EffectMutationAtomicity {
   PerItem

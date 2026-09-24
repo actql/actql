@@ -395,6 +395,8 @@ pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffe
 
 pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
+pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
 pub fn strategy_committed_publication_finalization_action(@run_publication.PublicationContract?) -> Int
 
 pub fn strategy_delivery_failure_terminal_action(Bool) -> Int
@@ -444,6 +446,8 @@ pub fn strategy_effect_ledger_entry_locator_cid(@effect_application.EffectLedger
 pub fn strategy_effect_ledger_entry_matches_basis(@effect_application.EffectLedgerEntry, @effect_application.EffectLedgerBasis) -> Bool
 
 pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_state_code(@effect_application.EffectLedgerEntry) -> Int
 
 pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
 

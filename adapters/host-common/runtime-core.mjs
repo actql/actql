@@ -94,11 +94,15 @@ function effectApplicationControl(moon) {
     issueRowReceiptTerminalEntry: (...args) => checked(
       moon.strategyIssueEffectRowReceiptTerminalEntry(...args),
     ),
+    checkMemberReceiptRowPartitionEvidence: (...args) => checked(
+      moon.strategyCheckEffectMemberReceiptRowPartitionEvidence(...args),
+    ),
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
     ledgerEntryFollows: moon.strategyEffectLedgerEntryFollows,
     ledgerEntryCid: moon.strategyEffectLedgerEntryCid,
+    ledgerEntryStateCode: moon.strategyEffectLedgerEntryStateCode,
     ledgerEntryLocatorCid: moon.strategyEffectLedgerEntryLocatorCid,
     ledgerEntryScopeCid: moon.strategyEffectLedgerEntryScopeCid,
     ledgerEntryWire: moon.strategyEffectLedgerEntryWire,
