@@ -3729,6 +3729,27 @@
       },
       "boundary_tests": [
         {
+          "role": "nearest_direct_relation_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "direct nearest Relation inputs keep exact work and workspace bounds"
+        },
+        {
+          "role": "nearest_direct_relation_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "direct nearest Relation inputs keep exact work and workspace bounds"
+        },
+        {
+          "role": "nearest_direct_relation_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "direct nearest Relation inputs keep exact work and workspace bounds"
+        },
+        {
           "role": "nearest_work_exact",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -3806,17 +3827,40 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-nearest"
+        },
+        {
+          "role": "nearest_fused_relation_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-nearest-fused"
         }
       ],
       "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "nearest_direct_relation_work_exact_one_short",
+          "one_short_limit": "nearest_direct_relation_workspace_exact_one_short",
+          "in_flight_cancel": "nearest_relation_host_in_flight_cancel",
+          "cleanup": "nearest_direct_relation_cleanup"
+        },
         "relation_entrypoint": {
           "exact_limit": "nearest_relation_work_exact",
           "one_short_limit": "nearest_relation_work_one_short",
-          "in_flight_cancel": "nearest_relation_host_in_flight_cancel",
+          "in_flight_cancel": "nearest_fused_relation_host_in_flight_cancel",
           "cleanup": "nearest_relation_kernel_cancel_cleanup"
         }
       },
       "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "nearest_direct_relation_work_exact_one_short",
+            "one_short_limit": "nearest_direct_relation_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "nearest_direct_relation_workspace_exact_one_short",
+            "one_short_limit": "nearest_direct_relation_workspace_exact_one_short"
+          }
+        },
         "relation_entrypoint": {
           "work": {
             "exact_limit": "nearest_relation_work_exact",

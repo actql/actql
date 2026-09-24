@@ -5,10 +5,18 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
-boundary records, 12 have all four lifecycle roles, and 11 have exact and
+boundary records, 13 have all four lifecycle roles, and 12 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 34 paths have path-scoped work/workspace evidence. Strict completion
+routes, 35 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The single-step `nearest` entrypoint now has a direct Relation-input fixture
+for independent 28/27 work and 23/22 workspace bounds, with cleanup after
+completion and failure. The standard Node Host's `vector-nearest` fixture
+exercises this single-step entrypoint and delivers in-flight cancellation.
+The fused Relation entrypoint has a separate `vector-nearest-fused` standard
+Host timer-cancellation fixture. The two independently reached Host paths
+now cover both registered nearest production entrypoints.
 
 The single-path `normalize_vectors` and `score_vectors` routes now bind their
 independently counted one-record work ceilings (10/9 and 18/17) and fixed
