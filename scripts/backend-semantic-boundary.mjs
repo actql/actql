@@ -4,7 +4,7 @@ import {join} from 'node:path';
 // Supplement typed ownership tests with an alias-aware dependency regression
 // gate. This is not a parser or a sandbox against malicious plugin code.
 const forbiddenReaders = new Map([
-  ['pipeline_typing', new Set(['step_at', 'step_count', 'input_count', 'schema_at', 'input_at', 'input_occurrence_at', 'input_occurrence_count', 'input_producer', 'producer_pipeline', 'producer_target', 'producer_projection', 'candidate_keys'])],
+  ['pipeline_typing', new Set(['step_at', 'step_count', 'input_count', 'schema_at', 'carrier_at', 'input_at', 'input_occurrence_at', 'input_occurrence_count', 'input_producer', 'producer_pipeline', 'producer_target', 'producer_projection', 'candidate_keys'])],
   ['lowering_relation', new Set(['pipeline', 'payload', 'kernel_checked', 'inner_join_checked', 'count_group_checked', 'prepare_projection'])],
   ['sourceview_resolution', new Set(['query_acquisition_pipeline'])],
 ]);
@@ -57,6 +57,10 @@ export function checkBackendSemanticBoundary(root = '.') {
   // Local evaluation and preparation are implementation code even though they
   // share a package with the common completion/ownership facade.
   walk(join(root, 'src/execution_relation'), true);
+  for (const packageName of [
+    'local_sga', 'local_veca', 'local_tea', 'local_bridge',
+    'local_sga_provider', 'local_veca_provider', 'local_tea_provider',
+  ]) walk(join(root, 'src', packageName));
   for (const packageName of ['physical_host', 'connector_sdk', 'connectors/duckdb/compute', 'connectors/duckdb/driver', 'connectors/reference_compute', 'connectors/reference_compute/driver']) {
     const api = readFileSync(join(root, 'src', packageName, 'pkg.generated.mbti'), 'utf8');
     if (/\bGeneratedSequence\b/.test(api)) throw new Error(`${packageName}: Local preparation in common or non-Local API`);
