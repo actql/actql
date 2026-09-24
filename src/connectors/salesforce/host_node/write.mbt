@@ -383,7 +383,17 @@ pub fn salesforce_project_single_effect_outcome(
     @catalog.project_single_effect_outcome(
       response, row_cid, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(value) => value
+    Ok(value) =>
+      match
+        @publication.parse_effect_outcome_shape(
+          @catalog.write_row_effect_projection_wire(value),
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(_) => value
+        Err(_) => raise InvalidResource
+      }
     Err(issue) => raise WriteCollectionResponse(issue)
   }
 }
@@ -809,7 +819,17 @@ pub fn salesforce_project_collection_effect_outcome(
     @catalog.project_collection_effect_outcome_at(
       response, index, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(value) => value
+    Ok(value) =>
+      match
+        @publication.parse_effect_outcome_shape(
+          @catalog.write_row_effect_projection_wire(value),
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(_) => value
+        Err(_) => raise InvalidResource
+      }
     Err(issue) => raise WriteCollectionResponse(issue)
   }
 }
