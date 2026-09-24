@@ -71,6 +71,15 @@ fn binary_input_push(
 }
 
 ///|
+/// Drop scan-owned frames before releasing the remaining kernel workspace.
+/// Producer reads are borrowed and remain available to their own owners.
+fn cleanup_binary_input_scan(scan : BoundedBinaryInputScan) -> Unit {
+  let count = scan.frames.length()
+  scan.frames.clear()
+  release_slots(scan.workspace, count)
+}
+
+///|
 fn binary_input_push_text(
   scan : BoundedBinaryInputScan,
   text : String,

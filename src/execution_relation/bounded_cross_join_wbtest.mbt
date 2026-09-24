@@ -425,12 +425,22 @@ test "bounded cross join stops and reclaims during input admission" {
     }
     _ => fail("input admission did not yield")
   }
+  assert_true(
+    advance_bounded_cross_join(execution, 1).unwrap()
+    is BoundedCrossJoinContinue(..),
+  )
+  let scan = bounded_cross_join_state(execution).input_scan
+  assert_true(scan.frames.length() > 0)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_cross_join(execution, 1).unwrap()
     is BoundedCrossJoinStopped(_),
   )
   assert_true(cleanup_bounded_cross_join(execution).unwrap())
+  assert_eq(scan.frames.length(), 0)
+  assert_eq(scan.workspace.live, 0)
+  assert_false(cleanup_bounded_cross_join(execution).unwrap())
+  assert_eq(scan.workspace.live, 0)
   assert_true(producer_read_available(inputs[0]))
   assert_true(producer_read_available(inputs[1]))
 }

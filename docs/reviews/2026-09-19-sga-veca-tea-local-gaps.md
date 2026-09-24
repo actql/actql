@@ -12,7 +12,7 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 39 |
-| Four-role lifecycle assurance | 21 |
+| Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 21 |
 | Path-scoped work/workspace assurance | 46 |
 | Selected-only assurance | 0 |
@@ -231,6 +231,14 @@ The Node standard Host delivers a timer cancellation after positive receiving
 input work in a 100-row-by-empty cross join, then observes stop,
 nonpublication, and final reclamation. This distinguishes input admission
 from the earlier cancellation fixture that starts after a pair is emitted.
+Binary input scan cleanup now drops retained nested frames before releasing
+the remaining kernel workspace. Quantum-one Array/Object, Text, and Vector
+cancellation and active-frame work failure fixtures inspect the retained
+execution handle after cleanup: no scan frames remain, workspace is zero,
+and borrowed producer reads stay available. A second cleanup does not
+release the same frames again. This closes the scan-frame ownership finding
+from the review of `0e8e0ada`; it does not establish every route's resource
+assurance.
 The Workers fixture was refreshed from the pinned generator. These changes
 close the review's binary input and stale-fixture findings, not the strict
 68-route resource assurance or the providerless synchronous lane.

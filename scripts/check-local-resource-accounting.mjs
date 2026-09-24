@@ -555,7 +555,8 @@ for (const [index, route] of routeEntries.entries()) {
       'sequence_quantum_one_output_and_cleanup',
       'sequence_in_flight_cancel_cleanup',
       'sequence_output_limit_cleanup',
-      'sequence_startup_work_independent_exact_one_short',
+      'sequence_column_resolution_work_independent_exact_one_short',
+      'sequence_wide_init_cancel_cleanup',
       'sequence_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {

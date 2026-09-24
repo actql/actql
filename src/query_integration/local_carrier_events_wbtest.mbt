@@ -1813,25 +1813,40 @@ test "registered sequence provider consumes exact Events Carrier" {
   let material = material.unwrap()
   let owner = carrier_events_sequence_owner(events_owner)
   let generated = task_test_generated(owner)
+  for work in [0, 1] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, events_owner,
+    ).unwrap()
+    let execution = @execution.start_bounded_sequence_match_events(
+      @bounded.control(),
+      generated,
+      view,
+      10,
+      limits.local_execution.rows.output_values,
+      work,
+      limits.local_execution.max_frames,
+      storage_limits.max_workspace_slots,
+      1000,
+    ).unwrap()
+    let mut failed = false
+    for _ in 0..<100 {
+      if !failed {
+        match @execution.advance_bounded_sequence_match(execution, 1).unwrap() {
+          @execution.BoundedSequenceMatchContinue(..) => ()
+          @execution.BoundedSequenceMatchFailed(
+            @execution.Rows(@execution.RowLimit),
+            ..
+          ) => failed = true
+          _ => fail("sequence work limit had another result")
+        }
+      }
+    }
+    assert_true(failed)
+    assert_true(@execution.cleanup_bounded_sequence_match(execution).unwrap())
+  }
   let first_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()
-  for work in [0, 1] {
-    assert_true(
-      @execution.start_bounded_sequence_match_events(
-        @bounded.control(),
-        generated,
-        first_view,
-        10,
-        limits.local_execution.rows.output_values,
-        work,
-        limits.local_execution.max_frames,
-        storage_limits.max_workspace_slots,
-        1000,
-      )
-      is Err(@execution.Rows(@execution.RowLimit)),
-    )
-  }
   let second_view = @carrier_runtime.material_prepare_view(
     material, owner, 0, events_owner,
   ).unwrap()

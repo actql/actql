@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 21 with four-role boundary evidence, 21 with full work\/workspace assurance, 46 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 22 with four-role boundary evidence, 21 with full work\/workspace assurance, 46 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource summary rejects stale route counts', () => {
@@ -102,7 +102,8 @@ test('sequence retains product cancellation and cleanup evidence', () => {
     'sequence_quantum_one_output_and_cleanup',
     'sequence_in_flight_cancel_cleanup',
     'sequence_output_limit_cleanup',
-    'sequence_startup_work_independent_exact_one_short',
+    'sequence_column_resolution_work_independent_exact_one_short',
+    'sequence_wide_init_cancel_cleanup',
     'sequence_workspace_exact_one_short',
   ]) {
     assert.match(run(undefined, routes => {

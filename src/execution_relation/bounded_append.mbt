@@ -55,6 +55,12 @@ struct BoundedAppendExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  state : BoundedAppendState
+}
+
+///|
+fn bounded_append_state(value : BoundedAppendExecution) -> BoundedAppendState {
+  value.state
 }
 
 ///|
@@ -76,6 +82,7 @@ fn bounded_append_failure(
 
 ///|
 fn cleanup_bounded_append_state(state : BoundedAppendState) -> Bool {
+  cleanup_binary_input_scan(state.input_scan)
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
@@ -372,7 +379,7 @@ pub fn start_bounded_append(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ session, token: Some(token), accepted, state, })
 }
 
 ///|
@@ -409,5 +416,14 @@ pub fn advance_bounded_append(
 pub fn cleanup_bounded_append(
   value : BoundedAppendExecution,
 ) -> Result[Bool, BoundedAppendIssue] {
-  @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+  let changed = match @bounded.cleanup(value.session) {
+    Ok(changed) => changed
+    Err(issue) => return Err(Execution(issue))
+  }
+  let state = bounded_append_state(value)
+  if !@bounded.cleanup_pending(value.session) &&
+    (state.input_scan.frames.length() != 0 || state.workspace.live != 0) {
+    return Err(InvalidExecution)
+  }
+  Ok(changed)
 }

@@ -60,6 +60,14 @@ struct BoundedCrossJoinExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  state : BoundedCrossJoinState
+}
+
+///|
+fn bounded_cross_join_state(
+  value : BoundedCrossJoinExecution,
+) -> BoundedCrossJoinState {
+  value.state
 }
 
 ///|
@@ -85,6 +93,7 @@ fn bounded_cross_join_failure(
 
 ///|
 fn cleanup_bounded_cross_join_state(state : BoundedCrossJoinState) -> Bool {
+  cleanup_binary_input_scan(state.input_scan)
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
@@ -462,7 +471,7 @@ pub fn start_bounded_cross_join(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ session, token: Some(token), accepted, state, })
 }
 
 ///|
@@ -499,5 +508,14 @@ pub fn advance_bounded_cross_join(
 pub fn cleanup_bounded_cross_join(
   value : BoundedCrossJoinExecution,
 ) -> Result[Bool, BoundedCrossJoinIssue] {
-  @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+  let changed = match @bounded.cleanup(value.session) {
+    Ok(changed) => changed
+    Err(issue) => return Err(Execution(issue))
+  }
+  let state = bounded_cross_join_state(value)
+  if !@bounded.cleanup_pending(value.session) &&
+    (state.input_scan.frames.length() != 0 || state.workspace.live != 0) {
+    return Err(InvalidExecution)
+  }
+  Ok(changed)
 }
