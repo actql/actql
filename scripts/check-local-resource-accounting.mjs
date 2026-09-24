@@ -498,6 +498,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'time_series_output_exact_one_short_and_finish_work',
       'time_series_output_value_work_exact_one_short',
+      'time_series_control_work_exact_one_short',
+      'time_series_schema_workspace_exact_one_short',
       'time_series_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {

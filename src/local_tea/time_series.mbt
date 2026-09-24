@@ -14,6 +14,7 @@ priv struct TimeSeriesState {
   contract : @contract.Contract
   step : Int64
   row_count : Int
+  mut control_work_remaining : Int
   mut current : Int64
   mut row : Int
   mut phase : TimeSeriesPhase
@@ -42,6 +43,7 @@ pub enum TimeSeriesPoll {
 pub(all) enum TimeSeriesExecutionIssue {
   InvalidSeriesKernel
   InvalidSeriesLimits
+  SeriesWorkLimit
   InvalidSeriesTimestamp
   SeriesOutput(@execution.CaptureIssue)
   SeriesCompletion(@execution.TrustedOutputIssue)
@@ -63,7 +65,11 @@ fn time_series_step(
     match state.phase {
       EmitTime =>
         if state.row < state.row_count {
+          if state.control_work_remaining == 0 {
+            return @bounded.Failed(SeriesWorkLimit, progress, used)
+          }
           used += 1
+          state.control_work_remaining -= 1
           guard @value.epoch_milliseconds_timestamp(state.current) is Some(text) &&
             @value.checked_timestamp_value(text, state.contract) is Some(value) &&
             state.output is Some(output) else {
@@ -89,7 +95,11 @@ fn time_series_step(
           state.phase = FinishSeries
         }
       FinishSeries => {
+        if state.control_work_remaining == 0 {
+          return @bounded.Failed(SeriesWorkLimit, progress, used)
+        }
         used += 1
+        state.control_work_remaining -= 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidSeriesKernel, progress, used)
         }
@@ -133,6 +143,7 @@ pub fn start_time_series(
   limits : @execution.ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue] {
   if max_rows < 0 || max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidSeriesLimits)
@@ -158,6 +169,14 @@ pub fn start_time_series(
     @value.timestamp_epoch_milliseconds(@lower.time_series_start(series))
     is Some(start) else {
     return Err(InvalidSeriesKernel)
+  }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(InvalidSeriesLimits)
+  }
+  if control_work_limit == 0 ||
+    @lower.time_series_row_count(series) > control_work_limit - 1 {
+    return Err(SeriesWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -196,6 +215,7 @@ pub fn start_time_series(
     contract: field.contract,
     step: @lower.time_series_step(series),
     row_count: @lower.time_series_row_count(series),
+    control_work_remaining: control_work_limit,
     current: start,
     row: 0,
     phase: EmitTime,

@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 9 with four-role boundary evidence, 8 with full work\/workspace assurance, 27 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('time-series output and Host cancellation evidence must remain bound', () => {
@@ -57,6 +57,17 @@ test('time-series output and Host cancellation evidence must remain bound', () =
     series.boundary_tests = series.boundary_tests.filter(item =>
       item.role !== 'time_series_output_value_work_exact_one_short');
   }), /TEA time_series: time_series_output_value_work_exact_one_short fixture is missing/);
+  for (const role of [
+    'time_series_control_work_exact_one_short',
+    'time_series_schema_workspace_exact_one_short',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const series = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'time_series');
+      series.boundary_tests = series.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA time_series: ${role} fixture is missing`, 'u'));
+  }
   assert.match(run(undefined, routes => {
     const series = routes.routes.find(entry => entry.family === 'TEA' &&
       entry.operation === 'time_series');
