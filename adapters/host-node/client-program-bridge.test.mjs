@@ -7,6 +7,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -1087,6 +1088,12 @@ test('public Values submit computes and reads its real Local Result',
     let published;
     try {
       const journal = openClientRequestJournal(journalDirectory);
+      const lookupRequest = installNodeClientRequestLookup({
+        journal, control: moon,
+        authorizedScope: ({principalId}) => principalId ===
+          'principal-before-restart' ? {tenantId: 'tenant-a',
+            authorityScopeCid: cid('a')} : undefined,
+      });
       let issues = 0;
       let computes = 0;
       const submitServer = createServer(createClientHttpHandler({
@@ -1105,6 +1112,7 @@ test('public Values submit computes and reads its real Local Result',
         }),
         prepareSubmit: installNodeClientProgramPreparation({
           moon, environment}),
+        lookupRequest,
         submit: async ({preparedProgram, requestId}) => {
           const requested = moon.clientProgramRequestIdentity(
             preparedProgram, cid('a'), requestId, cid('b'));
@@ -1138,14 +1146,44 @@ test('public Values submit computes and reads its real Local Result',
           token: 'scoped-token', durability: 'durable',
         });
         try {
+          const transport = globalThis.fetch;
+          let responseLost = false;
+          globalThis.fetch = async (url, options) => {
+            const reply = await transport(url, options);
+            if (!responseLost && new URL(url).pathname.endsWith('/submit')) {
+              responseLost = true;
+              await reply.arrayBuffer();
+              throw new Error('Acceptance response lost after Host send');
+            }
+            return reply;
+          };
+          try {
+            await assert.rejects(client.aql(document, {format: 'json',
+              requestId: 'published-values-request'}), error =>
+              error.code === 'SubmissionUnknown' &&
+              error.requestId === 'published-values-request');
+          } finally { globalThis.fetch = transport; }
+          assert.equal(responseLost, true);
+          const recovered = await client.lookupRequest(
+            'published-values-request');
+          assert.equal(recovered.kind, 'found');
+          assert.equal(recovered.ref.runDefinitionCid,
+            plan.runDefinition.identity);
           const submitted = await client.aql(document, {format: 'json',
             requestId: 'published-values-request'});
+          assert.deepEqual(submitted.ref, recovered.ref);
           assert.equal(submitted.profile.durability, 'durable');
           assert.equal(submitted.ref.runDefinitionCid,
             plan.runDefinition.identity);
           const repeated = await client.aql(document, {format: 'json',
             requestId: 'published-values-request'});
           assert.deepEqual(repeated.ref, submitted.ref);
+          const found = await client.lookupRequest('published-values-request');
+          assert.deepEqual(found.ref, submitted.ref);
+          assert.equal(found.durability, 'durable');
+          assert.equal(found.lookupExpiresAt, '2099-01-01T00:00:00.000Z');
+          assert.deepEqual(await client.lookupRequest('absent-request'),
+            {kind: 'not_found'});
         } finally { client.close(); }
       } finally {
         await new Promise(resolve => submitServer.close(resolve));
@@ -1182,6 +1220,7 @@ test('public Values submit computes and reads its real Local Result',
       } finally {
         reopened.close();
       }
+      const lookupJournal = openClientRequestJournal(journalDirectory);
       const authority = installResultAccessAuthority({
         authorizeResultReadRequest: () => true,
         admitResultRead: facts => ({
@@ -1232,6 +1271,12 @@ test('public Values submit computes and reads its real Local Result',
           });
           return {ref: requested, durability: 'durable', revision: 0};
         },
+        lookupRequest: installNodeClientRequestLookup({
+          journal: lookupJournal, control: moon,
+          authorizedScope: ({principalId}) => principalId ===
+            'principal-after-restart' ? {tenantId: 'tenant-a',
+              authorityScopeCid: cid('a')} : undefined,
+        }),
         stateService, resultService: service,
       }));
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -1242,6 +1287,9 @@ test('public Values submit computes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
+        const found = await client.lookupRequest('published-values-request');
+        assert.deepEqual(found.ref, ref);
+        assert.equal(found.durability, 'durable');
         assert.equal(execution.profile.durability, 'durable');
         const state = await execution.status();
         assert.equal(validRunState(state), true);
@@ -1263,6 +1311,7 @@ test('public Values submit computes and reads its real Local Result',
         client.close();
       } finally {
         await new Promise(resolve => server.close(resolve));
+        lookupJournal.close();
       }
     } finally {
       await published?.close();

@@ -170,7 +170,10 @@ test('Client Host binds a found request reply before sending its Run ref',
     const handler = createClientHttpHandler({
       authenticate: () => 'principal-a',
       authorizeConnection: () => true,
-      lookupRequest: () => reply,
+      lookupRequest: () => {
+        if (reply instanceof Error) throw reply;
+        return reply;
+      },
     });
     await withServer(handler, async base => {
       const send = () => fetch(`${base}/actql/client/0.1/lookup-request`, {
@@ -187,6 +190,12 @@ test('Client Host binds a found request reply before sending its Run ref',
       assert.deepEqual(await (await send()).json(), reply);
       reply = {kind: 'unknown', reason: 'store_query_failed'};
       assert.deepEqual(await (await send()).json(), reply);
+      reply = Object.assign(new Error('ClientRequestLookupDenied'),
+        {code: 'ClientRequestLookupDenied'});
+      const denied = await send();
+      assert.equal(denied.status, 403);
+      assert.deepEqual(await denied.json(),
+        {code: 'ClientRequestLookupDenied'});
     });
   });
 
