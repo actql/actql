@@ -231,6 +231,47 @@ pub fn open_captured_dag(
 }
 
 ///|
+/// Admit a checked source-free root to the same serial task lifecycle used by
+/// captured acquisitions. The root must have no external input or predecessor.
+pub fn open_source_free_dag(
+  graph : CheckedDAG,
+  ledger : @resources.Ledger,
+) -> Result[CapturedDAG, RunIssue] {
+  if !valid_source_free_root(graph) || graph_program_has_effects(graph) {
+    return Err(UnsupportedGraph)
+  }
+  open_checked_dag(graph, None, ledger, [])
+}
+
+///|
+fn valid_source_free_root(graph : CheckedDAG) -> Bool {
+  !graph.owners.is_empty() &&
+  graph.input_counts[0] == 0 &&
+  graph.source_free_root &&
+  !graph.data.any(edge => edge.consumer == 0) &&
+  !graph.control.any(edge => edge.consumer == 0) &&
+  !graph.supplied_slots.any(slot => slot.consumer == 0)
+}
+
+///|
+/// An Effect Run may use a Values root only through its checked Run owner.
+/// Both captured and source-free roots enter the same private task lifecycle.
+pub fn open_source_free_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  ledger : @resources.Ledger,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let graph = checked.computation.graph
+  if !valid_source_free_root(graph) || !graph_program_has_effects(graph) {
+    return Err(UnsupportedGraph)
+  }
+  let captured = match open_checked_dag(graph, None, ledger, []) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ checked, captured, })
+}
+
+///|
 /// Open physical compute only from the bound Effect Run graph. The returned
 /// owner keeps the static closure and admitted Run beside the captured DAG.
 pub fn open_captured_effect_run_dag(

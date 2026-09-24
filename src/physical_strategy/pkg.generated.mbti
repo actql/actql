@@ -311,6 +311,8 @@ pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.Captur
 
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
+pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn pin_captured_effect_source(CapturedEffectRunDAG, Int, Int) -> Result[CapturedEffectInput, RunIssue]
 
 pub fn pin_captured_effect_sources(CapturedEffectRunDAG, Int) -> Result[CapturedEffectInputs, RunIssue]
@@ -329,7 +331,7 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
 
-pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int) -> Result[CheckedEffectComputationDAG, GraphIssue]
+pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedEffectComputationDAG, GraphIssue]
 
 pub fn prepare_checked_task_reference(CheckedDAG, Int, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
