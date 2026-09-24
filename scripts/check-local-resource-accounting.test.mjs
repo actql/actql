@@ -44,6 +44,16 @@ test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 30 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
+test('temporal joins retain delivered Host cancellation evidence', () => {
+  for (const operation of ['interval_join', 'asof_join']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === operation);
+      route.environment_tests = [];
+    }), new RegExp(`TEA ${operation}: ${operation}_host_in_flight_cancel fixture is missing`, 'u'));
+  }
+});
+
 test('time-series output and Host cancellation evidence must remain bound', () => {
   assert.match(run(undefined, routes => {
     const series = routes.routes.find(entry => entry.family === 'TEA' &&

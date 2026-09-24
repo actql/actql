@@ -16,8 +16,13 @@ metadata arrays. Each fixed fixture admits 14 structural entries, rejects 13
 with zero available resolver work, then stops and cleans up the admitted
 execution. The fixtures pass on JS, Wasm, and native. They establish the
 start-time metadata preflight, not exact/one-short work or workspace limits
-through every resume path, delivered Host cancellation, or full route
-assurance for either join.
+through every resume path or full route assurance for either join.
+The existing ordinary Node standard-Host timer cases for both joins have
+now been linked to their production routes and rerun. They deliver a real
+cancel after positive managed work, confirm stop and nonpublication, and
+reclaim held and reserved resources. The resource checker rejects removal
+of either route's timer evidence. This closes the delivered-cancellation
+evidence gap for these paths, not their remaining work/workspace assurance.
 
 The `dedupe_events` kernel now checks one cumulative control-work ceiling
 across resumes. Its one-record fixture counts 31 steps, including final
