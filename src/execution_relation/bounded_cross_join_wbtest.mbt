@@ -260,6 +260,44 @@ test "bounded cross join charges input field and text bytes" {
 }
 
 ///|
+test "bounded cross join charges exact UTF-8 input bytes" {
+  // The two id field names cost 4 bytes, the two tag names cost 6, and
+  // the BMP and supplementary text values cost 2 and 4 respectively.
+  let right_rows = "[{\"tag\":\"é\"},{\"tag\":\"😀\"}]"
+  let (_, exact, _) = bounded_cross_fixture(right_rows~, input_text=16)
+  let execution = exact.unwrap()
+  let mut complete = false
+  for _ in 0..<100 {
+    if !complete {
+      match advance_bounded_cross_join(execution, 1).unwrap() {
+        BoundedCrossJoinComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 4)
+          complete = true
+        }
+        BoundedCrossJoinContinue(..) => ()
+        _ => fail("exact UTF-8 input budget rejected")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_cross_join(execution).unwrap())
+  let (_, short, _) = bounded_cross_fixture(right_rows~, input_text=15)
+  let execution = short.unwrap()
+  let mut failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_cross_join(execution, 1).unwrap() {
+        BoundedCrossJoinFailed(InputLimit, ..) => failed = true
+        BoundedCrossJoinContinue(..) => ()
+        _ => fail("one-short UTF-8 input budget accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_cross_join(execution).unwrap())
+}
+
+///|
 test "bounded cross join scans long text across resumptions" {
   let mut tag = ""
   for _ in 0..<256 {

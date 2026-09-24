@@ -945,6 +945,7 @@ for (const [index, route] of routeEntries.entries()) {
       'external_product_empty_output_input_admission',
       'external_product_empty_singleton_quantum',
       'external_product_long_text_quantum',
+      'external_product_utf8_input_exact_one_short',
       'external_product_input_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {

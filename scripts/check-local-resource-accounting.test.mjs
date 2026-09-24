@@ -132,6 +132,7 @@ test('binary receivers need their input admission fixtures', () => {
     ['cross_join', 'external_product_empty_output_input_admission'],
     ['cross_join', 'external_product_empty_singleton_quantum'],
     ['cross_join', 'external_product_long_text_quantum'],
+    ['cross_join', 'external_product_utf8_input_exact_one_short'],
     ['cross_join', 'external_product_input_cancel_cleanup'],
   ]) {
     assert.match(run(undefined, routes => {
