@@ -3,6 +3,7 @@ package "actql/actql/run_publication_host"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
@@ -54,6 +55,14 @@ pub fn client_request_program_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 
+pub fn client_result_row_contract_cid(ClientResultRowContractIdentity) -> String
+
+pub fn client_result_row_contract_name(ClientResultRowContractIdentity) -> String
+
+pub fn client_result_row_contract_unit_cid(ClientResultRowContractIdentity) -> String
+
+pub fn client_result_row_contract_wire(ClientResultRowContractIdentity) -> String
+
 pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
@@ -79,6 +88,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
+
+pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
 
@@ -229,6 +240,21 @@ pub(all) enum ClientRequestIdentityRelation {
   SameRequest
   ChangedIntent
 } derive(Eq, @debug.Debug)
+
+pub struct ClientResultRowContractIdentity {
+  unit_definition_cid : String
+  result_name : String
+  wire : String
+  cid : String
+}
+
+pub(all) enum ClientResultRowContractIssue {
+  InvalidLimits
+  MissingPublication
+  MissingUnitIdentity
+  UnrepresentableRowContract
+  Encoding(@encode_core.EncodeFailure)
+}
 
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)
