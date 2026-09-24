@@ -88,3 +88,18 @@ test('a misplaced or foreign case cannot be admitted from an artifact', async ()
     await rm(root, {recursive: true, force: true});
   }
 });
+
+test('download failure still writes an incomplete 27-case assessment', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-equivalent-aggregate-'));
+  try {
+    const result = await aggregateEquivalentArtifacts(join(root, 'missing'),
+      join(root, 'output'), revision);
+    assert.equal(result.status, 'incomplete');
+    assert.equal(result.missingArtifacts.length, 27);
+    assert.equal(result.receivedRecords, 0);
+    assert.equal(JSON.parse(await readFile(join(root, 'output',
+      'assessment.json'), 'utf8')).cases.length, 27);
+  } finally {
+    await rm(root, {recursive: true, force: true});
+  }
+});

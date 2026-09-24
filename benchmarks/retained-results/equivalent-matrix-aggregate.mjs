@@ -24,7 +24,10 @@ export async function aggregateEquivalentArtifacts(partsDirectory, outputDirecto
     fixture,
     artifact: `equivalent-case-${String(index).padStart(2, '0')}-${revision}`,
   }));
-  const entries = await readdir(parts, {withFileTypes: true});
+  const entries = await readdir(parts, {withFileTypes: true}).catch(error => {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  });
   const available = new Set(entries.filter(entry => entry.isDirectory()).map(entry => entry.name));
   const unexpectedArtifacts = entries.map(entry => entry.name).filter(name =>
     !expected.some(item => item.artifact === name));
