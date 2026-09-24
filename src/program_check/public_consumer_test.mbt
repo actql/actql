@@ -245,6 +245,114 @@ test "Effect computation candidate retains owners without admitting execution" {
 }
 
 ///|
+test "Effect computation candidate closes the exact Mapping environment" {
+  let (plain, _, _, evidence, limits) = public_input_fixture()
+  let program = @syntax.parse(
+    plain.replace(
+      old="\"id\":\"consumer\",\"inputs\":",
+      new="\"id\":\"consumer\",\"effects\":{\"create\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}}},\"inputs\":",
+    ),
+    limits.input,
+    format=Json,
+  ).unwrap()
+  let target_schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}"
+  let target_schema_cid = "sha256:" + @sha.hex(@utf8.encode(target_schema))
+  let mapping_before = "{\"connector_manifest_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"conversions\":[],"
+  let mapping_after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}],\"primary_identity\":\"Id\",\"required_fields\":[],\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"row_mapping\":{\"Name\":{\"field\":\"value\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\",\"target_schema\":" +
+    target_schema +
+    ",\"target_schema_identity\":\"" +
+    target_schema_cid +
+    "\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
+  let mapping_cid = "sha256:" +
+    @sha.hex(@utf8.encode(mapping_before + mapping_after))
+  let mapping_body = mapping_before +
+    "\"mapping_contract_cid\":\"" +
+    mapping_cid +
+    "\"," +
+    mapping_after
+  let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
+  let suffix = "\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[" +
+    mapping_body +
+    "],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+  let environment_cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
+  let wire = @environment.read(
+    @utf8.encode(
+      prefix + "\"evidence_bundle_cid\":\"" + environment_cid + "\"," + suffix,
+    ),
+    environment_cid,
+    { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
+  ).unwrap()
+  let environment = @program_check.checking_environment(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  )
+  let candidate = @program_check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    evidence,
+    limits,
+    1,
+    1,
+  ).unwrap()
+  let mappings = @environment.check_mapping_contract_shapes(
+    wire,
+    { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
+    1000,
+  ).unwrap()
+  let static_candidate = @program_check.prepare_effect_computation_static(
+    candidate,
+    mappings,
+    {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    },
+  ).unwrap()
+  assert_eq(
+    @results.effect_result_binding_count(
+      @results.effect_static_candidate_results(static_candidate),
+    ),
+    1,
+  )
+  assert_eq(
+    @results.effect_mapping_rule_count(
+      @results.effect_static_candidate_mapping_rules(static_candidate),
+    ),
+    1,
+  )
+  let foreign_wire = @environment.read(
+    @utf8.encode(
+      prefix + "\"evidence_bundle_cid\":\"" + environment_cid + "\"," + suffix,
+    ),
+    environment_cid,
+    { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
+  ).unwrap()
+  let foreign_mappings = @environment.check_mapping_contract_shapes(
+    foreign_wire,
+    { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
+    1000,
+  ).unwrap()
+  assert_true(
+    @program_check.prepare_effect_computation_static(
+      candidate,
+      foreign_mappings,
+      {
+        max_members: 1,
+        max_work: 1000,
+        max_admission_nodes: 100,
+        max_admission_depth: 10,
+        max_admission_text_bytes: 1000,
+      },
+    )
+    is Err(ForeignEnvironment),
+  )
+}
+
+///|
 fn public_input_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
