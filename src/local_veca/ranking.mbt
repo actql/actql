@@ -153,6 +153,14 @@ fn ranking_input_matches_operation(
 }
 
 ///|
+fn ranking_input_port(value : RankingInput) -> Int {
+  match value {
+    RankingProducer(read) => @execution.producer_read_input_index(read)
+    RankingSupplied(read) => @execution.supplied_relation_read_input_index(read)
+  }
+}
+
+///|
 fn ranking_input_schema(value : RankingInput) -> @schema.Schema {
   match value {
     RankingProducer(read) => @execution.producer_read_schema(read)
@@ -249,7 +257,13 @@ fn ranking_checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
-fn ranking_workspace(rows : Int, by : Int, tie : Int, inputs : Int) -> Int? {
+fn ranking_workspace(
+  rows : Int,
+  by : Int,
+  tie : Int,
+  logical_inputs : Int,
+  physical_inputs : Int,
+) -> Int? {
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
@@ -259,7 +273,9 @@ fn ranking_workspace(rows : Int, by : Int, tie : Int, inputs : Int) -> Int? {
     ranking_checked_add(records, rows) is Some(first) &&
     ranking_checked_add(first, outputs) is Some(second) &&
     ranking_checked_add(second, rows) is Some(third) &&
-    ranking_checked_add(third, inputs) is Some(fourth) &&
+    ranking_checked_multiply(physical_inputs, 2) is Some(port_slots) &&
+    ranking_checked_add(logical_inputs, port_slots) is Some(input_slots) &&
+    ranking_checked_add(third, input_slots) is Some(fourth) &&
     ranking_checked_add(fourth, fixed_width) is Some(total) else {
     return None
   }
@@ -1311,36 +1327,49 @@ pub fn start_ranking_inputs(
     is Some(output_schema) else {
     return Err(InvalidRankingKernel)
   }
-  let occurrence_inputs : Array[RankingInput] = []
-  for edge in 0..<input_count {
-    let mut matched = None
-    for input in inputs {
-      if ranking_input_matches_operation(input, owner, step, edge) {
-        if matched is Some(_) {
-          return Err(InvalidRankingKernel)
-        }
-        matched = Some(input)
-      }
-    }
-    guard matched is Some(input) else { return Err(InvalidRankingKernel) }
-    occurrence_inputs.push(input)
-  }
-  for input in inputs {
-    let mut matched = false
-    for edge in 0..<input_count {
-      if ranking_input_matches_operation(input, owner, step, edge) {
-        matched = true
-      }
-    }
-    if !matched {
-      return Err(InvalidRankingKernel)
-    }
-  }
   let tie_count = @lower.vector_ranking_tie_break_count(prepared).unwrap_or(0)
   guard prepared_ranking_names(tie_count, index => {
       @lower.vector_ranking_tie_break_at(prepared, index)
     })
-    is Some(tie) else {
+    is Some(tie) &&
+    ranking_workspace(0, by_count, tie_count, input_count, inputs.length())
+    is Some(input_workspace) &&
+    input_workspace <= max_workspace_slots else {
+    return Err(RankingWorkspaceLimit)
+  }
+  // Physical receiving ports and authored operation positions are distinct.
+  // One exact input can occur at several positions without losing its order.
+  let by_port : Map[Int, (RankingInput, Bool)] = Map([])
+  for input in inputs {
+    let port = ranking_input_port(input)
+    if port < 0 || by_port.contains(port) {
+      return Err(InvalidRankingKernel)
+    }
+    by_port[port] = (input, false)
+  }
+  let occurrence_inputs : Array[RankingInput] = []
+  let mut unmatched = inputs.length()
+  for edge in 0..<input_count {
+    guard @lower.node_input_target(node, edge) is Some(target) else {
+      return Err(InvalidRankingKernel)
+    }
+    let port = match target {
+      @pipeline.Input(index) => index
+      @pipeline.Step(_) => edge
+    }
+    guard by_port.get(port) is Some((input, matched)) else {
+      return Err(InvalidRankingKernel)
+    }
+    if !ranking_input_matches_operation(input, owner, step, edge) {
+      return Err(InvalidRankingKernel)
+    }
+    occurrence_inputs.push(input)
+    if !matched {
+      by_port[port] = (input, true)
+      unmatched -= 1
+    }
+  }
+  if unmatched != 0 {
     return Err(InvalidRankingKernel)
   }
   let mut total_rows = 0
@@ -1351,7 +1380,13 @@ pub fn start_ranking_inputs(
     }
     total_rows = next
   }
-  guard ranking_workspace(total_rows, by_count, tie_count, input_count)
+  guard ranking_workspace(
+      total_rows,
+      by_count,
+      tie_count,
+      input_count,
+      inputs.length(),
+    )
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
     return Err(RankingWorkspaceLimit)
