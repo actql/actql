@@ -1,0 +1,22 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/client_local_host" @local,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/execution_site" @site,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/platform_native/remote_standard_host" @output,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/run_publication_host" @host,
+}
+
+import {
+  "actql/actql/check_environment" @environment,
+  "actql/actql/program_check" @checked,
+  "actql/actql/lowering_relation" @lower,
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"

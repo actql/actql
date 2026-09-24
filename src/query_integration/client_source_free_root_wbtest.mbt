@@ -232,4 +232,218 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_eq(usage.reserved_execution_bytes, 0L)
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
+
+  // The native harness supplies a signed runtime bundle and physical SQLite
+  // journal. Other targets have already checked the Local kernel path above.
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_VALUES_ROOT")
+    is Some(root_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(sqlite_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY") is Some(crypto_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET") is Some(target) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY")
+    is Some(public_key) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY")
+    is Some(bundle_body) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID")
+    is Some(bundle_cid) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE")
+    is Some(signature) else {
+    return
+  }
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let sequence_limits : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let compilation = @publication_host.issue_prepared_client_values_compilation(
+    prepared, manifests, sequence_limits, 32, 64, 100000, 10000, 100,
+  ).unwrap()
+  let template = @publication_host.client_values_compilation_template(
+    compilation,
+  )
+  let plan = @publication_host.client_values_compilation_compiled_plan(
+    compilation,
+  )
+  let prepared_invocation = @publication.seal_run_evidence_value(
+    "prepared_invocation",
+    "{\"version\":\"actql-prepared-invocation/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @publication.run_evidence_value_identity(template) +
+    "\",\"compiled_plan_cid\":\"" +
+    @publication.publication_contract_identity(plan) +
+    "\",\"execution_context_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\",\"host_policy_cid\":\"sha256:" +
+    "b".repeat(64) +
+    "\",\"policy_decision\":\"allow\"," +
+    "\"expires_at\":\"2099-01-01T00:00:00.000Z\"}",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let authorization = @publication.seal_run_evidence_value(
+    "run_authorization",
+    "{\"version\":\"actql-run-authorization/0.1\"," +
+    "\"prepared_invocation_cid\":\"" +
+    @publication.run_evidence_value_identity(prepared_invocation) +
+    "\",\"execution_context_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\",\"host_policy_cid\":\"sha256:" +
+    "b".repeat(64) +
+    "\",\"decision\":\"allowed\"}",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let admission = @publication_host.admit_prepared_client_run_publication(
+    prepared, template, prepared_invocation, authorization, plan,
+  ).unwrap()
+  let definition = @publication.issue_run_definition(
+    admission,
+    "native-values-scope",
+    "native-values-run",
+    "sha256:" + "c".repeat(64),
+    "2026-09-25T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let input_binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let executor = @native_remote_values.install_native_remote_values_task_executor(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    input_binding,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+    {
+      finalization_quantum: 16,
+      max_finalization_rounds: 1000,
+      row_decode: row_limits,
+      bridge_max_entries: 100,
+      bridge_max_name_bytes: 10000,
+      output: {
+        output_export: export_limits,
+        max_manifest_bytes: 10000,
+        max_retained_bytes: 1048576L,
+      },
+    },
+  ).unwrap()
+  let sqlite = @native_sqlite.load_library(sqlite_path).unwrap()
+  let crypto = @native_signature.load_library(crypto_path).unwrap()
+  let root = @native_filesystem.open_root(root_path).unwrap()
+  let component = b"native-runtime"
+  let writer = root
+    .create_writer("values-runtime-stage", component.length().to_int64())
+    .unwrap()
+  writer.append(component).unwrap()
+  let generation = writer.seal("runtime-component").unwrap()
+  let bundles = @native_runtime_bundle.open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    root_path,
+    [
+      {
+        issuer_authority: "bundle-authority-a",
+        key_id: "key-a",
+        public_key_pem: public_key,
+      },
+    ],
+    target,
+    component.length().to_int64(),
+    4,
+    8,
+    262144L,
+  ).unwrap()
+  bundles
+  .adopt(
+    "actql-remote-runtime-bundle-signature/0.1", "key-a", bundle_cid, bundle_body,
+    signature, "runtime-component", generation,
+  )
+  .unwrap()
+  |> ignore
+  bundles.activate(bundle_cid).unwrap() |> ignore
+  let active_runtime = bundles
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "runtime-process:source-free-values",
+    )
+    .unwrap()
+  let site = @site.create_site(
+    "native-values-site", 1, bundle_cid, 2, 2, 1048576L, 268435456L,
+  ).unwrap()
+  let control = @remote.create_site_dispatch_journal(
+    site, "actql-remote-site/0.1",
+  ).unwrap()
+  let journal = @native_remote_journal.open_journal(
+    sqlite,
+    root_path + "/values-journal.sqlite3",
+    262144L,
+    control,
+  ).unwrap()
+  let budget = @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()
+  let operation_capability = native_publication_cid(
+    "native-values-operation-capability",
+  )
+  let issuer_capability = native_publication_cid(
+    "native-values-issuer-capability",
+  )
+  let runtime = @native_remote_values.open_native_remote_values_site_runtime(
+    site,
+    active_runtime,
+    operation_capability,
+    issuer_capability,
+    executor,
+    journal,
+    bundles,
+    [budget],
+  ).unwrap()
+  let (connector_registration, connector_revision, strategy_revision) = @native_runtime_bundle.native_active_runtime_connector_scope(
+    active_runtime,
+  )
+  let dispatch = @remote.prepare_dispatch_request(
+    "native-values-coordinator",
+    definition_cid,
+    @publication_host.client_values_compilation_plan_node_id(compilation),
+    1,
+    "native-values-dispatch-1",
+    "native-values-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("native-values-obligations"),
+    @remote.remote_dispatch_budget_cid(budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_native_remote_standard_output(
+    runtime, journal, dispatch, input_binding, "[{\"id\":1},{\"id\":2}]",
+  )
 }

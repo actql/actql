@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_values_host"
+
+import {
+  "actql/actql/execution_relation",
+  "actql/actql/execution_site",
+  "actql/actql/platform_native/remote_journal",
+  "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/remote_site_protocol",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, String, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[@remote_runtime.NativeRemoteTaskExecutor, NativeRemoteValuesHostIssue]
+
+pub fn open_native_remote_values_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, @remote_runtime.NativeRemoteTaskExecutor, @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteValuesHostIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeRemoteValuesHostIssue {
+  ForeignRun
+  UnsupportedProgram
+  InvalidInputBinding
+  InvalidLimits
+  Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
+}
+
+pub(all) struct NativeRemoteValuesTaskLimits {
+  finalization_quantum : Int
+  max_finalization_rounds : Int
+  row_decode : @execution_relation.RetainedRowDecodeLimits
+  bridge_max_entries : Int
+  bridge_max_name_bytes : Int
+  output : @remote_standard_host.NativeRemoteStandardTaskLimits
+}
+
+// Type aliases
+
+// Traits

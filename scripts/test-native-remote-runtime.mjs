@@ -18,9 +18,11 @@ const root = await mkdtemp(join(scratchParent, 'native-remote-runtime-'));
 const storeRoot = join(root, 'store');
 const agentRoot = join(root, 'agent');
 const standardRoot = join(root, 'standard');
+const valuesRoot = join(root, 'values');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(agentRoot, {recursive: true});
 await mkdir(standardRoot, {recursive: true});
+await mkdir(valuesRoot, {recursive: true});
 
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
 const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
@@ -119,6 +121,7 @@ try {
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
       ACTQL_TEST_DUCKDB_LIBRARY: duckdbLibrary,
       ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
+      ACTQL_TEST_NATIVE_REMOTE_VALUES_ROOT: valuesRoot,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
         keys.publicKey.export({type: 'spki', format: 'pem'}),
