@@ -70,6 +70,8 @@ import {
   "actql/actql/platform_native/remote_runtime" @native_remote_runtime,
   "actql/actql/platform_native/remote_standard_host" @native_remote_standard,
   "actql/actql/platform_native/remote_values_host" @native_remote_values,
+  "actql/actql/platform_native/remote_values_https_site" @native_values_https,
+  "actql/actql/platform_native/https_server" @native_https_server,
   "actql/actql/platform_native/remote_transfer_client" @native_transfer,
   "actql/actql/platform_native/remote_transfer_journal" @native_transfer_journal,
   "actql/actql/platform_native/http_client" @native_http,
@@ -99,3 +101,13 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/execution_authorization" @authorization,
 } for "wbtest"
+
+options(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+)

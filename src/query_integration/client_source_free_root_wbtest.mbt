@@ -537,6 +537,34 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     foreign_endpoint.dispatch_json(body, second_cid)
     is Err(@native_remote_values.ForeignDispatch),
   )
+  if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CERT") is Some(cert) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY") is Some(key) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_CA") is Some(ca) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_HTTPS_PEER") is Some(peer) {
+    let server = @native_https_server.open(
+      "127.0.0.1", 0, cert, key, ca, 262144, 262144, 4,
+    ).unwrap()
+    let https_site = @native_values_https.open_native_remote_values_https_site(
+      server, endpoint, peer,
+    ).unwrap()
+    let ready = @utf8.encode(
+      https_site.port().to_string() +
+      "\n" +
+      second_cid +
+      "\n" +
+      body +
+      "\n" +
+      @remote.remote_poll_query_json(second).unwrap() +
+      "\n",
+    )
+    let writer = root.create_writer("https-ready-stage", 262144L).unwrap()
+    writer.append(ready).unwrap()
+    writer.seal("https-ready").unwrap() |> ignore
+    for _ in 0..<5 {
+      assert_true(https_site.poll(30000).unwrap())
+    }
+    assert_true(https_site.close())
+  }
   let reply = endpoint.dispatch_json(body, second_cid).unwrap()
   let accepted = @remote.admit_remote_dispatch_response_json(
     reply,
