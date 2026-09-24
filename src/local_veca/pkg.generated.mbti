@@ -138,6 +138,7 @@ pub(all) enum NormalizeIssue {
   InvalidRecord(Int)
   InvalidVector(Int)
   WorkspaceLimit
+  WorkLimit
   Numeric(@vector_numeric.Issue)
   Output(@managed_record_runtime.Issue)
   Execution(@bounded_execution.Issue)

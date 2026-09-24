@@ -27,6 +27,7 @@ priv struct NormalizeState {
   mut component : Int
   mut norm_squared : Double
   mut divisor : Double
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -52,6 +53,7 @@ pub(all) enum NormalizeIssue {
   InvalidRecord(Int)
   InvalidVector(Int)
   WorkspaceLimit
+  WorkLimit
   Numeric(@numeric.Issue)
   Output(@records.Issue)
   Execution(@bounded.Issue)
@@ -223,6 +225,9 @@ fn normalize_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(WorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.record < @storage.record_count(state.source) {
@@ -281,6 +286,7 @@ fn normalize_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
         }
@@ -292,6 +298,7 @@ fn normalize_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -311,7 +318,7 @@ fn cleanup_state(state : NormalizeState) -> Bool {
 }
 
 ///|
-pub fn start_normalize(
+fn start_normalize_with_control_work_limit(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
@@ -319,6 +326,7 @@ pub fn start_normalize(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit : Int,
 ) -> Result[NormalizeExecution, NormalizeIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.VectorStep(_)) &&
@@ -340,6 +348,12 @@ pub fn start_normalize(
     limits.max_value_nodes < dimensions + 1 ||
     limits.max_workspace_slots < dimensions {
     return Err(InvalidLimits)
+  }
+  if control_work_limit < 0 {
+    return Err(InvalidLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(WorkLimit)
   }
   let output = match
     @records.prepare_output(
@@ -371,6 +385,7 @@ pub fn start_normalize(
     component: 0,
     norm_squared: 0.0,
     divisor: 0.0,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, normalize_step, cleanup_state, @records.discard_completed,
@@ -380,6 +395,28 @@ pub fn start_normalize(
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
   })
+}
+
+///|
+pub fn start_normalize(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[NormalizeExecution, NormalizeIssue] {
+  start_normalize_with_control_work_limit(
+    control,
+    sequence,
+    step,
+    input,
+    limits,
+    storage_bytes,
+    available,
+    limits.max_work,
+  )
 }
 
 ///|

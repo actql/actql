@@ -3565,6 +3565,53 @@
       "entrypoint": {
         "path": "src/local_veca/normalize.mbt",
         "symbol": "start_normalize"
+      },
+      "boundary_tests": [
+        {
+          "role": "normalize_control_work_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/normalize_wbtest.mbt",
+          "fixture": "normalize enforces cumulative control work across resumes"
+        },
+        {
+          "role": "normalize_workspace_exact",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/normalize_wbtest.mbt",
+          "fixture": "normalize accepts its exact temporary workspace"
+        },
+        {
+          "role": "normalize_workspace_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/normalize_wbtest.mbt",
+          "fixture": "normalize admits workspace before building record temporaries"
+        },
+        {
+          "role": "normalize_kernel_cancel_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/normalize_wbtest.mbt",
+          "fixture": "normalize observes cancellation between component work units"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "normalize_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-normalize"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "normalize_workspace_exact",
+          "one_short_limit": "normalize_workspace_one_short",
+          "in_flight_cancel": "normalize_host_in_flight_cancel",
+          "cleanup": "normalize_kernel_cancel_cleanup"
+        }
       }
     },
     {

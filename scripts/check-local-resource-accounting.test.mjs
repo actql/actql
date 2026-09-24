@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 31 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 32 with operation-specific boundary records, 11 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -318,6 +318,27 @@ test('subgraph false-edge bounds must remain bound to its route', () => {
     subgraph.boundary_tests = subgraph.boundary_tests.filter(item =>
       item.role !== 'subgraph_false_edge_work_workspace_exact_one_short');
   }), /SGA subgraph: false-edge work\/workspace fixture is missing/);
+});
+
+test('vector normalization retains its bounded production evidence', () => {
+  for (const role of [
+    'normalize_control_work_exact_one_short',
+    'normalize_workspace_exact',
+    'normalize_workspace_one_short',
+    'normalize_kernel_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const normalize = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'normalize_vectors');
+      normalize.boundary_tests = normalize.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`VecA normalize_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const normalize = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'normalize_vectors');
+    normalize.environment_tests = [];
+  }), /VecA normalize_vectors: bounded Host cancellation assurance is missing/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
