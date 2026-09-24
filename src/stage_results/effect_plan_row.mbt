@@ -155,8 +155,11 @@ pub fn effect_plan_row_intended_changes_wire(
     }
   }
   let count = changes.length()
-  if count != terminal.checked_changes || count > max_fields {
+  if count != terminal.checked_changes {
     return Err(IncompleteChanges)
+  }
+  if count > max_fields {
+    return Err(WorkLimit)
   }
   if count > max_work - rule_count - literal_count {
     return Err(WorkLimit)
