@@ -33,10 +33,10 @@ test('retention reserves metadata and retains uncertain allocations until confir
 });
 
 test('execution admission combines database and simultaneous scratch', () => {
-  const owner = checked(moon.obligationExecution(100n, 60n, 40n));
+  const owner = checked(moon.obligationExecution(100n, 60n, 40n, 1));
   assert.equal(moon.obligationExecutionUsage(owner).reserved_execution_bytes,
     100n);
-  assert.throws(() => checked(moon.obligationExecution(100n, 60n, 41n)));
+  assert.throws(() => checked(moon.obligationExecution(100n, 60n, 41n, 1)));
   checked(moon.obligationExecutionReleased(owner));
   assert.equal(moon.obligationExecutionUsage(owner).reserved_execution_bytes,
     0n);
