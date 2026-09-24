@@ -53,6 +53,67 @@ async function collectionFixture(t) {
   return {open, claims};
 }
 
+test('single raw response is durable before provider projection', async t => {
+  const {open, claim} = await fixture(t);
+  const first = open();
+  t.after(() => first.close());
+  let sends = 0;
+  const body = Buffer.from('{"success":true}');
+  const execute = async () => {
+    sends += 1;
+    return {observation: {useCid: cid('4'), statusCode: 201, body}};
+  };
+  await assert.rejects(captureClaimedEffectResponse({
+    ledger: first, claim, requestCid: cid('f'), execute,
+    projectStored: stored => {
+      assert.deepEqual(stored.responseBytes, body);
+      throw new Error('projection failed');
+    },
+  }), /projection failed/u);
+  first.close();
+  const restarted = open();
+  t.after(() => restarted.close());
+  const stored = restarted.readClaimedResponse(claim);
+  assert.equal(stored.statusCode, 201);
+  assert.deepEqual(stored.responseBytes, body);
+  const retry = await captureClaimedEffectResponse({
+    ledger: restarted, claim, requestCid: cid('f'), execute,
+  });
+  assert.equal(retry.claimed, false);
+  assert.equal(sends, 1);
+});
+
+test('collection raw response is durable before provider projection',
+  async t => {
+    const {open, claims} = await collectionFixture(t);
+    const first = open();
+    t.after(() => first.close());
+    let sends = 0;
+    const body = Buffer.from('[{"success":true},{"success":false}]');
+    const execute = async () => {
+      sends += 1;
+      return {observation: {useCid: cid('4'), statusCode: 200, body}};
+    };
+    await assert.rejects(captureClaimedEffectCollectionResponse({
+      ledger: first, claims, requestCid: cid('f'), execute,
+      projectStored: stored => {
+        assert.deepEqual(stored.responseBytes, body);
+        throw new Error('projection failed');
+      },
+    }), /projection failed/u);
+    first.close();
+    const restarted = open();
+    t.after(() => restarted.close());
+    const stored = restarted.readClaimedBatchResponse(claims);
+    assert.equal(stored.statusCode, 200);
+    assert.deepEqual(stored.responseBytes, body);
+    const retry = await captureClaimedEffectCollectionResponse({
+      ledger: restarted, claims, requestCid: cid('f'), execute,
+    });
+    assert.equal(retry.claimed, false);
+    assert.equal(sends, 1);
+  });
+
 test('one collection response covers every row without duplicate send',
   async t => {
     const {open, claims} = await collectionFixture(t);

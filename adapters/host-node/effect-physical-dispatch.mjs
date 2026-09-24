@@ -24,6 +24,7 @@ export async function captureClaimedEffectResponse({
   claim,
   requestCid,
   execute,
+  projectStored,
 }) {
   const ownedClaim = snapshotEffectDispatchClaim(claim);
   if (!ledger || typeof ledger.claimDispatch !== 'function' ||
@@ -31,7 +32,8 @@ export async function captureClaimedEffectResponse({
       typeof ledger.beginPhysicalFlight !== 'function' || !claim ||
       typeof requestCid !== 'string' ||
       requestCid !== ownedClaim.canonicalRequestCid ||
-      typeof execute !== 'function') {
+      typeof execute !== 'function' ||
+      (projectStored !== undefined && typeof projectStored !== 'function')) {
     fail('InvalidEffectPhysicalDispatch');
   }
   const ownership = ledger.claimDispatch(ownedClaim);
@@ -61,7 +63,11 @@ export async function captureClaimedEffectResponse({
     statusCode: observation.statusCode,
     responseBytes: observation.body,
   });
-  return Object.freeze({claimed: true, ownership, physical,
+  // Provider interpretation follows durable custody of the exact raw bytes.
+  // A projection failure leaves those bytes available for read-only recovery.
+  const projected = projectStored === undefined
+    ? physical : projectStored(stored.response, physical);
+  return Object.freeze({claimed: true, ownership, physical: projected,
     response: stored.response});
 }
 
@@ -74,6 +80,7 @@ export async function captureClaimedEffectCollectionResponse({
   claims,
   requestCid,
   execute,
+  projectStored,
 }) {
   const ownedClaims = Array.isArray(claims)
     ? snapshotEffectDispatchClaims(claims) : undefined;
@@ -83,7 +90,10 @@ export async function captureClaimedEffectCollectionResponse({
       !ownedClaims || ownedClaims.length === 0 ||
       typeof requestCid !== 'string' ||
       ownedClaims.some(claim => claim.canonicalRequestCid !== requestCid) ||
-      typeof execute !== 'function') {
+      typeof execute !== 'function' ||
+      (projectStored !== undefined &&
+        (typeof projectStored !== 'function' ||
+          typeof ledger.readClaimedBatchResponse !== 'function'))) {
     fail('InvalidEffectPhysicalDispatch');
   }
   const ownership = ledger.claimDispatchBatch(ownedClaims);
@@ -110,6 +120,13 @@ export async function captureClaimedEffectCollectionResponse({
     statusCode: observation.statusCode,
     responseBytes: observation.body,
   });
-  return Object.freeze({claimed: true, ownership, physical,
+  const response = projectStored === undefined
+    ? undefined : ledger.readClaimedBatchResponse(ownedClaims);
+  if (projectStored !== undefined && response === undefined) {
+    fail('EffectPhysicalResponseMissingAfterStore');
+  }
+  const projected = projectStored === undefined
+    ? physical : projectStored(response, physical);
+  return Object.freeze({claimed: true, ownership, physical: projected,
     response: stored});
 }
