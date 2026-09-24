@@ -2,6 +2,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
+import {ownInvocationContext} from
+  '../host-common/owned-invocation-context.mjs';
 
 const count = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => {
@@ -42,7 +44,7 @@ export function projectSalesforceSingleObservation({
 
 // This reports a bounded physical observation, not an Effect outcome. The
 // Host must own preflight, durable dispatch, receipt admission and recovery.
-export async function writeSalesforceSingleRecord({
+export async function sendRawSalesforceSingleRecord({
   moon,
   request,
   currentObservation,
@@ -64,7 +66,9 @@ export async function writeSalesforceSingleRecord({
       !count(limits.maxDepth) || limits.maxDepth > 32) {
     fail('InvalidSalesforceSingleWrite');
   }
-  const scope = authorization.scope;
+  const context = ownInvocationContext({authorization, credential, limits,
+    callbacks: {callResource}});
+  const scope = context.scope;
   const operation = moon.salesforceSingleWriteRequestGrantOperation(request);
   if (!matchesSalesforceCredentialOrg(credential,
       moon.salesforceSingleWriteRequestOrgId(request)) ||
@@ -79,16 +83,16 @@ export async function writeSalesforceSingleRecord({
   checked(moon.salesforceRecheckSingleWriteRequest(
     request, currentObservation));
   signal?.throwIfAborted();
-  const response = await callResource({
-    ...credential,
-    ...authorization,
+  const response = await context.callbacks.callResource({
+    ...context.credential,
+    ...context.authorization,
     operations: new Map([[operation, Object.freeze({
       method: moon.salesforceSingleWriteRequestMethod(request),
       path: moon.salesforceSingleWriteRequestPath(request),
       body: moon.salesforceSingleWriteRequestBody(request),
     })]]),
-    maxRequestBytes: limits.maxRequestBytes,
-    maxResponseBytes: limits.maxResponseBytes,
+    maxRequestBytes: context.limits.maxRequestBytes,
+    maxResponseBytes: context.limits.maxResponseBytes,
     returnRejectedResponse: true,
     signal,
   });
@@ -97,7 +101,13 @@ export async function writeSalesforceSingleRecord({
     statusCode: response.statusCode,
     body: response.body,
   });
+  return Object.freeze({observation, limits: context.limits});
+}
+
+export async function writeSalesforceSingleRecord(options) {
+  const raw = await sendRawSalesforceSingleRecord(options);
   return projectSalesforceSingleObservation({
-    moon, request, observation, limits,
+    moon: options.moon, request: options.request,
+    observation: raw.observation, limits: raw.limits,
   });
 }
