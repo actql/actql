@@ -37,6 +37,16 @@ result must be recorded with the exact release artifact, raw pairs, and case
 assessments. This is only one of four registered comparators. No diagnostic
 pair, indeterminate case, or missing case is counted as a pass.
 
+The review's concrete measurement gaps remain separate work items:
+
+| Gap | Required evidence |
+| --- | --- |
+| Ordinary placement selects Local in a case that has DuckDB-only comparator accounting | Measure the selected Local task's actual work and resources against an independent equivalent Local realization. Do not force DuckDB merely to obtain a timing ratio. |
+| Training candidate is physically infeasible | Record the capacity rejection and candidate eligibility. Any smaller training case must be identified as a distinct calibration input, with its applicability to the registered evaluation case checked; do not fabricate a rate or drop the registered case. |
+| A timing gate fails | Attribute cold and warm preparation, import, validation, required identity, holding, and execution to measured product phases before changing the implementation. Keep the registered thresholds and obligations. |
+| Raw records exist only in a local scratch directory | Upload the fixed-revision raw pairs, calibration, and assessment as a replayable CI artifact. A report containing only hashes or a local path is insufficient. |
+| One comparator completes | Run and assess the other three registered comparator families independently. A single-comparator result is not whole-experiment acceptance. |
+
 The manual `Registered performance matrix` workflow runs the same registered
 equivalent-obligations script on a fixed Linux revision and uploads case pairs,
 calibration records, and the assessment even when a gate fails. It excludes
