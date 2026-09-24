@@ -1562,6 +1562,374 @@ pub fn client_program_effect_input_available(
 }
 
 ///|
+#export_name("clientProgramEffectInputAt")
+pub fn client_program_effect_input_at(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> @strategy.CapturedEffectInput? {
+  @strategy.captured_effect_input_at(value, member_index)
+}
+
+///|
+/// Exact Host limits for the checked Effect input stream, shared by cell and
+/// resident representations. These limits do not grant access or apply.
+#export_name("clientProgramEffectInputExportLimits")
+pub fn client_program_effect_input_export_limits(
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  if max_result_fields < 0 ||
+    max_result_mapping_work < 0 ||
+    max_result_order_work < 0 ||
+    max_result_workspace_entries < 0 ||
+    max_rows < 0 ||
+    max_value_nodes < 0 ||
+    max_value_text_bytes < 0 ||
+    max_value_depth < 0 ||
+    max_value_work < 0 ||
+    max_wire_bytes < 0 ||
+    max_wire_nodes < 0 ||
+    max_wire_depth < 0 ||
+    max_columns < 0 ||
+    max_order_work < 0 ||
+    max_logical_wire_bytes < 0 ||
+    max_logical_wire_nodes < 0 ||
+    max_logical_wire_depth < 0 ||
+    max_schema_fields < 0 ||
+    max_schema_bytes < 0 ||
+    max_schema_nodes < 0 ||
+    max_schema_depth < 0 ||
+    max_batch_bytes < 0 {
+    return None
+  }
+  Some({
+    max_result_fields,
+    max_result_mapping_work,
+    max_result_order_work,
+    max_result_workspace_entries,
+    max_rows,
+    values: {
+      max_nodes: max_value_nodes,
+      max_text_bytes: max_value_text_bytes,
+      max_depth: max_value_depth,
+      max_work: max_value_work,
+    },
+    payload_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_wire_bytes,
+      max_nodes: max_wire_nodes,
+      max_depth: max_wire_depth,
+    },
+    logical_wire: {
+      max_columns,
+      max_order_work,
+      max_bytes: max_logical_wire_bytes,
+      max_nodes: max_logical_wire_nodes,
+      max_depth: max_logical_wire_depth,
+    },
+    schema: {
+      max_fields: max_schema_fields,
+      max_bytes: max_schema_bytes,
+      max_nodes: max_schema_nodes,
+      max_depth: max_schema_depth,
+    },
+    max_batch_bytes,
+  })
+}
+
+///|
+/// Start the common bounded checked Result view. No caller-supplied rows,
+/// projection, order, or payload can replace this retained Effect source.
+#export_name("clientProgramEffectInputExportStart")
+pub fn client_program_effect_input_export_start(
+  input : @strategy.CapturedEffectInput,
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @strategy.start_captured_effect_input_export(
+    input,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  )
+}
+
+///|
+/// The installed Site supplies the exact resident generation and bounded row
+/// stream. This owner keeps its checked Effect pin and managed import paired.
+struct ClientEffectManagedInputImport {
+  input : @strategy.CapturedEffectInput
+  output : @execution.ManagedCompletedOutput[Int]
+  bridge : @execution.ManagedPublicationBridge[Int]
+  limits : @publication_host.PublicationOutputExportLimits
+  mut open : Bool
+}
+
+///|
+/// Own scalar limits before the physical reader can await or call back.
+fn client_program_own_effect_export_limits(
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> @publication_host.PublicationOutputExportLimits {
+  {
+    max_result_fields: limits.max_result_fields,
+    max_result_mapping_work: limits.max_result_mapping_work,
+    max_result_order_work: limits.max_result_order_work,
+    max_result_workspace_entries: limits.max_result_workspace_entries,
+    max_rows: limits.max_rows,
+    values: {
+      max_nodes: limits.values.max_nodes,
+      max_text_bytes: limits.values.max_text_bytes,
+      max_depth: limits.values.max_depth,
+      max_work: limits.values.max_work,
+    },
+    payload_wire: {
+      max_columns: limits.payload_wire.max_columns,
+      max_order_work: limits.payload_wire.max_order_work,
+      max_bytes: limits.payload_wire.max_bytes,
+      max_nodes: limits.payload_wire.max_nodes,
+      max_depth: limits.payload_wire.max_depth,
+    },
+    logical_wire: {
+      max_columns: limits.logical_wire.max_columns,
+      max_order_work: limits.logical_wire.max_order_work,
+      max_bytes: limits.logical_wire.max_bytes,
+      max_nodes: limits.logical_wire.max_nodes,
+      max_depth: limits.logical_wire.max_depth,
+    },
+    schema: {
+      max_fields: limits.schema.max_fields,
+      max_bytes: limits.schema.max_bytes,
+      max_nodes: limits.schema.max_nodes,
+      max_depth: limits.schema.max_depth,
+    },
+    max_batch_bytes: limits.max_batch_bytes,
+  }
+}
+
+///|
+pub(all) enum ClientEffectManagedInputIssue {
+  ForeignOutput
+  Closed
+  Bridge(@execution.ManagedProducerBridgeIssue)
+  Export(@execution.CompletedExportIssue)
+}
+
+///|
+#export_name("clientProgramEffectManagedInputBegin")
+pub fn client_program_effect_managed_input_begin(
+  input : @strategy.CapturedEffectInput,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  if !@strategy.captured_effect_input_matches_managed(input, output) {
+    return Err(ForeignOutput)
+  }
+  let limits = client_program_own_effect_export_limits(limits)
+  let bridge = match
+    @execution.prepare_managed_publication_bridge(
+      output,
+      material,
+      limits.max_rows,
+      limits.values,
+      limits.max_result_workspace_entries,
+      limits.schema.max_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Bridge(issue))
+  }
+  Ok({ input, output, bridge, limits, open: true, })
+}
+
+///|
+#export_name("clientProgramEffectManagedInputAppend")
+pub fn client_program_effect_managed_input_append(
+  value : ClientEffectManagedInputImport,
+  row : String,
+) -> Result[Unit, ClientEffectManagedInputIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+    return Err(ForeignOutput)
+  }
+  @execution.append_managed_publication_bridge_wire(value.bridge, row, {
+    max_bytes: value.limits.payload_wire.max_bytes,
+    max_nodes: value.limits.payload_wire.max_nodes,
+    max_depth: value.limits.payload_wire.max_depth,
+    max_text_bytes: value.limits.values.max_text_bytes,
+  }).map_err(issue => Bridge(issue))
+}
+
+///|
+#export_name("clientProgramEffectManagedInputFinish")
+pub fn client_program_effect_managed_input_finish(
+  value : ClientEffectManagedInputImport,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  ClientEffectManagedInputIssue,
+] {
+  if !value.open {
+    return Err(Closed)
+  }
+  value.open = false
+  if !@strategy.captured_effect_input_matches_managed(value.input, value.output) {
+    @execution.close_managed_publication_bridge(value.bridge)
+    return Err(ForeignOutput)
+  }
+  let output = match
+    @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      return Err(Bridge(issue))
+    }
+  }
+  match
+    @execution.start_completed_result_relation_export(
+      output,
+      @strategy.captured_effect_input_occurrence(value.input),
+      {
+        max_fields: value.limits.max_result_fields,
+        max_mapping_work: value.limits.max_result_mapping_work,
+        max_order_work: value.limits.max_result_order_work,
+        max_workspace_entries: value.limits.max_result_workspace_entries,
+      },
+      value.limits.max_rows,
+      value.limits.values,
+      value.limits.payload_wire,
+      value.limits.logical_wire,
+      value.limits.schema,
+      value.limits.max_batch_bytes,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      Err(Export(issue))
+    }
+  }
+}
+
+///|
+#export_name("clientProgramEffectManagedInputCancel")
+pub fn client_program_effect_managed_input_cancel(
+  value : ClientEffectManagedInputImport,
+) -> Unit {
+  value.open = false
+  @execution.close_managed_publication_bridge(value.bridge)
+}
+
+///|
+#export_name("clientProgramEffectInputExportAdvance")
+pub fn client_program_effect_input_export_advance(
+  value : @execution.CompletedResultRelationExportPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), @execution.CompletedExportIssue] {
+  @execution.advance_completed_result_relation_export(value, quantum)
+}
+
+///|
+#export_name("clientProgramEffectInputExportReady")
+pub fn client_program_effect_input_export_ready(
+  value : @execution.CompletedResultRelationExportPreparation,
+) -> Result[@execution.CompletedOutputExport, @execution.CompletedExportIssue] {
+  @execution.finish_completed_result_relation_export_preparation(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportNext")
+pub fn client_program_effect_input_export_next(
+  value : @execution.CompletedOutputExport,
+) -> Result[String?, @execution.CompletedExportIssue] {
+  @execution.next_completed_output_export(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportFinish")
+pub fn client_program_effect_input_export_finish(
+  value : @execution.CompletedOutputExport,
+) -> Result[
+  (@execution.CompletedRelationExportReceipt, String),
+  @execution.CompletedExportIssue,
+] {
+  @execution.finish_completed_relation_export(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportLogicalCid")
+pub fn client_program_effect_input_export_logical_cid(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> String {
+  @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+}
+
+///|
+#export_name("clientProgramEffectInputExportFields")
+pub fn client_program_effect_input_export_fields(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Array[String] {
+  @execution.completed_relation_export_field_names(receipt)
+}
+
+///|
+#export_name("clientProgramEffectInputExportReleaseReceipt")
+pub fn client_program_effect_input_export_release_receipt(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Unit {
+  @execution.cancel_completed_relation_export_receipt(receipt)
+}
+
+///|
+#export_name("clientProgramEffectInputExportCancelPreparation")
+pub fn client_program_effect_input_export_cancel_preparation(
+  value : @execution.CompletedResultRelationExportPreparation,
+) -> Bool {
+  @execution.cancel_completed_result_relation_export(value)
+}
+
+///|
+#export_name("clientProgramEffectInputExportCancel")
+pub fn client_program_effect_input_export_cancel(
+  value : @execution.CompletedOutputExport,
+) -> Unit {
+  @execution.cancel_completed_output_export(value)
+}
+
+///|
 #export_name("clientProgramReleaseEffectInputs")
 pub fn client_program_release_effect_inputs(
   value : @strategy.CapturedEffectInputs,
