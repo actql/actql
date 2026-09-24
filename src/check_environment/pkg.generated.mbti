@@ -146,6 +146,8 @@ pub fn command_target_resource_kind(CommandTarget) -> String
 
 pub fn command_target_work(CommandTarget) -> Int
 
+pub fn compiler_aoa_contract_cid() -> String
+
 pub fn compiler_barrier_contract_manifest_cid() -> String
 
 pub fn compiler_barrier_contract_manifest_wire() -> String

@@ -19,3 +19,8 @@ pub fn compiler_barrier_contract_manifest_cid() -> String {
 pub fn compiler_barrier_contract_manifest_wire() -> String {
   "{\"barrier_contract_manifest_cid\":\"sha256:075ce7af21828f3a298162c90140b0bdcc1f225e7fec3922b89ceaddf2185443\",\"contracts\":[{\"contract_cid\":\"sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd\",\"name\":\"artifact_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:6417dbaca8fa69a3c5263052ed307dc83e98dd43165b9793f2e86cdd008a9c4d\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
 }
+
+///|
+pub fn compiler_aoa_contract_cid() -> String {
+  "sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d"
+}
