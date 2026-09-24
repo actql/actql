@@ -63,6 +63,10 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
+
+pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectProgramRunCandidate
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -258,6 +262,8 @@ pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
@@ -496,17 +502,13 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 // Types and methods
 type CapturedDAG
 
+type CapturedEffectRunDAG
+
 type CheckedDAG
 
-pub struct CheckedEffectComputationDAG {
-  candidate : @program_check.EffectProgramStaticCandidate
-  graph : CheckedDAG
-}
+type CheckedEffectComputationDAG
 
-pub struct CheckedEffectRunDAG {
-  computation : CheckedEffectComputationDAG
-  run : @program_check.EffectProgramRunCandidate
-}
+type CheckedEffectRunDAG
 
 pub(all) struct CheckedTaskIdentity {
   task : Int
@@ -553,6 +555,7 @@ pub struct DataEdge {
 
 pub(all) enum GraphIssue {
   InvalidLimits
+  EffectGraphOwnerRequired
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)

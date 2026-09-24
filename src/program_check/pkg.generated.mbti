@@ -834,21 +834,13 @@ pub(all) enum EffectComputationIssue {
   Computation(LocalConstructionFailure)
 }
 
-pub struct EffectProgramRunCandidate {
-  candidate : EffectProgramStaticCandidate
-  admission : @run_publication.RunPublicationAdmission
-  run_definition : @run_publication.PublicationContract
-}
+type EffectProgramRunCandidate
 
 pub(all) enum EffectProgramRunIssue {
   Binding(@run_publication.RunProgramBindingIssue)
 } derive(Eq, @debug.Debug)
 
-pub struct EffectProgramRunPreview {
-  run : EffectProgramRunCandidate
-  invocation : @run_publication.PublicationContract
-  preview : EffectProgramStaticPreview
-}
+type EffectProgramRunPreview
 
 pub(all) enum EffectProgramRunPreviewIssue {
   Static(EffectProgramStaticPreviewIssue)
@@ -857,11 +849,7 @@ pub(all) enum EffectProgramRunPreviewIssue {
 
 type EffectProgramStaticCandidate
 
-pub struct EffectProgramStaticPreview {
-  candidate : EffectProgramStaticCandidate
-  stage_index : Int
-  preview : @run_publication.EffectPreviewIdentity
-}
+type EffectProgramStaticPreview
 
 pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignProgramDefinition
