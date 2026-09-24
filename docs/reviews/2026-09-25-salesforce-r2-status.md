@@ -105,3 +105,12 @@ uses a real logical request scope and derived keys for both members, rejecting
 missing, reordered, foreign-scope, and released-input cases. This establishes
 the excluded key binding only; it does not renew authority, grant apply, or
 send a mutation.
+
+The Client Host now supplies the Ledger frontier with the historical private
+Preview identity retained by the same Captured Run owner. In the two-member
+Host fixture, a durable possible-send claim for a halted member leaves the
+independent member ready after the SQLite Ledger is reopened. Reusing the
+claimed row does not create another claim. The frontier remains readable after
+one Result pin is released, while current apply checks correctly reject that
+released input. This is durable progress reconciliation, not the missing
+standard Effectful submit, whole-set permit, or physical mutation path.
