@@ -88,6 +88,163 @@ test "checked Program retains its exact admitted Environment owner" {
 }
 
 ///|
+test "Effect computation candidate retains owners without admitting execution" {
+  let (plain, _, environment, evidence, limits) = public_input_fixture()
+  let text = plain.replace(
+    old="\"id\":\"consumer\",\"inputs\":",
+    new="\"id\":\"consumer\",\"effects\":{\"save\":{\"store\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.store.v1\",\"from\":{\"result\":\"out\"}}}},\"inputs\":",
+  )
+  let program = @syntax.parse(
+    text,
+    limits.input,
+    format=Json,
+    source_path="effect-fixture.actql",
+  ).unwrap()
+  match
+    @program_check.check_parsed_with_evidence(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+    ) {
+    Rejected(diagnostic) =>
+      match @program_check.diagnostic_cause(diagnostic) {
+        Source(UnsupportedEffects(_)) => ()
+        _ => fail("ordinary checker admitted an unclosed Effect")
+      }
+    _ => fail("ordinary checker admitted an unclosed Effect")
+  }
+  let candidate = @program_check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    None,
+    evidence,
+    limits,
+    1,
+    1,
+  ).unwrap()
+  let headers = @program_check.effect_computation_headers(candidate)
+  assert_true(physical_equal(@syntax.effect_headers_owner(headers), program))
+  assert_eq(@syntax.effect_header_count(headers), 1)
+  assert_eq(
+    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 0).unwrap()),
+    "store",
+  )
+  let results = @program_check.effect_computation_stage_results(candidate)
+  let source = @stages.operations_source(@results.operations(results))
+  assert_eq(@stages.stage_count(source), 2)
+  assert_true(
+    @publication.lookup(@results.stage_at(results, 1).unwrap(), "out")
+    is Some(_),
+  )
+  let bound = @results.bind_effect_results(headers, results, 100).unwrap()
+  assert_eq(@results.effect_result_binding_count(bound), 1)
+  assert_true(
+    physical_equal(
+      @program_check.effect_computation_environment(candidate),
+      @program_check.checking_environment_wire(environment),
+    ),
+  )
+  let references = @program_check.effect_computation_catalog_references(
+    candidate,
+  )
+  assert_true(
+    physical_equal(
+      @environment.contract_registry_environment(
+        @environment.catalog_registry(
+          @environment.reference_contents(references),
+        ),
+      ),
+      @program_check.checking_environment_wire(environment),
+    ),
+  )
+  let mappings = @environment.check_mapping_contract_shapes(
+    @program_check.effect_computation_environment(candidate),
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 100, max_members: 10, },
+    1000,
+  ).unwrap()
+  assert_true(
+    @program_check.prepare_effect_computation_static(candidate, mappings, {
+      max_members: 1,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    })
+    is Err(_),
+  )
+  match
+    @program_check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      0,
+    ) {
+    Err(Headers(issue)) =>
+      assert_eq(@syntax.effect_header_issue_kind(issue), BudgetExceeded)
+    _ => fail("unmetered Effect header escaped")
+  }
+  let (_, plain_program, _, _, _) = public_input_fixture()
+  assert_true(
+    @program_check.prepare_effect_computation_candidate(
+      plain_program,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      1,
+    )
+    is Err(MissingEffects),
+  )
+  let malformed = @syntax.parse(
+    text.replace(
+      old="\"store\":{\"target\":\"crm\",\"mapping\":\"mapping:crm.store.v1\",\"from\":{\"result\":\"out\"}}",
+      new="\"store\":{}",
+    ),
+    limits.input,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    @program_check.prepare_effect_computation_candidate(
+      malformed,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      1,
+    )
+    is Err(Headers(_)),
+  )
+  let with_bindings = @syntax.parse(
+    text.replace(
+      old="\"id\":\"public-reader\",",
+      new="\"id\":\"public-reader\",\"bindings\":{\"b\":{\"type\":\"string\"}},",
+    ),
+    limits.input,
+    format=Json,
+  ).unwrap()
+  match
+    @program_check.prepare_effect_computation_candidate(
+      with_bindings,
+      environment,
+      None,
+      evidence,
+      limits,
+      1,
+      1,
+    ) {
+    Err(Computation(Source(UnsupportedBindings(_)))) => ()
+    _ => fail("Effect candidate bypassed the unrelated binding audit")
+  }
+}
+
+///|
 fn public_input_fixture(
   generated? : Bool = false,
   repeated? : Bool = false,
