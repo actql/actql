@@ -167,10 +167,13 @@ templates; the Workers suite passes 24/24 locally. These are component fixes,
 not evidence that an Effectful standard Run is complete or that required CI has
 passed at the new SHA.
 
-Read-only recovery after a physical response was durably stored remains an
-explicit shared Host admission task. The current Salesforce capture entry
-checks current write authority and Catalog before returning the saved response.
-The eventual recovery entry must authenticate evidence viewing, verify the
-immutable request and ledger binding, and reproject stored bytes without a new
-write grant or physical send. It must not bypass current write admission for a
-new mutation or expose the saved response to an unauthorized caller.
+Read-only recovery after a physical response was durably stored now has
+separate single-record and Collections adapter paths. They check the immutable
+request and exact MoonBit ledger claims, require a current evidence-view
+decision, and reproject stored bytes without a write credential, Catalog
+refresh, or physical send. Local HTTPS and SQLite restart tests verify success
+without the write grant, denial of an unauthorized evidence read, foreign
+payload and reordered-row rejection, and unchanged send and credential-use
+counts. The decision is supplied by a trusted Host caller; the standard
+Effectful Host entry has not yet connected that authority. The existing
+capture entry still performs current write admission for new sends.
