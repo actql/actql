@@ -37,6 +37,8 @@ pub fn client_program_definition_json(@run_publication_host.PreparedClientProgra
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
+pub fn client_program_local_values_pipeline_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesPipelineIssue]
+
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?

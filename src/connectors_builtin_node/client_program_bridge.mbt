@@ -425,6 +425,24 @@ pub fn client_program_local_aoa_steps(
 }
 
 ///|
+/// Expose the checked one-node Values pipeline for Local Plan compilation.
+/// It remains private compilation material until complete Plan admission.
+#export_name("clientProgramLocalValuesPipelineJson")
+pub fn client_program_local_values_pipeline_json(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[String, @publication_host.ClientValuesPipelineIssue] {
+  @publication_host.emit_prepared_client_values_pipeline(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 fn reject_client_local_run(
   run : @strategy.CapturedDAG,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
