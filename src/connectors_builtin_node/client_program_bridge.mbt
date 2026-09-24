@@ -338,9 +338,32 @@ fn client_local_sequence_limits() -> @lower.SequenceLimits {
 #export_name("clientProgramDefinitionJson")
 pub fn client_program_definition_json(
   prepared : @publication_host.PreparedClientProgram,
-) -> Result[String, @publication_host.ClientProgramDefinitionIssue] {
+) -> Result[String, @publication_host.ClientIdentityMaterialIssue] {
   @publication_host.emit_prepared_client_program_definition(
     prepared, 100000, 10000, 100,
+  )
+}
+
+///|
+/// Expose the owner-sealed Program Semantics referenced by the Definition.
+#export_name("clientProgramSemanticsJson")
+pub fn client_program_semantics_json(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[String, @publication_host.ClientIdentityMaterialIssue] {
+  @publication_host.emit_prepared_client_program_semantics(
+    prepared, 100000, 10000, 100,
+  )
+}
+
+///|
+/// Expose one Stage Semantics body referenced by Program Semantics.
+#export_name("clientProgramStageSemanticsJson")
+pub fn client_program_stage_semantics_json(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+) -> Result[String, @publication_host.ClientIdentityMaterialIssue] {
+  @publication_host.emit_prepared_client_stage_semantics(
+    prepared, stage, 100000, 10000, 100,
   )
 }
 
