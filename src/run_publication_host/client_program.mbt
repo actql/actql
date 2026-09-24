@@ -303,6 +303,46 @@ pub fn emit_prepared_client_task_aoa_steps(
 }
 
 ///|
+pub(all) enum ClientValuesPipelineIssue {
+  MissingTask
+  Sequence(@lower.SequenceIssue)
+  NotSingleValues
+  Encoding
+}
+
+///|
+/// Emit the checked source-free Values pipeline for the first product
+/// compilation path. Its identity still needs complete Plan bindings.
+pub fn emit_prepared_client_values_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientValuesPipelineIssue] {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingTask)
+  }
+  let sequence = match @lower.prepare_sequence(owner, limits) {
+    Ok(result) => result
+    Err(issue) => return Err(Sequence(issue))
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let emitted = @lower.emit_source_free_values_pipeline(sequence, writer) catch {
+    _ => return Err(Encoding)
+  }
+  match emitted {
+    Ok(_) => ()
+    Err(_) => return Err(NotSingleValues)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
 pub(all) enum ClientTaskSequenceIssue {
   MissingTask
   EmptyTask

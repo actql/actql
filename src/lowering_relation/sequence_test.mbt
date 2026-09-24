@@ -11,6 +11,33 @@ fn sequence_limits() -> @lowering_relation.SequenceLimits {
 }
 
 ///|
+test "source-free Values emits one complete AoA pipeline" {
+  let one = @lowering_relation.prepare_sequence(
+    expression_pipeline(""),
+    sequence_limits(),
+  ).unwrap()
+  let writer = @encode.writer(10000, 1000, 100)
+  assert_true(
+    @lowering_relation.emit_source_free_values_pipeline(one, writer) is Ok(_),
+  )
+  assert_eq(
+    @encode.finish(writer),
+    "{\"output\":\"values_0\",\"sources\":{},\"steps\":[{\"id\":\"values_0\",\"in\":[],\"op\":\"REL.values\",\"params\":{\"rows\":[{\"id\":1}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}],\"version\":\"aoa-pipeline/0.1\"}",
+  )
+  let multiple = @lowering_relation.prepare_sequence(
+    expression_pipeline(",{\"derive\":{}}"),
+    sequence_limits(),
+  ).unwrap()
+  let rejected_writer = @encode.writer(10000, 1000, 100)
+  assert_true(
+    @lowering_relation.emit_source_free_values_pipeline(
+      multiple, rejected_writer,
+    )
+    is Err(@lowering_relation.NotSingleValues),
+  )
+}
+
+///|
 test "all four operations prepare under one owner and emit one ordered step array" {
   let owner = expression_pipeline(
     ",{\"derive\":{}},{\"filter\":\"true\"},{\"select\":[\"id\"]}",
