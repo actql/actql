@@ -131,6 +131,17 @@ test('graph matching loses control work evidence when either fixture is removed'
   }
 });
 
+test('graph matching loses identity workspace evidence when either fixture is removed', () => {
+  for (const operation of ['match_nodes', 'match_edges']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_identity_workspace_exact_one_short`);
+    }), new RegExp(`SGA ${operation}: match identity workspace evidence is missing`, 'u'));
+  }
+});
+
 test('edge matching loses bounded type-index evidence without its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'SGA' &&

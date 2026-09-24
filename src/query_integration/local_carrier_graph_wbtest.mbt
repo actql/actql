@@ -2654,7 +2654,7 @@ test "node identity match admits workspace before execution and cleans cancel" {
 }
 
 ///|
-test "node identity match admits exact control work and rejects one short" {
+test "node identity match admits exact work and workspace and rejects one short" {
   let source_owner = carrier_graph_source_owner()
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_match_owner(source_owner, "[1]")
@@ -2678,7 +2678,7 @@ test "node identity match admits exact control work and rejects one short" {
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
-  let start = fn(work) raise {
+  let start = fn(work, workspace) raise {
     @local_sga.start_match_nodes(
       @bounded.control(),
       task_test_completion(owner),
@@ -2687,15 +2687,17 @@ test "node identity match admits exact control work and rejects one short" {
       input,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      4,
+      workspace,
       1000,
       1000,
       [external],
       control_work_limit=Some(work),
-    ).unwrap()
+    )
   }
-  // One scratch slot, one identity, two output fields, commit, and finish.
-  let exact = start(6)
+  // One identity needs two sort slots and two output-name slots. Work adds
+  // scratch, identity, two fields, commit, and finish: four slots, six steps.
+  assert_true(start(6, 3) is Err(@local_sga.MatchNodesWorkspaceLimit))
+  let exact = start(6, 4).unwrap()
   let mut complete = false
   for _ in 0..<7 {
     if !complete {
@@ -2712,7 +2714,7 @@ test "node identity match admits exact control work and rejects one short" {
   }
   assert_true(complete)
   assert_eq(@local_sga.cleanup_match_nodes(exact), Ok(true))
-  let short = start(5)
+  let short = start(5, 4).unwrap()
   let mut failed = false
   for _ in 0..<7 {
     if !failed {
@@ -2984,7 +2986,7 @@ test "edge type index builds within quantum and releases on cancellation" {
 }
 
 ///|
-test "edge identity match admits exact control work and rejects one short" {
+test "edge identity match admits exact work and workspace and rejects one short" {
   let source_owner = carrier_graph_labeled_source_owner()
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_edge_match_owner(source_owner, "[\"missing\"]")
@@ -3008,7 +3010,7 @@ test "edge identity match admits exact control work and rejects one short" {
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
-  let start = fn(work) raise {
+  let start = fn(work, workspace) raise {
     @local_sga.start_match_edges(
       @bounded.control(),
       task_test_completion(owner),
@@ -3017,15 +3019,17 @@ test "edge identity match admits exact control work and rejects one short" {
       input,
       0,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
-      11,
+      workspace,
       1000,
       1000,
       [external],
       control_work_limit=Some(work),
-    ).unwrap()
+    )
   }
-  // One type-index entry, three scratch slots, three edge checks, and finish.
-  let exact = start(8)
+  // Three edges need six sort slots, four output-name slots, and one type
+  // index slot. Work adds the index, scratch, checks, and finish.
+  assert_true(start(8, 10) is Err(@local_sga.MatchEdgesWorkspaceLimit))
+  let exact = start(8, 11).unwrap()
   let mut complete = false
   for _ in 0..<9 {
     if !complete {
@@ -3044,7 +3048,7 @@ test "edge identity match admits exact control work and rejects one short" {
   }
   assert_true(complete)
   assert_eq(@local_sga.cleanup_match_edges(exact), Ok(true))
-  let short = start(7)
+  let short = start(7, 11).unwrap()
   let mut failed = false
   for _ in 0..<9 {
     if !failed {

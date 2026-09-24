@@ -68,6 +68,12 @@ passes its selected work ceiling to both kernels. The resource gate rejects
 removal of either fixture. These cases establish control-work admission for
 the tested variants, not complete work/workspace or lifecycle assurance for
 every match variant and predicate path.
+The same identity fixtures independently count peak structural workspace:
+one node identity needs two sort slots and two output-name slots, while three
+edge identities with one type entry need six sort, four output-name, and one
+type-index slot. Limits of four and eleven admit; one short rejects before
+the corresponding execution starts. The route gate rejects either missing
+workspace record. Predicate and other output variants remain unassured.
 
 The edge matcher now builds its authored type filter over charged bounded
 steps, one occurrence per quantum-one advance, then uses a typed string index
