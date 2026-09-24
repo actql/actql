@@ -13,10 +13,15 @@ const source = join(
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
 );
 
-function run(mutator, routeMutator, args = []) {
+function run(mutator, routeMutator, args = [], gapsText) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);
   const directory = mkdtempSync(join(tmpdir(), 'actql-resource-audit-'));
+  let gapsTarget;
+  if (gapsText !== undefined) {
+    gapsTarget = join(directory, 'gaps.md');
+    writeFileSync(gapsTarget, gapsText);
+  }
   if (routeMutator) {
     const routes = JSON.parse(readFileSync(join(
       root, manifest.production_routes,
@@ -31,7 +36,11 @@ function run(mutator, routeMutator, args = []) {
   try {
     return execFileSync(process.execPath, [script, ...args], {
       cwd: root,
-      env: {...process.env, ACTQL_LOCAL_RESOURCE_AUDIT: target},
+      env: {
+        ...process.env,
+        ACTQL_LOCAL_RESOURCE_AUDIT: target,
+        ...(gapsTarget ? {ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget} : {}),
+      },
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -42,6 +51,21 @@ function run(mutator, routeMutator, args = []) {
 
 test('resource gate accepts every normative Local operation', () => {
   assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 20 with full work\/workspace assurance, 44 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('resource summary rejects stale route counts', () => {
+  const gaps = readFileSync(join(
+    root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
+  ), 'utf8');
+  const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 44 |',
+    '| Path-scoped work/workspace assurance | 43 |',
+  );
+  assert.notEqual(stale, gaps);
+  assert.match(
+    run(undefined, undefined, ['--check-summary'], stale),
+    /resource gaps ledger summary is stale/,
+  );
 });
 
 test('Events projection loses its boundary evidence when the fixture is removed', () => {

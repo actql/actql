@@ -1365,32 +1365,73 @@ for (const entry of families.operations) {
   }
 }
 
+const boundaryRoutes = routeEntries.filter(route =>
+  (route.boundary_tests ?? []).length > 0).length;
+const assuredRoutes = routeEntries.filter(route => [
+  'entrypoint',
+  ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
+  ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+  ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
+  ...(route.view_entrypoint ? ['view_entrypoint'] : []),
+].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
+const fullyAssuredRoutes = routeEntries.filter(route => [
+  'entrypoint',
+  ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
+  ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
+  ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
+  ...(route.view_entrypoint ? ['view_entrypoint'] : []),
+].every(pathName => route.path_assurance?.[pathName] !== undefined &&
+  route.resource_assurance?.[pathName] !== undefined)).length;
+const resourceAssuredPaths = routeEntries.reduce((count, route) =>
+  count + Object.keys(route.resource_assurance ?? {}).length, 0);
+const selectedAssuredRoutes = routeEntries.filter(route =>
+  route.path_assurance?.selected_entrypoint !== undefined &&
+  Object.keys(route.path_assurance).length === 1).length;
+const summaryStart = '<!-- local-resource-accounting-summary:start -->';
+const summaryEnd = '<!-- local-resource-accounting-summary:end -->';
+const summary = [
+  summaryStart,
+  '| Resource boundary evidence | Count |',
+  '|---|---:|',
+  `| Production routes | ${routeEntries.length} |`,
+  `| Operation-specific boundary records | ${boundaryRoutes} |`,
+  `| Four-role lifecycle assurance | ${assuredRoutes} |`,
+  `| Full route work/workspace assurance | ${fullyAssuredRoutes} |`,
+  `| Path-scoped work/workspace assurance | ${resourceAssuredPaths} |`,
+  `| Selected-only assurance | ${selectedAssuredRoutes} |`,
+  summaryEnd,
+].join('\n');
+const defaultGaps = path.join(
+  root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
+);
+const gapsPath = process.env.ACTQL_LOCAL_RESOURCE_GAPS
+  ? path.resolve(process.env.ACTQL_LOCAL_RESOURCE_GAPS)
+  : defaultGaps;
+if (manifestPath === defaultManifest ||
+  process.argv.includes('--check-summary')) {
+  if (!fs.existsSync(gapsPath)) {
+    fail('resource gaps ledger is missing');
+  } else {
+    const gaps = fs.readFileSync(gapsPath, 'utf8');
+    const start = gaps.indexOf(summaryStart);
+    const end = gaps.indexOf(summaryEnd);
+    if (start < 0 || end < start) {
+      fail('resource gaps ledger lacks generated summary markers');
+    } else if (process.argv.includes('--write-summary') &&
+      errors.length === 0) {
+      fs.writeFileSync(
+        gapsPath,
+        gaps.slice(0, start) + summary + gaps.slice(end + summaryEnd.length),
+      );
+    } else if (gaps.slice(start, end + summaryEnd.length) !== summary) {
+      fail('resource gaps ledger summary is stale');
+    }
+  }
+}
 if (errors.length > 0) {
   for (const error of errors) console.error(error);
   process.exitCode = 1;
 } else {
-  const boundaryRoutes = routeEntries.filter(route =>
-    (route.boundary_tests ?? []).length > 0).length;
-  const assuredRoutes = routeEntries.filter(route => [
-    'entrypoint',
-    ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
-    ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
-    ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
-    ...(route.view_entrypoint ? ['view_entrypoint'] : []),
-  ].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
-  const fullyAssuredRoutes = routeEntries.filter(route => [
-    'entrypoint',
-    ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
-    ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
-    ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
-    ...(route.view_entrypoint ? ['view_entrypoint'] : []),
-  ].every(pathName => route.path_assurance?.[pathName] !== undefined &&
-    route.resource_assurance?.[pathName] !== undefined)).length;
-  const resourceAssuredPaths = routeEntries.reduce((count, route) =>
-    count + Object.keys(route.resource_assurance ?? {}).length, 0);
-  const selectedAssuredRoutes = routeEntries.filter(route =>
-    route.path_assurance?.selected_entrypoint !== undefined &&
-    Object.keys(route.path_assurance).length === 1).length;
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +

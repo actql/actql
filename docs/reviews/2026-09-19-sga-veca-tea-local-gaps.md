@@ -4,11 +4,22 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 39 have operation-specific
-boundary records, 20 have all four lifecycle roles, and 17 have exact and
-one-short work/workspace assurance across every production path. Across the
-routes, 40 paths have path-scoped work/workspace evidence. Strict completion
-remains red.
+The following resource counts are derived from the production-route inventory
+and checked by `check:local-resource-accounting`.
+
+<!-- local-resource-accounting-summary:start -->
+| Resource boundary evidence | Count |
+|---|---:|
+| Production routes | 68 |
+| Operation-specific boundary records | 39 |
+| Four-role lifecycle assurance | 20 |
+| Full route work/workspace assurance | 20 |
+| Path-scoped work/workspace assurance | 44 |
+| Selected-only assurance | 0 |
+<!-- local-resource-accounting-summary:end -->
+
+Strict boundary completion remains red. A path-scoped fixture is not proof of
+all variants of its operation or of the providerless whole-sequence lane.
 
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component
@@ -101,6 +112,12 @@ The view fixture constructs a real Events material through the registered
 provider, then verifies cleanup leaves it available for final reclamation.
 These are fixed-shape kernel-path proofs, not full task-wide accounting or
 all-variant resource assurance.
+The Events-view `start_session_view` production path now binds its
+independently counted 44/43 control-work and 22/21 simultaneous-workspace
+fixture to the registered Host timer. Its own private-state cancellation
+check preserves the Events material through cleanup. Direct and
+Relation-backed sessions still need distinct delivered-cancellation proof
+before the three-path operation can be marked fully resource-assured.
 
 The bounded interval and as-of join constructors now check their complete
 structural metadata dimensions before resolving fields or constructing the
