@@ -868,6 +868,14 @@ close specific correctness and cleanup findings, not the shared blockers above.
 | `3880522c8` | Common DAG retains a fused Carrier prefix and selects later Relation steps | Typed physical split and generated-prefix boundary tests |
 | `9317ec2bb` | Graph, Events, and Vectors fused prefixes reach row consumers | Standard Host value, identity, two-consumer, and reclamation regressions |
 
+The backend semantic-boundary gate now scans family kernels, family providers,
+and formal Bridge kernels in addition to Connector and Relation execution code.
+Graph Apply checks its base input Carrier through the typed preparation view;
+it no longer re-reads the checked frontend pipeline. A negative gate fixture
+rejects the original Carrier lookup through a renamed frontend import. This
+closes that frontend traversal finding, not the separate providerless
+synchronous execution or resource-assurance gaps.
+
 At source HEAD `1098d32bf`, the scoped SGA/Graph suite passed 140 tests per
 target and the TEA/Events suite passed 31 tests per target on JS, Wasm, and
 native. `check:docs`, the generated public API gate, and
