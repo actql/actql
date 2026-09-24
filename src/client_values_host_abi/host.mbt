@@ -282,6 +282,108 @@ pub fn client_values_host_result_definitions(
 }
 
 ///|
+/// Issue the no-external-source Observation Set for this compiled Values
+/// Template and bind it into a Run Invocation. Policy is Host-issued.
+#export_name("clientValuesHostIssueSourceFreeInvocation")
+pub fn client_values_host_issue_source_free_invocation(
+  compilation : @host.ClientValuesCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[String], @publication.RunEvidenceValueIssue] {
+  let template = @host.client_values_compilation_template(compilation)
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "capture_completed_at")
+    @encode.null_value(writer)
+    @encode.key(writer, "capture_started_at")
+    @encode.null_value(writer)
+    @encode.key(writer, "captured_input_artifact_cids")
+    @encode.begin_array(writer)
+    @encode.end_array(writer)
+    @encode.key(writer, "consistency")
+    @encode.string_value(writer, "no_external_sources")
+    @encode.key(writer, "data_policy_cid")
+    @encode.string_value(writer, data_policy_cid)
+    @encode.key(writer, "invocation_template_cid")
+    @encode.string_value(writer, @publication.run_evidence_value_identity(template))
+    @encode.key(writer, "replayability")
+    @encode.begin_object(writer)
+    @encode.key(writer, "availability_evidence_cids")
+    @encode.begin_array(writer)
+    @encode.end_array(writer)
+    @encode.key(writer, "materialized")
+    @encode.bool_value(writer, false)
+    @encode.end_object(writer)
+    @encode.key(writer, "source_evidence_cids")
+    @encode.begin_array(writer)
+    @encode.end_array(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-observation-set/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
+  }
+  let body = @encode.finish(writer) catch {
+    _ => return Err(@publication.RunEvidenceValueIssue::RunEvidenceEncoding)
+  }
+  let observation = match
+    @publication.seal_run_evidence_value(
+      "observation_set", body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let invocation = match
+    @publication.issue_run_invocation(
+      template, observation, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok([
+    @publication.run_evidence_value_identity(observation),
+    @publication.run_evidence_value_json(observation),
+    @publication.publication_contract_identity(invocation),
+    @publication.publication_contract_json(invocation),
+  ])
+}
+
+///|
+#export_name("clientValuesHostAdmitRunEvidenceValue")
+pub fn client_values_host_admit_run_evidence_value(
+  name : String,
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, @publication.RunEvidenceValueIssue] {
+  @publication.admit_run_evidence_value(
+    name, wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientValuesHostRunEvidenceValueIdentity")
+pub fn client_values_host_run_evidence_value_identity(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_identity(value)
+}
+
+///|
+#export_name("clientValuesHostRunEvidenceValueWire")
+pub fn client_values_host_run_evidence_value_wire(
+  value : @publication.RunEvidenceValue,
+) -> String {
+  @publication.run_evidence_value_json(value)
+}
+
+///|
 /// The Host must first admit caller input intent and authority scope. This
 /// owner then binds the checked Program and effective Parameter Values to the
 /// caller request ID; neither the CID nor this handle grants authorization.

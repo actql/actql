@@ -7,6 +7,7 @@ const requests = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
+const runEvidences = new WeakMap();
 const resultOccurrences = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
@@ -324,6 +325,34 @@ export function checkRunBinding(prepared, admission, definition) {
     requireHandle(definitions, definition)), 'RunHostBindingRejected');
 }
 
+export function issueSourceFreeInvocation(prepared, compilation, admission,
+  definition, dataPolicyCid, limits) {
+  if (typeof dataPolicyCid !== 'string') {
+    throw new TypeError('InvalidRunHostDataPolicy');
+  }
+  const compiled = requireHandle(compilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const facts = checked(owner.clientValuesHostIssueSourceFreeInvocation(
+    compiled.value, dataPolicyCid, maxWireBytes, maxNodes, maxDepth),
+  'RunHostInvocationRejected');
+  if (!Array.isArray(facts) || facts.length !== 4 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostInvocationProjection');
+  }
+  const observation = admitRunEvidenceValue('observation_set', facts[1],
+    limits);
+  const invocation = admitPublicationContract('run_invocation', facts[3],
+    limits);
+  if (observation.cid !== facts[0] || invocation.cid !== facts[2]) {
+    throw new Error('InvalidRunHostInvocationProjection');
+  }
+  return Object.freeze({observation, invocation});
+}
+
 const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
   'siteGeneration', 'runtimeBundleCid', 'connectorRegistration',
   'connectorRevision', 'strategyRevision', 'obligationsCid', 'budgetCid',
@@ -377,6 +406,23 @@ function publicationContract(value) {
   return Object.freeze({token,
     cid: owner.clientValuesHostPublicationContractIdentity(value),
     wire: owner.clientValuesHostPublicationContractWire(value)});
+}
+
+function runEvidence(value) {
+  const token = handle(runEvidences, value, 'run-evidence');
+  return Object.freeze({token,
+    cid: owner.clientValuesHostRunEvidenceValueIdentity(value),
+    wire: owner.clientValuesHostRunEvidenceValueWire(value)});
+}
+
+export function admitRunEvidenceValue(name, wire, limits) {
+  if (typeof name !== 'string' || typeof wire !== 'string') {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return runEvidence(checked(owner.clientValuesHostAdmitRunEvidenceValue(
+    name, wire, maxWireBytes, maxNodes, maxDepth),
+  'RunHostEvidenceRejected'));
 }
 
 // Canonical admission and chain decisions belong to the portable owner.

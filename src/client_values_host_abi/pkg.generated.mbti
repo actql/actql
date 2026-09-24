@@ -19,6 +19,8 @@ pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram,
 
 pub fn client_values_host_admit_run_definition(String) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
+pub fn client_values_host_admit_run_evidence_value(String, String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_allowed_run_admission(ClientValuesHostAllowedRun) -> @run_publication.RunPublicationAdmission
@@ -54,6 +56,8 @@ pub fn client_values_host_issue_result_manifest(@run_publication.PublicationCont
 pub fn client_values_host_issue_result_occurrence_evidence(@run_publication.PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, @run_publication.ResultEvidenceIssuanceIssue]
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
+
+pub fn client_values_host_issue_source_free_invocation(@run_publication_host.ClientValuesCompilation, String, Int, Int, Int) -> Result[Array[String], @run_publication.RunEvidenceValueIssue]
 
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -102,6 +106,10 @@ pub fn client_values_host_result_schema(@run_publication_host.PreparedClientProg
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
 
 pub fn client_values_host_run_definition_wire(@run_publication.PublicationContract) -> String
+
+pub fn client_values_host_run_evidence_value_identity(@run_publication.RunEvidenceValue) -> String
+
+pub fn client_values_host_run_evidence_value_wire(@run_publication.RunEvidenceValue) -> String
 
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 

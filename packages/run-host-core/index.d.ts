@@ -6,6 +6,7 @@ declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
 declare const publicationBrand: unique symbol;
 declare const resultOccurrenceBrand: unique symbol;
+declare const runEvidenceBrand: unique symbol;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
@@ -33,6 +34,12 @@ export interface RunDefinition {
 
 export interface PublicationContract {
   readonly token: {readonly [publicationBrand]: true};
+  readonly cid: string;
+  readonly wire: string;
+}
+
+export interface RunEvidence {
+  readonly token: {readonly [runEvidenceBrand]: true};
   readonly cid: string;
   readonly wire: string;
 }
@@ -148,6 +155,14 @@ export function prepareRunStart(requested: RequestIdentity,
   'reconcile_reserved_dispatch';
 export function checkRunBinding(prepared: PreparedProgram,
   admission: RunAdmission, definition: RunDefinition): void;
+/** Host policy selects the data policy before source-free observation. */
+export function issueSourceFreeInvocation(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, dataPolicyCid: string,
+  limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }>;
 export interface ValuesSiteSelection {
   readonly taskAttempt: number;
   readonly dispatchId: string;
@@ -170,6 +185,8 @@ export function issueSourceFreeDispatch(prepared: PreparedProgram,
 /** Canonical contract admission is not publication or read authorization. */
 export function admitPublicationContract(name: string, wire: string,
   limits: PublicationLimits): PublicationContract;
+export function admitRunEvidenceValue(name: string, wire: string,
+  limits: PublicationLimits): RunEvidence;
 export function issueResultManifest(runDefinition: PublicationContract,
   invocation: PublicationContract,
   definitions: readonly PublicationContract[],

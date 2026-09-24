@@ -12,5 +12,6 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/encode_core" @encode,
   "moonbitlang/core/encoding/utf8",
 }

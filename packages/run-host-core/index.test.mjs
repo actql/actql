@@ -5,7 +5,7 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
-  admitPublicationContract, validatePublicationChain,
+  admitPublicationContract, admitRunEvidenceValue, validatePublicationChain,
   validatePublicationRecordTransition,
   issueResultManifest,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
@@ -16,6 +16,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueSourceFreeDispatch,
   executionShape,
   resultDefinitions, resultSchema,
+  issueSourceFreeInvocation,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
@@ -95,6 +96,58 @@ test('portable Host exposes the checked Values schema for row custody',
       '"id": 3'), 'json', environment);
     assert.throws(() => resultSchema(foreign, compilation),
       {name: 'TypeError', message: 'ForeignRunHostCompilation'});
+  });
+
+test('source-free Invocation binds checked Template and Host data policy',
+  () => {
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const environment = admitEnvironment(environmentWire, evidenceCid,
+      {rela: true});
+    const prepared = prepare(read('values.json'), 'json', environment);
+    const compilation = compileValues(prepared);
+    const allowed = issueAllowedRun(prepared, compilation, {
+      executionContextCid: `sha256:${'a'.repeat(64)}`,
+      hostPolicyCid: `sha256:${'b'.repeat(64)}`,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    });
+    const definition = issueRunDefinition(allowed.admission,
+      'tenant-scope', 'values-run', `sha256:${'c'.repeat(64)}`,
+      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z');
+    const dataPolicyCid = `sha256:${'d'.repeat(64)}`;
+    const issued = issueSourceFreeInvocation(prepared, compilation,
+      allowed.admission, definition, dataPolicyCid, limits);
+    const templateCid = JSON.parse(privateCompilationWires(compilation)
+      .boundTemplate).bound_invocation_template_cid;
+    const observation = {
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: templateCid,
+      source_evidence_cids: [], captured_input_artifact_cids: [],
+      consistency: 'no_external_sources', capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {materialized: false,
+        availability_evidence_cids: []},
+      data_policy_cid: dataPolicyCid,
+    };
+    assert.equal(issued.observation.cid, cid(observation));
+    assert.equal(issued.invocation.cid, cid({
+      version: 'actql-run-invocation/0.1',
+      invocation_template_cid: templateCid,
+      observation_set_cid: issued.observation.cid,
+    }));
+    assert.deepEqual(admitRunEvidenceValue('observation_set',
+      issued.observation.wire, limits).cid, issued.observation.cid);
+    assert.throws(() => issueSourceFreeInvocation(prepared, compilation,
+      allowed.admission, definition, 'not-a-cid', limits),
+    {code: 'RunHostInvocationRejected'});
+    assert.throws(() => admitRunEvidenceValue('observation_set',
+      issued.observation.wire.replace(dataPolicyCid,
+        `sha256:${'e'.repeat(64)}`), limits),
+    {code: 'RunHostEvidenceRejected'});
+    const foreign = prepare(read('values.json').replace('"id": 2',
+      '"id": 3'), 'json', environment);
+    assert.throws(() => issueSourceFreeInvocation(foreign, compilation,
+      allowed.admission, definition, dataPolicyCid, limits),
+    {name: 'TypeError', message: 'ForeignRunHostCompilation'});
   });
 
 test('portable Host issues a Manifest for exact admitted Result evidence',
