@@ -1585,6 +1585,22 @@ pub fn strategy_trusted_clock_not_before(
 }
 
 ///|
+#export_name("strategyPublicationSnapshotState")
+pub fn strategy_publication_snapshot_state(
+  record : @publication.PublicationContract?,
+  index : @publication.PublicationContract,
+) -> String raise NodeHostFailure {
+  match
+    @publication.project_publication_snapshot(
+      record,
+      @publication.IndexCommitted(index),
+    ) {
+    Ok(value) => @publication.publication_snapshot_state_text(value)
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyIssueSucceededRunState")
 pub fn strategy_issue_succeeded_run_state(
   run_id : String,
