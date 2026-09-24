@@ -53,18 +53,18 @@ jobs:
           node --version
           moon version --all
       - name: Run registered equivalent-obligations case
-        run: node benchmarks/retained-results/run-equivalent-matrix.mjs performance-artifacts/equivalent-obligations '${{ matrix.case.caseId }}'
+        run: node benchmarks/retained-results/run-equivalent-matrix.mjs "$RUNNER_TEMP/actql-equivalent-obligations" '${{ matrix.case.caseId }}'
       - name: Preserve raw pairs and calibration
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: equivalent-case-${{ matrix.case.index }}-${{ github.sha }}
           path: |
-            performance-artifacts/equivalent-obligations/case-*.json
-            performance-artifacts/equivalent-obligations/progress.json
-            performance-artifacts/equivalent-obligations/assessment.json
-            performance-artifacts/equivalent-obligations/assessment.md
-            performance-artifacts/equivalent-obligations/actql-retained-calibration-*/*.json
+            ${{ runner.temp }}/actql-equivalent-obligations/case-*.json
+            ${{ runner.temp }}/actql-equivalent-obligations/progress.json
+            ${{ runner.temp }}/actql-equivalent-obligations/assessment.json
+            ${{ runner.temp }}/actql-equivalent-obligations/assessment.md
+            ${{ runner.temp }}/actql-equivalent-obligations/actql-retained-calibration-*/*.json
           if-no-files-found: warn
           retention-days: 30
 
