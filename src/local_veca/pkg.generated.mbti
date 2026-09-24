@@ -88,6 +88,8 @@ pub fn start_nearest_inputs_with_control_work_limit(@bounded_execution.Control, 
 
 pub fn start_nearest_inputs_with_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 
+pub fn start_nearest_inputs_with_relations_control_work_limit(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, NearestProducerInput, NearestProducerInput, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], Int) -> Result[NearestExecution, NearestIssue]
+
 pub fn start_nearest_relations(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[NearestExecution, NearestIssue]
 
 pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]

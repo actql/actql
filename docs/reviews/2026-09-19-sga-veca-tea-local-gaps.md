@@ -7,7 +7,7 @@ readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
 boundary records, 12 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 30 paths have path-scoped work/workspace evidence. Strict completion
+routes, 31 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
 
 The bounded sequence-match route now names its quantum-one execution,
@@ -2233,12 +2233,14 @@ Relation inputs and inferred Relation roles. A direct Vectors-input fixture
 now counts 28/27 control-work units with quantum one, admits 23 structural
 workspace slots and rejects 22 before starting. It also verifies cancellation
 during incremental identity initialization and cleanup of the private output.
-The existing Node standard Host `vector-nearest` fixture delivers a timer
-cancellation during Relation-input kernel work, confirms stop, and retries
-cleanup. The Relation-input path still lacks matching exact/one-short
-evidence, while the Vectors-input path lacks a delivered Host cancellation
-fixture. This route therefore remains outside four-role and full resource
-assurance.
+The fused Relation-input path also admits 28/27 work and 23/22 workspace,
+reclaims its private output after kernel cancellation, and preserves both
+producer reads. The existing Node standard Host `vector-nearest` fixture
+delivers a timer cancellation during Relation-input kernel work, confirms stop,
+and retries cleanup. Its production wrapper delegates to the same bounded
+kernel tested with an independent control-work ceiling. The Vectors-input path
+still lacks a delivered Host cancellation fixture, so the operation as a whole
+remains outside four-role and full resource assurance.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.

@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 31 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -413,6 +413,10 @@ test('nearest retains its fused Relation production entrypoint', () => {
     'nearest_work_one_short',
     'nearest_workspace_exact_one_short',
     'nearest_kernel_initialization_cancel_cleanup',
+    'nearest_relation_work_exact',
+    'nearest_relation_work_one_short',
+    'nearest_relation_workspace_exact_one_short',
+    'nearest_relation_kernel_cancel_cleanup',
     'nearest_mixed_carrier_relation_host',
     'nearest_relation_roles_host',
   ]) {
@@ -428,6 +432,11 @@ test('nearest retains its fused Relation production entrypoint', () => {
       entry.operation === 'nearest');
     nearest.environment_tests = [];
   }), /VecA nearest: Relation Host cancellation fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    delete nearest.resource_assurance.relation_entrypoint;
+  }), /VecA nearest: fused Relation resource assurance is missing/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {

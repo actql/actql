@@ -3808,6 +3808,148 @@ test "nearest stops during incremental identity initialization" {
 }
 
 ///|
+test "fused nearest charges exact Relation inputs and reclaims cancellation" {
+  let candidates = direct_nearest_relation_owner(
+    "[{\"id\":1,\"embedding\":[1,0]}]",
+  )
+  let queries = direct_nearest_relation_owner(
+    "[{\"id\":10,\"embedding\":[1,0]}]",
+  )
+  let owner = direct_nearest_owner(
+    candidates,
+    queries,
+    candidate_relation=true,
+    query_relation=true,
+  )
+  let candidate_output = direct_nearest_relation_output(candidates)
+  let query_output = direct_nearest_relation_output(queries)
+  let generated = task_test_generated(owner)
+  for (ceiling, accepted) in [(28, true), (27, false)] {
+    let candidate_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let query_read = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+      10,
+      1000,
+    ).unwrap()
+    let control = @bounded.control()
+    let execution = @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+      control,
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      23,
+      1000,
+      1000,
+      [candidate_read, query_read],
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match @local_veca.advance_nearest(execution, 1).unwrap() {
+          @local_veca.NearestContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.NearestComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work - charged, 1L)
+            charged = work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_veca.NearestFailed(@local_veca.NearestWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.nearest_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("fused nearest work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_true(@local_veca.nearest_stopped(execution))
+    assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+    assert_true(@execution.producer_read_available(candidate_read))
+    assert_true(@execution.producer_read_available(query_read))
+  }
+  let candidate_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  let query_read = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 1, queries, query_output).unwrap(),
+    10,
+    1000,
+  ).unwrap()
+  assert_true(
+    @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_relation_producer(candidate_read),
+      @local_veca.nearest_relation_producer(query_read),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      22,
+      1000,
+      1000,
+      [candidate_read, query_read],
+      28,
+    )
+    is Err(@local_veca.NearestWorkspaceLimit),
+  )
+  assert_true(@execution.producer_read_available(candidate_read))
+  assert_true(@execution.producer_read_available(query_read))
+  let cancel_control = @bounded.control()
+  let cancel_execution = @local_veca.start_nearest_inputs_with_relations_control_work_limit(
+    cancel_control,
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    @local_veca.nearest_relation_producer(candidate_read),
+    @local_veca.nearest_relation_producer(query_read),
+    10,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    23,
+    1000,
+    1000,
+    [candidate_read, query_read],
+    28,
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_nearest(cancel_execution, 1).unwrap()
+    is @local_veca.NearestContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(cancel_control))
+  assert_true(
+    @local_veca.advance_nearest(cancel_execution, 1).unwrap()
+    is @local_veca.NearestStopped(_, work=1L, ..),
+  )
+  assert_true(@local_veca.nearest_cleanup_pending(cancel_execution))
+  assert_eq(@local_veca.cleanup_nearest(cancel_execution), Ok(true))
+  assert_true(@execution.producer_read_available(candidate_read))
+  assert_true(@execution.producer_read_available(query_read))
+}
+
+///|
 test "nearest validates query components with an empty Vectors corpus" {
   let candidates = direct_nearest_vector_owner()
   let queries = direct_nearest_vector_owner()

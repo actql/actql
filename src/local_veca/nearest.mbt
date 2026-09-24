@@ -1384,6 +1384,40 @@ pub fn start_nearest_inputs_with_relations(
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
 ) -> Result[NearestExecution, NearestIssue] {
+  start_nearest_inputs_with_relations_control_work_limit(
+    control,
+    preparation,
+    sequence,
+    step,
+    candidates,
+    queries,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    limits.max_work,
+  )
+}
+
+///|
+/// Bound fused Relation-input control work separately from output value work.
+pub fn start_nearest_inputs_with_relations_control_work_limit(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  candidates : NearestProducerInput,
+  queries : NearestProducerInput,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit : Int,
+) -> Result[NearestExecution, NearestIssue] {
   start_nearest_producers(
     control,
     preparation,
@@ -1393,7 +1427,7 @@ pub fn start_nearest_inputs_with_relations(
     queries,
     max_rows,
     limits,
-    limits.max_work,
+    control_work_limit,
     max_workspace_slots,
     max_entries,
     max_name_bytes,
