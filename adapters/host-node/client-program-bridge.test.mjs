@@ -23,7 +23,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {storeCompletedRunResultSet} from
+import {issueCompletedEffectfulComputationEvidence,
+  storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
@@ -513,8 +514,11 @@ test('Host admits and retains the exact checked Effect Run Definition',
 test('admitted source-free Effect Run computes through the installed Host',
   async t => {
     const {document, environment, mappingCid} = await effectFixture();
+    const alignedDocument = JSON.parse(document);
+    alignedDocument.results.rows = alignedDocument.results.answer;
+    delete alignedDocument.results.answer;
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      document, 'json', environment, undefined, []);
+      JSON.stringify(alignedDocument), 'json', environment, undefined, []);
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
@@ -587,8 +591,7 @@ test('admitted source-free Effect Run computes through the installed Host',
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
     assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
-    const execution = await runCapturedInternalStrategy(
-      moon.clientProgramLocalEffectHostRuntime(owned));
+    const execution = await runCapturedEffectComputation(owned);
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname, 'effect-result-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
@@ -670,6 +673,67 @@ test('admitted source-free Effect Run computes through the installed Host',
         const preview = effectInputPreview(
           prepared, evidence, definition, invocation, mappingCid,
           storedResults.artifacts[0].identity);
+        const authoringContext = control.admitRunEvidence(
+          'authoring_context',
+          canonicalJson(JSON.parse(preview.wire).authoring_context),
+          publicationLimits);
+        const admittedPreview = control.admitEffectComputationPreview(
+          preview.wire, runDefinitionContract, authoringContext,
+          publicationLimits);
+        const runEvidence = evidence.slice(0, 3).map((value, index) =>
+          control.admitRunEvidence(
+            ['bound_invocation_template', 'prepared_invocation',
+              'run_authorization'][index],
+            moon.strategyRunEvidenceJson(value), publicationLimits));
+        const compiledPlan = control.admit('compiled_plan',
+          moon.strategyPublicationContractJson(evidence[3]),
+          publicationLimits);
+        const runAdmission = control.admitCheckedClientEffectRunPublication(
+          prepared, ...runEvidence, compiledPlan);
+        const normalizationJournal = control.sealRunEvidence(
+          'normalization_journal', JSON.stringify({
+            version: 'actql-normalization-journal/0.1',
+            rule_catalog_cid: cid('1'), entries: [],
+          }), publicationLimits);
+        const computation = issueCompletedEffectfulComputationEvidence({
+          execution, storedResults, control, admission: runAdmission,
+          runDefinition: runDefinitionContract,
+          invocation: invocationContract,
+          observation: control.admitRunEvidence('observation_set',
+            moon.strategyRunEvidenceJson(observation), publicationLimits),
+          normalizationJournal, authoringContext,
+          receiptEvidence: {bindings: [], sourceEvidence: [],
+            modelEvidence: [], barrierAttemptReceiptCids: []},
+          captureEvidence: {pendingSourceStateAdvances: [],
+            modelEvidence: []},
+          preview: admittedPreview, plans: [],
+          contractLimits: publicationLimits,
+        });
+        assert.equal(computation.manifest.name, 'result_manifest');
+        assert.equal(computation.computationReceipt.name, 'run_receipt');
+        assert.equal(computation.capturedRun.name, 'captured_run');
+        assert.deepEqual(JSON.parse(computation.capturedRun.wire).receipt,
+          JSON.parse(computation.computationReceipt.wire));
+        const foreignArtifactPreview = effectInputPreview(
+          prepared, evidence, definition, invocation, mappingCid, cid('9'));
+        const foreignAdmittedPreview =
+          control.admitEffectComputationPreview(
+            foreignArtifactPreview.wire, runDefinitionContract,
+            authoringContext, publicationLimits);
+        assert.throws(() => issueCompletedEffectfulComputationEvidence({
+          execution, storedResults, control, admission: runAdmission,
+          runDefinition: runDefinitionContract,
+          invocation: invocationContract,
+          observation: control.admitRunEvidence('observation_set',
+            moon.strategyRunEvidenceJson(observation), publicationLimits),
+          normalizationJournal, authoringContext,
+          receiptEvidence: {bindings: [], sourceEvidence: [],
+            modelEvidence: [], barrierAttemptReceiptCids: []},
+          captureEvidence: {pendingSourceStateAdvances: [],
+            modelEvidence: []},
+          preview: foreignAdmittedPreview, plans: [],
+          contractLimits: publicationLimits,
+        }), {code: 'MoonBitHostFailure'});
         const previewLimits = moon.clientProgramEffectPreviewInputLimits(
           20000, 1000, 20, 1000, 100, 20000, 1000, 20,
           1, 2, 100, 100);
@@ -713,8 +777,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         const other = moon.clientProgramOpenSourceFreeLocalEffectHost(
           bound, registry, values, 1n, 0n, 0n, 0n);
         assert.ok(other);
-        const otherExecution = await runCapturedInternalStrategy(
-          moon.clientProgramLocalEffectHostRuntime(other));
+        const otherExecution = await runCapturedEffectComputation(other);
         try {
           assert.throws(() => checked(
             moon.clientProgramBindEffectPreviewInputs(
