@@ -59,7 +59,7 @@ function measure(command, args, cwd) {
 }
 
 const tarballs = {};
-for (const name of ['client-wire', 'sdk', 'node']) {
+for (const name of ['client-wire', 'sdk', 'node', 'run-host-core']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
   const path = join(root, `actql-${name}-0.0.0-development.tgz`);
@@ -67,6 +67,43 @@ for (const name of ['client-wire', 'sdk', 'node']) {
   tarballs[name] = {path, bytes: bytes.byteLength,
     sha256: createHash('sha256').update(bytes).digest('hex')};
 }
+const profiles = {};
+
+// The Run Host compiler is a separate package. Measure its actual import and
+// checked Values compilation without pulling it into the remote SDK.
+const hostInstallation = join(root, 'install-run-host-core');
+await mkdir(hostInstallation);
+await writeFile(join(hostInstallation, 'package.json'),
+  '{"private":true,"type":"module"}\n');
+run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
+  tarballs['run-host-core'].path], hostInstallation);
+await writeFile(join(hostInstallation, 'values.environment.json'),
+  await readFile(join(repository, 'packages/sdk/fixtures',
+    'values.environment.json')));
+await writeFile(join(hostInstallation, 'values.json'),
+  await readFile(join(repository, 'packages/sdk/fixtures', 'values.json')));
+await writeFile(join(hostInstallation, 'host-probe.mjs'), `
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+globalThis.fetch = async () => { throw new Error('NetworkOnHostImport'); };
+const {admitEnvironment, prepare, compileValues,
+  privateCompilationWires} = await import('@actql/run-host-core');
+const body = readFileSync('values.environment.json', 'utf8').trimEnd();
+const environment = admitEnvironment(body,
+  JSON.parse(body).evidence_bundle_cid, {rela: true});
+const prepared = prepare(readFileSync('values.json', 'utf8'), 'json',
+  environment);
+const plan = JSON.parse(privateCompilationWires(
+  compileValues(prepared)).executablePlan);
+assert.equal(plan.version, 'actql-executable-plan/0.1');
+`);
+profiles.run_host_core = {
+  installed_packages: ['run-host-core'],
+  installed_bytes: await bytesUnder(join(hostInstallation, 'node_modules')),
+  scope: 'fresh process import, checked Values compilation and exit',
+  samples: Array.from({length: repetitions}, () =>
+    measure(process.execPath, ['host-probe.mjs'], hostInstallation)),
+};
 
 const probe = `
 import assert from 'node:assert/strict';
@@ -90,7 +127,6 @@ assert.equal(client.profile.mode, 'remote');
 assert.equal(calls, 1);
 client.close();
 `;
-const profiles = {};
 for (const name of ['sdk', 'node']) {
   const installation = join(root, `install-${name}`);
   await mkdir(installation);
