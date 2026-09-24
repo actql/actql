@@ -33,6 +33,12 @@ Run and Local provider boundaries. The selected physical Task's exact Step is
 also retained while generating its sequence. No Effect-specific graph resolver
 or second execution state machine was added.
 
+The two-member Host fixture also opens a second captured graph for the same
+checked Run and rejects crossing its Result pins into the first graph's
+Preview binding in either direction. Both executions and pin sets close
+independently. Equal Program and Run identities therefore do not substitute
+for the exact captured owner.
+
 ## Verification
 
 - Standard Client/Local Host tests: 14/14 (rerun after selected-route
@@ -55,8 +61,8 @@ R2-G1 remains a completion condition: connect the checked/captured inputs,
 whole-set Preview and apply admission, durable claims, physical writes,
 reconciliation, and final publication through one ordinary multi-member
 Effectful Run. The current standard Host regression stops at owned input
-export; it does not prove the mutation or final Receipt path. Foreign
-late-pin failures and local HTTPS no-send cases still need top-level coverage.
+export; it does not prove the mutation or final Receipt path. Local HTTPS
+no-send cases still need top-level coverage.
 
 The checked Effect preparation now exposes a private per-member Plan CID so
 the eventual Preview can bind the exact static Plan without reauthoring it in
