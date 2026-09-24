@@ -827,6 +827,46 @@ test "ordinary values document prepares one named Effect-free result" {
     )
     is Err(ClientValuesExecutablePlanAdmissionIssue::MismatchedPlan),
   )
+  let compilation = issue_prepared_client_values_compilation(
+    prepared, compiler_manifests, aoa_limits, 32, 64, 100000, 10000, 100,
+  ).unwrap()
+  let compiled_wire = @publication.publication_contract_json(
+    client_values_compilation_compiled_plan(compilation),
+  )
+  assert_true(
+    compiled_wire.contains(
+      "\"executable_plan_cid\":\"" +
+      client_values_executable_plan_cid(executable) +
+      "\"",
+    ),
+  )
+  assert_true(
+    compiled_wire.contains("\"compiler_version\":\"actql-moonbit-0.0.1\""),
+  )
+  assert_true(compiled_wire.contains("\"aoa_ir_version\":\"aoa-pipeline:0.1\""))
+  assert_eq(
+    @publication.publication_contract_json(
+      client_values_compilation_compiled_plan(
+        admit_prepared_client_values_compilation(
+          prepared,
+          executable_wire,
+          manifest_wire,
+          @publication.run_evidence_value_json(
+            client_values_compilation_template(compilation),
+          ),
+          compiled_wire,
+          compiler_manifests,
+          aoa_limits,
+          32,
+          64,
+          100000,
+          10000,
+          100,
+        ).unwrap(),
+      ),
+    ),
+    compiled_wire,
+  )
   assert_eq(
     client_values_plan_graph_wire(graph_component),
     "{\"data_edges\":[],\"nodes\":[" +

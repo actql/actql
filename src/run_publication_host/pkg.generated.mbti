@@ -39,6 +39,8 @@ pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publica
 
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
+pub fn admit_prepared_client_values_compilation(PreparedClientProgram, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesCompilation, ClientValuesCompilationAdmissionIssue]
+
 pub fn admit_prepared_client_values_executable_plan(PreparedClientProgram, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanAdmissionIssue]
 
 pub fn admit_prepared_client_values_execution_material(PreparedClientProgram, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
@@ -62,6 +64,8 @@ pub fn client_direct_result_root_row_contract_cid(ClientDirectResultRoot) -> Str
 pub fn client_direct_result_root_wire(ClientDirectResultRoot) -> String
 
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
+
+pub fn client_execution_material_template_wire(ClientExecutionMaterial) -> String
 
 pub fn client_execution_material_wire(ClientExecutionMaterial) -> String
 
@@ -110,6 +114,12 @@ pub fn client_result_row_contract_wire(ClientResultRowContractIdentity) -> Strin
 pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
+
+pub fn client_values_compilation_compiled_plan(ClientValuesCompilation) -> @run_publication.PublicationContract
+
+pub fn client_values_compilation_plan(ClientValuesCompilation) -> ClientValuesExecutablePlan
+
+pub fn client_values_compilation_template(ClientValuesCompilation) -> @run_publication.RunEvidenceValue
 
 pub fn client_values_executable_plan_cid(ClientValuesExecutablePlan) -> String
 
@@ -164,6 +174,8 @@ pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, I
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
+
+pub fn issue_prepared_client_values_compilation(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue]
 
 pub fn issue_prepared_client_values_executable_plan(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue]
 
@@ -265,6 +277,7 @@ pub(all) enum ClientEmptyInvocationBindingsIssue {
 pub struct ClientExecutionMaterial {
   wire : String
   invocation_template_cid : String
+  invocation_template_wire : String
 }
 
 pub(all) enum ClientExecutionMaterialAdmissionIssue {
@@ -498,6 +511,25 @@ pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
   Encoding
+}
+
+pub struct ClientValuesCompilation {
+  plan : ClientValuesExecutablePlan
+  template : @run_publication.RunEvidenceValue
+  compiled_plan : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientValuesCompilationAdmissionIssue {
+  Issue(ClientValuesCompilationIssue)
+  MismatchedCompilation
+}
+
+pub(all) enum ClientValuesCompilationIssue {
+  Plan(ClientValuesExecutablePlanIssue)
+  Material(ClientExecutionMaterialIssue)
+  AoA(ClientValuesAoAIdentityIssue)
+  Template(@run_publication.RunEvidenceValueIssue)
+  CompiledPlan(@run_publication.PublicationContractIssue)
 }
 
 pub struct ClientValuesExecutablePlan {
