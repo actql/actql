@@ -16,6 +16,8 @@ import {
 // Values
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
+
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_caller_id(ClientRequestIdentity) -> String

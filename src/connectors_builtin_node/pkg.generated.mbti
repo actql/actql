@@ -25,6 +25,8 @@ import {
 }
 
 // Values
+pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
+
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?

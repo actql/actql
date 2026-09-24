@@ -141,6 +141,49 @@ test "Run Definition is issued only from exact admitted allow authority" {
 }
 
 ///|
+test "checked Run admission binds Program, Values, and semantics" {
+  let template = admission_test_template()
+  let plan = admission_test_plan(admission_test_cid("1"))
+  let prepared = admission_test_prepared(template, plan, "allow")
+  let authorization = admission_test_authorization(prepared, "allowed", false)
+  assert_true(
+    admit_checked_run_publication(
+      template,
+      prepared,
+      authorization,
+      plan,
+      admission_test_cid("1"),
+      admission_test_cid("2"),
+      admission_test_cid("a"),
+    )
+    is Ok(_),
+  )
+  for changed in 0..<3 {
+    let program = if changed == 0 {
+      admission_test_cid("d")
+    } else {
+      admission_test_cid("1")
+    }
+    let parameters = if changed == 1 {
+      admission_test_cid("d")
+    } else {
+      admission_test_cid("2")
+    }
+    let semantics = if changed == 2 {
+      admission_test_cid("d")
+    } else {
+      admission_test_cid("a")
+    }
+    assert_true(
+      admit_checked_run_publication(
+        template, prepared, authorization, plan, program, parameters, semantics,
+      )
+      is Err(RunAdmissionCheckedProgramMismatch),
+    )
+  }
+}
+
+///|
 test "Run admission rejects substituted authority and unverified review" {
   let template = admission_test_template()
   let plan = admission_test_plan(admission_test_cid("1"))
