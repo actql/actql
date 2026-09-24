@@ -124,6 +124,7 @@ pub fn prepare_captured_result_publication_export(
   run : @strategy.CapturedDAG,
   result : Int,
   limits : PublicationOutputExportLimits,
+  converted_output? : @execution.CompletedOutput,
 ) -> Result[PublicationOutputExport, PublicationOutputExportIssue] {
   let graph = @strategy.captured_dag_graph(run)
   guard @strategy.graph_result_task(graph, result) is Some(task) else {
@@ -149,8 +150,17 @@ pub fn prepare_captured_result_publication_export(
   guard @strategy.captured_task_output(run, task, target) is Some(output) else {
     return Err(UnknownResult)
   }
+  let selected = match converted_output {
+    None => output
+    Some(converted) => {
+      if !@execution.completed_output_same_occurrence(output, converted) {
+        return Err(Output(ForeignMaterial))
+      }
+      converted
+    }
+  }
   @execution.prepare_completed_result_relation_export(
-    output,
+    selected,
     occurrence,
     {
       max_fields: limits.max_result_fields,
@@ -185,11 +195,26 @@ pub fn prepare_captured_result_publication_export(
 pub fn prepare_all_captured_result_publication_exports(
   run : @strategy.CapturedDAG,
   limits : PublicationOutputExportLimits,
+  converted_outputs? : Array[@execution.CompletedOutput?],
 ) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue] {
   let graph = @strategy.captured_dag_graph(run)
+  if converted_outputs is Some(values) &&
+    values.length() != @strategy.graph_result_count(graph) {
+    return Err(InvalidState)
+  }
   let outputs : Array[PublicationOutputExport] = []
   for result in 0..<@strategy.graph_result_count(graph) {
-    match prepare_captured_result_publication_export(run, result, limits) {
+    let converted = match converted_outputs {
+      Some(values) => values[result]
+      None => None
+    }
+    match
+      prepare_captured_result_publication_export(
+        run,
+        result,
+        limits,
+        converted_output?=converted,
+      ) {
       Ok(output) => outputs.push(output)
       Err(issue) => {
         for output in outputs {

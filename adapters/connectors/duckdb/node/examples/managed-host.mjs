@@ -36,6 +36,7 @@ export async function createManagedExampleHost(limits) {
         phaseStarted = performance.now();
       };
       const plan = await prepareExampleText(input, childLimits);
+      phases.parentPreparationCalls = 1;
       finishPhase('parentPreparationMs');
       phases.parentPreparationDetails = plan.preparationDiagnostics;
       if (!input.retainedOutput || input.localImportWorkMilliseconds === undefined) {

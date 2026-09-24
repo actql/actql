@@ -20,6 +20,7 @@ pub fn NativeRetainedTaskFile::reclaim_readers(Self) -> Result[Unit, NativeRetai
 pub fn NativeRetainedTaskFile::release(Self) -> Result[Unit, NativeRetainedTaskFileIssue]
 pub fn NativeRetainedTaskFile::release_confirmed(Self) -> Bool
 pub fn NativeRetainedTaskFile::seal(Self, String, Int) -> Result[Unit, NativeRetainedTaskFileIssue]
+pub fn NativeRetainedTaskFile::stop_use(Self) -> Unit
 pub fn NativeRetainedTaskFile::stored_bytes(Self) -> Int64?
 
 pub(all) enum NativeRetainedTaskFileIssue {

@@ -5,7 +5,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
-  "actql/actql/connectors/duckdb/driver",
+  "actql/actql/connectors/local",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_relation",
   "actql/actql/physical_cost",
@@ -19,6 +19,8 @@ pub fn commit_dispatch_offline_policy_choice(StrategyHostDispatch) -> Result[Uni
 pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits, local_eligible? : Array[Bool]) -> Result[Unit, DispatchIssue]
+
+pub fn configure_dispatch_local_retained_output(StrategyHostDispatch, @local.LocalImportLimits, @local.LocalExportLimits, Int64?) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_retained_output(StrategyHostDispatch, Int64, Int64?) -> Result[Unit, DispatchIssue]
 
@@ -54,6 +56,8 @@ pub fn dispatch_task(TaskDispatch) -> Int
 
 pub fn execute_synchronous_dispatch(TaskDispatch) -> Result[Unit, DispatchIssue]
 
+pub fn prepare_dispatch_local_offer(StrategyHostDispatch, Int, Int64?) -> Result[@physical_strategy.TaskOffer, DispatchIssue]
+
 pub fn prepare_dispatch_policy_choice(StrategyHostDispatch) -> Result[Bool, DispatchIssue]
 
 pub fn prepare_dispatch_policy_request(StrategyHostDispatch, String, String, String, Int64, Int64) -> Result[@physical_strategy.PolicyRequest, DispatchIssue]
@@ -64,7 +68,9 @@ pub fn refresh_dispatch_estimates(StrategyHostDispatch) -> Result[Unit, Dispatch
 
 pub fn stop_strategy_dispatch(StrategyHostDispatch) -> Unit
 
-pub fn take_native_dispatch(TaskDispatch) -> Result[@driver.StrategyComputeHostConfiguration, DispatchIssue]
+pub fn take_local_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/local/driver.LocalDispatchOperations, DispatchIssue]
+
+pub fn take_native_dispatch(TaskDispatch) -> Result[@actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration, DispatchIssue]
 
 // Errors
 

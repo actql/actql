@@ -19,7 +19,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {join} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
@@ -100,12 +100,25 @@ if (!['direct', 'store'].includes(applicationOutputRoute)) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-http-'));
 const storeRoot = join(root, 'store');
+const retainedTaskRoot = join(root, 'retained-task');
+const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
+  fileURLToPath(new URL('../', import.meta.url)),
+  'adapters',
+  'connectors',
+  'duckdb',
+  'node',
+  'node_modules',
+  '@duckdb',
+  `node-bindings-${process.platform}-${process.arch}`,
+  process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so',
+);
 const multiBundleStoreRoot = join(root, 'multi-bundle-store');
 const sqliteRoot = join(root, 'sqlite');
 const standardRoot = join(root, 'standard');
 const transferStandardRoot = join(root, 'transfer-standard');
 const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
+await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
 await mkdir(sqliteRoot, {recursive: true});
 await mkdir(standardRoot, {recursive: true});
@@ -1088,6 +1101,8 @@ try {
     ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
     ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
     ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
+    ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: retainedTaskRoot,
+    ACTQL_TEST_DUCKDB_LIBRARY: nativeTestDuckDBLibrary,
     ACTQL_TEST_NATIVE_MULTI_STORE_ROOT: multiBundleStoreRoot,
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
     ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT: transferStandardRoot,

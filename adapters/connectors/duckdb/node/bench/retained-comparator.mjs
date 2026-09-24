@@ -142,6 +142,26 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       total + value.bytes, 0);
     const inputs = result.report.completed.flatMap(task =>
       task.phases.inputs ?? []);
+    const observedInputWork = Object.freeze({
+      parentPreparationCalls: result.phases.parentPreparationCalls,
+      workerPreparationCalls:
+        result.report.preparation_diagnostics?.applicationPrepareCalls,
+      reportedDirectInputScans: compute.reduce((total, phase) =>
+        total + (phase.directInputScans ?? 0), 0),
+      directScanReportingTasks: compute.filter(phase =>
+        Number.isSafeInteger(phase.directInputScans)).length,
+      reportedReusedInputValues: compute.reduce((total, phase) =>
+        total + (phase.reusedInputValues ?? 0), 0),
+      verifiedFileReads: inputs.reduce((total, input) =>
+        total + (input.nativeFileReads ?? 0), 0),
+      verifiedFileReadBytes: inputs.reduce((total, input) =>
+        total + (input.fileBytes ?? 0), 0),
+      logicalInputCidPasses: inputs.reduce((total, input) =>
+        total + (input.logicalCidPasses ?? 0), 0),
+      physicalIntegrityPasses: inputs.reduce((total, input) =>
+        total + (input.physicalIntegrityPasses ?? 0), 0),
+      completedOutputBytes: outputBytes,
+    });
     const measuredGuardWork = sum('measuredGuardWork');
     const measuredGuardBytes = sum('measuredGuardBytes');
     const measuredGuardNodes = sum('measuredGuardNodes');
@@ -202,6 +222,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
         result.report.acquisition_evidence,
       ),
       accounting,
+      observedInputWork,
       hostPhases: result.phases,
       workerPreparationDetails: result.report.preparation_diagnostics,
       completionDescriptors: descriptors,

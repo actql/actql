@@ -159,7 +159,7 @@ measured end-to-end improvement. Both assessments remain local diagnostics;
 the final Linux acceptance run is still required. The raw assessment is in
 workspace scratch at `.codex-scratch/perf-equivalent-small-dbf36`.
 
-## Next changes to test independently
+## Open implementation work
 
 1. Separate immutable application preparation from per-run parameter,
    authority, material, and budget checks. The managed example currently calls
@@ -360,13 +360,14 @@ the other 26 cases were not measured at this revision. The raw series and
 assessment are in the workspace scratch directory
 `.codex-scratch/perf-equivalent-wide-e1432a42`.
 
-For each change, report actual input and output scans, cells, bytes, imports,
-encodes, hashes, and physical holdings before and after. Include parent and
-worker preparation separately. Keep overlapping intervals out of summed wall
-time. Validate each isolated change against the same production fixture, then
-run the fixed Linux paired assessment at a new SHA. Diagnostic ablations and
-conditional-CID profiles must be reported separately from the registered
-acceptance profile.
+The next changes form one implementation unit. Check correctness and that the
+intended preparation, scan, import, and hash work actually disappeared at each
+boundary. Do not run a seven-pair timing assessment after each commit. After
+the complete product path passes the registered cases' obligations, run one
+fixed-SHA Linux paired assessment with the registered sample count. Keep
+parent and worker preparation separate and do not add overlapping intervals.
+Diagnostic ablations and conditional-CID profiles remain separate from the
+registered acceptance profile.
 
 ## Small-result execution-path decision
 
@@ -386,9 +387,9 @@ ordinary candidate selection, resource ceilings, required identity, or
 completion semantics. The existing Node process profile remains useful when
 process isolation is required. The native path must first establish the same
 independent, immutable file holding **before** each common task completion is
-made available to a downstream consumer. Its task-by-task entry point already
-exists, but the present native diagnostic only checks the final CID and cleanup;
-it does not meet this holding or fresh-reader obligation.
+made available to a downstream consumer. Its task-by-task entry point is now
+connected to retained files; comparator admission still requires the separate
+accounting and timing integration described below.
 
 Implementation order for that path:
 
@@ -412,7 +413,59 @@ Implementation order for that path:
    never replace the direct comparator or the fixed thresholds.
 
 The first meaningful timing checkpoint is after those four pieces are
-connected. The native diagnostic's earlier roughly 22 ms median is only a
-feasibility signal because it lacks independent retention. It is not a speed
-claim for the completed path. The full 27-case Linux assessment and the other
+connected. The native diagnostic's earlier roughly 22 ms median lacked
+independent retention and is not a speed claim for the completed path. The
+full 27-case Linux assessment and the other
 registered comparator families remain the acceptance gate.
+
+## Integrated native closure in progress
+
+The native standard Host now uses the existing Local materializing dispatch
+when file retention is selected. The selected attempt is reserved before a
+file owner starts; Local export is sealed and bound to its exact receipt before
+the common completion callback. DuckDB uses the same pre-completion holding
+boundary. A later Local or DuckDB task reads the exact producer file through
+a fresh bounded reader. A final retained Result is read and verified before
+the existing formal publication path consumes its bounded projection.
+
+The file owner now stops new use after a verified content mismatch and when
+the Run closes, while keeping physical cleanup retryable. A dedicated native
+test runner executes the file tests with a real root, including sync-failure
+retry. Native Local and DuckDB publication tests exercise the complete task
+chain; the Local file-capacity failure test confirms completion stays absent
+and cleanup remains owned. The registered narrow/100 fixture also runs through
+the native application loader, ordinary strategy selection, retained task
+files, a fresh final reader, and the independent result oracle. These are
+correctness and path checks, not timing acceptance.
+
+The native DuckDB failure fixture exercises the same pre-completion boundary:
+a file ceiling below the actual output rejects the task, leaves no common
+completion, and retains its exact owner until cleanup. The registered
+narrow/100 and join/1000 product-path probes run in Linux CI after a release
+build. A wide/reuse 10,000-row, 64-column release probe also completed locally
+with the independent final CID. These probes do not supply matched accounting
+or a calibrated Native selection profile, so their elapsed times remain
+diagnostic only.
+
+The matched equivalent-obligation runner now gives each Node leg its own empty
+compile-cache directory for each pair. It records the policy, Node version and
+Node options in provenance and checks the directory observed by a successful
+child. This prevents an earlier diagnostic or another case from silently
+warming a process-cold sample. Cache-reuse startup remains a separate
+diagnostic condition, not another axis across all 27 registered cases.
+
+The retained comparator also reports preparation calls, observed direct input
+scans, verified file reads and bytes, and completed output bytes separately
+from `identityPasses`. The latter remains the registered obligation count;
+it must not be read as an instrumented number of hashing operations. Tasks
+without a direct-scan observation are counted separately instead of being
+reported as zero scans.
+
+Before final measurement, connect the Native product profile to a separately
+calibrated target-specific selection and the matched retained-case runner's
+obligation, accounting, and timing admission. Extend the inexpensive actual
+work counters where this connection requires them; do not infer scan or hash
+counts from the identity-obligation formula. Run all 27 cases for feasibility,
+then perform the unchanged Linux paired assessment at one fixed release SHA.
+Preserve the existing large/reuse path and treat the registered text-1024
+Local candidate as ineligible under its unchanged cumulative text ceiling.

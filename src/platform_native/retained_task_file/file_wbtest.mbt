@@ -1,8 +1,16 @@
 ///|
-test "native retained task file seals before a fresh verified read" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    return
+fn native_retained_test_root() -> String? {
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT")
+  if root is None &&
+    @env.get_env_var("ACTQL_REQUIRE_NATIVE_RETAINED_TEST") == Some("1") {
+    abort("native retained task test requires a physical Store root")
   }
+  root
+}
+
+///|
+test "native retained task file seals before a fresh verified read" {
+  guard native_retained_test_root() is Some(root) else { return }
   let occurrence = "task-file-success-" + @env.now().to_string()
   let file = begin_native_retained_task_file(root, occurrence, 7L).unwrap()
   assert_false(file.available())
@@ -41,9 +49,7 @@ test "native retained task file seals before a fresh verified read" {
 
 ///|
 test "native retained task owner reclaims a stopped reader before unlink" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    return
-  }
+  guard native_retained_test_root() is Some(root) else { return }
   let occurrence = "task-file-reader-cleanup-" + @env.now().to_string()
   let file = begin_native_retained_task_file(root, occurrence, 3L).unwrap()
   file.append("abc").unwrap()
@@ -59,9 +65,7 @@ test "native retained task owner reclaims a stopped reader before unlink" {
 
 ///|
 test "native retained task file cannot admit incomplete or mismatched content" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    return
-  }
+  guard native_retained_test_root() is Some(root) else { return }
   let occurrence = "task-file-reject-" + @env.now().to_string()
   let file = begin_native_retained_task_file(root, occurrence, 3L).unwrap()
   file.append("abc").unwrap()
@@ -73,7 +77,27 @@ test "native retained task file cannot admit incomplete or mismatched content" {
   assert_eq(reader.next(3).unwrap().bytes, b"abc")
   assert_true(reader.next(3).unwrap().eof)
   assert_true(reader.finish() is Err(ContentMismatch))
+  assert_false(file.available())
+  assert_true(file.open_reader() is Err(InvalidState))
   reader.close().unwrap()
   file.release().unwrap()
   assert_false(file.available())
+}
+
+///|
+test "native retained task close stops new use before physical cleanup" {
+  guard native_retained_test_root() is Some(root) else { return }
+  let occurrence = "task-file-stop-" + @env.now().to_string()
+  let file = begin_native_retained_task_file(root, occurrence, 3L).unwrap()
+  file.append("abc").unwrap()
+  file.seal("sha256:" + @sha256.hex(b"abc"), 3).unwrap()
+  let reader = file.open_reader().unwrap()
+  file.stop_use()
+  assert_false(file.available())
+  assert_true(file.open_reader() is Err(InvalidState))
+  assert_true(reader.next(1) is Err(InvalidState))
+  assert_true(file.release() is Err(InvalidState))
+  file.reclaim_readers().unwrap()
+  file.release().unwrap()
+  assert_true(file.release_confirmed())
 }

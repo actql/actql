@@ -580,6 +580,40 @@ pub fn application_strategy_dispatch(
 }
 
 ///|
+/// Native process entry for the same retained Local/DuckDB candidate set used
+/// by the installed Host. File bytes and work are physical policy inputs;
+/// the common strategy still selects an eligible checked task realization.
+pub fn application_native_retained_strategy_dispatch(
+  app : Application,
+  run : @strategy.CapturedDAG,
+  native_fixed_ms : Int64,
+  file_bytes : Int64,
+  file_work_ms : Int64,
+  local_import_ms : Int64,
+  local_export_ms : Int64,
+  resident : Bool,
+) -> @dbhost.StrategyHostDispatch raise {
+  create_application_strategy_dispatch(
+    app,
+    run,
+    native_fixed_ms,
+    resident,
+    Some((file_bytes, Some(file_work_ms))),
+    local_import_ms=Some(local_import_ms),
+    local_export_ms=Some(local_export_ms),
+  )
+}
+
+///|
+/// The selected DuckDB offer owns this per-task transfer envelope. A native
+/// Host must not substitute the Run's larger cumulative ledger ceiling.
+pub fn application_native_retained_task_transfer_capacity(
+  app : Application,
+) -> Int64 {
+  app.data.map(profile_compute_transfer_capacity).unwrap_or(100000L)
+}
+
+///|
 fn core_application_retained_dispatch(
   app : Application,
   run : @strategy.CapturedDAG,

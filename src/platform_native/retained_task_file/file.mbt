@@ -10,6 +10,7 @@ struct NativeRetainedTaskFile {
   mut generation : @filesystem.NativeFileGeneration?
   mut cid : String?
   mut released : Bool
+  usable : Ref[Bool]
   readers : Ref[Int]
   opened_readers : Array[NativeRetainedTaskReader]
 }
@@ -21,6 +22,7 @@ struct NativeRetainedTaskReader {
   cid : String
   mut eof : Bool
   mut closed : Bool
+  usable : Ref[Bool]
   readers : Ref[Int]
 }
 
@@ -74,6 +76,7 @@ pub fn begin_native_retained_task_file(
     generation: None,
     cid: None,
     released: false,
+    usable: Ref(true),
     readers: Ref(0),
     opened_readers: [],
   })
@@ -84,7 +87,7 @@ pub fn NativeRetainedTaskFile::append(
   self : NativeRetainedTaskFile,
   batch : String,
 ) -> Result[Unit, NativeRetainedTaskFileIssue] {
-  if self.generation is Some(_) || self.released {
+  if self.generation is Some(_) || self.released || !self.usable.val {
     return Err(InvalidState)
   }
   self.writer.append(@utf8.encode(batch)).map_err(issue => Filesystem(issue))
@@ -98,7 +101,7 @@ pub fn NativeRetainedTaskFile::seal(
   cid : String,
   bytes : Int,
 ) -> Result[Unit, NativeRetainedTaskFileIssue] {
-  if self.released || self.generation is Some(_) {
+  if self.released || self.generation is Some(_) || !self.usable.val {
     return Err(InvalidState)
   }
   if bytes < 0 || self.writer.written() != bytes.to_int64() || !valid_cid(cid) {
@@ -115,11 +118,19 @@ pub fn NativeRetainedTaskFile::seal(
 
 ///|
 pub fn NativeRetainedTaskFile::available(self : NativeRetainedTaskFile) -> Bool {
-  if self.released {
+  if self.released || !self.usable.val {
     return false
   }
   guard self.generation is Some(generation) else { return false }
   self.root.verify_generation(self.name, generation)
+}
+
+///|
+/// Revoke new and existing reader authority when the Run stops accepting
+/// work. This never declares physical cleanup complete; release still owns
+/// the writer, links, reader handles, and directory synchronization.
+pub fn NativeRetainedTaskFile::stop_use(self : NativeRetainedTaskFile) -> Unit {
+  self.usable.val = false
 }
 
 ///|
@@ -163,6 +174,7 @@ pub fn NativeRetainedTaskFile::open_reader(
     cid,
     eof: false,
     closed: false,
+    usable: self.usable,
     readers: self.readers,
   }
   self.opened_readers.push(opened)
@@ -196,7 +208,7 @@ pub fn NativeRetainedTaskReader::next(
   self : NativeRetainedTaskReader,
   max_bytes : Int,
 ) -> Result[@filesystem.NativeFileChunk, NativeRetainedTaskFileIssue] {
-  if self.closed || self.eof {
+  if self.closed || self.eof || !self.usable.val {
     return Err(InvalidState)
   }
   let chunk = match self.reader.next(max_bytes) {
@@ -214,7 +226,7 @@ pub fn NativeRetainedTaskReader::next(
 pub fn NativeRetainedTaskReader::finish(
   self : NativeRetainedTaskReader,
 ) -> Result[Unit, NativeRetainedTaskFileIssue] {
-  if self.closed || !self.eof {
+  if self.closed || !self.eof || !self.usable.val {
     return Err(InvalidState)
   }
   match self.reader.finish() {
@@ -225,6 +237,7 @@ pub fn NativeRetainedTaskReader::finish(
     issue => return Err(Hash(issue))
   }
   if digest != self.cid {
+    self.usable.val = false
     return Err(ContentMismatch)
   }
   match self.reader.close() {

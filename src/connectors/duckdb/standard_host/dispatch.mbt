@@ -144,6 +144,50 @@ pub fn configure_strategy_dispatch(
 }
 
 ///|
+/// Select the existing Local materializing path before any offer escapes.
+/// Native storage remains an implementation of its retention callbacks;
+/// selection and completion still belong to the common dispatch owner.
+pub fn configure_dispatch_local_retained_output(
+  host : StrategyHostDispatch,
+  imports : @local.LocalImportLimits,
+  output : @local.LocalExportLimits,
+  milliseconds : Int64?,
+) -> Result[Unit, DispatchIssue] {
+  guard @builtin.configured_local_module(host.modules) is Some(installed) else {
+    return Err(InvalidConfiguration)
+  }
+  match
+    @local_driver.configure_local_retained_inputs(
+      installed, imports, milliseconds,
+    ) {
+    Err(issue) => return Err(local_dispatch_issue(issue))
+    Ok(_) => ()
+  }
+  @local_driver.configure_local_retained_output(installed, output, milliseconds).map_err(
+    local_dispatch_issue,
+  )
+}
+
+///|
+/// Expose the installed Local module's exact capacity formula to a Host that
+/// makes an explicit strategy choice before starting the native runtime.
+pub fn prepare_dispatch_local_offer(
+  host : StrategyHostDispatch,
+  task : Int,
+  milliseconds : Int64?,
+) -> Result[@strategy.TaskOffer, DispatchIssue] {
+  guard @builtin.configured_local_module(host.modules) is Some(installed) else {
+    return Err(InvalidConfiguration)
+  }
+  @local_driver.estimate_local_dispatch_offer(
+    installed,
+    task,
+    [{ work_slots: [0, 1, 2, 3, 4], milliseconds, }],
+    host.limits.candidate_work,
+  ).map_err(local_dispatch_issue)
+}
+
+///|
 /// Prepare only the next checked-ready task, against its actual completed input.
 /// The whole-strategy selection remains authoritative; there is no fallback.
 pub fn prepare_next_dispatch(
@@ -194,6 +238,19 @@ pub fn execute_synchronous_dispatch(
 ) -> Result[Unit, DispatchIssue] {
   @builtin.execute_configured_in_process(
     dispatch.owner.installation,
+    dispatch.prepared,
+  ).map_err(configured_dispatch_issue)
+}
+
+///|
+/// Return the selected Local operations before their completion callback.
+/// The native owner must retain and seal the output before invoking complete.
+pub fn take_local_dispatch(
+  dispatch : TaskDispatch,
+) -> Result[@local_driver.LocalDispatchOperations, DispatchIssue] {
+  @builtin.dispatch_local(
+    dispatch.owner.modules,
+    @host_driver.compute_host_dispatch(dispatch.owner.runtime),
     dispatch.prepared,
   ).map_err(configured_dispatch_issue)
 }

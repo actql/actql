@@ -27,6 +27,7 @@ pub(all) enum NativeComputeExecutionIssue {
   Compute(@duckdb_compute.DuckDBComputeIssue)
   RetainedFile(@retained_file.NativeRetainedTaskFileIssue)
   RowFrames(@publication.DurableResultRowFrameIssue)
+  RetainedImport(@execution.CompletedImportIssue)
 }
 
 ///|
@@ -447,6 +448,118 @@ fn execute_native_compute_retained_import(
       Compute(issue)
     },
   )
+}
+
+///|
+/// Bounded publication conversion of this exact retained completion. The
+/// original file remains the Run's holding; the returned cell copy carries
+/// the same completed occurrence only after full physical and logical checks.
+fn convert_native_retained_result_for_publication(
+  output : @execution.CompletedOutput,
+  source : NativeComputeRetainedInput,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  wire : @execution.RowWireLimits,
+  max_batch_bytes : Int,
+) -> Result[@execution.CompletedOutput, NativeComputeExecutionIssue] {
+  if source.max_batch_bytes <= 0 ||
+    source.max_batch_bytes > source.wire.max_bytes ||
+    max_batch_bytes <= 0 {
+    return Err(RuntimeState)
+  }
+  let rows = @execution.completed_row_count(output)
+  let conversion = match
+    @execution.prepare_completed_output_import(
+      output, max_rows, values, wire, max_batch_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RetainedImport(issue))
+  }
+  let row_bytes = Int::min(source.max_batch_bytes, max_batch_bytes)
+  let frame_bytes = Int::min(65536, row_bytes)
+  let frames = match
+    @publication.prepare_durable_result_row_frames(
+      source.wire.max_bytes,
+      rows,
+      Int::min(16777216, row_bytes),
+      source.wire.max_depth,
+      frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.cancel_completed_output_import(conversion) |> ignore
+      return Err(RowFrames(issue))
+    }
+  }
+  let reader = match source.file.open_reader() {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.cancel_completed_output_import(conversion) |> ignore
+      return Err(RetainedFile(issue))
+    }
+  }
+  let mut decoded_rows = 0
+  let mut eof = false
+  while !eof {
+    let chunk = match reader.next(frame_bytes) {
+      Ok(value) => value
+      Err(issue) => {
+        reader.close() |> ignore
+        @execution.cancel_completed_output_import(conversion) |> ignore
+        return Err(RetainedFile(issue))
+      }
+    }
+    let decoded = match
+      @publication.feed_durable_result_row_frames(frames, chunk.bytes) {
+      Ok(value) => value
+      Err(issue) => {
+        reader.close() |> ignore
+        @execution.cancel_completed_output_import(conversion) |> ignore
+        return Err(RowFrames(issue))
+      }
+    }
+    for row in decoded {
+      match
+        @execution.append_completed_output_import_wire(conversion, row, {
+          max_bytes: row_bytes,
+          max_nodes: source.wire.max_nodes,
+          max_depth: source.wire.max_depth,
+          max_text_bytes: row_bytes,
+        }) {
+        Ok(_) => decoded_rows += 1
+        Err(issue) => {
+          reader.close() |> ignore
+          @execution.cancel_completed_output_import(conversion) |> ignore
+          return Err(RetainedImport(issue))
+        }
+      }
+    }
+    eof = chunk.eof
+  }
+  let summary = match @publication.finish_durable_result_row_frames(frames) {
+    Ok(value) => value
+    Err(issue) => {
+      reader.close() |> ignore
+      @execution.cancel_completed_output_import(conversion) |> ignore
+      return Err(RowFrames(issue))
+    }
+  }
+  if summary.rows != rows || decoded_rows != rows {
+    reader.close() |> ignore
+    @execution.cancel_completed_output_import(conversion) |> ignore
+    return Err(ImportRows)
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) => {
+      reader.close() |> ignore
+      @execution.cancel_completed_output_import(conversion) |> ignore
+      return Err(RetainedFile(issue))
+    }
+  }
+  @execution.finish_completed_output_import(conversion).map_err(issue => {
+    RetainedImport(issue)
+  })
 }
 
 ///|

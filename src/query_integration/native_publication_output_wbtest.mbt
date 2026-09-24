@@ -84,9 +84,87 @@ fn prepare_native_publication_local_run() -> (
 }
 
 ///|
+fn prepare_native_publication_retained_local_run(
+  retained_root : String,
+  max_file_bytes? : Int64 = 100000L,
+) -> (
+  @strategy.CapturedDAG,
+  @native_host.NativeStandardStrategyRun,
+  @mock.MockQueryIssuer,
+) raise {
+  let (run, issuer) = captured_graph_fixture()
+  let registry = search_registry()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let limits = dispatch_test_limits()
+  let host = @dbhost.configure_strategy_dispatch(
+    run,
+    registry,
+    registration,
+    @connector.capability_registration_at(registry, 1).unwrap(),
+    dispatch_test_generated(run),
+    limits,
+  ).unwrap()
+  let wire : @execution.RowWireLimits = {
+    max_columns: 10,
+    max_order_work: 10000,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 32,
+  }
+  @dbhost.configure_dispatch_local_retained_output(
+    host,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire,
+      row: {
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 32,
+        max_text_bytes: 10000,
+      },
+      max_batch_bytes: 4096,
+    },
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire,
+      max_batch_bytes: 4096,
+    },
+    Some(1L),
+  ).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 3,
+    max_strategies: 8,
+    max_work: 1000,
+    max_revisions: 4,
+  }).unwrap()
+  let offers = Array::makei(3, index => {
+    @dbhost.prepare_dispatch_local_offer(host, index + 1, Some(1L)).unwrap()
+  })
+  ignore(@strategy.revise_strategy(run, offers, registry, None).unwrap())
+  let runtime_owner = @native_host.open_native_standard_strategy_run(
+    host,
+    native_compute_import_limits(),
+    100000L,
+    1000000L,
+    retained_profile={
+      root_path: retained_root,
+      run_occurrence: "retained-local-" + @env.now().to_string(),
+      max_file_bytes,
+      wire,
+      max_batch_bytes: 4096,
+      max_chunk_rows: 100,
+    },
+  ).unwrap()
+  (run, runtime_owner, issuer)
+}
+
+///|
 fn prepare_native_publication_duckdb_run(
   library_path : String,
   retained_root? : String,
+  max_file_bytes? : Int64 = 100000L,
 ) -> (
   @strategy.CapturedDAG,
   @native_host.NativeStandardStrategyRun,
@@ -104,7 +182,7 @@ fn prepare_native_publication_duckdb_run(
     dispatch_test_limits(),
   ).unwrap()
   if retained_root is Some(_) {
-    @dbhost.configure_dispatch_retained_output(host, 100000L, Some(1L)).unwrap()
+    @dbhost.configure_dispatch_retained_output(host, max_file_bytes, Some(1L)).unwrap()
   }
   @strategy.configure_strategy_search(run, {
     max_offers: 3,
@@ -116,7 +194,7 @@ fn prepare_native_publication_duckdb_run(
     @duckdb_compute.duckdb_stream_retention_capacity(
       fixed_compute_attempt_limits(),
     ).unwrap() +
-    100000L
+    max_file_bytes
   } else {
     @duckdb_compute.duckdb_task_retention_capacity(
       fixed_compute_attempt_limits(),
@@ -151,7 +229,7 @@ fn prepare_native_publication_duckdb_run(
     retained_profile?=retained_root.map(path => {
       root_path: path,
       run_occurrence: "native-standard-" + @env.now().to_string(),
-      max_file_bytes: 100000L,
+      max_file_bytes,
       wire: {
         max_columns: 10,
         max_order_work: 10000,
@@ -474,7 +552,50 @@ fn verify_native_publication_run(
       native_publication_export_limits(),
     ) {
     Ok(value) => value
+    Err(@native_host.Strategy(@native_host.Local(issue))) =>
+      match issue {
+        @native_host.MissingOutput => abort("native Local missing output")
+        @native_host.InvalidState => abort("native Local invalid state")
+        @native_host.Dispatch(_) => abort("native Local dispatch failure")
+        @native_host.RetainedFile(_) =>
+          abort("native Local retained file failure")
+        @native_host.RowFrames(_) => abort("native Local row frames failure")
+      }
+    Err(@native_host.Strategy(@native_host.Dispatch(@dbhost.NoStrategy))) =>
+      abort("native standard no strategy")
+    Err(
+      @native_host.Strategy(
+        @native_host.Dispatch(@dbhost.Run(@strategy.Physical(issue)))
+      )
+    ) =>
+      match issue {
+        @resources.TransferLimit => abort("native Local transfer limit")
+        @resources.RetentionLimit => abort("native Local retention limit")
+        @resources.ExecutionLimit => abort("native Local execution limit")
+        @resources.HoldingLimit => abort("native Local holding limit")
+        @resources.InvalidLimits => abort("native Local invalid ledger limits")
+        @resources.ForeignOwner => abort("native Local foreign ledger owner")
+        @resources.InvalidCharge => abort("native Local invalid ledger charge")
+        @resources.AttemptLimit => abort("native Local attempt limit")
+        _ => abort("native Local other ledger limit")
+      }
+    Err(@native_host.Strategy(@native_host.Dispatch(@dbhost.Run(_)))) =>
+      abort("native standard dispatch Run failure")
+    Err(@native_host.Strategy(@native_host.Dispatch(@dbhost.Candidate(_)))) =>
+      abort("native standard dispatch Candidate failure")
+    Err(@native_host.Strategy(@native_host.Dispatch(@dbhost.Search(_)))) =>
+      abort("native standard dispatch Search failure")
+    Err(@native_host.Strategy(@native_host.Dispatch(_))) =>
+      abort("native standard dispatch failure")
+    Err(@native_host.Strategy(@native_host.InvalidSelection)) =>
+      abort("native standard invalid selection")
+    Err(@native_host.Strategy(@native_host.DuckDBUnavailable)) =>
+      abort("native standard DuckDB unavailable")
+    Err(@native_host.Strategy(@native_host.DuckDB(_))) =>
+      abort("native standard DuckDB failure")
     Err(@native_host.Strategy(_)) => abort("standard strategy failure")
+    Err(@native_host.RetainedConversion(_, _)) =>
+      abort("retained publication conversion failure")
     Err(@native_host.Preparation(_)) => abort("publication preparation failure")
     Err(@native_host.Publication(_, _)) => abort("publication commit failure")
   }
@@ -606,6 +727,134 @@ test "standard DuckDB output reaches the durable native publication commit" {
   verify_native_publication_run(
     run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
   )
+}
+
+///|
+test "retained native DuckDB result reaches formal publication and delivery" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY")
+    is Some(duckdb_library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return
+  }
+  let token = "retained-duckdb-publication-" + @env.now().to_string()
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_duckdb_run(
+    duckdb_library_path,
+    retained_root~,
+  )
+  verify_native_publication_run(
+    run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
+  )
+}
+
+///|
+test "retained native Local result reaches formal publication and delivery" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
+    is Some(sqlite_library_path) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return
+  }
+  let token = "retained-local-publication-" + @env.now().to_string()
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_retained_local_run(
+    retained_root,
+  )
+  verify_native_publication_run(
+    run, token, sqlite_library_path, root, runtime_owner, query_issuer, 3,
+  )
+}
+
+///|
+test "native Local file failure prevents completion and retains cleanup owner" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return
+  }
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_retained_local_run(
+    retained_root,
+    max_file_bytes=1L,
+  )
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(runtime_owner)
+    is Err(Local(_)),
+  )
+  assert_false(@strategy.captured_task_completed(run, 1))
+  assert_eq(
+    @native_host.native_standard_strategy_run_task_count(runtime_owner),
+    1,
+  )
+  assert_true(
+    @native_host.close_native_standard_strategy_run(runtime_owner).unwrap(),
+  )
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(query_issuer)
+}
+
+///|
+test "native Local file creation failure retains the common attempt owner" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return
+  }
+  let unavailable_root = retained_root + "/missing-" + @env.now().to_string()
+  let (run, runtime_owner, query_issuer) = prepare_native_publication_retained_local_run(
+    unavailable_root,
+  )
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(runtime_owner)
+    is Err(Local(_)),
+  )
+  assert_false(@strategy.captured_task_completed(run, 1))
+  assert_eq(
+    @native_host.native_standard_strategy_run_task_count(runtime_owner),
+    1,
+  )
+  assert_true(
+    @native_host.close_native_standard_strategy_run(runtime_owner).unwrap(),
+  )
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(query_issuer)
+}
+
+///|
+test "native DuckDB file failure prevents completion and retains cleanup owner" {
+  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
+    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return
+  }
+  let (run, runtime_owner, issuer) = prepare_native_publication_duckdb_run(
+    library,
+    retained_root~,
+    max_file_bytes=1L,
+  )
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(runtime_owner)
+    is Err(DuckDB(_)),
+  )
+  assert_false(@strategy.captured_task_completed(run, 1))
+  assert_eq(
+    @native_host.native_standard_strategy_run_task_count(runtime_owner),
+    1,
+  )
+  assert_true(
+    @native_host.close_native_standard_strategy_run(runtime_owner).unwrap(),
+  )
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

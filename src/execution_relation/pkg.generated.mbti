@@ -274,6 +274,8 @@ pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPr
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
 
+pub fn completed_output_same_occurrence(CompletedOutput, CompletedOutput) -> Bool
+
 pub fn completed_relation_export_content(CompletedRelationExportReceipt) -> AdmittedOutputStreamReceipt
 
 pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> Array[String]
@@ -801,6 +803,10 @@ pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bo
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
+
+pub fn retained_completed_material_matches(RetainedOutputMaterial, CompletedOutput) -> Bool
+
+pub fn[T] retained_completed_payload(RetainedOutputHandle[T], CompletedOutput) -> T?
 
 pub fn retained_completion_can_handoff(RetainedCompletionEvidence, CompletedOutput) -> Bool
 

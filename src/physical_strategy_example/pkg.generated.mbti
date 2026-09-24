@@ -39,6 +39,10 @@ pub fn application_managed_dispatch(Application, @physical_strategy.CapturedDAG,
 
 pub fn application_materializing_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
+pub fn application_native_retained_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
+
+pub fn application_native_retained_task_transfer_capacity(Application) -> Int64
+
 pub fn application_output_cid(@physical_strategy.CapturedDAG, Int) -> String?
 
 pub fn application_profile_output_cid(Application, @physical_strategy.CapturedDAG, Int) -> String?

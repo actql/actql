@@ -7,6 +7,7 @@ import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {getCompileCacheDir} from 'node:module';
 
 const [checkout, database, directory, workload, layout, rowText,
   nativeMilliseconds = '1', estimateProfileDirectory, ...extra] = process.argv.slice(2);
@@ -85,6 +86,7 @@ try {
   const productAdmission = estimates ? admitRetainedProductSample({fixture,
     estimates, calibration, report}) : undefined;
   console.log(JSON.stringify({revision,
+    nodeCompileCacheDirectory: getCompileCacheDir?.(),
     acceptanceEligible: productAdmission?.accepted === true,
     productAdmission,
     calibration: calibration ?? 'explicit diagnostic estimates; not calibrated ordinary selection',

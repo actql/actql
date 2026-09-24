@@ -125,6 +125,38 @@ pub fn[T] retained_producer_payload(
 }
 
 ///|
+/// Recover the physical copy installed for this exact completed occurrence.
+/// This is for an installed Host converting an already completed Result; it
+/// does not grant a new completion or accept an equal CID as another copy.
+pub fn[T] retained_completed_payload(
+  handle : RetainedOutputHandle[T],
+  output : CompletedOutput,
+) -> T? {
+  if !completed_output_available(output) {
+    return None
+  }
+  guard output.representation is Some(material) &&
+    physical_equal(material, handle.material) &&
+    (material.available)() else {
+    return None
+  }
+  Some(handle.payload)
+}
+
+///|
+/// A Host may retain an opaque file beside the Local export material. Recover
+/// it only for the exact completed occurrence that installed that material.
+pub fn retained_completed_material_matches(
+  material : RetainedOutputMaterial,
+  output : CompletedOutput,
+) -> Bool {
+  completed_output_available(output) &&
+  output.representation is Some(installed) &&
+  physical_equal(installed, material) &&
+  (material.available)()
+}
+
+///|
 /// Exact owned consumer projection into the source representation. Positional
 /// metadata only: no cell materialization or permission to substitute a copy.
 pub fn[T] retained_producer_columns(

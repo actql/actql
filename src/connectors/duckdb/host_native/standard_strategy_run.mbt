@@ -7,6 +7,8 @@ struct NativeStandardStrategyRun {
   dispatch : @duckdb_standard_host.StrategyHostDispatch
   library : @native_duckdb.Library?
   runtimes : NativeStrategyComputeRun
+  local_owners : Array[NativeStrategyLocalOwner]
+  unfiled_local_owners : Array[NativeStrategyUnfiledLocalOwner]
   import_limits : NativeComputeImportLimits
   transfer_bytes : Int64
   database_memory_bytes : Int64
@@ -25,6 +27,7 @@ pub(all) enum NativeStandardStrategyRunIssue {
   Dispatch(@duckdb_standard_host.DispatchIssue)
   Database(@native_duckdb.NativeDuckDBIssue)
   DuckDB(NativeStrategyComputeRunIssue)
+  Local(NativeStrategyLocalIssue)
 }
 
 ///|
@@ -42,6 +45,7 @@ pub(all) struct NativeStandardStrategyTaskCompletion {
 /// cancel without re-executing the Program.
 pub(all) enum NativeStandardRunPublicationIssue {
   Strategy(NativeStandardStrategyRunIssue)
+  RetainedConversion(Int, NativeComputeExecutionIssue)
   Preparation(@native_publication.NativeCapturedRunPublicationPreparationIssue)
   Publication(
     @native_publication.NativePreparedCapturedRunPublication,
@@ -69,6 +73,8 @@ pub fn open_native_standard_strategy_run(
     dispatch,
     library,
     runtimes: open_native_strategy_compute_run(),
+    local_owners: [],
+    unfiled_local_owners: [],
     import_limits,
     transfer_bytes,
     database_memory_bytes: execution_bytes,
@@ -129,31 +135,73 @@ pub fn execute_next_native_standard_strategy_task(
       selected,
       @duckdb_standard_host.dispatch_local_registration(run.dispatch),
     ) {
-    match @duckdb_standard_host.execute_synchronous_dispatch(task) {
-      Err(issue) => {
-        run.accepting = false
-        run.stop_dispatch()
-        return Err(Dispatch(issue))
-      }
-      Ok(_) => {
-        guard @strategy.captured_task_target(
-            @duckdb_standard_host.dispatch_run(run.dispatch),
-            task_index,
-          )
-          is Some(target) &&
-          @strategy.captured_task_output(
-            @duckdb_standard_host.dispatch_run(run.dispatch),
-            task_index,
-            target,
-          )
-          is Some(output) else {
+    if run.retained_profile is Some(profile) {
+      let operations = match @duckdb_standard_host.take_local_dispatch(task) {
+        Ok(value) => value
+        Err(issue) => {
           run.accepting = false
           run.stop_dispatch()
-          return Err(InvalidSelection)
+          return Err(Dispatch(issue))
         }
-        return Ok(Some({ task: task_index, output, }))
+      }
+      let owner = match
+        start_native_strategy_local_owner(operations, profile, task_index) {
+        Ok(value) => value
+        Err(issue) => {
+          run.unfiled_local_owners.push({
+            operations,
+            closed: false,
+            settled: false,
+          })
+          run.accepting = false
+          run.stop_dispatch()
+          return Err(Local(issue))
+        }
+      }
+      run.local_owners.push(owner)
+      match
+        execute_native_strategy_local_owner(owner, input => {
+          for previous in run.local_owners {
+            if native_strategy_local_input_source(previous, input)
+              is Some(source) {
+              return Some(source)
+            }
+          }
+          native_strategy_retained_input(run.runtimes, input)
+        }) {
+        Ok(_) => ()
+        Err(issue) => {
+          run.accepting = false
+          run.stop_dispatch()
+          return Err(Local(issue))
+        }
+      }
+    } else {
+      match @duckdb_standard_host.execute_synchronous_dispatch(task) {
+        Err(issue) => {
+          run.accepting = false
+          run.stop_dispatch()
+          return Err(Dispatch(issue))
+        }
+        Ok(_) => ()
       }
     }
+    guard @strategy.captured_task_target(
+        @duckdb_standard_host.dispatch_run(run.dispatch),
+        task_index,
+      )
+      is Some(target) &&
+      @strategy.captured_task_output(
+        @duckdb_standard_host.dispatch_run(run.dispatch),
+        task_index,
+        target,
+      )
+      is Some(output) else {
+      run.accepting = false
+      run.stop_dispatch()
+      return Err(InvalidSelection)
+    }
+    return Ok(Some({ task: task_index, output, }))
   }
   if !physical_equal(
       selected,
@@ -204,6 +252,14 @@ pub fn execute_next_native_standard_strategy_task(
       run.transfer_bytes,
       run.database_memory_bytes,
       retained_profile?=run.retained_profile,
+      additional_retained_source=input => {
+        for owner in run.local_owners {
+          if native_strategy_local_input_source(owner, input) is Some(source) {
+            return Some(source)
+          }
+        }
+        None
+      },
     ) {
     Ok(output) => Ok(Some({ task: task_index, output, }))
     Err(issue) => {
@@ -232,6 +288,53 @@ pub fn execute_native_standard_strategy_run(
 }
 
 ///|
+fn native_standard_retained_result(
+  run : NativeStandardStrategyRun,
+  output : @execution.CompletedOutput,
+) -> NativeComputeRetainedInput? {
+  if native_strategy_retained_result(run.runtimes, output) is Some(source) {
+    return Some(source)
+  }
+  for owner in run.local_owners {
+    if native_strategy_local_result_source(owner, output) is Some(source) {
+      return Some(source)
+    }
+  }
+  None
+}
+
+///|
+/// Consume an exact completed task through a fresh verified file reader.
+/// The bounded projection is shared with formal publication and never adopts
+/// a caller-provided path or a matching CID from another occurrence.
+pub fn read_native_standard_task_output(
+  run : NativeStandardStrategyRun,
+  task : Int,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  wire : @execution.RowWireLimits,
+  max_batch_bytes : Int,
+) -> Result[@execution.CompletedOutput, NativeStandardRunPublicationIssue] {
+  let captured = @duckdb_standard_host.dispatch_run(run.dispatch)
+  guard @strategy.captured_task_target(captured, task) is Some(target) &&
+    @strategy.captured_task_output(captured, task, target) is Some(output) else {
+    return Err(Strategy(InvalidSelection))
+  }
+  match native_standard_retained_result(run, output) {
+    None =>
+      if run.retained_profile is Some(_) {
+        Err(Strategy(InvalidSelection))
+      } else {
+        Ok(output)
+      }
+    Some(source) =>
+      convert_native_retained_result_for_publication(
+        output, source, max_rows, values, wire, max_batch_bytes,
+      ).map_err(issue => RetainedConversion(task, issue))
+  }
+}
+
+///|
 /// Execute the configured checked Program, persist every declared Named
 /// Result, and commit the formal Run publication. Connector selection remains
 /// in the portable Host, while all publication progression remains in the
@@ -254,9 +357,41 @@ pub fn execute_and_publish_native_standard_strategy_run(
     Err(issue) => return Err(Strategy(issue))
   }
   let captured = @duckdb_standard_host.dispatch_run(run.dispatch)
+  let graph = @strategy.captured_dag_graph(captured)
+  let converted : Array[@execution.CompletedOutput?] = []
+  for result in 0..<@strategy.graph_result_count(graph) {
+    guard @strategy.graph_result_task(graph, result) is Some(task) &&
+      @strategy.captured_task_target(captured, task) is Some(target) &&
+      @strategy.captured_task_output(captured, task, target) is Some(output) else {
+      return Err(Strategy(InvalidSelection))
+    }
+    match native_standard_retained_result(run, output) {
+      None => converted.push(None)
+      Some(_) =>
+        match
+          read_native_standard_task_output(
+            run,
+            task,
+            export_limits.max_rows,
+            export_limits.values,
+            export_limits.payload_wire,
+            export_limits.max_batch_bytes,
+          ) {
+          Ok(value) => converted.push(Some(value))
+          Err(issue) => return Err(issue)
+        }
+    }
+  }
   let prepared = match
     @native_publication.prepare_captured_effect_free_run_publication_native(
-      service, captured, context, results, intent, occurrence, export_limits,
+      service,
+      captured,
+      context,
+      results,
+      intent,
+      occurrence,
+      export_limits,
+      converted_outputs=converted,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preparation(issue))
@@ -278,7 +413,9 @@ pub fn native_standard_strategy_run_complete(
 pub fn native_standard_strategy_run_task_count(
   run : NativeStandardStrategyRun,
 ) -> Int {
-  native_strategy_compute_run_task_count(run.runtimes)
+  native_strategy_compute_run_task_count(run.runtimes) +
+  run.local_owners.length() +
+  run.unfiled_local_owners.length()
 }
 
 ///|
@@ -289,5 +426,44 @@ pub fn close_native_standard_strategy_run(
 ) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   run.accepting = false
   run.stop_dispatch()
-  close_native_strategy_compute_run(run.runtimes)
+  let mut pending = false
+  let mut first : NativeStrategyComputeCleanupIssue? = None
+  for owner in run.unfiled_local_owners {
+    match close_native_strategy_unfiled_local_owner(owner) {
+      Ok(_) => ()
+      Err(issue) => {
+        pending = true
+        if first is None {
+          first = Some(issue)
+        }
+      }
+    }
+  }
+  for offset in 0..<run.local_owners.length() {
+    let owner = run.local_owners[run.local_owners.length() - offset - 1]
+    match close_native_strategy_local_owner(owner) {
+      Ok(true) => ()
+      Ok(false) => pending = true
+      Err(issue) => {
+        pending = true
+        if first is None {
+          first = Some(issue)
+        }
+      }
+    }
+  }
+  match close_native_strategy_compute_run(run.runtimes) {
+    Ok(true) => ()
+    Ok(false) => pending = true
+    Err(issue) => {
+      pending = true
+      if first is None {
+        first = Some(issue)
+      }
+    }
+  }
+  match first {
+    Some(issue) => Err(issue)
+    None => Ok(!pending)
+  }
 }

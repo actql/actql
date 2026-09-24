@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
   "actql/actql/connectors/duckdb/driver" @duckdb_driver,
   "actql/actql/connectors/duckdb/standard_host" @duckdb_standard_host,
+  "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
   "actql/actql/decode_core" @decode,

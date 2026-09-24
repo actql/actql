@@ -70,10 +70,17 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test native retained task file ownership
+        run: npm run check:native-retained-task-file
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
         run: npm run check:native-http-client
+      - name: Verify registered Native retained product path
+        run: |
+          moon build src/cmd/native_retained_case_probe --target native --release
+          node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100
+          node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
@@ -129,6 +136,7 @@ jobs:
         run: |
           test "$(uname -m)" = arm64
           moon version --all
+          npm run check:native-retained-task-file
           ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
             npm run check:native-http-client
   native-separated-network:
@@ -268,5 +276,7 @@ jobs:
           npm ls --prefix adapters/connectors/duckdb/node @duckdb/node-api
       - name: Check real DuckDB transport and owned resources
         run: npm test --prefix adapters/connectors/duckdb/node
+      - name: Check paired performance provenance
+        run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node

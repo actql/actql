@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/run_publication"
 
 import {
+  "actql/actql/execution_relation",
   "actql/actql/physical_strategy",
   "actql/actql/platform_native/publication_store",
   "actql/actql/publication_payload",
@@ -19,7 +20,7 @@ pub fn install_native_run_publication_service(@publication_store.Store, NativeRu
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
-pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
+pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, @run_publication_host.PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?]) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
 pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
 

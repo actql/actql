@@ -26,6 +26,7 @@ pub(all) struct NativeStrategyRetainedOutputProfile {
 pub(all) enum NativeStrategyComputeCleanupIssue {
   Ledger(@resources.LedgerIssue)
   FileRelease(@retained_file.NativeRetainedTaskFileIssue)
+  LocalCleanup
 }
 
 ///|
@@ -366,6 +367,9 @@ pub fn close_native_strategy_compute_runtime(
   runtime : NativeStrategyComputeRuntime,
 ) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   runtime.authority.live = false
+  if runtime.retained_file.val is Some(file) {
+    file.stop_use()
+  }
   close_native_strategy_database(runtime)
   let execution = @duckdb_driver.captured_duckdb_execution(runtime.task)
   match @strategy.settle_task_execution(runtime.graph, execution, true) {

@@ -9,3 +9,7 @@ import {
 import {
   "moonbitlang/core/env",
 } for "wbtest"
+
+options(
+  targets: { "file_native_wbtest.mbt": [ "native" ] },
+)

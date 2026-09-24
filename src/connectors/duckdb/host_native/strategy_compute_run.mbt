@@ -48,6 +48,29 @@ fn native_strategy_retained_input(
 }
 
 ///|
+/// Exact retained copy of a Result already completed by this Run. The
+/// conversion reader must use this owner, not a path or matching content CID.
+fn native_strategy_retained_result(
+  run : NativeStrategyComputeRun,
+  output : @execution.CompletedOutput,
+) -> NativeComputeRetainedInput? {
+  for entry in run.entries {
+    guard entry.runtime.retained_output is Some(handle) &&
+      entry.runtime.retained_profile is Some(profile) else {
+      continue
+    }
+    if @execution.retained_completed_payload(handle, output) is Some(file) {
+      return Some({
+        file,
+        wire: profile.wire,
+        max_batch_bytes: profile.max_batch_bytes,
+      })
+    }
+  }
+  None
+}
+
+///|
 /// Execute one already selected task and retain its common runtime owner. The
 /// owner is recorded before physical execution, so a failed attempt cannot
 /// lose cleanup responsibility.
@@ -59,6 +82,7 @@ pub fn execute_native_strategy_compute_task(
   transfer_bytes : Int64,
   execution_bytes : Int64,
   retained_profile? : NativeStrategyRetainedOutputProfile,
+  additional_retained_source? : (@execution.ProducerRead) -> NativeComputeRetainedInput?,
 ) -> Result[@execution.CompletedOutput, NativeStrategyComputeRunIssue] {
   if !run.accepting {
     database.close()
@@ -78,7 +102,14 @@ pub fn execute_native_strategy_compute_task(
   }
   run.entries.push({ runtime, released: false, })
   execute_native_strategy_compute_runtime(runtime, retained_source=input => {
-    native_strategy_retained_input(run, input)
+    match native_strategy_retained_input(run, input) {
+      Some(source) => Some(source)
+      None =>
+        match additional_retained_source {
+          Some(resolve) => resolve(input)
+          None => None
+        }
+    }
   }).map_err(issue => Execution(issue))
 }
 

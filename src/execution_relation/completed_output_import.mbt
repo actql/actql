@@ -24,6 +24,24 @@ pub(all) enum CompletedImportIssue {
 }
 
 ///|
+/// A representation conversion may be used for a checked Result only when it
+/// still carries the exact completed occurrence recorded by the captured Run.
+/// Equal contents, schema, or target alone do not authorize substitution.
+pub fn completed_output_same_occurrence(
+  source : CompletedOutput,
+  converted : CompletedOutput,
+) -> Bool {
+  completed_output_available(source) &&
+  completed_output_available(converted) &&
+  physical_equal(
+    source.completion.result_identity,
+    converted.completion.result_identity,
+  ) &&
+  source.target == converted.target &&
+  converted.table is Some(_)
+}
+
+///|
 /// Import the exact representation selected by an admitted receiving port.
 /// The caller need not extract or reconstruct the producer's completion.
 pub fn prepare_producer_output_import(

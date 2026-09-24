@@ -14,6 +14,8 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_resources" @resources,
   "actql/actql/connector_sdk" @connector,
+  "actql/actql/execution_relation" @execution,
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
+  "moonbitlang/core/env",
 }

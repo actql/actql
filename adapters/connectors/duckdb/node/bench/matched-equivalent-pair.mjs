@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {readFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {isDeepStrictEqual, promisify} from 'node:util';
 import {admitEquivalentObligationPair} from
@@ -66,6 +66,7 @@ function normalize(label, value, cycleMs) {
     processCycleMs: cycleMs,
     childRevision: value.revision,
     acceptanceEligible: value.acceptanceEligible === true,
+    nodeCompileCacheDirectory: value.nodeCompileCacheDirectory,
     report,
   });
 }
@@ -223,12 +224,13 @@ function compareTransferWork(retained, equivalent, accounting) {
   });
 }
 
-async function defaultRunChild(label, arguments_, timeoutMs, script) {
+async function defaultRunChild(label, arguments_, timeoutMs, script, environment) {
   const started = performance.now();
   try {
     const result = await exec(process.execPath, [script, ...arguments_], {
       timeout: timeoutMs,
       maxBuffer: 16 * 1024 * 1024,
+      env: environment,
     });
     const cycleMs = performance.now() - started;
     return normalize(label, JSON.parse(result.stdout), cycleMs);
@@ -297,31 +299,53 @@ export async function runMatchedEquivalentPair({
   const samples = {};
   const timeoutMs = fixture.limits.timeoutMs +
     fixture.limits.cleanupTimeoutMs;
-  for (const label of order) {
-    const script = join(
-      checkout,
-      'adapters/connectors/duckdb/node/bench',
-      label === 'retained-actql'
-        ? 'retained-case.mjs'
-        : 'equivalent-case.mjs',
-    );
-    const arguments_ = label === 'retained-actql'
-      ? [checkout, database, directory, fixture.workload, fixture.layout,
-        String(fixture.rows), '1',
-        ...(estimateProfileDirectory === undefined ? [] : [estimateProfileDirectory])]
-      : [database, directory, fixture.workload, fixture.layout,
-        String(fixture.rows)];
-    samples[label] = await runChild(label, arguments_, timeoutMs, script);
-    if (await fileHash(database) !== sourceContentHash) {
-      throw new Error('MatchedPairSourceChanged');
+  // A fresh process can still read V8 code compiled by an earlier process.
+  // Give each leg an empty, private cache for this pair and remove it after
+  // both children exit. No previous diagnostic can silently warm either leg.
+  const cacheRoot = await mkdtemp(join(directory, 'node-cache-pair-'));
+  try {
+    for (const label of order) {
+      const cacheDirectory = join(cacheRoot, label);
+      await mkdir(cacheDirectory);
+      assert.equal((await readdir(cacheDirectory)).length, 0,
+        'MatchedPairCompileCacheNotFresh');
+      const environment = {...process.env,
+        NODE_COMPILE_CACHE: cacheDirectory};
+      delete environment.NODE_DISABLE_COMPILE_CACHE;
+      const script = join(
+        checkout,
+        'adapters/connectors/duckdb/node/bench',
+        label === 'retained-actql'
+          ? 'retained-case.mjs'
+          : 'equivalent-case.mjs',
+      );
+      const arguments_ = label === 'retained-actql'
+        ? [checkout, database, directory, fixture.workload, fixture.layout,
+          String(fixture.rows), '1',
+          ...(estimateProfileDirectory === undefined ? [] : [estimateProfileDirectory])]
+        : [database, directory, fixture.workload, fixture.layout,
+          String(fixture.rows)];
+      samples[label] = await runChild(label, arguments_, timeoutMs, script,
+        environment);
+      if (runChild === defaultRunChild && samples[label].status !== 'failed' &&
+          !samples[label].nodeCompileCacheDirectory?.startsWith(
+            cacheDirectory + '/',
+          )) {
+        throw new Error('MatchedPairCompileCacheUnverified');
+      }
+      if (await fileHash(database) !== sourceContentHash) {
+        throw new Error('MatchedPairSourceChanged');
+      }
+      const currentCheckout = await inspectCheckout(checkout);
+      if (currentCheckout.revision !== revision || currentCheckout.dirty) {
+        throw new Error('MatchedPairSourcesChanged');
+      }
+      if (await inspectReleaseArtifacts(checkout) !== artifactDigest) {
+        throw new Error('MatchedPairReleaseArtifactsChanged');
+      }
     }
-    const currentCheckout = await inspectCheckout(checkout);
-    if (currentCheckout.revision !== revision || currentCheckout.dirty) {
-      throw new Error('MatchedPairSourcesChanged');
-    }
-    if (await inspectReleaseArtifacts(checkout) !== artifactDigest) {
-      throw new Error('MatchedPairReleaseArtifactsChanged');
-    }
+  } finally {
+    await rm(cacheRoot, {recursive: true, force: true});
   }
   const equivalent = samples[
     'direct-duckdb-with-identical-obligations-and-independent-holding'
@@ -389,6 +413,8 @@ export async function runMatchedEquivalentPair({
       sourceDefinitionSha256: sha256(fixture.createSourceSql),
       programSha256: sha256(JSON.stringify(fixture.program())),
       runtime: process.version,
+      nodeOptions: process.env.NODE_OPTIONS ?? '',
+      nodeCompileCache: 'empty private cache for each leg of each pair',
       initialPlacement: 'one immutable fixture database; no resident copy',
       processBoundary: 'fresh child per leg',
       coldBoundary: 'parent spawn through child exit minus child cleanup',

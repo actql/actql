@@ -1,6 +1,6 @@
 ///|
-/// Native registered-case product-path diagnostic. It does not provide independent
-/// file holding or the four-comparator performance acceptance boundary.
+/// Native registered-case product path. The wrapper supplies the checked
+/// application files and compares this result with its independent oracle.
 fn required(matches : @argparse.Matches, name : String) -> String {
   match matches.values.get(name) {
     Some([value]) if !value.is_empty() => value
@@ -40,7 +40,72 @@ fn rejection_name(issue : @resources.LedgerIssue?) -> String {
     Some(@resources.TransferLimit) => "transfer"
     Some(@resources.RetentionLimit) => "retention"
     Some(@resources.ExecutionLimit) => "execution"
-    Some(_) => "other-ledger"
+    Some(@resources.InvalidLimits) => "invalid-limits"
+    Some(@resources.ForeignOwner) => "foreign-owner"
+    Some(@resources.ClosedReservation) => "closed-reservation"
+    Some(@resources.ClosedHolding) => "closed-holding"
+    Some(@resources.InvalidCharge) => "invalid-charge"
+  }
+}
+
+///|
+fn native_strategy_issue_name(
+  issue : @host.NativeStrategyComputeRunIssue,
+) -> String {
+  match issue {
+    @host.Closed => "closed"
+    @host.Start(start) =>
+      match start {
+        @host.Physical(@host.InvalidLimits) => "start-physical-limits"
+        @host.Physical(@host.ImportCount) => "start-import-count"
+        @host.Physical(@host.ImportRows) => "start-import-rows"
+        @host.Physical(@host.ImportColumns) => "start-import-columns"
+        @host.Physical(@host.ImportCells) => "start-import-cells"
+        @host.Physical(_) => "start-physical"
+        @host.Strategy(run) =>
+          match run {
+            @strategy.UnsupportedGraph => "start-strategy-graph"
+            @strategy.ForeignCapture => "start-strategy-capture"
+            @strategy.NotReady => "start-strategy-not-ready"
+            @strategy.Stopped => "start-strategy-stopped"
+            @strategy.ForeignCandidate => "start-strategy-candidate"
+            @strategy.MissingOutput => "start-strategy-output"
+            @strategy.Capture(_) => "start-strategy-source"
+            @strategy.Binding(_) => "start-strategy-binding"
+            @strategy.Read(_) => "start-strategy-read"
+            @strategy.Compute(_) => "start-strategy-compute"
+            @strategy.Implementation(_) => "start-strategy-implementation"
+            @strategy.Physical(issue) =>
+              "start-strategy-physical-" + rejection_name(Some(issue))
+          }
+        @host.Settlement(_) => "start-settlement"
+        @host.MissingOutput => "start-missing-output"
+      }
+    @host.Execution(failure) =>
+      match failure.primary {
+        @host.Physical(physical) =>
+          match physical {
+            @host.RuntimeState => "physical-runtime-state"
+            @host.InvalidLimits => "physical-limits"
+            @host.ImportCount => "physical-import-count"
+            @host.ImportRows => "physical-import-rows"
+            @host.ImportColumns => "physical-import-columns"
+            @host.ImportCells => "physical-import-cells"
+            @host.ParameterCount => "physical-parameters"
+            @host.Runtime(_) => "physical-duckdb"
+            @host.Parameter(_) => "physical-parameter-binding"
+            @host.Query(_) => "physical-query"
+            @host.Fields(_) => "physical-fields"
+            @host.Columns(_) => "physical-columns"
+            @host.Compute(_) => "physical-compute"
+            @host.RetainedFile(_) => "physical-retained-file"
+            @host.RowFrames(_) => "physical-row-frames"
+            @host.RetainedImport(_) => "physical-retained-import"
+          }
+        @host.Strategy(_) => "strategy"
+        @host.Settlement(_) => "settlement"
+        @host.MissingOutput => "missing-output"
+      }
   }
 }
 
@@ -50,6 +115,7 @@ fn main {
     @argparse.OptionArg("application-root", required=true),
     @argparse.OptionArg("database", required=true),
     @argparse.OptionArg("duckdb-library", required=true),
+    @argparse.OptionArg("retained-task-root", required=true),
     @argparse.OptionArg("expected-cid", required=true),
     @argparse.OptionArg("expected-tasks", required=true),
     @argparse.OptionArg("native-ms", default_values=["1000"]),
@@ -72,6 +138,7 @@ fn main {
   let root = required(matches, "application-root")
   let database_path = required(matches, "database")
   let library_path = required(matches, "duckdb-library")
+  let retained_task_root = required(matches, "retained-task-root")
   let expected_cid = required(matches, "expected-cid")
   let expected_tasks = int_option(matches, "expected-tasks")
   let source_rows = int_option(matches, "source-rows")
@@ -207,9 +274,19 @@ fn main {
     source,
     ledger,
   ).unwrap()
+  // Capture owns the admitted rows; the acquisition database is no longer a
+  // live input. Close its physical connection before task databases start.
+  database.close()
   println("phase:dispatch")
-  let dispatch = @example.application_strategy_dispatch(
-    app, captured, native_ms, false,
+  let dispatch = @example.application_native_retained_strategy_dispatch(
+    app,
+    captured,
+    native_ms,
+    wire_bytes.to_int64(),
+    1L,
+    1L,
+    1L,
+    false,
   ) catch {
     _ => abort("native strategy dispatch rejected")
   }
@@ -218,15 +295,32 @@ fn main {
     dispatch,
     {
       max_rows: task_rows,
-      max_cells: source_rows * columns,
+      max_cells: (source_rows + task_rows) * columns,
       max_parameters: columns + 100,
       max_sql_bytes: 100000,
       max_batch_rows: Int::min(source_rows, 1000),
     },
-    int64_option(matches, "transfer-cap"),
-    execution_cap,
+    @example.application_native_retained_task_transfer_capacity(app),
+    // The selected execution envelope also reserves decoder and query scratch.
+    // The database receives its own half rather than claiming the whole pool.
+    execution_cap / 2L,
     library=Some(library),
     database_path~,
+    retained_profile={
+      root_path: retained_task_root,
+      run_occurrence: "native-application-" + @env.now().to_string(),
+      max_file_bytes: wire_bytes.to_int64(),
+      wire: {
+        max_columns: columns,
+        max_order_work: work,
+        max_bytes: wire_bytes,
+        max_nodes: value_nodes,
+        max_depth: 64,
+      },
+      max_batch_bytes: batch_bytes,
+      // The configured transport admits at most 512 rows per physical frame.
+      max_chunk_rows: Int::min(task_rows, 512),
+    },
   ).unwrap()
   println("phase:strategy-execute")
   match @host.execute_native_standard_strategy_run(run) {
@@ -274,14 +368,46 @@ fn main {
           abort("native strategy join preparation rejected")
       }
     Err(@host.Database(_)) => abort("native strategy database rejected")
-    Err(@host.DuckDB(_)) => abort("native strategy DuckDB task rejected")
+    Err(@host.DuckDB(issue)) =>
+      abort(
+        "native strategy DuckDB task rejected: " +
+        native_strategy_issue_name(issue),
+      )
+    Err(@host.Local(_)) => abort("native strategy Local task rejected")
   }
   let task = @example.application_compute_count(app)
   if task != expected_tasks {
     abort("checked task count differs from fixture")
   }
   println("phase:output-cid")
-  let cid = @example.application_profile_output_cid(app, captured, task).unwrap()
+  let output = @host.read_native_standard_task_output(
+    run,
+    task,
+    task_rows,
+    {
+      max_nodes: value_nodes,
+      max_text_bytes: text_bytes,
+      max_depth: 64,
+      max_work: work,
+    },
+    {
+      max_columns: columns,
+      max_order_work: work,
+      max_bytes: wire_bytes,
+      max_nodes: value_nodes,
+      max_depth: 64,
+    },
+    batch_bytes,
+  ).unwrap()
+  let cid = @execution.row_wire_cid(
+    @execution.identify_completed_rows(output, {
+      max_columns: columns,
+      max_order_work: work,
+      max_bytes: wire_bytes,
+      max_nodes: value_nodes,
+      max_depth: 64,
+    }).unwrap(),
+  )
   if cid != expected_cid {
     abort("final output identity differs from fixture oracle")
   }

@@ -206,6 +206,7 @@ export async function prepareExampleText({database, environmentCid, programText,
     (_, index) => checked(app.applicationTaskReference(prepared, index + 1)));
   const projectedAt = performance.now();
   const preparationDiagnostics = Object.freeze({
+    applicationPrepareCalls: 1,
     configurationMs: configuredAt - preparationStarted,
     moduleImportMs: importedAt - configuredAt,
     applicationPreparationMs: preparedAt - importedAt,

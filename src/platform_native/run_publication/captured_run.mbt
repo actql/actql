@@ -107,6 +107,7 @@ pub fn prepare_captured_effect_free_run_publication_native(
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
   export_limits : @publication_host.PublicationOutputExportLimits,
+  converted_outputs? : Array[@execution.CompletedOutput?],
 ) -> Result[
   NativePreparedCapturedRunPublication,
   NativeCapturedRunPublicationPreparationIssue,
@@ -118,7 +119,9 @@ pub fn prepare_captured_effect_free_run_publication_native(
   }
   let exports = match
     @publication_host.prepare_all_captured_result_publication_exports(
-      run, export_limits,
+      run,
+      export_limits,
+      converted_outputs?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Prepare(Export(issue)))

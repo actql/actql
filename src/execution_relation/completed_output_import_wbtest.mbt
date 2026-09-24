@@ -21,6 +21,9 @@ test "explicit retained conversion enables Local and survives source copy loss" 
     append_completed_output_import(conversion, output_fixture_row(owner, row)).unwrap()
   }
   let output = finish_completed_output_import(conversion).unwrap()
+  assert_true(completed_output_same_occurrence(source, output))
+  let (unrelated, _) = retained_fixture(owner, Ref(true))
+  assert_false(completed_output_same_occurrence(unrelated, output))
   assert_true(completed_has_cell_access(output))
   assert_true(completed_output_matches_port(output, owner, Step(1)))
   assert_eq(
@@ -29,6 +32,7 @@ test "explicit retained conversion enables Local and survives source copy loss" 
   )
   live.val = false
   assert_false(completed_output_available(source))
+  assert_false(completed_output_same_occurrence(source, output))
   assert_true(completed_output_available(output))
   let read = rebind_producer_representation(original_read, output).unwrap()
   assert_true(physical_equal(read.bound.identity, original_read.bound.identity))

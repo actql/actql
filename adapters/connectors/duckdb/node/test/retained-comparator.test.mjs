@@ -174,6 +174,14 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
         fileInputs.length);
       assert.equal(report.accounting.nativeFileReads,
         fileInputs.length);
+      assert.equal(report.observedInputWork.parentPreparationCalls, 1);
+      assert.equal(report.observedInputWork.workerPreparationCalls, 1);
+      assert.equal(report.observedInputWork.verifiedFileReads,
+        fileInputs.length);
+      assert.equal(report.observedInputWork.verifiedFileReadBytes,
+        fileInputs.reduce((sum, input) => sum + input.fileBytes, 0));
+      assert.equal(report.observedInputWork.completedOutputBytes,
+        report.completionDescriptors.reduce((sum, value) => sum + value.bytes, 0));
       for (const input of fileInputs) {
         assert.equal(input.validationRows, input.rows);
         assert.equal(input.validationCells, input.rows * (workload === workloads[2] ? 2 : 1));

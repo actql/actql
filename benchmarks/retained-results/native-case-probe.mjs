@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
@@ -9,14 +10,15 @@ import {performance} from 'node:perf_hooks';
 import {retainedMatrix} from './fixtures.mjs';
 import {managedCaseConfiguration} from './managed-configuration.mjs';
 
-// Registered-case native product-path diagnostic. No independent holding or formal
-// four-comparator performance acceptance is provided by this command.
+// Registered-case native product-path diagnostic. It now retains task output
+// independently; formal four-comparator acceptance remains a separate run.
 const [caseId, ...extra] = process.argv.slice(2);
 if (!caseId || extra.length) throw new TypeError('Expected one exact registered case ID');
 const fixture = retainedMatrix().find(item => item.id === caseId);
 if (!fixture) throw new TypeError(`Unknown registered case: ${caseId}`);
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const scratchRoot = resolve(root, '.codex-scratch', 'native-retained-case-probe');
+const scratchRoot = resolve(process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(),
+  'actql-native-retained-case-probe');
 await mkdir(scratchRoot, {recursive: true});
 const directory = await mkdtemp(join(scratchRoot, 'run-'));
 const run = promisify(execFile);
@@ -30,6 +32,8 @@ try {
     receipts: await text('spec/contracts/actql-query-two-receipt.json'),
   };
   const database = join(directory, 'source.duckdb');
+  const retainedTaskRoot = join(directory, 'retained-task');
+  await mkdir(retainedTaskRoot);
   await run(process.execPath, [
     join(root, 'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'),
     database, fixture.workload, fixture.layout, String(fixture.rows),
@@ -57,7 +61,9 @@ try {
   const library = join(root, 'adapters/connectors/duckdb/node/node_modules/@duckdb',
     `node-bindings-${process.platform}-${process.arch}`, libraryName);
   assert(existsSync(library), `native DuckDB library unavailable: ${library}`);
-  const binary = join(root, '_build/native/release/build/cmd/native_retained_case_probe',
+  const buildProfile = process.env.ACTQL_NATIVE_PROBE_PROFILE === 'debug'
+    ? 'debug' : 'release';
+  const binary = join(root, `_build/native/${buildProfile}/build/cmd/native_retained_case_probe`,
     'native_retained_case_probe.exe');
   assert(existsSync(binary), 'build src/cmd/native_retained_case_probe --target native --release first');
   const expected = fixture.identity(); // Independent oracle remains outside the child timer.
@@ -67,6 +73,7 @@ try {
     '--application-root', directory,
     '--database', database,
     '--duckdb-library', library,
+    '--retained-task-root', retainedTaskRoot,
     '--expected-cid', expected.rowsCid,
     '--expected-tasks', String(finalTask),
     '--source-rows', String(data.source_rows),
@@ -86,11 +93,12 @@ try {
   ], {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 65536});
   const elapsedMilliseconds = performance.now() - started;
   const result = JSON.parse(stdout.trim().split('\n').at(-1));
+  const selections = stdout.split('\n').filter(line => line.startsWith('selection:'));
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
-    elapsedMilliseconds, result,
+    elapsedMilliseconds, selections, result,
   }));
 } catch (error) {
   const output = String(error.stdout ?? '').trim().split('\n');
