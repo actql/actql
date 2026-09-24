@@ -595,6 +595,11 @@ not the full review acceptance list. Split-source pin lifetime, rollback,
 local HTTPS write suppression, and the ordinary multi-member Effectful Run
 through final publication still require product-path evidence.
 
+A second checked Program fixture places a split Stage before the Effect source.
+It asserts the later logical Stage 2 resolves to physical Task 5 in the
+six-task graph. This covers both coordinate-shift directions at static graph
+binding; it does not substitute for executing either split topology.
+
 The installed Effect input exporter now derives its physical producer Task
 from the pinned MoonBit owner. Its Host caller no longer selects a Task.
 The Node integration control supplies a conflicting extra Task property and
