@@ -82,6 +82,8 @@ pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, 
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
 
+pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
+
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
 pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
@@ -263,6 +265,12 @@ pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
   Encoding
+}
+
+pub(all) enum ClientValuesOutputSchemaIssue {
+  Pipeline(ClientValuesAoAIdentityIssue)
+  MissingCheckedOutput
+  Identity(@execution_relation.RelationSchemaIdentityIssue)
 }
 
 pub(all) enum ClientValuesPipelineIssue {

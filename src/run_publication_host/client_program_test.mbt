@@ -551,6 +551,35 @@ test "ordinary values document prepares one named Effect-free result" {
     )
     is Err(UnsupportedSource),
   )
+  let schema_limits : @execution.RelationSchemaIdentityLimits = {
+    max_fields: 10,
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 20,
+  }
+  let output_schema = issue_prepared_client_values_output_schema(
+    prepared, 0, aoa_limits, schema_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    @execution.relation_schema_wire(output_schema),
+    "{\"id\":{\"nullable\":false,\"type\":\"number\"}}",
+  )
+  assert_eq(
+    @execution.relation_schema_cid(output_schema),
+    "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  )
+  assert_true(
+    issue_prepared_client_values_output_schema(
+      prepared,
+      0,
+      aoa_limits,
+      { ..schema_limits, max_fields: 0, },
+      10000,
+      1000,
+      20,
+    )
+    is Err(Identity(@execution.RelationSchemaIdentityIssue::FieldLimit)),
+  )
   assert_true(
     admit_prepared_client_values_aoa_identity(
       prepared,
