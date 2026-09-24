@@ -228,6 +228,87 @@ export function openEffectLedger({
       }
       return row;
     },
+    // This is an exact, read-only physical observation for an already
+    // possible dispatch. The Host must authorize evidence viewing before
+    // calling it; no claim, state transition, or provider request occurs.
+    readClaimedResponse(claim) {
+      if (!claim?.basis || !claim.scope || !claim.locator || !claim.key ||
+          typeof claim.intentFingerprintCid !== 'string' ||
+          typeof claim.canonicalRequestCid !== 'string') {
+        fail('InvalidEffectResponseRead');
+      }
+      const locatorCid = control.logicalItemLocatorCid(claim.locator);
+      const stored = validateStored(physical.current(locatorCid));
+      if (stored === undefined) return undefined;
+      if (!control.ledgerEntryMatchesBasis(stored.entry, claim.basis)) {
+        fail('EffectLedgerIntentConflict');
+      }
+      const action = control.recoveryActionFromEntry(
+        claim.locator, claim.intentFingerprintCid, claim.key,
+        claim.canonicalRequestCid, stored.entry, false);
+      if (action === 8 || action === 9) {
+        fail('EffectDispatchBindingMismatch');
+      }
+      if (action !== 3) return undefined;
+      const row = physical.response(control.ledgerEntryCid(stored.entry));
+      if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
+        fail('EffectLedgerScopeMismatch');
+      }
+      if (row?.batchMembers !== undefined) {
+        fail('EffectResponseKindMismatch');
+      }
+      return row;
+    },
+    // A sealed Collections response belongs to the original ordered member
+    // list. A reordered or partially replaced list cannot borrow its bytes.
+    readClaimedBatchResponse(claims) {
+      if (!Array.isArray(claims) || claims.length === 0 ||
+          claims.length > maxBatchRows) {
+        fail('InvalidEffectResponseRead');
+      }
+      const members = [];
+      const seen = new Set();
+      for (const claim of claims) {
+        if (!claim?.basis || !claim.scope || !claim.locator || !claim.key ||
+            typeof claim.intentFingerprintCid !== 'string' ||
+            typeof claim.canonicalRequestCid !== 'string' ||
+            claim.canonicalRequestCid !== claims[0].canonicalRequestCid) {
+          fail('InvalidEffectResponseRead');
+        }
+        const locatorCid = control.logicalItemLocatorCid(claim.locator);
+        if (seen.has(locatorCid)) fail('EffectDispatchBatchBindingMismatch');
+        seen.add(locatorCid);
+        const stored = validateStored(physical.current(locatorCid));
+        if (stored === undefined) return undefined;
+        if (!control.ledgerEntryMatchesBasis(stored.entry, claim.basis)) {
+          fail('EffectLedgerIntentConflict');
+        }
+        const action = control.recoveryActionFromEntry(
+          claim.locator, claim.intentFingerprintCid, claim.key,
+          claim.canonicalRequestCid, stored.entry, false);
+        if (action === 8 || action === 9) {
+          fail('EffectDispatchBatchBindingMismatch');
+        }
+        if (action !== 3) return undefined;
+        members.push({
+          logicalItemLocatorCid: locatorCid,
+          dispatchEntryCid: control.ledgerEntryCid(stored.entry),
+        });
+      }
+      const row = physical.response(members[0].dispatchEntryCid);
+      if (row === undefined) return undefined;
+      if (row.logicalRequestScopeCid !== scopeCid ||
+          row.batchOwnerCid !== members[0].dispatchEntryCid ||
+          row.batchPosition !== 0 || row.batchCount !== members.length ||
+          row.batchMembers?.length !== members.length ||
+          row.batchMembers.some((member, index) =>
+            member.logicalItemLocatorCid !==
+              members[index].logicalItemLocatorCid ||
+            member.dispatchEntryCid !== members[index].dispatchEntryCid)) {
+        fail('EffectCollectionResponseBindingMismatch');
+      }
+      return row;
+    },
     recordResponse({dispatching, scope, locator, key,
       canonicalRequestCid, credentialUseCid, statusCode, responseBytes}) {
       if (!control.ledgerEntryAdmitsDispatch(
