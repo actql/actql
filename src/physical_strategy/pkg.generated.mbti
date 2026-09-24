@@ -225,6 +225,8 @@ pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInput
 
 pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
 
+pub fn check_captured_effect_risk_acceptance_body(CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String) -> Result[Unit, CapturedEffectRiskIssue]
+
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
 
 pub fn checked_effect_computation_owner(CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
@@ -698,6 +700,11 @@ pub(all) enum CapturedEffectPlanVerifyIssue {
 }
 
 type CapturedEffectPreviewInputs
+
+pub(all) enum CapturedEffectRiskIssue {
+  NotReady
+  Risk(@effect_application.EffectRiskAcceptanceIssue)
+} derive(@debug.Debug)
 
 type CapturedEffectRunDAG
 

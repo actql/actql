@@ -412,6 +412,47 @@ pub fn check_captured_effect_preview_capabilities(
 }
 
 ///|
+pub(all) enum CapturedEffectRiskIssue {
+  NotReady
+  Risk(@effect.EffectRiskAcceptanceIssue)
+} derive(Debug)
+
+///|
+/// The risk body must name this exact live Preview. The Host authenticates
+/// issuer, policy, validity, and reviewer authority before this comparison;
+/// neither the transported body nor this check is a physical send permit.
+pub fn check_captured_effect_risk_acceptance_body(
+  value : CapturedEffectPreviewInputs,
+  body : @effect.EffectRiskAcceptanceBody,
+  review_projection_cid : String,
+  authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+) -> Result[Unit, CapturedEffectRiskIssue] {
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  for index in 0..<value.source_indexes.length() {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return Err(NotReady)
+    }
+  }
+  @effect.check_effect_risk_acceptance_body(
+    @checked.effect_program_run_preview_identity(value.preview),
+    body,
+    review_projection_cid,
+    authority_scope_cid,
+    policy_cid,
+    validity_evidence_cid,
+    issuer_evidence_cid,
+    authentication_evidence_cid,
+  ).map_err(issue => Risk(issue))
+}
+
+///|
 pub(all) enum CapturedEffectApplyKeyIssue {
   InvalidLimits
   CapacityExceeded

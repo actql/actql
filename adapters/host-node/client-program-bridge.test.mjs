@@ -759,6 +759,50 @@ test('owned update Plan matches approved rows and rejects altered intent',
         selectedRoutes[1]]), {code: 'MoonBitHostFailure'});
       assert.throws(() => checkRoutes([capability(cid('d'), 0, 2),
         selectedRoutes[1]]), {code: 'MoonBitHostFailure'});
+      const riskFor = (claims, previewCid =
+        JSON.parse(preview.wire).effect_preview_cid) => {
+        const body = {
+          version: 'actql-effect-risk-acceptance/0.1',
+          issuer_kind: 'policy', issuer_evidence_cid: cid('a'),
+          policy_cid: cid('a'), decision: 'allow',
+          effect_preview_cid: previewCid,
+          review_projection_cid: cid('a'), authority_scope_cid: cid('e'),
+          validity_evidence_cid: cid('a'), claims,
+          authentication_evidence_cid: cid('a'),
+        };
+        return canonicalJson({...body,
+          self_cid: `sha256:${createHash('sha256')
+            .update(canonicalJson(body)).digest('hex')}`});
+      };
+      const admittedRisk = wire => checked(
+        moon.clientProgramAdmitEffectRiskAcceptanceBody(
+          wire, 8192, 256, 12));
+      const risk = admittedRisk(riskFor(
+        ['effect_scope_approved', 'partial_application_accepted']));
+      const checkRisk = (body, {
+        projection = cid('a'), authority = cid('e'), policy = cid('a'),
+        validity = cid('a'), issuer = cid('a'), authentication = cid('a'),
+      } = {}) => checked(
+        moon.clientProgramCheckEffectRiskAcceptanceBody(
+          previewInputs, body, projection, authority,
+          policy, validity, issuer, authentication));
+      assert.doesNotThrow(() => checkRisk(risk));
+      assert.throws(() => checkRisk(admittedRisk(riskFor(
+        ['effect_scope_approved']))), {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRisk(admittedRisk(riskFor(
+        ['partial_application_accepted']))), {code: 'MoonBitHostFailure'});
+      for (const field of ['projection', 'authority', 'policy', 'validity',
+        'issuer', 'authentication']) {
+        assert.throws(() => checkRisk(risk, {[field]: cid('f')}),
+          {code: 'MoonBitHostFailure'});
+      }
+      assert.throws(() => checkRisk(admittedRisk(riskFor(
+        ['effect_scope_approved', 'partial_application_accepted'],
+        cid('f')))), {code: 'MoonBitHostFailure'});
+      assert.throws(() => admittedRisk(riskFor(
+        ['effect_scope_approved', 'partial_application_accepted'])
+        .replace('"decision":"allow"', '"decision":"approved"')),
+      {code: 'MoonBitHostFailure'});
       const checkKeys = keys => checked(
         moon.clientProgramCheckEffectPreviewApplyKeys(
           previewInputs, requestScope, keys, 4, 10));
@@ -934,6 +978,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.throws(() => checkKeys(preview.keys),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => checkRoutes(selectedRoutes),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRisk(risk),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent(),
       {code: 'MoonBitHostFailure'});
