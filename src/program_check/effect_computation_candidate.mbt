@@ -61,8 +61,52 @@ pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignProgramDefinition
   ForeignProgramSemantics
   ForeignCheckEnvironment
+  ForeignResolvedLimit(String)
+  LimitWorkExceeded
   Inventory(@results.EffectPreviewStaticInventoryIssue)
 } derive(Eq, Debug)
+
+///|
+/// Resolve only the author's Effect scope guard from the admitted Program
+/// parameter owner. Policy and Contract ceilings remain Plan obligations.
+fn effect_authored_max_items(
+  candidate : EffectProgramStaticCandidate,
+  header : @syntax.EffectHeader,
+  remaining : Ref[Int],
+) -> Result[Int64?, EffectProgramStaticPreviewIssue] {
+  let body = @decode.open_object(@syntax.effect_header_body(header)).unwrap()
+  guard @decode.lookup(body, "max_items") is Some(guard_value) else {
+    return Ok(None)
+  }
+  match @decode.safe_integer(guard_value) {
+    Ok(value) => return Ok(Some(value))
+    Err(_) => ()
+  }
+  let parameter = @decode.open_object(guard_value).unwrap()
+  let name = @decode.text(@decode.lookup(parameter, "$param").unwrap()).unwrap()
+  let stage = @syntax.effect_header_stage(header)
+  let identity = source_identity(candidate.computation.checked)
+  let stage_owner = @context.program_identity_stage_at(identity, stage).unwrap()
+  let values = @parameter_refs.bound_values(
+    @context.stage_identity_parameter_values(stage_owner),
+  )
+  for index in 0..<@parameters.bound_value_count(values) {
+    if remaining.val <= 0 {
+      return Err(LimitWorkExceeded)
+    }
+    remaining.val -= 1
+    let bound = @parameters.bound_value_at(values, index).unwrap()
+    if bound.name == name {
+      return match bound.value.value {
+        @value.Number(number) if number > 0.0 &&
+          number <= 9007199254740991.0 &&
+          number == number.to_int64().to_double() => Ok(Some(number.to_int64()))
+        _ => Err(ForeignResolvedLimit(@syntax.effect_header_id(header)))
+      }
+    }
+  }
+  Err(ForeignResolvedLimit(@syntax.effect_header_id(header)))
+}
 
 ///|
 pub(all) enum EffectComputationIssue {
@@ -345,12 +389,62 @@ pub fn bind_effect_program_static_preview(
     @environment.cid(effect_program_static_environment(candidate)) {
     return Err(ForeignCheckEnvironment)
   }
+  if max_work < 0 {
+    return Err(LimitWorkExceeded)
+  }
+  let remaining = Ref(max_work)
+  let headers = candidate.computation.headers
+  for header_index in 0..<@syntax.effect_header_count(headers) {
+    if remaining.val <= 0 {
+      return Err(LimitWorkExceeded)
+    }
+    remaining.val -= 1
+    let header = @syntax.effect_header_at(headers, header_index).unwrap()
+    if @syntax.effect_header_stage(header) != stage_index {
+      continue
+    }
+    let authored = match
+      effect_authored_max_items(candidate, header, remaining) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if authored is Some(limit) {
+      let id = @syntax.effect_header_id(header)
+      let mut found = false
+      for
+        member_index in 0..<@run_publication.effect_preview_member_count(
+          preview,
+        ) {
+        if remaining.val <= 0 {
+          return Err(LimitWorkExceeded)
+        }
+        remaining.val -= 1
+        if @run_publication.effect_preview_member_effect_id(
+            preview, member_index,
+          ) ==
+          Some(id) {
+          found = true
+          if @run_publication.effect_preview_member_max_items(
+              preview, member_index,
+            )
+            is Some(resolved) &&
+            resolved <= limit {
+            break
+          }
+          return Err(ForeignResolvedLimit(id))
+        }
+      }
+      if !found {
+        return Err(ForeignResolvedLimit(id))
+      }
+    }
+  }
   match
     @results.check_effect_preview_static_inventory(
       candidate.effects,
       stage_index,
       preview,
-      max_work,
+      remaining.val,
     ) {
     Ok(_) => Ok({ candidate, stage_index, preview, })
     Err(issue) => Err(Inventory(issue))
