@@ -19,6 +19,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {storeCompletedRunResultSet} from
+  '../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -141,7 +143,7 @@ async function effectFixture() {
 }
 
 function effectInputPreview(prepared, evidence, definition, invocation,
-  mappingCid) {
+  mappingCid, artifactCid) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -166,7 +168,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
       resolved_mapping_contract_cid: mappingCid,
       effect_identity_cid: cid('a'), source_result: 'rows',
-      result_artifact_cid: cid('b'), preview_strength: 'full_diff',
+      result_artifact_cid: artifactCid, preview_strength: 'full_diff',
       source_binding_cid: cid('c'), capability_evidence_cid: cid('d'),
       authority_scope_cid: cid('e'),
       write_footprint: {
@@ -216,7 +218,7 @@ test('internal Client bridge retains Effect closure without public apply',
   });
 
 test('admitted source-free Effect Run computes through the installed Host',
-  async () => {
+  async t => {
     const {document, environment, mappingCid} = await effectFixture();
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
@@ -274,10 +276,69 @@ test('admitted source-free Effect Run computes through the installed Host',
     assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
     const execution = await runCapturedInternalStrategy(
       moon.clientProgramLocalEffectHostRuntime(owned));
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname, 'effect-result-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const control = runtimeCore(moon).publicationControl;
+    const runDefinitionContract = control.admit('run_definition',
+      moon.strategyPublicationContractJson(definition), publicationLimits);
+    const invocationContract = control.admit('run_invocation',
+      moon.strategyPublicationContractJson(invocation), publicationLimits);
+    const store = await openLocalPublicationStore({
+      directory, storeAuthorityCid: cid('7'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: outputLimits.maxWireBytes,
+      maxObjects: 100, maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, control);
+    let storedResults;
     try {
       assert.equal(execution.status, 'host-tasks-completed');
       assert.equal(execution.completed.length, 1);
       assert.equal(execution.completed[0].outputRows, 2);
+      const retention = control.seal('result_retention_policy',
+        JSON.stringify({
+          version: 'actql-result-retention-policy/0.1',
+          retention_contract_cid: cid('e'),
+          effective_data_policy_cid: cid('d'),
+          available_until: '2026-09-24T01:00:00.000Z',
+          delete_by: '2026-09-24T02:00:00.000Z',
+          extension_ceiling_at: '2026-09-24T03:00:00.000Z',
+          metadata_retention_policy_cid: cid('f'),
+          metadata_delete_by: '2026-09-24T04:00:00.000Z',
+          clock_contract_cid: cid('0'),
+        }), publicationLimits);
+      storedResults = await storeCompletedRunResultSet({
+        execution, store, control, runDefinition: runDefinitionContract,
+        invocation: invocationContract,
+        results: [{retention, evidenceContext: {
+          computationContractCid: cid('2'), inputRelationCids: [],
+          scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'),
+          authorityScopeCid: cid('a'),
+        }}],
+        outputLimits, contractLimits: publicationLimits,
+      });
+      assert.equal(storedResults.artifacts.length, 1);
+      assert.equal(storedResults.results[0].orderedRows.rows, 2);
+      assert.equal(storedResults.definitions[0].identity,
+        execution.publicationInventory.occurrences[0]
+          .definitionContract.identity);
+      assert.equal(JSON.parse(storedResults.artifacts[0].wire)
+        .actual_row_count, 2);
+      const payload = [];
+      await store.consumeObject(storedResults.results[0].physical.cid,
+        chunk => payload.push(Buffer.from(chunk)));
+      const bytes = Buffer.concat(payload);
+      assert.equal(bytes.byteLength,
+        storedResults.results[0].physical.bytes);
+      assert.equal(`sha256:${createHash('sha256').update(bytes)
+        .digest('hex')}`, storedResults.results[0].physical.cid);
+      const binding = JSON.parse(storedResults.results[0].publication
+        .durableBinding.wire);
+      assert.equal(binding.logical_result_cid,
+        storedResults.results[0].orderedRows.logicalRelationCid);
+      assert.equal(binding.run_definition_cid,
+        runDefinitionContract.identity);
       assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
       assert.throws(() => checked(moon.clientProgramPinEffectSources(
         owned, 0)), {code: 'MoonBitHostFailure'});
@@ -293,13 +354,15 @@ test('admitted source-free Effect Run computes through the installed Host',
         const input = moon.clientProgramEffectInputAt(inputs, 0);
         assert.ok(input);
         const preview = effectInputPreview(
-          prepared, evidence, definition, invocation, mappingCid);
+          prepared, evidence, definition, invocation, mappingCid,
+          storedResults.artifacts[0].identity);
         const previewLimits = moon.clientProgramEffectPreviewInputLimits(
           20000, 1000, 20, 1000, 100, 20000, 1000, 20,
           1, 2, 100, 100);
         assert.ok(previewLimits);
         const foreignPreview = effectInputPreview(
-          prepared, evidence, definition, invocation, cid('9'));
+          prepared, evidence, definition, invocation, cid('9'),
+          storedResults.artifacts[0].identity);
         assert.throws(() => checked(
           moon.clientProgramBindEffectPreviewInputs(
             owned, inputs, invocation, 0, foreignPreview.wire,
@@ -369,6 +432,10 @@ test('admitted source-free Effect Run computes through the installed Host',
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
       assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), false);
     } finally {
+      for (const result of storedResults?.results ?? []) {
+        await result.prepared.release();
+      }
+      await store.close();
       await execution.close();
       assert.equal(execution.cleanupPending(), false);
     }
