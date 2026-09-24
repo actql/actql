@@ -1571,6 +1571,155 @@ pub fn client_program_effect_input_at(
 }
 
 ///|
+/// Private bounds for binding one admitted Preview to a captured Effect Run.
+/// These do not replace current authorization, payload proof, or apply.
+struct ClientEffectPreviewInputLimits {
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_binding_work : Int
+  max_plan_fields : Int
+  max_plan_bytes : Int
+  max_plan_nodes : Int
+  max_plan_depth : Int
+  max_footprint_members : Int
+  max_footprint_targets : Int
+  max_footprint_work : Int
+  max_source_work : Int
+}
+
+///|
+#export_name("clientProgramEffectPreviewInputLimits")
+pub fn client_program_effect_preview_input_limits(
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_binding_work : Int,
+  max_plan_fields : Int,
+  max_plan_bytes : Int,
+  max_plan_nodes : Int,
+  max_plan_depth : Int,
+  max_footprint_members : Int,
+  max_footprint_targets : Int,
+  max_footprint_work : Int,
+  max_source_work : Int,
+) -> ClientEffectPreviewInputLimits? {
+  if max_wire_bytes < 0 ||
+    max_nodes < 1 ||
+    max_depth < 0 ||
+    max_binding_work < 0 ||
+    max_plan_fields < 0 ||
+    max_plan_bytes < 0 ||
+    max_plan_nodes < 1 ||
+    max_plan_depth < 0 ||
+    max_footprint_members < 0 ||
+    max_footprint_targets < 0 ||
+    max_footprint_work < 0 ||
+    max_source_work < 0 {
+    return None
+  }
+  Some({
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_binding_work,
+    max_plan_fields,
+    max_plan_bytes,
+    max_plan_nodes,
+    max_plan_depth,
+    max_footprint_members,
+    max_footprint_targets,
+    max_footprint_work,
+    max_source_work,
+  })
+}
+
+///|
+pub(all) enum ClientEffectPreviewInputIssue {
+  Identity(@publication.EffectPreviewIdentityIssue)
+  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Footprint(@effect.EffectFootprintIssue)
+  Captured(@strategy.RunIssue)
+}
+
+///|
+/// Bind the private Preview to the exact execution occurrence and its live
+/// Result pins before a physical input can be proposed for mutation.
+#export_name("clientProgramBindEffectPreviewInputs")
+pub fn client_program_bind_effect_preview_inputs(
+  host : ClientLocalEffectHost,
+  inputs : @strategy.CapturedEffectInputs,
+  invocation : @publication.PublicationContract,
+  stage_index : Int,
+  preview_wire : String,
+  authoring_context_cid : String,
+  limits : ClientEffectPreviewInputLimits,
+) -> Result[
+  @strategy.CapturedEffectPreviewInputs,
+  ClientEffectPreviewInputIssue,
+] {
+  let owner = @strategy.captured_effect_run_owner(host.run)
+  let run_cid = @publication.publication_contract_identity(
+    @program_check.effect_program_run_definition(owner),
+  )
+  let preview = match
+    @publication.admit_effect_preview_identity(
+      preview_wire,
+      run_cid,
+      authoring_context_cid,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Identity(issue))
+  }
+  let bound = match
+    @program_check.bind_effect_program_run_preview(
+      owner,
+      invocation,
+      stage_index,
+      preview,
+      limits.max_binding_work,
+      {
+        max_work: limits.max_binding_work,
+        max_fields: limits.max_plan_fields,
+        max_bytes: limits.max_plan_bytes,
+        max_nodes: limits.max_plan_nodes,
+        max_depth: limits.max_plan_depth,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Binding(issue))
+  }
+  match
+    @program_check.check_effect_program_run_preview_footprints(
+      bound,
+      limits.max_footprint_members,
+      limits.max_footprint_targets,
+      limits.max_footprint_work,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Footprint(issue))
+  }
+  @strategy.bind_captured_effect_preview_inputs(
+    host.run,
+    inputs,
+    bound,
+    limits.max_source_work,
+  ).map_err(issue => Captured(issue))
+}
+
+///|
+#export_name("clientProgramEffectPreviewInputAt")
+pub fn client_program_effect_preview_input_at(
+  value : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> @strategy.CapturedEffectInput? {
+  @strategy.captured_effect_preview_input_at(value, preview_index)
+}
+
+///|
 /// Exact Host limits for the checked Effect input stream, shared by cell and
 /// resident representations. These limits do not grant access or apply.
 #export_name("clientProgramEffectInputExportLimits")

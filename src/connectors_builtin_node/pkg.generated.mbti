@@ -51,6 +51,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
+pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
+
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
@@ -114,6 +116,10 @@ pub fn client_program_effect_preparation_issue(ClientEffectProgramBridgeOutcome)
 pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOutcome) -> String?
 
 pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
+
+pub fn client_program_effect_preview_input_at(@physical_strategy.CapturedEffectPreviewInputs, Int) -> @physical_strategy.CapturedEffectInput?
+
+pub fn client_program_effect_preview_input_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> ClientEffectPreviewInputLimits?
 
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
@@ -1483,6 +1489,15 @@ pub(all) enum ClientEffectManagedInputIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@execution_relation.CompletedExportIssue)
 }
+
+pub(all) enum ClientEffectPreviewInputIssue {
+  Identity(@run_publication.EffectPreviewIdentityIssue)
+  Binding(@program_check.EffectProgramRunPreviewIssue)
+  Footprint(@effect_application.EffectFootprintIssue)
+  Captured(@physical_strategy.RunIssue)
+}
+
+type ClientEffectPreviewInputLimits
 
 pub(all) enum ClientEffectProgramBridgeIssue {
   Input(ClientProgramBridgeIssue)
