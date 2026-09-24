@@ -54,3 +54,15 @@ by Site configuration. The native mTLS gate verifies that an unconfigured
 route is 404 while existing dispatch, query and Output Plan behavior passes.
 All-target checking and the generated API check passed. This gate does not yet
 exercise a configured destination, Cloud payload custody or Result publication.
+
+At `060b58a3c`, the native runtime gate installs an HTTPS direct Transfer
+receiver with the common MoonBit control and durable destination journal. A
+checked Values Program is dispatched once, its two-chunk Output Plan is
+executed through the configured Site route, and the destination commits the
+exact Transfer request. The receiver yields the independent expected bytes
+`[{"id":1},{"id":2}]`; a repeated Output poll returns the same reply without
+another physical chunk write or an extra holding. The receiver's committed
+receipt proves destination custody, not public Result publication or Client
+receipt. The full native runtime gate, all-target check and Cloud's existing
+external native mTLS smoke passed locally. The latter still stops at the
+admitted Output Plan and does not exercise Cloud R2 storage.
