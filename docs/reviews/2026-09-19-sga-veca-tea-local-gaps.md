@@ -7,8 +7,16 @@ readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 35 have operation-specific
 boundary records, 12 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 31 paths have path-scoped work/workspace evidence. Strict completion
+routes, 32 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The direct Carrier `pool_vectors` entrypoint now has independent one-record
+work boundaries (30/29) and a fixed-shape structural workspace boundary
+(39/38), alongside its existing delivered Host cancellation and kernel
+cleanup evidence. The workspace expectation is derived from the fixture
+shape, not the production `pool_workspace()` helper. The separate Relation
+input entrypoint is not covered by this claim, so the operation remains
+outside full route assurance.
 
 The bounded sequence-match route now names its quantum-one execution,
 in-flight kernel cancellation, output-limit cleanup, and ordinary Node

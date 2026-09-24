@@ -35,6 +35,7 @@
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "time_series", "path": "entrypoint"},
     {"family": "VecA", "operation": "nearest", "path": "relation_entrypoint"},
+    {"family": "VecA", "operation": "pool_vectors", "path": "entrypoint"},
     {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"}
   ],

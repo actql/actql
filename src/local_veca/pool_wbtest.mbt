@@ -421,7 +421,10 @@ test "pool admits structural workspace before allocating sort state" {
   let source = pool_source(producer, Ref(true))
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  let required = pool_workspace(4, 2, 1, 1, 3).unwrap()
+  // Four retained records need two four-slot ordering arrays (32 slots).
+  // The three output fields, two components, and two key slots add seven.
+  // Keep this expected boundary independent of pool_workspace().
+  let required = 39
   assert_true(
     start_pool(
       @bounded.control(),
@@ -456,7 +459,9 @@ test "pool completes at its exact structural workspace boundary" {
   let source = pool_source(producer, Ref(true))
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  let required = pool_workspace(4, 2, 1, 1, 3).unwrap()
+  // Two four-slot ordering arrays per retained record (32), plus three
+  // output fields, two components, and two key slots: 39 in total.
+  let required = 39
   let execution = start_pool(
     @bounded.control(),
     sequence(owner),
