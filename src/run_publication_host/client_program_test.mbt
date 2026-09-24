@@ -595,6 +595,38 @@ test "ordinary values document prepares one named Effect-free result" {
     @execution.relation_schema_cid(output_schema),
     "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
   )
+  let fragment = issue_prepared_client_values_fragment(
+    prepared, 0, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(client_values_fragment_node_id(fragment), "values_0")
+  assert_eq(
+    client_values_fragment_logical_cid(fragment),
+    "sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723",
+  )
+  assert_eq(
+    client_values_fragment_output_contract_wire(fragment),
+    "{\"additional_properties\":false,\"fields\":{\"id\":{\"nullable\":false,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}",
+  )
+  assert_eq(
+    client_values_fragment_output_contract_cid(fragment),
+    "sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c",
+  )
+  assert_eq(
+    client_values_fragment_wire(fragment),
+    "{\"input_contracts\":{},\"kind\":\"aoa_fragment\",\"logical_cid\":\"sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723\",\"node_id\":\"values_0\",\"output_contracts\":{\"values_0\":\"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c\"},\"pipeline\":" +
+    pipeline +
+    "}",
+  )
+  assert_true(
+    issue_prepared_client_values_fragment(
+      prepared, 1, aoa_limits, 10000, 1000, 20,
+    )
+    is Err(ClientValuesFragmentIssue::AoA(_)),
+  )
+  assert_true(
+    issue_prepared_client_values_fragment(prepared, 0, aoa_limits, 1, 1000, 20)
+    is Err(ClientValuesFragmentIssue::AoA(_)),
+  )
   assert_true(
     issue_prepared_client_values_output_schema(
       prepared,
