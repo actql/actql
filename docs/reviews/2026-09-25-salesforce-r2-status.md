@@ -142,3 +142,14 @@ Those provider facts do not prove ActQL's serial scheduling, current registered
 capability issuer, or physical send authority. The Host fixture currently
 supplies route codes for the common check; it is not the product admission
 source and no write is dispatched by that fixture.
+
+The common MoonBit risk body admission now validates the exact canonical 0.1
+body and its self CID. A captured-Preview check compares the body with the
+exact Preview, review projection, authority, policy, validity, issuer, and
+authentication evidence references; two members require both
+`effect_scope_approved` and `partial_application_accepted`. The two-member
+Host fixture rejects a missing claim, foreign binding, altered body, and a
+released input pin. These are semantic and identity checks only. The product
+Host still needs to authenticate the issuer and evidence, enforce current
+policy and expiry, and carry the resulting whole-set apply authority to the
+physical dispatch owner. Matching CID strings are not such authority.
