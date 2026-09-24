@@ -4,11 +4,19 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 30 have operation-specific
+The current local resource gate maps 68 routes: 31 have operation-specific
 boundary records, 10 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The bounded sequence-match route now names its quantum-one execution,
+in-flight kernel cancellation, output-limit cleanup, and ordinary Node
+standard-Host timer cancellation fixtures. Removing any of these roles
+fails the resource gate. The existing exact/one-short work fixture measures
+its expected budget from the implementation itself, so it is not promoted
+to independent work assurance. Sequence workspace exact/one-short evidence
+and the remaining full-route proof stay open.
 
 The bounded interval and as-of join constructors now check their complete
 structural metadata dimensions before resolving fields or constructing the

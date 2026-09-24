@@ -3456,7 +3456,39 @@
       "entrypoint": {
         "path": "src/execution_relation/bounded_sequence_match.mbt",
         "symbol": "start_bounded_sequence_match"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "sequence_quantum_one_output_and_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence match resumes and preserves canonical match order"
+        },
+        {
+          "role": "sequence_in_flight_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence match cancels without publishing partial rows"
+        },
+        {
+          "role": "sequence_output_limit_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence output-limit failure reclaims all scratch"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "sequence_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "sequence"
+        }
+      ]
     },
     {
       "inventory": "families",

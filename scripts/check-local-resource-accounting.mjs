@@ -544,6 +544,17 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'TEA' && route.operation === 'sequence') {
+    for (const role of [
+      'sequence_quantum_one_output_and_cleanup',
+      'sequence_in_flight_cancel_cleanup',
+      'sequence_output_limit_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -596,6 +607,10 @@ for (const [index, route] of routeEntries.entries()) {
       !environmentRoles.has(`${operation}_host_in_flight_cancel`)) {
       fail(`${label}: ${operation}_host_in_flight_cancel fixture is missing`);
     }
+  }
+  if (route.family === 'TEA' && route.operation === 'sequence' &&
+    !environmentRoles.has('sequence_host_in_flight_cancel')) {
+    fail(`${label}: sequence_host_in_flight_cancel fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
