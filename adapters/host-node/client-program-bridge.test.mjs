@@ -202,6 +202,22 @@ test('admitted source-free Effect Run computes through the installed Host',
       assert.equal(execution.completed.length, 1);
       assert.equal(execution.completed[0].outputRows, 2);
       assert.equal(moon.clientProgramLocalEffectSourceCount(owned), 1);
+      assert.throws(() => checked(moon.clientProgramPinEffectSources(
+        owned, 0)), {code: 'MoonBitHostFailure'});
+      const inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
+      try {
+        assert.equal(moon.clientProgramEffectInputCount(inputs), 1);
+        assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+        assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 1), false);
+        assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), true);
+        assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+        assert.throws(() => checked(moon.clientProgramPinEffectSources(
+          owned, 1)), {code: 'MoonBitHostFailure'});
+      } finally {
+        assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+      }
+      assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), false);
     } finally {
       await execution.close();
       assert.equal(execution.cleanupPending(), false);

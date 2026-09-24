@@ -553,3 +553,12 @@ computation through the installed Host and checks the retained Effect source
 inventory. This is compute-only evidence. It does not yet issue the Captured
 Run, pin the completed source through Preview, authorize a write, or publish
 the final Effectful Receipt. The public submit remains Effect-free.
+
+The installed Host path now acquires the complete checked Effect source pin
+set after Compute. A common MoonBit operation permits closing the ordinary
+task port only through a live pinned Effect input; the pin remains available
+until its explicit release, while a new pin after port closure is rejected.
+The Node integration fixture checks the bounded pin, wrong-member rejection,
+single release, and absence of a second Compute. This establishes physical
+input custody, not row-to-payload equivalence, a Preview, apply authority, or
+the final Receipt.
