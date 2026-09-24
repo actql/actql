@@ -96,6 +96,16 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
     )
     is Ok(_),
   )
+  let admitted = @publication.admit_effect_preview_identity(
+    wire, a, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, scope, [[key]]) is Ok(_),
+  )
+  assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, scope, [])
+    is Err(KeyInventoryMismatch),
+  )
   let wrong_key = wire.replace_all(
     old="\"row_idempotency_key\":\"" + key.cid + "\"",
     new="\"row_idempotency_key\":\"" + preview_footprint_test_cid("5") + "\"",
@@ -131,6 +141,10 @@ test "Effect apply admits semantic Preview and exact derived row keys" {
     is Err(Preview(@publication.RunBindingMismatch)),
   )
   let other_scope = prepare_logical_request_scope(a, "request-2", 32).unwrap()
+  assert_true(
+    check_admitted_effect_preview_apply_keys(admitted, other_scope, [[key]])
+    is Err(ForeignKeyScope(0, 0)),
+  )
   assert_true(
     admit_effect_preview_apply_identity(
       wire,

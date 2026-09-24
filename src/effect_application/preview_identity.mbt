@@ -29,6 +29,21 @@ pub fn admit_effect_preview_apply_identity(
     Ok(value) => value
     Err(issue) => return Err(Preview(issue))
   }
+  match
+    check_admitted_effect_preview_apply_keys(identity, scope, expected_keys) {
+    Ok(_) => Ok(identity)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Check derived row keys against the already admitted private Preview. This
+/// retains its exact owner; no transported body is reparsed or renewed.
+pub fn check_admitted_effect_preview_apply_keys(
+  identity : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  expected_keys : Array[Array[EffectDispatchKey]],
+) -> Result[Unit, EffectPreviewApplyIdentityIssue] {
   let preview_cid = @publication.effect_preview_semantic_identity(identity)
   if expected_keys.length() !=
     @publication.effect_preview_member_count(identity) {
@@ -58,7 +73,7 @@ pub fn admit_effect_preview_apply_identity(
       }
     }
   }
-  Ok(identity)
+  Ok(())
 }
 
 ///|
