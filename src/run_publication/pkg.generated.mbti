@@ -15,6 +15,8 @@ pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> R
 
 pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue]
 
+pub fn admit_effectful_final_receipt_references(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReferenceIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -565,6 +567,11 @@ pub struct EffectPreviewIdentity {
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
+  program_semantics_cid : String
+  program_definition_cid : String
+  invocation_cid : String
+  compiled_plan_cid : String
+  check_environment_cid : String
 }
 
 pub(all) enum EffectPreviewIdentityIssue {
@@ -592,6 +599,20 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   MemberStateMismatch(Int)
   MemberOutcomeMismatch(Int)
   SetStatusMismatch
+} derive(@debug.Debug)
+
+pub(all) enum EffectfulFinalReferenceIssue {
+  WrongContract(String)
+  ComputationAlreadyFinal
+  ForeignComputation
+  ForeignRun
+  ForeignPreview(String)
+  ForeignEffectContext
+  ForeignEffectInventory
+  SetReceipt(EffectSetApplyReceiptBindingIssue)
+  FinalReceipt(PublicationContractIssue)
+  ForeignFinalReference(String)
+  ChangedComputationEvidence
 } derive(@debug.Debug)
 
 pub(all) enum ExistingDeliveryAttemptAction {
