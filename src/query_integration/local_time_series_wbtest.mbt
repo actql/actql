@@ -80,15 +80,23 @@ test "registered time-series provider emits a bounded UTC grid" {
   let provider = local_time_series_provider(generated)
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
   assert_true(
-    @local_connector.start_managed_provider(provider, generated, [], 2, 1000)
+    @local_connector.start_managed_provider_with_execution(
+      provider,
+      generated,
+      [],
+      2,
+      1000,
+      dispatch_test_limits().local_execution,
+    )
     is Err(_),
   )
-  let execution = @local_connector.start_managed_provider(
+  let execution = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [],
     3,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut output = None
   let mut advances = 0
@@ -138,7 +146,7 @@ test "time-series output value work admits exact and one-short limits" {
     dispatch_test_limits().local_execution,
     dispatch_test_limits().guards,
   ).unwrap()
-  let accepted = @local_connector.start_managed_provider(
+  let accepted = @local_connector.start_managed_provider_with_execution(
     @local_tea_provider.time_series_provider(
       { ..carrier_events_storage_limits(), max_work: 90, },
       capacity,
@@ -147,6 +155,7 @@ test "time-series output value work admits exact and one-short limits" {
     [],
     3,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut completed = false
   for _ in 0..<4 {
@@ -166,7 +175,7 @@ test "time-series output value work admits exact and one-short limits" {
     @local_connector.cleanup_managed_provider(accepted).unwrap_or(false),
   )
 
-  let rejected = @local_connector.start_managed_provider(
+  let rejected = @local_connector.start_managed_provider_with_execution(
     @local_tea_provider.time_series_provider(
       { ..carrier_events_storage_limits(), max_work: 89, },
       capacity,
@@ -175,6 +184,7 @@ test "time-series output value work admits exact and one-short limits" {
     [],
     3,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut failed = false
   for _ in 0..<4 {
@@ -196,16 +206,123 @@ test "time-series output value work admits exact and one-short limits" {
 }
 
 ///|
+test "time-series control work admits exact and one-short limits" {
+  // Three emitted rows and one finalization step require four work units.
+  let generated = local_time_series_generated(
+    "{\"start\":\"1969-12-31T23:59:59.999Z\",\"end\":\"1970-01-01T00:00:00.004Z\",\"step\":2}",
+  )
+  let provider = local_time_series_provider(generated)
+  let limits = dispatch_test_limits().local_execution
+  assert_true(
+    @local_connector.start_managed_provider(provider, generated, [], 3, 1000)
+    is Err(_),
+  )
+  assert_true(
+    @local_connector.start_managed_provider_with_execution(
+      provider,
+      generated,
+      [],
+      3,
+      1000,
+      { ..limits, max_work: 3, },
+    )
+    is Err(_),
+  )
+  let execution = @local_connector.start_managed_provider_with_execution(
+    provider,
+    generated,
+    [],
+    3,
+    1000,
+    { ..limits, max_work: 4, },
+  ).unwrap()
+  let mut completed = false
+  for _ in 0..<4 {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
+      @local_connector.Complete(value, work~, ..) => {
+        assert_eq(work, 1L)
+        assert_eq(@execution.completed_row_count(value), 3)
+        completed = true
+      }
+      _ => fail("exact control-work ceiling rejected time series")
+    }
+  }
+  assert_true(completed)
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
+test "time-series schema workspace admits exact and one-short limits" {
+  // The output schema has exactly one name entry; rows and value bytes have
+  // separate ceilings on the same admitted builder.
+  let generated = local_time_series_generated(
+    "{\"start\":\"1969-12-31T23:59:59.999Z\",\"end\":\"1970-01-01T00:00:00.004Z\",\"step\":2}",
+  )
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    dispatch_test_limits().local_execution,
+    dispatch_test_limits().guards,
+  ).unwrap()
+  assert_true(
+    @local_connector.start_managed_provider_with_execution(
+      @local_tea_provider.time_series_provider(
+        { ..carrier_events_storage_limits(), max_workspace_slots: 0, },
+        capacity,
+      ),
+      generated,
+      [],
+      3,
+      1000,
+      dispatch_test_limits().local_execution,
+    )
+    is Err(_),
+  )
+  let execution = @local_connector.start_managed_provider_with_execution(
+    @local_tea_provider.time_series_provider(
+      { ..carrier_events_storage_limits(), max_workspace_slots: 1, },
+      capacity,
+    ),
+    generated,
+    [],
+    3,
+    1000,
+    dispatch_test_limits().local_execution,
+  ).unwrap()
+  let mut completed = false
+  for _ in 0..<4 {
+    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
+      @local_connector.Complete(value, work~, ..) => {
+        assert_eq(work, 1L)
+        assert_eq(@execution.completed_row_count(value), 3)
+        completed = true
+      }
+      _ => fail("exact schema-workspace ceiling rejected time series")
+    }
+  }
+  assert_true(completed)
+  assert_true(@local_connector.managed_provider_stopped(execution))
+  assert_true(
+    @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
+  )
+}
+
+///|
 test "time-series cancellation stops before cleanup" {
   let generated = local_time_series_generated(
     "{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-01T00:00:00.050Z\",\"step\":1}",
   )
-  let execution = @local_connector.start_managed_provider(
+  let execution = @local_connector.start_managed_provider_with_execution(
     local_time_series_provider(generated),
     generated,
     [],
     10000,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   assert_true(
     @local_connector.advance_managed_provider(execution, 1).unwrap()

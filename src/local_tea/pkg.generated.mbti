@@ -60,7 +60,7 @@ pub fn start_session_relation(@bounded_execution.Control, @lowering_relation.Pre
 
 pub fn start_session_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[SessionExecution, SessionIssue]
 
-pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
+pub fn start_time_series(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[TimeSeriesExecution, TimeSeriesExecutionIssue]
 
 pub fn start_watermark(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[WatermarkExecution, WatermarkIssue]
 
@@ -148,6 +148,7 @@ type TimeSeriesExecution
 pub(all) enum TimeSeriesExecutionIssue {
   InvalidSeriesKernel
   InvalidSeriesLimits
+  SeriesWorkLimit
   InvalidSeriesTimestamp
   SeriesOutput(@execution_relation.CaptureIssue)
   SeriesCompletion(@execution_relation.TrustedOutputIssue)

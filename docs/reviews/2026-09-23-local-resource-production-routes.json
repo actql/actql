@@ -3129,6 +3129,20 @@
           "fixture": "time-series output value work admits exact and one-short limits"
         },
         {
+          "role": "time_series_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "fixture": "time-series control work admits exact and one-short limits"
+        },
+        {
+          "role": "time_series_schema_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "fixture": "time-series schema workspace admits exact and one-short limits"
+        },
+        {
           "role": "time_series_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -3144,7 +3158,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "time-series"
         }
-      ]
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "time_series_output_exact_one_short_and_finish_work",
+          "one_short_limit": "time_series_output_exact_one_short_and_finish_work",
+          "in_flight_cancel": "time_series_host_timer",
+          "cleanup": "time_series_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "time_series_control_work_exact_one_short",
+            "one_short_limit": "time_series_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "time_series_schema_workspace_exact_one_short",
+            "one_short_limit": "time_series_schema_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

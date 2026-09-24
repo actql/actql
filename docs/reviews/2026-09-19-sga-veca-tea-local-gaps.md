@@ -5,8 +5,8 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 28 have operation-specific
-boundary records, 8 have all four lifecycle roles, and 7 have exact and
-one-short work/workspace assurance across every production path. Another 26
+boundary records, 9 have all four lifecycle roles, and 8 have exact and
+one-short work/workspace assurance across every production path. Another 27
 paths have path-scoped work/workspace evidence. Strict completion remains red.
 
 Finite-list ranking now indexes exact physical input ports during setup,
@@ -26,8 +26,13 @@ fixture independently counts 30 output value-work units per row and accepts
 90 for three rows while rejecting 89 without publication. Another
 fixture stops after positive row work and reclaims the unpublished output;
 the standard Host timer covers delivered cancellation. These fixtures are
-bound to the time-series production route. Structural workspace and total
-control-work exact/one-short assurance for that route remain incomplete.
+bound to the time-series production route. The checked three-row grid needs
+four control-work units, including finalization; three are rejected before
+output allocation. The single-column schema needs one structural workspace
+entry; zero is rejected. Output rows and value bytes use their separate
+ceilings. Together with the delivered Host cancellation and cleanup fixture,
+this gives the registered time-series entrypoint exact and one-short
+work/workspace assurance; it does not cover unrelated TEA routes.
 
 Global `top_k` now selects a bounded Relation task after its checked key
 assertion. Its full-input sort and requested output prefix advance at quantum
