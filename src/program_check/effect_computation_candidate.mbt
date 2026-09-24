@@ -20,7 +20,7 @@ struct EffectProgramStaticCandidate {
 /// One private Preview statically bound to its checked Program and exact
 /// resolved member contracts. Captured Run, current authority and apply
 /// admission are separate obligations; this is not an execution permit.
-pub struct EffectProgramStaticPreview {
+struct EffectProgramStaticPreview {
   candidate : EffectProgramStaticCandidate
   stage_index : Int
   preview : @run_publication.EffectPreviewIdentity
@@ -29,7 +29,7 @@ pub struct EffectProgramStaticPreview {
 ///|
 /// The same statically closed checked Program retained with its admitted
 /// Run. Effect capture, current authority, and apply remain separate proofs.
-pub struct EffectProgramRunCandidate {
+struct EffectProgramRunCandidate {
   candidate : EffectProgramStaticCandidate
   admission : @run_publication.RunPublicationAdmission
   run_definition : @run_publication.PublicationContract
@@ -39,7 +39,7 @@ pub struct EffectProgramRunCandidate {
 /// A private Preview bound both to a statically closed checked Effect Stage
 /// and to exact Run and Invocation identities. ObservationSet proof and apply
 /// authority are separate; this still cannot dispatch.
-pub struct EffectProgramRunPreview {
+struct EffectProgramRunPreview {
   run : EffectProgramRunCandidate
   invocation : @run_publication.PublicationContract
   preview : EffectProgramStaticPreview

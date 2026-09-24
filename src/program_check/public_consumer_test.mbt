@@ -633,6 +633,10 @@ test "Effect computation candidate closes the exact Mapping environment" {
     static_candidate, owners, 2, 10000,
   ).unwrap()
   assert_true(
+    @strategy.prepare_checked_dag(computation, owners, 2, 10000)
+    is Err(EffectGraphOwnerRequired),
+  )
+  assert_true(
     physical_equal(
       @strategy.checked_effect_computation_owner(graph_owner),
       static_candidate,
