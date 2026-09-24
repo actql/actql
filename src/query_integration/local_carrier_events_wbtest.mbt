@@ -1053,6 +1053,109 @@ test "bounded Events bridge round trip feeds two Relation consumers" {
 }
 
 ///|
+test "rows to Events admits exact work and workspace and reclaims partial output" {
+  let source_owner = carrier_events_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_events_owner(source_owner)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  // Each three-field record costs one identity array plus its value (2),
+  // one record array plus three field triples (10), and four copy units.
+  // Each record retains five slots. The second append also overlaps its
+  // three scratch fields with five retained and five newly copied slots.
+  for
+    (work, slots, outcome) in [
+      (32, 13, "complete"),
+      (31, 13, "work"),
+      (32, 12, "workspace"),
+    ] {
+    let limits = {
+      ..carrier_events_storage_limits(),
+      max_work: work,
+      max_workspace_slots: slots,
+    }
+    let execution = @local_bridge.start_rows_to_events(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      limits,
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut polls = 0
+    while !terminal {
+      polls += 1
+      assert_true(polls < 50)
+      match @local_bridge.advance_rows_to_events(execution, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Complete(output, ..) => {
+          assert_eq(outcome, "complete")
+          assert_true(
+            @records.completed_storage(output) is Some(storage) &&
+            @record_storage.construction_work(storage) == 32 &&
+            @record_storage.retained_workspace_slots(storage) == 10,
+          )
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "work")
+          terminal = true
+        }
+        @local_bridge.Failed(
+          @local_bridge.Output(@records.Storage(@record_storage.WorkspaceLimit)),
+          ..
+        ) => {
+          assert_eq(outcome, "workspace")
+          terminal = true
+        }
+        _ => abort("unexpected rows-to-Events result")
+      }
+    }
+    assert_eq(@local_bridge.cleanup_rows_to_events(execution), Ok(true))
+    assert_eq(@local_bridge.cleanup_rows_to_events(execution), Ok(false))
+    assert_true(@execution.completed_output_available(source))
+  }
+
+  let control = @bounded.control()
+  let cancelled = @local_bridge.start_rows_to_events(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    carrier_events_storage_limits(),
+    4096L,
+    fn() { true },
+  ).unwrap()
+  let mut first_row = false
+  let mut polls = 0
+  while !first_row {
+    polls += 1
+    assert_true(polls < 20)
+    match @local_bridge.advance_rows_to_events(cancelled, 1).unwrap() {
+      @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
+      _ => abort("rows-to-Events did not yield after its first row")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_bridge.advance_rows_to_events(cancelled, 1).unwrap()
+    is @local_bridge.Stopped(_, ..),
+  )
+  assert_eq(@local_bridge.cleanup_rows_to_events(cancelled), Ok(true))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "Events bridge preserves timestamp clocks through a typed round trip" {
   let source_owner = carrier_events_source_owner_with(
     "timestamp",

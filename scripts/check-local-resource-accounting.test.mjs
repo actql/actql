@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 35 with operation-specific boundary records, 16 with four-role boundary evidence, 15 with full work\/workspace assurance, 38 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 36 with operation-specific boundary records, 17 with four-role boundary evidence, 16 with full work\/workspace assurance, 39 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -503,7 +503,7 @@ test('nearest retains its fused Relation production entrypoint', () => {
   }), /VecA nearest: fused Relation resource assurance is missing/);
 });
 
-for (const operation of ['node_rows', 'edge_rows']) {
+for (const operation of ['node_rows', 'edge_rows', 'to_events']) {
   test(`${operation} loses its Bridge boundary record when removed`, () => {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'Bridge' &&
