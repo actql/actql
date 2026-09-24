@@ -666,6 +666,46 @@ test "ordinary values document prepares one named Effect-free result" {
     pipeline +
     "}",
   )
+  let root = issue_prepared_client_direct_values_result_root(
+    prepared, 0, aoa_limits, 10000, 1000, 20,
+  ).unwrap()
+  let root_wire = "{\"name\":\"answer\",\"ref\":{\"node_id\":\"values_0\",\"port\":\"values_0\"},\"role\":\"requested_result\"}"
+  assert_eq(client_direct_result_root_wire(root), root_wire)
+  assert_eq(client_direct_result_root_name(root), "answer")
+  assert_eq(
+    client_direct_result_root_plan_cid(root),
+    client_result_plan_cid(result_plan),
+  )
+  assert_eq(
+    client_direct_result_root_row_contract_cid(root),
+    client_values_fragment_output_contract_cid(fragment),
+  )
+  assert_eq(
+    client_direct_result_root_wire(
+      admit_prepared_client_direct_values_result_root(
+        prepared, 0, root_wire, aoa_limits, 10000, 1000, 20,
+      ).unwrap(),
+    ),
+    root_wire,
+  )
+  assert_true(
+    admit_prepared_client_direct_values_result_root(
+      prepared,
+      0,
+      root_wire.replace(old="\"answer\"", new="\"foreign\""),
+      aoa_limits,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientDirectResultRootAdmissionIssue::MismatchedRoot),
+  )
+  assert_true(
+    issue_prepared_client_direct_values_result_root(
+      prepared, 1, aoa_limits, 10000, 1000, 20,
+    )
+    is Err(ClientDirectResultRootIssue::MissingResult),
+  )
   assert_eq(
     client_values_fragment_wire(
       admit_prepared_client_values_fragment(
