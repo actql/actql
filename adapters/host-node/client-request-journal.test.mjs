@@ -111,6 +111,8 @@ test('Run Definition and request acceptance survive one atomic restart',
     const path = await directory(t);
     const first = openClientRequestJournal(path);
     const definition = runDefinition();
+    assert.equal(first.resolveDefinition(identity(), {tenantId: 'tenant-a'},
+      moon, publicationControl), undefined);
     const accepted = first.acceptDefinition(identity(), {
       tenantId: 'tenant-a', runDefinition: definition,
       lookupExpiresAt: expires,
@@ -127,6 +129,22 @@ test('Run Definition and request acceptance survive one atomic restart',
       publicationControl);
     assert.equal(retained.ref.runDefinitionCid, definition.identity);
     assert.equal(retained.runDefinition.wire, definition.wire);
+    const resolved = restarted.resolveDefinition(identity(),
+      {tenantId: 'tenant-a'}, moon, publicationControl);
+    assert.equal(resolved.ref.runDefinitionCid, definition.identity);
+    assert.equal(resolved.runDefinition.wire, definition.wire);
+    assert.equal(restarted.resolveDefinition(identity(),
+      {tenantId: 'tenant-b'}, moon, publicationControl), undefined);
+    const changed = {...fixture, parameterValuesCid: cid('c')};
+    changed.intentFingerprintCid = hashCanonical({
+      caller_input_intent_cid: changed.callerInputIntentCid,
+      parameter_values_cid: changed.parameterValuesCid,
+      program_definition_cid: changed.programDefinitionCid,
+      version: 'actql-logical-request-intent/0.1',
+    });
+    assert.throws(() => restarted.resolveDefinition(identity(changed),
+      {tenantId: 'tenant-a'}, moon, publicationControl),
+    {code: 'ClientRequestIntentConflict'});
     const repeated = restarted.acceptDefinition(identity(), {
       tenantId: 'tenant-a', runDefinition: runDefinition('new-run'),
       lookupExpiresAt: expires,
@@ -167,6 +185,9 @@ test('Run Definition re-admission rejects corruption and incomplete records',
       definition.identity);
     assert.throws(() => reopened.lookupDefinition(key, moon,
       publicationControl), {code: 'ClientRequestJournalCorrupt'});
+    assert.throws(() => reopened.resolveDefinition(identity(),
+      {tenantId: 'tenant-a'}, moon, publicationControl),
+    {code: 'ClientRequestJournalCorrupt'});
     assert.throws(() => reopened.acceptDefinition(identity(), {
       tenantId: 'tenant-a', runDefinition: definition,
       lookupExpiresAt: expires,
