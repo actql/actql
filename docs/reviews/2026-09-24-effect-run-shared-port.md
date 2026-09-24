@@ -156,6 +156,11 @@ with the exact bytes it already hashes, without re-encoding a full Relation in
 Node. Its row order and finished logical CID remain those of the checked Result
 view. The captured Plan must still consume this cursor under the same owner;
 the existence of the generic cursor alone is not payload admission.
+The pure checked Plan row now emits the canonical intended-changes wrapper
+from projected Result fields and same-owner admitted literals, with bounded
+work, fields and output. A foreign literal owner and an incomplete change
+inventory are rejected. It still cannot authorize apply: the row must come
+from the live captured Result cursor and match the private Preview exactly.
 The Node Host bridge can now issue the final Effectful Receipt from the same
 opaque Preview and an exact computation chain. MoonBit checks the complete
 computation and set/member receipt reference closure before returning it;

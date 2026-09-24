@@ -173,6 +173,8 @@ pub fn effect_plan_row_field_at(EffectPlanRow, Int) -> (String, @canonical_json.
 
 pub fn effect_plan_row_field_count(EffectPlanRow) -> Int
 
+pub fn effect_plan_row_intended_changes_wire(EffectPlanRow, EffectMappingLiterals, Int, Int, Int, Int, Int) -> Result[String, EffectPlanChangeIssue]
+
 pub fn effect_plan_row_selector(EffectPlanRow) -> @canonical_json.CanonicalValue
 
 pub fn effect_plan_row_source_index(EffectPlanRow) -> Int
@@ -513,6 +515,14 @@ pub(all) enum EffectPlanBindingIssue {
   InvalidMember
   MissingRule
   Terminal(EffectPlanTerminalIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EffectPlanChangeIssue {
+  InvalidLimits
+  ForeignLiterals
+  IncompleteChanges
+  WorkLimit
+  OutputLimit
 } derive(Eq, @debug.Debug)
 
 pub(all) struct EffectPlanIdentityLimits {

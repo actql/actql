@@ -84,3 +84,121 @@ pub fn effect_plan_row_field_at(
 ) -> (String, @json.CanonicalValue)? {
   value.fields.get(index)
 }
+
+///|
+priv enum EffectPlanChangeValue {
+  Projected(@json.CanonicalValue)
+  Admitted(@value.CheckedValue)
+}
+
+///|
+pub(all) enum EffectPlanChangeIssue {
+  InvalidLimits
+  ForeignLiterals
+  IncompleteChanges
+  WorkLimit
+  OutputLimit
+} derive(Eq, Debug)
+
+///|
+/// Combine the checked AoA row projection with the same static rule's admitted
+/// literals. This is the proposed change body to compare with the private
+/// Preview; it is neither a captured-row proof nor mutation authority.
+pub fn effect_plan_row_intended_changes_wire(
+  row : EffectPlanRow,
+  literals : EffectMappingLiterals,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, EffectPlanChangeIssue] {
+  if max_fields < 0 ||
+    max_work < 0 ||
+    max_bytes < 0 ||
+    max_nodes < 1 ||
+    max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  let terminal = row.terminal
+  let rule_count = effect_mapping_rule_count(literals.rules)
+  let literal_count = effect_mapping_literal_count(literals)
+  if rule_count > max_work || literal_count > max_work - rule_count {
+    return Err(WorkLimit)
+  }
+  let mut owns_rule = false
+  for index in 0..<rule_count {
+    if physical_equal(
+        effect_mapping_rule_at(literals.rules, index).unwrap(),
+        terminal.rule,
+      ) {
+      owns_rule = true
+    }
+  }
+  if !owns_rule {
+    return Err(ForeignLiterals)
+  }
+  let changes : Array[(String, EffectPlanChangeValue)] = []
+  for (target, value) in row.fields {
+    changes.push((target, Projected(value)))
+  }
+  for index in 0..<literal_count {
+    let binding = effect_mapping_literal_at(literals, index).unwrap()
+    if physical_equal(binding.rule, terminal.rule) {
+      if binding.origin != InlineSet {
+        return Err(IncompleteChanges)
+      }
+      match binding.value {
+        Written(value) => changes.push((binding.target_field, Admitted(value)))
+        Omitted => return Err(IncompleteChanges)
+      }
+    }
+  }
+  let count = changes.length()
+  if count != terminal.checked_changes || count > max_fields {
+    return Err(IncompleteChanges)
+  }
+  if count > max_work - rule_count - literal_count {
+    return Err(WorkLimit)
+  }
+  let remaining = max_work - rule_count - literal_count - count
+  if count > 0 && count > remaining / count {
+    return Err(WorkLimit)
+  }
+  changes.sort_by((left, right) => @canonical.compare_utf16(left.0, right.0))
+  for index in 1..<count {
+    if changes[index - 1].0 == changes[index].0 {
+      return Err(IncompleteChanges)
+    }
+  }
+  let output = try {
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    @encode.begin_object(writer)
+    @encode.key(writer, "state")
+    @encode.string_value(
+      writer,
+      if terminal.operation == "delete" {
+        "not_applicable"
+      } else {
+        "present"
+      },
+    )
+    if terminal.operation != "delete" {
+      @encode.key(writer, "value")
+      @encode.begin_object(writer)
+      for (target, value) in changes {
+        @encode.key(writer, target)
+        match value {
+          Projected(value) => @json.emit_value(value, writer)
+          Admitted(value) => @value.emit_checked_wire_value(value, writer)
+        }
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(OutputLimit)
+  }
+  Ok(output)
+}
