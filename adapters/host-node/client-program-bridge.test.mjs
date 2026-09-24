@@ -34,7 +34,8 @@ async function checkedFixture() {
 
 // Test-only evidence isolates checked Program binding. Product admission must
 // derive every other evidence CID from its real compiler and Host authority.
-function publicationEvidence(program, parameters, semantics) {
+function publicationEvidence(program, parameters, semantics,
+  checkEnvironmentCid) {
   const limits = [100000, 10000, 64];
   const evidence = (name, body) => checked(moon.strategyRunEvidenceSeal(
     name, JSON.stringify(body), ...limits));
@@ -43,7 +44,7 @@ function publicationEvidence(program, parameters, semantics) {
     program_definition_cid: program,
     parameter_values_cid: parameters,
     invocation_bindings_cid: cid('3'),
-    check_environment_cid: cid('4'),
+    check_environment_cid: checkEnvironmentCid,
     grammar_manifest_cid: cid('5'),
     required_profile_contracts: [],
     barrier_contract_manifest_cid: cid('6'),
@@ -87,6 +88,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramResultCount(prepared), 1);
   assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
   assert.equal(moon.clientProgramResultName(prepared, 1), undefined);
+  assert.equal(moon.clientProgramCheckEnvironmentCid(prepared), evidenceCid);
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const request = moon.clientProgramRequestIdentity(
@@ -128,7 +130,8 @@ test('Node publication admission rejects evidence from another checked Program',
     const evidence = publicationEvidence(
       moon.clientRequestProgramCid(identity),
       moon.clientRequestParametersCid(identity),
-      moon.clientProgramSemanticsCid(prepared));
+      moon.clientProgramSemanticsCid(prepared),
+      moon.clientProgramCheckEnvironmentCid(prepared));
     assert.ok(moon.clientProgramAdmitPublication(prepared, ...evidence));
     const control = runtimeCore(moon).publicationControl;
     const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
@@ -183,9 +186,15 @@ test('Node publication admission rejects evidence from another checked Program',
     }, moon, control), {code: 'ClientRequestIntentConflict'});
     const foreignSemantics = publicationEvidence(
       moon.clientRequestProgramCid(identity),
-      moon.clientRequestParametersCid(identity), cid('f'));
+      moon.clientRequestParametersCid(identity), cid('f'), evidenceCid);
     assert.equal(moon.clientProgramAdmitPublication(
       prepared, ...foreignSemantics), undefined);
+    const foreignEnvironment = publicationEvidence(
+      moon.clientRequestProgramCid(identity),
+      moon.clientRequestParametersCid(identity),
+      moon.clientProgramSemanticsCid(prepared), cid('f'));
+    assert.equal(moon.clientProgramAdmitPublication(
+      prepared, ...foreignEnvironment), undefined);
   });
 
 test('durable request deduplication uses checked Program identity', async t => {

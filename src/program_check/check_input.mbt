@@ -41,6 +41,13 @@ pub fn checking_environment(
 }
 
 ///|
+/// Return the exact admitted Check Environment selected for this checker.
+/// This CID is preparation evidence, not a later Host execution decision.
+pub fn checking_environment_cid(value : CheckEnvironment) -> String {
+  @environment.cid(value.wire)
+}
+
+///|
 /// Check an admitted Program using its original immutable admission. Current
 /// input restrictions still apply; semantic checking uses the current values,
 /// environment and compilation budget. No parser or Host I/O is invoked.

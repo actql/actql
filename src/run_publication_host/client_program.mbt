@@ -28,6 +28,7 @@ pub(all) enum ClientProgramPreparationIssue {
 /// preparation, not a durable Run acceptance or a physical Site selection.
 struct PreparedClientProgram {
   graph : @strategy.CheckedDAG
+  check_environment_cid : String
 }
 
 ///|
@@ -64,6 +65,13 @@ pub fn prepared_client_program_semantics_cid(
 }
 
 ///|
+pub fn prepared_client_check_environment_cid(
+  value : PreparedClientProgram,
+) -> String {
+  value.check_environment_cid
+}
+
+///|
 /// Admit publication authority only when it names the exact checked source
 /// and effective Parameter Values of this prepared Client Program.
 pub fn admit_prepared_client_run_publication(
@@ -85,6 +93,7 @@ pub fn admit_prepared_client_run_publication(
     identity.program_definition_cid,
     identity.parameter_values_cid,
     prepared_client_program_semantics_cid(value),
+    prepared_client_check_environment_cid(value),
   )
 }
 
@@ -251,7 +260,11 @@ pub fn prepare_effect_free_client_program(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
         ),
     ) {
-    Ok(graph) => Ok({ graph, })
+    Ok(graph) =>
+      Ok({
+        graph,
+        check_environment_cid: @checked.checking_environment_cid(environment),
+      })
     Err(issue) => Err(Graph(issue))
   }
 }

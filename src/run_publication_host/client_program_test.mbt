@@ -77,6 +77,10 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
   let identity = prepared_client_identity(prepared)
+  assert_eq(
+    prepared_client_check_environment_cid(prepared),
+    "sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904",
+  )
   let semantics_cid = prepared_client_program_semantics_cid(prepared)
   assert_true(semantics_cid.has_prefix("sha256:"))
   assert_eq(semantics_cid.length(), 71)
@@ -100,6 +104,10 @@ test "ordinary values document prepares one named Effect-free result" {
     limits,
   ).unwrap()
   assert_eq(prepared_client_identity(spaced), identity)
+  assert_eq(
+    prepared_client_check_environment_cid(spaced),
+    prepared_client_check_environment_cid(prepared),
+  )
   assert_eq(prepared_client_program_semantics_cid(spaced), semantics_cid)
   let changed = prepare_effect_free_client_program(
     document.replace(old="\"id\":2", new="\"id\":3"),
