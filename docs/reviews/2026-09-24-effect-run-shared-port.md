@@ -145,6 +145,12 @@ from one admitted canonical Result row under an explicit work bound. Missing
 selector or source fields fail instead of becoming null or omitted values.
 This pure projection is not yet bound to the captured Result view and does not
 merge checked literal changes, issue intent identity, or permit a mutation.
+The terminal can now be selected by authored member index from its own checked
+Mapping-rule inventory, then reached through the same live captured Preview
+input in the Node bridge. This prevents a caller-supplied Mapping rule or a
+separate Result-name lookup from choosing the Plan. It still does not prove
+that the values in a captured Result row equal the Preview's approved payload;
+the row iterator and payload comparison remain required before apply.
 The Node Host bridge can now issue the final Effectful Receipt from the same
 opaque Preview and an exact computation chain. MoonBit checks the complete
 computation and set/member receipt reference closure before returning it;
