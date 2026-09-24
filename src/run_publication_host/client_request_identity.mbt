@@ -101,20 +101,6 @@ fn valid_client_request_cid(value : String) -> Bool {
 }
 
 ///|
-fn valid_caller_request_id(value : String) -> Bool {
-  if value.is_empty() || value.length() > 256 {
-    return false
-  }
-  for index = 0; index < value.length(); index = index + 1 {
-    let unit = value[index].to_int()
-    if unit < 32 || unit == 127 {
-      return false
-    }
-  }
-  true
-}
-
-///|
 /// Compute the closed logical request key and immutable checked intent.
 /// Physical storage must still atomically bind this identity to exactly one
 /// owner-issued Run record before dispatch; this function performs no I/O.
@@ -171,9 +157,6 @@ fn derive_client_request_identity(
   if !valid_client_request_cid(authority_scope_cid) {
     return Err(InvalidAuthorityScope)
   }
-  if !valid_caller_request_id(caller_request_id) {
-    return Err(InvalidRequestId)
-  }
   if !valid_client_request_cid(caller_input_intent_cid) {
     return Err(InvalidInputIntent)
   }
@@ -181,21 +164,19 @@ fn derive_client_request_identity(
     !valid_client_request_cid(checked.parameter_values_cid) {
     return Err(InvalidCheckedIdentity)
   }
-  let scope_writer = @encode.writer(4096, 4, 1) catch {
-    _ => return Err(Encoding)
+  let scope = match
+    @request_scope.prepare_scope_cid(
+      authority_scope_cid, caller_request_id, 256,
+    ) {
+    Ok(value) => value
+    Err(InvalidAuthorityScope) => return Err(InvalidAuthorityScope)
+    Err(InvalidCallerRequest) => return Err(InvalidRequestId)
+    Err(InvalidLimits) | Err(Encoding) => return Err(Encoding)
   }
   let intent_writer = @encode.writer(1024, 5, 1) catch {
     _ => return Err(Encoding)
   }
   try {
-    @encode.begin_object(scope_writer)
-    @encode.key(scope_writer, "authority_scope_cid")
-    @encode.string_value(scope_writer, authority_scope_cid)
-    @encode.key(scope_writer, "caller_request_id")
-    @encode.string_value(scope_writer, caller_request_id)
-    @encode.key(scope_writer, "version")
-    @encode.string_value(scope_writer, "actql-logical-request/0.1")
-    @encode.end_object(scope_writer)
     @encode.begin_object(intent_writer)
     @encode.key(intent_writer, "caller_input_intent_cid")
     @encode.string_value(intent_writer, caller_input_intent_cid)
@@ -209,12 +190,11 @@ fn derive_client_request_identity(
   } catch {
     _ => return Err(Encoding)
   }
-  let scope = @encode.finish(scope_writer) catch { _ => return Err(Encoding) }
   let intent = @encode.finish(intent_writer) catch { _ => return Err(Encoding) }
   Ok({
     authority_scope_cid,
     caller_request_id,
-    logical_request_scope_cid: "sha256:" + @sha.hex(@utf8.encode(scope)),
+    logical_request_scope_cid: scope,
     intent_fingerprint_cid: "sha256:" + @sha.hex(@utf8.encode(intent)),
     program_definition_cid: checked.program_definition_cid,
     parameter_values_cid: checked.parameter_values_cid,
