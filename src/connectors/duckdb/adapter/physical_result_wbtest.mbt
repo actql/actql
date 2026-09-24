@@ -70,6 +70,84 @@ test "native record guard counts keys and canonical escaping not raw transport t
 }
 
 ///|
+test "encoded output progress carries the exact record measurement" {
+  let result = prepare_physical_result(
+    result_schema(),
+    [("id", Float64), ("label", Varchar)],
+    result_limits(),
+    100,
+  ).unwrap()
+  let accepted = admit_physical_chunk(result, 2, [
+    result_cursor("[\"3ff0000000000000\",\"4000000000000000\"]"),
+    result_cursor("[\"a\\n\",\"日本語\"]"),
+  ]).unwrap()
+  let cached : NativeValueBudget = {
+    guards: { max_value_bytes: 100, max_output_rows: 2, },
+    work: 6,
+    bytes: 100,
+    nodes: 20,
+    depth: 1,
+  }
+  let ordinary : NativeValueBudget = {
+    guards: { max_value_bytes: 100, max_output_rows: 2, },
+    work: 6,
+    bytes: 100,
+    nodes: 20,
+    depth: 1,
+  }
+  let writer = @encode.hashing_writer(1000, 100, 10)
+  @encode.begin_array(writer)
+  for row in 0..<2 {
+    let previous = @encode.writer_progress(writer)
+    @encode.begin_object(writer)
+    // Output order is allowed to differ from schema-order measurement.
+    @encode.key(writer, "label")
+    @admitted.emit_wire_value(
+      physical_batch_cell(accepted, row, 1).unwrap().value,
+      writer,
+    )
+    @encode.key(writer, "id")
+    @admitted.emit_wire_value(
+      physical_batch_cell(accepted, row, 0).unwrap().value,
+      writer,
+    )
+    @encode.end_object(writer)
+    assert_true(
+      charge_native_encoded_record(
+        cached,
+        2,
+        previous,
+        @encode.writer_progress(writer),
+        row > 0,
+      ),
+    )
+    ordinary.work -= 1
+    measure_native_record(ordinary, accepted, row).unwrap()
+  }
+  assert_eq(
+    (cached.work, cached.bytes, cached.nodes),
+    (ordinary.work, ordinary.bytes, ordinary.nodes),
+  )
+  @encode.end_array(writer)
+  @encode.finish_hash_metrics(writer) |> ignore
+}
+
+///|
+test "encoded output guard falls back at a failing record ceiling" {
+  let budget : NativeValueBudget = {
+    guards: { max_value_bytes: 21, max_output_rows: 1, },
+    work: 3,
+    bytes: 22,
+    nodes: 3,
+    depth: 1,
+  }
+  assert_false(
+    charge_native_encoded_record(budget, 2, (1, 1, 1), (23, 4, 2), false),
+  )
+  assert_eq((budget.work, budget.bytes, budget.nodes), (3, 22, 3))
+}
+
+///|
 test "physical chunks retain schema order and charge scalar usage across chunks" {
   let result = prepare_physical_result(
     result_schema(),

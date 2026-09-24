@@ -219,6 +219,33 @@ retained output remain unchanged. The complete Node connector suite passed
 145/145 after this change. This is an implementation change, not a measured
 end-to-end gain.
 
+At clean revision `bbef1ad52`, the registered equivalent-obligations
+`retained-large-output-downstream-reuse/numeric-64/10000` case completed seven
+local paired observations. Its execution ratio was 1.7041, with a 95% interval
+of 1.5323–1.8611 against the 1.25 limit: a failure. The first resident import
+alone took about 2.25 seconds. This fixed case selected the resident path, so
+the earlier forced fresh-file probe cannot explain its full cost.
+
+Revision `96977d16d` stages eligible retained scalar rows directly into the
+provisional DuckDB resident table and then performs an ordered typed scan to
+verify the exact retained receipt before commit. The Store read, frame bounds,
+transfer charge, typed values, complete content identity, and cleanup ownership
+remain in force. The first local one-case paired run at this revision completed
+seven pairs but was too variable for a conclusion: its execution ratio interval
+was 0.980–1.901 and crossed the 1.25 threshold. Product execution ranged from
+11.1 to 15.3 seconds and the comparator from 5.2 to 18.3 seconds. This is not
+an end-to-end speedup claim, and the Linux 27-case gate remains open.
+
+The subsequent output-side change uses the already necessary canonical
+retention encoder's byte, node and depth progress to charge the native result's
+record guard on the ordinary successful path. Key order does not change encoded
+record length or node count. If any guard could fail, or encoding itself fails,
+the original ordered record measurement still runs so its precise error and
+partial charge remain observable. This removes a second per-cell canonical
+encoding pass for successful retained acquisition results. Its product Host and
+three-target adapter regressions pass; the paired performance effect has not
+yet been measured.
+
 The controller's preparation cannot simply be dropped: its independently
 checked task identities constrain the worker's completion claims before the
 attempt is accepted. A prepared artifact shared across that process boundary

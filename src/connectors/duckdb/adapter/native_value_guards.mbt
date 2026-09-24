@@ -69,6 +69,37 @@ fn measure_native_record(
 }
 
 ///|
+/// A successfully encoded canonical output row has the same keys and values as
+/// the schema-order record measurement. Key order changes neither byte length
+/// nor node count. The enclosing output array adds one depth level and, after
+/// the first row, one comma byte. Near any guard boundary, use the original
+/// ordered measurement to preserve its exact first error and partial charge.
+fn charge_native_encoded_record(
+  budget : NativeValueBudget,
+  width : Int,
+  previous : (Int, Int, Int),
+  current : (Int, Int, Int),
+  comma : Bool,
+) -> Bool {
+  let record_bytes = current.0 - previous.0 - (if comma { 1 } else { 0 })
+  let record_nodes = current.1 - previous.1
+  if width < 0 ||
+    width >= budget.work ||
+    record_bytes < 0 ||
+    record_nodes < 0 ||
+    record_bytes > budget.bytes ||
+    record_nodes > budget.nodes ||
+    record_bytes > budget.guards.max_value_bytes ||
+    current.2 - 1 > budget.depth {
+    return false
+  }
+  budget.work -= width + 1
+  budget.bytes -= record_bytes
+  budget.nodes -= record_nodes
+  true
+}
+
+///|
 /// Match the fixed-input path: finish admission before value measurement.
 /// Read retained admitted values without copying or repeating admission.
 fn measure_native_receipt(

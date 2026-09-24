@@ -34,6 +34,8 @@ pub fn admitted_output_row_count(AdmittedOutputRows) -> Int
 
 pub fn admitted_output_schema(AdmittedOutputRows) -> @relation_schema.Schema
 
+pub fn admitted_output_stream_progress(AdmittedOutputStream) -> (Int, Int, Int)?
+
 pub fn admitted_output_target(AdmittedOutputRows) -> @pipeline_typing.Target
 
 pub fn admitted_output_usage(AdmittedOutputRows) -> ValueUsage

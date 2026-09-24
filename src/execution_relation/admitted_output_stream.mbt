@@ -128,6 +128,20 @@ pub fn cancel_admitted_output_stream(stream : AdmittedOutputStream) -> Bool {
 }
 
 ///|
+/// Trusted receiving adapter observation. These are physical encoder counters,
+/// not a receipt or permission to retain the provisional output.
+pub fn admitted_output_stream_progress(
+  stream : AdmittedOutputStream,
+) -> (Int, Int, Int)? {
+  if !stream.open || stream.reading {
+    return None
+  }
+  Some(@encode.writer_progress(stream.writer)) catch {
+    _ => None
+  }
+}
+
+///|
 /// Append one row, returning only its provisional canonical storage batch. The
 /// initial '[' and subsequent commas are emitted exactly once in stream order.
 /// Physical batch limits do not reset value, row or canonical encoding budgets.

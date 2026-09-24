@@ -69,19 +69,10 @@ pub fn drain_native_output_row(
   }
   guard stream.pending is Some(batch) else { return Ok(None) }
   let row = stream.offset
-  if stream.guard_issue is None {
-    if value.measurement.work == 0 {
-      stream.guard_issue = Some(
-        Guard(NativeResult, stream.rows, -1, MeasurementWork),
-      )
-    } else {
-      value.measurement.work -= 1
-      match measure_native_record(value.measurement, batch, row) {
-        Ok(_) => ()
-        Err(issue) =>
-          stream.guard_issue = Some(Guard(NativeResult, stream.rows, -1, issue))
-      }
-    }
+  let before = if stream.guard_issue is None && stream.issue is None {
+    @execution.admitted_output_stream_progress(stream.admitted)
+  } else {
+    None
   }
   let mut text = ""
   if stream.issue is None {
@@ -93,6 +84,37 @@ pub fn drain_native_output_row(
       ) {
       Ok(chunk) => text = chunk
       Err(issue) => stream.issue = Some(issue)
+    }
+  }
+  if stream.guard_issue is None {
+    let mut charged = false
+    if before is Some(previous) && stream.issue is None {
+      if @execution.admitted_output_stream_progress(stream.admitted)
+        is Some(current) {
+        charged = charge_native_encoded_record(
+          value.measurement,
+          batch.owner.mappings.length(),
+          previous,
+          current,
+          stream.rows > 0,
+        )
+      }
+    }
+    if !charged {
+      if value.measurement.work == 0 {
+        stream.guard_issue = Some(
+          Guard(NativeResult, stream.rows, -1, MeasurementWork),
+        )
+      } else {
+        value.measurement.work -= 1
+        match measure_native_record(value.measurement, batch, row) {
+          Ok(_) => ()
+          Err(issue) =>
+            stream.guard_issue = Some(
+              Guard(NativeResult, stream.rows, -1, issue),
+            )
+        }
+      }
     }
   }
   stream.rows += 1

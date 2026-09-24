@@ -58,6 +58,8 @@ pub fn string_value(Writer, String) -> Unit raise EncodeFailure
 
 pub fn writer(Int, Int, Int) -> Writer raise EncodeFailure
 
+pub fn writer_progress(Writer) -> (Int, Int, Int) raise EncodeFailure
+
 // Errors
 pub(all) suberror EncodeFailure {
   InvalidStructure

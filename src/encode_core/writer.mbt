@@ -534,6 +534,19 @@ pub fn finish_measurement_usage(
 }
 
 ///|
+/// Current successful output usage without closing the writer. A caller may
+/// compare snapshots around one complete value; an open container's prefix is
+/// included in both snapshots. No digest or provisional text is exposed.
+pub fn writer_progress(w : Writer) -> (Int, Int, Int) raise EncodeFailure {
+  active(w)
+  (
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
+}
+
+///|
 fn finish_state(w : Writer) -> Unit raise EncodeFailure {
   active(w)
   if !w.root_written || !w.frames.is_empty() {
