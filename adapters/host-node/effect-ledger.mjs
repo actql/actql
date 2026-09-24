@@ -173,6 +173,7 @@ export function openEffectLedger({
       const heads = [];
       const activeOwners = [];
       const seen = new Set();
+      const locatorCids = [];
       let totalRows = 0;
       for (const member of members) {
         if (!Array.isArray(member?.claims) ||
@@ -208,14 +209,11 @@ export function openEffectLedger({
           const locatorCid = control.logicalItemLocatorCid(claim.locator);
           if (seen.has(locatorCid)) fail('EffectProgressDuplicateLocator');
           seen.add(locatorCid);
+          locatorCids.push(locatorCid);
           memberScopes.push(claim.scope);
           memberLocators.push(claim.locator);
           memberKeys.push(claim.key);
           memberBases.push(claim.basis);
-          const head = validateStored(physical.current(locatorCid))?.entry;
-          memberHeads.push(head);
-          memberActiveOwners.push(head !== undefined &&
-            activePhysicalFlights.has(flightKey(head)));
         }
         scopes.push(memberScopes);
         locators.push(memberLocators);
@@ -223,6 +221,17 @@ export function openEffectLedger({
         bases.push(memberBases);
         heads.push(memberHeads);
         activeOwners.push(memberActiveOwners);
+      }
+      const snapshot = physical.currentSnapshot(locatorCids);
+      let position = 0;
+      for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
+        for (let rowIndex = 0; rowIndex < members[memberIndex].claims.length;
+          rowIndex++) {
+          const head = validateStored(snapshot[position++])?.entry;
+          heads[memberIndex].push(head);
+          activeOwners[memberIndex].push(head !== undefined &&
+            activePhysicalFlights.has(flightKey(head)));
+        }
       }
       return control.setFrontierFromLedger(
         admittedPreview, scopes, locators, keys, bases, heads, activeOwners,

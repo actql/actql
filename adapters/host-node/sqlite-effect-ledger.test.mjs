@@ -40,6 +40,10 @@ test('append-only Effect facts survive restart and exact retry', async t => {
   t.after(() => reopened.close());
   assert.equal(reopened.current(locator).revision, 2);
   assert.equal(reopened.current(locator).entryJson, secondJson);
+  assert.deepEqual(reopened.currentSnapshot([locator, cid('c')]),
+    [reopened.current(locator), undefined]);
+  assert.throws(() => reopened.currentSnapshot([locator, locator]),
+    {code: 'InvalidEffectLedgerSnapshot'});
   assert.deepEqual(reopened.history(locator, 2).map(value => value.entryJson),
     [firstJson, secondJson]);
   assert.equal(append(reopened, 1, cid('2'), secondJson).created, false);

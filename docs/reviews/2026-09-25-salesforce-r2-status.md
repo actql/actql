@@ -197,6 +197,8 @@ missing terminal Receipt or a still-active owner. The gate deliberately
 returns only a partition check: the member's aggregate typed outcome is not
 yet derived from the row observations, and the ordinary Host does not yet
 issue or durably commit member, set, or final Run Receipts through this gate.
+The progress reader now takes all member heads in one SQLite read snapshot,
+so concurrent writers cannot make one frontier from different revisions.
 
 The shared Effect apply Receipt admission now accepts a member with known
 applied or accepted rows and later unattempted rows as `partial_failure`.
