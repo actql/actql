@@ -10,6 +10,8 @@ pub fn coordinator_admission_durable_json(@remote_site_protocol.CoordinatorDispa
 
 pub fn coordinator_admit_durable_json(String) -> Result[@remote_site_protocol.DurableCoordinatorDispatchRecord, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_admit_response_json(String, @remote_site_protocol.DispatchRequest, Bool) -> Result[@remote_site_protocol.RemoteDispatchResponse, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_commit_intent(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_commit_transition(@remote_site_protocol.CoordinatorDispatchTransition) -> Result[Unit, @remote_site_protocol.DispatchIssue]
@@ -20,17 +22,29 @@ pub fn coordinator_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn coordinator_dispatch_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_dispatch_route(@remote_site_protocol.DispatchRequest) -> Array[String]
+
 pub fn coordinator_durable_dispatch_cid(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> String
 
+pub fn coordinator_durable_request(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> @remote_site_protocol.DispatchRequest
+
 pub fn coordinator_durable_revision(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Int
+
+pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_poll_query_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_dispatch(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_prepare_intent(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.CoordinatorDispatchIntentAdmission, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_prepare_response_observation(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.RemoteDispatchResponse) -> Result[@remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_prepare_unknown(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Result[@remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_record_state_codes(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
+
+pub fn coordinator_response_durable_json(@remote_site_protocol.DurableCoordinatorDispatchRecord, @remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.RemoteDispatchResponse) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_restore_durable(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchIssue]
 

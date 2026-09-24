@@ -582,6 +582,14 @@ pub fn durable_coordinator_dispatch_record_request_identity(
 }
 
 ///|
+/// Return the exact admitted dispatch handle restored from durable bytes.
+pub fn durable_coordinator_dispatch_record_request(
+  durable : DurableCoordinatorDispatchRecord,
+) -> DispatchRequest {
+  durable.request
+}
+
+///|
 pub fn durable_coordinator_dispatch_record_attempt_identity(
   durable : DurableCoordinatorDispatchRecord,
 ) -> Result[String, DispatchIssue] {
