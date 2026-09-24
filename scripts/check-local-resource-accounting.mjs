@@ -1232,6 +1232,10 @@ for (const [index, route] of routeEntries.entries()) {
       'nearest_work_one_short',
       'nearest_workspace_exact_one_short',
       'nearest_kernel_initialization_cancel_cleanup',
+      'nearest_relation_work_exact',
+      'nearest_relation_work_one_short',
+      'nearest_relation_workspace_exact_one_short',
+      'nearest_relation_kernel_cancel_cleanup',
       'nearest_mixed_carrier_relation_host',
       'nearest_relation_roles_host',
     ]) {
@@ -1241,6 +1245,10 @@ for (const [index, route] of routeEntries.entries()) {
     }
     if (!environmentRoles.has('nearest_relation_host_in_flight_cancel')) {
       fail(`${label}: Relation Host cancellation fixture is missing`);
+    }
+    if (route.path_assurance?.relation_entrypoint === undefined ||
+      route.resource_assurance?.relation_entrypoint === undefined) {
+      fail(`${label}: fused Relation resource assurance is missing`);
     }
   }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
