@@ -200,10 +200,98 @@ fn final_test_captured_with_plan_inventory(
 
 ///|
 fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
-  final_test_captured_with_plan_inventory(
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  issue_effectful_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    final_test_preview(chain),
+    [("WriteOne", "{}")],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+}
+
+///|
+test "Effectful capture issuer owns its exact Preview plan inventory" {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let preview = final_test_preview(chain)
+  let issue = fn(
+    plans : Array[(String, String)],
+    identity : EffectPreviewIdentity,
+  ) {
+    issue_effectful_captured_run(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      [snapshot],
+      [],
+      chain.authoring,
+      chain.models,
+      identity,
+      plans,
+      65536,
+      4096,
+      32,
+    )
+  }
+  assert_true(issue([("WriteOne", "{}")], preview) is Ok(_))
+  assert_true(
+    issue([], preview) is Err(CaptureIssuanceInventoryMismatch("effect_plans")),
+  )
+  assert_true(
+    issue([("Foreign", "{}")], preview)
+    is Err(CaptureIssuanceInventoryMismatch("effect_plans")),
+  )
+  assert_true(
+    issue([("WriteOne", "{}"), ("WriteOne", "{}")], preview)
+    is Err(CaptureIssuanceInventoryMismatch("effect_plans")),
+  )
+  assert_true(
+    issue([("WriteOne", "{")], preview)
+    is Err(CaptureIssuanceInvalidRows("effect_plans")),
+  )
+  let command = final_test_preview(chain, plan=false)
+  assert_true(issue([], command) is Ok(_))
+  assert_true(
+    issue([("WriteOne", "{}")], command)
+    is Err(CaptureIssuanceInventoryMismatch("effect_plans")),
+  )
+  let foreign_artifact = final_test_preview(
     chain,
-    "{\"WriteOne\":{}}",
-    "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}",
+    artifact_cid=Some(ordering_test_cid("f")),
+  )
+  assert_true(
+    issue([("WriteOne", "{}")], foreign_artifact)
+    is Err(CaptureIssuanceChain(EvidenceInventoryMismatch("captured_effects"))),
   )
 }
 
