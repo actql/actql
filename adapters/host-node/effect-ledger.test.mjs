@@ -12,7 +12,8 @@ import {canonicalJson} from
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {readAuthorizedEffectTerminalOutcome} from
+import {checkAuthorizedEffectMemberReceiptRowPartition,
+  readAuthorizedEffectTerminalOutcome} from
   './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -282,6 +283,40 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
         memberReceipt.wire, 2, 4096, 512, 16);
     assert.equal(checkMember([terminal, undefined],
       [observedTerminal.receipt.wire, undefined]), true);
+    assert.equal(restarted.checkMemberReceiptRowPartitionEvidence({
+      preview: admitted, memberIndex: 0,
+      rowOwners: [{claim}, {claim: other}],
+      memberReceiptWire: memberReceipt.wire,
+    }), true);
+    const memberRead = {ledger: restarted, preview: admitted,
+      memberIndex: 0, rowOwners: [{claim}, {claim: other}],
+      memberReceiptWire: memberReceipt.wire, commonMoon: moon};
+    await assert.rejects(checkAuthorizedEffectMemberReceiptRowPartition({
+      ...memberRead, authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    const inspected = [];
+    assert.equal(await checkAuthorizedEffectMemberReceiptRowPartition({
+      ...memberRead, authorizeEvidenceRead: async binding => {
+        inspected.push(binding.logicalItemLocatorCid);
+        return true;
+      },
+    }), true);
+    assert.equal(inspected.length, 2);
+    const mutableClaim = {...claim};
+    const mutableOwners = [{claim: mutableClaim}, {claim: other}];
+    assert.equal(await checkAuthorizedEffectMemberReceiptRowPartition({
+      ...memberRead, rowOwners: mutableOwners,
+      authorizeEvidenceRead: async () => {
+        mutableClaim.canonicalRequestCid = cid('f');
+        mutableOwners.reverse();
+        return true;
+      },
+    }), true);
+    assert.throws(() => restarted.checkMemberReceiptRowPartitionEvidence({
+      preview: admitted, memberIndex: 0,
+      rowOwners: [{claim: other}, {claim}],
+      memberReceiptWire: memberReceipt.wire,
+    }), {code: 'MoonBitHostFailure'});
     assert.throws(() => checkMember([terminal, undefined],
       [undefined, undefined]), {code: 'MoonBitHostFailure'});
     assert.throws(() => checkMember([terminal, undefined],

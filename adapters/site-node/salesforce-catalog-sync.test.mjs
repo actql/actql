@@ -17,7 +17,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from '../host-node/effect-ledger.mjs';
-import {readAuthorizedEffectTerminalOutcome} from
+import {checkAuthorizedEffectMemberReceiptRowPartition,
+  readAuthorizedEffectTerminalOutcome} from
   '../host-node/effect-response-recovery.mjs';
 import {captureClaimedSalesforceSingleResponse,
   captureSalesforceSingleEffectWrite,
@@ -1380,6 +1381,43 @@ test('Host custody binds one HTTPS Collections response to every row',
       assert.equal(terminal.receipt.identity,
         sent.outcomeReceipts[index].identity);
     }
+    // This checks the ordered row partition against durable physical facts;
+    // aggregate member outcome admission remains a separate obligation.
+    const memberReceipt = runtimeCore(commonMoon).publicationControl.seal(
+      'effect_apply_receipt', JSON.stringify({
+        version: 'actql-effect-apply-receipt/0.1',
+        effect_preview_cid: preview.effect_preview_cid,
+        effect_member_preview_cid: member.effect_member_preview_cid,
+        applied: [rowCids[0]], accepted: [], unknown: [],
+        failed: [{row_preview_cid: rowCids[1], error_cid: cid('e')}],
+        unattempted: [], status: 'partial_failure',
+        outcome: {state: 'failed', error: {code: 'ProviderRowFailed',
+          message: 'The second row failed'}},
+      }), {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16});
+    const rowOwners = [0, 1].map(batchRowIndex =>
+      ({claims, batchRowIndex}));
+    const evidenceBindings = [];
+    assert.equal(await checkAuthorizedEffectMemberReceiptRowPartition({
+      ledger: restarted, rowOwners, preview: admittedPreview,
+      memberIndex: 0, memberReceiptWire: memberReceipt.wire,
+      commonMoon, authorizeEvidenceRead: async binding => {
+        evidenceBindings.push(binding);
+        return true;
+      },
+    }), true);
+    assert.equal(evidenceBindings.length, 1);
+    assert.deepEqual(evidenceBindings[0].logicalItemLocatorCids.length, 2);
+    await assert.rejects(checkAuthorizedEffectMemberReceiptRowPartition({
+      ledger: restarted, rowOwners, preview: admittedPreview,
+      memberIndex: 0, memberReceiptWire: memberReceipt.wire,
+      commonMoon, authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    await assert.rejects(checkAuthorizedEffectMemberReceiptRowPartition({
+      ledger: restarted, rowOwners: [...rowOwners].reverse(),
+      preview: admittedPreview, memberIndex: 0,
+      memberReceiptWire: memberReceipt.wire, commonMoon,
+      authorizeEvidenceRead: async () => true,
+    }), {code: 'MoonBitHostFailure'});
     const withoutEvidence = await captureSalesforceCollectionEffectWrite({
       ...options, ledger: restarted, admittedPreview: admitPreview()});
     assert.deepEqual(withoutEvidence.ownership.actions, [5, 7]);
