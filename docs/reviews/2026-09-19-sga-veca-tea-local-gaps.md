@@ -4,11 +4,17 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 36 have operation-specific
-boundary records, 17 have all four lifecycle roles, and 16 have exact and
+The current local resource gate maps 68 routes: 37 have operation-specific
+boundary records, 18 have all four lifecycle roles, and 17 have exact and
 one-short work/workspace assurance across every production path. Across the
-routes, 39 paths have path-scoped work/workspace evidence. Strict completion
+routes, 40 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The registered rows-to-Vectors Bridge reuses the bounded record writer but
+has its own typed source and identity fixture. Two records with two-component
+vectors require 28/27 construction-work units and 10/9 peak structural slots.
+Kernel cancellation after one private record and the standard Node Host's
+`rows-to-vectors-bridge` timer cancellation reach the same production path.
 
 The registered rows-to-Events Bridge now has independently counted 32/31
 construction-work and 13/12 peak structural-workspace limits for two
