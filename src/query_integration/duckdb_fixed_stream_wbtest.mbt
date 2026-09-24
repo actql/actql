@@ -208,7 +208,33 @@ test "DuckDB stream batches canonical rows without crossing the byte cap" {
   assert_true(
     @duckdb.drain_fixed_compute_stream_batch(combined, 64, 2).unwrap() is None,
   )
-  @duckdb.finish_fixed_compute_stream_receiving(combined).unwrap() |> ignore
+  let (combined_receipt, combined_tail) = @duckdb.finish_fixed_compute_stream_receiving(
+    combined,
+  ).unwrap()
+
+  let bulk = streamed_fixed_receiver(compute, chunk_rows=2, batch_bytes=128)
+  @duckdb.receive_fixed_compute_stream_chunk(bulk, 2, [
+    input_cursor("[\"4008000000000000\",\"4000000000000000\"]"),
+  ]).unwrap()
+  assert_eq(
+    @duckdb.drain_fixed_compute_stream_batch(bulk, 128, 2).unwrap(),
+    Some("[{\"id\":3},{\"id\":2}"),
+  )
+  assert_true(
+    @duckdb.drain_fixed_compute_stream_batch(bulk, 128, 2).unwrap() is None,
+  )
+  let (bulk_receipt, bulk_tail) = @duckdb.finish_fixed_compute_stream_receiving(
+    bulk,
+  ).unwrap()
+  assert_eq(bulk_tail, combined_tail)
+  assert_eq(
+    @execution.output_stream_identity(
+      @duckdb.fixed_compute_stream_receipt_content(bulk_receipt).unwrap(),
+    ),
+    @execution.output_stream_identity(
+      @duckdb.fixed_compute_stream_receipt_content(combined_receipt).unwrap(),
+    ),
+  )
 }
 
 ///|

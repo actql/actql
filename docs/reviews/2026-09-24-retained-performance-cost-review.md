@@ -687,3 +687,16 @@ keeps that measured length with its provisional text. This removes a separate
 UTF-8 scan of every encoded output row without changing the frame ceiling,
 canonical bytes, identity, or holding barrier. It does not remove the required
 output encoding and is not yet an end-to-end speedup claim.
+
+The next product-path change lets the common admitted output stream encode a
+bounded group before draining its canonical writer. The DuckDB receiver uses
+this when a conservative bound from the exact output names, checked scalar
+values, frame byte ceiling, and row count proves the entire group fits. Fixed
+numeric and Boolean columns use a schema-level bound; text and other scalar
+columns use their checked values' upper bounds. Complex values and groups
+without a sufficient bound keep the previous row-at-a-time fallback.
+Admission, value measurement, hashing, and output limits still run for every
+row; one failure closes the provisional stream without returning part of the
+group. A three-target regression compares the grouped and fallback bytes and
+CID. The real retained Host cycle also passes. The timing effect must be
+judged at the eventual fixed SHA, not inferred from these correctness checks.

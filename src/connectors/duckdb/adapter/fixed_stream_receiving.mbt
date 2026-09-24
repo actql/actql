@@ -148,6 +148,78 @@ fn drain_fixed_compute_stream_row_measured(
 }
 
 ///|
+fn fixed_scalar_row_bound(value : FixedComputeReceiving, ceiling : Int) -> Int? {
+  let mut bound = 3 // One array separator and two object delimiters.
+  for index in 0..<value.physical.mappings.length() {
+    let (_, mapping) = value.physical.mappings[index]
+    match mapping.physical {
+      Float32 | Float64 | Integer(_) | Boolean => ()
+      _ => return None
+    }
+    let name = @schema.reference_name(
+      @schema.field_at(value.physical.schema, index).unwrap().name,
+    )
+    // Six bytes cover an escaped UTF-16 code unit. The scalar allowance
+    // covers finite binary64, null and punctuation.
+    if ceiling - bound < 38 || name.length() > (ceiling - bound - 38) / 6 {
+      return None
+    }
+    bound += 38 + name.length() * 6
+  }
+  Some(bound)
+}
+
+///|
+fn checked_scalar_wire_upper_bound(
+  cell : @admitted.CheckedValue,
+  ceiling : Int,
+) -> Int? {
+  if ceiling < 0 {
+    return None
+  }
+  match cell.value {
+    @admitted.Null => if ceiling >= 4 { Some(4) } else { None }
+    @admitted.Boolean(_) => if ceiling >= 5 { Some(5) } else { None }
+    @admitted.Number(_) => if ceiling >= 32 { Some(32) } else { None }
+    @admitted.Text(text) | @admitted.Date(text) | @admitted.Timestamp(text) =>
+      if ceiling < 2 || text.length() > (ceiling - 2) / 6 {
+        None
+      } else {
+        Some(2 + text.length() * 6)
+      }
+    _ => None
+  }
+}
+
+///|
+fn checked_scalar_row_bound(
+  value : FixedComputeReceiving,
+  batch : PhysicalBatch,
+  row : Int,
+  ceiling : Int,
+) -> Int? {
+  let mut bound = 3
+  for index in 0..<value.physical.mappings.length() {
+    let name = @schema.reference_name(
+      @schema.field_at(value.physical.schema, index).unwrap().name,
+    )
+    if ceiling - bound < 4 || name.length() > (ceiling - bound - 4) / 6 {
+      return None
+    }
+    bound += 4 + name.length() * 6
+    guard physical_batch_cell(batch, row, index) is Some(cell) else {
+      return None
+    }
+    guard checked_scalar_wire_upper_bound(cell, ceiling - bound)
+      is Some(cell_bytes) else {
+      return None
+    }
+    bound += cell_bytes
+  }
+  Some(bound)
+}
+
+///|
 /// Cross the Host boundary once for a bounded run of canonical rows. A row
 /// that would exceed this frame remains provisional until the next drain; it
 /// cannot permit another physical chunk or a successful finish meanwhile.
@@ -161,6 +233,58 @@ pub fn drain_fixed_compute_stream_batch(
     max_rows <= 0 ||
     max_rows > 64 {
     return Err(Physical(InvalidLimits))
+  }
+  if value.open &&
+    value.pending_text is None &&
+    value.stream is Some(stream) &&
+    value.pending is Some(batch) {
+    if !fixed_compute_inputs_available(value.compute) {
+      abort_fixed_compute_receiving(value)
+      return Err(InputUnavailable)
+    }
+    let available = Int::min(max_rows, batch.rows - value.pending_row)
+    let mut count = 0
+    if fixed_scalar_row_bound(value, max_bytes) is Some(bound) {
+      count = Int::min(available, max_bytes / bound)
+    } else {
+      let mut reserved = 0
+      while count < available {
+        guard checked_scalar_row_bound(
+            value,
+            batch,
+            value.pending_row + count,
+            max_bytes - reserved,
+          )
+          is Some(bound) else {
+          break
+        }
+        reserved += bound
+        count += 1
+      }
+    }
+    if count > 1 {
+      let start = value.pending_row
+      match
+        @execution.append_admitted_output_stream_batch(
+          stream,
+          count,
+          value.physical.mappings.length(),
+          (row, column) => physical_batch_cell(batch, start + row, column),
+        ) {
+        Ok(text) => {
+          value.pending_row += count
+          if value.pending_row == batch.rows {
+            value.pending = None
+            value.pending_row = 0
+          }
+          return Ok(Some(text))
+        }
+        Err(issue) => {
+          abort_fixed_compute_receiving(value)
+          return Err(Stream(issue))
+        }
+      }
+    }
   }
   let output = StringBuilder()
   let mut bytes = 0

@@ -170,6 +170,50 @@ pub fn append_admitted_output_stream(
   width : Int,
   read : (Int) -> @admitted.CheckedValue?,
 ) -> Result[String, OutputStreamIssue] {
+  append_admitted_output_stream_row(stream, width, read, true)
+}
+
+///|
+/// Encode a bounded group of already admitted rows into one provisional
+/// canonical frame. The caller must prove the group fits the writer's physical
+/// frame limit before calling; a failed group closes the stream without
+/// exposing partial text. Logical value and measurement work remain per row.
+pub fn append_admitted_output_stream_batch(
+  stream : AdmittedOutputStream,
+  rows : Int,
+  width : Int,
+  read : (Int, Int) -> @admitted.CheckedValue?,
+) -> Result[String, OutputStreamIssue] {
+  if rows <= 0 || !stream.open || stream.reading || !stream.retain_text {
+    return Err(Closed)
+  }
+  for row in 0..<rows {
+    match
+      append_admitted_output_stream_row(
+        stream,
+        width,
+        column => read(row, column),
+        false,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(@encode.drain_hash_output(stream.writer)) catch {
+    issue => {
+      cancel_admitted_output_stream(stream) |> ignore
+      Err(Wire(Encoding(issue)))
+    }
+  }
+}
+
+///|
+fn append_admitted_output_stream_row(
+  stream : AdmittedOutputStream,
+  width : Int,
+  read : (Int) -> @admitted.CheckedValue?,
+  drain : Bool,
+) -> Result[String, OutputStreamIssue] {
   if !stream.open || stream.reading {
     return Err(Closed)
   }
@@ -178,7 +222,7 @@ pub fn append_admitted_output_stream(
     return Err(Admission(CaptureLimit))
   }
   stream.reading = true
-  let result = append_output_stream_row(stream, width, read)
+  let result = append_output_stream_row(stream, width, read, drain)
   stream.reading = false
   stream.buffer.rows.clear()
   match result {
@@ -198,6 +242,7 @@ fn append_output_stream_row(
   stream : AdmittedOutputStream,
   width : Int,
   read : (Int) -> @admitted.CheckedValue?,
+  drain : Bool,
 ) -> Result[String, OutputStreamIssue] {
   match append_admitted_buffer_cells(stream.buffer, width, read) {
     Err(ForeignCheckedValue(_, column)) =>
@@ -257,7 +302,7 @@ fn append_output_stream_row(
       )
     }
     Ok(
-      if stream.retain_text {
+      if stream.retain_text && drain {
         @encode.drain_hash_output(stream.writer)
       } else {
         ""
