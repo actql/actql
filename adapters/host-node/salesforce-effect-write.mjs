@@ -14,7 +14,7 @@ import {captureClaimedEffectResponse,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {ownInvocationContext, ownInvocationLimits} from
   '../host-common/owned-invocation-context.mjs';
-import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
+import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -44,16 +44,13 @@ export async function recoverStoredSalesforceSingleResponse({
   const ownedClaim = snapshotEffectDispatchClaim(claim);
   const expectedCid = checked(moon.salesforceSingleWriteRequestCid(
     request, resourceOrigin, maxRequestIdentityBytes));
-  const {stored} = await readAuthorizedEffectResponse({
+  return recoverProjectedEffectResponse({
     ledger, claims: ownedClaim, commonMoon, expectedRequestCid: expectedCid,
     providerBinding: {orgId: moon.salesforceSingleWriteRequestOrgId(request)},
     authorizeEvidenceRead,
     invalidCode: 'InvalidSalesforceEffectResponseRead',
     foreignCode: 'ForeignSalesforceEffectResponse',
-  });
-  if (stored === undefined) return Object.freeze({recovered: undefined});
-  return Object.freeze({
-    recovered: projectSalesforceSingleObservation({
+    projectStored: stored => projectSalesforceSingleObservation({
       moon, request,
       observation: Object.freeze({
         useCid: stored.credentialUseCid,
@@ -92,7 +89,7 @@ export async function recoverStoredSalesforceCollectionResponse({
   const ownedLimits = ownInvocationLimits(limits);
   const expectedCid = checked(moon.salesforceCollectionWriteRequestCid(
     request, resourceOrigin, maxRequestIdentityBytes));
-  const {stored} = await readAuthorizedEffectResponse({
+  return recoverProjectedEffectResponse({
     ledger, claims: ownedClaims, commonMoon, expectedRequestCid: expectedCid,
     providerBinding: {
       orgId: moon.salesforceCollectionWriteRequestOrgId(request),
@@ -100,10 +97,7 @@ export async function recoverStoredSalesforceCollectionResponse({
     authorizeEvidenceRead, batch: true,
     invalidCode: 'InvalidSalesforceEffectResponseRead',
     foreignCode: 'ForeignSalesforceEffectResponse',
-  });
-  if (stored === undefined) return Object.freeze({recovered: undefined});
-  return Object.freeze({
-    recovered: projectSalesforceCollectionObservation({
+    projectStored: stored => projectSalesforceCollectionObservation({
       moon, request,
       observation: Object.freeze({
         useCid: stored.credentialUseCid,
