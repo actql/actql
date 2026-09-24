@@ -482,11 +482,23 @@ async function runHostCompute(
   let began = false;
   let retainedInputBytes = 0;
   let directInputBytes = 0;
+  const measureCost = process.env.ACTQL_DUCKDB_COST_DIAGNOSTICS === '1';
   const semantic = {
+    costDiagnosticsEnabled: measureCost,
     nativeSemanticRows: 0,
     nativeSemanticCells: 0,
     nativeSemanticBytes: 0,
     jsMaterializedCells: 0,
+    inputJsonEncodeMilliseconds: 0,
+    inputMoonAdmissionMilliseconds: 0,
+    outputJsonEncodeMilliseconds: 0,
+    outputMoonAdmissionMilliseconds: 0,
+    outputStorageMilliseconds: 0,
+    outputDrainMilliseconds: 0,
+    outputWriteMilliseconds: 0,
+    outputDrainFrames: 0,
+    outputDrainCalls: 0,
+    outputWriteCalls: 0,
   };
   const retainedCleanup = Object.freeze({
     status: () => ({ pending: (store?.status().cleanupPending ?? false) || (disposed && cleanupRun !== undefined) }),
@@ -569,13 +581,17 @@ async function runHostCompute(
         const fields = await session.command(sql._1, [], chunk => {
           signal?.throwIfAborted();
           begin(chunk.fields);
+          const encodeStarted = measureCost ? performance.now() : 0;
           const text = JSON.stringify(chunk.columns);
           semantic.nativeSemanticRows += chunk.rowCount;
           semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
           semantic.nativeSemanticBytes += Buffer.byteLength(text);
           semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
+          if (measureCost) semantic.inputJsonEncodeMilliseconds += performance.now() - encodeStarted;
+          const admissionStarted = measureCost ? performance.now() : 0;
           checked(moon.computeHostInputPhysicalAccept(run, port, physical,
             rows(chunk.rowCount), text));
+          if (measureCost) semantic.inputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
           validationRows += chunk.rowCount;
           validationCells += chunk.rowCount * chunk.fields.length;
         });
@@ -607,13 +623,17 @@ async function runHostCompute(
       const fields = await session.command(sql, [], chunk => {
         signal?.throwIfAborted();
         begin(chunk.fields);
+        const encodeStarted = measureCost ? performance.now() : 0;
         const text = JSON.stringify(chunk.columns);
         semantic.nativeSemanticRows += chunk.rowCount;
         semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
         semantic.nativeSemanticBytes += Buffer.byteLength(text);
         semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
+        if (measureCost) semantic.inputJsonEncodeMilliseconds += performance.now() - encodeStarted;
+        const admissionStarted = measureCost ? performance.now() : 0;
         checked(moon.computeHostInputPhysicalAccept(run, port, physical,
           rows(chunk.rowCount), text));
+        if (measureCost) semantic.inputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
       });
       begin(fields);
       signal?.throwIfAborted();
@@ -668,49 +688,68 @@ async function runHostCompute(
   });
   consume = async chunk => {
     begin(chunk.fields);
+    const encodeStarted = measureCost ? performance.now() : 0;
     const text = JSON.stringify(chunk.columns);
     semantic.nativeSemanticRows += chunk.rowCount;
     semantic.nativeSemanticCells += chunk.rowCount * chunk.fields.length;
     semantic.nativeSemanticBytes += Buffer.byteLength(text);
     semantic.jsMaterializedCells += chunk.rowCount * chunk.fields.length;
+    if (measureCost) semantic.outputJsonEncodeMilliseconds += performance.now() - encodeStarted;
+    const admissionStarted = measureCost ? performance.now() : 0;
     if (managed) {
       checked(moon.managedOutputAccept(
         managedOutput, rows(chunk.rowCount), text,
       ));
+      if (measureCost) semantic.outputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
       const storedFields = managedStorageOrder.map(index => chunk.fields[index]);
       const storedColumns = managedStorageOrder.map(index => chunk.columns[index]);
+      const storageStarted = measureCost ? performance.now() : 0;
       await writer.appendBytes(encodeManagedColumnFrame(
         storedFields, storedColumns, chunk.rowCount, managedRows,
       ));
+      if (measureCost) semantic.outputStorageMilliseconds += performance.now() - storageStarted;
       managedRows += chunk.rowCount;
       signal?.throwIfAborted();
       return;
     }
     if (!retained) {
       checked(moon.computeHostAccept(run, rows(chunk.rowCount), text));
+      if (measureCost) semantic.outputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
       return;
     }
     checked(moon.computeHostStreamAccept(run, rows(chunk.rowCount), text));
+    if (measureCost) semantic.outputMoonAdmissionMilliseconds += performance.now() - admissionStarted;
+    const storageStarted = measureCost ? performance.now() : 0;
     let parts = [], bufferedBytes = 0;
     const flush = async () => {
       if (!parts.length) return;
       // Storage framing only: canonical text comes exclusively from MoonBit.
       // One bounded frame avoids issuing a filesystem write for every row.
-      const text = parts.join('');
+      const output = parts.join('');
       parts = []; bufferedBytes = 0;
-      await writer.append(text);
+      const writeStarted = measureCost ? performance.now() : 0;
+      await writer.append(output);
+      if (measureCost) semantic.outputWriteMilliseconds += performance.now() - writeStarted;
+      if (measureCost) semantic.outputWriteCalls++;
       signal?.throwIfAborted();
     };
     for (;;) {
       signal?.throwIfAborted();
+      const drainStarted = measureCost ? performance.now() : 0;
       const batch = checked(moon.computeHostStreamDrain(run));
+      if (measureCost) semantic.outputDrainMilliseconds += performance.now() - drainStarted;
       if (batch == null) break;
+      if (measureCost) {
+        semantic.outputDrainCalls++;
+        semantic.outputDrainFrames++;
+      }
       const bytes = Buffer.byteLength(batch, 'utf8');
       if (bytes > retained.maxFrameBytes) throw new DuckDBTransportError('RetainedFrameLimit');
       if (bytes > retained.maxFrameBytes - bufferedBytes) await flush();
       parts.push(batch); bufferedBytes += bytes;
     }
     await flush();
+    if (measureCost) semantic.outputStorageMilliseconds += performance.now() - storageStarted;
   };
   const finishOutput = async fields => {
     signal?.throwIfAborted();
