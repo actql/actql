@@ -41,7 +41,37 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 23 with operation-specific boundary records, 7 with four-role boundary evidence, 6 with full work\/workspace assurance, 25 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 24 with operation-specific boundary records, 8 with four-role boundary evidence, 7 with full work\/workspace assurance, 26 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('watermark resource and Host evidence must remain executable', () => {
+  assert.match(run(undefined, routes => {
+    const watermark = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'watermark_events');
+    watermark.boundary_tests = watermark.boundary_tests.filter(item =>
+      item.role !== 'watermark_control_work_exact_one_short');
+  }), /TEA watermark_events: watermark_control_work_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const watermark = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'watermark_events');
+    watermark.boundary_tests = watermark.boundary_tests.filter(item =>
+      item.role !== 'watermark_empty_finish_work_exact_one_short');
+  }), /TEA watermark_events: watermark_empty_finish_work_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const watermark = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'watermark_events');
+    watermark.environment_tests = [];
+  }), /TEA watermark_events: watermark_host_timer fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const watermark = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'watermark_events');
+    delete watermark.resource_assurance.entrypoint.workspace.one_short_limit;
+  }), /TEA watermark_events: entrypoint operation workspace needs exact and one-short proofs/);
+  assert.match(run(undefined, routes => {
+    const watermark = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'watermark_events');
+    delete watermark.path_assurance.entrypoint;
+  }), /TEA watermark_events: work, workspace, and lifecycle assurance is missing/);
 });
 
 test('event window work, workspace, and Host evidence must remain executable', () => {

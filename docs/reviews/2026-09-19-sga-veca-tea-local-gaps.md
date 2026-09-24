@@ -4,9 +4,9 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 23 have operation-specific
-boundary records, 7 have all four lifecycle roles, and 6 have exact and
-one-short work/workspace assurance across every production path. Another 25
+The current local resource gate maps 68 routes: 24 have operation-specific
+boundary records, 8 have all four lifecycle roles, and 7 have exact and
+one-short work/workspace assurance across every production path. Another 26
 paths have path-scoped work/workspace evidence. Strict completion remains red.
 
 Global `top_k` now selects a bounded Relation task after its checked key
@@ -120,6 +120,18 @@ is rejected before allocating the output builder.
 The single production entrypoint now has complete work/workspace and lifecycle
 assurance; this does not discharge the other TEA operations or the
 providerless synchronous lane.
+
+The watermark kernel now applies its supplied control-work ceiling across
+bounded resumes and charges final completion. Independent mark/drop fixtures
+count 19/18 quantum-one steps over three source records; one-short ceilings
+fail without completion. Retained six-field records consume eight structural
+slots each, so mark/drop complete at 24/16 slots and reject one-short
+admission. Empty input takes one charged finish step and rejects a zero-step
+budget before output allocation. Both number and timestamp clocks are
+covered on JS, Wasm, and native. The existing standard Host watermark timer
+delivers in-flight cancellation after positive work and checks stop and
+cleanup. The single watermark production entrypoint is assured; this does
+not discharge the other TEA operations or the providerless synchronous lane.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed

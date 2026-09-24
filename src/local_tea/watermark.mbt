@@ -25,6 +25,7 @@ priv struct WatermarkState {
   mut field : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut time : @value.CheckedValue?
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -50,6 +51,7 @@ pub(all) enum WatermarkIssue {
   InvalidRecord(Int)
   InvalidTime(Int)
   WorkspaceLimit
+  ControlWorkLimit
   Output(@records.Issue)
   Execution(@bounded.Issue)
 } derive(Eq, Debug)
@@ -171,6 +173,9 @@ fn watermark_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(InputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ControlWorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.record < @storage.record_count(state.source) {
@@ -209,6 +214,7 @@ fn watermark_step(
         }
       }
       Finish => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
         }
@@ -220,6 +226,7 @@ fn watermark_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -243,6 +250,7 @@ pub fn start_watermark(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[WatermarkExecution, WatermarkIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step) is Some(@lower.EventStep(event)) &&
@@ -259,6 +267,13 @@ pub fn start_watermark(
   }
   if limits.max_value_nodes < 1 || limits.max_workspace_slots < 3 {
     return Err(InvalidLimits)
+  }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(InvalidLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(ControlWorkLimit)
   }
   let output_carrier = @lower.event_output_carrier(event)
   guard output_contract(output_carrier, "watermark_ms")
@@ -296,6 +311,7 @@ pub fn start_watermark(
     field: 0,
     fields: [],
     time: None,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, watermark_step, cleanup_state, @records.discard_completed,

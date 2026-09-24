@@ -468,6 +468,18 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'TEA' && route.operation === 'watermark_events') {
+    for (const role of [
+      'watermark_control_work_exact_one_short',
+      'watermark_workspace_exact_one_short',
+      'watermark_empty_finish_work_exact_one_short',
+      'watermark_kernel_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -498,6 +510,10 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${role} fixture is missing`);
       }
     }
+  }
+  if (route.family === 'TEA' && route.operation === 'watermark_events' &&
+    !environmentRoles.has('watermark_host_timer')) {
+    fail(`${label}: watermark_host_timer fixture is missing`);
   }
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
@@ -748,6 +764,11 @@ for (const [index, route] of routeEntries.entries()) {
     (pathAssurance.entrypoint === undefined ||
       resourceAssurance.entrypoint === undefined)) {
     fail(`${label}: fixed and sliding work, workspace, and lifecycle assurance is missing`);
+  }
+  if (route.family === 'TEA' && route.operation === 'watermark_events' &&
+    (pathAssurance.entrypoint === undefined ||
+      resourceAssurance.entrypoint === undefined)) {
+    fail(`${label}: work, workspace, and lifecycle assurance is missing`);
   }
   if (requireBoundaryComplete) {
     for (const pathName of requiredPaths) {
