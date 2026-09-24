@@ -19,11 +19,11 @@ import {
   "actql/actql/sourceview_input" @sourceviews,
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/canonical_json" @json,
 }
 
 import {
   "actql/actql/calendar_typing" @calendar,
-  "actql/actql/canonical_json" @json,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
   "actql/actql/parameter_references" @references,
