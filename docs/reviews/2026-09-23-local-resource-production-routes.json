@@ -3305,7 +3305,16 @@
       "entrypoint": {
         "path": "src/execution_relation/bounded_interval_join.mbt",
         "symbol": "start_bounded_interval_join"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "interval_metadata_workspace_preflight",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "bounded interval admits metadata before constructing it"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -3392,7 +3401,16 @@
       "entrypoint": {
         "path": "src/execution_relation/bounded_asof_join.mbt",
         "symbol": "start_bounded_asof_join"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "asof_metadata_workspace_preflight",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join admits metadata before constructing it"
+        }
+      ]
     },
     {
       "inventory": "families",

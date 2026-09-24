@@ -33,6 +33,7 @@ fn bounded_interval_source(
 ///|
 fn bounded_interval_fixture_result(
   max_work : Int,
+  max_entries? : Int = 10000,
 ) -> Result[
   (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
   BoundedIntervalJoinIssue,
@@ -122,7 +123,7 @@ fn bounded_interval_fixture_result(
       run_limits().output_values,
       max_work,
       100,
-      10000,
+      max_entries,
       10000,
     ) {
     Ok(value) => value
@@ -134,8 +135,24 @@ fn bounded_interval_fixture_result(
 ///|
 fn bounded_interval_fixture(
   max_work? : Int = 100000,
+  max_entries? : Int = 10000,
 ) -> (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]) raise {
-  bounded_interval_fixture_result(max_work).unwrap()
+  bounded_interval_fixture_result(max_work, max_entries~).unwrap()
+}
+
+///|
+test "bounded interval admits metadata before constructing it" {
+  match bounded_interval_fixture_result(0, max_entries=13) {
+    Err(Rows(RowLimit)) => ()
+    _ => fail("expected early workspace rejection")
+  }
+  let (control, execution, _) = bounded_interval_fixture(max_entries=14)
+  assert_true(@bounded.request_cancel(control))
+  match advance_bounded_interval_join(execution, 1).unwrap() {
+    BoundedIntervalJoinStopped(@bounded.Cancelled, ..) => ()
+    _ => fail("expected cancellation")
+  }
+  assert_true(cleanup_bounded_interval_join(execution).unwrap())
 }
 
 ///|

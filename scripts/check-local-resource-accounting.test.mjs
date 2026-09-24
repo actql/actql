@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 28 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 30 with operation-specific boundary records, 10 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('time-series output and Host cancellation evidence must remain bound', () => {

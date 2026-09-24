@@ -506,6 +506,24 @@ pub fn start_bounded_interval_join(
     left_count.to_int64() > search_ceiling / right_count.to_int64() {
     return Err(Rows(RowLimit))
   }
+  let key_count = @lower.interval_join_key_count(kernel)
+  let column_count = @lower.interval_join_field_count(kernel)
+  let mut available_entries = max_entries
+  if key_count < 0 || column_count < 0 || left_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= left_count * 2
+  if right_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= right_count * 2
+  if key_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= key_count * 2
+  if column_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
   let mut output_ceiling = max_rows
   if @lower.interval_join_output_limit(kernel) is Some(value) &&
     value < output_ceiling.to_int64() {
@@ -540,7 +558,7 @@ pub fn start_bounded_interval_join(
     None
   }
   let keys : Array[(Int, Int)] = []
-  for index in 0..<@lower.interval_join_key_count(kernel) {
+  for index in 0..<key_count {
     guard @lower.interval_join_key_at(kernel, index) is Some(pair) &&
       resolve(left, pair.0) is Some(left_column) &&
       resolve(right, pair.1) is Some(right_column) else {
@@ -570,7 +588,7 @@ pub fn start_bounded_interval_join(
     return Err(InvalidExecution)
   }
   let columns : Array[(Bool, Int)] = []
-  for index in 0..<@lower.interval_join_field_count(kernel) {
+  for index in 0..<column_count {
     guard @lower.interval_join_field_at(kernel, index) is Some(field) else {
       return Err(InvalidExecution)
     }

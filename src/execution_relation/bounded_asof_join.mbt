@@ -712,6 +712,38 @@ pub fn start_bounded_asof_join(
     left_count.to_int64() > search_ceiling / right_count.to_int64() {
     return Err(Rows(RowLimit))
   }
+  let key_count = @lower.asof_join_key_count(kernel)
+  let identity_count = @lower.asof_join_identity_count(kernel)
+  let tie_count = @lower.asof_join_tie_break_count(kernel)
+  let column_count = @lower.asof_join_field_count(kernel)
+  let mut available_entries = max_entries
+  if key_count < 0 ||
+    identity_count < 0 ||
+    tie_count < 0 ||
+    column_count < 0 ||
+    left_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= left_count
+  if right_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= right_count
+  if key_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= key_count * 2
+  if column_count > available_entries / 2 {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= column_count * 2
+  if identity_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
+  available_entries -= identity_count
+  if tie_count > available_entries {
+    return Err(Rows(RowLimit))
+  }
   let mut output_ceiling = max_rows
   if generated_join_output_ceiling(generated, 0) is Some(value) &&
     value < output_ceiling.to_int64() {
@@ -743,7 +775,7 @@ pub fn start_bounded_asof_join(
     return Err(InvalidExecution)
   }
   let keys : Array[(Int, Int)] = []
-  for index in 0..<@lower.asof_join_key_count(kernel) {
+  for index in 0..<key_count {
     guard @lower.asof_join_key_at(kernel, index) is Some(pair) &&
       resolve(left, pair.0) is Some(left_column) &&
       resolve(right, pair.1) is Some(right_column) else {
@@ -752,7 +784,7 @@ pub fn start_bounded_asof_join(
     keys.push((left_column, right_column))
   }
   let identities : Array[Int] = []
-  for index in 0..<@lower.asof_join_identity_count(kernel) {
+  for index in 0..<identity_count {
     guard @lower.asof_join_identity_at(kernel, index) is Some(field) &&
       resolve(left, field) is Some(column) else {
       return Err(InvalidExecution)
@@ -763,7 +795,7 @@ pub fn start_bounded_asof_join(
     return Err(InvalidExecution)
   }
   let ties : Array[Int] = []
-  for index in 0..<@lower.asof_join_tie_break_count(kernel) {
+  for index in 0..<tie_count {
     guard @lower.asof_join_tie_break_at(kernel, index) is Some(field) &&
       resolve(right, field) is Some(column) else {
       return Err(InvalidExecution)
@@ -771,7 +803,7 @@ pub fn start_bounded_asof_join(
     ties.push(column)
   }
   let columns : Array[(Bool, Int)] = []
-  for index in 0..<@lower.asof_join_field_count(kernel) {
+  for index in 0..<column_count {
     guard @lower.asof_join_field_at(kernel, index) is Some(field) else {
       return Err(InvalidExecution)
     }

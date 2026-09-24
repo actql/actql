@@ -4,11 +4,20 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 28 have operation-specific
+The current local resource gate maps 68 routes: 30 have operation-specific
 boundary records, 10 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
+
+The bounded interval and as-of join constructors now check their complete
+structural metadata dimensions before resolving fields or constructing the
+metadata arrays. Each fixed fixture admits 14 structural entries, rejects 13
+with zero available resolver work, then stops and cleans up the admitted
+execution. The fixtures pass on JS, Wasm, and native. They establish the
+start-time metadata preflight, not exact/one-short work or workspace limits
+through every resume path, delivered Host cancellation, or full route
+assurance for either join.
 
 The `dedupe_events` kernel now checks one cumulative control-work ceiling
 across resumes. Its one-record fixture counts 31 steps, including final
