@@ -116,12 +116,30 @@ pub fn admit_effectful_final_receipt_references(
   if captured_ids != preview_ids {
     return Err(ForeignEffectInventory)
   }
+  // Only applicable Effect Plans occur in the captured plan inventories.
+  let expected_plan_ids : Array[String] = []
+  for index in 0..<preview.member_effect_ids.length() {
+    if effect_preview_member_plan_cid(preview, index) is Some(_) {
+      expected_plan_ids.push(preview.member_effect_ids[index])
+    }
+  }
   for field in ["effect_plans", "effect_plan_logical_cids"] {
     guard @json.object_field(context, field) is Some(inventory) &&
       evidence_inventory_names(inventory) is Some(names) else {
       return Err(ForeignEffectInventory)
     }
-    if !same_names(names, captured_ids) {
+    if !same_names(names, expected_plan_ids) {
+      return Err(ForeignEffectInventory)
+    }
+  }
+  guard @json.object_field(context, "effect_plan_logical_cids")
+    is Some(plan_cids) else {
+    return Err(ForeignEffectInventory)
+  }
+  for index in 0..<preview.member_effect_ids.length() {
+    if effect_preview_member_plan_cid(preview, index) is Some(expected) &&
+      evidence_string(plan_cids, preview.member_effect_ids[index]) !=
+      Some(expected) {
       return Err(ForeignEffectInventory)
     }
   }

@@ -24,6 +24,7 @@ pub struct EffectPreviewIdentity {
   member_cids : Array[String]
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
+  member_effect_plan_cids : Array[String?]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
@@ -588,6 +589,7 @@ pub fn admit_effect_preview_identity(
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
   let member_effect_kinds : Array[String] = []
+  let member_effect_plan_cids : Array[String?] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
   let member_failure_policies : Array[String] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
@@ -616,6 +618,9 @@ pub fn admit_effect_preview_identity(
       _ => return Err(InvalidMember)
     }
     member_effect_kinds.push(effect_kind)
+    member_effect_plan_cids.push(
+      optional_string(@json.object_field(effect, "effect_plan_logical_cid")),
+    )
     let contract = if effect_kind == "command" {
       match
         (
@@ -765,6 +770,7 @@ pub fn admit_effect_preview_identity(
     member_cids: cids,
     member_effect_ids,
     member_effect_kinds,
+    member_effect_plan_cids,
     member_contracts,
     member_failure_policies,
     member_footprints,
@@ -837,6 +843,17 @@ pub fn effect_preview_member_kind(
   index : Int,
 ) -> String? {
   value.member_effect_kinds.get(index)
+}
+
+///|
+pub fn effect_preview_member_plan_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  match value.member_effect_plan_cids.get(index) {
+    Some(cid) => cid
+    None => None
+  }
 }
 
 ///|
