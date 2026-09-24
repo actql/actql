@@ -67,6 +67,8 @@ priv enum BoundedSequencePhase {
   DisallowFirst
   DisallowNext
   PrepareAllowPattern
+  InitializeAllowPartials
+  InitializeRowMatches
   ScanAllowAdjacency
   AllowPattern
   ExtendAllowPattern
@@ -886,20 +888,16 @@ fn bounded_sequence_step(
       }
       PrepareAllowPattern => {
         if state.partials.is_empty() {
-          if !reserve_slots(state.workspace, state.pattern_count) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
-          }
-          state.partials = Array::makei(state.pattern_count, _ => [])
+          state.phase = InitializeAllowPartials
+          continue
         }
         if state.position == state.group_end {
           bounded_sequence_advance_group(state)
           continue
         }
         if state.row_matches.is_empty() {
-          if !reserve_slots(state.workspace, state.pattern_count) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
-          }
-          state.row_matches = Array::make(state.pattern_count, false)
+          state.phase = InitializeRowMatches
+          continue
         }
         if state.pattern == state.pattern_count {
           state.pattern = state.pattern_count - 1
@@ -918,6 +916,30 @@ fn bounded_sequence_step(
         }
         state.prior_index = 0
         state.phase = ScanAllowAdjacency
+      }
+      InitializeAllowPartials => {
+        if state.partials.length() == state.pattern_count {
+          state.phase = PrepareAllowPattern
+          continue
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        state.partials.push([])
+        used += 1
+        progress += 1
+      }
+      InitializeRowMatches => {
+        if state.row_matches.length() == state.pattern_count {
+          state.phase = PrepareAllowPattern
+          continue
+        }
+        if !reserve_slots(state.workspace, 1) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        state.row_matches.push(false)
+        used += 1
+        progress += 1
       }
       ScanAllowAdjacency => {
         let prior = state.partials[state.pattern - 1]

@@ -96,8 +96,13 @@ standard-Host timer cancellation fixtures. Removing any of these roles
 fails the resource gate. The existing exact/one-short work fixture measures
 its expected budget from the implementation itself, so it is not promoted
 to independent full-run work assurance. A separate empty-input fixture now
-uses 46 independently counted field-probe units at startup and rejects 45
-before execution, while preserving stop and cleanup. A separate five-row,
+uses 46 independently counted field-probe units in resumable preparation and
+rejects 45 during execution, while preserving stop and cleanup. Input and
+output name loading also advance within the requested quantum. The allow
+policy's pattern containers and row-match flags are constructed one entry
+per resume step. A 26-pattern fixture cancels after both phases have advanced
+and checks private scratch reclamation without revoking its producer read.
+A separate five-row,
 two-pattern fixture independently counts the 29-slot startup metadata and
 58-slot full-run workspace peak; exact and one-short limits preserve cleanup.
 Independent full-run work assurance remains open.

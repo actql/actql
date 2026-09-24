@@ -3696,6 +3696,13 @@
           "fixture": "bounded sequence stops during wide input-name initialization"
         },
         {
+          "role": "sequence_allow_state_quantum_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence initializes allow state one pattern per resume"
+        },
+        {
           "role": "sequence_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
