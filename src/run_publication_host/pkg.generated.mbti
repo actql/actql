@@ -20,6 +20,8 @@ pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int
 
 pub fn admit_prepared_client_publication_binding_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationBindingSetIssue]
 
+pub fn admit_prepared_client_publication_fact_entries(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationFactEntryIssue]
+
 pub fn admit_prepared_client_publication_limit_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationLimitSetIssue]
 
 pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array[String], Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationPlanFactIssue]
@@ -27,6 +29,8 @@ pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
+
+pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_limits(ClientPublicationPlanFacts) -> Array[String]
 
@@ -150,6 +154,14 @@ pub(all) enum ClientPublicationBindingSetIssue {
   MissingBinding
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientPublicationFactEntryIssue {
+  BudgetExceeded
+  CheckedFacts(ClientPublicationPlanFactIssue)
+  UnexpectedEntry
+  DuplicateEntry
+  MissingEntry
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationLimitIssue {
   MissingPublication
   Encoding
@@ -178,6 +190,7 @@ pub(all) enum ClientPublicationPlanFactIssue {
 pub struct ClientPublicationPlanFacts {
   limits : Array[String]
   bindings : Array[String]
+  entries : Array[String]
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)
