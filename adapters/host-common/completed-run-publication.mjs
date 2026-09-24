@@ -290,13 +290,52 @@ export async function storeCompletedRunResultSet(options) {
   const exported = [];
   try {
     const stored = await exportCompletedRunResultSet(options, exported);
-    completedResultOwners.set(stored, options.execution);
+    completedResultOwners.set(stored, {
+      execution: options.execution, control: options.control,
+      releaseComplete: false, releaseFlight: undefined,
+      cleanupFailure: undefined,
+    });
     return stored;
   } catch (error) {
     if (exported.length === 0 &&
         member(error, 'cleanupPending') !== true) throw error;
     await releasePreparedResults(exported, error, options?.control);
   }
+}
+
+// Release the unpublished physical payload owners. Schema semantic objects
+// have separate Store custody. Concurrent callers join one release flight;
+// failed physical cleanup retains its retry handle.
+export function releaseCompletedRunPreparedPayloads(storedResults, control) {
+  const owner = completedResultOwners.get(storedResults);
+  if (owner === undefined || owner.control !== control) {
+    fail('InvalidCompletedRunResultSetOwner');
+  }
+  if (owner.releaseComplete) return Promise.resolve(false);
+  if (owner.releaseFlight !== undefined) return owner.releaseFlight;
+  let flight;
+  flight = (async () => {
+    if (owner.cleanupFailure !== undefined) {
+      const status = await owner.cleanupFailure.cleanupHandle.retry();
+      if (status.pending) throw owner.cleanupFailure;
+    } else {
+      const released = new Error('CompletedRunResultSetReleased');
+      try {
+        await releasePreparedResults(storedResults.results, released, control);
+      } catch (error) {
+        if (error !== released) {
+          if (error.cleanupPending === true) owner.cleanupFailure = error;
+          throw error;
+        }
+      }
+    }
+    owner.releaseComplete = true;
+    return true;
+  })().finally(() => {
+    if (owner.releaseFlight === flight) owner.releaseFlight = undefined;
+  });
+  owner.releaseFlight = flight;
+  return flight;
 }
 
 // Bind an already retained Effectful computation to its exact private
@@ -315,7 +354,10 @@ export function issueCompletedEffectfulComputationEvidence(options) {
     receiptEvidence, captureEvidence, preview, plans, contractLimits,
   } = options;
   validateExecution(execution);
-  if (completedResultOwners.get(storedResults) !== execution ||
+  const owner = completedResultOwners.get(storedResults);
+  if (owner?.execution !== execution || owner.control !== control ||
+      owner.releaseComplete || owner.releaseFlight !== undefined ||
+      owner.cleanupFailure !== undefined ||
       !exactKeys(storedResults, ['results', 'definitions', 'artifacts']) ||
       !Array.isArray(storedResults.results) ||
       storedResults.results.length !== execution.resultInventory.length ||

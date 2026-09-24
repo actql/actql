@@ -24,6 +24,7 @@ import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
+  releaseCompletedRunPreparedPayloads,
   storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
@@ -838,8 +839,12 @@ test('admitted source-free Effect Run computes through the installed Host',
           previewInputs, [], [], 0, 1)),
       {code: 'MoonBitHostFailure'});
     } finally {
-      for (const result of storedResults?.results ?? []) {
-        await result.prepared.release();
+      if (storedResults !== undefined) {
+        const before = store.status();
+        await releaseCompletedRunPreparedPayloads(storedResults, control);
+        assert.equal(store.status().storedBytes,
+          before.storedBytes - storedResults.results[0].physical.bytes);
+        assert.equal(store.status().objectCount, before.objectCount - 1);
       }
       await store.close();
       await execution.close();
@@ -1269,8 +1274,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
       if (inputs !== undefined) {
         moon.clientProgramReleaseEffectInputs(inputs);
       }
-      for (const result of storedResults?.results ?? []) {
-        await result.prepared.release();
+      if (storedResults !== undefined) {
+        const before = store.status();
+        await releaseCompletedRunPreparedPayloads(storedResults, control);
+        assert.equal(store.status().storedBytes,
+          before.storedBytes - storedResults.results[0].physical.bytes);
+        assert.equal(store.status().objectCount, before.objectCount - 1);
       }
       await store.close();
       await execution.close();
