@@ -442,6 +442,32 @@ test('private evidence is encrypted, bound, and readable after restart',
       .objects[0].cid, prepared.physicalCid);
     await reopened.close();
 
+    let rejectConfirmationSync = false;
+    const durability = Object.freeze({
+      async syncDirectory(path) {
+        if (path === join(configuration.directory, 'physical-holdings') &&
+            rejectConfirmationSync) {
+          rejectConfirmationSync = false;
+          const error = new Error('injected private holding sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        const handle = await open(path, 'r');
+        try { await handle.sync(); }
+        finally { await handle.close(); }
+      },
+    });
+    const uncertain = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: Buffer.alloc(32, 7),
+    }, contractControl, durability);
+    t.after(async () => { await uncertain.close(); });
+    rejectConfirmationSync = true;
+    await assert.rejects(uncertain.confirmPrivateEvidence(binding),
+      code('EIO'));
+    assert.equal((await uncertain.confirmPrivateEvidence(binding))
+      .objects[0].cid, prepared.physicalCid);
+    await uncertain.close();
+
     const wrongKey = await openLocalPublicationStore({
       ...configuration, privateEvidenceKey: Buffer.alloc(32, 8),
     }, contractControl);
