@@ -122,6 +122,54 @@ test "ordinary values document prepares one named Effect-free result" {
   ).unwrap()
   assert_true(rows_binding != bytes_binding)
   assert_true(
+    admit_prepared_client_publication_plan_facts(
+      prepared,
+      [bytes_limit, rows_limit],
+      [bytes_binding, rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_publication_plan_facts(
+      prepared,
+      [rows_limit],
+      [bytes_binding, rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationPlanFactIssue::Limits(MissingLimit)),
+  )
+  assert_true(
+    admit_prepared_client_publication_plan_facts(
+      prepared,
+      [rows_limit, rows_limit],
+      [bytes_binding, rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationPlanFactIssue::Limits(DuplicateLimit)),
+  )
+  assert_true(
+    admit_prepared_client_publication_plan_facts(
+      prepared,
+      [rows_limit, bytes_limit],
+      [rows_binding],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationPlanFactIssue::Bindings(MissingBinding)),
+  )
+  assert_true(
     admit_prepared_client_publication_binding_set(
       prepared,
       [bytes_binding, rows_binding],
