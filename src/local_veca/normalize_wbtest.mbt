@@ -176,7 +176,7 @@ fn sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
 }
 
 ///|
-fn limits(workspace? : Int = 1000) -> @storage.Limits {
+fn limits(workspace? : Int = 1000, work? : Int = 1000) -> @storage.Limits {
   {
     max_input_records: 10,
     max_records: 10,
@@ -187,7 +187,7 @@ fn limits(workspace? : Int = 1000) -> @storage.Limits {
     max_value_nodes: 100,
     max_value_depth: 10,
     max_contract_work: 1000,
-    max_work: 1000,
+    max_work: work,
     max_workspace_slots: workspace,
   }
 }
@@ -377,6 +377,27 @@ test "normalize admits workspace before building record temporaries" {
 }
 
 ///|
+test "normalize accepts its exact temporary workspace" {
+  let producer = producer_owner()
+  let source = source_vectors(producer, Ref(true), "[3,4]")
+  let owner = consumer_owner(producer)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Two field tuples, two transient slots, and two vector components overlap.
+  let execution = start_normalize(
+    @bounded.control(),
+    sequence(owner),
+    0,
+    input,
+    limits(workspace=8),
+    2048L,
+    fn() { true },
+  ).unwrap()
+  let completed = finish(execution)
+  assert_true(@records.completed_available(completed))
+  assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
 test "normalize observes cancellation between component work units" {
   let producer = producer_owner()
   let source = source_vectors(producer, Ref(true), "[3,4]")
@@ -400,4 +421,69 @@ test "normalize observes cancellation between component work units" {
   )
   assert_true(normalize_stopped(execution))
   assert_eq(cleanup_normalize(execution), Ok(true))
+}
+
+///|
+test "normalize enforces cumulative control work across resumes" {
+  let producer = producer_owner()
+  let source = source_vectors(producer, Ref(true), "[3,4]")
+  let owner = consumer_owner(producer)
+  let zero_input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  assert_true(
+    start_normalize(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      zero_input,
+      limits(work=0),
+      2048L,
+      fn() { true },
+    )
+    is Err(WorkLimit),
+  )
+  // One begin, two field reads, two norm folds, one divisor, two component
+  // emissions, one record commit, and one finish are ten control units.
+  for (ceiling, accepted) in [(10, true), (9, false)] {
+    let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_normalize_with_control_work_limit(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      limits(),
+      2048L,
+      fn() { true },
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<16 {
+      if !terminal {
+        match advance_normalize(execution, 1).unwrap() {
+          Continue(work=next, ..) => {
+            assert_true(next >= charged && next - charged <= 1L)
+            charged = next
+          }
+          Complete(output, work=next, ..) => {
+            assert_true(accepted)
+            assert_eq(next - charged, 1L)
+            assert_true(@records.completed_available(output))
+            charged = next
+            terminal = true
+          }
+          Failed(WorkLimit, work=next, ..) => {
+            assert_false(accepted)
+            assert_eq(next, charged)
+            assert_true(normalize_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("normalize control-work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_eq(cleanup_normalize(execution), Ok(true))
+    assert_true(@records.producer_read_available(input))
+  }
 }

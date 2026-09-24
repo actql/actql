@@ -392,6 +392,7 @@ for (const [index, route] of routeEntries.entries()) {
       'moon:execution_relation': 'execution_relation',
       'moon:local_sga': 'local_sga',
       'moon:local_tea': 'local_tea',
+      'moon:local_veca': 'local_veca',
     }[item.suite];
     if (!suiteDirectory ||
       JSON.stringify(item.targets) !== JSON.stringify(['js', 'wasm', 'native']) ||
@@ -1162,6 +1163,22 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'SGA' && route.operation === 'subgraph' &&
     !boundaryRoles.has('subgraph_false_edge_work_workspace_exact_one_short')) {
     fail(`${label}: false-edge work/workspace fixture is missing`);
+  }
+  if (route.family === 'VecA' && route.operation === 'normalize_vectors') {
+    for (const role of [
+      'normalize_control_work_exact_one_short',
+      'normalize_workspace_exact',
+      'normalize_workspace_one_short',
+      'normalize_kernel_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+    if (!environmentRoles.has('normalize_host_in_flight_cancel') ||
+      pathAssurance.entrypoint === undefined) {
+      fail(`${label}: bounded Host cancellation assurance is missing`);
+    }
   }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
     for (const role of [

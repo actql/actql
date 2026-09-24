@@ -4,8 +4,8 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 31 have operation-specific
-boundary records, 10 have all four lifecycle roles, and 9 have exact and
+The current local resource gate maps 68 routes: 32 have operation-specific
+boundary records, 11 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
@@ -2186,6 +2186,14 @@ The affected portable suites pass 397 tests per target; the real Node Host,
 Workers, package-composition, format, and generated-fixture checks also pass.
 This closes `normalize_vectors`; the remaining VecA operations retain their
 separate variant and lifecycle gaps.
+The bounded normalization kernel now enforces a cumulative control-work
+ceiling across resumes. Its one-record, two-component fixture independently
+counts ten steps, accepts ten and rejects nine without publishing output;
+zero work fails before output allocation. An eight-slot temporary workspace
+completes, while seven slots fail before field collection. Kernel cancellation,
+cleanup, and the delivered standard-Host timer are bound to the production
+route. This establishes a fixed-shape resource boundary, not full work and
+workspace assurance for every dimension, schema, and output-value budget.
 
 At `ca6abe4f`, score queries resolve from both literal and bound parameter
 forms through the portable standard Host. The independent numeric and kernel
