@@ -66,3 +66,19 @@ export async function readAuthorizedEffectResponse({
     : read.call(ledger, ownedClaims[0]);
   return Object.freeze({stored, binding});
 }
+
+// Recovery owns the evidence-read sequence, while the provider supplies only
+// its interpretation of the already stored observation. No write authority,
+// credential use, or physical send is available on this path.
+export async function recoverProjectedEffectResponse({
+  projectStored,
+  ...readOptions
+}) {
+  if (typeof projectStored !== 'function') {
+    fail('InvalidEffectResponseProjection');
+  }
+  const {stored} = await readAuthorizedEffectResponse(readOptions);
+  return Object.freeze({
+    recovered: stored === undefined ? undefined : projectStored(stored),
+  });
+}
