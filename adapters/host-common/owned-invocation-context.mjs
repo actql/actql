@@ -63,3 +63,40 @@ export function ownInvocationContext({authorization, credential, limits,
     callbacks: Object.freeze({...callbacks}),
   });
 }
+
+// Providers select an operation and immutable request. The common boundary
+// assembles one scoped physical invocation without interpreting its outcome.
+export function invokeScopedCredentialOperation({
+  authorization,
+  credential,
+  callResource,
+  operation,
+  method,
+  path,
+  body,
+  maxRequestBytes,
+  maxResponseBytes,
+  signal,
+}) {
+  if (typeof callResource !== 'function' ||
+      typeof operation !== 'string' || operation.length === 0 ||
+      typeof method !== 'string' || typeof path !== 'string' ||
+      (body !== undefined && typeof body !== 'string')) fail();
+  const context = ownInvocationContext({
+    authorization, credential,
+    limits: {maxRequestBytes, maxResponseBytes},
+    callbacks: {callResource},
+  });
+  if (context.scope.operation !== operation) fail();
+  return context.callbacks.callResource({
+    ...context.credential,
+    ...context.authorization,
+    operations: new Map([[operation, Object.freeze({
+      method, path, ...(body === undefined ? {} : {body}),
+    })]]),
+    maxRequestBytes: context.limits.maxRequestBytes,
+    maxResponseBytes: context.limits.maxResponseBytes,
+    returnRejectedResponse: true,
+    signal,
+  });
+}

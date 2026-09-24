@@ -11,6 +11,7 @@ import {
   captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse,
 } from './effect-physical-dispatch.mjs';
+import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const authorityScopeCid = cid('a');
@@ -82,6 +83,41 @@ test('single raw response is durable before provider projection', async t => {
   assert.equal(retry.claimed, false);
   assert.equal(sends, 1);
 });
+
+test('shared evidence read binds authorization before stored response access',
+  async t => {
+    const {open, claim} = await fixture(t);
+    const ledger = open();
+    t.after(() => ledger.close());
+    const body = Buffer.from('{"success":true}');
+    await captureClaimedEffectResponse({
+      ledger, claim, requestCid: cid('f'),
+      execute: async () => ({observation: {
+        useCid: cid('4'), statusCode: 201, body,
+      }}),
+    });
+    const observed = await readAuthorizedEffectResponse({
+      ledger, claims: claim, commonMoon: moon,
+      expectedRequestCid: cid('f'), providerBinding: {orgId: 'org-a'},
+      authorizeEvidenceRead: binding => {
+        assert.equal(binding.logicalRequestScopeCid, ledger.scopeCid);
+        assert.equal(binding.canonicalRequestCid, cid('f'));
+        assert.equal(binding.orgId, 'org-a');
+        return true;
+      },
+    });
+    assert.deepEqual(observed.stored.responseBytes, body);
+    await assert.rejects(readAuthorizedEffectResponse({
+      ledger, claims: claim, commonMoon: moon,
+      expectedRequestCid: cid('f'),
+      authorizeEvidenceRead: () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    await assert.rejects(readAuthorizedEffectResponse({
+      ledger, claims: claim, commonMoon: moon,
+      expectedRequestCid: cid('1'),
+      authorizeEvidenceRead: () => true,
+    }), {code: 'ForeignEffectResponse'});
+  });
 
 test('collection raw response is durable before provider projection',
   async t => {
