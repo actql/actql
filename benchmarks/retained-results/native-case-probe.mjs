@@ -148,12 +148,31 @@ try {
     });
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);
+  assert(Number.isSafeInteger(result.execution_us) && result.execution_us >= 0,
+    'InvalidNativeExecutionInterval');
+  assert(Number.isSafeInteger(result.cleanup_us) && result.cleanup_us >= 0,
+    'InvalidNativeCleanupInterval');
+  for (const key of ['planning_work', 'attempts', 'transferred_bytes',
+    'peak_retention_bytes']) {
+    assert(Number.isSafeInteger(result.usage?.[key]) && result.usage[key] >= 0,
+      `InvalidNativeLedgerUsage:${key}`);
+  }
+  for (const key of ['guard_work', 'guard_bytes', 'guard_nodes',
+    'comparison_work', 'comparison_bytes', 'comparison_nodes',
+    'comparison_rows']) {
+    assert(Number.isSafeInteger(result.acquisition?.[key]) &&
+      result.acquisition[key] >= 0, `InvalidNativeAcquisitionUsage:${key}`);
+  }
+  assert.equal(result.acquisition.comparison_rows, fixture.rows);
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: finalTask}, (_, index) => index + 1));
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
     scope: registered ? 'registered-feasibility' : 'calibration-training',
-    elapsedMilliseconds, taskIntervals, selections, result,
+    elapsedMilliseconds,
+    executionMilliseconds: result.execution_us / 1000,
+    cleanupMilliseconds: result.cleanup_us / 1000,
+    taskIntervals, selections, result,
     selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
 } catch (error) {

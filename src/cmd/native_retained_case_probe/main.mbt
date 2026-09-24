@@ -168,6 +168,7 @@ fn execute_timed_native_strategy_run(
 
 ///|
 fn main {
+  let execution_start = @bench.monotonic_clock_start()
   let command = @argparse.Command("actql-native-retained-case-probe", options=[
     @argparse.OptionArg("application-root", required=true),
     @argparse.OptionArg("database", required=true),
@@ -282,8 +283,9 @@ fn main {
     database,
   ).unwrap()
   println("phase:acquisition-execute")
-  match @host.execute_native_acquisition_runtime(acquisition) {
-    Ok(_) => ()
+  let acquisition_observation = match
+    @host.execute_native_acquisition_runtime(acquisition) {
+    Ok(value) => value
     Err(failure) =>
       match failure.primary {
         @host.RuntimeState => abort("acquisition runtime state")
@@ -327,6 +329,12 @@ fn main {
           }
       }
   }
+  let (guard_work, guard_bytes, guard_nodes) = @duckdb_acquisition.duckdb_native_observation_measurement_usage(
+    acquisition_observation,
+  )
+  let comparison = @duckdb_acquisition.duckdb_native_observation_demand_usage(
+    acquisition_observation,
+  )
   println("phase:acquisition-output")
   let output = @host.native_acquisition_runtime_output(acquisition).unwrap()
   println("phase:source")
@@ -504,12 +512,60 @@ fn main {
       }
     }
   }
-  println(
-    "{\"task_count\":" + task.to_string() + ",\"rows_cid\":\"" + cid + "\"}",
-  )
+  let execution_us = @bench.monotonic_clock_end(execution_start).to_int64()
+  if execution_us < 0L {
+    abort("invalid execution interval")
+  }
+  let cleanup_start = @bench.monotonic_clock_start()
   if !@host.close_native_standard_strategy_run(run).unwrap() {
     abort("native strategy cleanup unconfirmed")
   }
   @host.close_native_acquisition_runtime(acquisition)
   @strategy.stop_captured_dag(captured)
+  let usage = @resources.ledger_usage(ledger)
+  if usage.uncertain_transfer_bytes != 0L ||
+    usage.reserved_transfer_bytes != 0L ||
+    usage.held_bytes != 0L ||
+    usage.reserved_retention_bytes != 0L ||
+    usage.reserved_execution_bytes != 0L {
+    abort("native strategy ledger has unresolved capacity")
+  }
+  let cleanup_us = @bench.monotonic_clock_end(cleanup_start).to_int64()
+  if cleanup_us < 0L {
+    abort("invalid cleanup interval")
+  }
+  println(
+    "{\"task_count\":" +
+    task.to_string() +
+    ",\"rows_cid\":\"" +
+    cid +
+    "\",\"execution_us\":" +
+    execution_us.to_string() +
+    ",\"cleanup_us\":" +
+    cleanup_us.to_string() +
+    ",\"usage\":{\"planning_work\":" +
+    usage.planning_work.to_string() +
+    ",\"attempts\":" +
+    usage.attempts.to_string() +
+    ",\"transferred_bytes\":" +
+    usage.transferred_bytes.to_string() +
+    ",\"peak_retention_bytes\":" +
+    usage.peak_retention_bytes.to_string() +
+    "},\"acquisition\":{\"guard_work\":" +
+    guard_work.to_string() +
+    ",\"guard_bytes\":" +
+    guard_bytes.to_string() +
+    ",\"guard_nodes\":" +
+    guard_nodes.to_string() +
+    ",\"comparison_work\":" +
+    comparison.physical_work.to_string() +
+    ",\"comparison_bytes\":" +
+    comparison.physical_bytes.to_string() +
+    ",\"comparison_nodes\":" +
+    comparison.physical_nodes.to_string() +
+    ",\"comparison_rows\":" +
+    comparison.rows.to_string() +
+    "}" +
+    "}",
+  )
 }

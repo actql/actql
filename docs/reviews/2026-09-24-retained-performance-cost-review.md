@@ -479,3 +479,11 @@ acceptance sample. Its monotonic microsecond observation is rounded up to
 millisecond candidate rates; formal timing still uses the registered
 parent-process boundary. Neither profile can replace the other merely because
 both use the same checked Program and Result oracle.
+
+The Native probe also reports its own execution and confirmed cleanup
+intervals, the terminal common ledger usage, and acquisition guard and
+comparison charges read from the completed observation. These are observed
+product facts rather than quantities inferred from the fixture. Per-task
+compute charges, receipt metadata parity, and the independent Comparator
+admission still need explicit connection before a Native sample can enter the
+registered paired assessment.
