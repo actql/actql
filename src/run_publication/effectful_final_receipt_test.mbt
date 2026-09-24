@@ -517,6 +517,150 @@ test "final Effectful Receipt references one exact prior chain" {
 }
 
 ///|
+test "Effectful publication index binds the final Receipt, not computation" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let captured = final_test_captured(chain)
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  let final_wire = final_test_receipt_wire(
+    chain.receipt,
+    preview,
+    set_cid,
+    captured,
+  )
+  let final_receipt = admit_publication_contract(
+    "run_receipt", final_wire, 65536, 4096, 32,
+  ).unwrap()
+  let request = issue_publication_request(
+    chain.run,
+    [chain.definition],
+    "tenant-a",
+    ordering_test_cid("1"),
+    ordering_test_cid("2"),
+    ordering_test_cid("3"),
+    "2026-09-18T00:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let attempt = issue_publication_attempt(
+    request,
+    chain.run,
+    "effect-attempt",
+    ordering_test_cid("4"),
+    None,
+    "2026-09-18T00:00:01.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let binding = seal_publication_contract(
+    "durable_result_binding",
+    "{\"version\":\"actql-durable-result-binding/0.1\"," +
+    "\"run_definition_cid\":\"" +
+    publication_contract_identity(chain.run) +
+    "\",\"result_definition_cid\":\"" +
+    publication_contract_identity(chain.definition) +
+    "\",\"invocation_cid\":\"" +
+    publication_contract_identity(chain.invocation) +
+    "\",\"logical_result_cid\":\"" +
+    ordering_test_cid("5") +
+    "\",\"result_schema_cid\":\"" +
+    ordering_test_cid("6") +
+    "\",\"ordering_evidence_cid\":\"" +
+    ordering_test_cid("7") +
+    "\",\"codec_contract_cid\":\"" +
+    ordering_test_cid("8") +
+    "\",\"result_fields\":[\"answer\"]," +
+    "\"material_generation_cid\":\"" +
+    ordering_test_cid("9") +
+    "\",\"store_authority_cid\":\"" +
+    ordering_test_cid("a") +
+    "\",\"effective_retention_policy_cid\":\"" +
+    ordering_test_cid("b") +
+    "\",\"row_count\":0,\"byte_count\":0," +
+    "\"physical_sha256\":\"" +
+    "0".repeat(64) +
+    "\"}",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let index = issue_public_index_entry(
+    chain.run,
+    chain.invocation,
+    chain.manifest,
+    final_receipt,
+    captured,
+    [binding],
+    request,
+    attempt,
+    "2026-09-18T00:00:02.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    validate_effectful_publication_commit(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      request,
+      attempt,
+      index,
+      65536,
+      4096,
+      32,
+    )
+    is Ok(_),
+  )
+  let wrong_index = issue_public_index_entry(
+    chain.run,
+    chain.invocation,
+    chain.manifest,
+    chain.receipt,
+    captured,
+    [binding],
+    request,
+    attempt,
+    "2026-09-18T00:00:02.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    validate_effectful_publication_commit(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      preview,
+      set_wire,
+      member_wires,
+      final_wire,
+      request,
+      attempt,
+      wrong_index,
+      65536,
+      4096,
+      32,
+    )
+    is Err(Index(CommitReferenceMismatch("index.run_receipt_cid"))),
+  )
+}
+
+///|
 test "final Effectful Receipt rejects foreign set and Preview references" {
   let chain = captured_run_test_chain()
   let preview = final_test_preview(chain)

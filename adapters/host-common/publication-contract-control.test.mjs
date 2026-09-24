@@ -1102,6 +1102,35 @@ test('portable control validates Receipt and Captured Run references',
     request,
     attempt,
   }, '2026-09-18T00:00:02.000Z', limits);
+  const effectfulIndex = control.issuePublicIndexEntry({
+    runDefinition: run,
+    invocation: invoked,
+    manifest,
+    receipt: finalReceipt,
+    capturedRun: effectfulCaptured,
+    durableBindings: [binding],
+    request,
+    attempt,
+  }, '2026-09-18T00:00:02.000Z', limits);
+  const effectfulEvidence = {
+    ...finalChain,
+    derivations: [derivation],
+    orderings: [ordering],
+    retentions: [retention],
+    durableBindings: [binding],
+  };
+  const effectfulReceipts = {setWire: setReceipt.wire,
+    memberWires: [memberReceipt.wire], finalWire: finalReceipt.wire};
+  assert.equal(control.effectfulCommitValid(effectfulEvidence, preview,
+    effectfulReceipts, request, attempt, effectfulIndex, limits), true);
+  assert.equal(control.effectfulCommitValid(effectfulEvidence, preview,
+    effectfulReceipts, request, attempt, indexEntry, limits), false);
+  assert.equal(control.effectfulCommitValid({...effectfulEvidence,
+    derivations: []}, preview, effectfulReceipts, request, attempt,
+  effectfulIndex, limits), false);
+  assert.throws(() => control.effectfulCommitValid(effectfulEvidence, {},
+    effectfulReceipts, request, attempt, effectfulIndex, limits),
+  {name: 'TypeError', message: 'Foreign Effect computation Preview'});
   assert.equal(control.effectFreeChainValid(
     run,
     invoked,

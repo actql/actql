@@ -2305,6 +2305,36 @@ function publicationControl(moon) {
         limits.maxDepth,
       );
     },
+    effectfulCommitValid(chain, preview, receipts, request, attempt,
+      indexEntry, limits) {
+      issuanceLimits(limits, 'Effectful publication commit');
+      if (chain === null || typeof chain !== 'object' ||
+          !['definitions', 'artifacts', 'derivations', 'orderings',
+            'retentions', 'durableBindings'].every(name =>
+            Array.isArray(chain[name])) ||
+          receipts === null || typeof receipts !== 'object' ||
+          typeof receipts.setWire !== 'string' ||
+          typeof receipts.finalWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid Effectful publication commit');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return moon.strategyEffectfulPublicationCommitValid(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        chain.derivations.map(token), chain.orderings.map(token),
+        chain.retentions.map(token), chain.durableBindings.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview, receipts.setWire,
+        receipts.memberWires, receipts.finalWire, token(request),
+        token(attempt), token(indexEntry), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth,
+      );
+    },
     issueResultArtifact(exportHandle, invocation, retention, limits) {
       issuanceLimits(limits, 'Result Artifact');
       return inspect(checked(

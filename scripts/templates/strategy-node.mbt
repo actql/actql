@@ -1568,6 +1568,42 @@ pub fn strategy_effect_free_publication_commit_valid(
 }
 
 ///|
+/// The final Effectful Receipt, not its computation Receipt, is indexed.
+/// The Host must separately prove checked kind and current apply authority.
+#export_name("strategyEffectfulPublicationCommitValid")
+pub fn strategy_effectful_publication_commit_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations,
+    orderings, retentions, durable_bindings, manifest, computation_receipt,
+    captured_run, preview, set_receipt_wire, member_receipt_wires,
+    final_receipt_wire, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth,
+  ) is Ok(_)
+}
+
+///|
 #export_name("strategyDeliveryRecordTransition")
 pub fn strategy_delivery_record_transition(
   previous : @publication.PublicationContract?,
