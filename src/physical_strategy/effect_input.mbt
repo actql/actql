@@ -85,6 +85,38 @@ pub fn captured_effect_input_output(
 }
 
 ///|
+/// Prepare the authored Result projection and order from this exact retained
+/// Effect source. The existing bounded Result exporter owns the row traversal;
+/// this port does not materialize a second table or accept caller rows. The
+/// Effect input pin must remain live until the export has finished or cancelled.
+/// The resulting bytes are input evidence, not an Effect Plan or apply permit.
+pub fn start_captured_effect_input_export(
+  value : CapturedEffectInput,
+  result_view : @execution.CompletedResultViewLimits,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @execution.start_completed_result_relation_export(
+    captured_effect_input_output(value),
+    value.source.occurrence,
+    result_view,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  )
+}
+
+///|
 /// End the Effect consumer's retention once its Preview input has been safely
 /// captured or abandoned. This does not acknowledge any mutation outcome.
 pub fn release_captured_effect_input(value : CapturedEffectInput) -> Bool {
