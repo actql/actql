@@ -72,3 +72,13 @@ At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
 apply E2E or same-SHA Linux CI.
+
+The next Plan sub-inventory now issues an opaque proof only after the checked
+Result cursor and its completed export receipt both finish. The private
+Preview, exact member, and live input pin must still match when the proof is
+used. An inventory check requires one distinct proof for each Plan-bearing
+member and rejects missing, duplicated, foreign, and released proofs. This
+does not cover members without a Plan, current guards, whole-set write
+footprints, or apply authority. The proof constructor remains inside the
+product bridge rather than the generic row comparator, because arbitrary
+rows supplied to that comparator do not prove Result provenance.
