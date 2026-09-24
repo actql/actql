@@ -7,6 +7,7 @@ const fixture = retainedCase(workloads[0], 'narrow', 1000);
 const estimates = Object.freeze({trainingCaseId: retainedCase(workloads[0],
   'narrow', 100).id, targetCaseId: fixture.id,
 estimateSource: `sha256:${'a'.repeat(64)}`,
+localEligible: true,
 localTaskMilliseconds: ['12', '3', '4'],
 nativeTaskMilliseconds: ['18', '9', '8']});
 const calibration = Object.freeze({verified: true,
@@ -19,7 +20,7 @@ function sample() {
     status: 'completed', comparator: 'retained-actql', caseId: fixture.id,
     expectedRowsCid: fixture.identity().rowsCid,
     rows: fixture.identity().rows,
-    selection: {resident: true, nativeMilliseconds: '18',
+    selection: {resident: true, localEligible: true, nativeMilliseconds: '18',
       estimateSource: estimates.estimateSource,
       localTaskMilliseconds: [...estimates.localTaskMilliseconds],
       nativeTaskMilliseconds: [...estimates.nativeTaskMilliseconds]},

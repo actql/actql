@@ -1,6 +1,7 @@
 ///|
 pub(all) struct LocalEstimateSettings {
   schedules : Array[@cost.RateSchedule]
+  eligible : Array[Bool]
   max_work : Int
 }
 
@@ -13,6 +14,7 @@ pub fn prepare_local_estimate_settings(
     installed,
     settings.schedules,
     settings.max_work,
+    eligible=settings.eligible,
   )
 }
 
@@ -25,6 +27,7 @@ struct LocalEstimateModule {
 ///|
 priv struct LocalEstimateConfiguration {
   schedules : Array[@cost.RateSchedule]
+  eligible : Array[Bool]
   max_work : Int
 }
 
@@ -40,15 +43,24 @@ pub fn prepare_local_estimate_module(
   installed : LocalDispatchModule,
   schedules : Array[@cost.RateSchedule],
   max_work : Int,
+  eligible? : Array[Bool] = [],
 ) -> Result[LocalEstimateModule, LocalEstimateIssue] {
   if max_work < 0 ||
     schedules.length() > max_work ||
+    (!eligible.is_empty() && eligible.length() != schedules.length()) ||
     schedules.length() !=
     @strategy.graph_task_count(@strategy.captured_dag_graph(installed.run)) - 1 {
     return Err(InvalidConfiguration)
   }
   installed.policy_sealed = true
-  Ok({ installed, configuration: { schedules: schedules.copy(), max_work, }, })
+  Ok({
+    installed,
+    configuration: {
+      schedules: schedules.copy(),
+      eligible: eligible.copy(),
+      max_work,
+    },
+  })
 }
 
 ///|
@@ -74,6 +86,9 @@ fn estimate_local_configuration(
 ) -> Result[Array[@strategy.TaskOffer], LocalEstimateIssue] {
   guard task > 0 && configuration.schedules.get(task - 1) is Some(schedule) else {
     return Err(InvalidConfiguration)
+  }
+  if configuration.eligible.get(task - 1) is Some(false) {
+    return Ok([])
   }
   if local_dispatch_rejection(installed, task) is Some(_) &&
     !@local.local_module_managed_sequence_supported(
@@ -143,6 +158,9 @@ fn local_managed_estimate_lines(
     ])
   }
   guard configuration.schedules.get(task - 1) is Some(schedule) else {
+    return Err(InvalidConfiguration)
+  }
+  if configuration.eligible.get(task - 1) is Some(false) {
     return Err(InvalidConfiguration)
   }
   let mut rows = 0L

@@ -4,6 +4,10 @@ pub fn local_dispatch_rejection(
   installed : LocalDispatchModule,
   task : Int,
 ) -> String? {
+  if installed.estimate_configuration is Some(configuration) &&
+    configuration.eligible.get(task - 1) is Some(false) {
+    return Some("policy_ineligible")
+  }
   let graph = @strategy.captured_dag_graph(installed.run)
   guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
     return Some("invalid_task")

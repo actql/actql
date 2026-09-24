@@ -51,7 +51,7 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, dataProfile, signal }, observer) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal }, observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
@@ -65,7 +65,8 @@ export async function runExample({ database, environment, environmentCid, progra
     adoptedText, query, evidence, receipts, retainedOutput,
     acquisitionRetainedOutput, managedOutput,
     retainedWorkMilliseconds, localImportWorkMilliseconds,
-    localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds, dataProfile});
+    localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds,
+    localEligible, dataProfile});
   const opened = await plan.open(signal);
   let execution;
   try {
@@ -94,7 +95,7 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, dataProfile}, resourceLimits) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile}, resourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -144,6 +145,12 @@ export async function prepareExampleText({database, environmentCid, programText,
     throw new Error('Invalid local task estimates');
   }
   const localTaskEstimates = Object.freeze(Array.from(localTaskMilliseconds ?? []));
+  if (localEligible !== undefined && typeof localEligible !== 'boolean') {
+    throw new Error('Invalid local candidate eligibility');
+  }
+  if (localEligible === false && nativeTaskMilliseconds === undefined) {
+    throw new Error('Local exclusion requires task estimates');
+  }
   if (localTaskEstimates.some(value => typeof value !== 'string' || !/^\d{1,18}$/.test(value))) {
     throw new Error('Invalid local task estimates');
   }
@@ -273,11 +280,11 @@ export async function prepareExampleText({database, environmentCid, programText,
           BigInt(retainedWorkMilliseconds), resident)
         : retained
         ? localExportWorkMilliseconds !== undefined
-          ? localTaskMilliseconds !== undefined
+          ? localTaskMilliseconds !== undefined || localEligible === false
             ? app.applicationRetainedTaskEstimateDispatch(prepared, graph, BigInt(nativeMilliseconds),
             BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
             BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds),
-            localTaskEstimates.map(BigInt), taskEstimates.map(BigInt), resident)
+            localTaskEstimates.map(BigInt), taskEstimates.map(BigInt), localEligible !== false, resident)
             : app.applicationRetainedLocalDispatch(prepared, graph, BigInt(nativeMilliseconds),
             BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
             BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds), taskEstimates.map(BigInt), resident)

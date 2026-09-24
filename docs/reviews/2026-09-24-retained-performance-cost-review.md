@@ -188,11 +188,22 @@ forced Local candidate instead failed before completing its first task. An
 instrumented scratch run found
 `LocalDispatchIssue.Preparation(Materializing(Candidate(Execution(Rows(0,
 RowLimit)))))`; the 100-row training candidate also failed. This identifies
-the first Local sequence operation and the registered
-`rows * 2048` cumulative text ceiling as the next accounting boundary to
-inspect. It does not yet prove whether the charge is a duplicate obligation
-or a genuinely ineligible Local candidate. The instrumented diagnostic was
-removed; the registered ceiling and matrix remain unchanged.
+the first Local sequence operation. The Local output budget is cumulative
+across operations in a task. In this registered program, both `filter` and
+`select` preserve every retained-reuse row, and each materialized output
+charges the 1,024-byte payload plus `id` and `payload` field names. The lower
+bound is therefore `2 * rows * (1024 + 2 + 7) = 2066 * rows` text bytes,
+above the unchanged `2048 * rows` ceiling. This is a genuine Local
+ineligibility under the registered limit, not a slow Local timing or a physical
+copy charge. The instrumented diagnostic was removed.
+
+The calibration profile now records this exact eligibility proof and leaves
+Local timing absent for the retained-reuse text cases. The standard Host omits
+the Local offer for those cases while still measuring and selecting DuckDB.
+The profile admission recomputes the proof for training and held-out cases;
+it rejects a fabricated Local rate or a mismatched eligibility claim. Other
+registered cases still require measured Local and DuckDB training. This is a
+candidate-selection correction, not a performance result.
 
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and

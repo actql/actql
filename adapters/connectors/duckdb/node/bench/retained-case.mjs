@@ -70,7 +70,10 @@ try {
   const report = await runRetainedComparator(fixture, contracts, resolve(database), resolve(directory),
     {resident: true,
       nativeMilliseconds: estimates?.nativeTaskMilliseconds[0] ?? nativeMilliseconds,
-      ...(estimates ? {localTaskMilliseconds: estimates.localTaskMilliseconds,
+      ...(estimates ? {localEligible: estimates.localEligible,
+        ...(estimates.localEligible ? {
+          localTaskMilliseconds: estimates.localTaskMilliseconds,
+        } : {}),
         nativeTaskMilliseconds: estimates.nativeTaskMilliseconds,
         estimateSource: estimates.estimateSource} : {})});
   if (calibration && await fileHash(resolve(database)) !== calibration.targetSourceSha256) {

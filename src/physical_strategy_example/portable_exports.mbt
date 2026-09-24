@@ -269,10 +269,11 @@ pub fn application_retained_task_estimate_dispatch(
   local_export_ms : Int64,
   local_task_ms : Array[Int64],
   native_task_ms : Array[Int64],
+  local_eligible : Bool,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   core_application_retained_task_estimate_dispatch(
     app, run, native_fixed_ms, file_bytes, file_work_ms, local_import_ms, local_export_ms,
-    local_task_ms, native_task_ms, resident,
+    local_task_ms, native_task_ms, local_eligible, resident,
   )
 }

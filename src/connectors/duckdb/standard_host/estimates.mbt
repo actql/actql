@@ -13,11 +13,13 @@ pub fn configure_dispatch_estimates(
   host : StrategyHostDispatch,
   profiles : Array[DispatchEstimateProfile],
   limits : @strategy.SearchLimits,
+  local_eligible? : Array[Bool] = [],
 ) -> Result[Unit, DispatchIssue] {
   if @host_driver.compute_host_has_estimates(host.runtime) ||
     @host_driver.dispatch_driver_pending(host.driver) ||
     profiles.length() !=
     @strategy.graph_task_count(@strategy.captured_dag_graph(host.run)) - 1 ||
+    (!local_eligible.is_empty() && local_eligible.length() != profiles.length()) ||
     limits.max_work < 0 ||
     profiles.length() > limits.max_offers / 2 ||
     limits.max_offers < 0 ||
@@ -92,6 +94,7 @@ pub fn configure_dispatch_estimates(
   let local_policy = match
     @builtin.prepare_local_estimate_policy(host.modules, {
       schedules: local_schedules,
+      eligible: local_eligible,
       max_work: limits.max_work,
     }) {
     Ok(value) => value

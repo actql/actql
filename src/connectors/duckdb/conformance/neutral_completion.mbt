@@ -280,6 +280,7 @@ fn strategy_fixture_duckdb_only_impl(
     ).unwrap()
     let local_policy = @builtin.prepare_local_estimate_policy(modules, {
       schedules: Array::make(sequences.length(), local_schedule),
+      eligible: [],
       max_work: 1000,
     }).unwrap()
     @builtin.install_configured_estimate_policy(local_policy).unwrap()

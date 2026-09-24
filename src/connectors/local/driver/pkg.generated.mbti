@@ -54,7 +54,7 @@ pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy.Strat
 
 pub fn prepare_local_dispatch_module(@physical_host.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
-pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int) -> Result[LocalEstimateModule, LocalEstimateIssue]
+pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int, eligible? : Array[Bool]) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
 pub fn prepare_local_estimate_settings(LocalDispatchModule, LocalEstimateSettings) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
@@ -114,6 +114,7 @@ type LocalEstimateModule
 
 pub(all) struct LocalEstimateSettings {
   schedules : Array[@physical_cost.RateSchedule]
+  eligible : Array[Bool]
   max_work : Int
 }
 

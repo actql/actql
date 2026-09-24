@@ -39,7 +39,8 @@ export async function closeRetainedSample(result, finalTask) {
 export async function runRetainedComparator(fixture, contracts, database, directory, options = {}) {
   assert(options && typeof options === 'object' && !Array.isArray(options), 'InvalidComparatorOptions');
   assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds',
-    'localTaskMilliseconds', 'nativeTaskMilliseconds', 'estimateSource'].includes(key)),
+    'localTaskMilliseconds', 'nativeTaskMilliseconds', 'localEligible',
+    'estimateSource'].includes(key)),
     'UnknownComparatorOption');
   assert(options.localTaskMilliseconds === undefined ||
     Array.isArray(options.localTaskMilliseconds), 'InvalidTaskEstimates');
@@ -53,6 +54,8 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       localTaskMilliseconds: Object.freeze([...options.localTaskMilliseconds])}),
     ...(options.nativeTaskMilliseconds === undefined ? {} : {
       nativeTaskMilliseconds: Object.freeze([...options.nativeTaskMilliseconds])}),
+    ...(options.localEligible === undefined ? {} : {
+      localEligible: options.localEligible}),
     ...(options.estimateSource === undefined ? {} : {estimateSource: options.estimateSource})});
   assert.equal(typeof selection.resident, 'boolean', 'InvalidResidentSelection');
   assert(typeof selection.nativeMilliseconds === 'string' &&
@@ -60,20 +63,35 @@ export async function runRetainedComparator(fixture, contracts, database, direct
     BigInt(selection.nativeMilliseconds) <= 2147483647n, 'InvalidNativeEstimate');
   const config = managedCaseConfiguration(fixture, contracts, database, directory);
   const taskRates = [selection.localTaskMilliseconds, selection.nativeTaskMilliseconds];
+  assert(selection.localEligible === undefined ||
+    typeof selection.localEligible === 'boolean', 'InvalidLocalEligibility');
+  assert(selection.localEligible !== false || taskRates[0] === undefined,
+    'IneligibleLocalCannotHaveMeasuredRates');
   assert(taskRates.every(value => value === undefined) ||
-    taskRates.every(value => Array.isArray(value) && value.length === config.finalTask &&
+    (selection.localEligible === false ? taskRates[0] === undefined &&
+      taskRates[1] !== undefined : taskRates.every(value => value !== undefined)) &&
+    taskRates.filter(value => value !== undefined).every(value =>
+      Array.isArray(value) && value.length === config.finalTask &&
       value.every(item => typeof item === 'string' && /^(0|[1-9][0-9]*)$/.test(item) &&
         BigInt(item) <= 2147483647n)), 'InvalidTaskEstimates');
   assert(taskRates[0] === undefined ||
     typeof selection.estimateSource === 'string' &&
       /^sha256:[0-9a-f]{64}$/.test(selection.estimateSource),
   'MissingEstimateEvidence');
-  assert(taskRates[0] !== undefined || selection.estimateSource === undefined,
+  assert(taskRates[0] !== undefined || selection.localEligible === false ||
+    selection.estimateSource === undefined,
     'UnusedEstimateEvidence');
+  assert(selection.localEligible !== false ||
+    typeof selection.estimateSource === 'string' &&
+      /^sha256:[0-9a-f]{64}$/.test(selection.estimateSource),
+  'MissingEligibilityEvidence');
   const input = Object.freeze({...config.input, resident: selection.resident,
     nativeMilliseconds: selection.nativeMilliseconds,
-    ...(taskRates[0] === undefined ? {} : {
-      localTaskMilliseconds: taskRates[0], nativeTaskMilliseconds: taskRates[1]})});
+    ...(taskRates[1] === undefined ? {} : {
+      ...(taskRates[0] === undefined ? {} : {localTaskMilliseconds: taskRates[0]}),
+      nativeTaskMilliseconds: taskRates[1]}),
+    ...(selection.localEligible === undefined ? {} : {
+      localEligible: selection.localEligible})});
   const expected = fixture.identity(); // Independent oracle, not timed product work.
   const memory = sampleControllerMemory();
   let result, memoryReport, elapsed, cleanupMs, report;

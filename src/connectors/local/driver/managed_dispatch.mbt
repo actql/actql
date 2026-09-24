@@ -194,6 +194,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     installed.import_policy is Some((imports, _)) else {
     return Ok(None)
   }
+  if installed.estimate_configuration is Some(configuration) &&
+    configuration.eligible.get(task - 1) is Some(false) {
+    return Ok(None)
+  }
   let relation_inputs = []
   let provider_inputs = []
   let completion_inputs = []

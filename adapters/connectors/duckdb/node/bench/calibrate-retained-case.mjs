@@ -15,6 +15,8 @@ import {managedCaseConfiguration} from
   '../../../../../benchmarks/retained-results/managed-configuration.mjs';
 import {admitRetainedEstimateProfile} from
   '../../../../../benchmarks/retained-results/estimate-profile.mjs';
+import {registeredLocalEligibility} from
+  '../../../../../benchmarks/retained-results/candidate-eligibility.mjs';
 import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 const run = promisify(execFile);
@@ -27,6 +29,11 @@ if (!workload || !layout || !/^(0|[1-9][0-9]*)$/.test(rowsText ?? '') ||
 const fixture = retainedCase(workload, layout, Number(rowsText));
 const heldOut = heldOutRowsText === undefined ? fixture :
   retainedCase(workload, layout, Number(heldOutRowsText));
+const localEligibility = registeredLocalEligibility(fixture);
+const targetLocalEligibility = registeredLocalEligibility(heldOut);
+if (localEligibility.eligible !== targetLocalEligibility.eligible) {
+  throw new TypeError('CalibrationEligibilityMismatch');
+}
 if (heldOutRowsText !== undefined && heldOut.id === fixture.id) {
   throw new TypeError('CalibrationRequiresDistinctHeldOutCase');
 }
@@ -80,6 +87,7 @@ const plan = candidate => ({
   nativeMilliseconds: candidate === 'duckdb' ? '1' : expensive,
   localTaskMilliseconds: Array(taskCount).fill(candidate === 'local' ? '1' : expensive),
   nativeTaskMilliseconds: Array(taskCount).fill(candidate === 'duckdb' ? '1' : expensive),
+  localEligible: localEligibility.eligible,
   estimateSource: `sha256:${sha256(`calibration:${candidate}:${fixture.id}:${revision}`)}`,
 });
 async function runTrainingCandidate(candidate, round, selectedFixture = fixture,
@@ -181,7 +189,9 @@ const observations = [];
 const expectedCid = fixture.identity().rowsCid;
 try {
   for (let round = 0; round < 3; round++) {
-    for (const candidate of round % 2 === 0 ? ['local', 'duckdb'] : ['duckdb', 'local']) {
+    for (const candidate of localEligibility.eligible
+      ? round % 2 === 0 ? ['local', 'duckdb'] : ['duckdb', 'local']
+      : ['duckdb']) {
       await unchanged();
       const observation = await runTrainingCandidate(candidate, round);
       assert.equal(await fileHash(database), sourceSha256,
@@ -206,7 +216,10 @@ try {
     sourceDefinitionSha256: sha256(fixture.createSourceSql),
     programSha256: sha256(JSON.stringify(fixture.program())),
     expectedRowsCid: expectedCid, runtime: process.version,
-    method: 'three alternating forced-choice training rounds per registered case; median task interval rounded up to milliseconds',
+    localEligibility,
+    method: localEligibility.eligible
+      ? 'three alternating forced-choice training rounds per registered case; median task interval rounded up to milliseconds'
+      : 'three forced DuckDB rounds; Local excluded by registered output text lower bound',
     acceptanceEligible: false, observations};
   const trainingBytes = serialize(training);
   const trainingSha256 = sha256(trainingBytes);
@@ -218,7 +231,8 @@ try {
     targetSourceDefinitionSha256: sha256(heldOut.createSourceSql),
     trainingProgramSha256: training.programSha256,
     targetProgramSha256: sha256(JSON.stringify(heldOut.program())),
-    localTaskMilliseconds: rates('local'),
+    localEligibility: targetLocalEligibility,
+    localTaskMilliseconds: localEligibility.eligible ? rates('local') : null,
     nativeTaskMilliseconds: rates('duckdb'),
     acceptanceEligible: false,
     scope: 'measured training profile requiring held-out selection and obligation admission'};
@@ -231,8 +245,11 @@ try {
   const ordinary = await runTrainingCandidate('ordinary', 3, heldOut, heldOutDatabase, {
     resident: true,
     nativeMilliseconds: '1',
-    localTaskMilliseconds: admitted?.localTaskMilliseconds ?? profile.localTaskMilliseconds,
+    ...(localEligibility.eligible ? {
+      localTaskMilliseconds: admitted?.localTaskMilliseconds ?? profile.localTaskMilliseconds,
+    } : {}),
     nativeTaskMilliseconds: admitted?.nativeTaskMilliseconds ?? profile.nativeTaskMilliseconds,
+    localEligible: targetLocalEligibility.eligible,
     estimateSource: admitted?.estimateSource ?? `sha256:${trainingSha256}`,
   });
   assert.equal(await fileHash(heldOutDatabase), heldOutSourceSha256,

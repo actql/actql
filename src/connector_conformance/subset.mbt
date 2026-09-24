@@ -150,6 +150,7 @@ pub fn configure_subset(
     ).unwrap()
     let policy = @builtin.prepare_local_estimate_policy(modules, {
       schedules: Array::make(sequences.length(), schedule),
+      eligible: [],
       max_work: 1000,
     }).unwrap()
     @builtin.install_configured_estimate_policy(policy).unwrap()

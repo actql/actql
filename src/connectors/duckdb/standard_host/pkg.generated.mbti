@@ -18,7 +18,7 @@ pub fn commit_dispatch_offline_policy_choice(StrategyHostDispatch) -> Result[Uni
 
 pub fn commit_dispatch_policy_response_json(StrategyHostDispatch, @physical_strategy.PolicyRequest, String, String, Int64) -> Result[Unit, DispatchIssue]
 
-pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits) -> Result[Unit, DispatchIssue]
+pub fn configure_dispatch_estimates(StrategyHostDispatch, Array[DispatchEstimateProfile], @physical_strategy.SearchLimits, local_eligible? : Array[Bool]) -> Result[Unit, DispatchIssue]
 
 pub fn configure_dispatch_retained_output(StrategyHostDispatch, Int64, Int64?) -> Result[Unit, DispatchIssue]
 

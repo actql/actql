@@ -21,8 +21,9 @@ export function admitRetainedProductSample({fixture, estimates, calibration,
   assert.equal(report.rows, fixture.identity().rows);
   assert.equal(report.selection?.resident, true);
   assert.equal(report.selection.estimateSource, estimates.estimateSource);
+  assert.equal(report.selection.localEligible, estimates.localEligible);
   assert.deepEqual(report.selection.localTaskMilliseconds,
-    estimates.localTaskMilliseconds);
+    estimates.localEligible ? estimates.localTaskMilliseconds : undefined);
   assert.deepEqual(report.selection.nativeTaskMilliseconds,
     estimates.nativeTaskMilliseconds);
   assert.equal(report.selection.nativeMilliseconds,

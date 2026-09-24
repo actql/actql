@@ -80,6 +80,17 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
         assert.equal(selected.expectedRowsCid, report.expectedRowsCid);
         assert.deepEqual(selected.selection, estimates);
         assert(selected.tasks.every(task => task.realization === 'duckdb'));
+        const withoutLocal = await runRetainedComparator(
+          fixture, contracts, database, directory, {
+            resident: true, nativeMilliseconds: '1', localEligible: false,
+            nativeTaskMilliseconds: ['1', '1', '1'],
+            estimateSource: `sha256:${'1'.repeat(64)}`,
+          },
+        );
+        assert.equal(withoutLocal.status, 'completed');
+        assert(withoutLocal.tasks.every(task =>
+          task.realization === 'duckdb' || task.realization === 'duckdb-resident'));
+        assert.equal(withoutLocal.expectedRowsCid, report.expectedRowsCid);
       }
       assert.equal(report.expectedRowsCid, fixture.identity().rowsCid);
       const evidence = report.acquisitionEvidence;

@@ -108,6 +108,7 @@ test "generated configuration rejects invalid registration sets before connector
   )
   let settings : @local_driver.LocalEstimateSettings = {
     schedules,
+    eligible: [],
     max_work: 100,
   }
   let absent : @builtin.ConfiguredComputeModules[String] = @builtin.configure_compute_modules(

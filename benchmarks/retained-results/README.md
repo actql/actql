@@ -170,6 +170,11 @@ accepted sample for the registered paired experiment.
 The profile binds both case IDs and both source, source-definition and Program
 hashes. A later paired runner must verify these fields before using its rates;
 the profile file alone is not authority to mark a selection qualified.
+For retained-reuse `text-1024`, the registered cumulative Local output-text
+ceiling is below the exact minimum for the mandatory filter and select outputs.
+The profile records Local as ineligible with the lower bound, has no Local
+duration, and trains DuckDB only. The Host omits that Local offer; it does not
+replace the missing duration with a large estimate or change the ceiling.
 Pass its directory as the optional final argument to
 `matched-equivalent-pair-case.mjs` to run the retained leg through normal Host
 selection with those measured rates. The retained child verifies the profile,

@@ -679,6 +679,7 @@ fn core_application_retained_task_estimate_dispatch(
   local_export_ms : Int64,
   local_task_ms : Array[Int64],
   native_task_ms : Array[Int64],
+  local_eligible : Bool,
   resident : Bool,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise {
   @dbhost.dispatch_installation(
@@ -692,6 +693,7 @@ fn core_application_retained_task_estimate_dispatch(
       local_export_ms=Some(local_export_ms),
       local_task_ms~,
       native_task_ms~,
+      local_eligible~,
     ),
   )
 }
@@ -707,6 +709,7 @@ fn create_application_strategy_dispatch(
   local_export_ms? : Int64? = None,
   local_task_ms? : Array[Int64] = [],
   native_task_ms? : Array[Int64] = [],
+  local_eligible? : Bool = true,
   managed_output? : Bool = false,
 ) -> @dbhost.StrategyHostDispatch raise {
   if !physical_equal(@strategy.captured_dag_graph(run), app.graph) {
@@ -851,34 +854,39 @@ fn create_application_strategy_dispatch(
       output_rows_per_mille: Some(1000),
     }
   })
-  @dbhost.configure_dispatch_estimates(dispatch, profiles, {
-    max_offers: if resident {
-      count * 3
-    } else {
-      count * 2
-    },
-    max_strategies: if resident {
-      if count == 3 {
-        27
+  @dbhost.configure_dispatch_estimates(
+    dispatch,
+    profiles,
+    {
+      max_offers: if resident {
+        count * 3
       } else {
-        81
-      }
-    } else if count == 3 {
-      8
-    } else {
-      16
+        count * 2
+      },
+      max_strategies: if resident {
+        if count == 3 {
+          27
+        } else {
+          81
+        }
+      } else if count == 3 {
+        8
+      } else {
+        16
+      },
+      max_work: if resident {
+        10000
+      } else {
+        1000
+      },
+      max_revisions: if resident {
+        count + 1
+      } else {
+        count
+      },
     },
-    max_work: if resident {
-      10000
-    } else {
-      1000
-    },
-    max_revisions: if resident {
-      count + 1
-    } else {
-      count
-    },
-  }).unwrap()
+    local_eligible=Array::make(count, local_eligible),
+  ).unwrap()
   if resident {
     let profile = @strategy.prepare_resident_profile(
       run,
