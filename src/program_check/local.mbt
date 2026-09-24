@@ -25,6 +25,7 @@ fn construct_local(
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
   conversion_out? : Array[ProofConversion]? = None,
+  references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
 ) -> (
   @context.ProgramSourceIdentity,
@@ -47,7 +48,7 @@ fn construct_local(
     depth: budget.depth,
   }
   let wire = environment.wire
-  let catalog = prepare_environment(wire, admission) catch {
+  let (catalog, references) = prepare_environment(wire, admission) catch {
     e => raise Environment(e)
   }
   let locations = environment.locations
@@ -164,6 +165,9 @@ fn construct_local(
   budget.nodes = remaining.nodes
   if conversion_out is Some(output) {
     output.push(conversion)
+  }
+  if references_out is Some(output) {
+    output.push(references)
   }
   (identity, requirements, gates, contracts, units)
 }

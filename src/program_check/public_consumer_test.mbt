@@ -60,6 +60,17 @@ test "checked Program retains its exact admitted Environment owner" {
     ),
   )
   let retained = @program_check.checked_environment(checked)
+  let references = @program_check.checked_catalog_references(checked)
+  assert_true(
+    physical_equal(
+      @environment.contract_registry_environment(
+        @environment.catalog_registry(
+          @environment.reference_contents(references),
+        ),
+      ),
+      retained,
+    ),
+  )
   assert_true(
     physical_equal(
       retained,
