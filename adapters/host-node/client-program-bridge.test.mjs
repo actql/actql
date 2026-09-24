@@ -7,6 +7,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {exportPinnedEffectInput} from './effect-input-export.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
@@ -232,57 +233,38 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.throws(() => checked(moon.clientProgramEffectInputExportStart(
           input, limits)), {code: 'MoonBitHostFailure'});
         const physical = execution.effectPhysicalSource(0);
-        assert.ok(physical);
-        const importing = checked(moon.clientProgramEffectManagedInputBegin(
-          input, physical.completed, physical.material, limits));
-        limits.max_rows = 0;
-        limits.values.max_nodes = 0;
-        let preparation, stream, receipt;
-        try {
-          preparation = await physical.withRows(
-            row => checked(moon.clientProgramEffectManagedInputAppend(
-              importing, row)),
-            undefined,
-            () => checked(moon.clientProgramEffectManagedInputFinish(
-              importing)),
-          );
-          let ready = false;
-          for (let steps = 0; steps < 100 && !ready; steps++) {
-            ready = checked(moon.clientProgramEffectInputExportAdvance(
-              preparation, 100))._0;
-          }
-          assert.equal(ready, true);
-          stream = checked(moon.clientProgramEffectInputExportReady(
-            preparation));
-          const chunks = [];
-          for (;;) {
-            const chunk = checked(moon.clientProgramEffectInputExportNext(
-              stream));
-            if (chunk === undefined) break;
-            chunks.push(chunk);
-          }
-          const finished = checked(
-            moon.clientProgramEffectInputExportFinish(stream));
-          receipt = finished._0;
-          const suffix = finished._1;
-          assert.deepEqual(JSON.parse(chunks.join('') + suffix),
-            [{id: 1}, {id: 2}]);
-          assert.equal(typeof suffix, 'string');
-          assert.deepEqual(moon.clientProgramEffectInputExportFields(receipt),
-            ['id']);
-          assert.match(moon.clientProgramEffectInputExportLogicalCid(receipt),
-            /^sha256:[0-9a-f]{64}$/);
-        } finally {
-          if (receipt !== undefined) {
-            moon.clientProgramEffectInputExportReleaseReceipt(receipt);
-          }
-          if (stream !== undefined) {
-            moon.clientProgramEffectInputExportCancel(stream);
-          } else if (preparation !== undefined) {
-            moon.clientProgramEffectInputExportCancelPreparation(preparation);
-          }
-          moon.clientProgramEffectManagedInputCancel(importing);
-        }
+        await assert.rejects(exportPinnedEffectInput({
+          moon, execution, inputs, memberIndex: 1, task: 0, limits,
+          onChunk() { throw new Error('UnexpectedEffectChunk'); },
+        }), {message: 'MissingEffectInput'});
+        await assert.rejects(exportPinnedEffectInput({
+          moon, execution, inputs, memberIndex: 0, task: 0, limits,
+          onChunk() { throw new Error('StoppedEffectConsumer'); },
+        }), {message: 'StoppedEffectConsumer'});
+        assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+        const observed = {
+          effectPhysicalSource(task) {
+            assert.equal(task, 0);
+            return {
+              ...physical,
+              withRows(...args) {
+                limits.max_rows = 0;
+                limits.values.max_nodes = 0;
+                return physical.withRows(...args);
+              },
+            };
+          },
+        };
+        const chunks = [];
+        const exported = await exportPinnedEffectInput({
+          moon, execution: observed, inputs, memberIndex: 0, task: 0,
+          limits,
+          onChunk: async chunk => { chunks.push(chunk); },
+        });
+        assert.deepEqual(JSON.parse(chunks.join('')),
+          [{id: 1}, {id: 2}]);
+        assert.deepEqual(exported.fields, ['id']);
+        assert.match(exported.logicalCid, /^sha256:[0-9a-f]{64}$/);
       } finally {
         assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
       }
