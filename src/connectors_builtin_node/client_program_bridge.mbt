@@ -654,6 +654,63 @@ pub fn client_program_local_values_pipeline_json(
 }
 
 ///|
+/// Private compiler material, issued from the same checked Values owner.
+#export_name("clientProgramIssueLocalValuesAoAIdentity")
+pub fn client_program_issue_local_values_aoa_identity(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[
+  @publication_host.ClientValuesAoAIdentity,
+  @publication_host.ClientValuesAoAIdentityIssue,
+] {
+  @publication_host.issue_prepared_client_values_aoa_identity(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramLocalValuesAoAWire")
+pub fn client_program_local_values_aoa_wire(
+  value : @publication_host.ClientValuesAoAIdentity,
+) -> String {
+  @publication_host.client_values_aoa_identity_wire(value)
+}
+
+///|
+#export_name("clientProgramLocalValuesAoACid")
+pub fn client_program_local_values_aoa_cid(
+  value : @publication_host.ClientValuesAoAIdentity,
+) -> String {
+  @publication_host.client_values_aoa_identity_cid(value)
+}
+
+///|
+/// Saved AoA material is rechecked against the exact prepared Program.
+#export_name("clientProgramAdmitLocalValuesAoAIdentity")
+pub fn client_program_admit_local_values_aoa_identity(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  saved_wire : String,
+  claimed_cid : String,
+) -> Result[Unit, @publication_host.ClientValuesAoAAdmissionIssue] {
+  @publication_host.admit_prepared_client_values_aoa_identity(
+    prepared,
+    task,
+    saved_wire,
+    claimed_cid,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 fn reject_client_local_run(
   run : @strategy.CapturedDAG,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
