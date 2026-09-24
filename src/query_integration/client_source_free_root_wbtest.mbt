@@ -645,20 +645,33 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     )
     is Err(@native_remote_values.InvalidOutput),
   )
-  let material_generation = @remote.remote_managed_output_subject_projection(
-      subject,
-    )[1]
-  let reader = runtime
-    .open_output_reader(second, material_generation, 7)
+  assert_true(
+    endpoint.open_output_manifest_reader(
+      output_poll,
+      native_publication_cid("foreign-dispatch"),
+      1048576,
+    )
+    is Err(@native_remote_values.ForeignDispatch),
+  )
+  assert_true(
+    endpoint.open_output_manifest_reader(
+      @remote.remote_poll_output_plan_json(second, foreign_output_intent).unwrap(),
+      second_cid,
+      1048576,
+    )
+    is Err(@native_remote_values.InvalidOutput),
+  )
+  let reader = endpoint
+    .open_output_manifest_reader(output_poll, second_cid, 1048576)
     .unwrap()
   let output : Array[Byte] = []
   while true {
-    let chunk = reader.next().unwrap()
-    for byte in chunk.bytes {
-      output.push(byte)
-    }
-    if chunk.eof {
-      break
+    match reader.next().unwrap() {
+      Some(chunk) =>
+        for byte in chunk.bytes {
+          output.push(byte)
+        }
+      None => break
     }
   }
   assert_eq(

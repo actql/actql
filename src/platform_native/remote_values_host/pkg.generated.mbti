@@ -34,6 +34,7 @@ pub(all) enum NativeRemoteValuesHostIssue {
 
 type NativeRemoteValuesSiteEndpoint
 pub fn NativeRemoteValuesSiteEndpoint::dispatch_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
+pub fn NativeRemoteValuesSiteEndpoint::open_output_manifest_reader(Self, String, String, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::query_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::route(Self) -> (String, Int)
@@ -44,6 +45,7 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   ForeignDispatch
   InvalidOutput
   OutputPlan(@remote_standard_host.NativeRemoteObservedOutputPlanIssue)
+  OutputSource(@remote_standard_host.NativeRemoteStandardSiteComponentIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)
   Protocol(@remote_site_protocol.DispatchIssue)

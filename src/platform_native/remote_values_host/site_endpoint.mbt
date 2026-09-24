@@ -21,6 +21,7 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   ForeignDispatch
   InvalidOutput
   OutputPlan(@output.NativeRemoteObservedOutputPlanIssue)
+  OutputSource(@output.NativeRemoteStandardSiteComponentIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
   Journal(@journal.NativeRemoteJournalIssue)
   Protocol(@remote.DispatchIssue)
@@ -232,4 +233,34 @@ pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(
     Err(issue) => return Err(Protocol(issue))
   }
   @remote.remote_output_plan_json(plan).map_err(issue => Protocol(issue))
+}
+
+///|
+/// Open the exact retained output after the same checked plan admission used
+/// by the HTTPS control route. The caller owns the reader's physical stop.
+pub fn NativeRemoteValuesSiteEndpoint::open_output_manifest_reader(
+  self : NativeRemoteValuesSiteEndpoint,
+  envelope : String,
+  claimed_cid : String,
+  max_chunk_bytes : Int,
+) -> Result[
+  @runtime.NativeRemoteOutputManifestReader,
+  NativeRemoteValuesSiteEndpointIssue,
+] {
+  match self.output_plan_json(envelope, claimed_cid) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let poll = match @remote.admit_remote_poll_output_plan_json(envelope) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidEnvelope)
+  }
+  let request = @remote.remote_poll_output_request(poll)
+  let completion = match self.runtime.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  @output.open_native_remote_observed_output_manifest_reader(
+    self.runtime, self.journal, request, completion, max_chunk_bytes,
+  ).map_err(issue => OutputSource(issue))
 }
