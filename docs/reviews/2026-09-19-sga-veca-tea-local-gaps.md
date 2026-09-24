@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 45 |
+| Operation-specific boundary records | 46 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -1395,6 +1395,16 @@ then checks the same path at its observed full work count and one less.
 The one-short path fails without completion and cleanup remains explicit.
 This guards the output tail; its observed count is not an independent
 work formula or full workspace assurance for every diff shape.
+
+The Graph mean kernel now applies one selected cumulative control-work
+ceiling across resumes and charges each empty input position and final
+completion. The empty three-input fixture has three weight additions, six
+node/edge input transitions, and one completion step: ten work units complete,
+while nine fail without exposing a Graph. A fourth poll followed by a
+cancel request stops during the node-input pass. Cleanup succeeds for
+success, work failure, and cancellation, and the retained Graph is released.
+Existing workspace and delivered Host cancellation fixtures remain separate;
+this fixed shape does not prove every property or merge variant.
 
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the

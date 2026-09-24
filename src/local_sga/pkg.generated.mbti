@@ -425,6 +425,7 @@ pub(all) enum MeanIssue {
   MeanPropertyConflict
   MeanPropertyValue
   MeanWorkspaceLimit
+  MeanWorkLimit
   MeanValue(@value_admission.CompleteOrderIssue)
   MeanKey(@value_admission.KeyOrderIssue)
   MeanNumeric(@exact_binary64.Issue)

@@ -67,6 +67,7 @@ priv struct MeanState {
   mut sort_left_at : Int
   mut sort_right_at : Int
   mut sort_copy_at : Int
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -93,6 +94,7 @@ pub(all) enum MeanIssue {
   MeanPropertyConflict
   MeanPropertyValue
   MeanWorkspaceLimit
+  MeanWorkLimit
   MeanValue(@value.CompleteOrderIssue)
   MeanKey(@value.KeyOrderIssue)
   MeanNumeric(@exact.Issue)
@@ -673,6 +675,8 @@ fn advance_mean_state(
           } else {
             state.input += 1
             state.record = 0
+            used += 1
+            progress += 1
           }
         } else {
           if !begin_mean_sort(state, state.nodes.length()) {
@@ -851,6 +855,8 @@ fn advance_mean_state(
           } else {
             state.input += 1
             state.record = 0
+            used += 1
+            progress += 1
           }
         } else {
           if !begin_mean_sort(state, state.edges.length()) {
@@ -1029,6 +1035,7 @@ fn advance_mean_state(
         progress += 1
       }
       FinishMean => {
+        used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidMeanKernel, progress, used)
         }
@@ -1042,6 +1049,33 @@ fn advance_mean_state(
     }
   }
   @bounded.Continue(progress, used)
+}
+
+///|
+fn bounded_mean_step(
+  state : MeanState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, MeanIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  if state.control_work_remaining < 1 {
+    return @bounded.Failed(MeanWorkLimit, 0, 0)
+  }
+  let result = advance_mean_state(
+    state,
+    Int::min(quantum, state.control_work_remaining),
+    reader,
+  )
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  state.control_work_remaining -= charged
+  result
 }
 
 ///|
@@ -1092,6 +1126,7 @@ pub fn start_mean_views(
     return Err(InvalidMeanKernel)
   }
   if exact_bits < 1 ||
+    limits.max_work < 0 ||
     limits.max_workspace_slots < 0 ||
     limits.max_value_nodes < 0 ||
     limits.max_value_nodes > (2147483647 - 1) / 2 ||
@@ -1195,9 +1230,10 @@ pub fn start_mean_views(
     sort_left_at: 0,
     sort_right_at: 0,
     sort_copy_at: 0,
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
-    control, state, advance_mean_state, cleanup_mean_state, @graph.discard_completed,
+    control, state, bounded_mean_step, cleanup_mean_state, @graph.discard_completed,
   )
   Ok({
     session,

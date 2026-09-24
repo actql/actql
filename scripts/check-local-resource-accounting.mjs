@@ -1325,6 +1325,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup')) {
     fail(`${label}: Graph diff tail-work evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'mean_graphs' &&
+    !boundaryRoles.has('mean_empty_work_exact_one_short_and_cleanup')) {
+    fail(`${label}: Graph mean cumulative-work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

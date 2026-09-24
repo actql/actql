@@ -257,6 +257,74 @@ test "graph mean cancellation stops before cleanup" {
 }
 
 ///|
+test "graph mean charges empty input weights and final completion" {
+  let first_owner = mean_source_owner()
+  let second_owner = mean_source_owner()
+  let owner = mean_owner(first_owner, second_owner)
+  let first = mean_graph(first_owner, [], [])
+  let second = mean_graph(second_owner, [], [])
+  let views = mean_views(owner, first_owner, second_owner, first, second)
+  for ceiling in [9, 10] {
+    let execution = start_mean_views(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      views,
+      { ..storage_limits(), max_work: ceiling, },
+      4096L,
+      4096,
+      fn() { true },
+    ).unwrap()
+    let mut terminal = false
+    let mut completed : @graph.Completed? = None
+    while !terminal {
+      match advance_mean(execution, 1).unwrap() {
+        MeanContinue(..) => ()
+        MeanComplete(output, work~, ..) => {
+          assert_eq(ceiling, 10)
+          assert_eq(work, 10L)
+          assert_eq(
+            @storage.node_count(@graph.completed_storage(output).unwrap()),
+            0,
+          )
+          completed = Some(output)
+          terminal = true
+        }
+        MeanFailed(MeanWorkLimit, work~, ..) => {
+          assert_eq(ceiling, 9)
+          assert_eq(work, 9L)
+          terminal = true
+        }
+        _ => fail("empty mean ignored its cumulative work ceiling")
+      }
+    }
+    assert_eq(cleanup_mean(execution), Ok(true))
+    if completed is Some(output) {
+      assert_true(@graph.discard_completed(output))
+    }
+  }
+  let control = @bounded.control()
+  let cancelled = start_mean_views(
+    control,
+    sequence(owner),
+    0,
+    views,
+    { ..storage_limits(), max_work: 10, },
+    4096L,
+    4096,
+    fn() { true },
+  ).unwrap()
+  for _ in 0..<4 {
+    assert_true(advance_mean(cancelled, 1).unwrap() is MeanContinue(_))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(advance_mean(cancelled, 1).unwrap() is MeanStopped(_))
+  assert_eq(cleanup_mean(cancelled), Ok(true))
+  assert_true(@graph.discard_completed(first))
+  assert_true(@graph.discard_completed(second))
+}
+
+///|
 fn mean_numeric_contract() -> @carrier.Carrier {
   let number = @contract.primitive(@contract.NumberType, nullable=true)
   let properties = @carrier.rows(

@@ -3161,7 +3161,16 @@
       "entrypoint": {
         "path": "src/local_sga/mean.mbt",
         "symbol": "start_mean_views"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "mean_empty_work_exact_one_short_and_cleanup",
+          "suite": "moon:local_sga",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_sga/mean_wbtest.mbt",
+          "fixture": "graph mean charges empty input weights and final completion"
+        }
+      ]
     },
     {
       "inventory": "families",
