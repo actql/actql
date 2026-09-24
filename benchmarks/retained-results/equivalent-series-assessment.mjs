@@ -30,18 +30,40 @@ export function assessEquivalentSeries(fixture, pairs) {
   const programSha256 = sha256(JSON.stringify(fixture.program()));
   const sourceDefinitionSha256 = sha256(fixture.createSourceSql);
   let revision, sourceContentSha256, releaseArtifactSha256, runtime;
+  let productProfile, nativeEstimateSource;
   const timingPairs = [];
   for (const [index, pair] of pairs.entries()) {
     const provenance = pair?.provenance;
+    const native = pair?.productProfile === 'native-direct';
+    if (native && fixture.rows !== 100 && fixture.rows !== 1000) {
+      return incomplete(`native-profile-outside-small-cases:${index}`);
+    }
     if (pair?.index !== index || pair.caseId !== fixture.id ||
       pair.status !== 'diagnostic-completed' || pair.acceptanceEligible !== true ||
-      pair.equivalentObligationAdmission?.accepted !== true ||
-      pair.transferWorkComparison?.terminalReleaseConfirmed !== true ||
-      pair.logicalAccountingEquivalent !== true ||
-      pair.acquisitionMetadataEquivalent !== true ||
-      pair.transferWorkAccountingEquivalent !== true) {
+      (native
+        ? pair.nativeObligationAdmission?.version !==
+            'actql-native-retained-equivalent-admission/0.1' ||
+          pair.nativeObligationAdmission.accepted !== true ||
+          pair.selectionProfile?.admitted !== true ||
+          !/^sha256:[0-9a-f]{64}$/.test(
+            pair.selectionProfile.estimateSource ?? '') ||
+          pair.identityEqual !== true || pair.metadataEqual !== true ||
+          pair.stageRowsEqual !== true || pair.stageContentsEqual !== true
+        : pair.equivalentObligationAdmission?.accepted !== true ||
+          pair.transferWorkComparison?.terminalReleaseConfirmed !== true ||
+          pair.logicalAccountingEquivalent !== true ||
+          pair.acquisitionMetadataEquivalent !== true ||
+          pair.transferWorkAccountingEquivalent !== true)) {
       return incomplete(`unadmitted-pair:${index}`);
     }
+    if (productProfile !== undefined &&
+        productProfile !== (native ? 'native-direct' : 'node-managed') ||
+        native && nativeEstimateSource !== undefined &&
+        nativeEstimateSource !== pair.selectionProfile.estimateSource) {
+      return incomplete(`mixed-product-profile:${index}`);
+    }
+    productProfile = native ? 'native-direct' : 'node-managed';
+    if (native) nativeEstimateSource = pair.selectionProfile.estimateSource;
     if (!provenance || provenance.registrationSha256 !== registrationSha256 ||
       provenance.programSha256 !== programSha256 ||
       provenance.sourceDefinitionSha256 !== sourceDefinitionSha256 ||
@@ -89,6 +111,6 @@ export function assessEquivalentSeries(fixture, pairs) {
       gates.some(gate => gate.status === 'indeterminate') ? 'indeterminate' : 'pass';
   return Object.freeze({status, scope: 'one-equivalent-comparator-only',
     caseId: fixture.id, revision, sourceContentSha256, releaseArtifactSha256,
-    registrationSha256,
+    registrationSha256, productProfile, nativeEstimateSource,
     programSha256, runtime, pairs: pairs.length, gates});
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
-import {mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
@@ -21,14 +21,21 @@ try {
     [join(root, 'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'),
       database, fixture.workload, fixture.layout, String(fixture.rows)],
     {cwd: root, timeout: fixture.limits.timeoutMs});
+  const profilePath = process.env.ACTQL_NATIVE_CALIBRATION_PROFILE;
+  const nativeEstimateProfile = profilePath
+    ? JSON.parse(await readFile(profilePath, 'utf8')) : undefined;
   const pair = await runNativeDirectPair({checkout: root, fixture, database,
-    directory, index: 0});
+    directory, index: 0, nativeEstimateProfile});
   assert.equal(pair.status, 'diagnostic-completed');
   assert.equal(pair.identityEqual, true);
   assert.equal(pair.metadataEqual, true);
   assert.equal(pair.stageRowsEqual, true);
   assert.equal(pair.stageContentsEqual, true);
-  assert.equal(pair.acceptanceEligible, false);
+  assert.equal(pair.acceptanceEligible, Boolean(nativeEstimateProfile));
+  if (nativeEstimateProfile) {
+    assert.equal(pair.nativeObligationAdmission?.accepted, true);
+    assert.equal(pair.selectionProfile.admitted, true);
+  }
   assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
   console.log('Direct Native product and independent assembly agree');
 } finally {

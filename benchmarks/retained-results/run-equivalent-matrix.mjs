@@ -10,13 +10,27 @@ if (!outputDirectory || extra.length) {
 const checkout = new URL('../../', import.meta.url).pathname;
 const pin = JSON.parse(readFileSync(join(checkout, 'toolchain.json'), 'utf8'));
 const moonHome = join(checkout, '.toolchains', `moonbit-${pin.version}`);
+const productProfile = process.env.ACTQL_PERFORMANCE_PRODUCT_PROFILE ??
+  'node-managed';
+if (!['node-managed', 'native-small'].includes(productProfile)) {
+  throw new TypeError('InvalidPerformanceProductProfile');
+}
 // A clean source revision does not prove ignored _build modules are current.
 // Rebuild before calibration so every measured child runs this revision's code.
 execFileSync(join(moonHome, 'bin', 'moon'), ['build', '--target', 'js', '--release'],
   {cwd: checkout, stdio: 'inherit', env: {...process.env, MOON_HOME: moonHome,
     PATH: `${join(moonHome, 'bin')}:${process.env.PATH ?? ''}`}});
+if (productProfile === 'native-small' &&
+    (caseId === undefined || /\/(100|1000)$/.test(caseId))) {
+  execFileSync(join(moonHome, 'bin', 'moon'),
+    ['build', '--target', 'native', '--release',
+      'src/cmd/native_retained_case_probe'],
+    {cwd: checkout, stdio: 'inherit', env: {...process.env, MOON_HOME: moonHome,
+      PATH: `${join(moonHome, 'bin')}:${process.env.PATH ?? ''}`}});
+}
 const result = await runEquivalentMatrix({checkout,
-  outputDirectory, ...(caseId === undefined ? {} : {caseId})});
+  outputDirectory, productProfile,
+  ...(caseId === undefined ? {} : {caseId})});
 const status = caseId === undefined ? result.assessment.status :
   result.assessment.cases.find(value => value.caseId === caseId)?.status ?? 'incomplete';
 console.log(JSON.stringify({revision: result.revision,

@@ -7,6 +7,7 @@ import {assessEquivalentMatrix, formatEquivalentMatrix} from
   './equivalent-matrix-assessment.mjs';
 import {runMatchedEquivalentPair} from
   '../../adapters/connectors/duckdb/node/bench/matched-equivalent-pair.mjs';
+import {runNativeDirectPair} from './native-direct-pair.mjs';
 
 const exec = promisify(execFile);
 
@@ -77,16 +78,33 @@ const failure = error => Object.freeze({
   message: error?.message ?? String(error),
 });
 
+async function calibrateNativeSmall({checkout, outputDirectory, target, position}) {
+  const training = retainedCase(target.workload, target.layout,
+    target.rows === 100 ? 1000 : 100);
+  const path = join(outputDirectory, `native-calibration-${position}.json`);
+  const script = join(checkout,
+    'benchmarks/retained-results/native-estimate-calibration.mjs');
+  await exec(process.execPath, [script, training.id, target.id, path], {
+    cwd: checkout, timeout: 10 * target.limits.timeoutMs,
+    maxBuffer: 4 * 1024 * 1024});
+  const profile = JSON.parse(await readFile(path, 'utf8'));
+  if (profile.status !== 'completed' || profile.targetCaseId !== target.id) {
+    throw new Error('InvalidNativeCalibrationResult');
+  }
+  return profile;
+}
+
 // Persist every registered case and each attempted pair before advancing.
 // A missing, failed or unqualified case remains in the matrix denominator.
 export async function runEquivalentMatrix({checkout, outputDirectory,
   caseId, calibrate = defaultCalibrate, runPair = runMatchedEquivalentPair,
-  inspect = inspectCheckout}) {
+  inspect = inspectCheckout, productProfile = 'node-managed'}) {
   if (typeof checkout !== 'string' || !checkout.length ||
       typeof outputDirectory !== 'string' || !outputDirectory.length ||
       (caseId !== undefined && (typeof caseId !== 'string' || !caseId.length)) ||
       typeof calibrate !== 'function' || typeof runPair !== 'function' ||
-      typeof inspect !== 'function') {
+      typeof inspect !== 'function' ||
+      !['node-managed', 'native-small'].includes(productProfile)) {
     throw new TypeError('InvalidEquivalentMatrixRun');
   }
   const fixtures = retainedMatrix();
@@ -108,6 +126,8 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
   const records = [];
   const selected = caseId === undefined ? fixtures : fixtures.filter(value => value.id === caseId);
   for (const [position, fixture] of selected.entries()) {
+    const useNative = productProfile === 'native-small' &&
+      (fixture.rows === 100 || fixture.rows === 1000);
     const trainings = trainingFixtures(fixture);
     const record = {caseId: fixture.id, trainingCaseId: undefined,
       status: 'incomplete', trainingAttempts: [], pairs: []};
@@ -133,11 +153,20 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
       }
       if (!calibrated) throw new Error('NoFeasibleIndependentTrainingCase');
       record.calibrationDirectory = calibrated.directory;
+      const nativeProfile = useNative ? await calibrateNativeSmall({
+        checkout: root, outputDirectory: destination, target: fixture,
+        position}) : undefined;
+      record.productProfile = useNative ? 'native-direct' : 'node-managed';
+      if (nativeProfile) record.nativeEstimateSource = nativeProfile.estimateSource;
       for (let index = 0; index < 7; index++) {
         try {
-          record.pairs.push(await runPair({fixture, checkout: root,
-            database: calibrated.database, directory: calibrated.directory,
-            estimateProfileDirectory: calibrated.directory, index}));
+          record.pairs.push(useNative
+            ? await runNativeDirectPair({fixture, checkout: root,
+              database: calibrated.database, directory: calibrated.directory,
+              nativeEstimateProfile: nativeProfile, index})
+            : await runPair({fixture, checkout: root,
+              database: calibrated.database, directory: calibrated.directory,
+              estimateProfileDirectory: calibrated.directory, index}));
         } catch (error) {
           record.pairs.push({index, caseId: fixture.id, status: 'failed',
             acceptanceEligible: false, error: failure(error)});

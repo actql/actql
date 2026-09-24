@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {createReadStream} from 'node:fs';
-import {mkdir, rm} from 'node:fs/promises';
+import {mkdir, readFile, rm} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {isDeepStrictEqual, promisify} from 'node:util';
 import {releaseArtifactDigest} from './release-artifacts.mjs';
 import {retainedCase} from './fixtures.mjs';
 import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
+import {admitNativeEquivalentPair} from './native-equivalent-admission.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
 
@@ -39,6 +40,12 @@ export async function runNativeDirectPair({checkout, fixture, database,
   assert.equal(initial.dirty, false, 'NativePairRequiresCleanCheckout');
   const artifactDigest = await releaseArtifactDigest(root);
   const sourceSha256 = await fileHash(database);
+  const registrationSha256 = createHash('sha256').update(await readFile(
+    join(root, 'benchmarks/retained-results/experiment.json'))).digest('hex');
+  const sourceDefinitionSha256 = createHash('sha256').update(
+    fixture.createSourceSql).digest('hex');
+  const programSha256 = createHash('sha256').update(JSON.stringify(
+    fixture.program())).digest('hex');
   const nativeRoot = join(directory, `native-${index}`);
   const independentRoot = join(directory, `independent-${index}`);
   await mkdir(nativeRoot);
@@ -118,15 +125,51 @@ export async function runNativeDirectPair({checkout, fixture, database,
     const stageContentsEqual = isDeepStrictEqual(
       native.taskHoldings.map(value => [value.rowsCid, value.bytes]),
       independent.stages.slice(1).map(value => [value.cid, value.bytes]));
+    const selectionProfile = admittedProfile ? {
+      admitted: true, estimateSource: admittedProfile.estimateSource,
+      trainingCaseId: admittedProfile.trainingCaseId,
+      targetCaseId: admittedProfile.targetCaseId,
+    } : {admitted: false};
+    const nativeObligationAdmission = admittedProfile && identityEqual &&
+      metadataEqual && stageRowsEqual && stageContentsEqual
+      ? admitNativeEquivalentPair({fixture, native, equivalent: independent,
+        selectionProfile}) : undefined;
+    const equivalentLabel =
+      'direct-duckdb-with-identical-obligations-and-independent-holding';
+    const retainedLabel = 'retained-actql';
     return {caseId: fixture.id, index, labels,
+      productProfile: 'native-direct',
+      order: labels.map(label => label === 'native'
+        ? retainedLabel : equivalentLabel),
+      samples: {
+        [equivalentLabel]: {status: 'diagnostic-completed',
+          coldMs: samples.independent.coldMs,
+          warmMs: samples.independent.warmMs,
+          executionMs: samples.independent.executionMs,
+          cleanupMs: samples.independent.cleanupMs},
+        [retainedLabel]: {status: 'completed',
+          acceptanceEligible: nativeObligationAdmission?.accepted === true,
+          coldMs: samples.native.coldMs,
+          warmMs: samples.native.warmMs,
+          executionMs: samples.native.executionMs,
+          cleanupMs: samples.native.cleanupMs},
+      },
       status: identityEqual && metadataEqual && stageRowsEqual &&
         stageContentsEqual
         ? 'diagnostic-completed' : 'failed',
-      acceptanceEligible: false,
-      missing: ['Native logical-work and physical-traffic obligation admission'],
+      acceptanceEligible: nativeObligationAdmission?.accepted === true,
+      missing: nativeObligationAdmission ? [] :
+        ['Native selection and equivalent-obligation admission'],
       provenance: {revision: initial.revision,
         releaseArtifactSha256: artifactDigest,
-        sourceSha256},
+        sourceSha256, sourceContentSha256: sourceSha256,
+        registrationSha256, sourceDefinitionSha256, programSha256,
+        runtime: process.version,
+        productRuntime: `native-${process.platform}-${process.arch}`,
+        processBoundary: 'fresh native process and independent Node process',
+        coldBoundary: 'parent spawn through child exit minus child cleanup',
+        executionBoundary: 'leg-owned setup through completed holdings',
+        cleanupBoundary: 'leg-owned confirmed release interval'},
       native: {coldMs: samples.native.coldMs,
         warmMs: samples.native.warmMs,
         executionMs: samples.native.executionMs,
@@ -136,11 +179,8 @@ export async function runNativeDirectPair({checkout, fixture, database,
         taskUsages: native.taskUsages,
         usage: native.record.usage,
         acquisition: native.record.acquisition},
-      selectionProfile: admittedProfile ? {
-        admitted: true, estimateSource: admittedProfile.estimateSource,
-        trainingCaseId: admittedProfile.trainingCaseId,
-        targetCaseId: admittedProfile.targetCaseId,
-      } : {admitted: false},
+      selectionProfile,
+      nativeObligationAdmission,
       independent: {coldMs: samples.independent.coldMs,
         warmMs: samples.independent.warmMs,
         executionMs: samples.independent.executionMs,

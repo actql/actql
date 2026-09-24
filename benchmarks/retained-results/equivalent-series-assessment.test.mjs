@@ -82,3 +82,29 @@ test('large cases use the registered equivalent-obligations ratio', () => {
   assert.equal(result.status, 'fail');
   assert.equal(result.gates[0].threshold, 1.25);
 });
+
+test('the Native small profile needs its own exact admission and one rate source', () => {
+  const nativePairs = () => admittedPairs().map(pair => ({...pair,
+    productProfile: 'native-direct',
+    nativeObligationAdmission: {
+      version: 'actql-native-retained-equivalent-admission/0.1',
+      accepted: true},
+    selectionProfile: {admitted: true, estimateSource: 'sha256:' + 'e'.repeat(64)},
+    identityEqual: true, metadataEqual: true,
+    stageRowsEqual: true, stageContentsEqual: true,
+  }));
+  const accepted = assessEquivalentSeries(fixture, nativePairs());
+  assert.equal(accepted.status, 'pass');
+  assert.equal(accepted.productProfile, 'native-direct');
+  const mutations = [
+    pairs => { pairs[2].selectionProfile.estimateSource = 'sha256:' + 'f'.repeat(64); },
+    pairs => { pairs[2].nativeObligationAdmission.accepted = false; },
+    pairs => { pairs[2].stageContentsEqual = false; },
+    pairs => { pairs[2].samples['retained-actql'].acceptanceEligible = false; },
+  ];
+  for (const mutate of mutations) {
+    const pairs = nativePairs();
+    mutate(pairs);
+    assert.equal(assessEquivalentSeries(fixture, pairs).status, 'incomplete');
+  }
+});

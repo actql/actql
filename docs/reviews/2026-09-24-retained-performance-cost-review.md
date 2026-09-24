@@ -501,6 +501,19 @@ observations, and recomputed per-task medians. Changing a saved rate cannot
 silently change ordinary selection. This admission grants selection evidence
 only; it does not establish holding or matched Comparator equivalence.
 
+The registered matrix runner now selects the calibrated Native product for
+100- and 1,000-row cases and keeps the established Node product for larger
+cases. Native pair admission requires the same immutable source and Program,
+exact acquisition evidence, every task's sealed rows CID and byte count,
+observed guard and comparison use, registered capacity bounds, and confirmed
+release on both legs. Native Local and the independent DuckDB assembly use
+different operation work meters, so their numeric meter totals are reported
+separately rather than declared equal. The Node product retains its existing
+exact logical-accounting equality gate. This changes the product realization,
+not the registered fixture set, independent comparator, timing boundaries or
+thresholds. No fixed-SHA Linux matrix result has yet been obtained for this
+combined path.
+
 The direct Native product invocation can now be paired with the independent
 equivalent-obligation process without including a diagnostic Node child around
 the Native process. Fixture materialization is visible in the Native cold

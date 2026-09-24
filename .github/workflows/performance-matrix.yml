@@ -54,6 +54,8 @@ jobs:
           node --version
           moon version --all
       - name: Run registered equivalent-obligations case
+        env:
+          ACTQL_PERFORMANCE_PRODUCT_PROFILE: native-small
         run: node benchmarks/retained-results/run-equivalent-matrix.mjs "$RUNNER_TEMP/actql-equivalent-obligations" '${{ matrix.case.caseId }}'
       - name: Preserve raw pairs and calibration
         if: always()
@@ -66,6 +68,7 @@ jobs:
             ${{ runner.temp }}/actql-equivalent-obligations/assessment.json
             ${{ runner.temp }}/actql-equivalent-obligations/assessment.md
             ${{ runner.temp }}/actql-equivalent-obligations/actql-retained-calibration-*/*.json
+            ${{ runner.temp }}/actql-equivalent-obligations/native-calibration-*.json
           if-no-files-found: warn
           retention-days: 30
 
