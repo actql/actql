@@ -198,6 +198,10 @@ test "durable output binds Transfer reply before preparing Result" {
     output, subject, payload_request, transfer_request,
   ).unwrap()
   let durable = prepare_durable_coordinator_output_record(output, plan).unwrap()
+  assert_eq(
+    durable_coordinator_output_transfer_request_cid(durable),
+    @transfer.request_cid(transfer_request),
+  )
   let reply = @transfer.remote_transfer_reply_json(committed).unwrap()
   assert_eq(
     durable_coordinator_output_admit_transfer_reply_json(durable, reply),

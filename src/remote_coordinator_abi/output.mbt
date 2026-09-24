@@ -233,6 +233,14 @@ pub fn coordinator_admit_output_transfer_reply_json(
 }
 
 ///|
+#export_name("coordinatorOutputTransferRequestCid")
+pub fn coordinator_output_transfer_request_cid(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> String {
+  @remote.durable_coordinator_output_transfer_request_cid(durable)
+}
+
+///|
 #export_name("coordinatorPrepareOutputResultJson")
 pub fn coordinator_prepare_output_result_json(
   durable : @remote.DurableCoordinatorOutputRecord,

@@ -333,6 +333,15 @@ pub fn durable_coordinator_output_admit_transfer_reply_json(
 }
 
 ///|
+/// Return the retained Transfer identity for authorized physical recovery.
+/// The identity is not a grant or proof that destination bytes exist.
+pub fn durable_coordinator_output_transfer_request_cid(
+  durable : DurableCoordinatorOutputRecord,
+) -> String {
+  @transfer.request_cid(durable.plan.transfer_request)
+}
+
+///|
 /// The caller supplies an independently checked physical payload digest.
 /// Neither the Site reply nor its receipt establishes the local bytes alone.
 pub fn durable_coordinator_output_prepare_result_json(

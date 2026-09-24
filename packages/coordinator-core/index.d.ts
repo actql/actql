@@ -124,6 +124,8 @@ export function durableOutputPollJson(durable: DurableOutputRecord): string;
 /** Binds a destination-committed reply to the retained Transfer request. */
 export function admitOutputTransferReplyJson(durable: DurableOutputRecord,
   reply: string): string;
+/** Identity for recovery only; current authority and bytes must be checked. */
+export function outputTransferRequestCid(durable: DurableOutputRecord): string;
 /** The caller must independently verify local payload custody and digest. */
 export function prepareOutputResultJson(durable: DurableOutputRecord,
   reply: string, payloadPhysicalDigest: string): string;

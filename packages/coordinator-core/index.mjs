@@ -146,6 +146,8 @@ export const durableOutputPollJson = durable =>
   checked(owner.coordinatorDurableOutputPollJson(durable));
 export const admitOutputTransferReplyJson = (durable, reply) =>
   checked(owner.coordinatorAdmitOutputTransferReplyJson(durable, reply));
+export const outputTransferRequestCid = durable =>
+  owner.coordinatorOutputTransferRequestCid(durable);
 export const prepareOutputResultJson = (durable, reply,
   payloadPhysicalDigest) => checked(owner.coordinatorPrepareOutputResultJson(
     durable, reply, payloadPhysicalDigest));
