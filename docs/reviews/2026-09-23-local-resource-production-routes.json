@@ -4720,7 +4720,23 @@
       "entrypoint": {
         "path": "src/execution_relation/expression.mbt",
         "symbol": "evaluate_expression_impl"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "vector_score_derive_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded vector expressions admit exact work and workspace"
+        },
+        {
+          "role": "vector_score_derive_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded binding rows cancel without publishing partial output"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -4734,7 +4750,23 @@
       "entrypoint": {
         "path": "src/execution_relation/expression.mbt",
         "symbol": "evaluate_expression_impl"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "vector_concat_derive_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded vector expressions admit exact work and workspace"
+        },
+        {
+          "role": "vector_concat_derive_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "fixture": "bounded expression execution reports progress and cancels private state"
+        }
+      ]
     }
   ]
 }

@@ -1339,6 +1339,15 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: structural Graph cumulative-work evidence is missing`);
     }
   }
+  if (route.family === 'VecAExpression') {
+    const required = [
+      `${route.operation}_derive_work_workspace_exact_one_short`,
+      `${route.operation}_derive_cancel_cleanup`,
+    ];
+    if (required.some(role => !boundaryRoles.has(role))) {
+      fail(`${label}: vector expression boundary evidence is missing`);
+    }
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,

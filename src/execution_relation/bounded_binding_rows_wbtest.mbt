@@ -1025,6 +1025,55 @@ test "bounded binding rows resume vector expressions and complete exactly" {
 }
 
 ///|
+test "bounded vector expressions admit exact work and workspace" {
+  let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
+  // The two-row fixture executes both dot score and concatenation through the
+  // selected derive path. Its fixed control boundary is 160 units, including
+  // both input occurrences, expression transitions, and output names. The
+  // simultaneous metadata, retained roots, and vector scratch peak at 34.
+  for
+    (limit_work, slots, accepted) in [
+      (160, 34, true),
+      (159, 34, false),
+      (160, 33, false),
+    ] {
+    let (_, execution, _) = bounded_binding_rows_fixture(
+      rows,
+      max_work=limit_work,
+      max_entries=slots,
+    )
+    let mut done = false
+    let mut polls = 0
+    while !done && polls < 1000 {
+      polls += 1
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(accepted)
+          assert_eq(completed_row_count(output), 2)
+          assert_true(completed_cell(output, 0, 4) is Some(Number(11.0)))
+          guard completed_cell(output, 0, 1)
+            is Some(Captured(@admitted.Vector(joined))) else {
+            fail("expected concatenated vector")
+          }
+          assert_eq(@admitted.elements(joined), [3.0, 4.0, 1.0, 2.0])
+          done = true
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_false(accepted)
+          assert_true(bounded_binding_rows_cleanup_pending(execution))
+          done = true
+        }
+        _ => fail("unexpected vector boundary outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_false(bounded_binding_rows_cleanup_pending(execution))
+  }
+}
+
+///|
 test "bounded binding rows cancel without publishing partial output" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",

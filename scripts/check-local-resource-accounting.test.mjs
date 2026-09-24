@@ -50,7 +50,23 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 49 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 51 with operation-specific boundary records, 22 with four-role boundary evidence, 22 with full work\/workspace assurance, 47 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('vector expressions lose their operation boundary when evidence is removed', () => {
+  for (const operation of ['vector_score', 'vector_concat']) {
+    for (const role of [
+      `${operation}_derive_work_workspace_exact_one_short`,
+      `${operation}_derive_cancel_cleanup`,
+    ]) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry =>
+          entry.family === 'VecAExpression' && entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item =>
+          item.role !== role);
+      }), new RegExp(`VecAExpression ${operation}: vector expression boundary evidence is missing`, 'u'));
+    }
+  }
 });
 
 test('ranking loses bounded assembly evidence when its fixture is removed', () => {

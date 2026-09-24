@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 49 |
+| Operation-specific boundary records | 51 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -1415,6 +1415,15 @@ Quantum-one tests confirm failure without a partial Graph, explicit cleanup,
 and in-flight union cancellation after its first input position. Their
 nonempty merge, property, and output-value budgets still need broader
 independent route assurance.
+
+The row-local `vector_score` and `vector_concat` expressions now have
+operation-specific evidence through a selected derive with two input rows.
+The fixed fixture admits 160 control units and 34 structural slots, rejects
+159 units or 33 slots, and checks both scalar scores and concatenated vector
+contents before cleanup. Separate expression and row-execution tests cover
+private-state cancellation. This is evidence for the shared selected derive
+path; it does not yet establish all ordinary or mixed-Stage placements, or
+delivered Host cancellation for each expression.
 
 Commits `7e608333e`, `b5cd1a0d2`, and `098f29445` add the atomic
 `apply_graph_delta` kernel and its managed provider path. Lowering retains the
