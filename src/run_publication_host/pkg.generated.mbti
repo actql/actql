@@ -38,6 +38,8 @@ pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, 
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
+pub fn emit_prepared_client_publication_limit(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, Int, Int, Int) -> Result[String, ClientPublicationLimitIssue]
+
 pub fn emit_prepared_client_stage_semantics(PreparedClientProgram, Int, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskAoAStepsIssue]
@@ -102,6 +104,16 @@ pub(all) struct ClientProgramPreparationLimits {
   max_parameter_name_bytes : Int
   max_tasks : Int
   max_graph_work : Int
+}
+
+pub(all) enum ClientPublicationLimitIssue {
+  MissingPublication
+  Encoding
+}
+
+pub(all) enum ClientPublicationLimitScope {
+  Rows
+  Bytes
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)

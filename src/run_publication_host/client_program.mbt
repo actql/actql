@@ -224,6 +224,50 @@ pub fn prepared_client_result_name(
 }
 
 ///|
+pub(all) enum ClientPublicationLimitScope {
+  Rows
+  Bytes
+}
+
+///|
+pub(all) enum ClientPublicationLimitIssue {
+  MissingPublication
+  Encoding
+}
+
+///|
+/// Emit the already checked publication limit for one Unit Result. Its
+/// subject, witnesses, effective maximum and self CID come from the common
+/// capacity owner. Unit ordinals are private compiler coordinates, not public
+/// Result selection or a new Host policy decision.
+pub fn emit_prepared_client_publication_limit(
+  value : PreparedClientProgram,
+  unit : Int,
+  index : Int,
+  scope : ClientPublicationLimitScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientPublicationLimitIssue] {
+  let program = @strategy.graph_program(value.graph)
+  guard @checked.unit_publication_at(program, unit, index) is Some(publication) else {
+    return Err(MissingPublication)
+  }
+  let claim = match scope {
+    Rows => @checked.publication_rows(publication)
+    Bytes => @checked.publication_bytes(publication)
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @capacity.emit_limit(claim, writer) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
+}
+
+///|
 pub(all) enum ClientTaskAoAStepsIssue {
   MissingTask
   Sequence(@lower.SequenceIssue)
