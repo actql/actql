@@ -346,6 +346,26 @@ export function openClientRequestJournal(directory, {
           retained.row, publicationControl, maxRunDefinitionWireBytes),
       });
     },
+    // Physical admit-or-lookup ordering for a checked request. The common
+    // MoonBit relation decides whether a retained intent is the same request;
+    // the callback may issue authority but must not start Compute. A racing
+    // issuer is discarded when the atomic insert finds an existing Run.
+    async admitOrLookupDefinition(identity, {tenantId, lookupExpiresAt,
+      issueDefinition}, requestControl, publicationControl) {
+      if (!text(tenantId) || !instant(lookupExpiresAt) ||
+          Date.parse(lookupExpiresAt) <= Date.now() ||
+          typeof issueDefinition !== 'function') {
+        fail('InvalidClientRequestAdmission');
+      }
+      const retained = journal.resolveDefinition(identity, {tenantId},
+        requestControl, publicationControl);
+      if (retained !== undefined) {
+        return Object.freeze({inserted: false, ...retained});
+      }
+      const runDefinition = await issueDefinition();
+      return journal.acceptDefinition(identity, {tenantId, runDefinition,
+        lookupExpiresAt}, requestControl, publicationControl);
+    },
     close() {
       if (closed) return;
       closed = true;
