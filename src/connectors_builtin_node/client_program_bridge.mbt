@@ -497,6 +497,19 @@ pub fn client_program_admit_publication_bytes_binding(
 }
 
 ///|
+/// Admit every checked Unit Result row and byte binding as one complete set.
+/// This is private Plan material, not a standalone Run authorization.
+#export_name("clientProgramAdmitPublicationBindingSet")
+pub fn client_program_admit_publication_binding_set(
+  prepared : @publication_host.PreparedClientProgram,
+  bodies : Array[String],
+) -> Result[Unit, @publication_host.ClientPublicationBindingSetIssue] {
+  @publication_host.admit_prepared_client_publication_binding_set(
+    prepared, bodies, 1000, 100000, 10000, 100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
