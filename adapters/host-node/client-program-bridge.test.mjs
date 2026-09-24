@@ -582,7 +582,7 @@ test('checked Values Program publishes and reads its real Local Result',
       prepared, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(setup);
     const control = runtimeCore(moon).publicationControl;
-    const plan = checkedValuesPublicationPlan(prepared, control);
+    let plan;
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname, 'result-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
@@ -599,11 +599,16 @@ test('checked Values Program publishes and reads its real Local Result',
       prepared, cid('a'), 'published-values-request', cid('b'));
     const journal = openClientRequestJournal(journalDirectory);
     try {
-      const accepted = journal.acceptDefinition(identity, {
-        tenantId: 'tenant-a', runDefinition: plan.runDefinition,
+      const accepted = await journal.admitOrLookupDefinition(identity, {
+        tenantId: 'tenant-a',
         lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+        issueDefinition: () => {
+          plan = checkedValuesPublicationPlan(prepared, control);
+          return plan.runDefinition;
+        },
       }, moon, control);
       assert.equal(accepted.inserted, true);
+      assert.ok(plan);
       assert.equal(accepted.ref.runDefinitionCid,
         plan.runDefinition.identity);
     } finally {
@@ -629,8 +634,14 @@ test('checked Values Program publishes and reads its real Local Result',
       const reopened = openClientRequestJournal(journalDirectory);
       let ref;
       try {
-        const retained = reopened.resolveDefinition(identity,
-          {tenantId: 'tenant-a'}, moon, control);
+        const retained = await reopened.admitOrLookupDefinition(identity, {
+          tenantId: 'tenant-a',
+          lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+          issueDefinition: () => {
+            throw new Error('Duplicate request reissued Run authority');
+          },
+        }, moon, control);
+        assert.equal(retained.inserted, false);
         assert.equal(retained.runDefinition.wire, plan.runDefinition.wire);
         ref = retained.ref;
       } finally {
