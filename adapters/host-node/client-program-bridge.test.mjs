@@ -108,12 +108,29 @@ test('binding set covers every checked Unit Result port', async () => {
     checked(moon.clientProgramPublicationBytesBindingJson(
       prepared, 0, index)),
   ]);
+  const limits = [0, 1].flatMap(index => [
+    checked(moon.clientProgramPublicationRowsLimitJson(prepared, 0, index)),
+    checked(moon.clientProgramPublicationBytesLimitJson(prepared, 0, index)),
+  ]);
   assert.equal(new Set(bindings.map(body => JSON.parse(body).binding_cid))
+    .size, 4);
+  assert.equal(new Set(limits.map(body => JSON.parse(body).resolved_limit_cid))
     .size, 4);
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitPublicationBindingSet(prepared,
       bindings.toReversed())));
+  const admitFacts = (limitBodies, bindingBodies) => checked(
+    moon.clientProgramAdmitPublicationPlanFacts(
+      prepared, limitBodies, bindingBodies));
+  assert.doesNotThrow(() => admitFacts(
+    limits.toReversed(), bindings.toReversed()));
   for (const omitted of [0, 1, 2, 3]) {
+    assert.throws(() => admitFacts(
+      limits.filter((_, index) => index !== omitted), bindings),
+    {code: 'MoonBitHostFailure'});
+    assert.throws(() => admitFacts(
+      limits, bindings.filter((_, index) => index !== omitted)),
+    {code: 'MoonBitHostFailure'});
     assert.throws(() => checked(
       moon.clientProgramAdmitPublicationBindingSet(prepared,
         bindings.filter((_, index) => index !== omitted))),
@@ -384,9 +401,26 @@ test('Node ABI derives the checked named Result and request identity', async () 
     moon.clientProgramAdmitPublicationBytesBinding(prepared, 0, 0, body));
   const admitSet = bodies => checked(
     moon.clientProgramAdmitPublicationBindingSet(prepared, bodies));
+  const admitFacts = (limits, bindings) => checked(
+    moon.clientProgramAdmitPublicationPlanFacts(prepared, limits, bindings));
   assert.doesNotThrow(() => admitRows(rowsBindingBody));
   assert.doesNotThrow(() => admitBytes(bytesBindingBody));
   assert.doesNotThrow(() => admitSet([bytesBindingBody, rowsBindingBody]));
+  assert.doesNotThrow(() => admitFacts(
+    [bytesLimitBody, rowsLimitBody],
+    [bytesBindingBody, rowsBindingBody]));
+  for (const invalid of [
+    [rowsLimitBody],
+    [rowsLimitBody, rowsLimitBody],
+    [rowsLimitBody, '{}'],
+    [rowsLimitBody, JSON.stringify({...bytesLimit,
+      effective_max: bytesLimit.effective_max + 1})],
+  ]) assert.throws(() => admitFacts(invalid,
+    [rowsBindingBody, bytesBindingBody]),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => admitFacts(
+    [rowsLimitBody, bytesLimitBody], [rowsBindingBody]),
+  {code: 'MoonBitHostFailure'});
   assert.doesNotThrow(() => admitSet([JSON.stringify({
     version: rowsBinding.version, target: rowsBinding.target,
     unit: rowsBinding.unit, subject_ref: rowsBinding.subject_ref,
