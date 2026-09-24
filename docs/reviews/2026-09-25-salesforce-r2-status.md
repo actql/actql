@@ -4,6 +4,11 @@ Review baseline: `15904a32f31573a86a3507253f3eaa1b010adf78`.
 Prior implementation and verification baseline:
 `40ef6ad720e93b98c2c42e6f7ec0bb170682f135`.
 
+The follow-up review in `02-salesforce-effects (2).md` repeats this
+coordinate finding and distinguishes it from the still-open ordinary Run
+integration. Its fixed SHA predates the coordinate and Host regressions
+recorded below. The finding is not a second implementation task.
+
 ## Coordinate and execution boundary
 
 The Stage-to-physical-Task Effect source mapping was already present before
@@ -46,3 +51,9 @@ reconciliation, and final publication through one ordinary multi-member
 Effectful Run. The current standard Host regression stops at owned input
 export; it does not prove the mutation or final Receipt path. Missing/foreign
 late-pin failures and local HTTPS no-send cases still need top-level coverage.
+
+The checked Effect preparation now exposes a private per-member Plan CID so
+the eventual Preview can bind the exact static Plan without reauthoring it in
+JavaScript. It is a static identity accessor, not input capture or an apply
+permit. Product connection and the review's fault-injection matrix remain
+open. Same-SHA Linux CI and live Salesforce are not yet verified.
