@@ -64,15 +64,6 @@ pub fn issue_effect_row_receipt_terminal_entry(
     return Err(ForeignReceipt)
   }
   let receipt_cid = @publication.publication_contract_identity(receipt)
-  if current.state == Applied ||
-    current.state == Accepted ||
-    current.state == Failed {
-    if current.outcome_receipt_cid == Some(receipt_cid) &&
-      ledger_state_text(current.state) == state {
-      return Ok(current)
-    }
-    return Err(InvalidTransition)
-  }
   if history.is_empty() || history[history.length() - 1].cid != current.cid {
     return Err(ForeignClaim)
   }
@@ -87,13 +78,29 @@ pub fn issue_effect_row_receipt_terminal_entry(
         return Err(ForeignClaim)
       }
       dispatch_seen = true
-    } else if dispatch_seen && entry.state != Unknown {
+    } else if dispatch_seen &&
+      entry.state != Unknown &&
+      !(entry.cid == current.cid &&
+      (
+        current.state == Applied ||
+        current.state == Accepted ||
+        current.state == Failed
+      )) {
       return Err(ForeignClaim)
     }
     previous = Some(entry)
   }
   if !dispatch_seen {
     return Err(ForeignClaim)
+  }
+  if current.state == Applied ||
+    current.state == Accepted ||
+    current.state == Failed {
+    if current.outcome_receipt_cid == Some(receipt_cid) &&
+      ledger_state_text(current.state) == state {
+      return Ok(current)
+    }
+    return Err(InvalidTransition)
   }
   match
     issue_next_effect_ledger_entry(
