@@ -150,6 +150,19 @@ workspace scratch at `.codex-scratch/perf-equivalent-small-dbf36`.
    ceiling is ineligible; it must not be assigned a fictional slow timing or
    block timing of a feasible candidate. Do not raise the ceiling implicitly.
 
+The first calibration probe at `7d2ffee26` narrowed this gap. Separate-source
+training for the low-selectivity and join/count `text-1024/1000` fixtures
+completed for both Local and DuckDB. The retained-reuse `text-1024/1000`
+forced Local candidate instead failed before completing its first task. An
+instrumented scratch run found
+`LocalDispatchIssue.Preparation(Materializing(Candidate(Execution(Rows(0,
+RowLimit)))))`; the 100-row training candidate also failed. This identifies
+the first Local sequence operation and the registered
+`rows * 2048` cumulative text ceiling as the next accounting boundary to
+inspect. It does not yet prove whether the charge is a duplicate obligation
+or a genuinely ineligible Local candidate. The instrumented diagnostic was
+removed; the registered ceiling and matrix remain unchanged.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall
