@@ -4,8 +4,8 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
-The current local resource gate maps 68 routes: 32 have operation-specific
-boundary records, 11 have all four lifecycle roles, and 9 have exact and
+The current local resource gate maps 68 routes: 33 have operation-specific
+boundary records, 12 have all four lifecycle roles, and 9 have exact and
 one-short work/workspace assurance across every production path. Across the
 routes, 30 paths have path-scoped work/workspace evidence. Strict completion
 remains red.
@@ -2206,6 +2206,13 @@ work starts, confirms stop, completes retryable cleanup, and returns the ledger
 to zero. Workers generation and all 24 Workers tests pass from the same source.
 This closes `score_vectors` without treating the remaining VecA operations as
 complete.
+The scoring kernel now enforces cumulative control work across resumes.
+Independent fixed fixtures count 3/2 units on empty input and 18/17 units
+for one record, with zero-work admission rejected before output allocation.
+The three-record ordering workspace admits 30 slots and rejects 29 before
+execution. Kernel cancellation, cleanup, and the delivered Host timer are
+bound to the production route. Metric, identity-width, and output-value work
+interactions remain outside full route resource assurance.
 
 At `9c751e9c`, one pooled Vectors generation is shared with a real
 normalization consumer and the formal Relation Bridge on JS, Wasm, and native.

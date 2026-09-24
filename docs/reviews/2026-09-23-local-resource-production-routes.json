@@ -3626,6 +3626,60 @@
       "entrypoint": {
         "path": "src/local_veca/score.mbt",
         "symbol": "start_score"
+      },
+      "boundary_tests": [
+        {
+          "role": "score_empty_work_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score enforces cumulative empty-input control work"
+        },
+        {
+          "role": "score_record_work_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score enforces cumulative one-record control work"
+        },
+        {
+          "role": "score_workspace_exact",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score completes at its exact ordering workspace boundary"
+        },
+        {
+          "role": "score_workspace_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score admits complete ordering workspace before execution"
+        },
+        {
+          "role": "score_kernel_cancel_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/score_wbtest.mbt",
+          "fixture": "score observes cancellation between bounded work units"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "score_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-score"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "score_workspace_exact",
+          "one_short_limit": "score_workspace_one_short",
+          "in_flight_cancel": "score_host_in_flight_cancel",
+          "cleanup": "score_kernel_cancel_cleanup"
+        }
       }
     },
     {

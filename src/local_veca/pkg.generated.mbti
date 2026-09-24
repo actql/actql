@@ -216,6 +216,7 @@ pub(all) enum ScoreIssue {
   InvalidScoreVector(Int)
   InvalidScoreIdentity(Int)
   ScoreWorkspaceLimit
+  ScoreWorkLimit
   ScoreNumeric(@vector_numeric.Issue)
   ScoreKeyOrder(@value_admission.KeyOrderIssue)
   ScoreOutput(@managed_record_runtime.Issue)

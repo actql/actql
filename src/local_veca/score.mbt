@@ -65,6 +65,7 @@ priv struct ScoreState {
   mut emit_index : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -92,6 +93,7 @@ pub(all) enum ScoreIssue {
   InvalidScoreVector(Int)
   InvalidScoreIdentity(Int)
   ScoreWorkspaceLimit
+  ScoreWorkLimit
   ScoreNumeric(@numeric.Issue)
   ScoreKeyOrder(@value.KeyOrderIssue)
   ScoreOutput(@records.Issue)
@@ -442,6 +444,9 @@ fn score_step(
     if !@records.producer_read_available(state.input) {
       return @bounded.Failed(ScoreInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ScoreWorkLimit, progress, used)
+    }
     match state.phase {
       ScoreValidateQuery =>
         if state.component < state.dimensions {
@@ -611,6 +616,7 @@ fn score_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -632,7 +638,7 @@ fn cleanup_score_state(state : ScoreState) -> Bool {
 }
 
 ///|
-pub fn start_score(
+fn start_score_with_control_work_limit(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
@@ -640,6 +646,7 @@ pub fn start_score(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit : Int,
 ) -> Result[ScoreExecution, ScoreIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
@@ -686,6 +693,12 @@ pub fn start_score(
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
     return Err(ScoreWorkspaceLimit)
+  }
+  if control_work_limit < 0 {
+    return Err(InvalidScoreLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(ScoreWorkLimit)
   }
   let numeric_metric = match metric {
     @lower.CosineScore => @numeric.Cosine
@@ -742,6 +755,7 @@ pub fn start_score(
     emit_index: 0,
     emit_field: 0,
     emit_fields: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, score_step, cleanup_score_state, @records.discard_completed,
@@ -752,6 +766,28 @@ pub fn start_score(
     max_noninterruptible_value_nodes: limits.max_value_nodes,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
   })
+}
+
+///|
+pub fn start_score(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[ScoreExecution, ScoreIssue] {
+  start_score_with_control_work_limit(
+    control,
+    sequence,
+    step,
+    input,
+    limits,
+    storage_bytes,
+    available,
+    limits.max_work,
+  )
 }
 
 ///|
