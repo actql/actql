@@ -204,3 +204,81 @@ test "session identity construction can stop between scalar parts" {
   assert_true(cleanup_session(execution).unwrap())
   assert_true(@records.discard_completed(source))
 }
+
+///|
+test "session scratch initialization advances within the resume quantum" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(
+    producer,
+    [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+    live,
+  )
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  assert_true(
+    start_session(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      input,
+      { ..event_window_limits(), max_workspace_slots: 51, },
+      4096L,
+      fn() { live.val },
+    )
+    is Err(SessionWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = start_session(
+    control,
+    event_window_sequence(owner),
+    0,
+    input,
+    { ..event_window_limits(), max_workspace_slots: 52, },
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_eq(session_initialization_progress(execution), (0, 0))
+  for step in 1..<25 {
+    assert_true(
+      advance_session(execution, 1).unwrap() is SessionContinue(progress=0L, ..),
+    )
+    assert_eq(session_initialization_progress(execution), (step, 0))
+  }
+  assert_true(advance_session(execution, 1).unwrap() is SessionContinue(_))
+  assert_eq(session_initialization_progress(execution), (24, 0))
+  for step in 1..<9 {
+    assert_true(
+      advance_session(execution, 1).unwrap() is SessionContinue(progress=0L, ..),
+    )
+    assert_eq(session_initialization_progress(execution), (24, step))
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_session(execution, 1).unwrap()
+    is SessionStopped(@bounded.Cancelled, progress=0L, work=33L),
+  )
+  assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.producer_read_available(input))
+
+  let stopped_control = @bounded.control()
+  assert_true(@bounded.request_cancel(stopped_control))
+  let stopped_input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let stopped = start_session(
+    stopped_control,
+    event_window_sequence(owner),
+    0,
+    stopped_input,
+    { ..event_window_limits(), max_workspace_slots: 52, },
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_eq(session_initialization_progress(stopped), (0, 0))
+  assert_true(
+    advance_session(stopped, 1).unwrap()
+    is SessionStopped(@bounded.Cancelled, progress=0L, work=0L),
+  )
+  assert_eq(session_initialization_progress(stopped), (0, 0))
+  assert_true(cleanup_session(stopped).unwrap())
+  assert_true(@records.discard_completed(source))
+}
