@@ -3,6 +3,7 @@ fn effect_plan_rules(
   effect : String,
   kind : String,
   selector : String,
+  write_fields? : String = "[\"Name\"]",
 ) -> EffectMappingRules {
   let (checked, headers) = effect_binding_inputs(effect)
   let bindings = bind_effect_results(headers, checked, 12).unwrap()
@@ -12,7 +13,9 @@ fn effect_plan_rules(
     kind +
     "\"],\"selector_class\":\"" +
     selector +
-    "\",\"write_fields\":[\"Name\"]}]"
+    "\",\"write_fields\":" +
+    write_fields +
+    "}]"
   let shapes = bind_effect_mapping_shapes(
     bindings,
     effect_mapping_shape_fixture_with_rules(permission),

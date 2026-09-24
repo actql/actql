@@ -112,3 +112,167 @@ test "checked selector and mapped source remain distinct row obligations" {
     MissingSourceField("amount"),
   )
 }
+
+///|
+test "checked Plan changes merge only same-owner literals and bounded rows" {
+  let effect = "{\"member\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\",\"set\":{\"Name\":{\"literal\":5}}}}}"
+  let rules = effect_plan_rules(effect, "update", "id")
+  let admitted = admit_effect_mapping_literals(rules, {
+    max_work: 50,
+    max_value_nodes: 20,
+    max_value_depth: 4,
+    max_value_text_bytes: 100,
+  }).unwrap()
+  let terminal = prepare_effect_plan_terminal(
+      effect_mapping_rule_at(rules, 0).unwrap(),
+      1,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(effect_mapping_literal_count(admitted), 2)
+  assert_true(
+    physical_equal(
+      effect_mapping_literal_rule(
+        effect_mapping_literal_at(admitted, 0).unwrap(),
+      ),
+      effect_plan_terminal_rule(terminal),
+    ),
+  )
+  let row = project_effect_plan_row(
+    terminal,
+    effect_plan_test_row("{\"amount\":7}"),
+    0,
+    1,
+    2,
+  ).unwrap()
+  let expected = "{\"state\":\"present\",\"value\":{\"Name\":5}}"
+  assert_eq(
+    effect_plan_row_intended_changes_wire(
+      row,
+      admitted,
+      1,
+      6,
+      expected.length(),
+      4,
+      2,
+    ),
+    Ok(expected),
+  )
+  assert_eq(
+    effect_plan_row_intended_changes_wire(
+      row,
+      admitted,
+      1,
+      5,
+      expected.length(),
+      4,
+      2,
+    ).unwrap_err(),
+    WorkLimit,
+  )
+  assert_eq(
+    effect_plan_row_intended_changes_wire(
+      row,
+      admitted,
+      1,
+      6,
+      expected.length() - 1,
+      4,
+      2,
+    ).unwrap_err(),
+    OutputLimit,
+  )
+  let foreign = admit_effect_mapping_literals(
+    effect_plan_rules(effect, "update", "id"),
+    {
+      max_work: 50,
+      max_value_nodes: 20,
+      max_value_depth: 4,
+      max_value_text_bytes: 100,
+    },
+  ).unwrap()
+  assert_eq(
+    effect_plan_row_intended_changes_wire(
+      row,
+      foreign,
+      1,
+      6,
+      expected.length(),
+      4,
+      2,
+    ).unwrap_err(),
+    ForeignLiterals,
+  )
+}
+
+///|
+test "checked Plan row changes retain projected value and null" {
+  let effect = "{\"member\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\",\"set\":{\"Name\":{\"field\":\"amount\"}}}}}"
+  let rules = effect_plan_rules(effect, "update", "id")
+  let admitted = admit_effect_mapping_literals(rules, {
+    max_work: 50,
+    max_value_nodes: 20,
+    max_value_depth: 4,
+    max_value_text_bytes: 100,
+  }).unwrap()
+  let terminal = prepare_effect_plan_terminal(
+      effect_mapping_rule_at(rules, 0).unwrap(),
+      1,
+    )
+    .unwrap()
+    .unwrap()
+  for
+    (source, expected) in [
+      ("{\"amount\":7}", "{\"state\":\"present\",\"value\":{\"Name\":7}}"),
+      ("{\"amount\":null}", "{\"state\":\"present\",\"value\":{\"Name\":null}}"),
+    ] {
+    let row = project_effect_plan_row(
+      terminal,
+      effect_plan_test_row(source),
+      0,
+      1,
+      4,
+    ).unwrap()
+    assert_eq(
+      effect_plan_row_intended_changes_wire(
+        row,
+        admitted,
+        1,
+        4,
+        expected.length(),
+        4,
+        2,
+      ).unwrap(),
+      expected,
+    )
+  }
+}
+
+///|
+test "checked delete Plan has no invented intended payload" {
+  let effect = "{\"member\":{\"delete\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"r\"},\"id\":\"amount\"}}}"
+  let rules = effect_plan_rules(effect, "delete", "id", write_fields="[]")
+  let admitted = admit_effect_mapping_literals(rules, {
+    max_work: 50,
+    max_value_nodes: 20,
+    max_value_depth: 4,
+    max_value_text_bytes: 100,
+  }).unwrap()
+  let terminal = prepare_effect_plan_terminal(
+      effect_mapping_rule_at(rules, 0).unwrap(),
+      0,
+    )
+    .unwrap()
+    .unwrap()
+  let row = project_effect_plan_row(
+    terminal,
+    effect_plan_test_row("{\"amount\":7}"),
+    0,
+    0,
+    2,
+  ).unwrap()
+  assert_eq(
+    effect_plan_row_intended_changes_wire(row, admitted, 0, 2, 26, 2, 1),
+    Ok("{\"state\":\"not_applicable\"}"),
+  )
+}
