@@ -2828,16 +2828,18 @@ async function exerciseStrategyGraph(
     name: 'node-rows',
     rows: 100,
     advanceQuantum: 16,
-    cancelAtBridgeStart: true,
-    constructionProgress: 100,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    constructionProgress: 200,
     step: {from: 'g', node_rows: true, as: 'out'},
     fields: ['id', 'node_name'],
   }, {
     name: 'edge-rows',
     rows: 100,
     advanceQuantum: 16,
-    cancelAtBridgeStart: true,
-    constructionProgress: 100,
+    managedStarts: 3,
+    completedTasks: [1, 2],
+    constructionProgress: 200,
     step: {from: 'g', edge_rows: true, as: 'out'},
     fields: ['src', 'dst', 'weight'],
   }, {
@@ -4592,19 +4594,12 @@ async function exerciseStrategyGraph(
                     cancellationScheduled = true;
                     setTimeout(() => graphCancellation.abort(), 0);
                   } else if (constructionStarts.includes(start) &&
-                      observation?.complete === false &&
+                      observation !== undefined &&
                       !constructionComplete) {
                     constructionProgress += observation.progress;
                     constructionComplete = constructionProgress >=
                       BigInt(cancellationCase.constructionProgress ??
                         cancellationCase.rows * 2);
-                    if (constructionComplete &&
-                        cancellationCase.cancelAtBridgeStart &&
-                        !cancellationScheduled) {
-                      sawOperationWork = true;
-                      cancellationScheduled = true;
-                      setTimeout(() => graphCancellation.abort(), 0);
-                    }
                   } else if (!cancellationCase.cancelDuringFinalization &&
                       cancellationCase.cancelAfterSortAdvances === undefined &&
                       cancellationCase.cancelOnManagedStart === undefined &&

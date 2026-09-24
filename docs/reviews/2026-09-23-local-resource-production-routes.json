@@ -2905,7 +2905,24 @@
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph node rows admit exact workspace and stop after field work"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "node_rows_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "node-rows"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "node_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "node_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "node_rows_host_in_flight_cancel",
+          "cleanup": "node_rows_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      }
     },
     {
       "inventory": "families",
@@ -2928,7 +2945,24 @@
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "Graph edge rows admit exact workspace and stop after field work"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "edge_rows_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "edge-rows"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "edge_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "edge_rows_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "edge_rows_host_in_flight_cancel",
+          "cleanup": "edge_rows_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      }
     },
     {
       "inventory": "families",
