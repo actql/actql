@@ -169,3 +169,14 @@ signed payload CID, while changing the Preview changes the signed CID. The
 Node Host bridge exposes that exact MoonBit result. This does not verify a
 signature, issuer trust, expiry, or current grant; those remain prerequisites
 for the ordinary Effectful apply path.
+
+The selected SGA provider in the full Node bridge had made the RelA-only
+artifact gate fail. Build-time composition now derives a RelA-only bridge
+from the same product source, omitting the SGA provider and refusing to
+advertise SGA in its checking environment. Its Node entry shares the
+standard Host lifecycle and publication policy. The artifact gate verifies
+the transitive package and linked-core closure, then executes a checked
+Local Program through that entry. The full selected bridge still passes
+the split-Stage SGA and Effect source tests. The grouped documentation gate,
+MoonBit format check, and 61 Host/boundary tests passed locally. This fixes
+the packaging regression, not R2-G1 or the missing live-org validation.

@@ -14,6 +14,7 @@ pub fn client_program_check_environment(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
+  // SELECTED_SGA_CAPABILITY
   let wire = match
     @check_environment.read(@utf8.encode(body), evidence_bundle_cid, {
       max_bytes: 65536,
@@ -1421,6 +1422,7 @@ fn client_program_configure_local_host(
     max_nodes: 10000,
     max_depth: 100,
   }
+  // SELECTED_SGA_PROVIDER_BEGIN
   let graph_limits : @graph_storage.Limits = {
     max_input_rows: 100,
     max_nodes: 100,
@@ -1462,6 +1464,7 @@ fn client_program_configure_local_host(
       [@local_sga_provider.provider(graph_limits, 10000L, sequence_capacity)]
     None => return reject_client_local_run(run)
   }
+  // SELECTED_SGA_PROVIDER_END
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
     managed_providers: providers,
