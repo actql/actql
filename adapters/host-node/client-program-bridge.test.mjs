@@ -521,11 +521,13 @@ test('admitted source-free Effect Run computes through the installed Host',
     }
   });
 
-test('two Effect members hold one completed Result independently', async () => {
-  const {document, environment} = await effectFixture();
+async function verifySharedEffectSource({splitSource, expectedTask}) {
+  const {document, environment} = await effectFixture({
+    splitSource, splitEffectSource: 'middle',
+  });
   const source = JSON.parse(document);
-  source.stages[0].effects.save_again = structuredClone(
-    source.stages[0].effects.save);
+  const effectStage = source.stages[splitSource ? 1 : 0];
+  effectStage.effects.save_again = structuredClone(effectStage.effects.save);
   const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
     JSON.stringify(source), 'json', environment, undefined, []);
   const prepared = moon.clientProgramEffectPreparationReady(outcome);
@@ -568,8 +570,8 @@ test('two Effect members hold one completed Result independently', async () => {
       assert.ok(first);
       assert.ok(second);
       assert.notEqual(first, second);
-      assert.equal(moon.clientProgramEffectInputTask(first), 0);
-      assert.equal(moon.clientProgramEffectInputTask(second), 0);
+      assert.equal(moon.clientProgramEffectInputTask(first), expectedTask);
+      assert.equal(moon.clientProgramEffectInputTask(second), expectedTask);
       assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), true);
       assert.equal(moon.clientProgramReleaseEffectInput(first), true);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
@@ -594,6 +596,11 @@ test('two Effect members hold one completed Result independently', async () => {
     await execution.close();
     assert.equal(execution.cleanupPending(), false);
   }
+}
+
+test('two Effect members hold one completed Result independently', async () => {
+  await verifySharedEffectSource({splitSource: false, expectedTask: 0});
+  await verifySharedEffectSource({splitSource: true, expectedTask: 4});
 });
 
 test('Effect sources retain exact physical producers across split Stages',

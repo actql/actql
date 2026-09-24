@@ -1,7 +1,8 @@
 # Salesforce Effect review R2 status
 
 Review baseline: `15904a32f31573a86a3507253f3eaa1b010adf78`.
-Implementation and verification baseline: `40ef6ad720e93b98c2c42e6f7ec0bb170682f135`.
+Prior implementation and verification baseline:
+`40ef6ad720e93b98c2c42e6f7ec0bb170682f135`.
 
 ## Coordinate and execution boundary
 
@@ -10,6 +11,11 @@ this follow-up. The additional standard Host regression now executes three
 source shapes: a Result after a split Stage, the split Stage's final Result,
 and its intermediate Result. It verifies the exact producer Task, projected
 rows, port close behavior, pin lifetime, and cleanup.
+
+The two-member source test now also runs with a split producer. It first
+forces a late pin-capacity failure, then confirms both independent pins use
+Task 4 and that releasing one does not invalidate the other. The surviving
+pin exports the checked rows after the ordinary output port closes.
 
 The regression exposed two adjacent execution defects. A managed consumer
 rejected Task 0 even when the Run root was Compute, and the source-free Local
@@ -20,7 +26,8 @@ or second execution state machine was added.
 
 ## Verification
 
-- Standard Client/Local Host tests: 13/13.
+- Standard Client/Local Host tests: 13/13 (rerun after the split shared-pin
+  extension).
 - Query integration: JS 556/556, Wasm 556/556, native 556/556.
 - MoonBit formatting and Node connector assembly: passed.
 - Isolated Connector addition gate: baseline and extended all-target checks,
@@ -37,5 +44,5 @@ R2-G1 remains a completion condition: connect the checked/captured inputs,
 whole-set Preview and apply admission, durable claims, physical writes,
 reconciliation, and final publication through one ordinary multi-member
 Effectful Run. The current standard Host regression stops at owned input
-export; it does not prove the mutation or final Receipt path. Split-source
-pin rollback and local HTTPS no-send cases still need top-level coverage.
+export; it does not prove the mutation or final Receipt path. Missing/foreign
+late-pin failures and local HTTPS no-send cases still need top-level coverage.
