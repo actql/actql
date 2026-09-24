@@ -374,6 +374,11 @@ pub fn effect_program_run_preview_owner(
 }
 
 ///|
+pub fn effect_program_run_preview_stage(value : EffectProgramRunPreview) -> Int {
+  value.preview.stage_index
+}
+
+///|
 /// Check the entire admitted Effect Set footprint on the exact checked Run
 /// Preview owner. A caller-supplied member list cannot replace the retained
 /// inventory. Current authorization, target guards, captured values and

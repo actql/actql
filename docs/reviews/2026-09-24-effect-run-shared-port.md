@@ -367,10 +367,23 @@ The physical capture boundary can now pin the complete checked Effect source
 inventory in one custody step. It retains positions for members with no Result
 source, rolls back every earlier pin if any later source is missing, foreign,
 or over its per-task ceiling, and releases repeated consumers together. Tests
-keep the terminal task ports closed while those consumer pins remain live and
-confirm the ledger returns to zero after release. This owner does not yet
-capture Effect Plan rows or authorize a Preview or mutation; the standard
-Effectful Host entry remains the completion blocker.
+of the underlying checked Result pin set keep terminal task ports closed while
+consumer pins remain live and confirm the ledger returns to zero after
+release. The Effect-specific multi-source entry still needs a connected
+captured-Run fixture. This owner does not yet capture Effect Plan rows or
+authorize a Preview or mutation; the standard Effectful Host entry remains
+the completion blocker.
+
+The captured input set now retains its exact Effect Run owner. A private Run
+Preview can bind to that set only through the same physical Run owner; the
+common binder maps Preview member IDs to checked source occurrences under a
+work ceiling and rejects a missing or revoked input. An equal-CID Run owner is
+not interchangeable. This establishes live input custody for Preview
+processing, but it does not prove that the captured rows match the Preview's
+Artifact or intended write payload. No apply permit or standard Host dispatch
+is implied by this binding. Current three-target fixtures cover exact owner,
+bounded lookup and reordered member mapping; the physical Preview-input
+binding itself still needs a connected captured-Run regression.
 
 The whole-set write-footprint check can now consume the admitted private
 Preview retained by the exact checked Run owner. It derives member identities
