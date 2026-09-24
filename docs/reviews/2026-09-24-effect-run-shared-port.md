@@ -578,6 +578,15 @@ other available with the same exact two projected rows until its own release.
 This covers shared custody on a
 nonsegmented physical source. Split-source lifetime and rollback still need
 an execution fixture rather than an expanded-graph-only assertion.
+
+The common captured-Preview owner now checks the current target-version map
+only while all referenced Result pins remain live. The Host bridge accepts
+bounded row/version pairs, rejects a mismatched inventory, and calls the
+existing MoonBit whole-Preview guard rule. A zero-row product fixture covers
+the binding and release boundary; nonempty guard semantics remain covered by
+the independent Effect rule tests. This is one apply preflight obligation,
+not evidence of current authorization, physical payload equality, or a
+complete EffectApplyPermit.
 Its cell exporter rejects a resident representation explicitly; a resident
 input only proves exact physical custody until the Host presents the same
 concrete output and establishes its checked view and payload. Concrete
