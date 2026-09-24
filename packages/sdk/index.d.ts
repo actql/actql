@@ -38,6 +38,7 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  readonly cleanupError?: unknown;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
 }
 

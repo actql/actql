@@ -223,11 +223,12 @@ export async function connect(options) {
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
           let wireBytes = 0, line = '';
+          let stream, failure;
           try {
             const response = await runRequest('read', {
               resultName: name, format: 'jsonl', attemptId,
             }, controller.signal);
-            const stream = response.body?.getReader();
+            stream = response.body?.getReader();
             if (!stream) fail('InvalidResultStream');
             const decoder = new TextDecoder('utf-8', {fatal: true});
             const acceptText = function* (text) {
@@ -269,12 +270,24 @@ export async function connect(options) {
             if (line !== '\x1e') fail('IncompleteResultStream');
             state = 'complete';
           } catch (cause) {
-            throw new ClientError(cause.code ?? 'ResultReadUnknown',
+            failure = new ClientError(cause.code ?? 'ResultReadUnknown',
               {attemptId, cause});
           } finally {
             options.signal?.removeEventListener('abort', abort);
             if (state !== 'complete') controller.abort();
+            if (stream) {
+              try {
+                if (state !== 'complete') await stream.cancel();
+              } catch (cause) {
+                if (failure) failure.cleanupError = cause;
+                else failure = new ClientError('ResultReadCleanupUnknown',
+                  {attemptId, cause});
+              } finally {
+                stream.releaseLock();
+              }
+            }
           }
+          if (failure) throw failure;
         };
         return Object.freeze({attemptId, state: () => state,
           [Symbol.asyncIterator]: iterate});

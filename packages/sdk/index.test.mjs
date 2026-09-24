@@ -190,6 +190,77 @@ test('read limits reject complete collection without cancelling the Run', async 
   assert.deepEqual(requests, ['connect', 'attach', 'read']);
 });
 
+test('stopping a row reader releases only its delivery stream', async t => {
+  const requests = [];
+  const cancelled = [];
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    requests.push(operation);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response(new ReadableStream({
+      start(controller) { controller.enqueue(
+        new TextEncoder().encode('{"n":1}\n')); },
+      cancel() { cancelled.push(true); },
+    }));
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  const reader = result.rows();
+  for await (const row of reader) {
+    assert.deepEqual(row, {n: 1});
+    break;
+  }
+  assert.equal(reader.state(), 'prefix');
+  assert.deepEqual(cancelled, [true]);
+  assert.deepEqual(requests, ['connect', 'attach', 'read']);
+});
+
+test('a wire-limit failure releases the unfinished delivery stream', async t => {
+  const cancelled = [];
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response(new ReadableStream({
+      start(controller) { controller.enqueue(
+        new Uint8Array(32).fill(120)); },
+      cancel() { cancelled.push(true); },
+    }));
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  const reader = result.rows({maxWireBytes: 16});
+  await assert.rejects(Array.fromAsync(reader), error =>
+    error.code === 'ResultWireLimit' &&
+    error.attemptId === reader.attemptId);
+  assert.equal(reader.state(), 'prefix');
+  assert.deepEqual(cancelled, [true]);
+});
+
+test('a failed stream cancellation does not erase the read failure', async t => {
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json(admission);
+    if (operation === 'read') return new Response(new ReadableStream({
+      start(controller) { controller.enqueue(
+        new Uint8Array(32).fill(120)); },
+      cancel() { throw new Error('physical cleanup failed'); },
+    }));
+    throw new Error(`unexpected ${operation}`);
+  });
+  t.after(() => mock.restoreAll());
+  const result = (await (await connect(options)).attach(ref)).result('answer');
+  const reader = result.rows({maxWireBytes: 16});
+  await assert.rejects(Array.fromAsync(reader), error =>
+    error.code === 'ResultWireLimit' &&
+    error.attemptId === reader.attemptId &&
+    error.cleanupError?.message === 'physical cleanup failed');
+});
+
 test('row wire and retained-value limits are independent', async t => {
   const requests = [];
   mock.method(globalThis, 'fetch', async url => {
