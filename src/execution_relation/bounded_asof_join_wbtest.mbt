@@ -1,11 +1,20 @@
 ///|
 fn bounded_asof_source(
   rows : String,
+  text_key? : Bool = false,
+  text_id? : Bool = false,
+  text_tie? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
-  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"key\":{\"type\":\"number\",\"nullable\":false}," +
+  let schema = "{\"id\":{\"type\":" +
+    (if text_id { "\"string\"" } else { "\"number\"" }) +
+    ",\"nullable\":false}," +
+    "\"key\":{\"type\":" +
+    (if text_key { "\"string\"" } else { "\"number\"" }) +
+    ",\"nullable\":false}," +
     "\"clock\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"priority\":{\"type\":\"number\",\"nullable\":true}," +
+    "\"priority\":{\"type\":" +
+    (if text_tie { "\"string\"" } else { "\"number\"" }) +
+    ",\"nullable\":true}," +
     "\"value\":{\"type\":\"number\",\"nullable\":false}}"
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":" +
@@ -34,19 +43,96 @@ fn bounded_asof_source(
 fn bounded_asof_fixture_result(
   max_entries : Int,
   max_work : Int,
+  text_key? : Bool = false,
+  text_id? : Bool = false,
+  text_tie? : Bool = false,
 ) -> Result[
   (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
   BoundedAsOfJoinIssue,
 ] raise {
-  let (left_owner, left_output) = bounded_asof_source(
-    "[{\"id\":2,\"key\":1,\"clock\":105,\"priority\":null,\"value\":20}," +
+  let left_rows = "[{\"id\":2,\"key\":1,\"clock\":105,\"priority\":null,\"value\":20}," +
     "{\"id\":1,\"key\":1,\"clock\":100,\"priority\":null,\"value\":10}," +
-    "{\"id\":3,\"key\":2,\"clock\":110,\"priority\":null,\"value\":30}]",
+    "{\"id\":3,\"key\":2,\"clock\":110,\"priority\":null,\"value\":30}]"
+  let right_rows = "[{\"id\":11,\"key\":1,\"clock\":90,\"priority\":5,\"value\":100}," +
+    "{\"id\":12,\"key\":1,\"clock\":100,\"priority\":2,\"value\":200}," +
+    "{\"id\":13,\"key\":1,\"clock\":100,\"priority\":1,\"value\":300}]"
+  let prefix = "x".repeat(400)
+  let left_rows = if text_id {
+    "[{\"id\":\"" +
+    prefix +
+    "b\",\"key\":1,\"clock\":105,\"priority\":null,\"value\":20}," +
+    "{\"id\":\"" +
+    prefix +
+    "a\",\"key\":1,\"clock\":100,\"priority\":null,\"value\":10}," +
+    "{\"id\":\"" +
+    prefix +
+    "c\",\"key\":2,\"clock\":110,\"priority\":null,\"value\":30}]"
+  } else {
+    left_rows
+  }
+  let right_rows = if text_id {
+    "[{\"id\":\"" +
+    prefix +
+    "k\",\"key\":1,\"clock\":90,\"priority\":5,\"value\":100}," +
+    "{\"id\":\"" +
+    prefix +
+    "l\",\"key\":1,\"clock\":100,\"priority\":2,\"value\":200}," +
+    "{\"id\":\"" +
+    prefix +
+    "m\",\"key\":1,\"clock\":100,\"priority\":1,\"value\":300}]"
+  } else {
+    right_rows
+  }
+  let left_rows = if text_key {
+    "[{\"id\":2,\"key\":\"" +
+    prefix +
+    "a\",\"clock\":105,\"priority\":null,\"value\":20}," +
+    "{\"id\":1,\"key\":\"" +
+    prefix +
+    "a\",\"clock\":100,\"priority\":null,\"value\":10}," +
+    "{\"id\":3,\"key\":\"" +
+    prefix +
+    "b\",\"clock\":110,\"priority\":null,\"value\":30}]"
+  } else {
+    left_rows
+  }
+  let right_rows = if text_key {
+    "[{\"id\":11,\"key\":\"" +
+    prefix +
+    "a\",\"clock\":90,\"priority\":5,\"value\":100}," +
+    "{\"id\":12,\"key\":\"" +
+    prefix +
+    "a\",\"clock\":100,\"priority\":2,\"value\":200}," +
+    "{\"id\":13,\"key\":\"" +
+    prefix +
+    "a\",\"clock\":100,\"priority\":1,\"value\":300}]"
+  } else {
+    right_rows
+  }
+  let right_rows = if text_tie {
+    "[{\"id\":11,\"key\":1,\"clock\":90,\"priority\":\"" +
+    prefix +
+    "c\",\"value\":100}," +
+    "{\"id\":12,\"key\":1,\"clock\":100,\"priority\":\"" +
+    prefix +
+    "b\",\"value\":200}," +
+    "{\"id\":13,\"key\":1,\"clock\":100,\"priority\":\"" +
+    prefix +
+    "a\",\"value\":300}]"
+  } else {
+    right_rows
+  }
+  let (left_owner, left_output) = bounded_asof_source(
+    left_rows,
+    text_key~,
+    text_id~,
+    text_tie~,
   )
   let (right_owner, right_output) = bounded_asof_source(
-    "[{\"id\":11,\"key\":1,\"clock\":90,\"priority\":5,\"value\":100}," +
-    "{\"id\":12,\"key\":1,\"clock\":100,\"priority\":2,\"value\":200}," +
-    "{\"id\":13,\"key\":1,\"clock\":100,\"priority\":1,\"value\":300}]",
+    right_rows,
+    text_key~,
+    text_id~,
+    text_tie~,
   )
   let left_producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(left_owner)),
@@ -227,6 +313,127 @@ test "bounded as-of join cancels before publishing partial output" {
   assert_true(bounded_asof_join_cleanup_pending(execution))
   assert_true(cleanup_bounded_asof_join(execution).unwrap())
   assert_false(bounded_asof_join_cleanup_pending(execution))
+}
+
+///|
+test "bounded as-of join stops during long text key comparison" {
+  let (control, execution, inputs) = bounded_asof_fixture_result(
+    10000,
+    100000,
+    text_key=true,
+  ).unwrap()
+  let mut previous_work = 0L
+  for _ in 0..<500 {
+    match advance_bounded_asof_join(execution, 1).unwrap() {
+      BoundedAsOfJoinContinue(work~, ..) => {
+        assert_true(work - previous_work <= 1L)
+        previous_work = work
+      }
+      _ => fail("long text search completed without yielding")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_asof_join(execution, 1).unwrap()
+    is BoundedAsOfJoinStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(bounded_asof_join_cleanup_pending(execution))
+  assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  assert_false(bounded_asof_join_cleanup_pending(execution))
+  assert_true(inputs.all(producer_read_available))
+}
+
+///|
+test "bounded as-of join stops during long identity sort comparison" {
+  let (control, execution, inputs) = bounded_asof_fixture_result(
+    10000,
+    100000,
+    text_id=true,
+  ).unwrap()
+  let mut previous_work = 0L
+  for _ in 0..<300 {
+    match advance_bounded_asof_join(execution, 1).unwrap() {
+      BoundedAsOfJoinContinue(work~, ..) => {
+        assert_true(work - previous_work <= 1L)
+        previous_work = work
+      }
+      _ => fail("identity sort completed without yielding")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_asof_join(execution, 1).unwrap()
+    is BoundedAsOfJoinStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  assert_false(bounded_asof_join_cleanup_pending(execution))
+  assert_true(inputs.all(producer_read_available))
+}
+
+///|
+test "bounded as-of join stops during long tie comparison" {
+  let (control, execution, inputs) = bounded_asof_fixture_result(
+    10000,
+    100000,
+    text_tie=true,
+  ).unwrap()
+  for _ in 0..<300 {
+    match advance_bounded_asof_join(execution, 1).unwrap() {
+      BoundedAsOfJoinContinue(..) => ()
+      _ => fail("long tie completed without yielding")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_asof_join(execution, 1).unwrap()
+    is BoundedAsOfJoinStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  assert_false(bounded_asof_join_cleanup_pending(execution))
+  assert_true(inputs.all(producer_read_available))
+}
+
+///|
+test "bounded as-of join completes long text keys identities and ties" {
+  for variant in 0..<3 {
+    let text_id = variant == 1
+    let (_, execution, inputs) = bounded_asof_fixture_result(
+      10000,
+      100000,
+      text_key=variant == 0,
+      text_id~,
+      text_tie=variant == 2,
+    ).unwrap()
+    let mut output : CompletedOutput? = None
+    for _ in 0..<1000 {
+      if output is Some(_) {
+        break
+      }
+      match advance_bounded_asof_join(execution, 64).unwrap() {
+        BoundedAsOfJoinContinue(..) => ()
+        BoundedAsOfJoinComplete(value, ..) => output = Some(value)
+        _ => fail("long text as-of result failed")
+      }
+    }
+    guard output is Some(value) else { fail("long text as-of did not finish") }
+    assert_eq(completed_row_count(value), 3)
+    if text_id {
+      let prefix = "x".repeat(400)
+      match completed_cell(value, 0, 0) {
+        Some(Text(id)) => assert_eq(id, prefix + "a")
+        _ => fail("first text identity is missing")
+      }
+      match completed_cell(value, 1, 0) {
+        Some(Text(id)) => assert_eq(id, prefix + "b")
+        _ => fail("second text identity is missing")
+      }
+    } else {
+      assert_true(completed_cell(value, 0, 0) is Some(Number(1.0)))
+      assert_true(completed_cell(value, 0, 1) is Some(Number(300.0)))
+    }
+    assert_true(completed_output_matches_inputs(value, inputs))
+    assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  }
 }
 
 ///|

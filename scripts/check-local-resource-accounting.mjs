@@ -1313,6 +1313,18 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: bounded join production assurance is missing`);
     }
   }
+  if (route.family === 'TEA' && route.operation === 'asof_join') {
+    for (const role of [
+      'asof_long_text_key_cancel_cleanup',
+      'asof_long_text_identity_cancel_cleanup',
+      'asof_long_text_tie_cancel_cleanup',
+      'asof_long_text_result_order',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'VecA' && route.operation === 'nearest') {
     if (route.relation_entrypoint?.symbol !==
         'start_nearest_inputs_with_relations' ||

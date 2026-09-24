@@ -850,6 +850,22 @@ test('temporal joins require their production resource assurance', () => {
   }
 });
 
+test('as-of join requires each long text comparison proof', () => {
+  for (const role of [
+    'asof_long_text_key_cancel_cleanup',
+    'asof_long_text_identity_cancel_cleanup',
+    'asof_long_text_tie_cancel_cleanup',
+    'asof_long_text_result_order',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const join = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'asof_join');
+      join.boundary_tests = join.boundary_tests.filter(fixture =>
+        fixture.role !== role);
+    }), new RegExp(`TEA asof_join: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('nearest retains its fused Relation production entrypoint', () => {
   assert.match(run(undefined, routes => {
     const nearest = routes.routes.find(entry => entry.family === 'VecA' &&

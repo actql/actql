@@ -3984,6 +3984,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
           "fixture": "bounded as-of join cancels before publishing partial output"
+        },
+        {
+          "role": "asof_long_text_key_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join stops during long text key comparison"
+        },
+        {
+          "role": "asof_long_text_identity_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join stops during long identity sort comparison"
+        },
+        {
+          "role": "asof_long_text_tie_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join stops during long tie comparison"
+        },
+        {
+          "role": "asof_long_text_result_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_asof_join_wbtest.mbt",
+          "fixture": "bounded as-of join completes long text keys identities and ties"
         }
       ],
       "environment_tests": [

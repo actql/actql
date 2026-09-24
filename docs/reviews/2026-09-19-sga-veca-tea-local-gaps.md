@@ -277,8 +277,8 @@ all-variant resource assurance.
 The Events-view `start_session_view` production path now binds its
 independently counted 44/43 control-work and 22/21 simultaneous-workspace
 fixture to the registered Host timer. Its own private-state cancellation
-check preserves the Events material through cleanup. Direct and
-The Relation-backed path now has its own standard Host timer case, combined
+check preserves the Events material through cleanup. The Relation-backed path
+now has its own standard Host timer case, combined
 44/43 work and 22/21 workspace fixture, and private-state cancellation and
 cleanup check. The direct fused input path remains unassured, so the
 three-path operation is not fully resource-assured.
@@ -315,6 +315,14 @@ The as-of fixture likewise completes at 136 control-work units and fails at
 cancellation and ordinary Host timer are bound to the as-of production route.
 This fixture is left/backward with a priority tie-break, so forward, nearest,
 and other join kinds remain outside full resource assurance.
+The bounded as-of evaluator now advances long Text comparisons through
+identity sorting, uniqueness checking, key search, and tie evaluation without
+placing an entire UTF-16 scan in one resume. A shared comparison cursor
+preserves complete-value work charges and ordering. Independent exact and
+one-short UTF-8 charge fixtures, long-key and long-identity quantum-one
+cancellation fixtures, and completed-result fixtures cover these branches.
+Other complete-value domains and the remaining formal join modes still need
+their own interruption and resource evidence.
 
 The `dedupe_events` kernel now checks one cumulative control-work ceiling
 across resumes. Its one-record fixture counts 31 steps, including final
