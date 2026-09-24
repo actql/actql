@@ -4,7 +4,7 @@ import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {existsSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {request as httpsRequest} from 'node:https';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {signRemoteRuntimeBundle} from
@@ -125,6 +125,29 @@ async function testValuesHttps(tls, environment) {
       throw new Error('invalid native Values Site port');
     }
     const path = '/v1/sites/native-values-site/generations/1/dispatches';
+    const externalDriver = process.env.ACTQL_TEST_NATIVE_VALUES_DRIVER;
+    if (externalDriver !== undefined) {
+      if (!isAbsolute(externalDriver)) {
+        throw new Error('native Values driver path must be absolute');
+      }
+      execFileSync(process.execPath, ['--experimental-strip-types',
+        externalDriver], {
+        cwd: repositoryRoot,
+        env: {
+          ...process.env,
+          ACTQL_TEST_NATIVE_VALUES_READY_PATH: readyPath,
+          ACTQL_TEST_NATIVE_VALUES_TLS_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_CERT: join(root, 'coordinator.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_KEY: join(root, 'coordinator.key'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_OTHER_CERT: join(root, 'other.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_OTHER_KEY: join(root, 'other.key'),
+        },
+        stdio: 'inherit',
+      });
+      await exited;
+      process.stdout.write('Native Values external mTLS driver passed.\n');
+      return;
+    }
     const foreign = await sendValuesSiteRequest({
       ...tls, cert: tls.otherCert, key: tls.otherKey,
     }, port, path, dispatch, cid);
@@ -161,6 +184,7 @@ async function testValuesHttps(tls, environment) {
 }
 
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
+const valuesHttpsOnly = process.argv.includes('--values-https-only');
 const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
   (process.platform === 'darwin'
     ? [
@@ -228,7 +252,7 @@ try {
     keyId: 'key-a',
     privateKey: keys.privateKey,
   });
-  execFileSync(moon, [
+  if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_runtime/native_test',
     '--target', 'native',
   ], {
@@ -247,7 +271,7 @@ try {
     },
     stdio: 'inherit',
   });
-  execFileSync(moon, [
+  if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/query_integration', '--target', 'native',
   ], {
     cwd: repositoryRoot,
@@ -285,7 +309,7 @@ try {
     ACTQL_TEST_NATIVE_VALUES_HTTPS_CA: join(root, 'ca.crt'),
     ACTQL_TEST_NATIVE_VALUES_HTTPS_PEER: valuesTls.peer,
   });
-  execFileSync(moon, [
+  if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_agent/native_test',
     '--target', 'native',
   ], {
