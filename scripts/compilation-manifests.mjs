@@ -119,6 +119,7 @@ function checkOrWrite(path, body, write) {
 
 export function verifyCompilationManifests(write = false) {
   const values = expectedCompilationManifests();
+  const aoaContractCid = machineCid(read('spec/contracts/actql-aoa.json'));
   checkOrWrite(grammarPath, values.grammar, write);
   checkOrWrite(barrierPath, values.barrier, write);
   checkOrWrite(contractPath, values.contract, write);
@@ -132,6 +133,8 @@ export function verifyCompilationManifests(write = false) {
     `  ${JSON.stringify(values.barrier.barrier_contract_manifest_cid)}`, '}',
     '', '///|', 'pub fn compiler_barrier_contract_manifest_wire() -> String {',
     `  ${JSON.stringify(canonicalText(values.barrier))}`, '}', '',
+    '///|', 'pub fn compiler_aoa_contract_cid() -> String {',
+    `  ${JSON.stringify(aoaContractCid)}`, '}', '',
   ].join('\n');
   if (write) writeFileSync(moonPath, moon);
   assert.equal(readFileSync(moonPath, 'utf8'), moon,
