@@ -433,6 +433,11 @@ test('resource completion cannot accept the synchronous providerless lane', () =
     /providerless managed execution still computes synchronously/);
 });
 
+test('resource completion rejects the selected synchronous fallback', () => {
+  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+    /selected Relation provider still computes unsupported rows synchronously/);
+});
+
 test('cross join pre-execution close is not in-flight evidence', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
     /RelA cross_join: in-flight Host cancellation evidence is missing/);
