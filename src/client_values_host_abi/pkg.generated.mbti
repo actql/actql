@@ -14,6 +14,8 @@ pub fn client_values_host_admit_request_identity(String, String, String, String,
 
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
 
+pub fn client_values_host_admit_run_definition(String) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
+
 pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
@@ -29,6 +31,8 @@ pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAd
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
+
+pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 

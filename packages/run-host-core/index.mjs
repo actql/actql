@@ -135,7 +135,7 @@ export function admitRequestFields(fields) {
   return handle(requests, value, 'request-identity');
 }
 
-export function admitSourceFreeRequestFields(fields) {
+export function admitSourceFreeRequestFields(prepared, compilation, fields) {
   if (fields === null || typeof fields !== 'object' || Array.isArray(fields) ||
       Object.keys(fields).sort().join('\0') !==
         [...requestKeys].sort().join('\0') ||
@@ -147,6 +147,13 @@ export function admitSourceFreeRequestFields(fields) {
     fields.programDefinitionCid, fields.parameterValuesCid,
     fields.callerInputIntentCid, fields.logicalRequestScopeCid,
     fields.intentFingerprintCid), 'RunHostRequestRecordRejected');
+  const current = prepareSourceFreeRequest(prepared, compilation,
+    fields.authorityScopeCid, fields.requestId);
+  if (owner.clientValuesHostRequestRelation(
+    requireHandle(requests, current), value) !== 1) {
+    throw Object.assign(new Error('RunHostRequestRecordRejected'),
+      {code: 'RunHostRequestRecordRejected'});
+  }
   return handle(requests, value, 'request-identity');
 }
 
@@ -198,4 +205,29 @@ export function privateRunDefinition(definition) {
     wire: owner.clientValuesHostRunDefinitionWire(value),
     cid: owner.clientValuesHostRunDefinitionCid(value),
   });
+}
+
+export function admitRunDefinition(wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
+  const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),
+    'RunHostDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
+export function prepareRunStart(requested, retained, definition,
+  retainedRunDefinitionCid, dispatchReserved, currentAuthorization) {
+  if (typeof retainedRunDefinitionCid !== 'string' ||
+      typeof dispatchReserved !== 'boolean' ||
+      typeof currentAuthorization !== 'boolean') {
+    throw new TypeError('InvalidRunHostStart');
+  }
+  const action = checked(owner.clientValuesHostPrepareRunStart(
+    requireHandle(requests, requested), requireHandle(requests, retained),
+    requireHandle(definitions, definition), retainedRunDefinitionCid,
+    dispatchReserved, currentAuthorization), 'RunHostStartRejected');
+  switch (action) {
+    case 0: return 'reserve_dispatch';
+    case 1: return 'reconcile_reserved_dispatch';
+    default: throw new Error('InvalidRunHostStartAction');
+  }
 }

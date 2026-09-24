@@ -3,9 +3,10 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {admitEnvironment, admitRequestFields,
+import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRequestFields, admitRun, compileValues,
-  issueRunDefinition, prepare, prepareRequest, prepareSourceFreeRequest,
+  issueRunDefinition, prepare, prepareRequest, prepareRunStart,
+  prepareSourceFreeRequest,
   privateCompilationWires,
   privateRunDefinition, requestFields, requestRelation} from './index.mjs';
 
@@ -118,14 +119,21 @@ test('source-free request admission pins no input, not explicit empty', () => {
     version: 'actql-caller-input-intent/0.1', selection: 'none',
   }));
   assert.equal(requestRelation(request,
-    admitSourceFreeRequestFields(fields)), 'same_request');
+    admitSourceFreeRequestFields(prepared, compilation, fields)),
+  'same_request');
   const explicitEmpty = cid({version: 'actql-caller-input-intent/0.1',
     selection: 'explicit', inputs: []});
   const altered = prepareRequest(prepared, scope, fields.requestId,
     explicitEmpty);
   assert.equal(requestRelation(request, altered), 'changed_intent');
-  assert.throws(() => admitSourceFreeRequestFields(requestFields(altered)),
+  assert.throws(() => admitSourceFreeRequestFields(prepared, compilation,
+    requestFields(altered)),
     {code: 'RunHostRequestRecordRejected'});
+  const otherProgram = prepare(read('values.json').replace('"id": 2',
+    '"id": 3'), 'json', environment);
+  assert.throws(() => admitSourceFreeRequestFields(otherProgram,
+    compileValues(otherProgram), fields),
+  {code: 'RunHostRequestRecordRejected'});
   assert.throws(() => prepareSourceFreeRequest(prepared,
     compileValues(prepare(read('values.json'), 'json', environment)),
     scope, 'no-input-request'),
@@ -175,6 +183,25 @@ test('portable Host admits exact policy evidence before Run Definition', () => {
   assert.equal(body.invocation_template_cid,
     template.bound_invocation_template_cid);
   assert.equal(definition.cid, without(body, 'run_definition_cid'));
+  const restoredDefinition = admitRunDefinition(definition.wire);
+  assert.deepEqual(privateRunDefinition(restoredDefinition), definition);
+  const request = prepareSourceFreeRequest(prepared, compilation, contextCid,
+    'durable-run-request');
+  const restoredRequest = admitSourceFreeRequestFields(prepared, compilation,
+    requestFields(request));
+  assert.equal(prepareRunStart(request, restoredRequest,
+    restoredDefinition, definition.cid, false, true), 'reserve_dispatch');
+  assert.equal(prepareRunStart(request, restoredRequest,
+    restoredDefinition, definition.cid, true, true),
+  'reconcile_reserved_dispatch');
+  assert.throws(() => prepareRunStart(request, restoredRequest,
+    restoredDefinition, definition.cid, false, false),
+  {code: 'RunHostStartRejected'});
+  assert.throws(() => prepareRunStart(request, restoredRequest,
+    restoredDefinition, `sha256:${'0'.repeat(64)}`, false, true),
+  {code: 'RunHostStartRejected'});
+  assert.throws(() => admitRunDefinition(JSON.stringify({...body,
+    run_id: 'foreign'})), {code: 'RunHostDefinitionRejected'});
   assert.throws(() => admit({...preparedBody,
     compiled_plan_cid: `sha256:${'0'.repeat(64)}`}),
   {code: 'RunHostAdmissionRejected'});

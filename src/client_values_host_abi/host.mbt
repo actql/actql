@@ -393,3 +393,41 @@ pub fn client_values_host_run_definition_cid(
 ) -> String {
   @publication.publication_contract_identity(definition)
 }
+
+///|
+/// Restore exact Run Definition bytes. Its CID is identity, not authority;
+/// the Host separately checks current permission before starting work.
+#export_name("clientValuesHostAdmitRunDefinition")
+pub fn client_values_host_admit_run_definition(
+  wire : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationContractIssue,
+] {
+  @publication.admit_publication_contract(
+    "run_definition", wire, 100000, 10000, 100,
+  )
+}
+
+///|
+/// After an atomic reservation the shared owner permits only reconciliation
+/// of that same physical Run, including after a lost dispatch response.
+#export_name("clientValuesHostPrepareRunStart")
+pub fn client_values_host_prepare_run_start(
+  requested : @host.ClientRequestIdentity,
+  retained : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  current_authorization : Bool,
+) -> Result[Int, @host.ClientRunStartIssue] {
+  match
+    @host.prepare_client_run_start(
+      requested, retained, definition, retained_run_definition_cid, dispatch_reserved,
+      current_authorization,
+    ) {
+    Ok(@host.ReserveDispatch) => Ok(0)
+    Ok(@host.ReconcileReservedDispatch) => Ok(1)
+    Err(issue) => Err(issue)
+  }
+}

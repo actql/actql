@@ -73,8 +73,8 @@ export function prepareSourceFreeRequest(prepared: PreparedProgram,
   requestId: string): RequestIdentity;
 export function requestFields(request: RequestIdentity): RequestFields;
 export function admitRequestFields(fields: RequestFields): RequestIdentity;
-export function admitSourceFreeRequestFields(fields: RequestFields):
-  RequestIdentity;
+export function admitSourceFreeRequestFields(prepared: PreparedProgram,
+  compilation: ValuesCompilation, fields: RequestFields): RequestIdentity;
 export function requestRelation(requested: RequestIdentity,
   retained: RequestIdentity): 'different_request' | 'same_request' |
     'changed_intent';
@@ -90,3 +90,9 @@ export function privateRunDefinition(definition: RunDefinition): Readonly<{
   wire: string;
   cid: string;
 }>;
+export function admitRunDefinition(wire: string): RunDefinition;
+export function prepareRunStart(requested: RequestIdentity,
+  retained: RequestIdentity, definition: RunDefinition,
+  retainedRunDefinitionCid: string, dispatchReserved: boolean,
+  currentAuthorization: boolean): 'reserve_dispatch' |
+  'reconcile_reserved_dispatch';
