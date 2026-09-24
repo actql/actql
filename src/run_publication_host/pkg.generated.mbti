@@ -18,6 +18,8 @@ pub fn admit_client_request_identity_record(String, String, String, String, Stri
 
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
 
+pub fn admit_prepared_client_publication_binding_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationBindingSetIssue]
+
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
@@ -125,6 +127,17 @@ pub(all) enum ClientPublicationBindingIssue {
   MissingPublication
   MismatchedCheckedLimit
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientPublicationBindingSetIssue {
+  InvalidLimit
+  BudgetExceeded
+  CheckedBinding(ClientPublicationBindingIssue)
+  InvalidBinding
+  MismatchedBinding
+  UnexpectedBinding
+  DuplicateBinding
+  MissingBinding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientPublicationLimitIssue {
