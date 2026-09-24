@@ -189,7 +189,9 @@ export async function runResidentFixedCompute(
         if (verified) {
           if (verified.valuesReused === true) reusedInputValues++;
           if (verified.demandColumnScan === true) demandColumnScans++;
-          else directInputScans++;
+          if (verified.valuesReused !== true && verified.demandColumnScan !== true) {
+            directInputScans++;
+          }
           if (verified.identityReused === true) reusedInputIdentities++;
           continue;
         }

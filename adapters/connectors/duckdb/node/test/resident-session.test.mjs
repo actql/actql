@@ -346,9 +346,11 @@ function assertResidentPhases(phases) {
   assert(Object.isFrozen(phases));
   assert.deepEqual(Object.keys(phases), [...names, 'inputCallbackMilliseconds',
     'outputCallbackMilliseconds', 'directInputScans',
-    'reusedInputIdentities', 'reusedInputValues', 'workMilliseconds']);
+    'reusedInputIdentities', 'reusedInputValues', 'demandColumnScans',
+    'workMilliseconds']);
   assert(Number.isInteger(phases.directInputScans));
   assert(Number.isInteger(phases.reusedInputIdentities));
+  assert(Number.isInteger(phases.demandColumnScans));
   assert(phases.reusedInputIdentities <= phases.directInputScans + phases.reusedInputValues);
   for (const value of Object.values(phases)) assert(Number.isFinite(value) && value >= 0);
   assert(phases.inputCallbackMilliseconds <= phases.inputVerificationMilliseconds);

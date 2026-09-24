@@ -18,11 +18,42 @@ test('physical appender validates the whole row before native writes and poisons
   assert.deepEqual(writes, []);
   adapter.append(row);
   assert.deepEqual(writes, [3, 'x', 'end']);
+  const charges = [];
+  assert.throws(() => adapter.append([row[0], {type: {id: 'VARCHAR'}, value: 4}],
+    bytes => charges.push(bytes)), {code: 'InvalidPhysicalValue'});
+  assert.deepEqual(charges, []);
+  assert.deepEqual(writes, [3, 'x', 'end']);
+  assert.throws(() => adapter.append(row, () => { throw Error('budget'); }), /budget/);
+  assert.deepEqual(writes, [3, 'x', 'end']);
+  adapter.append(row, bytes => charges.push(bytes));
+  assert.deepEqual(charges, [34]);
+  assert.deepEqual(writes, [3, 'x', 'end', 3, 'x', 'end']);
   native.appendVarchar = () => { throw Error('native failure'); };
   assert.throws(() => adapter.append(row), /native failure/);
   assert.throws(() => adapter.append(row), {code: 'AppenderUnavailable'});
   adapter.invalidate();
   assert.throws(() => adapter.append(row), {code: 'AppenderUnavailable'});
+});
+
+test('bounded column chunks append complete rows and retain failure ownership', () => {
+  const chunks = [];
+  const native = {columnCount: 1, columnType: () => INTEGER,
+    appendDataChunk: chunk => chunks.push(chunk.getColumnValues(0))};
+  const adapter = createPhysicalAppender(native, 1, {rows: 2, bytes: 100});
+  for (const value of ['1', '2', '3']) {
+    adapter.append([{type: {id: 'INTEGER'}, value}]);
+  }
+  assert.deepEqual(chunks, [[1, 2]]);
+  assert.throws(() => adapter.append([{type: {id: 'INTEGER'}, value: '4.0'}]),
+    {code: 'InvalidPhysicalValue'});
+  assert.deepEqual(chunks, [[1, 2]]);
+  adapter.flush();
+  assert.deepEqual(chunks, [[1, 2], [3]]);
+  native.appendDataChunk = () => { throw Error('native chunk failure'); };
+  adapter.append([{type: {id: 'INTEGER'}, value: '4'}]);
+  assert.throws(() => adapter.flush(), /native chunk failure/);
+  assert.throws(() => adapter.append([{type: {id: 'INTEGER'}, value: '5'}]),
+    {code: 'AppenderUnavailable'});
 });
 
 test('real appender preserves adopted physical scalar extremes, null and duplicate order', async () => {
@@ -58,9 +89,11 @@ test('real appender preserves adopted physical scalar extremes, null and duplica
       ? `DECIMAL(${type.precision},${type.scale})` : type.id === 'TIMESTAMP_TZ' ? 'TIMESTAMPTZ' : type.id}`);
     await connection.run(`CREATE TEMP TABLE probe(${columns.join(', ')})`);
     native = await connection.createAppender('probe', 'main', 'temp');
-    const appender = createPhysicalAppender(native, parameters.length);
+    const appender = createPhysicalAppender(native, parameters.length,
+      {rows: 2, bytes: 10000});
     appender.append(parameters);
     appender.append(parameters);
+    appender.flush();
     appender.invalidate();
     native.closeSync();
     native = undefined;

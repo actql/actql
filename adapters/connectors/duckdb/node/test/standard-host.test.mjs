@@ -8206,8 +8206,12 @@ async function exerciseStrategyGraph(
         assert.equal(output.importedRows, 0);
         assert.equal(output.usage.residentInputBytes, 0,
           'eligible resident inputs read the owned DB copy, not the independently retained file');
-        assert.equal(output.diagnostics.directInputScans, retainedSource ? 1 : 0,
-          'each retained consumer still executes its typed measurement and guard scan');
+        assert.equal(output.diagnostics.directInputScans +
+          output.diagnostics.demandColumnScans, retainedSource ? 1 : 0,
+        'each retained consumer checks its exact input through one bounded scan');
+        assert.equal(output.diagnostics.reusedInputValues,
+          output.diagnostics.demandColumnScans,
+          'value evidence is reused when the narrower demanded-column scan is selected');
         assert.equal(output.diagnostics.reusedInputIdentities, retainedSource ? 1 : 0,
           'only the exact live resident lease reuses the previously admitted identity');
         assert.equal(environment.hasTable(0), task === 1,

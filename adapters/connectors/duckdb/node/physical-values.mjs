@@ -29,15 +29,30 @@ export class PhysicalValueError extends Error {
   constructor(code) { super(code); this.name = 'PhysicalValueError'; this.code = code; }
 }
 
+const canonicalIntegerPattern = /^(0|-?[1-9][0-9]*)$/;
+const canonicalHexPattern = /^[0-9a-f]+$/;
+
 function requireValue(condition) {
   if (!condition) throw new PhysicalValueError('InvalidPhysicalValue');
 }
 
+function canonicalIntegerText(text) {
+  requireValue(typeof text === 'string' && text.length <= 40 && canonicalIntegerPattern.test(text));
+}
+
 function exactInteger(text, bits, signed) {
-  requireValue(typeof text === 'string' && text.length <= 40 && /^(0|-?[1-9][0-9]*)$/.test(text));
+  canonicalIntegerText(text);
   const n = BigInt(text);
   const top = signed ? (1n << (bits - 1n)) : (1n << bits);
   requireValue(n >= (signed ? -top : 0n) && n < top);
+  return n;
+}
+
+function exactSmallInteger(text, bits, signed) {
+  canonicalIntegerText(text);
+  const n = Number(text);
+  const top = signed ? 2 ** (bits - 1) : 2 ** bits;
+  requireValue(Number.isSafeInteger(n) && n >= (signed ? -top : 0) && n < top);
   return n;
 }
 
@@ -53,9 +68,9 @@ function floatBits(value, width) {
 }
 
 function floatFromBits(text, width) {
-  requireValue(typeof text === 'string' && text.length === width * 2 && /^[0-9a-f]+$/.test(text));
-  const buffer = Buffer.from(text, 'hex');
-  return width === 4 ? buffer.readFloatBE() : buffer.readDoubleBE();
+  requireValue(typeof text === 'string' && text.length === width * 2 && canonicalHexPattern.test(text));
+  requireValue(floatBitsScratch.write(text, 0, width, 'hex') === width);
+  return width === 4 ? floatBitsScratch.readFloatBE() : floatBitsScratch.readDoubleBE();
 }
 
 export function physicalType(type) {
@@ -118,8 +133,10 @@ export function bindPhysicalValue(statement, index, { type, value }) {
   if (value === null) { statement.bindNull(index); return; }
   if (integers.has(id)) {
     const [bits, signed, method] = integers.get(id);
-    const n = exactInteger(value, bits, signed);
-    statement[method](index, bits <= 32n ? Number(n) : n);
+    const n = bits <= 32n
+      ? exactSmallInteger(value, Number(bits), signed)
+      : exactInteger(value, bits, signed);
+    statement[method](index, n);
     return;
   }
   if (timestamps.has(id)) {
@@ -132,7 +149,7 @@ export function bindPhysicalValue(statement, index, { type, value }) {
     case 'VARCHAR': requireValue(typeof value === 'string'); statement.bindVarchar(index, value); break;
     case 'FLOAT': statement.bindFloat(index, floatFromBits(value, 4)); break;
     case 'DOUBLE': statement.bindDouble(index, floatFromBits(value, 8)); break;
-    case 'DATE': statement.bindDate(index, dateValue(Number(exactInteger(value, 32n, true)))); break;
+    case 'DATE': statement.bindDate(index, dateValue(exactSmallInteger(value, 32, true))); break;
     case 'DECIMAL': {
       const n = exactInteger(value, 128n, true);
       const bound = 10n ** BigInt(type.precision);

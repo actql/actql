@@ -149,7 +149,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       activeAppender = await connection.createAppender(table, 'main');
       pending = false;
       assertLive();
-      const physical = createPhysicalAppender(activeAppender, columns);
+      const physical = createPhysicalAppender(activeAppender, columns, {
+        rows: Math.min(limits.maxChunkRows ?? 64, 64),
+        bytes: Math.min(limits.maxChunkBytes ?? limits.maxTransportBytes, 1024 * 1024),
+      });
       let live = true;
       const ensure = () => {
         assertLive();
@@ -162,22 +165,17 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             if (!Array.isArray(parameters) || parameters.length !== columns) {
               throw new DuckDBTransportError('ImportColumns');
             }
-            // Typed values cross the native ABI without a SQL/JSON parameter
-            // frame. Charge their bounded physical representation before use.
-            let bytes = 16;
-            for (const parameter of parameters) {
-              const value = parameter?.value;
-              if (value !== null && typeof value !== 'string' && typeof value !== 'boolean') {
-                throw new DuckDBTransportError('Parameters');
-              }
-              bytes += 8 + (typeof value === 'string' ? Buffer.byteLength(value, 'utf8') : 1);
-            }
-            if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
-              throw new DuckDBTransportError('ChunkBytes');
-            }
-            chargeBytes(bytes);
             pending = true;
-            try { physical.append(parameters); }
+            try {
+              // Stage every typed value before charging or writing a native row.
+              // The same bounded pass measures the physical transport charge.
+              physical.append(parameters, bytes => {
+                if (bytes > (limits.maxChunkBytes ?? limits.maxTransportBytes)) {
+                  throw new DuckDBTransportError('ChunkBytes');
+                }
+                chargeBytes(bytes);
+              });
+            }
             finally { pending = false; }
             usage.appendedRows++;
           } catch (error) {
@@ -190,7 +188,10 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
           try {
             ensure();
             pending = true;
-            try { activeAppender.flushSync(); }
+            try {
+              physical.flush();
+              activeAppender.flushSync();
+            }
             finally { pending = false; }
           } catch (error) {
             live = false;
@@ -203,6 +204,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             ensure();
             pending = true;
             try {
+              physical.flush();
               activeAppender.closeSync();
               activeAppender = undefined;
               live = false;

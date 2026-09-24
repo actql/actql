@@ -205,6 +205,29 @@ it rejects a fabricated Local rate or a mismatched eligibility claim. Other
 registered cases still require measured Local and DuckDB training. This is a
 candidate-selection correction, not a performance result.
 
+The next Node resident-import change removes a separate per-row transport-byte
+pass and per-cell staging pairs. It validates the whole typed row, measures its
+bounded physical charge, and charges before any native write. The validated
+values are passed to DuckDB through batches of at most 64 rows and 1 MiB of
+charged representation, with a single oversized-but-admitted row isolated in
+its own batch. The existing session owner flushes pending rows before finish;
+chunk construction or append failure poisons the physical appender and follows
+the same cleanup path. Canonical 32-bit integer strings now convert without
+`BigInt`, and float bit strings decode through a fully overwritten scratch
+buffer. The byte and value contracts, whole-row rejection, and independently
+retained output remain unchanged. The complete Node connector suite passed
+145/145 after this change. This is an implementation change, not a measured
+end-to-end gain.
+
+The controller's preparation cannot simply be dropped: its independently
+checked task identities constrain the worker's completion claims before the
+attempt is accepted. A prepared artifact shared across that process boundary
+would need an exact issuer, Program, contract-pin, and lifetime binding. The
+native standard Host has a promising lower-startup path, but currently commits
+its materialized output before an independently durable file holding is
+established. Its short diagnostic timing therefore cannot replace the
+registered retained comparison until that completion boundary is implemented.
+
 For each change, report actual input and output scans, cells, bytes, imports,
 encodes, hashes, and physical holdings before and after. Include parent and
 worker preparation separately. Keep overlapping intervals out of summed wall
