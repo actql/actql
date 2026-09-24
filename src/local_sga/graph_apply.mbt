@@ -1406,8 +1406,8 @@ pub fn start_graph_apply_view(
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(@pipeline.Input(base_index)) &&
     @execution.producer_read_matches_operation_input(delta_read, owner, step, 1) &&
-    @pipeline.carrier_at(
-      @lower.pipeline(@lower.bound_preparation(owner)),
+    @lower.preparation_carrier_at(
+      @lower.bound_preparation(owner),
       @pipeline.Input(base_index),
     )
     is Some(@carrier.GraphValue(graph)) &&
