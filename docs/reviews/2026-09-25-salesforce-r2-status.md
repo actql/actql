@@ -176,6 +176,16 @@ being recorded. The three-target Run publication suite passes 122/122 on
 JS, Wasm, and native. This semantic admission fix does not establish the
 missing physical row-outcome custody or final publication path.
 
+The physical SQLite Ledger now retains one bounded outcome record per exact
+dispatch entry and links it to the already stored response's physical digest.
+Single and Collections rows have separate owners even when they share one
+HTTP response. The Store checks capacity, collisions, metadata integrity and
+restart recovery; it does not admit the outcome's semantic body or authorize
+a terminal ledger transition. The common MoonBit outcome issuer, provider
+projection binding, member/set receipt derivation and product caller remain
+open. Local Salesforce Site tests pass 120/120 at this increment; this is not
+a live-org or same-SHA Linux CI result.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
