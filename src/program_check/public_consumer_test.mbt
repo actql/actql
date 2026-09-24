@@ -67,6 +67,7 @@ fn public_effect_preview_member(
   id : String,
   mapping_cid : String,
   placeholder : String,
+  max_items? : Int = 1,
 ) -> String {
   let cid = "sha256:" + "a".repeat(64)
   "{\"effect_id\":\"" +
@@ -89,7 +90,9 @@ fn public_effect_preview_member(
   "\",\"provider_namespace\":\"provider\",\"provider_boundary_cid\":\"" +
   cid +
   "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
-  "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"]," +
+  "\"count\":0,\"max_items\":" +
+  max_items.to_string() +
+  ",\"required_permissions\":[\"write\"]," +
   "\"approval\":\"none\",\"on_item_failure\":\"halt\",\"changes\":[]," +
   "\"row_order\":[],\"effect_member_preview_cid\":\"" +
   placeholder +
@@ -106,6 +109,8 @@ fn public_effect_preview_for_static(
   run_cid? : String? = None,
   plan_cid? : String? = None,
   invocation_cid? : String? = None,
+  first_max_items? : Int = 1,
+  second_max_items? : Int = 1,
 ) -> @run_publication.EffectPreviewIdentity {
   let cid = "sha256:" + "a".repeat(64)
   let definition = definition_cid.unwrap_or(
@@ -129,10 +134,18 @@ fn public_effect_preview_for_static(
   let first_placeholder = "sha256:" + "b".repeat(64)
   let second_placeholder = "sha256:" + "c".repeat(64)
   let members = public_effect_preview_member(
-      "first", mapping_cid, first_placeholder,
+      "first",
+      mapping_cid,
+      first_placeholder,
+      max_items=first_max_items,
     ) +
     "," +
-    public_effect_preview_member("second", mapping_cid, second_placeholder)
+    public_effect_preview_member(
+      "second",
+      mapping_cid,
+      second_placeholder,
+      max_items=second_max_items,
+    )
   let raw = "{\"version\":\"actql-effect-preview/0.1\"," +
     "\"sensitivity\":\"private\",\"retention_class\":\"authority-evidence\"," +
     "\"encryption_required\":true,\"program_semantics_cid\":\"" +
@@ -508,7 +521,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let program = @syntax.parse(
     plain.replace(
       old="\"id\":\"consumer\",\"inputs\":",
-      new="\"id\":\"consumer\",\"effects\":{\"first\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7}}},\"second\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":8}}}},\"inputs\":",
+      new="\"id\":\"consumer\",\"effects\":{\"first\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":7},\"max_items\":{\"$param\":\"n\"}}},\"second\":{\"create\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"payload\":{\"Name\":8},\"max_items\":1}}},\"inputs\":",
     ),
     limits.input,
     format=Json,
@@ -653,6 +666,93 @@ test "Effect computation candidate closes the exact Mapping environment" {
     ),
   )
   assert_eq(@program_check.effect_program_static_preview_stage(bound), 1)
+  assert_eq(
+    @run_publication.effect_preview_member_max_items(preview, 0),
+    Some(1L),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        mapping_cid,
+        first_max_items=2,
+      ),
+      1000,
+    )
+    is Err(ForeignResolvedLimit("first")),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        mapping_cid,
+        second_max_items=2,
+      ),
+      1000,
+    )
+    is Err(ForeignResolvedLimit("second")),
+  )
+  let supplied = @decode.admit(
+    @source.parse_json("{\"n\":2}", {
+      max_input_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+    }).unwrap(),
+    {
+      max_nodes: 100,
+      max_depth: 10,
+      max_string_bytes: 1000,
+      max_total_string_bytes: 1000,
+    },
+  ).unwrap()
+  let rebound = @program_check.prepare_effect_computation_candidate(
+    program,
+    environment,
+    Some(supplied),
+    evidence,
+    limits,
+    2,
+    2,
+  ).unwrap()
+  let rebound_static = @program_check.close_effect_computation_static(
+    rebound,
+    mappings,
+    {
+      max_members: 2,
+      max_work: 1000,
+      max_admission_nodes: 100,
+      max_admission_depth: 10,
+      max_admission_text_bytes: 1000,
+    },
+  ).unwrap()
+  let rebound_preview = public_effect_preview_for_static(
+    rebound_static,
+    mapping_cid,
+    first_max_items=2,
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      rebound_static, 1, rebound_preview, 1000,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      rebound_static,
+      1,
+      public_effect_preview_for_static(
+        rebound_static,
+        mapping_cid,
+        first_max_items=3,
+      ),
+      1000,
+    )
+    is Err(ForeignResolvedLimit("first")),
+  )
   let (run_admission, run_definition, invocation) = public_effect_run_fixture(
     static_candidate,
   )

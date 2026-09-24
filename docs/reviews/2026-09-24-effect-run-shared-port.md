@@ -276,3 +276,11 @@ one-shot capture are exercised by the Salesforce and DuckDB broad integration
 fixtures. A combined fixture also checks independent provider issuers and
 capture after one issuer closes. The original query integration suite passed
 546/546 on JS, Wasm, and native; the combined fixture adds one case.
+
+The static checked Effect-to-Preview binding now compares each authored
+`max_items` guard with the Preview's resolved member bound. Both literal and
+bound-Parameter guards come from the retained checked Program owner; a Preview
+cannot increase either guard. The comparison is budgeted and does not replace
+the later complete-scope count, Contract and Host ceilings, physical payload
+equivalence, or current apply admission. The standard Effectful Host path is
+still open.
