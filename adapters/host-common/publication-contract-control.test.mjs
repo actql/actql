@@ -1285,6 +1285,8 @@ test('portable control validates Receipt and Captured Run references',
     privateBinding.semanticCid,
     privateBinding.holdingCid,
   )).toString('utf8'), privateBinding.wire);
+  assert.equal((await store.confirmPrivateEvidence(privateBinding))
+    .holding_cid, privateBinding.holdingCid);
   assert.equal((await store.retirePhysicalHolding(
     privateBinding.holdingCid,
   )).deleted, true);
