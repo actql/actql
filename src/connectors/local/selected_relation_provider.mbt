@@ -11,6 +11,7 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
     | @lower.Select(_)
     | @lower.DistinctRows
     | @lower.StableSort(_)
+    | @lower.TopK(_, _)
     | @lower.Limit(_, _, _) => true
     _ => false
   }

@@ -92,7 +92,13 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.events.to_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
-    Where(_) | Derive(_) | Select(_) | Sort(_) | Limit(_) | Distinct(_) => true
+    Where(_)
+    | Derive(_)
+    | Select(_)
+    | Sort(_)
+    | Limit(_)
+    | TopK(_)
+    | Distinct(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
@@ -156,7 +162,13 @@ pub fn node_accepts_managed_relation_view(
     return false
   }
   match node.payload {
-    Where(_) | Derive(_) | Select(_) | Sort(_) | Limit(_) | Distinct(_) => true
+    Where(_)
+    | Derive(_)
+    | Select(_)
+    | Sort(_)
+    | Limit(_)
+    | TopK(_)
+    | Distinct(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"

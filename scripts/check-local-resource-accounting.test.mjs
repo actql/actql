@@ -41,7 +41,22 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 23 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 22 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 24 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('global top-k loses its bounded ordinary evidence when removed', () => {
+  assert.match(run(undefined, routes => {
+    const topK = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'top_k');
+    topK.boundary_tests.find(item =>
+      item.role === 'top_k_work_workspace_exact_one_short').fixture =
+      'missing-top-k-boundary';
+  }), /RelA top_k: missing operation boundary fixture missing-top-k-boundary/);
+  assert.match(run(undefined, routes => {
+    const topK = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'top_k');
+    topK.environment_tests = [];
+  }), /RelA top_k: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {

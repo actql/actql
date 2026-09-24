@@ -1186,6 +1186,18 @@ pub fn start_bounded_binding_rows(
         Some((0, producer_read_row_count(input))),
         Some(kernel),
       )
+    @lower.TopK(top_count, _) => {
+      if top_count < 1L {
+        return Err(InvalidExecution)
+      }
+      let size = producer_read_row_count(input)
+      let selected = if top_count >= size.to_int64() {
+        size
+      } else {
+        top_count.to_int()
+      }
+      ([], false, None, false, Some((0, selected)), Some(kernel))
+    }
     @lower.Limit(take_count, offset, _) => {
       let prepared = @lower.bound_preparation(owner)
       guard @lower.node_at(prepared, step) is Some(node) &&
@@ -1216,7 +1228,7 @@ pub fn start_bounded_binding_rows(
     !admit_metadata(bindings.length()) {
     return Err(InvalidExecution)
   }
-  let sort_only = body is @lower.StableSort(_)
+  let sort_only = body is @lower.StableSort(_) || body is @lower.TopK(_, _)
   let distinct = body is @lower.DistinctRows
   let assertion = body is @lower.AssertAll(_)
   let unique_keys = match body {
@@ -1321,7 +1333,10 @@ pub fn start_bounded_binding_rows(
       }
       Some(projection)
     }
-    @lower.StableSort(_) | @lower.Limit(_, _, _) | @lower.AssertUnique(_) => {
+    @lower.StableSort(_)
+    | @lower.TopK(_, _)
+    | @lower.Limit(_, _, _)
+    | @lower.AssertUnique(_) => {
       let projection : Map[String, Int] = Map([])
       for name in output_names {
         guard input_ordinals.get(name) is Some(index) else {

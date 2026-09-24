@@ -38,11 +38,11 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       ]
     "take" => ["{\"amount\":10,\"id\":1}", "{\"amount\":20,\"id\":2}"]
     "take_parameter" => ["{\"amount\":10,\"id\":1}"]
-    "top_k" => ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
-    "top_k_parameter" => ["{\"id\":2,\"amount\":30}"]
+    "top_k" => ["{\"amount\":30,\"id\":2}", "{\"amount\":20,\"id\":2}"]
+    "top_k_parameter" => ["{\"amount\":30,\"id\":2}"]
     "top_k_compound" =>
       [
-        "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":3,\"amount\":30}",
+        "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":2}", "{\"amount\":30,\"id\":3}",
       ]
     "top_k_by" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
     "top_k_by_parameter" =>
@@ -227,6 +227,14 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":20}"]
   } else if kind == "take_parameter" {
     ["{\"id\":1,\"amount\":10}"]
+  } else if kind == "top_k" {
+    ["{\"id\":2,\"amount\":30}", "{\"id\":2,\"amount\":20}"]
+  } else if kind == "top_k_parameter" {
+    ["{\"id\":2,\"amount\":30}"]
+  } else if kind == "top_k_compound" {
+    [
+      "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":3,\"amount\":30}",
+    ]
   } else if kind == "distinct" {
     [
       "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
@@ -241,10 +249,31 @@ fn run_local_managed_unary_case(
   kind : String,
   publication? : Bool = false,
 ) -> Unit raise {
+  let global_top_k = kind == "top_k" ||
+    kind == "top_k_parameter" ||
+    kind == "top_k_compound"
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
     managed_publication=publication,
+    ledger_limits=if global_top_k {
+      Some({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 128000000L,
+        execution_bytes: 134217728L,
+      })
+    } else {
+      None
+    },
   )
+  if global_top_k {
+    let graph = @strategy.captured_dag_graph(run)
+    assert_eq(@strategy.graph_task_count(graph), 6)
+    assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  }
   if publication {
     assert_true(
       @strategy.configure_captured_managed_identity_policy(
@@ -300,6 +329,42 @@ fn run_local_managed_unary_case(
   let value_rows = local_managed_test_rows(values_ops)
   assert_eq(value_rows, local_managed_unary_input_expected(kind))
 
+  let preliminary = if global_top_k {
+    let live = Ref(true)
+    let obligations = if publication {
+      Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
+    } else {
+      None
+    }
+    let advances = Ref(0)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      2,
+      [values],
+      [value_rows],
+      2,
+      live,
+      obligations?,
+      execution_quantum=1,
+      execution_advances=Some(advances),
+      require_provider=true,
+    )
+    assert_true(advances.val > 4)
+    Some((ops, output, local_managed_test_rows(ops), live))
+  } else {
+    None
+  }
+  let unary_input = match preliminary {
+    Some((_, output, _, _)) => output
+    None => values
+  }
+  let unary_input_rows = match preliminary {
+    Some((_, _, rows, _)) => rows
+    None => value_rows
+  }
+  let unary_task = if global_top_k { 3 } else { 2 }
+
   let unary_live = Ref(true)
   let unary_obligations = if publication {
     Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
@@ -310,10 +375,10 @@ fn run_local_managed_unary_case(
   let (unary_ops, unary) = run_local_managed_test_task(
     installed,
     run,
-    2,
-    [values],
-    [value_rows],
-    2,
+    unary_task,
+    [unary_input],
+    [unary_input_rows],
+    unary_task,
     unary_live,
     obligations?=unary_obligations,
     execution_quantum=if kind == "select" ||
@@ -334,12 +399,16 @@ fn run_local_managed_unary_case(
       kind == "sort" ||
       kind == "sort_compound" ||
       kind == "take" ||
-      kind == "take_parameter" {
+      kind == "take_parameter" ||
+      kind == "top_k" ||
+      kind == "top_k_parameter" ||
+      kind == "top_k_compound" {
       1
     } else {
       0
     },
     execution_advances=Some(bounded_advances),
+    require_provider=global_top_k,
   )
   if kind == "select" ||
     kind == "derive_map" ||
@@ -359,7 +428,10 @@ fn run_local_managed_unary_case(
     kind == "sort" ||
     kind == "sort_compound" ||
     kind == "take" ||
-    kind == "take_parameter" {
+    kind == "take_parameter" ||
+    kind == "top_k" ||
+    kind == "top_k_parameter" ||
+    kind == "top_k_compound" {
     assert_true(bounded_advances.val > 4)
   }
   let expected = local_managed_unary_expected(kind)
@@ -401,10 +473,10 @@ fn run_local_managed_unary_case(
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    unary_task + 1,
     [unary],
     [expected],
-    3,
+    unary_task + 1,
     first_live,
     obligations?=first_obligations,
   )
@@ -417,10 +489,10 @@ fn run_local_managed_unary_case(
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    unary_task + 2,
     [unary],
     [expected],
-    4,
+    unary_task + 2,
     second_live,
     obligations?=second_obligations,
   )
@@ -428,7 +500,7 @@ fn run_local_managed_unary_case(
   assert_eq(local_managed_test_rows(second_ops), consumer_expected)
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, unary_task + 1)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -436,13 +508,19 @@ fn run_local_managed_unary_case(
   assert_true(@execution.managed_completed_output_available(unary))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, unary_task + 2)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   unary_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, unary_task)
   (unary_ops.close)()
   (unary_ops.cleanup_refresh)() |> ignore
+  if preliminary is Some((ops, _, _, live)) {
+    live.val = false
+    @strategy.close_captured_task_output(run, 2)
+    (ops.close)()
+    ignore((ops.cleanup_refresh)())
+  }
   values_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (values_ops.close)()
@@ -529,6 +607,13 @@ test "ordinary Local drop resumes within quantum" {
 test "ordinary Local take resumes within quantum and feeds two Computes" {
   run_local_managed_unary_case("take")
   run_local_managed_unary_case("take_parameter")
+}
+
+///|
+test "ordinary Local global top-k resumes within quantum" {
+  for kind in ["top_k", "top_k_parameter", "top_k_compound"] {
+    run_local_managed_unary_case(kind)
+  }
 }
 
 ///|
