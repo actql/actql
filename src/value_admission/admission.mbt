@@ -353,6 +353,54 @@ pub fn admit_usage(
 }
 
 ///|
+/// Admit a decoded physical number without building the generic traversal
+/// stack. The caller has already admitted the physical source cursor; this
+/// retains the same contract, scalar budget, and error location as admit_usage.
+pub fn admit_number_usage(
+  contract : @contract.Contract,
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> Result[(CheckedValue, Int, Int), Issue] {
+  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
+    return Err(
+      ValueIssue(
+        InvalidLimits,
+        path=@decode.cursor_path(cursor),
+        span=@decode.cursor_span(cursor),
+      ),
+    )
+  }
+  if limits.max_nodes == 0 {
+    return Err(
+      ValueIssue(
+        BudgetExceeded,
+        path=@decode.cursor_path(cursor),
+        span=@decode.cursor_span(cursor),
+      ),
+    )
+  }
+  if !(contract.shape is @contract.Number) {
+    return admit_usage(contract, cursor, limits)
+  }
+  match @decode.view(cursor) {
+    @decode.NumberValue(value) => {
+      if @scalar.read_finite_number(value) is None ||
+        (value == 0.0 && 1.0 / value < 0.0) {
+        return Err(
+          ValueIssue(
+            InvalidNumber,
+            path=@decode.cursor_path(cursor),
+            span=@decode.cursor_span(cursor),
+          ),
+        )
+      }
+      Ok(({ contract, value: Number(value), }, 1, 0))
+    }
+    _ => admit_usage(contract, cursor, limits)
+  }
+}
+
+///|
 /// Admit a value supplied by a trusted Host representation. The issuer proves
 /// reference provenance and retains current authorization; ordinary authored
 /// admission intentionally has no route to this entry.

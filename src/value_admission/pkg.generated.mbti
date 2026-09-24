@@ -18,6 +18,8 @@ pub fn admit_host(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor
 
 pub fn admit_host_usage(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits) -> Result[(CheckedValue, Int, Int), Issue]
 
+pub fn admit_number_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
+
 pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll

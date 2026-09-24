@@ -90,3 +90,36 @@ test "nullable reference absence carries no reference authority and costs one no
     )
   }
 }
+
+///|
+test "physical number admission matches generic scalar admission" {
+  for nullable in [false, true] {
+    let c = simple("number", nullable~)
+    for text in ["0", "1", "-2.5", "100000000000000000000"] {
+      let cursor = owned(parsed(text))
+      let regular = @value_admission.admit_usage(c, cursor, limits()).unwrap()
+      let fast = @value_admission.admit_number_usage(c, cursor, limits()).unwrap()
+      assert_eq((fast.1, fast.2), (regular.1, regular.2))
+      match (regular.0.value, fast.0.value) {
+        (@value_admission.Number(a), @value_admission.Number(b)) =>
+          assert_eq(a, b)
+        _ => fail("number admission changed the value shape")
+      }
+    }
+    for nodes in [-1, 0] {
+      let cursor = owned(parsed("1"))
+      assert_eq(
+        outcome(
+          @value_admission.admit_number_usage(c, cursor, limits(nodes~)).map(result => {
+            result.0
+          }),
+        ),
+        outcome(
+          @value_admission.admit_usage(c, cursor, limits(nodes~)).map(result => {
+            result.0
+          }),
+        ),
+      )
+    }
+  }
+}

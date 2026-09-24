@@ -306,7 +306,10 @@ fn admit_physical_usage(
     Ok(value) => value
     Err(issue) => return Err(Decode(issue))
   }
-  @admitted.admit_usage(mapping.contract, converted, limits).map_err(issue => {
-    Admission(issue)
-  })
+  let admitted = if mapping.contract.shape is @contract.Number {
+    @admitted.admit_number_usage(mapping.contract, converted, limits)
+  } else {
+    @admitted.admit_usage(mapping.contract, converted, limits)
+  }
+  admitted.map_err(issue => Admission(issue))
 }

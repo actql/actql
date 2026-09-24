@@ -37,6 +37,25 @@ canonical row construction, rather than filesystem write count or Appender
 calls. The cost of output admission is distinct from output identity generation;
 the diagnostic does not prove either can be skipped.
 
+A subsequent CPU profile of the selected 10,000-row, 64-column path showed
+substantial time in physical scalar decoding and allocation. A JS DataView
+replacement for floating-point hex parsing passed the adapter tests but did
+not improve this product path in an A/B probe; it was removed. The physical
+number path instead now uses a scalar value-admission operation after the
+physical token has been decoded. It preserves the generic path's exact number
+contract, finite/negative-zero check, one-node charge, and error location,
+without allocating its traversal stack for every numeric cell. A targeted
+comparison checks values and budget errors for nullable and non-null numbers
+on all three MoonBit targets. The transport preflight also records its final
+source position, removing a separate full-frame position scan after parsing.
+
+The same wide fixture still admitted 640,000 input and 640,000 output cells per
+task, reused physical identity without a logical-CID pass, and produced the
+same final rows CID after these changes. Local end-to-end probes varied enough
+that they do not establish a reliable speedup or a passing performance result.
+The remaining whole-cell admission, JSON transport, output row construction,
+and parent/worker preparation costs remain open.
+
 ## Small-case startup cost
 
 The 100-row narrow fixture used about 225 milliseconds for parent preparation,

@@ -42,22 +42,12 @@ pub fn decode_transport_columns(
     Err(MalformedUtf16(_)) => return Err(InvalidUnicode)
     Err(_) => return Err(InputLimit)
   }
-  match preflight_transport_columns(text, limits) {
+  let (end_line, end_column) = match preflight_transport_columns(text, limits) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(position) => position
   }
   let parsed = @json.parse(text) catch { _ => return Err(InvalidJson) }
   guard parsed is Array(columns) else { return Err(InvalidShape) }
-  let mut end_line = 1
-  let mut end_column = 1
-  for char in text.iter() {
-    if char == '\n' {
-      end_line += 1
-      end_column = 1
-    } else {
-      end_column += 1
-    }
-  }
   let span : @source.Span = {
     start_byte: 0,
     end_byte: bytes,
@@ -102,14 +92,22 @@ pub fn decode_transport_columns(
 fn preflight_transport_columns(
   text : String,
   limits : TransportColumnLimits,
-) -> Result[Unit, TransportColumnIssue] {
+) -> Result[(Int, Int), TransportColumnIssue] {
   let mut depth = 0
   let mut quoted = false
   let mut escaped = false
   let mut nodes = 0
   let mut columns = 0
   let mut rows = 0
+  let mut end_line = 1
+  let mut end_column = 1
   for char in text.iter() {
+    if char == '\n' {
+      end_line += 1
+      end_column = 1
+    } else {
+      end_column += 1
+    }
     if quoted {
       if escaped {
         escaped = false
@@ -174,5 +172,5 @@ fn preflight_transport_columns(
   if quoted || depth != 0 {
     return Err(InvalidJson)
   }
-  Ok(())
+  Ok((end_line, end_column))
 }
