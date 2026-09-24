@@ -82,3 +82,10 @@ does not cover members without a Plan, current guards, whole-set write
 footprints, or apply authority. The proof constructor remains inside the
 product bridge rather than the generic row comparator, because arbitrary
 rows supplied to that comparator do not prove Result provenance.
+
+The Host regression now binds two independent Effect members to the same
+completed Result. Each member finishes its own checked Plan cursor; the proof
+inventory accepts either proof order and rejects an omitted or duplicated
+member. A same-boundary collection footprint is rejected before export,
+whereas separate provider boundaries admit the two-member payload check.
+This fixture performs no mutation and does not establish whole-set apply.
