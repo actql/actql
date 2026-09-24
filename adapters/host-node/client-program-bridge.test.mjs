@@ -562,7 +562,7 @@ test('checked source-free Program executes through the standard Local Host',
     }
   });
 
-test('checked Values Program publishes and reads its real Local Result',
+test('public Values submit computes and reads its real Local Result',
   async t => {
     const {document, environment} = await checkedFixture();
     const expected = JSON.parse(await readFile(new URL('values.expected.json',
@@ -578,9 +578,6 @@ test('checked Values Program publishes and reads its real Local Result',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
-    const setup = moon.clientProgramOpenSourceFreeLocalHost(
-      prepared, registry, values, 1n, 0n, 0n, 0n);
-    assert.ok(setup);
     const control = runtimeCore(moon).publicationControl;
     let plan;
     await mkdir(scratch, {recursive: true});
@@ -597,27 +594,76 @@ test('checked Values Program publishes and reads its real Local Result',
     await mkdir(journalDirectory);
     const identity = moon.clientProgramRequestIdentity(
       prepared, cid('a'), 'published-values-request', cid('b'));
-    const journal = openClientRequestJournal(journalDirectory);
-    try {
-      const accepted = await journal.admitOrLookupDefinition(identity, {
-        tenantId: 'tenant-a',
-        lookupExpiresAt: '2099-01-01T00:00:00.000Z',
-        issueDefinition: () => {
-          plan = checkedValuesPublicationPlan(prepared, control);
-          return plan.runDefinition;
-        },
-      }, moon, control);
-      assert.equal(accepted.inserted, true);
-      assert.ok(plan);
-      assert.equal(accepted.ref.runDefinitionCid,
-        plan.runDefinition.identity);
-    } finally {
-      journal.close();
-    }
     let store = await openLocalPublicationStore(configuration, control);
     let published;
     try {
-      published = await runPublishedCapturedStrategy(setup, {store, plan});
+      const journal = openClientRequestJournal(journalDirectory);
+      let issues = 0;
+      let computes = 0;
+      const submitServer = createServer(createClientHttpHandler({
+        authenticate: header => header === 'Bearer scoped-token'
+          ? 'principal-before-restart' : undefined,
+        authorizeConnection: facts => facts.connection.mode === 'local' &&
+          facts.connection.owner === 'local',
+        negotiate: () => ({
+          version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'principal-before-restart',
+          capabilities: ['result-jsonl'],
+          limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+            maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 100,
+            maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+        }),
+        prepareSubmit: installNodeClientProgramPreparation({
+          moon, environment}),
+        submit: async ({preparedProgram, requestId}) => {
+          const requested = moon.clientProgramRequestIdentity(
+            preparedProgram, cid('a'), requestId, cid('b'));
+          const accepted = await journal.admitOrLookupDefinition(requested, {
+            tenantId: 'tenant-a',
+            lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+            issueDefinition: () => {
+              issues++;
+              plan = checkedValuesPublicationPlan(preparedProgram, control);
+              return plan.runDefinition;
+            },
+          }, moon, control);
+          if (accepted.inserted) {
+            const setup = moon.clientProgramOpenSourceFreeLocalHost(
+              preparedProgram, registry, values, 1n, 0n, 0n, 0n);
+            assert.ok(setup);
+            computes++;
+            published = await runPublishedCapturedStrategy(setup,
+              {store, plan});
+          }
+          return {ref: accepted.ref, durability: accepted.durability,
+            revision: accepted.revision};
+        },
+      }));
+      await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
+        resolve));
+      try {
+        const client = await connectClient({
+          mode: 'local', owner: 'local',
+          endpoint: `http://127.0.0.1:${submitServer.address().port}/`,
+          token: 'scoped-token', durability: 'durable',
+        });
+        try {
+          const submitted = await client.aql(document, {format: 'json',
+            requestId: 'published-values-request'});
+          assert.equal(submitted.profile.durability, 'durable');
+          assert.equal(submitted.ref.runDefinitionCid,
+            plan.runDefinition.identity);
+          const repeated = await client.aql(document, {format: 'json',
+            requestId: 'published-values-request'});
+          assert.deepEqual(repeated.ref, submitted.ref);
+        } finally { client.close(); }
+      } finally {
+        await new Promise(resolve => submitServer.close(resolve));
+        journal.close();
+      }
+      assert.equal(issues, 1);
+      assert.equal(computes, 1);
       assert.equal(published.status, 'published');
       assert.equal(published.execution.status, 'host-tasks-completed');
       assert.deepEqual(published.execution.resultInventory.map(
@@ -684,7 +730,7 @@ test('checked Values Program publishes and reads its real Local Result',
           (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
         negotiate: () => ({
           version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-          durability: 'volatile', scopeRef: 'principal-after-restart',
+          durability: 'durable', scopeRef: 'principal-after-restart',
           capabilities: ['result-jsonl'],
           limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
             maxRowRetainedValueBytes: 1024,
@@ -695,7 +741,7 @@ test('checked Values Program publishes and reads its real Local Result',
           await inspectAuthorizedRunState(stateService, {
             indexKey: requested, principalId, purpose: 'inspect',
           });
-          return {ref: requested, durability: 'volatile', revision: 0};
+          return {ref: requested, durability: 'durable', revision: 0};
         },
         stateService, resultService: service,
       }));
@@ -707,6 +753,7 @@ test('checked Values Program publishes and reads its real Local Result',
           token: 'scoped-token',
         });
         const execution = await client.attach(ref);
+        assert.equal(execution.profile.durability, 'durable');
         const state = await execution.status();
         assert.equal(validRunState(state), true);
         assert.equal(state.status, 'succeeded');
