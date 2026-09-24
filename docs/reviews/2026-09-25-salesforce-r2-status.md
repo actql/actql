@@ -168,6 +168,14 @@ receipts from those admitted heads, then issue the final Run Receipt from the
 same captured computation owner. Unknown remains possible-send and cannot be
 converted to failure or retried as a new physical send.
 
+The shared Effect apply Receipt admission now accepts a member with known
+applied or accepted rows and later unattempted rows as `partial_failure`.
+Its previous guard required an explicit failed row, contradicting the 0.1
+halt/continue receipt rule and preventing this ordinary partial outcome from
+being recorded. The three-target Run publication suite passes 122/122 on
+JS, Wasm, and native. This semantic admission fix does not establish the
+missing physical row-outcome custody or final publication path.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
