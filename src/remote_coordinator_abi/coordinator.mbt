@@ -53,6 +53,39 @@ pub fn coordinator_dispatch_json(
 }
 
 ///|
+#export_name("coordinatorDispatchRoute")
+pub fn coordinator_dispatch_route(
+  request : @remote.DispatchRequest,
+) -> Array[String] {
+  @remote.dispatch_request_journal_key(request)
+}
+
+///|
+/// The Connector binding body is checked against the dispatch identity before
+/// any bytes are offered to the Site transport.
+#export_name("coordinatorPollDispatchJson")
+pub fn coordinator_poll_dispatch_json(
+  request : @remote.DispatchRequest,
+  input_binding_body : String,
+  max_binding_bytes : Int,
+) -> Result[String, @remote.DispatchIssue] {
+  let binding = match
+    @remote.prepare_remote_input_binding(input_binding_body, max_binding_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @remote.remote_poll_dispatch_json(request, binding)
+}
+
+///|
+#export_name("coordinatorPollQueryJson")
+pub fn coordinator_poll_query_json(
+  request : @remote.DispatchRequest,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.remote_poll_query_json(request)
+}
+
+///|
 #export_name("coordinatorPrepareIntent")
 pub fn coordinator_prepare_intent(
   journal : @remote.CoordinatorDispatchJournal,
@@ -115,6 +148,14 @@ pub fn coordinator_durable_dispatch_cid(
 }
 
 ///|
+#export_name("coordinatorDurableRequest")
+pub fn coordinator_durable_request(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> @remote.DispatchRequest {
+  @remote.durable_coordinator_dispatch_record_request(durable)
+}
+
+///|
 /// A lost transport response is unknown, not failed or safe to resubmit
 /// under a different dispatch identity.
 #export_name("coordinatorPrepareUnknown")
@@ -122,6 +163,34 @@ pub fn coordinator_prepare_unknown(
   record : @remote.CoordinatorDispatchIntentRecord,
 ) -> Result[@remote.CoordinatorDispatchTransition, @remote.DispatchIssue] {
   @remote.prepare_coordinator_outcome_unknown(record)
+}
+
+///|
+/// Site replies are admitted against the exact dispatch and reply operation.
+#export_name("coordinatorAdmitResponseJson")
+pub fn coordinator_admit_response_json(
+  body : String,
+  request : @remote.DispatchRequest,
+  status_reply : Bool,
+) -> Result[@remote.RemoteDispatchResponse, @remote.DispatchIssue] {
+  @remote.admit_remote_dispatch_response_json(
+    body,
+    request,
+    if status_reply {
+      @remote.StatusReply
+    } else {
+      @remote.DispatchReply
+    },
+  )
+}
+
+///|
+#export_name("coordinatorPrepareResponseObservation")
+pub fn coordinator_prepare_response_observation(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  response : @remote.RemoteDispatchResponse,
+) -> Result[@remote.CoordinatorDispatchTransition, @remote.DispatchIssue] {
+  @remote.prepare_coordinator_response_observation(record, response)
 }
 
 ///|
@@ -139,6 +208,23 @@ pub fn coordinator_transition_durable_json(
   transition : @remote.CoordinatorDispatchTransition,
 ) -> Result[String, @remote.DispatchIssue] {
   @remote.coordinator_dispatch_transition_durable_json(durable, transition)
+}
+
+///|
+/// Include the typed Site evidence accepted by the common protocol owner.
+#export_name("coordinatorResponseDurableJson")
+pub fn coordinator_response_durable_json(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+  transition : @remote.CoordinatorDispatchTransition,
+  response : @remote.RemoteDispatchResponse,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_dispatch_transition_durable_json(
+    durable,
+    transition,
+    evidence=@remote.remote_dispatch_response_evidence(response),
+    subject=@remote.remote_dispatch_response_subject(response),
+    measurement=@remote.remote_dispatch_response_measurement(response),
+  )
 }
 
 ///|
