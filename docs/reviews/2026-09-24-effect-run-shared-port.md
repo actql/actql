@@ -424,10 +424,14 @@ required. Managed/resident retention and the standard Effect Run remain open.
 The captured Named Result publication export now acquires the same checked
 consumer pin used by Effect input custody. Its pin remains live through the
 bounded export and durable replay, and `cancel` releases it exactly once.
+The common `CapturedResultBorrow` binds the checked occurrence and physical
+pin as one owner; both the cell-backed Effect input and publication consume
+this owner rather than pairing a loose output with a separate occurrence.
 A captured-graph fixture retains one Result for an Effect-like consumer and
 publication independently: closing the ordinary task port and releasing the
 first consumer do not revoke the publication view or prematurely return its
-held bytes. A failed export preparation also releases its acquired pin.
+held bytes. The two consumers produce identical checked rows and fields. A
+failed export preparation also releases its acquired pin.
 This closes the cell-backed shared-consumer lifetime gap, not all of SF-4.
 The standard Effectful Host still must acquire a nonterminal Result before its
 ordinary port closes; managed and Carrier-managed Results need representation-

@@ -18,11 +18,114 @@ struct CapturedOutputPin {
 }
 
 ///|
+/// One exact checked Result occurrence together with its live physical pin.
+/// Neither a caller-provided name nor a second occurrence can relabel the
+/// borrowed producer. This is input custody, not public egress or Effect
+/// mutation authority.
+struct CapturedResultBorrow {
+  occurrence : @execution.ManagedResultOccurrence
+  pin : CapturedOutputPin
+}
+
+///|
 /// All-or-nothing retention of checked Result occurrences. This owns only
 /// physical input liveness; it does not authorize disclosure or an Effect.
 struct CapturedResultOutputSet {
-  pins : Array[CapturedOutputPin]
+  borrows : Array[CapturedResultBorrow]
   mut live : Bool
+}
+
+///|
+/// Borrow an exact checked Result occurrence from its completed task. This
+/// remains Host-private retention, not permission to disclose the Result or
+/// use it as an Effect input. A different Program owner cannot relabel it.
+pub fn pin_captured_result_output(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedOutputPin, RunIssue] {
+  let owner = @execution.managed_result_occurrence_owner(occurrence)
+  let port = @execution.managed_result_occurrence_port(occurrence)
+  let target = @ports.port_target(port)
+  guard run.graph.owners.get(task) is Some(actual) &&
+    physical_equal(actual, owner) else {
+    return Err(ForeignCandidate)
+  }
+  if captured_task_target(run, task) != Some(target) {
+    return Err(UnsupportedGraph)
+  }
+  let pin = match pin_captured_task_output(run, task, target, max_pins) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let output = captured_output_pin_materialized(pin)
+  if !@execution.completed_output_matches_port(output, owner, target) {
+    release_captured_output_pin(pin) |> ignore
+    return Err(ForeignCandidate)
+  }
+  Ok(pin)
+}
+
+///|
+pub fn borrow_captured_result_output(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedResultBorrow, RunIssue] {
+  pin_captured_result_output(run, task, occurrence, max_pins).map(pin => {
+    occurrence,
+    pin,
+  })
+}
+
+///|
+pub fn captured_result_borrow_occurrence(
+  borrow : CapturedResultBorrow,
+) -> @execution.ManagedResultOccurrence {
+  borrow.occurrence
+}
+
+///|
+pub fn captured_result_borrow_output(
+  borrow : CapturedResultBorrow,
+) -> @execution.CompletedOutput {
+  captured_output_pin_materialized(borrow.pin)
+}
+
+///|
+pub fn release_captured_result_borrow(borrow : CapturedResultBorrow) -> Bool {
+  release_captured_output_pin(borrow.pin)
+}
+
+///|
+/// Share the checked Result projection and order without creating another
+/// serializer or copying its rows. The borrow must stay live through export.
+pub fn start_captured_result_borrow_export(
+  borrow : CapturedResultBorrow,
+  result_view : @execution.CompletedResultViewLimits,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[
+  @execution.CompletedResultRelationExportPreparation,
+  @execution.CompletedExportIssue,
+] {
+  @execution.start_completed_result_relation_export(
+    captured_result_borrow_output(borrow),
+    borrow.occurrence,
+    result_view,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  )
 }
 
 ///|
@@ -152,19 +255,31 @@ pub fn pin_captured_result_output_set(
   sources : Array[(Int, @execution.ManagedResultOccurrence)],
   max_pins : Int,
 ) -> Result[CapturedResultOutputSet, RunIssue] {
-  let pins : Array[CapturedOutputPin] = []
+  let borrows : Array[CapturedResultBorrow] = []
   for (task, occurrence) in sources {
-    match pin_captured_result_output(run, task, occurrence, max_pins) {
-      Ok(pin) => pins.push(pin)
+    match borrow_captured_result_output(run, task, occurrence, max_pins) {
+      Ok(borrow) => borrows.push(borrow)
       Err(issue) => {
-        for pin in pins {
-          release_captured_output_pin(pin) |> ignore
+        for borrow in borrows {
+          release_captured_result_borrow(borrow) |> ignore
         }
         return Err(issue)
       }
     }
   }
-  Ok({ pins, live: true, })
+  Ok({ borrows, live: true, })
+}
+
+///|
+pub fn captured_result_output_set_borrow_at(
+  set : CapturedResultOutputSet,
+  index : Int,
+) -> CapturedResultBorrow? {
+  if set.live {
+    set.borrows.get(index)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -173,7 +288,7 @@ pub fn captured_result_output_set_pin_at(
   index : Int,
 ) -> CapturedOutputPin? {
   if set.live {
-    set.pins.get(index)
+    set.borrows.get(index).map(borrow => borrow.pin)
   } else {
     None
   }
@@ -187,8 +302,8 @@ pub fn release_captured_result_output_set(
     return false
   }
   set.live = false
-  for pin in set.pins {
-    release_captured_output_pin(pin) |> ignore
+  for borrow in set.borrows {
+    release_captured_result_borrow(borrow) |> ignore
   }
   true
 }
