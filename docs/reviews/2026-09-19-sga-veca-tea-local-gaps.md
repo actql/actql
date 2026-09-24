@@ -58,6 +58,11 @@ cancel/cleanup test and the ordinary Host timer are now bound to the same
 production route, and the checker rejects removal of either proof. The
 tested form is left join with point-in-interval matching; overlap and other
 join kinds remain outside full resource assurance.
+The as-of fixture likewise completes at 136 control-work units and fails at
+135 while retaining both inputs and cleanup ownership. Its kernel
+cancellation and ordinary Host timer are bound to the as-of production route.
+This fixture is left/backward with a priority tie-break, so forward, nearest,
+and other join kinds remain outside full resource assurance.
 
 The `dedupe_events` kernel now checks one cumulative control-work ceiling
 across resumes. Its one-record fixture counts 31 steps, including final
