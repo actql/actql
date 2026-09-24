@@ -85,11 +85,15 @@ pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor
 
 pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
 
+pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
+
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
+
+pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
 

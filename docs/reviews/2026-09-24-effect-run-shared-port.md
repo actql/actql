@@ -75,6 +75,10 @@ coverage and foreign Program/Environment inputs. It is intentionally not a
 checked Effect Set: the standard checker must still bind the Environment and
 close registered conversions, Command role references, policy, and runtime
 authority before execution.
+The checked Program now exposes its retained exact Environment owner, and the
+checker configuration exposes the originally supplied owner. This makes the
+future Program-to-Effect binding an ownership comparison, not a CID-only
+reconstruction. The ordinary checker still rejects nonempty Effects.
 
 ## Required port and owners
 
