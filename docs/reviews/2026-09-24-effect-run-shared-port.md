@@ -584,3 +584,13 @@ checks cancellation between charged preparation steps and writes, and closes
 the import, stream, and receipt on every exit. The caller still owns the
 captured input pin. This is reusable input transport, not a standard
 Effectful submit or an apply permit.
+
+The private Effect Preview input bridge now admits one canonical Preview under
+the Host's exact Run Definition and Invocation, checks the retained checked
+Effect inventory and whole-set footprint, and binds its source references to
+the pinned captured occurrence. The captured-input binder also compares the
+execution occurrence itself: two captures of one checked Run cannot exchange
+pins. A product-path fixture rejects a foreign Mapping contract and a second
+capture even when the checked Run owner is shared. The fixture's placeholder
+Artifact CID and zero-row Preview are identity controls only; this bridge
+does not assert captured row/payload equivalence or authorize apply.
