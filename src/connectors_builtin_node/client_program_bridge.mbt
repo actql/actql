@@ -1142,26 +1142,6 @@ pub fn client_program_open_source_free_local_host(
     }
     generated.push(sequence)
   }
-  let registry = match
-    @connector.prepare_capability_registry(
-      [
-        {
-          name: "local",
-          acquisition: false,
-          fixed_compute: true,
-          effect: false,
-        },
-      ],
-      1,
-      100,
-    ) {
-    Ok(value) => value
-    Err(_) => return reject_client_local_run(run)
-  }
-  guard @connector.capability_registration_at(registry, 0)
-    is Some(local_registration) else {
-    return reject_client_local_run(run)
-  }
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
@@ -1174,6 +1154,56 @@ pub fn client_program_open_source_free_local_host(
     max_depth: 100,
     max_work: 100000,
   }
+  let local_configuration : @local_driver.LocalComputeConfiguration = {
+    sequences: generated,
+    managed_providers: [],
+    managed_capacity: capacity,
+    execution: {
+      rows: {
+        max_rows: 100,
+        metadata_entries: 10000,
+        retained_entries: 10000,
+        operation_entries: 10000,
+        input_values: values,
+        output_values: values,
+      },
+      max_work: 100000,
+      max_frames: 100,
+    },
+    measurement: {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    },
+    max_work: 100,
+  }
+  let bundle : @connector.CapabilityBundle[
+    Unit,
+    @local_driver.LocalComputeConfiguration,
+    Unit,
+  ] = {
+    name: "local",
+    acquisition: None,
+    fixed_compute: Some((_, _) => local_configuration),
+    effect: None,
+  }
+  let installed_bundles = match @connector.install_bundles([bundle], 1, 100) {
+    Ok(value) => value
+    Err(_) => return reject_client_local_run(run)
+  }
+  let registry = @connector.installed_bundle_registry(installed_bundles)
+  guard @connector.capability_registration_at(registry, 0)
+    is Some(local_registration) else {
+    return reject_client_local_run(run)
+  }
+  guard @connector.capability_implementation(
+      @connector.installed_compute_implementations(installed_bundles),
+      local_registration,
+    )
+    is Some(local_configuration) else {
+    return reject_client_local_run(run)
+  }
   let modules = match
     @builtin.configure_compute_modules(
       @host_driver.open_dispatch_driver(run),
@@ -1183,30 +1213,7 @@ pub fn client_program_open_source_free_local_host(
       with_local=Some(
         (
           local_registration,
-          {
-            sequences: generated,
-            managed_providers: [],
-            managed_capacity: capacity,
-            execution: {
-              rows: {
-                max_rows: 100,
-                metadata_entries: 10000,
-                retained_entries: 10000,
-                operation_entries: 10000,
-                input_values: values,
-                output_values: values,
-              },
-              max_work: 100000,
-              max_frames: 100,
-            },
-            measurement: {
-              max_work: 10000,
-              max_bytes: 10000,
-              max_nodes: 10000,
-              max_depth: 100,
-            },
-            max_work: 100,
-          },
+          local_configuration,
           _ => @strategy.RunIssue::ForeignCandidate,
           _ => @strategy.RunIssue::ForeignCandidate,
         ),
