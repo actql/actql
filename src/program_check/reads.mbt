@@ -131,6 +131,16 @@ pub fn publication_result_name(value : PublicationExecution) -> String {
 }
 
 ///|
+/// The exact checked Result row contract, after the Result port's projection.
+/// This is type evidence only, not Result availability or Run authority.
+pub fn publication_row_value_contract(
+  value : PublicationExecution,
+) -> @contract.Contract? {
+  let selected = @context.publication_row_limit_result(value.selection)
+  @schema.as_object(@publication.port_schema(selected.port))
+}
+
+///|
 pub fn publication_rows(value : PublicationExecution) -> @wire.LimitClaim {
   value.rows
 }
