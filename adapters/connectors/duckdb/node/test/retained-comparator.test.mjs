@@ -12,6 +12,9 @@ import {runRetainedComparator, closeRetainedSample} from '../bench/retained-comp
 import {runEquivalentObligations} from '../bench/equivalent-obligations.mjs';
 import {productAcquisitionMetadata} from
   '../bench/equivalent-acquisition-metadata.mjs';
+import {managedCaseConfiguration} from
+  '../../../../../benchmarks/retained-results/managed-configuration.mjs';
+import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 const hash = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
@@ -240,6 +243,15 @@ test('managed host-cycle diagnostic reuses identity and independently releases f
       assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)));
     }
     const fixture = retainedCase(workloads[2], 'narrow', 100);
+    const invalid = managedCaseConfiguration(fixture, contracts,
+      join(directory, 'source-2.duckdb'), directory);
+    const failedHost = await createManagedExampleHost(invalid.limits);
+    await assert.rejects(failedHost.run({...invalid.input, programText: '{'},
+      {run: 'invalid-concurrent-preparation', childLimits: invalid.childLimits}));
+    assert.equal(failedHost.usage().reserved_retention_bytes, 0n);
+    assert.equal(failedHost.usage().reserved_execution_bytes, 0n);
+    assert((await readdir(directory)).every(name => /^source-\d\.duckdb$/.test(name)),
+      'failed parallel preparation leaves no retained Store files');
     const incorrectOracle = {...fixture, identity: () => ({...fixture.identity(), rowsCid: 'sha256:wrong'})};
     await assert.rejects(runRetainedComparator(incorrectOracle, contracts,
       join(directory, 'source-2.duckdb'), directory), {code: 'ERR_ASSERTION'});

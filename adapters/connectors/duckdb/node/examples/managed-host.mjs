@@ -5,8 +5,30 @@ import {createProcessRetainedStore} from '../../../../store-local/process-servic
 import {createProcessCompletionCustody} from '../../../../host-node/completion-custody.mjs';
 import {snapshotProcessLimits} from '../../../../host-node/process-accounting.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
-import {prepareExampleTaskManifest} from './physical-strategy.mjs';
 import {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
+
+// The worker can prepare its checked Program while the controller derives the
+// independent task manifest. No Store operation is available until the two
+// task sets have been compared and the exact custody is installed.
+function deferredCompletionService() {
+  let installed;
+  return Object.freeze({
+    service: Object.freeze({
+      invoke(request, signal, owner) {
+        if (!installed) throw new Error('CompletionCustodyNotReady');
+        return installed.service.invoke(request, signal, owner);
+      },
+      cleanupHandle: Object.freeze({
+        status: () => installed?.cleanupHandle.status() ?? {pending: false},
+        retry: () => installed?.cleanupHandle.retry() ?? Promise.resolve({pending: false}),
+      }),
+    }),
+    install(custody) {
+      if (installed) throw new Error('CompletionCustodyAlreadyBound');
+      installed = custody;
+    },
+  });
+}
 
 export async function createManagedExampleHost(limits) {
   enableNodeCompileCache();
@@ -34,50 +56,32 @@ export async function createManagedExampleHost(limits) {
           !/^\d{1,18}$/.test(input.nativeMilliseconds)) {
         throw new Error('Invalid example configuration');
       }
-      const phases = {};
-      let phaseStarted = performance.now();
+      const phases = {parentPreparationCalls: 0, parentTaskManifestCalls: 1};
+      let phaseStarted;
       const finishPhase = name => {
         phases[name] = performance.now() - phaseStarted;
         phaseStarted = performance.now();
       };
       signal?.throwIfAborted();
-      const tasks = await prepareExampleTaskManifest(input);
-      phases.parentPreparationCalls = 0;
-      phases.parentTaskManifestCalls = 1;
-      finishPhase('parentPreparationMs');
       if (!input.retainedOutput || input.localImportWorkMilliseconds === undefined) {
         throw new TypeError('ManagedExampleRequiresIndependentRetention');
       }
-      signal?.throwIfAborted();
-      const capacityBytes = input.retainedOutput.wire.max_bytes * (tasks.length + 1);
-      if (!Number.isSafeInteger(capacityBytes) || BigInt(capacityBytes) > childLimits.retained_bytes) {
-        throw new TypeError('InvalidRetainedCapacity');
-      }
-      const store = createProcessRetainedStore({
-        parentDirectory: input.retainedOutput.parentDirectory,
-        capacityBytes, maxFrameBytes: input.retainedOutput.maxFrameBytes,
-        maxEntries: tasks.length + 1,
-      });
-      const completionLimits = {maxCompletions: tasks.length, maxInputs: 2,
-        maxColumns: input.dataProfile?.columns ?? 10};
-      const custody = createProcessCompletionCustody(store, completionLimits, tasks);
       // Accepted runs never retry automatically, even if process start or
       // execution later fails. The child validates physical configuration
       // before execution; its exact task graph is checked below.
-      if (runs.has(run)) throw new TypeError('InvalidOrUsedExampleRun');
-      if (runs.size >= capacity.attempts) throw new TypeError('ExampleRunRecordLimit');
-      if (active) throw new TypeError('ManagedExampleHoldingActive');
       runs.add(run);
       active = true;
+      const deferred = deferredCompletionService();
+      let store, custody;
       let channel, priorCleanup, closed = false, phase = 'provision';
       const cleanupHandle = Object.freeze({
         status() {
           return {pending: !!priorCleanup?.status().pending ||
-            !!channel?.cleanupHandle.status().pending || store.cleanupHandle.status().pending};
+            !!channel?.cleanupHandle.status().pending || !!store?.cleanupHandle.status().pending};
         },
         async retry() {
           const errors = [];
-          for (const handle of [priorCleanup, channel?.cleanupHandle, store.cleanupHandle]) {
+          for (const handle of [priorCleanup, channel?.cleanupHandle, store?.cleanupHandle]) {
             try { if (handle?.status().pending) await handle.retry(); }
             catch (error) { errors.push(error); }
           }
@@ -90,7 +94,8 @@ export async function createManagedExampleHost(limits) {
         closed = true;
         const errors = [];
         // Custody close revokes new use even when child stop cannot be confirmed.
-        for (const release of [() => custody.close(), () => channel?.close()]) {
+        for (const release of [() => custody ? custody.close() : store?.close(),
+          () => channel?.close()]) {
           try { await release(); } catch (error) { errors.push(error); }
         }
         try { await cleanupHandle.retry(); } catch (error) { errors.push(error); }
@@ -100,16 +105,42 @@ export async function createManagedExampleHost(limits) {
       };
       let executedReport;
       try {
-        finishPhase('custodySetupMs');
-        channel = await host.start({entry: new URL('./managed-worker.mjs', import.meta.url), run,
-          frames: {maxBytes: 1000000, maxNodes: 100000, maxDepth: 64},
-          maxRequests: 3, graceMs: 1000, startupMs: 10000,
-          hostService: custody.service, maxHostCalls: 32},
-        {retainedBytes: childLimits.retained_bytes, executionBytes: childLimits.execution_bytes, childLimits}, signal);
-        finishPhase('processStartMs');
-        custody.observe(channel);
-        phase = 'prepare';
-        const prepared = await channel.request({command: 'prepare', input: {...input, controlStore: true}}, signal);
+        const preparationStarted = performance.now();
+        const parentStarted = performance.now();
+        const parentPreparation = (async () => {
+          // Loading the physical checker is part of the preparation cost. The
+          // worker can start while this trusted module graph is imported.
+          const {prepareExampleTaskManifest} = await import('./physical-strategy.mjs');
+          const tasks = await prepareExampleTaskManifest(input);
+          phases.parentPreparationMs = performance.now() - parentStarted;
+          return tasks;
+        })();
+        const processStarted = performance.now();
+        const workerPreparation = (async () => {
+          channel = await host.start({entry: new URL('./managed-worker.mjs', import.meta.url), run,
+            frames: {maxBytes: 1000000, maxNodes: 100000, maxDepth: 64},
+            maxRequests: 3, graceMs: 1000, startupMs: 10000,
+            hostService: deferred.service, maxHostCalls: 32},
+          {retainedBytes: childLimits.retained_bytes,
+            executionBytes: childLimits.execution_bytes, childLimits}, signal);
+          phases.processStartMs = performance.now() - processStarted;
+          phase = 'prepare';
+          const prepareStarted = performance.now();
+          const prepared = await channel.request({command: 'prepare', input: {...input, controlStore: true}}, signal);
+          phases.workerPreparationMs = performance.now() - prepareStarted;
+          return prepared;
+        })();
+        const [parentResult, workerResult] = await Promise.allSettled([
+          parentPreparation, workerPreparation,
+        ]);
+        phases.preparationWallMs = performance.now() - preparationStarted;
+        if (parentResult.status !== 'fulfilled') throw parentResult.reason;
+        if (workerResult.status !== 'fulfilled') throw workerResult.reason;
+        signal?.throwIfAborted();
+        const tasks = parentResult.value;
+        const prepared = workerResult.value;
+        const completionLimits = {maxCompletions: tasks.length, maxInputs: 2,
+          maxColumns: input.dataProfile?.columns ?? 10};
         const expected = tasks.map(task => snapshotCompletionTask(task, completionLimits));
         if (!Array.isArray(prepared.taskIdentities) ||
             prepared.taskIdentities.length !== expected.length ||
@@ -117,8 +148,22 @@ export async function createManagedExampleHost(limits) {
               JSON.stringify(snapshotCompletionTask(task, completionLimits)) !== JSON.stringify(expected[index]))) {
           throw new Error('ForeignPreparedTaskManifest');
         }
-        finishPhase('workerPreparationMs');
+        const custodyStarted = performance.now();
+        const capacityBytes = input.retainedOutput.wire.max_bytes * (tasks.length + 1);
+        if (!Number.isSafeInteger(capacityBytes) || BigInt(capacityBytes) > childLimits.retained_bytes) {
+          throw new TypeError('InvalidRetainedCapacity');
+        }
+        store = createProcessRetainedStore({
+          parentDirectory: input.retainedOutput.parentDirectory,
+          capacityBytes, maxFrameBytes: input.retainedOutput.maxFrameBytes,
+          maxEntries: tasks.length + 1,
+        });
+        custody = createProcessCompletionCustody(store, completionLimits, tasks);
+        deferred.install(custody);
+        custody.observe(channel);
+        phases.custodySetupMs = performance.now() - custodyStarted;
         phase = 'execute';
+        phaseStarted = performance.now();
         const result = await channel.request({command: 'execute'}, signal);
         executedReport = result.report;
         finishPhase('workerExecutionMs');

@@ -644,9 +644,33 @@ startup 175 ms, worker preparation 460 ms, and worker execution 937 ms against
 a 375 ms comparator. In one narrow reuse pair the corresponding figures were
 454, 234, 577, and 1,276 ms against 553 ms. These figures are one pair, not
 the aggregate interval; startup also varied substantially across pairs.
-The selected `managedOutput` branch writes an independent column holding per
-task. The new batched row-stream drain is for the other retained receiver and
-does not optimize this managed output branch. The next structural change must
-address preparation, process placement, and managed output handling as one
-product path while preserving each task's independent holding and completion
-barrier. No performance completion is claimed at this SHA.
+The registered product uses the retained row-stream receiver, including for
+resident tasks. The zero drain counters in its saved report mean optional cost
+diagnostics were disabled; they do not mean the batched drain was bypassed.
+Each task still creates its required independent holding. The next structural
+change must address preparation and the remaining output work while preserving
+that holding and completion barrier. No performance completion is claimed at
+this SHA.
+
+The next Host change overlaps the independent parent task-manifest check with
+child startup and full application preparation. The parent loads its physical
+checker module lazily so its module import also overlaps child startup. Both
+checked task sets must match before the completion Store is installed or
+execution begins. The child
+cannot invoke the deferred Store service until that binding exists. The Host
+reports the total preparation wall interval separately because overlapping
+phase durations cannot be added. This removes waiting between necessary
+checks; it does not remove either check or the separate process boundary.
+Correctness regressions include the retained Host cycle, resident profile, and
+failed concurrent preparation with confirmed process-capacity release. Its
+performance effect is pending the next fixed-SHA registered assessment.
+
+A single local diagnostic of narrow 10,000-row join after the overlapping
+preparation change took 679 ms. This is not comparable to the registered
+Linux samples: it used a different machine, explicit estimates, diagnostic
+counters, and a warm runtime. It confirmed that the retained resident path
+uses the new batch drain: tasks 1 and 3 drained 157 and 313 frames, with
+roughly 19 and 17 ms of drain time and 27 and 24 ms of total output storage
+time. The observed 325 ms preparation wall interval still dominated those
+output costs. These counters guide the next change; they are not a performance
+pass or a substitute for the registered assessment.
