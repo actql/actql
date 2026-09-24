@@ -956,6 +956,10 @@ for (const [index, route] of routeEntries.entries()) {
       'external_product_mixed_stage_timer_cancel_cleanup')) {
       fail(`${label}: mixed-stage timer cancellation fixture is missing`);
     }
+    if (!environmentRoles.has(
+      'external_product_empty_right_admission_timer_cancel_cleanup')) {
+      fail(`${label}: empty-right admission timer fixture is missing`);
+    }
     // Closing before execute cannot prove a delivered in-flight stop.
     // A future unrelated environment fixture must not close this route.
     if (requireBoundaryComplete &&

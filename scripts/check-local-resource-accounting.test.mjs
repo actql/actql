@@ -142,6 +142,12 @@ test('binary receivers need their input admission fixtures', () => {
         item.role !== role);
     }), new RegExp(`RelA ${operation}: (?:reviewed )?${role} fixture is missing`));
   }
+  assert.match(run(undefined, routes => {
+    const cross = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    cross.environment_tests = cross.environment_tests.filter(item =>
+      item.role !== 'external_product_empty_right_admission_timer_cancel_cleanup');
+  }), /RelA cross_join: empty-right admission timer fixture is missing/);
 });
 
 test('distinct resource evidence covers full-row and keyed forms', () => {
