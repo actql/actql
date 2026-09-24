@@ -115,9 +115,9 @@ async function testValuesHttps(tls, environment) {
       }
       await new Promise(resolve => setTimeout(resolve, 25));
     }
-    const [portText, cid, dispatch, query] =
+    const [portText, cid, dispatch, query, outputPlan] =
       (await readFile(readyPath, 'utf8')).trimEnd().split('\n');
-    if ([portText, cid, dispatch, query].some(value => !value)) {
+    if ([portText, cid, dispatch, query, outputPlan].some(value => !value)) {
       throw new Error('incomplete native Values Site route');
     }
     const port = Number(portText);
@@ -173,6 +173,15 @@ async function testValuesHttps(tls, environment) {
     assert.equal(status.dispatch_request_cid, cid);
     assert.equal(status.version, 'actql-remote-dispatch-status/0.1');
     assert.ok(status.evidence && status.subject && status.measurement);
+    const plan = await sendValuesSiteRequest(tls, port,
+      `${path}/outputs/plan`, outputPlan, cid);
+    if (plan.status !== 200) {
+      throw new Error(`Site output planning failed: ${plan.body}`);
+    }
+    const planned = JSON.parse(plan.body);
+    assert.equal(planned.version, 'actql-remote-output-plan/0.1');
+    assert.equal(planned.dispatch_request_cid, cid);
+    assert.equal(planned.subject_cid, status.subject.cid);
     await exited;
     process.stdout.write('Native Values mTLS dispatch and query passed.\n');
   } catch (error) {

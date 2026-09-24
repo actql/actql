@@ -508,15 +508,50 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       grant_cid: operation_capability,
     },
   ).unwrap()
+  let inventory = @publication.prepare_checked_publication_inventory(
+    @publication_host.prepared_client_identity(prepared).program_definition_cid,
+    ["answer"],
+    [0],
+  ).unwrap()
+  let result_definition_cid = @publication.checked_publication_inventory_definition_cid(
+    inventory, 0,
+  ).unwrap()
+  let output_intent = @remote.prepare_remote_output_intent(second, {
+    store_authority_cid: native_publication_cid("values-store-authority"),
+    publication_attempt_cid: native_publication_cid(
+      "values-publication-attempt",
+    ),
+    result_definition_cid,
+    ordering_evidence_cid: native_publication_cid("values-ordering"),
+    coordinator_authority: native_publication_cid("native-values-coordinator"),
+    transfer_attempt: "values-transfer-1",
+    transfer_route: @transfer.DirectStream,
+    destination_site_key: "values-store",
+    destination_site_generation: 1,
+    transfer_max_bytes: 1048576L,
+    transfer_expires_unix_ms: 1800000000000L,
+    source_grant_cid: native_publication_cid("values-source-grant"),
+    destination_grant_cid: native_publication_cid("values-destination-grant"),
+    route_capability_cid: native_publication_cid("values-route-capability"),
+    transfer_origin: "https://values-store.example",
+  }).unwrap()
+  let output_poll = @remote.remote_poll_output_plan_json(second, output_intent).unwrap()
   let endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
     runtime,
     journal,
+    executor,
     native_publication_cid("native-values-coordinator"),
     "native-values-site",
     1,
   ).unwrap()
   let body = @remote.remote_poll_dispatch_json(second, input_binding).unwrap()
   let second_cid = @remote.dispatch_request_identity(second)
+  assert_true(
+    endpoint.output_plan_json(output_poll, second_cid)
+    is Err(
+      @native_remote_values.Journal(@native_remote_journal.MissingDispatch)
+    ),
+  )
   assert_true(
     endpoint.query_json(
       @remote.remote_poll_query_json(second).unwrap(),
@@ -531,7 +566,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     is Err(@native_remote_values.ForeignDispatch),
   )
   let foreign_endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
-    runtime, journal, "another-coordinator", "native-values-site", 1,
+    runtime, journal, executor, "another-coordinator", "native-values-site", 1,
   ).unwrap()
   assert_true(
     foreign_endpoint.dispatch_json(body, second_cid)
@@ -555,12 +590,14 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       body +
       "\n" +
       @remote.remote_poll_query_json(second).unwrap() +
+      "\n" +
+      output_poll +
       "\n",
     )
     let writer = root.create_writer("https-ready-stage", 262144L).unwrap()
     writer.append(ready).unwrap()
     writer.seal("https-ready").unwrap() |> ignore
-    for _ in 0..<5 {
+    for _ in 0..<6 {
       assert_true(https_site.poll(30000).unwrap())
     }
     assert_true(https_site.close())
@@ -581,6 +618,27 @@ test "ordinary AQL values root reaches the installed Local kernel" {
     @remote.StatusReply,
   ).unwrap()
   let subject = @remote.remote_dispatch_response_subject(observed).unwrap()
+  let planned = endpoint.output_plan_json(output_poll, second_cid).unwrap()
+  let admitted_poll = @remote.admit_remote_poll_output_plan_json(output_poll).unwrap()
+  let admitted_plan = @remote.admit_remote_output_plan_json(
+    planned, admitted_poll, subject, 4, 10000, 1048576L,
+  ).unwrap()
+  assert_eq(@remote.remote_output_plan_json(admitted_plan).unwrap(), planned)
+  assert_eq(
+    endpoint.output_plan_json(output_poll, second_cid).unwrap(),
+    planned,
+  )
+  let foreign_output_intent = @remote.prepare_remote_output_intent(second, {
+    ..@remote.remote_output_intent_projection(output_intent),
+    result_definition_cid: native_publication_cid("foreign-result"),
+  }).unwrap()
+  assert_true(
+    endpoint.output_plan_json(
+      @remote.remote_poll_output_plan_json(second, foreign_output_intent).unwrap(),
+      second_cid,
+    )
+    is Err(@native_remote_values.InvalidOutput),
+  )
   let material_generation = @remote.remote_managed_output_subject_projection(
       subject,
     )[1]
@@ -618,6 +676,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let reopened_endpoint = @native_remote_values.open_native_remote_values_site_endpoint(
     runtime,
     reopened_journal,
+    executor,
     native_publication_cid("native-values-coordinator"),
     "native-values-site",
     1,

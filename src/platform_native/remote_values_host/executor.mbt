@@ -16,6 +16,7 @@ pub(all) enum NativeRemoteValuesHostIssue {
   UnsupportedProgram
   InvalidInputBinding
   InvalidLimits
+  ResultInventory(@publication.PublicationInventoryIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
 }
 
@@ -24,6 +25,9 @@ pub(all) enum NativeRemoteValuesHostIssue {
 /// runtime callback stays private to this composition boundary.
 struct NativeRemoteValuesTaskExecutor {
   executor : @runtime.NativeRemoteTaskExecutor
+  run_definition_cid : String
+  task_key : String
+  result_definition_cid : String
 }
 
 ///|
@@ -81,6 +85,21 @@ pub fn install_native_remote_values_task_executor(
     checked,
   )
   let task_key = @host.client_values_run_binding_task_key(checked)
+  let result_name = @host.client_values_run_binding_result_name(checked)
+  let inventory = match
+    @publication.prepare_checked_publication_inventory(
+      @host.prepared_client_identity(prepared).program_definition_cid,
+      [result_name],
+      [0],
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(ResultInventory(issue))
+  }
+  let result_definition_cid = match
+    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
+    Ok(value) => value
+    Err(issue) => return Err(ResultInventory(issue))
+  }
   let binding_cid = @remote.remote_input_binding_cid(input_binding)
   let executor = @runtime.install_native_remote_task_executor(
     run_definition_cid,
@@ -143,7 +162,13 @@ pub fn install_native_remote_values_task_executor(
     },
   )
   match executor {
-    Ok(value) => Ok({ executor: value, })
+    Ok(value) =>
+      Ok({
+        executor: value,
+        run_definition_cid,
+        task_key,
+        result_definition_cid,
+      })
     Err(issue) => Err(Runtime(issue))
   }
 }

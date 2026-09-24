@@ -16,7 +16,7 @@ import {
 // Values
 pub fn install_native_remote_values_task_executor(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @remote_site_protocol.RemoteInputBinding, String, String, Int64, Int64, Int64, Int64, NativeRemoteValuesTaskLimits) -> Result[NativeRemoteValuesTaskExecutor, NativeRemoteValuesHostIssue]
 
-pub fn open_native_remote_values_site_endpoint(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, String, String, Int) -> Result[NativeRemoteValuesSiteEndpoint, NativeRemoteValuesSiteEndpointIssue]
+pub fn open_native_remote_values_site_endpoint(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, NativeRemoteValuesTaskExecutor, String, String, Int) -> Result[NativeRemoteValuesSiteEndpoint, NativeRemoteValuesSiteEndpointIssue]
 
 pub fn open_native_remote_values_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, NativeRemoteValuesTaskExecutor, @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteValuesHostIssue]
 
@@ -28,11 +28,13 @@ pub(all) enum NativeRemoteValuesHostIssue {
   UnsupportedProgram
   InvalidInputBinding
   InvalidLimits
+  ResultInventory(@run_publication.PublicationInventoryIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
 }
 
 type NativeRemoteValuesSiteEndpoint
 pub fn NativeRemoteValuesSiteEndpoint::dispatch_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
+pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::query_json(Self, String, String) -> Result[String, NativeRemoteValuesSiteEndpointIssue]
 pub fn NativeRemoteValuesSiteEndpoint::route(Self) -> (String, Int)
 
@@ -40,6 +42,8 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   InvalidConfiguration
   InvalidEnvelope
   ForeignDispatch
+  InvalidOutput
+  OutputPlan(@remote_standard_host.NativeRemoteObservedOutputPlanIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)
   Protocol(@remote_site_protocol.DispatchIssue)

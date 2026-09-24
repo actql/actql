@@ -8,6 +8,7 @@ struct NativeRemoteValuesHttpsSite {
   coordinator_fingerprint : String
   dispatch_path : String
   query_path : String
+  output_plan_path : String
 }
 
 ///|
@@ -76,6 +77,7 @@ pub fn open_native_remote_values_https_site(
     coordinator_fingerprint,
     dispatch_path: path,
     query_path: path + "/query",
+    output_plan_path: path + "/outputs/plan",
   })
 }
 
@@ -105,7 +107,11 @@ pub fn NativeRemoteValuesHttpsSite::poll(
   }
   if request.peer_fingerprint() != self.coordinator_fingerprint ||
     request.request_method() != "POST" ||
-    (request.path() != self.dispatch_path && request.path() != self.query_path) {
+    (
+      request.path() != self.dispatch_path &&
+      request.path() != self.query_path &&
+      request.path() != self.output_plan_path
+    ) {
     return self.reply(request, 404, "{\"error\":\"not_found\"}").map(_ => true)
   }
   if request.header("content-type") != Some("application/json") {
@@ -128,6 +134,8 @@ pub fn NativeRemoteValuesHttpsSite::poll(
   }
   let response = if request.path() == self.dispatch_path {
     self.endpoint.dispatch_json(body, claimed_cid)
+  } else if request.path() == self.output_plan_path {
+    self.endpoint.output_plan_json(body, claimed_cid)
   } else {
     self.endpoint.query_json(body, claimed_cid)
   }

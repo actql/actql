@@ -6,6 +6,9 @@
 struct NativeRemoteValuesSiteEndpoint {
   runtime : @runtime.NativeRemoteRuntime
   journal : @journal.Journal
+  run_definition_cid : String
+  task_key : String
+  result_definition_cid : String
   coordinator_authority : String
   site_key : String
   site_generation : Int
@@ -16,6 +19,8 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   InvalidConfiguration
   InvalidEnvelope
   ForeignDispatch
+  InvalidOutput
+  OutputPlan(@output.NativeRemoteObservedOutputPlanIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
   Journal(@journal.NativeRemoteJournalIssue)
   Protocol(@remote.DispatchIssue)
@@ -25,6 +30,7 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
 pub fn open_native_remote_values_site_endpoint(
   runtime : @runtime.NativeRemoteRuntime,
   journal : @journal.Journal,
+  executor : NativeRemoteValuesTaskExecutor,
   coordinator_authority : String,
   site_key : String,
   site_generation : Int,
@@ -34,7 +40,16 @@ pub fn open_native_remote_values_site_endpoint(
     site_generation < 0 {
     return Err(InvalidConfiguration)
   }
-  Ok({ runtime, journal, coordinator_authority, site_key, site_generation, })
+  Ok({
+    runtime,
+    journal,
+    run_definition_cid: executor.run_definition_cid,
+    task_key: executor.task_key,
+    result_definition_cid: executor.result_definition_cid,
+    coordinator_authority,
+    site_key,
+    site_generation,
+  })
 }
 
 ///|
@@ -57,7 +72,9 @@ fn NativeRemoteValuesSiteEndpoint::check_dispatch(
   if scope.length() != 7 ||
     scope[0] != self.coordinator_authority ||
     scope[1] != self.site_key ||
-    scope[2] != self.site_generation.to_string() {
+    scope[2] != self.site_generation.to_string() ||
+    @remote.dispatch_request_task_scope(request) !=
+    (self.run_definition_cid, self.task_key) {
     return Err(ForeignDispatch)
   }
   Ok(())
@@ -121,4 +138,98 @@ pub fn NativeRemoteValuesSiteEndpoint::query_json(
     @journal.recovered_site_dispatch_subject(observed),
     @journal.recovered_site_dispatch_measurement(observed),
   ).map_err(issue => Protocol(issue))
+}
+
+///|
+/// Derive publication and Transfer requests from the exact retained output.
+/// The checked executor fixes the Run, task and Result Definition; the poll
+/// supplies a Coordinator-issued output intent. Planning opens no payload
+/// writer or Transfer reader and never repeats Compute.
+pub fn NativeRemoteValuesSiteEndpoint::output_plan_json(
+  self : NativeRemoteValuesSiteEndpoint,
+  envelope : String,
+  claimed_cid : String,
+) -> Result[String, NativeRemoteValuesSiteEndpointIssue] {
+  let poll = match @remote.admit_remote_poll_output_plan_json(envelope) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidEnvelope)
+  }
+  let request = @remote.remote_poll_output_request(poll)
+  match self.check_dispatch(request, claimed_cid) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let intent = @remote.remote_poll_output_intent(poll)
+  let selected = @remote.remote_output_intent_projection(intent)
+  if selected.result_definition_cid != self.result_definition_cid ||
+    selected.coordinator_authority != self.coordinator_authority ||
+    !@remote.remote_output_intent_matches_dispatch(intent, request) {
+    return Err(InvalidOutput)
+  }
+  let observed = match self.journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let record = @journal.recovered_site_dispatch_record(observed)
+  let completion = match self.runtime.observed_completion(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  if !@remote.dispatch_record_matches_request(record, request) ||
+    @remote.dispatch_record_revision(record) != completion.revision {
+    return Err(InvalidOutput)
+  }
+  guard @journal.recovered_site_dispatch_subject(observed) is Some(subject) else {
+    return Err(InvalidOutput)
+  }
+  if !@remote.remote_managed_output_subject_matches_dispatch(subject, request) ||
+    @remote.remote_managed_output_subject_cid(subject) != completion.subject_cid {
+    return Err(InvalidOutput)
+  }
+  let subject_fields = @remote.remote_managed_output_subject_projection(subject)
+  if subject_fields.length() < 2 {
+    return Err(InvalidOutput)
+  }
+  let facts = match
+    self.runtime.inspect_output_facts(request, subject_fields[1]) {
+    Ok(value) => value
+    Err(issue) => return Err(Runtime(issue))
+  }
+  let output_intent : @output.NativeRemoteObservedOutputIntent = {
+    store_authority_cid: selected.store_authority_cid,
+    publication_attempt_cid: selected.publication_attempt_cid,
+    result_definition_cid: selected.result_definition_cid,
+    ordering_evidence_cid: selected.ordering_evidence_cid,
+    coordinator_authority: selected.coordinator_authority,
+    transfer_attempt: selected.transfer_attempt,
+    transfer_route: selected.transfer_route,
+    destination_site_key: selected.destination_site_key,
+    destination_site_generation: selected.destination_site_generation,
+    transfer_max_bytes: selected.transfer_max_bytes,
+    transfer_expires_unix_ms: selected.transfer_expires_unix_ms,
+    source_grant_cid: selected.source_grant_cid,
+    destination_grant_cid: selected.destination_grant_cid,
+    route_capability_cid: selected.route_capability_cid,
+  }
+  let physical = match
+    @output.prepare_native_remote_observed_output_plan(
+      self.site_key,
+      self.site_generation,
+      facts,
+      output_intent,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(OutputPlan(issue))
+  }
+  let plan = match
+    @remote.prepare_remote_output_plan(
+      poll,
+      subject,
+      physical.payload,
+      physical.transfer,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  @remote.remote_output_plan_json(plan).map_err(issue => Protocol(issue))
 }
