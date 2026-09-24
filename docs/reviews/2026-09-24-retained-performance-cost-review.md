@@ -652,7 +652,7 @@ change must address preparation and the remaining output work while preserving
 that holding and completion barrier. No performance completion is claimed at
 this SHA.
 
-The next Host change overlaps the independent parent task-manifest check with
+The Host now overlaps the independent parent task-manifest check with
 child startup and full application preparation. The parent loads its physical
 checker module lazily so its module import also overlaps child startup. Both
 checked task sets must match before the completion Store is installed or
