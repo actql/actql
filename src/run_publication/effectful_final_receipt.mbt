@@ -116,6 +116,15 @@ pub fn admit_effectful_final_receipt_references(
   if captured_ids != preview_ids {
     return Err(ForeignEffectInventory)
   }
+  for field in ["effect_plans", "effect_plan_logical_cids"] {
+    guard @json.object_field(context, field) is Some(inventory) &&
+      evidence_inventory_names(inventory) is Some(names) else {
+      return Err(ForeignEffectInventory)
+    }
+    if !same_names(names, captured_ids) {
+      return Err(ForeignEffectInventory)
+    }
+  }
   let set_receipt = match
     admit_effect_set_apply_receipt_references(
       preview, set_receipt_wire, member_receipt_wires, max_wire_bytes, max_nodes,

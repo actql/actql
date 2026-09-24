@@ -114,7 +114,13 @@ fn final_test_preview(chain : CapturedRunTestChain) -> EffectPreviewIdentity {
 }
 
 ///|
-fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
+/// Synthetic reference-closure fixture only. The plan payload and logical CID
+/// are not an admitted AoA plan; product capture must supply that proof.
+fn final_test_captured_with_plan_inventory(
+  chain : CapturedRunTestChain,
+  plans_wire : String,
+  plan_cids_wire : String,
+) -> PublicationContract {
   let snapshot = admit_captured_result_snapshot(
     chain.definition,
     chain.artifact,
@@ -142,10 +148,13 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
   let value = captured_test_value(publication_contract_json(effect_free))
   let context = @json.object_field(value, "effect_context").unwrap()
   let context_body = @json.object_without_field(context, "effect_context_cid").unwrap()
-  let context_body_wire = captured_test_wire(context_body).replace(
-    old="\"effects\":{}",
-    new="\"effects\":{\"WriteOne\":{}}",
-  )
+  let context_body_wire = captured_test_wire(context_body)
+    .replace(
+      old="\"effect_plan_logical_cids\":{}",
+      new="\"effect_plan_logical_cids\":" + plan_cids_wire,
+    )
+    .replace(old="\"effect_plans\":{}", new="\"effect_plans\":" + plans_wire)
+    .replace(old="\"effects\":{}", new="\"effects\":{\"WriteOne\":{}}")
   let context_value = captured_test_value(context_body_wire)
   let context_cid = @json.cid_value(context_value, 65536, 4096, 32) catch {
     _ => abort("Invalid Effect Context identity")
@@ -160,6 +169,15 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     new=effect_context,
   )
   seal_publication_contract("captured_run", final_body, 65536, 4096, 32).unwrap()
+}
+
+///|
+fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
+  final_test_captured_with_plan_inventory(
+    chain,
+    "{\"WriteOne\":{}}",
+    "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}",
+  )
 }
 
 ///|
@@ -492,4 +510,43 @@ test "final Effectful Receipt rejects an unverified captured context" {
     )
     is Err(ForeignEffectContext),
   )
+}
+
+///|
+test "final Effectful Receipt requires exact captured plan inventories" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  for
+    (plans, cids) in [
+      ("{}", "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}"),
+      ("{\"WriteOne\":{}}", "{}"),
+      (
+        "{\"WriteOne\":{},\"Foreign\":{}}",
+        "{\"WriteOne\":\"" + ordering_test_cid("a") + "\"}",
+      ),
+    ] {
+    let captured = final_test_captured_with_plan_inventory(chain, plans, cids)
+    let final_wire = final_test_receipt_wire(
+      chain.receipt,
+      preview,
+      set_cid,
+      captured,
+    )
+    assert_true(
+      admit_effectful_final_receipt_references(
+        chain.run,
+        chain.receipt,
+        captured,
+        preview,
+        set_wire,
+        member_wires,
+        final_wire,
+        65536,
+        4096,
+        32,
+      )
+      is Err(ForeignEffectInventory),
+    )
+  }
 }
