@@ -112,7 +112,7 @@ fn effect_apply_receipt_consistent(value : @json.CanonicalValue) -> Bool {
     "partial_failure" =>
       !stale &&
       unknown.is_empty() &&
-      !failed.is_empty() &&
+      (!failed.is_empty() || !unattempted.is_empty()) &&
       (!applied.is_empty() || !accepted.is_empty()) &&
       outcome == "failed"
     "failed" =>

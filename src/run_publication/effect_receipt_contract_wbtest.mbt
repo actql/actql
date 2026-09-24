@@ -144,6 +144,60 @@ test "Effect receipt schemas admit closed canonical bodies and self identities" 
 }
 
 ///|
+test "Effect member receipt admits applied and unattempted partial failure" {
+  let preview = effect_receipt_test_cid("a")
+  let applied = effect_receipt_test_cid("b")
+  let unattempted = effect_receipt_test_cid("c")
+  let body = effect_receipt_test_member_body(
+    preview,
+    preview,
+    "[\"" + applied + "\"]",
+    "[]",
+    "partial_failure",
+    "{\"state\":\"failed\",\"error\":{\"code\":\"halted\",\"message\":\"not attempted\"}}",
+  ).replace_all(
+    old="\"unattempted\":[]",
+    new="\"unattempted\":[\"" + unattempted + "\"]",
+  )
+  for variant in 0..<2 {
+    let candidate = if variant == 0 {
+      body
+    } else {
+      body.replace_all(
+        old="\"applied\":[\"" + applied + "\"],\"accepted\":[]",
+        new="\"applied\":[],\"accepted\":[\"" + applied + "\"]",
+      )
+    }
+    let receipt = seal_publication_contract(
+      "effect_apply_receipt", candidate, 8192, 256, 16,
+    ).unwrap()
+    assert_true(
+      admit_publication_contract(
+        "effect_apply_receipt",
+        publication_contract_json(receipt),
+        8192,
+        256,
+        16,
+      )
+      is Ok(_),
+    )
+    assert_true(
+      seal_publication_contract(
+        "effect_apply_receipt",
+        candidate.replace_all(
+          old="\"status\":\"partial_failure\"",
+          new="\"status\":\"failed\"",
+        ),
+        8192,
+        256,
+        16,
+      )
+      is Err(ConditionalField("status")),
+    )
+  }
+}
+
+///|
 test "Effect reconciliation receipt enforces correlation and attempt conditions" {
   let command = "\"command_id\":\"request-1\",\"idempotency_key\":\"key-1\","
   let cid = effect_receipt_test_cid("a")
