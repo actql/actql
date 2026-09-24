@@ -25,10 +25,10 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_results" @results,
   "actql/actql/order_key" @order,
+  "actql/actql/check_environment" @environment,
 }
 
 import {
-  "actql/actql/check_environment" @environment,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host_driver,
 } for "test"

@@ -15,6 +15,8 @@ import {
 }
 
 // Values
+pub fn admit_client_compilation_manifests(String, String, Int, Int, Int) -> Result[ClientCompilationManifests, ClientCompilationManifestIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
@@ -42,6 +44,10 @@ pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String,
 pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphAdmissionIssue]
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
+
+pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
+
+pub fn client_compilation_grammar_manifest_cid(ClientCompilationManifests) -> String
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
 
@@ -186,6 +192,19 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 // Errors
 
 // Types and methods
+pub(all) enum ClientCompilationManifestIssue {
+  InvalidBudget
+  InvalidGrammarManifest
+  InvalidBarrierManifest
+  GrammarManifestMismatch
+  BarrierManifestMismatch
+} derive(Eq, @debug.Debug)
+
+pub struct ClientCompilationManifests {
+  grammar_manifest_cid : String
+  barrier_contract_manifest_cid : String
+}
+
 pub struct ClientDirectResultRoot {
   wire : String
   result_name : String
