@@ -22,6 +22,15 @@ The Workers fixture was refreshed from the pinned generator. These changes
 close the review's binary input and stale-fixture findings, not the strict
 68-route resource assurance or the providerless synchronous lane.
 
+At source SHA `a389a4d356ac92ab6e5257d26263dcbc18914dfd`, the
+execution-relation and query-integration suites passed 1,447/1,447 on each
+of JS, Wasm, and native. The family coverage gate passed its 6 tests and the
+resource accounting gate passed its 112 tests; it reports 21/68 operation
+boundary records, 6/68 four-role records, and 2/68 full work/workspace
+assurances. The strict resource-completion gate still rejects the
+providerless synchronous lane and missing operation-scoped assurance. This
+local test result does not establish Linux CI or an integrated release SHA.
+
 `SGA.subgraph` now shares one workspace ceiling across its live selector
 arrays, unpublished Graph builder, and predicate evaluation. Previously,
 selector scratch and output storage could each consume the full ceiling.
