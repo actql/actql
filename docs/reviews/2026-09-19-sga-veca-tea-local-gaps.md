@@ -22,10 +22,12 @@ The time-series kernel now charges its finalization poll as one work unit,
 matching its emitted-row steps. Its three-row provider fixture rejects a
 two-row output ceiling before starting, admits the exact three-row ceiling,
 and checks one charged work unit on the final quantum-one poll. A separate
+fixture independently counts 30 output value-work units per row and accepts
+90 for three rows while rejecting 89 without publication. Another
 fixture stops after positive row work and reclaims the unpublished output;
 the standard Host timer covers delivered cancellation. These fixtures are
-bound to the time-series production route. Cumulative exact and one-short
-work/workspace assurance for that route is still incomplete.
+bound to the time-series production route. Structural workspace and total
+control-work exact/one-short assurance for that route remain incomplete.
 
 Global `top_k` now selects a bounded Relation task after its checked key
 assertion. Its full-input sort and requested output prefix advance at quantum

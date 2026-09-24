@@ -127,6 +127,75 @@ test "registered time-series provider emits a bounded UTC grid" {
 }
 
 ///|
+test "time-series output value work admits exact and one-short limits" {
+  // Each row costs one row node, four field-name bytes, one value node,
+  // and 24 timestamp bytes: three rows require 3 * 30 work units.
+  let generated = local_time_series_generated(
+    "{\"start\":\"1969-12-31T23:59:59.999Z\",\"end\":\"1970-01-01T00:00:00.004Z\",\"step\":2}",
+  )
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    dispatch_test_limits().local_execution,
+    dispatch_test_limits().guards,
+  ).unwrap()
+  let accepted = @local_connector.start_managed_provider(
+    @local_tea_provider.time_series_provider(
+      { ..carrier_events_storage_limits(), max_work: 90, },
+      capacity,
+    ),
+    generated,
+    [],
+    3,
+    1000,
+  ).unwrap()
+  let mut completed = false
+  for _ in 0..<4 {
+    match @local_connector.advance_managed_provider(accepted, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
+      @local_connector.Complete(value, work~, ..) => {
+        assert_eq(work, 1L)
+        assert_eq(@execution.completed_row_count(value), 3)
+        completed = true
+      }
+      _ => fail("exact value-work ceiling rejected time series")
+    }
+  }
+  assert_true(completed)
+  assert_true(@local_connector.managed_provider_stopped(accepted))
+  assert_true(
+    @local_connector.cleanup_managed_provider(accepted).unwrap_or(false),
+  )
+
+  let rejected = @local_connector.start_managed_provider(
+    @local_tea_provider.time_series_provider(
+      { ..carrier_events_storage_limits(), max_work: 89, },
+      capacity,
+    ),
+    generated,
+    [],
+    3,
+    1000,
+  ).unwrap()
+  let mut failed = false
+  for _ in 0..<4 {
+    if !failed {
+      match @local_connector.advance_managed_provider(rejected, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_eq(work, 1L)
+        @local_connector.Failed(_, ..) => failed = true
+        @local_connector.Complete(_, ..) =>
+          fail("one-short value-work ceiling published time series")
+        _ => fail("one-short value-work ceiling did not fail")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_connector.managed_provider_stopped(rejected))
+  assert_true(
+    @local_connector.cleanup_managed_provider(rejected).unwrap_or(false),
+  )
+}
+
+///|
 test "time-series cancellation stops before cleanup" {
   let generated = local_time_series_generated(
     "{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-01T00:00:00.050Z\",\"step\":1}",

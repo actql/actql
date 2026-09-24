@@ -3122,6 +3122,13 @@
           "fixture": "registered time-series provider emits a bounded UTC grid"
         },
         {
+          "role": "time_series_output_value_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "fixture": "time-series output value work admits exact and one-short limits"
+        },
+        {
           "role": "time_series_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
