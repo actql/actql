@@ -11278,6 +11278,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.plan-fact-manifest",
+      "statement_sha256": "b3cd8b4312bbf9599cf64f20a5953b00356b96ba30bac8dd7f9375b386fe5694",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/diagnostic-documents.diagnosticdocument",
       "statement_sha256": "66b9252e1e6803b12acad4560b42fbfffdde38d37a65d34406a1380aa078c3d2",
       "status": "pending",
