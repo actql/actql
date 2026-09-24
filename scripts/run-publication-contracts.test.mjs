@@ -10,6 +10,19 @@ import {machineCid} from './actql-spec-family.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
+test('Compiled Plan normative preimage matches its registered body', () => {
+  const document = readFileSync('docs/spec/protocols/contracts.md', 'utf8');
+  const section = document.match(
+    /<!-- requirement-block: compilation-identities\.actql-compiled-plan -->\s*<!-- normative-code: envelope -->\s*```text\s*\{version: "actql-compiled-plan\/0\.1",([^}]+)\}/u,
+  );
+  assert.ok(section, 'Compiled Plan normative envelope is present');
+  const declared = section[1].match(/[a-z_]+/gu);
+  const registered = read('spec/contracts/actql-run-publication.json')
+    .schemas.compiled_plan.required.filter(field =>
+      field !== 'version' && field !== 'compiled_plan_cid');
+  assert.deepEqual(declared, registered);
+});
+
 test('every Run-bound Result Artifact embedding uses the normative 12 fields', () => {
   const artifact = resultArtifactSchema();
   assert.deepEqual(artifact.required, [
