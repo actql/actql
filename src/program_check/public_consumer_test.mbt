@@ -584,6 +584,64 @@ test "Effect computation candidate closes the exact Mapping environment" {
       max_admission_text_bytes: 1000,
     },
   ).unwrap()
+  let computation = @program_check.effect_program_static_checked_computation(
+    static_candidate,
+  )
+  assert_true(@program_check.checked_program_has_effects(computation))
+  let source_identity = @program_check.source_identity(computation)
+  let selected_profiles = @program_check.selected_expression_profiles(
+    computation,
+  )
+  let owners = Array::makei(@program_check.unit_count(computation), stage => {
+    let pipeline = @program_check.unit_pipeline(computation, stage).unwrap()
+    let prepared = @lower.prepare(pipeline, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 100000,
+      max_identifier_bytes: 10000,
+    }).unwrap()
+    let values = @parameter_refs.bound_values(
+      @context.stage_identity_parameter_values(
+        @context.program_identity_stage_at(source_identity, stage).unwrap(),
+      ),
+    )
+    @lower.bind_parameters(
+      prepared,
+      Some(values),
+      max_parameters=100,
+      max_name_bytes=10000,
+      expression_profiles={
+        text_time: selected_profiles.text_time,
+        veca: selected_profiles.veca,
+      },
+    ).unwrap()
+  })
+  let graph_owner = @strategy.prepare_checked_effect_computation_dag(
+    static_candidate, owners, 2, 10000,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @strategy.checked_effect_computation_owner(graph_owner),
+      static_candidate,
+    ),
+  )
+  assert_eq(
+    @strategy.graph_task_count(
+      @strategy.checked_effect_computation_graph(graph_owner),
+    ),
+    2,
+  )
+  assert_true(
+    @strategy.graph_program_has_effects(
+      @strategy.checked_effect_computation_graph(graph_owner),
+    ),
+  )
+  assert_true(
+    @strategy.prepare_checked_effect_computation_dag(
+      static_candidate, owners, 1, 10000,
+    )
+    is Err(TaskLimit),
+  )
   let preview = public_effect_preview_for_static(static_candidate, mapping_cid)
   let bound = @program_check.bind_effect_program_static_preview(
     static_candidate, 1, preview, 1000,

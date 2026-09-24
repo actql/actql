@@ -297,6 +297,7 @@ export async function runInstalledStrategy(
     throw new StrategyHostError('InvalidBeforeComputeAdmission');
   }
   const programDefinitionCid = core.programDefinitionCid?.(setup);
+  const programHasEffects = core.programHasEffects?.(setup) === true;
   const resultInventory = core.resultInventory?.(setup) ?? [];
   if (!Array.isArray(resultInventory) ||
       (resultInventory.length > 0 && programDefinitionCid === undefined)) {
@@ -937,6 +938,9 @@ export async function runInstalledStrategy(
     ...(preflight === undefined ? {} : {publicationPreflight: preflight}),
     async publishEffectFreeRun(store, publication, signal) {
       if (closed) throw new StrategyHostError('ReleasedStrategy');
+      if (programHasEffects) {
+        throw new StrategyHostError('EffectfulProgramRequiresEffectRun');
+      }
       if (failed || !core.finished(setup)) {
         throw new StrategyHostError('StrategyNotComplete');
       }
