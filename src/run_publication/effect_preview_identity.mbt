@@ -31,6 +31,11 @@ pub struct EffectPreviewIdentity {
   row_order : Array[Array[String]]
   run_identity_cid : String
   authoring_context_cid : String
+  program_semantics_cid : String
+  program_definition_cid : String
+  invocation_cid : String
+  compiled_plan_cid : String
+  check_environment_cid : String
 }
 
 ///|
@@ -713,6 +718,18 @@ pub fn admit_effect_preview_identity(
     optional_string(@json.object_field(preview, "program_definition_cid")) {
     return Err(AuthoringIdentityMismatch)
   }
+  guard @json.object_field(preview, "program_semantics_cid")
+    is Some(@json.String(program_semantics_cid)) &&
+    @json.object_field(preview, "program_definition_cid")
+    is Some(@json.String(program_definition_cid)) &&
+    @json.object_field(preview, "invocation_cid")
+    is Some(@json.String(invocation_cid)) &&
+    @json.object_field(preview, "compiled_plan_cid")
+    is Some(@json.String(compiled_plan_cid)) &&
+    @json.object_field(preview, "check_environment_cid")
+    is Some(@json.String(check_environment_cid)) else {
+    return Err(PreviewShape(InvalidField("run_binding")))
+  }
   Ok({
     semantic_cid: cid,
     member_cids: cids,
@@ -731,6 +748,11 @@ pub fn admit_effect_preview_identity(
     row_order,
     run_identity_cid: run,
     authoring_context_cid: authoring,
+    program_semantics_cid,
+    program_definition_cid,
+    invocation_cid,
+    compiled_plan_cid,
+    check_environment_cid,
   })
 }
 
