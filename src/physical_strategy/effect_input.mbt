@@ -140,10 +140,14 @@ pub fn checked_effect_preview_source_indexes(
 /// Bind a private Preview to the already pinned inputs of the same captured
 /// Run. A missing or revoked physical input cannot become Preview custody.
 pub fn bind_captured_effect_preview_inputs(
+  run : CapturedEffectRunDAG,
   inputs : CapturedEffectInputs,
   preview : @checked.EffectProgramRunPreview,
   max_work : Int,
 ) -> Result[CapturedEffectPreviewInputs, RunIssue] {
+  if !physical_equal(inputs.run, run) {
+    return Err(ForeignCandidate)
+  }
   if !inputs.live {
     return Err(NotReady)
   }
