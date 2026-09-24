@@ -311,6 +311,11 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_false(
     @strategy.captured_resident_result_borrow_available(effect_borrow),
   )
+  assert_false(
+    @strategy.captured_resident_result_borrow_matches_managed(
+      effect_borrow, completed,
+    ),
+  )
   assert_true(
     @strategy.captured_resident_result_borrow_available(publication_borrow),
   )
@@ -320,6 +325,11 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   (operations.cleanup_refresh)() |> ignore
   assert_false(
     @strategy.captured_resident_result_borrow_available(publication_borrow),
+  )
+  assert_false(
+    @strategy.captured_resident_result_borrow_matches_managed(
+      publication_borrow, completed,
+    ),
   )
   assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   assert_true(
