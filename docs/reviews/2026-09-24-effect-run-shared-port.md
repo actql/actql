@@ -349,3 +349,12 @@ projection and order without copying a second table; a retained-output test
 streams after the ordinary task port closes and checks exact rows and release.
 This is still only an input-evidence path. No Effect Plan, row-to-payload proof,
 whole-set apply permit, or standard Host dispatch is issued by this export.
+
+The physical capture boundary can now pin the complete checked Effect source
+inventory in one custody step. It retains positions for members with no Result
+source, rolls back every earlier pin if any later source is missing, foreign,
+or over its per-task ceiling, and releases repeated consumers together. Tests
+keep the terminal task ports closed while those consumer pins remain live and
+confirm the ledger returns to zero after release. This owner does not yet
+capture Effect Plan rows or authorize a Preview or mutation; the standard
+Effectful Host entry remains the completion blocker.
