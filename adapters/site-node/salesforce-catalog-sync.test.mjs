@@ -1044,26 +1044,6 @@ test('Site Collections preserve exact row order and partial outcomes',
       result.result, 0)), cid('1'));
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowCid(
       result.result, 1)), cid('2'));
-    const applied = checked(salesforceMoon.salesforceProjectCollectionEffectOutcome(
-      result.result, 0, 2048, 128, 8));
-    const failed = checked(salesforceMoon.salesforceProjectCollectionEffectOutcome(
-      result.result, 1, 2048, 128, 8));
-    assert.equal(salesforceMoon.salesforceWriteEffectOutcomeRowCid(applied),
-      cid('1'));
-    assert.equal(salesforceMoon.salesforceWriteEffectOutcomeRowCid(failed),
-      cid('2'));
-    assert.deepEqual(JSON.parse(
-      salesforceMoon.salesforceWriteEffectOutcomeWire(applied)), {
-      result: {created: true, record_id: 'a00123456789012'},
-      state: 'applied',
-    });
-    assert.deepEqual(JSON.parse(
-      salesforceMoon.salesforceWriteEffectOutcomeWire(failed)), {
-      error: {code: 'SalesforceRowFailed',
-        details: {errors: [{fields: ['External_Key__c'],
-          message: 'Rejected field', status_code: 'INVALID_FIELD'}]},
-        message: 'Salesforce row failed'}, state: 'failed',
-    });
     assert.throws(() => checked(
       salesforceMoon.salesforceCollectionWriteResponseRowCid(
         result.result, 2)));
@@ -1332,13 +1312,24 @@ test('Host custody binds one HTTPS Collections response to every row',
     for (const index of [0, 1]) {
       const original = checked(
         salesforceMoon.salesforceProjectCollectionEffectOutcome(
-          sent.physical.result, index, 2048, 128, 8));
+          options.admittedPreview, 0, 0, sent.physical.result,
+          index, 2048, 128, 8));
       const recovered = checked(
         salesforceMoon.salesforceProjectCollectionEffectOutcome(
-          retry.recovered.result, index, 2048, 128, 8));
+          options.admittedPreview, 0, 0, retry.recovered.result,
+          index, 2048, 128, 8));
       assert.equal(
         salesforceMoon.salesforceWriteEffectOutcomeRowCid(recovered),
         rowCids[index]);
+      assert.deepEqual(JSON.parse(
+        salesforceMoon.salesforceWriteEffectOutcomeWire(original)),
+      index === 0
+        ? {result: {created: true, record_id: 'a00123456789012'},
+          state: 'applied'}
+        : {error: {code: 'SalesforceRowFailed',
+          details: {errors: [{fields: ['External_Key__c'],
+            message: 'Rejected field', status_code: 'INVALID_FIELD'}]},
+          message: 'Salesforce row failed'}, state: 'failed'});
       assert.equal(
         salesforceMoon.salesforceWriteEffectOutcomeWire(recovered),
         salesforceMoon.salesforceWriteEffectOutcomeWire(original));
@@ -1347,6 +1338,14 @@ test('Host custody binds one HTTPS Collections response to every row',
         createHash('sha256').update(sent.physical.observation.body)
           .digest('hex'));
     }
+    assert.throws(() => checked(
+      salesforceMoon.salesforceProjectCollectionEffectOutcome(
+        options.admittedPreview, 0, 1, sent.physical.result,
+        0, 2048, 128, 8)), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checked(
+      salesforceMoon.salesforceProjectCollectionEffectOutcome(
+        options.admittedPreview, 1, 0, sent.physical.result,
+        0, 2048, 128, 8)), {code: 'MoonBitHostFailure'});
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
     assert.equal(setup.journal.recover().length, usesBeforeRetry);

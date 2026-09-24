@@ -131,7 +131,7 @@ pub fn salesforce_prepare_write_projection(@catalog.CatalogObservation, String, 
 
 pub fn salesforce_prepare_write_target_identity(@catalog.WriteProjection, Int, String, Int, Int, Int) -> @catalog.WriteTargetIdentity raise SalesforceCatalogBridgeIssue
 
-pub fn salesforce_project_collection_effect_outcome(@catalog.WriteCollectionResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
+pub fn salesforce_project_collection_effect_outcome(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.WriteCollectionResponse, Int, Int, Int, Int) -> @catalog.WriteRowEffectProjection raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_project_collection_write_response(@catalog.WriteCollectionRequest, Int, Bytes, Int, Int, Int, Int) -> @catalog.WriteCollectionResponse raise SalesforceCatalogBridgeIssue
 
