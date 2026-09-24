@@ -551,3 +551,32 @@ had no compatible managed implementation. Selection must not bypass that
 obligation. The next implementation unit is a product path that avoids the
 duplicated preparation and establishes required identity during bounded output
 retention while preserving downstream consumption and cleanup.
+
+The placement decision should use admitted capabilities, bounded live state,
+the location and reusable representation of data, transfer and conversion
+costs, and preparation cost. Fixture workload names in the matrix runner are
+experiment routing, not a product placement policy. The acquisition cases
+admit bounded full-source validation while retaining only two rows after
+capture. Join and retained reuse hold large intermediate or downstream state;
+their final row counts cannot justify a lightweight placement by themselves.
+
+The saved Linux narrow 10,000-row join pair classifies the current cost before
+another implementation change. All four product tasks selected DuckDB resident
+execution and reported zero direct input scans; the selected engine and
+resident-input reuse were already active. Their measured task work totaled
+302 ms, including 229 ms of result reception. The parent preparation took
+467 ms, child preparation 468 ms, process startup 178 ms, and the enclosing
+worker execution 948 ms, versus 382 ms for the independent whole execution.
+The excess is therefore concentrated in repeated Host preparation and the
+control/retention path around the DuckDB tasks, not evidence that the DuckDB
+join operator itself or the Local join algorithm dominates this case. Task
+completion must keep its separate holding and settlement barrier, while the
+session and immutable resident representation can remain available to later
+tasks under their own read authority.
+
+Native matrix cases no longer need Node candidate calibration just to create
+the held-out database. The runner now prepares that source independently,
+calibrates only the selected Native profile, and retains the same source and
+release-artifact provenance in each pair. Node-managed cases keep their
+existing calibration and capacity fallback. This removes measurement setup
+work, not product execution work or an acceptance obligation.

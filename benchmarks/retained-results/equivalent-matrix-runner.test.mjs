@@ -95,3 +95,43 @@ test('capacity-limited training falls back without dropping its failed attempt',
     await rm(directory, {recursive: true, force: true});
   }
 });
+
+test('Native cases prepare a source without running Node candidate calibration', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-matrix-'));
+  const outputDirectory = join(directory, 'results');
+  const target = retainedMatrix().find(value =>
+    value.id === 'native-acquisition-full-validation-low-selectivity/narrow/10000');
+  let nativeCalibrations = 0, nativeSources = 0, nativePairs = 0;
+  try {
+    const result = await runEquivalentMatrix({checkout, outputDirectory,
+      inspect: async () => ({revision: 'a'.repeat(40), dirty: false}),
+      caseId: target.id, productProfile: 'native-eligible',
+      calibrate: async () => { throw new Error('NodeCalibrationMustNotRun'); },
+      nativeCalibrate: async () => {
+        nativeCalibrations++;
+        return {trainingCaseId:
+          'native-acquisition-full-validation-low-selectivity/narrow/100',
+        estimateSource: 'sha256:' + 'b'.repeat(64)};
+      },
+      nativeSource: async () => {
+        nativeSources++;
+        return {directory, database: join(directory, 'held-out.duckdb')};
+      },
+      runNativePair: async ({fixture, index}) => {
+        nativePairs++;
+        return {index, caseId: fixture.id, status: 'failed',
+          acceptanceEligible: false};
+      }});
+    assert.equal(result.assessment.status, 'incomplete');
+    assert.equal(nativeCalibrations, 1);
+    assert.equal(nativeSources, 1);
+    assert.equal(nativePairs, 7);
+    const record = JSON.parse(await readFile(join(outputDirectory,
+      'case-00.json')));
+    assert.equal(record.trainingAttempts.length, 1);
+    assert.equal(record.trainingAttempts[0].profile, 'native-direct');
+    assert.equal(record.pairs.length, 7);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});

@@ -94,15 +94,35 @@ async function calibrateNativeSelected({checkout, outputDirectory, target, posit
   return profile;
 }
 
+async function prepareNativeHeldOutSource({checkout, outputDirectory, target,
+  position}) {
+  const directory = join(outputDirectory, `native-source-${position}`);
+  await mkdir(directory);
+  const database = join(directory, 'held-out-source.duckdb');
+  const script = join(checkout,
+    'adapters/connectors/duckdb/node/bench/create-retained-source.mjs');
+  await exec(process.execPath, [script, database, target.workload,
+    target.layout, String(target.rows)], {
+    cwd: checkout, timeout: target.limits.timeoutMs,
+    maxBuffer: 4 * 1024 * 1024});
+  return Object.freeze({directory, database});
+}
+
 // Persist every registered case and each attempted pair before advancing.
 // A missing, failed or unqualified case remains in the matrix denominator.
 export async function runEquivalentMatrix({checkout, outputDirectory,
   caseId, calibrate = defaultCalibrate, runPair = runMatchedEquivalentPair,
+  nativeCalibrate = calibrateNativeSelected,
+  nativeSource = prepareNativeHeldOutSource,
+  runNativePair = runNativeDirectPair,
   inspect = inspectCheckout, productProfile = 'node-managed'}) {
   if (typeof checkout !== 'string' || !checkout.length ||
       typeof outputDirectory !== 'string' || !outputDirectory.length ||
       (caseId !== undefined && (typeof caseId !== 'string' || !caseId.length)) ||
       typeof calibrate !== 'function' || typeof runPair !== 'function' ||
+      typeof nativeCalibrate !== 'function' ||
+      typeof nativeSource !== 'function' ||
+      typeof runNativePair !== 'function' ||
       typeof inspect !== 'function' ||
       !['node-managed', 'native-eligible'].includes(productProfile)) {
     throw new TypeError('InvalidEquivalentMatrixRun');
@@ -129,40 +149,48 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
     const useNative = productProfile === 'native-eligible' &&
       (fixture.rows === 100 || fixture.rows === 1000 ||
         fixture.workload === workloads[0]);
-    const trainings = trainingFixtures(fixture);
     const record = {caseId: fixture.id, trainingCaseId: undefined,
       status: 'incomplete', trainingAttempts: [], pairs: []};
     const path = join(destination, `case-${String(position).padStart(2, '0')}.json`);
     records.push(record);
     try {
-      let calibrated;
-      for (const training of trainings) {
-        try {
-          calibrated = await calibrate({checkout: root,
-            outputDirectory: destination, training, target: fixture});
-          record.trainingCaseId = training.id;
-          record.trainingAttempts.push({trainingCaseId: training.id,
-            status: 'completed'});
-          break;
-        } catch (error) {
-          record.trainingAttempts.push({trainingCaseId: training.id,
-            status: 'failed', error: failure(error)});
-          await writeFile(path, JSON.stringify(record, null, 2));
-          if (error.code !== 'TrainingCapacityInfeasible' &&
-              error.code !== 'TrainingCandidateNotSelected') throw error;
+      let calibrated, nativeProfile;
+      if (useNative) {
+        nativeProfile = await nativeCalibrate({checkout: root,
+          outputDirectory: destination, target: fixture, position});
+        record.trainingCaseId = nativeProfile.trainingCaseId;
+        record.trainingAttempts.push({
+          trainingCaseId: nativeProfile.trainingCaseId,
+          profile: 'native-direct', status: 'completed',
+        });
+        calibrated = await nativeSource({checkout: root,
+          outputDirectory: destination, target: fixture, position});
+      } else {
+        for (const training of trainingFixtures(fixture)) {
+          try {
+            calibrated = await calibrate({checkout: root,
+              outputDirectory: destination, training, target: fixture});
+            record.trainingCaseId = training.id;
+            record.trainingAttempts.push({trainingCaseId: training.id,
+              status: 'completed'});
+            break;
+          } catch (error) {
+            record.trainingAttempts.push({trainingCaseId: training.id,
+              status: 'failed', error: failure(error)});
+            await writeFile(path, JSON.stringify(record, null, 2));
+            if (error.code !== 'TrainingCapacityInfeasible' &&
+                error.code !== 'TrainingCandidateNotSelected') throw error;
+          }
         }
+        if (!calibrated) throw new Error('NoFeasibleIndependentTrainingCase');
       }
-      if (!calibrated) throw new Error('NoFeasibleIndependentTrainingCase');
       record.calibrationDirectory = calibrated.directory;
-      const nativeProfile = useNative ? await calibrateNativeSelected({
-        checkout: root, outputDirectory: destination, target: fixture,
-        position}) : undefined;
       record.productProfile = useNative ? 'native-direct' : 'node-managed';
       if (nativeProfile) record.nativeEstimateSource = nativeProfile.estimateSource;
       for (let index = 0; index < 7; index++) {
         try {
           record.pairs.push(useNative
-            ? await runNativeDirectPair({fixture, checkout: root,
+            ? await runNativePair({fixture, checkout: root,
               database: calibrated.database, directory: calibrated.directory,
               nativeEstimateProfile: nativeProfile, index})
             : await runPair({fixture, checkout: root,
