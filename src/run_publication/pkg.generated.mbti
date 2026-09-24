@@ -156,6 +156,8 @@ pub fn project_durable_result_binding_read(PublicationContract) -> Result[Durabl
 
 pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead, DeliveryIssuanceIssue]
 
+pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
+
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
 pub fn publication_cancellation_action_code(PublicationCancellationAction) -> Int
@@ -185,6 +187,12 @@ pub fn publication_prepared_release_action_code(PublicationPreparedReleaseAction
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
 
 pub fn publication_setup_action_code(PublicationSetupAction) -> Int
+
+pub fn publication_snapshot_evidence_cid(PublicationSnapshot) -> String?
+
+pub fn publication_snapshot_state(PublicationSnapshot) -> PublicationSnapshotState
+
+pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
@@ -570,6 +578,12 @@ pub(all) enum PublicationFinalizationAction {
   PublicationFinalizationInvalid
 } derive(Eq, @debug.Debug)
 
+pub(all) enum PublicationIndexObservation {
+  IndexConfirmedAbsent
+  IndexQueryUnknown
+  IndexCommitted(PublicationContract)
+}
+
 pub(all) enum PublicationInventoryIssue {
   InvalidProgramDefinitionCid
   EmptyInventory
@@ -598,6 +612,31 @@ pub(all) enum PublicationSetupAction {
   PublicationCreateAttempt
   PublicationEnterAttemptProgress
   PublicationSetupInvalid
+} derive(Eq, @debug.Debug)
+
+pub struct PublicationSnapshot {
+  state : PublicationSnapshotState
+  evidence_cid : String?
+}
+
+pub(all) enum PublicationSnapshotIssue {
+  IndexObservationUnknown
+  WrongRecord
+  WrongIndex
+  MissingRecord
+  AttemptMismatch
+  IndexMismatch
+  ContradictoryRecord
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PublicationSnapshotState {
+  NotStarted
+  Preparing
+  Committing
+  PublicationUnknown
+  Succeeded
+  Failed
+  Cancelled
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PublicationTransitionIssue {
