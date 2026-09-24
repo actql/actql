@@ -771,6 +771,162 @@ test "Relation-backed session rejects empty input before publication" {
 }
 
 ///|
+test "Relation-backed session checks combined output workspace" {
+  let producer = carrier_events_source_owner_with(
+    "number", "[{\"event_id\":1,\"occurred_at\":0,\"payload\":\"a\"}]",
+  )
+  let source = carrier_events_source_output(producer)
+  let owner = carrier_events_relation_session_owner(producer)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, producer, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  assert_eq(@execution.producer_read_row_count(input), 1)
+  assert_eq(@schema.field_count(@execution.producer_read_schema(input)), 3)
+  // Three scratch cells, three indices, four metadata slots, and twelve
+  // temporary emission slots require a simultaneous bound of 22.
+  // The one-row session consumes 44 control units across initialization,
+  // field loading, ordering, grouping, identity, and output finalization.
+  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+    let execution = @local_tea.start_session_relation(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      input,
+      {
+        ..carrier_events_storage_limits(),
+        max_workspace_slots: workspace_budget,
+      },
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work_budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<64 {
+      if terminal {
+        break
+      }
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionComplete(output, ..) => {
+          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
+          assert_eq(workspace_budget, 21)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
+          assert_eq(work_budget, 43)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected Relation-backed session workspace result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_tea.cleanup_session(execution).unwrap())
+    assert_true(@execution.producer_read_available(input))
+  }
+}
+
+///|
+test "Events-view session checks combined output workspace" {
+  let source_owner = carrier_events_source_owner_with(
+    "number", "[{\"event_id\":1,\"occurred_at\":0,\"payload\":\"a\"}]",
+  )
+  let source = carrier_events_source_output(source_owner)
+  let events_owner = carrier_events_output_owner(source_owner)
+  let generated = task_test_generated(events_owner)
+  let external = @execution.prepare_producer_read(
+    events_owner,
+    @execution.bind_completed_input(events_owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let provider = @local_tea_provider.provider(
+    carrier_events_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let producing = @local_connector.start_managed_provider(
+    provider,
+    generated,
+    [external],
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  while material is None {
+    match @local_connector.advance_managed_provider(producing, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(value, ..) => material = Some(value)
+      _ => fail("expected Events material")
+    }
+  }
+  assert_true(@local_connector.cleanup_managed_provider(producing).unwrap())
+  let material = material.unwrap()
+  let owner = carrier_events_session_owner(events_owner)
+  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+    let view = @carrier_runtime.material_prepare_view(
+      material, owner, 0, events_owner,
+    ).unwrap()
+    assert_eq(@carrier_runtime.producer_view_record_count(view), Some(1))
+    assert_eq(@carrier_runtime.producer_view_record_field_count(view, 0), Ok(3))
+    let execution = @local_tea.start_session_view(
+      @bounded.control(),
+      prepared_sequence(owner),
+      0,
+      view,
+      {
+        ..carrier_events_storage_limits(),
+        max_workspace_slots: workspace_budget,
+      },
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work_budget),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<64 {
+      if terminal {
+        break
+      }
+      match @local_tea.advance_session(execution, 1).unwrap() {
+        @local_tea.SessionContinue(..) => ()
+        @local_tea.SessionComplete(output, ..) => {
+          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(@records.discard_completed(output))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
+          assert_eq(workspace_budget, 21)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
+          assert_eq(work_budget, 43)
+          assert_true(@local_tea.session_cleanup_pending(execution))
+          terminal = true
+        }
+        _ => fail("unexpected Events-view session workspace result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_tea.cleanup_session(execution).unwrap())
+    assert_true(@carrier_runtime.material_available(material))
+  }
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
 fn carrier_events_consumer_output(
   producer : @lower.BoundPrepared,
   output : @execution.CompletedOutput,

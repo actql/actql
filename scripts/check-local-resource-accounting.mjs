@@ -511,6 +511,8 @@ for (const [index, route] of routeEntries.entries()) {
       'session_incremental_initialization_cancel_cleanup',
       'session_control_work_exact_one_short',
       'session_output_workspace_exact_one_short',
+      'session_relation_work_workspace_exact_one_short',
+      'session_view_work_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

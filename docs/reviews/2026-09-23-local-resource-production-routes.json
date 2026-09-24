@@ -3208,6 +3208,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_tea/session_wbtest.mbt",
           "fixture": "session output workspace includes scratch and temporary fields"
+        },
+        {
+          "role": "session_relation_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "Relation-backed session checks combined output workspace"
+        },
+        {
+          "role": "session_view_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "fixture": "Events-view session checks combined output workspace"
         }
       ],
       "environment_tests": [
