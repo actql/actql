@@ -1965,6 +1965,40 @@ pub fn client_program_check_effect_preview_capabilities(
 }
 
 ///|
+/// Admit the canonical 0.1 risk body. This does not authenticate its issuer.
+#export_name("clientProgramAdmitEffectRiskAcceptanceBody")
+pub fn client_program_admit_effect_risk_acceptance_body(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@effect.EffectRiskAcceptanceBody, @effect.EffectRiskAcceptanceIssue] {
+  @effect.admit_effect_risk_acceptance_body(
+    wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Compare Host-verified risk facts with the same live captured Preview.
+/// The Host must first verify their authentication and current authority.
+#export_name("clientProgramCheckEffectRiskAcceptanceBody")
+pub fn client_program_check_effect_risk_acceptance_body(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  body : @effect.EffectRiskAcceptanceBody,
+  review_projection_cid : String,
+  authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+) -> Result[Unit, @strategy.CapturedEffectRiskIssue] {
+  @strategy.check_captured_effect_risk_acceptance_body(
+    preview, body, review_projection_cid, authority_scope_cid, policy_cid, validity_evidence_cid,
+    issuer_evidence_cid, authentication_evidence_cid,
+  )
+}
+
+///|
 /// Verify the complete derived key inventory using this captured Preview,
 /// not another reading of its transported body. No mutation is authorized.
 #export_name("clientProgramCheckEffectPreviewApplyKeys")
