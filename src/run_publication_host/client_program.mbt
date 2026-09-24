@@ -435,6 +435,47 @@ pub fn emit_prepared_client_values_unit_source(
 }
 
 ///|
+pub(all) enum ClientValuesOutputSchemaIssue {
+  Pipeline(ClientValuesAoAIdentityIssue)
+  MissingCheckedOutput
+  Identity(@execution.RelationSchemaIdentityIssue)
+}
+
+///|
+/// Identify the checked Relation output schema of the same source-free Values
+/// task. A Plan compiler must validate its output-port contract against this
+/// schema; the CID alone is not a complete fragment or Plan.
+pub fn issue_prepared_client_values_output_schema(
+  value : PreparedClientProgram,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@execution.RelationSchemaIdentity, ClientValuesOutputSchemaIssue] {
+  match
+    issue_prepared_client_values_aoa_identity(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+    return Err(MissingCheckedOutput)
+  }
+  match
+    @execution.identify_relation_schema(
+      @lower.node_output_schema(node),
+      schema_limits,
+    ) {
+    Ok(identity) => Ok(identity)
+    Err(issue) => Err(Identity(issue))
+  }
+}
+
+///|
 /// Reparse the owner-emitted pipeline under the pinned canonical JSON rules
 /// before exposing its logical CID to a compiler. No caller-supplied AoA body
 /// or claimed CID enters this operation.
