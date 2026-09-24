@@ -29,6 +29,8 @@ pub fn admit_prepared_client_publication_limit_set(PreparedClientProgram, Array[
 
 pub fn admit_prepared_client_publication_plan_facts(PreparedClientProgram, Array[String], Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationPlanFactIssue]
 
+pub fn admit_prepared_client_publication_witnesses(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[ClientPublicationWitnesses, ClientPublicationWitnessAdmissionIssue]
+
 pub fn admit_prepared_client_result_plan(PreparedClientProgram, Int, String, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanAdmissionIssue]
 
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
@@ -52,6 +54,10 @@ pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Arra
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_limits(ClientPublicationPlanFacts) -> Array[String]
+
+pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[String]
+
+pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
 
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
 
@@ -122,6 +128,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
+
+pub fn issue_prepared_client_publication_witnesses(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationWitnesses, ClientPublicationWitnessIssue]
 
 pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue]
 
@@ -283,6 +291,24 @@ pub struct ClientPublicationPlanFacts {
   limits : Array[String]
   bindings : Array[String]
   entries : Array[String]
+}
+
+pub(all) enum ClientPublicationWitnessAdmissionIssue {
+  Issue(ClientPublicationWitnessIssue)
+  MismatchedWitnesses
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientPublicationWitnessIssue {
+  InvalidLimits
+  MissingPublication
+  BudgetExceeded
+  ConflictingWitness
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub struct ClientPublicationWitnesses {
+  bodies : Array[String]
+  cids : Array[String]
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)
