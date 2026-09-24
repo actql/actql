@@ -97,6 +97,7 @@ priv struct PoolState {
   mut pooled_vector : @value.CheckedValue?
   mut output_field : Int
   mut output_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -126,6 +127,7 @@ pub(all) enum PoolIssue {
   InvalidPoolIdentity(Int)
   DuplicatePoolIdentity(Int, Int)
   PoolWorkspaceLimit
+  PoolWorkLimit
   PoolNumeric(@numeric.Issue)
   PoolKeyOrder(@value.KeyOrderIssue)
   PoolOutput(@records.Issue)
@@ -834,6 +836,9 @@ fn pool_step(
     if !pool_input_available(state) {
       return @bounded.Failed(PoolInputUnavailable, progress, used)
     }
+    if !(state.phase is Finish) && used >= state.control_work_remaining {
+      return @bounded.Failed(PoolWorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.record < pool_record_count(state).unwrap_or(-1) {
@@ -1054,6 +1059,7 @@ fn pool_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1082,7 +1088,7 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
 }
 
 ///|
-pub fn start_pool(
+fn start_pool_with_control_work_limit(
   control : @bounded.Control,
   sequence : @lower.PreparedSequence,
   step : Int,
@@ -1090,6 +1096,7 @@ pub fn start_pool(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit : Int,
 ) -> Result[PoolExecution, PoolIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
@@ -1132,6 +1139,12 @@ pub fn start_pool(
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
     return Err(PoolWorkspaceLimit)
+  }
+  if control_work_limit < 0 {
+    return Err(InvalidPoolLimits)
+  }
+  if control_work_limit == 0 {
+    return Err(PoolWorkLimit)
   }
   let reduction = match pool_method {
     @lower.PoolMean => @numeric.Mean
@@ -1210,6 +1223,7 @@ pub fn start_pool(
     pooled_vector: None,
     output_field: 0,
     output_fields: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,
@@ -1220,6 +1234,28 @@ pub fn start_pool(
     max_noninterruptible_value_nodes: limits.max_value_nodes,
     max_noninterruptible_value_bytes: limits.max_value_bytes,
   })
+}
+
+///|
+pub fn start_pool(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @records.ProducerRead,
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+) -> Result[PoolExecution, PoolIssue] {
+  start_pool_with_control_work_limit(
+    control,
+    sequence,
+    step,
+    input,
+    limits,
+    storage_bytes,
+    available,
+    limits.max_work,
+  )
 }
 
 ///|
@@ -1295,6 +1331,12 @@ pub fn start_relation_pool(
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
     return Err(PoolWorkspaceLimit)
+  }
+  if limits.max_work < 0 {
+    return Err(InvalidPoolLimits)
+  }
+  if limits.max_work == 0 {
+    return Err(PoolWorkLimit)
   }
   let reduction = match pool_method {
     @lower.PoolMean => @numeric.Mean
@@ -1380,6 +1422,7 @@ pub fn start_relation_pool(
     pooled_vector: None,
     output_field: 0,
     output_fields: [],
+    control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,

@@ -3708,6 +3708,60 @@
       "entrypoint": {
         "path": "src/local_veca/pool.mbt",
         "symbol": "start_pool"
+      },
+      "boundary_tests": [
+        {
+          "role": "pool_empty_work_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool enforces cumulative empty-input control work"
+        },
+        {
+          "role": "pool_record_work_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool enforces cumulative one-record control work"
+        },
+        {
+          "role": "pool_workspace_exact",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool completes at its exact structural workspace boundary"
+        },
+        {
+          "role": "pool_workspace_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool admits structural workspace before allocating sort state"
+        },
+        {
+          "role": "pool_kernel_cancel_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_wbtest.mbt",
+          "fixture": "pool observes cancellation and reclaims partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "pool_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-pool"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "pool_workspace_exact",
+          "one_short_limit": "pool_workspace_one_short",
+          "in_flight_cancel": "pool_host_in_flight_cancel",
+          "cleanup": "pool_kernel_cancel_cleanup"
+        }
       }
     },
     {

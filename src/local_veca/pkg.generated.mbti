@@ -163,6 +163,7 @@ pub(all) enum PoolIssue {
   InvalidPoolIdentity(Int)
   DuplicatePoolIdentity(Int, Int)
   PoolWorkspaceLimit
+  PoolWorkLimit
   PoolNumeric(@vector_numeric.Issue)
   PoolKeyOrder(@value_admission.KeyOrderIssue)
   PoolOutput(@managed_record_runtime.Issue)

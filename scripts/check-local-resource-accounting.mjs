@@ -1197,6 +1197,23 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: bounded Host cancellation assurance is missing`);
     }
   }
+  if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+    for (const role of [
+      'pool_empty_work_exact_one_short',
+      'pool_record_work_exact_one_short',
+      'pool_workspace_exact',
+      'pool_workspace_one_short',
+      'pool_kernel_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+    if (!environmentRoles.has('pool_host_in_flight_cancel') ||
+      pathAssurance.entrypoint === undefined) {
+      fail(`${label}: bounded Host cancellation assurance is missing`);
+    }
+  }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
     for (const role of [
       'shortest_workspace_exact_one_short',
