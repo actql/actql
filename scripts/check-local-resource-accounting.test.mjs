@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 2 with full work\/workspace assurance, 19 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 21 with operation-specific boundary records, 6 with four-role boundary evidence, 4 with full work\/workspace assurance, 21 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
@@ -58,6 +58,18 @@ for (const operation of ['node_rows', 'edge_rows']) {
         entry.operation === operation);
       route.environment_tests = [];
     }), new RegExp(`Bridge ${operation}: delivered Bridge cancellation assurance is missing`));
+  });
+  test(`${operation} needs exact work and workspace on its Bridge path`, () => {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
+        entry.operation === operation);
+      delete route.resource_assurance.entrypoint.work.one_short_limit;
+    }), new RegExp(`Bridge ${operation}: entrypoint operation work needs exact and one-short proofs`));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
+        entry.operation === operation);
+      delete route.resource_assurance.entrypoint.workspace;
+    }), new RegExp(`Bridge ${operation}: entrypoint operation needs work and workspace assurance`));
   });
 }
 

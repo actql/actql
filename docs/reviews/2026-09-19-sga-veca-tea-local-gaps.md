@@ -4,6 +4,9 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
+The current local resource gate maps 68 routes: 21 have operation-specific
+boundary records, 6 have all four lifecycle roles, and 4 have exact and
+one-short work/workspace assurance. Strict completion remains red.
 
 The `ad0c2fce` follow-up review found that the bounded binary providers
 omitted the receiving operation's cumulative `input_values` admission.
@@ -38,6 +41,15 @@ per target). Affected managed values, unary, and group integration tests pass
 resource gate passes 112/112. These are local working-tree results, not
 fixed-SHA Linux CI. The preceding providerless whole-sequence compute remains
 synchronous and is still rejected by the strict completion gate.
+
+The `node_rows` and `edge_rows` Bridge routes now bind their existing,
+independently calculated exact and one-short value-work and structural
+workspace fixtures to the production `start_graph_to_rows` entrypoint. The
+fixture also stops after field work and reclaims private output; the Node
+standard Host timer establishes delivered cancellation separately. Gate
+mutation tests reject removal of either work or workspace evidence. This
+raises full work/workspace route assurance from 2/68 to 4/68, without
+claiming that the other Bridge routes or the providerless compute are done.
 
 At source SHA `a389a4d356ac92ab6e5257d26263dcbc18914dfd`, the
 execution-relation and query-integration suites passed 1,447/1,447 on each

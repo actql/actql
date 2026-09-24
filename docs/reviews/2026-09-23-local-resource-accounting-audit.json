@@ -24,7 +24,9 @@
     {"family": "RelA", "operation": "cross_join", "path": "external_input_entrypoint"},
     {"family": "RelA", "operation": "append", "path": "external_input_entrypoint"},
     {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
-    {"family": "SGA", "operation": "degree", "path": "entrypoint"}
+    {"family": "SGA", "operation": "degree", "path": "entrypoint"},
+    {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
+    {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"}
   ],
   "required_facets": [
     "admission_before_allocation",
