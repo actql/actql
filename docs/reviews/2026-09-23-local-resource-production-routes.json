@@ -3179,6 +3179,14 @@
         "path": "src/local_tea/session.mbt",
         "symbol": "start_session"
       },
+      "relation_entrypoint": {
+        "path": "src/local_tea/session.mbt",
+        "symbol": "start_session_relation"
+      },
+      "view_entrypoint": {
+        "path": "src/local_tea/session.mbt",
+        "symbol": "start_session_view"
+      },
       "boundary_tests": [
         {
           "role": "session_incremental_initialization_cancel_cleanup",
@@ -3186,6 +3194,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_tea/session_wbtest.mbt",
           "fixture": "session scratch initialization advances within the resume quantum"
+        },
+        {
+          "role": "session_control_work_exact_one_short",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/session_wbtest.mbt",
+          "fixture": "session admits exact and one-short cumulative control work"
         }
       ],
       "environment_tests": [
