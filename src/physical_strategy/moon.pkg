@@ -5,6 +5,7 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/physical_resources" @resources,
   "actql/actql/program_check" @checked,
+  "actql/actql/run_publication" @publication,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/stage_results" @results,
