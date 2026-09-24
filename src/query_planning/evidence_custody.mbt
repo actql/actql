@@ -343,6 +343,59 @@ pub fn[I, A, R] verify_query_evidence_captured(
 }
 
 ///|
+pub(all) enum QueryEvidenceConsumerIssue {
+  Evidence(QueryEvidenceCustodyIssue)
+  ForeignObservation
+  Consumer(@execution.ProducerBindingIssue)
+}
+
+///|
+/// Bind a consumer to the exact captured evidence owner. Provider-specific
+/// execution can revoke its observation through `state_live`, while the common
+/// owner rechecks issuer, transport settlement and retained output on every
+/// read. Neither a record CID nor a provider-supplied output can replace it.
+pub fn[I, A, R] bind_captured_query_evidence_input(
+  captured : QueryEvidenceCaptured[I, A, R],
+  issued : QueryEvidenceIssued[I, A, R],
+  registration : QueryEvidenceRegistration[A],
+  authority : QueryEvidenceAttemptAuthority[A],
+  issuer : I,
+  attempt : A,
+  retention : R,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  expected_producer : @lower.BoundPrepared,
+  state_live : () -> Bool,
+) -> Result[@execution.BoundProducerInput, QueryEvidenceConsumerIssue] {
+  if !physical_equal(captured.issued, issued) {
+    return Err(ForeignObservation)
+  }
+  match
+    verify_query_evidence_captured(
+      captured, registration, authority, issuer, attempt, retention,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Evidence(issue))
+  }
+  if !state_live() {
+    return Err(ForeignObservation)
+  }
+  @execution.bind_live_completed_input(
+    receiver,
+    input_index,
+    expected_producer,
+    captured.issued.owner.output,
+    fn() {
+      state_live() &&
+      verify_query_evidence_captured(
+        captured, registration, authority, issuer, attempt, retention,
+      )
+      is Ok(_)
+    },
+  ).map_err(issue => Consumer(issue))
+}
+
+///|
 pub fn[I, A, R] query_evidence_record_at(
   issued : QueryEvidenceIssued[I, A, R],
   index : Int,

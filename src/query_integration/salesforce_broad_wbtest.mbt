@@ -833,9 +833,31 @@ test "Salesforce completion requires selected attempt and settled transport" {
   fixture.settled.clear()
   assert_true(!@query.captured_source_available(source))
   assert_true(
+    @salesforce_query.bind_captured_salesforce_broad_input(
+      fixture.issuer,
+      settled,
+      observation,
+      receiver,
+      0,
+      owner,
+    )
+    is Err(UnverifiedTransport),
+  )
+  assert_true(
     @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
   )
   @salesforce_query.close_salesforce_broad_issuer(fixture.issuer)
+  assert_true(
+    @salesforce_query.bind_captured_salesforce_broad_input(
+      fixture.issuer,
+      settled,
+      observation,
+      receiver,
+      0,
+      owner,
+    )
+    is Err(IssuerClosed),
+  )
   assert_true(!@query.captured_source_available(source))
   assert_true(
     @query.bind_captured_source(source, receiver, 0) is Err(Unavailable),
