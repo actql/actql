@@ -488,6 +488,16 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('nest_empty_work_workspace_independent_exact_one_short')) {
     fail(`${label}: independent empty nest resource evidence is missing`);
   }
+  for (const [operation, role] of [
+    ['window_group', 'window_group_empty_work_workspace_exact_one_short'],
+    ['join', 'join_empty_work_workspace_exact_one_short'],
+    ['analytic', 'analytic_empty_work_workspace_exact_one_short'],
+  ]) {
+    if (route.family === 'RelA' && route.operation === operation &&
+      !boundaryRoles.has(role)) {
+      fail(`${label}: ${role} fixture is missing`);
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'top_k_by') {
     if (route.selected_entrypoint?.symbol !==
         'selected_binding_rows_execution' ||

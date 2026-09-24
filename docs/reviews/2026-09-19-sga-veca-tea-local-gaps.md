@@ -11,7 +11,7 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Production routes | 68 |
-| Operation-specific boundary records | 65 |
+| Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 22 |
 | Full route work/workspace assurance | 22 |
 | Path-scoped work/workspace assurance | 47 |
@@ -51,6 +51,14 @@ the peak structural workspace is thirteen slots. Exact budgets succeed and
 either one-short limit fails. This proves the empty correlation and metadata
 path only; nonempty nesting, Host-delivered cancellation, and the providerless
 whole-sequence route remain outside full assurance.
+
+The remaining `window_group`, `join`, and `analytic` routes now bind fixed
+empty-input work and workspace fixtures. The checked empty paths use 195/51,
+38/17, and 56/25 work/peak slots respectively. Each accepts the exact pair
+and rejects one short on either dimension. This establishes metadata,
+binding, and empty-index admission for those formal operations; nonempty
+evaluation, same-Stage composition, in-flight stop, and the providerless
+whole-sequence lane remain outside full route assurance.
 
 The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
 validate output schema names without first materializing the name array. They

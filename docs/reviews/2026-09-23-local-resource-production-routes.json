@@ -1295,7 +1295,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "window_group_empty_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/window_group_scale_wbtest.mbt",
+          "fixture": "empty window group has an independently bounded resource path"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -1475,7 +1484,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "join_empty_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/join_rows_wbtest.mbt",
+          "fixture": "empty equality join has an independently bounded resource path"
+        }
+      ]
     },
     {
       "inventory": "rela",
@@ -2615,7 +2633,16 @@
       "entrypoint": {
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "analytic_empty_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/analytic_rows_wbtest.mbt",
+          "fixture": "empty analytic ranking has an independently bounded resource path"
+        }
+      ]
     },
     {
       "inventory": "families",

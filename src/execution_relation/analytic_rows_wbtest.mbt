@@ -434,6 +434,40 @@ test "analytic execution has an exact control work boundary" {
 }
 
 ///|
+test "empty analytic ranking has an independently bounded resource path" {
+  let owner = analytic_execution_owner(
+    "\"analytic\":{\"partition_by\":[\"group\"]," +
+    "\"order_by\":[{\"id\":\"asc\"}],\"functions\":{" +
+    "\"position\":{\"fn\":\"row_number\"}}}",
+  )
+  let source = analytic_execution_input(owner)
+  let input = { ..source, rows: [], }
+  let kernel = row_kernel(owner, 0)
+  let run = (work_limit, workspace_limit) => {
+    let control = { remaining: work_limit, max_frames: 100, }
+    let workspace = row_workspace(workspace_limit)
+    let result = evaluate_rows_with_workspace(
+      kernel,
+      input,
+      0,
+      control,
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    (result, workspace.peak, work_limit - control.remaining)
+  }
+  // The empty partition still admits the checked partition and sort terms,
+  // one row-number call, its output name, and the retained schema shape.
+  let expected_work = 56
+  let expected_peak = 25
+  let (result, peak, used) = run(expected_work, expected_peak)
+  assert_true(result is Ok(_))
+  assert_eq((peak, used), (expected_peak, expected_work))
+  assert_true(run(expected_work - 1, expected_peak).0 is Err(RowLimit))
+  assert_true(run(expected_work, expected_peak - 1).0 is Err(RowLimit))
+}
+
+///|
 test "analytic aggregates requiring numeric observation stay unsupported" {
   let owner = analytic_execution_owner(
     "\"analytic\":{\"partition_by\":[]," +
