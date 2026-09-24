@@ -9,6 +9,26 @@ coordinate finding and distinguishes it from the still-open ordinary Run
 integration. Its fixed SHA predates the coordinate and Host regressions
 recorded below. The finding is not a second implementation task.
 
+At `d0ae9638747e64ba523dd7ea05ffc89c263c732e`, the R2-1 code path
+retains both authored `stage` and resolved producer `task` in the checked
+source. The same expanded graph resolves `port_target` to that Task; batch
+and single pin entry points both consume `source.task`. The split-source,
+preceding-split, shared-pin, port-close, and foreign-owner regressions remain
+in the product tests. A local rerun of `client-program-bridge.test.mjs`
+passed 17/17. This is evidence for the coordinate fix, not a claim that the
+review's local HTTPS no-send scenario or R2-G1 is complete.
+
+R2-G1 is incorporated as the remaining vertical acceptance target: one
+ordinary checked/captured multi-member Run must retain all input owners,
+admit the whole Preview and current guards before any write, persist exact
+pre-send claims and raw/typed row observations, reconcile known and unknown
+outcomes without resending, then derive member/set and final Run receipts
+through durable publication. The fault matrix must cover boundaries around
+physical dispatch, raw response, typed outcome, and final commit. The tests
+must assert that stale or overlapping work sends zero writes and that an
+independent member proceeds when another member halts. The current component
+fixtures below do not constitute that product-path proof.
+
 ## Coordinate and execution boundary
 
 The Stage-to-physical-Task Effect source mapping was already present before
