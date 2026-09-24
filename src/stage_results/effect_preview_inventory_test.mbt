@@ -27,6 +27,7 @@ fn checked_preview_test_member(
   reference : String,
   resolved_cid : String,
   plan_cid? : String? = None,
+  source_name? : String = "r",
 ) -> String {
   let cid = checked_preview_test_cid("a")
   let contract_fields = if kind == "command" {
@@ -71,6 +72,15 @@ fn checked_preview_test_member(
   } else {
     ""
   }) +
+  (if kind == "create" {
+    ""
+  } else {
+    "\"source_result\":\"" +
+    source_name +
+    "\",\"result_artifact_cid\":\"" +
+    cid +
+    "\","
+  }) +
   "\"changes\":[],\"row_order\":[],\"effect_member_preview_cid\":\"" +
   placeholder +
   "\",\"executed\":false}"
@@ -88,6 +98,8 @@ fn checked_preview_test_identity(
   resolved_contract_cid? : String? = None,
   first_plan_cid? : String? = None,
   second_plan_cid? : String? = None,
+  first_source_name? : String = "r",
+  second_source_name? : String = "r",
 ) -> @publication.EffectPreviewIdentity {
   let cid = checked_preview_test_cid("a")
   let resolved_cid = match resolved_contract_cid {
@@ -110,6 +122,7 @@ fn checked_preview_test_identity(
     contract_reference,
     resolved_cid,
     plan_cid=first_plan_cid,
+    source_name=first_source_name,
   )
   let members = if include_second {
     first_member +
@@ -122,6 +135,7 @@ fn checked_preview_test_identity(
       contract_reference,
       resolved_cid,
       plan_cid=second_plan_cid,
+      source_name=second_source_name,
     )
   } else {
     first_member
@@ -231,6 +245,15 @@ test "checked Effect inventory rejects foreign Preview members" {
   assert_true(
     check_effect_preview_checked_inventory(bindings, 0, wrong_policy, 9)
     is Err(FailurePolicyMismatch("first")),
+  )
+  let foreign_source = checked_preview_test_identity(
+    "second",
+    "first",
+    first_source_name="foreign",
+  )
+  assert_true(
+    check_effect_preview_checked_inventory(bindings, 0, foreign_source, 9)
+    is Err(SourceMismatch("second")),
   )
 }
 
