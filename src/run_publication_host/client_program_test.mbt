@@ -130,9 +130,74 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(client_publication_plan_fact_bindings(facts), [
     rows_binding, bytes_binding,
   ])
+  let rows_entry = "{\"kind\":\"resolved_limit\",\"value\":" + rows_limit + "}"
+  let bytes_entry = "{\"kind\":\"resolved_limit\",\"value\":" +
+    bytes_limit +
+    "}"
+  assert_eq(client_publication_plan_fact_entries(facts), [
+    rows_entry, bytes_entry,
+  ])
+  assert_true(
+    admit_prepared_client_publication_fact_entries(
+      prepared,
+      [bytes_entry, rows_entry],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    admit_prepared_client_publication_fact_entries(
+      prepared,
+      [rows_entry],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(MissingEntry),
+  )
+  assert_true(
+    admit_prepared_client_publication_fact_entries(
+      prepared,
+      [rows_entry, rows_entry],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(DuplicateEntry),
+  )
+  assert_true(
+    admit_prepared_client_publication_fact_entries(
+      prepared,
+      [rows_entry, "{\"kind\":\"contract_fact\",\"value\":" + bytes_limit + "}"],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(UnexpectedEntry),
+  )
+  assert_true(
+    admit_prepared_client_publication_fact_entries(
+      prepared,
+      ["x".repeat(10001), bytes_entry],
+      2,
+      10000,
+      1000,
+      20,
+    )
+    is Err(BudgetExceeded),
+  )
   let changed_limits = client_publication_plan_fact_limits(facts)
   changed_limits.push("foreign")
   assert_eq(client_publication_plan_fact_limits(facts).length(), 2)
+  let changed_entries = client_publication_plan_fact_entries(facts)
+  changed_entries.push("foreign")
+  assert_eq(client_publication_plan_fact_entries(facts).length(), 2)
   assert_true(
     issue_prepared_client_publication_plan_facts(prepared, 1, 10000, 1000, 20)
     is Err(ClientPublicationPlanFactIssue::Limits(BudgetExceeded)),
