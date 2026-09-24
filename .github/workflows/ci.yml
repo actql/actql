@@ -85,6 +85,7 @@ jobs:
             native-acquisition-full-validation-low-selectivity/narrow/100 \
             native-acquisition-full-validation-low-selectivity/narrow/1000 \
             "$RUNNER_TEMP/native-retained-calibration.json"
+          node scripts/test-native-direct-pair.mjs
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies

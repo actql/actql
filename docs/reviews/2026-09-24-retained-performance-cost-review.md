@@ -500,3 +500,26 @@ binary digest, distinct training and target fixtures, all forced-choice
 observations, and recomputed per-task medians. Changing a saved rate cannot
 silently change ordinary selection. This admission grants selection evidence
 only; it does not establish holding or matched Comparator equivalence.
+
+The direct Native product invocation can now be paired with the independent
+equivalent-obligation process without including a diagnostic Node child around
+the Native process. Fixture materialization is visible in the Native cold
+interval; the Native process still performs application admission, selection,
+execution, independent task retention, downstream reads, and cleanup. One
+macOS narrow/100 diagnostic pair at `1ad7bc31e` produced identical final
+ordered-result CIDs, acquisition metadata, and task row counts. Native cold
+and warm intervals were 195.4 ms and 9.8 ms; the independent intervals were
+1037.6 ms and 33.5 ms. This single, uncalibrated pair is a direction check,
+not a threshold result or equivalent-obligation admission. Native logical
+work and physical traffic remain explicitly unadmitted.
+
+A separate Native feasibility sweep completed 24 registered cases with the
+independent final CID before it was stopped during wide retained reuse. The
+Native join path took about 32 seconds at 100,000 narrow rows and 332 seconds
+at 1,000,000 rows; narrow retained reuse took about 167 seconds at 1,000,000
+rows. This argues against moving the already improved large/reuse profile to
+Native wholesale. The remaining three cases are unverified in this sweep.
+The next product decision is a calibrated small-case Native profile alongside
+the existing large/reuse realization, followed by one fixed-SHA complete
+registered assessment. Do not treat feasibility or the single pair as that
+assessment.
