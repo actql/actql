@@ -179,6 +179,8 @@ pub fn effect_plan_row_source_index(EffectPlanRow) -> Int
 
 pub fn effect_plan_row_terminal(EffectPlanRow) -> EffectPlanTerminal
 
+pub fn effect_plan_terminal_for_member(EffectMappingRules, Int, Int, Int) -> Result[EffectPlanTerminal?, EffectPlanBindingIssue]
+
 pub fn effect_plan_terminal_rule(EffectPlanTerminal) -> EffectMappingRuleBinding
 
 pub fn effect_plan_terminal_source_result(EffectPlanTerminal) -> String
@@ -504,6 +506,14 @@ pub struct EffectMappingShapes {
   entries : Array[EffectMappingShapeBinding]
   work : Int
 }
+
+pub(all) enum EffectPlanBindingIssue {
+  InvalidLimits
+  WorkLimit
+  InvalidMember
+  MissingRule
+  Terminal(EffectPlanTerminalIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct EffectPlanIdentityLimits {
   max_work : Int
