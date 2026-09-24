@@ -213,7 +213,7 @@ pub fn check_captured_effect_preview_target_guards(
   max_rows : Int,
   max_work : Int,
 ) -> Result[Unit, CapturedEffectGuardIssue] {
-  if max_rows < 0 || max_work < 0 || observations.length() > max_rows {
+  if max_rows < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
   if !value.inputs.live {

@@ -1752,9 +1752,15 @@ pub fn client_program_check_effect_preview_target_guards(
     max_rows > 100000 ||
     max_work < 0 ||
     max_work > 100000000 ||
-    row_cids.length() != version_cids.length() ||
-    row_cids.length() > max_rows {
+    row_cids.length() != version_cids.length() {
     return Err(@strategy.CapturedEffectGuardIssue::InvalidLimits)
+  }
+  if row_cids.length() > max_rows {
+    return Err(
+      @strategy.CapturedEffectGuardIssue::Current(
+        @effect.EffectPreviewTargetGuardIssue::CapacityExceeded,
+      ),
+    )
   }
   let observations = Array::makei(row_cids.length(), index => @effect.EffectTargetVersionObservation::{
     row_preview_cid: row_cids[index],
