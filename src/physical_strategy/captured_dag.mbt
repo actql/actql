@@ -1051,7 +1051,7 @@ pub fn[T] captured_managed_task_input(
     }
   }
   guard selected is Some(edge) &&
-    edge.producer > 0 &&
+    (edge.producer > 0 || (edge.producer == 0 && run.root_is_compute)) &&
     captured_managed_task_output_matches(
       run,
       edge.producer,
@@ -1143,7 +1143,7 @@ pub fn captured_carrier_managed_task_input(
     }
   }
   guard selected is Some(edge) &&
-    edge.producer > 0 &&
+    (edge.producer > 0 || (edge.producer == 0 && run.root_is_compute)) &&
     captured_carrier_managed_task_output_matches(
       run,
       edge.producer,
