@@ -196,6 +196,15 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     effect_preview_row_intended_value_wire(admitted, 0, 0),
     Some("{\"Name\":\"After\"}"),
   )
+  assert_eq(
+    effect_preview_row_intended_changes_wire(admitted, 0, 0),
+    Some("{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}"),
+  )
+  assert_eq(
+    effect_preview_ordered_row_intended_changes_wire(admitted, 0, 0),
+    Some("{\"state\":\"present\",\"value\":{\"Name\":\"After\"}}"),
+  )
+  assert_eq(effect_preview_row_intended_changes_wire(admitted, 0, 1), None)
   assert_eq(effect_preview_ordered_row_identity(admitted, 0, 0), Some(row))
   assert_eq(effect_preview_row_identity(admitted, 0, 1), None)
   let wrong_count = valid.replace_all(old="\"count\":1", new="\"count\":2")

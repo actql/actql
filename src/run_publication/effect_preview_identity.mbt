@@ -35,9 +35,11 @@ pub struct EffectPreviewIdentity {
   row_cids : Array[Array[String]]
   row_indices : Array[Map[String, Int]]
   row_correlation_wires : Array[Array[String]]
+  row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
   ordered_row_correlation_wires : Array[Array[String]]
+  ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
   row_order : Array[Array[String]]
   run_identity_cid : String
@@ -409,6 +411,7 @@ fn effect_member_row_inventory(
     Array[String],
     Array[String],
     Array[String],
+    Array[String],
   ),
   EffectPreviewIdentityIssue,
 ] {
@@ -426,6 +429,7 @@ fn effect_member_row_inventory(
   let keys : Array[String] = []
   let rows : Array[String] = []
   let correlations : Array[String] = []
+  let intended_states : Array[String] = []
   let intended_values : Array[String] = []
   let guard_versions : Array[String] = []
   for row_index in 0..<changes.length() {
@@ -463,7 +467,12 @@ fn effect_member_row_inventory(
         correlations.push(correlation)
         let intended_value = match
           @json.object_field(change, "intended_changes") {
-          Some(intended) =>
+          Some(intended) => {
+            let state = match @json.object_field(intended, "state") {
+              Some(@json.String(state)) => state
+              _ => return Err(InvalidMember)
+            }
+            intended_states.push(state)
             match @json.object_field(intended, "value") {
               Some(value) =>
                 @json.stringify_value(
@@ -473,6 +482,7 @@ fn effect_member_row_inventory(
                 }
               None => ""
             }
+          }
           None => return Err(InvalidMember)
         }
         intended_values.push(intended_value)
@@ -510,7 +520,11 @@ fn effect_member_row_inventory(
       _ => return Err(RowInventoryMismatch(index))
     }
   }
-  Ok((keys, rows, order, correlations, intended_values, guard_versions))
+  Ok(
+    (
+      keys, rows, order, correlations, intended_states, intended_values, guard_versions,
+    ),
+  )
 }
 
 ///|
@@ -603,9 +617,11 @@ pub fn admit_effect_preview_identity(
   let row_cids : Array[Array[String]] = []
   let row_indices : Array[Map[String, Int]] = []
   let row_correlation_wires : Array[Array[String]] = []
+  let row_intended_change_states : Array[Array[String]] = []
   let row_intended_value_wires : Array[Array[String]] = []
   let row_guard_version_cids : Array[Array[String]] = []
   let ordered_row_correlation_wires : Array[Array[String]] = []
+  let ordered_row_intended_change_states : Array[Array[String]] = []
   let ordered_row_intended_value_wires : Array[Array[String]] = []
   let row_order : Array[Array[String]] = []
   for index in 0..<members.length() {
@@ -682,6 +698,7 @@ pub fn admit_effect_preview_identity(
       member_rows,
       member_order,
       member_correlations,
+      member_intended_states,
       member_intended_values,
       member_guard_versions,
     ) = match
@@ -697,12 +714,14 @@ pub fn admit_effect_preview_identity(
       indices[member_rows[row_index]] = row_index
     }
     let ordered_correlations : Array[String] = []
+    let ordered_intended_states : Array[String] = []
     let ordered_intended_values : Array[String] = []
     for row_cid in member_order {
       let mut found = false
       for row_index in 0..<member_rows.length() {
         if member_rows[row_index] == row_cid {
           ordered_correlations.push(member_correlations[row_index])
+          ordered_intended_states.push(member_intended_states[row_index])
           ordered_intended_values.push(member_intended_values[row_index])
           found = true
           break
@@ -715,9 +734,11 @@ pub fn admit_effect_preview_identity(
     row_indices.push(indices)
     row_cids.push(member_rows)
     row_correlation_wires.push(member_correlations)
+    row_intended_change_states.push(member_intended_states)
     row_intended_value_wires.push(member_intended_values)
     row_guard_version_cids.push(member_guard_versions)
     ordered_row_correlation_wires.push(ordered_correlations)
+    ordered_row_intended_change_states.push(ordered_intended_states)
     ordered_row_intended_value_wires.push(ordered_intended_values)
     row_order.push(member_order)
     let cid = match
@@ -805,9 +826,11 @@ pub fn admit_effect_preview_identity(
     row_cids,
     row_indices,
     row_correlation_wires,
+    row_intended_change_states,
     row_intended_value_wires,
     row_guard_version_cids,
     ordered_row_correlation_wires,
+    ordered_row_intended_change_states,
     ordered_row_intended_value_wires,
     row_order,
     run_identity_cid: run,
@@ -1001,6 +1024,28 @@ pub fn effect_preview_row_intended_value_wire(
 }
 
 ///|
+/// The complete approved intended-changes wrapper, including its explicit
+/// state. It comes from the admitted private Preview, not a fresh target read.
+pub fn effect_preview_row_intended_changes_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+) -> String? {
+  let state = value.row_intended_change_states
+    .get(member_index)
+    .bind(rows => rows.get(row_index))
+  match state {
+    Some("present") =>
+      effect_preview_row_intended_value_wire(value, member_index, row_index).map(wire => {
+          "{\"state\":\"present\",\"value\":" + wire + "}"
+        },
+      )
+    Some("not_applicable") => Some("{\"state\":\"not_applicable\"}")
+    _ => None
+  }
+}
+
+///|
 /// The approved version/content guard is retained from the private Preview.
 /// None means the row has a not-applicable guard or the index is invalid;
 /// callers checking all rows must use the admitted row count for traversal.
@@ -1068,6 +1113,27 @@ pub fn effect_preview_ordered_row_intended_value_wire(
         other => other
       }
     None => None
+  }
+}
+
+///|
+/// Dispatch-order access retains the same admitted change body even when the
+/// transport's changes array uses a different enumeration order.
+pub fn effect_preview_ordered_row_intended_changes_wire(
+  value : EffectPreviewIdentity,
+  member_index : Int,
+  ordered_index : Int,
+) -> String? {
+  let state = value.ordered_row_intended_change_states
+    .get(member_index)
+    .bind(rows => rows.get(ordered_index))
+  match state {
+    Some("present") =>
+      effect_preview_ordered_row_intended_value_wire(
+        value, member_index, ordered_index,
+      ).map(wire => "{\"state\":\"present\",\"value\":" + wire + "}")
+    Some("not_applicable") => Some("{\"state\":\"not_applicable\"}")
+    _ => None
   }
 }
 
