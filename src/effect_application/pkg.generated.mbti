@@ -14,6 +14,8 @@ pub fn admit_effect_ledger_entry(String, Int, Int, Int) -> Result[EffectLedgerEn
 
 pub fn admit_effect_preview_apply_identity(String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]], Int, Int, Int) -> Result[@run_publication.EffectPreviewIdentity, EffectPreviewApplyIdentityIssue]
 
+pub fn admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[EffectRiskAcceptanceBody, EffectRiskAcceptanceIssue]
+
 pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
 
 pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]]) -> Result[Unit, EffectPreviewApplyIdentityIssue]
@@ -25,6 +27,8 @@ pub fn check_effect_preview_apply_capabilities(@run_publication.EffectPreviewIde
 pub fn check_effect_preview_footprint_conflicts(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Result[Unit, EffectPreviewFootprintIssue]
 
 pub fn check_effect_preview_target_guards(@run_publication.EffectPreviewIdentity, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
+
+pub fn check_effect_risk_acceptance_body(@run_publication.EffectPreviewIdentity, EffectRiskAcceptanceBody, String, String, String, String, String, String) -> Result[Unit, EffectRiskAcceptanceIssue]
 
 pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
@@ -308,6 +312,37 @@ pub(all) enum EffectPreviewTargetGuardIssue {
   StalePreview(Int, Int)
   ForeignObservation
 } derive(Eq, @debug.Debug)
+
+pub struct EffectRiskAcceptanceBody {
+  cid : String
+  issuer_kind : String
+  issuer_evidence_cid : String
+  policy_cid : String
+  effect_preview_cid : String
+  review_projection_cid : String
+  authority_scope_cid : String
+  validity_evidence_cid : String
+  authentication_evidence_cid : String
+  scope_approved : Bool
+  partial_application_accepted : Bool
+}
+
+pub(all) enum EffectRiskAcceptanceIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidShape
+  InvalidIdentity
+  Encoding
+  ForeignPreview
+  ForeignReviewProjection
+  ForeignAuthority
+  ForeignPolicy
+  ForeignValidity
+  ForeignIssuer
+  ForeignAuthentication
+  MissingScopeAcceptance
+  MissingPartialAcceptance
+} derive(@debug.Debug)
 
 pub(all) enum EffectRowAction {
   PersistPrepared
