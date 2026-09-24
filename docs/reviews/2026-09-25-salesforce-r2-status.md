@@ -97,3 +97,11 @@ against those exact bindings while all Result pins remain live. The Site
 must still authenticate and refresh those observations; equal caller-supplied
 CIDs are not an apply permit. The two-member Host fixture rejects a missing
 entry, each changed CID, and reuse after pin release.
+
+The same captured Preview can now check the whole derived row-key inventory
+without reparsing the transported Preview. The common 0.1 apply-identity
+admission reuses that check, so it has no second key rule. The Host fixture
+uses a real logical request scope and derived keys for both members, rejecting
+missing, reordered, foreign-scope, and released-input cases. This establishes
+the excluded key binding only; it does not renew authority, grant apply, or
+send a mutation.
