@@ -251,6 +251,34 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   result.cancel()
   @execution.close_managed_publication_bridge(bridge)
   let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  assert_true(
+    @strategy.pin_captured_any_result_output_set(
+      run,
+      [(0, occurrence), (1, occurrence)],
+      2,
+    )
+    is Err(@strategy.ForeignCandidate),
+  )
+  let shared = @strategy.pin_captured_any_result_output_set(
+    run,
+    [(0, occurrence), (0, occurrence)],
+    2,
+  ).unwrap()
+  let first_shared = @strategy.captured_any_result_output_set_borrow_at(
+    shared, 0,
+  ).unwrap()
+  let second_shared = @strategy.captured_any_result_output_set_borrow_at(
+    shared, 1,
+  ).unwrap()
+  assert_true(@strategy.captured_any_result_borrow_available(first_shared))
+  assert_true(
+    @strategy.captured_any_result_borrow_matches_managed(
+      second_shared, completed,
+    ),
+  )
+  assert_true(@strategy.release_captured_any_result_output_set(shared))
+  assert_false(@strategy.captured_any_result_borrow_available(first_shared))
+  assert_false(@strategy.release_captured_any_result_output_set(shared))
   let effect_borrow = @strategy.borrow_captured_managed_result_output(
     run, 0, occurrence, completed, 2,
   ).unwrap()
@@ -293,6 +321,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_false(
     @strategy.captured_resident_result_borrow_available(publication_borrow),
   )
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   assert_true(
     @strategy.release_captured_resident_result_borrow(publication_borrow),
   )

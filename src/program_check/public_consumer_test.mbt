@@ -907,6 +907,10 @@ fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
       physical_equal(@strategy.captured_effect_run_owner(captured), run_owner),
     )
     assert_true(
+      @strategy.pin_captured_effect_sources(captured, 2)
+      is Err(@strategy.NotReady),
+    )
+    assert_true(
       physical_equal(
         @strategy.captured_dag_graph(
           @strategy.captured_effect_run_dag(captured),

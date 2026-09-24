@@ -47,6 +47,26 @@ struct CapturedResidentResultBorrow {
 }
 
 ///|
+priv enum CapturedAnyResultKind {
+  Cells(CapturedResultBorrow)
+  Resident(CapturedResidentResultBorrow)
+}
+
+///|
+/// Representation-neutral physical custody of one checked Result. The
+/// concrete managed output remains with its installed Host until typed use.
+struct CapturedAnyResultBorrow {
+  kind : CapturedAnyResultKind
+}
+
+///|
+/// Atomic pin acquisition for all Result consumers of one operation.
+struct CapturedAnyResultOutputSet {
+  borrows : Array[CapturedAnyResultBorrow]
+  mut live : Bool
+}
+
+///|
 /// All-or-nothing retention of checked Result occurrences. This owns only
 /// physical input liveness; it does not authorize disclosure or an Effect.
 struct CapturedResultOutputSet {
@@ -162,29 +182,21 @@ pub fn[T] borrow_captured_managed_result_output(
   output : @execution.ManagedCompletedOutput[T],
   max_pins : Int,
 ) -> Result[CapturedResidentResultBorrow, RunIssue] {
-  match resident_result_borrow_ready(run, task, occurrence, max_pins) {
-    Ok(_) => ()
+  let borrow = match
+    borrow_captured_resident_result_reference(run, task, occurrence, max_pins) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard run.outputs[task] is Some(Managed(reference)) &&
-    @execution.managed_completed_output_matches_port(
+  if !captured_resident_result_borrow_matches_managed(borrow, output) ||
+    !@execution.managed_completed_output_matches_port(
       output,
       @execution.managed_result_occurrence_owner(occurrence),
       @ports.port_target(@execution.managed_result_occurrence_port(occurrence)),
-    ) else {
+    ) {
+    release_captured_resident_result_borrow(borrow) |> ignore
     return Err(ForeignCandidate)
   }
-  if !@execution.managed_completed_reference_available(reference) {
-    return Err(NotReady)
-  }
-  if !@execution.managed_completed_reference_matches(reference, output) {
-    return Err(ForeignCandidate)
-  }
-  if run.lifetimes[task].pins >= max_pins {
-    return Err(Physical(@resources.HoldingLimit))
-  }
-  run.lifetimes[task].pins += 1
-  Ok({ run, task, occurrence, reference: Managed(reference), live: true, })
+  Ok(borrow)
 }
 
 ///|
@@ -196,29 +208,52 @@ pub fn borrow_captured_carrier_result_output(
   output : @execution.CarrierManagedCompletedOutput,
   max_pins : Int,
 ) -> Result[CapturedResidentResultBorrow, RunIssue] {
+  let borrow = match
+    borrow_captured_resident_result_reference(run, task, occurrence, max_pins) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !captured_resident_result_borrow_matches_carrier(borrow, output) ||
+    !@execution.carrier_managed_completed_output_matches_port(
+      output,
+      @execution.managed_result_occurrence_owner(occurrence),
+      @ports.port_target(@execution.managed_result_occurrence_port(occurrence)),
+    ) {
+    release_captured_resident_result_borrow(borrow) |> ignore
+    return Err(ForeignCandidate)
+  }
+  Ok(borrow)
+}
+
+///|
+fn borrow_captured_resident_result_reference(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedResidentResultBorrow, RunIssue] {
   match resident_result_borrow_ready(run, task, occurrence, max_pins) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard run.outputs[task] is Some(CarrierManaged(reference)) &&
-    @execution.carrier_managed_completed_output_matches_port(
-      output,
-      @execution.managed_result_occurrence_owner(occurrence),
-      @ports.port_target(@execution.managed_result_occurrence_port(occurrence)),
-    ) else {
-    return Err(ForeignCandidate)
+  let reference = match run.outputs[task] {
+    Some(Managed(value)) => CapturedResidentReference::Managed(value)
+    Some(CarrierManaged(value)) => CapturedResidentReference::Carrier(value)
+    _ => return Err(UnsupportedGraph)
   }
-  if !@execution.carrier_managed_completed_reference_available(reference) {
+  let available = match reference {
+    Managed(value) => @execution.managed_completed_reference_available(value)
+    Carrier(value) =>
+      @execution.carrier_managed_completed_reference_available(value)
+  }
+  if !available {
     return Err(NotReady)
-  }
-  if !@execution.carrier_managed_completed_reference_matches(reference, output) {
-    return Err(ForeignCandidate)
   }
   if run.lifetimes[task].pins >= max_pins {
     return Err(Physical(@resources.HoldingLimit))
   }
   run.lifetimes[task].pins += 1
-  Ok({ run, task, occurrence, reference: Carrier(reference), live: true, })
+  Ok({ run, task, occurrence, reference, live: true, })
 }
 
 ///|
@@ -279,6 +314,147 @@ pub fn release_captured_resident_result_borrow(
   borrow.live = false
   borrow.run.lifetimes[borrow.task].pins -= 1
   collect_captured_retention(borrow.run)
+  true
+}
+
+///|
+/// Borrow the representation committed by the checked producer. A managed
+/// reference is sufficient to pin physical custody; the installed Host must
+/// still present the concrete output at its later typed export boundary.
+pub fn borrow_captured_any_result_output(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedAnyResultBorrow, RunIssue] {
+  if task < 0 || task >= run.outputs.length() {
+    return Err(ForeignCandidate)
+  }
+  match run.outputs[task] {
+    Some(Materialized(_)) =>
+      borrow_captured_result_output(run, task, occurrence, max_pins).map(borrow => {
+        kind: Cells(borrow),
+      })
+    Some(Managed(_)) | Some(CarrierManaged(_)) =>
+      borrow_captured_resident_result_reference(run, task, occurrence, max_pins).map(borrow => {
+          kind: Resident(borrow),
+        },
+      )
+    None => Err(NotReady)
+  }
+}
+
+///|
+pub fn captured_any_result_borrow_occurrence(
+  borrow : CapturedAnyResultBorrow,
+) -> @execution.ManagedResultOccurrence {
+  match borrow.kind {
+    Cells(value) => captured_result_borrow_occurrence(value)
+    Resident(value) => captured_resident_result_borrow_occurrence(value)
+  }
+}
+
+///|
+pub fn captured_any_result_borrow_available(
+  borrow : CapturedAnyResultBorrow,
+) -> Bool {
+  match borrow.kind {
+    Cells(value) => captured_result_borrow_available(value)
+    Resident(value) => captured_resident_result_borrow_available(value)
+  }
+}
+
+///|
+pub fn captured_any_result_borrow_cell_output(
+  borrow : CapturedAnyResultBorrow,
+) -> @execution.CompletedOutput? {
+  match borrow.kind {
+    Cells(value) if captured_result_borrow_available(value) =>
+      Some(captured_result_borrow_output(value))
+    _ => None
+  }
+}
+
+///|
+pub fn[T] captured_any_result_borrow_matches_managed(
+  borrow : CapturedAnyResultBorrow,
+  output : @execution.ManagedCompletedOutput[T],
+) -> Bool {
+  match borrow.kind {
+    Resident(value) =>
+      captured_resident_result_borrow_matches_managed(value, output)
+    Cells(_) => false
+  }
+}
+
+///|
+pub fn captured_any_result_borrow_matches_carrier(
+  borrow : CapturedAnyResultBorrow,
+  output : @execution.CarrierManagedCompletedOutput,
+) -> Bool {
+  match borrow.kind {
+    Resident(value) =>
+      captured_resident_result_borrow_matches_carrier(value, output)
+    Cells(_) => false
+  }
+}
+
+///|
+pub fn release_captured_any_result_borrow(
+  borrow : CapturedAnyResultBorrow,
+) -> Bool {
+  match borrow.kind {
+    Cells(value) => release_captured_result_borrow(value)
+    Resident(value) => release_captured_resident_result_borrow(value)
+  }
+}
+
+///|
+/// Acquire every exact Result before an operation starts. One later failure
+/// releases all earlier pins, even if multiple members share one producer.
+pub fn pin_captured_any_result_output_set(
+  run : CapturedDAG,
+  sources : Array[(Int, @execution.ManagedResultOccurrence)],
+  max_pins : Int,
+) -> Result[CapturedAnyResultOutputSet, RunIssue] {
+  let borrows : Array[CapturedAnyResultBorrow] = []
+  for (task, occurrence) in sources {
+    match borrow_captured_any_result_output(run, task, occurrence, max_pins) {
+      Ok(borrow) => borrows.push(borrow)
+      Err(issue) => {
+        for borrow in borrows {
+          release_captured_any_result_borrow(borrow) |> ignore
+        }
+        return Err(issue)
+      }
+    }
+  }
+  Ok({ borrows, live: true, })
+}
+
+///|
+pub fn captured_any_result_output_set_borrow_at(
+  set : CapturedAnyResultOutputSet,
+  index : Int,
+) -> CapturedAnyResultBorrow? {
+  if set.live {
+    set.borrows.get(index)
+  } else {
+    None
+  }
+}
+
+///|
+pub fn release_captured_any_result_output_set(
+  set : CapturedAnyResultOutputSet,
+) -> Bool {
+  if !set.live {
+    return false
+  }
+  set.live = false
+  for borrow in set.borrows {
+    release_captured_any_result_borrow(borrow) |> ignore
+  }
   true
 }
 
