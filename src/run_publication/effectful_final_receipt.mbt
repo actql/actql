@@ -21,6 +21,47 @@ pub(all) enum EffectfulFinalReceiptIssuanceIssue {
 } derive(Debug)
 
 ///|
+pub(all) enum EffectfulFinalChainIssue {
+  Computation(RunEvidenceChainIssue)
+  FinalReferences(EffectfulFinalReferenceIssue)
+} derive(Debug)
+
+///|
+/// Admit the complete immutable computation chain and final Effect references
+/// together. Checked Program kind, current apply authority, physical Effect
+/// Plan provenance, Result retention, and durable Store commit remain separate
+/// admission obligations.
+pub fn admit_effectful_final_run_evidence_chain(
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  final_receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectfulFinalChainIssue] {
+  match
+    validate_effectful_computation_evidence_chain(
+      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+      captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Computation(issue))
+  }
+  admit_effectful_final_receipt_references(
+    run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
+    member_receipt_wires, final_receipt_wire, max_wire_bytes, max_nodes, max_depth,
+  ).map_err(issue => FinalReferences(issue))
+}
+
+///|
 /// Admit the immutable reference closure of one Effectful final Receipt.
 /// This is not a checked Program-kind proof, apply permit, physical outcome
 /// admission, or durable Run commit. The standard Host must establish those
