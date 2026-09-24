@@ -197,6 +197,13 @@ missing terminal Receipt or a still-active owner. The gate deliberately
 returns only a partition check: the member's aggregate typed outcome is not
 yet derived from the row observations, and the ordinary Host does not yet
 issue or durably commit member, set, or final Run Receipts through this gate.
+The product SQLite reader now takes one durable head snapshot for a candidate
+member, re-admits each terminal row Receipt from its saved response, and invokes
+that MoonBit gate. A common Host wrapper first authorizes evidence viewing for
+every exact dispatch, retaining an owned claim snapshot across asynchronous
+authorization. Real SQLite and local HTTPS Collections tests cover restart,
+partial row outcomes, denied evidence viewing, and reordered rows. This still
+does not authenticate or issue the aggregate member outcome.
 The progress reader now takes all member heads in one SQLite read snapshot,
 so concurrent writers cannot make one frontier from different revisions.
 An active physical call remains active by its logical row owner even if its
