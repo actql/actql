@@ -1190,6 +1190,7 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
                 ) {
                 Ok(execution) => MatchNodesExecution(execution)
                 Err(_) => return fail_execution(value)
@@ -1213,6 +1214,7 @@ fn advance_execution(
                   value.limits.max_value_bytes,
                   value.limits.max_value_bytes,
                   value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
                 ) {
                 Ok(execution) => MatchEdgesExecution(execution)
                 Err(_) => return fail_execution(value)

@@ -2589,6 +2589,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "node identity match admits workspace before execution and cleans cancel"
+        },
+        {
+          "role": "match_nodes_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "node identity match admits exact control work and rejects one short"
         }
       ]
     },
@@ -2612,6 +2619,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "bounded edge match admits workspace and cleans cancellation"
+        },
+        {
+          "role": "match_edges_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "edge identity match admits exact control work and rejects one short"
         }
       ]
     },

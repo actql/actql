@@ -29,6 +29,15 @@ and cleanup. This establishes bounded initialization for those entrypoints;
 it is not independent exact/one-short work and workspace assurance for each
 full matching route.
 
+Both registered Graph match entrypoints now enforce the selected control-work
+ceiling during execution. Independent fixed fixtures admit six charged steps
+for one node identity and seven for three excluded edge types, then reject
+five and six respectively before completion. The production Graph provider
+passes its selected work ceiling to both kernels. The resource gate rejects
+removal of either fixture. These cases establish control-work admission for
+the tested variants, not complete work/workspace or lifecycle assurance for
+every match variant and predicate path.
+
 The registered rows-to-Vectors Bridge reuses the bounded record writer but
 has its own typed source and identity fixture. Two records with two-component
 vectors require 28/27 construction-work units and 10/9 peak structural slots.

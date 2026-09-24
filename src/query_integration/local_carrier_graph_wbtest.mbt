@@ -2644,6 +2644,84 @@ test "node identity match admits workspace before execution and cleans cancel" {
 }
 
 ///|
+test "node identity match admits exact control work and rejects one short" {
+  let source_owner = carrier_graph_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_match_owner(source_owner, "[1]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(work) raise {
+    @local_sga.start_match_nodes(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      4,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    ).unwrap()
+  }
+  // One scratch slot, one identity, two output fields, commit, and finish.
+  let exact = start(6)
+  let mut complete = false
+  for _ in 0..<7 {
+    if !complete {
+      match @local_sga.advance_match_nodes(exact, 1).unwrap() {
+        @local_sga.MatchNodesContinue(work~, ..) => assert_true(work <= 6L)
+        @local_sga.MatchNodesComplete(output, work~, ..) => {
+          assert_eq(work, 6L)
+          assert_eq(@execution.completed_row_count(output), 1)
+          complete = true
+        }
+        _ => fail("exact node match control work failed")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_eq(@local_sga.cleanup_match_nodes(exact), Ok(true))
+  let short = start(5)
+  let mut failed = false
+  for _ in 0..<7 {
+    if !failed {
+      match @local_sga.advance_match_nodes(short, 1).unwrap() {
+        @local_sga.MatchNodesContinue(..) => ()
+        @local_sga.MatchNodesFailed(@local_sga.MatchNodesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short node match control work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_nodes_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "bounded edge match filters repeated types and sorts canonically" {
   let source_owner = carrier_graph_labeled_source_owner()
   let source = carrier_events_source_output(source_owner)
@@ -2821,6 +2899,86 @@ test "bounded edge match admits workspace and cleans cancellation" {
   assert_eq(@local_sga.match_edges_scratch_slots(execution), 0)
   assert_false(@local_sga.match_edges_cleanup_pending(execution))
   assert_true(@execution.producer_read_available(external))
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "edge identity match admits exact control work and rejects one short" {
+  let source_owner = carrier_graph_labeled_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_edge_match_owner(source_owner, "[\"missing\"]")
+  let sequence = prepared_sequence(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    100,
+    1000,
+  ).unwrap()
+  let construction = @local_bridge.start_rows_to_graph(
+    @bounded.control(),
+    sequence,
+    0,
+    [external, external],
+    carrier_graph_storage_limits(),
+    4096L,
+    100,
+    fn() { true },
+  ).unwrap()
+  let graph = finish_rows_to_graph(construction)
+  assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+  let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  let start = fn(work) raise {
+    @local_sga.start_match_edges(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      0,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      10,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work),
+    ).unwrap()
+  }
+  // Three scratch slots, three edge-type checks, and finish.
+  let exact = start(7)
+  let mut complete = false
+  for _ in 0..<8 {
+    if !complete {
+      match @local_sga.advance_match_edges(exact, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesComplete(output, work~, ..) => {
+          assert_eq(work, 7L)
+          assert_eq(@execution.completed_row_count(output), 0)
+          complete = true
+        }
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, work~, ..) =>
+          fail("exact edge match exhausted work at " + work.to_string())
+        _ => fail("exact edge match control work failed")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_eq(@local_sga.cleanup_match_edges(exact), Ok(true))
+  let short = start(6)
+  let mut failed = false
+  for _ in 0..<8 {
+    if !failed {
+      match @local_sga.advance_match_edges(short, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short edge match control work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_edges_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_edges(short), Ok(true))
+  assert_true(@graphs.producer_read_available(input))
   assert_true(@graphs.discard_completed(graph))
 }
 

@@ -62,6 +62,17 @@ test('ranking loses bounded assembly evidence when its fixture is removed', () =
   }), /VecA merge_rankings: bounded ranking assembly fixture is missing/u);
 });
 
+test('graph matching loses control work evidence when either fixture is removed', () => {
+  for (const operation of ['match_nodes', 'match_edges']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_control_work_exact_one_short`);
+    }), new RegExp(`SGA ${operation}: match control work evidence is missing`, 'u'));
+  }
+});
+
 test('resource summary rejects stale route counts', () => {
   const gaps = readFileSync(join(
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',

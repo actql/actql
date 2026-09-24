@@ -53,6 +53,7 @@ priv struct MatchEdgesState {
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -87,6 +88,7 @@ pub(all) enum MatchEdgesIssue {
   InvalidMatchEdgesLimits
   MatchEdgesInputUnavailable
   MatchEdgesWorkspaceLimit
+  MatchEdgesWorkLimit
   MatchEdgesPredicate(@execution.EvalIssueKind)
   MatchEdgesKeyOrder(@value.KeyOrderIssue)
   MatchEdgesOutput(@execution.CaptureIssue)
@@ -356,6 +358,9 @@ fn match_edges_step(
     if !@graph.producer_read_available(state.input) {
       return @bounded.Failed(MatchEdgesInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(MatchEdgesWorkLimit, progress, used)
+    }
     match state.phase {
       InitializeScratch => {
         if state.scratch.length() == state.scratch_count {
@@ -565,6 +570,7 @@ fn match_edges_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -603,6 +609,7 @@ pub fn start_match_edges(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[MatchEdgesExecution, MatchEdgesIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
@@ -632,6 +639,10 @@ pub fn start_match_edges(
     edge_predicate_field_count(graph)
   } else {
     0
+  }
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_work_limit < 0 {
+    return Err(MatchEdgesWorkLimit)
   }
   guard max_rows >= 0 &&
     limits.max_nodes >= 0 &&
@@ -715,6 +726,7 @@ pub fn start_match_edges(
     emit_index: 0,
     column: 0,
     values: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

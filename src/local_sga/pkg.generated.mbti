@@ -199,9 +199,9 @@ pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.Completi
 
 pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphsEqualExecution, GraphsEqualIssue]
 
-pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[MatchEdgesExecution, MatchEdgesIssue]
+pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchEdgesExecution, MatchEdgesIssue]
 
-pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[MatchNodesExecution, MatchNodesIssue]
+pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_mean_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, Int, () -> Bool) -> Result[MeanExecution, MeanIssue]
 
@@ -374,6 +374,7 @@ pub(all) enum MatchEdgesIssue {
   InvalidMatchEdgesLimits
   MatchEdgesInputUnavailable
   MatchEdgesWorkspaceLimit
+  MatchEdgesWorkLimit
   MatchEdgesPredicate(@execution_relation.EvalIssueKind)
   MatchEdgesKeyOrder(@value_admission.KeyOrderIssue)
   MatchEdgesOutput(@execution_relation.CaptureIssue)
@@ -396,6 +397,7 @@ pub(all) enum MatchNodesIssue {
   MatchNodesInputUnavailable
   MissingMatchNodeIdentity(Int)
   MatchNodesWorkspaceLimit
+  MatchNodesWorkLimit
   MatchNodesPredicate(@execution_relation.EvalIssueKind)
   MatchNodesKeyOrder(@value_admission.KeyOrderIssue)
   MatchNodesOutput(@execution_relation.CaptureIssue)

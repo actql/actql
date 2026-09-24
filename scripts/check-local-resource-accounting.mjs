@@ -1293,6 +1293,11 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'SGA' &&
+    ['match_nodes', 'match_edges'].includes(route.operation) &&
+    !boundaryRoles.has(`${route.operation}_control_work_exact_one_short`)) {
+    fail(`${label}: match control work evidence is missing`);
+  }
   if (route.family === 'Bridge' &&
     ['node_rows', 'edge_rows', 'to_events', 'to_vectors'].includes(
       route.operation,
