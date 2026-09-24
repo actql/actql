@@ -91,57 +91,7 @@ pub fn client_program_prepare_effect_free_with_parameters(
       }
     }
   }
-  let limits : @publication_host.ClientProgramPreparationLimits = {
-    checking: {
-      input: {
-        source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
-        tree: {
-          max_nodes: 8192,
-          max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
-        },
-        max_stages: 32,
-      },
-      compilation: {
-        work: 10000000,
-        artifacts: { bytes: 10000000, nodes: 1000000, depth: 100, },
-        structure: {
-          stages: 32,
-          steps: 1024,
-          results: 1024,
-          parameters: 1024,
-          bindings: 100000,
-          slots: 100000,
-          references: 100000,
-          requirements: 100000,
-          tokens: 100000,
-        },
-        traversal: {
-          nodes: 1000000,
-          depth: 100,
-          text_bytes: 10000000,
-          string_bytes: 1000000,
-          name_bytes: 1000000,
-          pointer_units: 1000000,
-          comparison_pairs: 1000000,
-        },
-        values: { nodes: 1000000, depth: 100, text_bytes: 1000000, },
-        policy: { bytes: 1000000, nodes: 1000000, depth: 100, },
-        patterns: { bytes: 1000000, nodes: 1000000, depth: 100, },
-      },
-    },
-    lowering: {
-      max_nodes: 100000,
-      max_references: 100000,
-      max_work: 1000000,
-      max_identifier_bytes: 65536,
-    },
-    max_parameters: 1024,
-    max_parameter_name_bytes: 65536,
-    max_tasks: 32,
-    max_graph_work: 1000000,
-  }
+  let limits = @publication_host.client_standard_program_preparation_limits()
   match
     @publication_host.prepare_effect_free_client_program(
       document, selected, environment, supplied, limits,
@@ -316,20 +266,7 @@ pub fn client_program_request_identity(
 /// The installed Local profile applies one bounded sequence definition to
 /// compiler material and the task that physically executes it.
 fn client_local_sequence_limits() -> @lower.SequenceLimits {
-  {
-    max_steps: 100,
-    max_rows: 100,
-    max_cells: 10000,
-    max_bindings: 100,
-    max_name_bytes: 10000,
-    expressions: {
-      max_nodes: 10000,
-      max_work: 100000,
-      max_depth: 100,
-      max_literal_nodes: 10000,
-      max_literal_text_bytes: 10000,
-    },
-  }
+  @publication_host.client_standard_values_sequence_limits()
 }
 
 ///|

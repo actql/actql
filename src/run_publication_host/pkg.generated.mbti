@@ -111,6 +111,10 @@ pub fn client_result_row_contract_unit_cid(ClientResultRowContractIdentity) -> S
 
 pub fn client_result_row_contract_wire(ClientResultRowContractIdentity) -> String
 
+pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
+
+pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
+
 pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
