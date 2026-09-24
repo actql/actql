@@ -57,7 +57,7 @@ pub fn effect_command_target_contract(
 ///|
 pub struct EffectCommandTargets {
   effects : EffectResultBindings
-  catalogs : @environment.CatalogContents
+  references : @environment.CatalogReferences
   entries : Array[EffectCommandTargetBinding]
   work : Int
 }
@@ -73,7 +73,14 @@ pub fn effect_command_targets_effects(
 pub fn effect_command_targets_catalogs(
   value : EffectCommandTargets,
 ) -> @environment.CatalogContents {
-  value.catalogs
+  @environment.reference_contents(value.references)
+}
+
+///|
+pub fn effect_command_targets_references(
+  value : EffectCommandTargets,
+) -> @environment.CatalogReferences {
+  value.references
 }
 
 ///|
@@ -108,12 +115,12 @@ fn command_target_issue(
 
 ///|
 /// Match every Command member's checked Result target kind to one exact
-/// identity-checked Connector Catalog command. This is not full Command
-/// Contract admission: input values, permissions, current authority, and the
-/// checked Program's Environment binding remain outstanding obligations.
+/// identity-checked Connector Catalog command whose role references are
+/// closed. Input values, permissions, current authority, and the checked
+/// Program's Environment binding remain outstanding obligations.
 pub fn bind_effect_command_targets(
   effects : EffectResultBindings,
-  catalogs : @environment.CatalogContents,
+  references : @environment.CatalogReferences,
   max_work : Int,
 ) -> Result[EffectCommandTargets, EffectCommandTargetIssue] {
   if max_work < 0 {
@@ -121,6 +128,7 @@ pub fn bind_effect_command_targets(
   }
   let mut remaining = max_work
   let entries = []
+  let catalogs = @environment.reference_contents(references)
   for index in 0..<effect_result_binding_count(effects) {
     let effect = effect_result_binding_at(effects, index).unwrap()
     let header = effect_result_binding_header(effect)
@@ -157,5 +165,5 @@ pub fn bind_effect_command_targets(
     }
     entries.push({ effect, contract: selected, })
   }
-  Ok({ effects, catalogs, entries, work: max_work - remaining, })
+  Ok({ effects, references, entries, work: max_work - remaining, })
 }

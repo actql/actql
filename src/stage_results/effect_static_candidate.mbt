@@ -26,9 +26,8 @@ pub(all) enum EffectStaticCandidateIssue {
 /// Static Effect closure over one checked Stage Result owner and one admitted
 /// Environment. This is deliberately not a CheckedEffectSet or execution
 /// permit: the enclosing checked Program must still bind that Environment,
-/// registered conversions and Command role references must be proved, and
-/// captured values, current authority, Preview and apply preflight remain
-/// separate.
+/// registered conversions and Command semantics must be proved, and captured
+/// values, current authority, Preview and apply preflight remain separate.
 pub struct EffectStaticCandidate {
   results : EffectResultBindings
   mapping_shapes : EffectMappingShapes
@@ -83,14 +82,14 @@ pub fn effect_static_candidate_work(candidate : EffectStaticCandidate) -> Int {
 /// Combine the existing bounded static passes without admitting a second
 /// Environment or silently dropping Command or Mapping members. The limits
 /// cover these passes, inline Command contracts and retained literal values;
-/// Environment admission is an earlier, separately metered obligation of the
-/// enclosing Program check.
+/// Environment and Catalog role-reference admission are earlier, separately
+/// metered obligations of the enclosing Program check.
 pub fn prepare_effect_static_candidate(
   headers : @syntax.EffectHeaders,
   checked : Checked,
   expected_environment : @environment.WireEnvironment,
   mappings : @environment.MappingContractShapes,
-  catalogs : @environment.CatalogContents,
+  references : @environment.CatalogReferences,
   limits : EffectStaticCandidateLimits,
 ) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue] {
   if limits.max_members < 0 ||
@@ -103,6 +102,7 @@ pub fn prepare_effect_static_candidate(
   if @syntax.effect_header_count(headers) > limits.max_members {
     return Err(MemberLimit)
   }
+  let catalogs = @environment.reference_contents(references)
   if !physical_equal(
       expected_environment,
       @environment.mapping_shape_environment(mappings),
@@ -153,7 +153,7 @@ pub fn prepare_effect_static_candidate(
   )
   remaining -= literal_work
   let command_targets = match
-    bind_effect_command_targets(results, catalogs, remaining) {
+    bind_effect_command_targets(results, references, remaining) {
     Ok(value) => value
     Err(issue) => return Err(CommandTargets(issue))
   }
