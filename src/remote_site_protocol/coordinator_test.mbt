@@ -177,6 +177,7 @@ test "Site status alone cannot authorize Coordinator completion" {
   ).unwrap()
   commit_coordinator_dispatch_transition(claimed, true).unwrap()
   assert_false(coordinator_completion_evidence_available(record))
+  assert_false(coordinator_exact_retransmission_eligible(record, request))
   let (evidence, subject, measurement) = managed_output_for_coordinator(request)
   let evidence_only = prepare_coordinator_site_observation(
     record,
