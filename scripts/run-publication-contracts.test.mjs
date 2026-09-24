@@ -112,11 +112,11 @@ test('corrected schemas have independently fixed canonical identities', () => {
       result_manifest:
         'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa',
       run_receipt:
-        'sha256:3ad8dc111a4dbc7ba8f9f6b9379f437e808cd665d3ce1cac5057068f495fd8e0',
+        'sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526',
       run_state:
         'sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c',
       captured_run:
-        'sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993',
+        'sha256:281c623866f1dfb4e2d44ed8d9d91e88b3afec3e9f10392703d4dd87dd661422',
     },
   );
 });
