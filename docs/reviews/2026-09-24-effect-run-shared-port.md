@@ -576,3 +576,11 @@ ordinary task port closes. This is one bounded re-admission into the common
 checked Result view, not a JavaScript cell-by-cell interpretation. It does not
 yet bind those rows to a private Preview's intended changes or physical
 Salesforce request, so it is not mutation admission.
+
+The installed Host now owns the physical-reader-to-MoonBit-exporter sequence
+in `effect-input-export.mjs`; the test no longer assembles that sequence in
+its own callback. It streams bounded canonical chunks to a caller callback,
+checks cancellation between charged preparation steps and writes, and closes
+the import, stream, and receipt on every exit. The caller still owns the
+captured input pin. This is reusable input transport, not a standard
+Effectful submit or an apply permit.
