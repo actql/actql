@@ -1239,6 +1239,9 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${role} fixture is missing`);
       }
     }
+    if (!environmentRoles.has('nearest_relation_host_in_flight_cancel')) {
+      fail(`${label}: Relation Host cancellation fixture is missing`);
+    }
   }
   if (route.family === 'SGA' && route.operation === 'shortest_path') {
     for (const role of [

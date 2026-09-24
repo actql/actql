@@ -423,6 +423,11 @@ test('nearest retains its fused Relation production entrypoint', () => {
         item.role !== role);
     }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const nearest = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    nearest.environment_tests = [];
+  }), /VecA nearest: Relation Host cancellation fixture is missing/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
