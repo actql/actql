@@ -177,7 +177,7 @@ test('binding set covers every checked Unit Result port', async () => {
 // Test-only evidence isolates checked Program binding. Product admission must
 // derive every other evidence CID from its real compiler and Host authority.
 function publicationEvidence(program, parameters, semantics,
-  checkEnvironmentCid) {
+  checkEnvironmentCid, aoaLogicalCid = cid('9')) {
   const limits = [100000, 10000, 64];
   const evidence = (name, body) => checked(moon.strategyRunEvidenceSeal(
     name, JSON.stringify(body), ...limits));
@@ -201,7 +201,7 @@ function publicationEvidence(program, parameters, semantics,
       program_definition_cid: program,
       program_semantics_cid: semantics,
       aoa_contract_cid: cid('8'),
-      aoa_logical_cid: cid('9'),
+      aoa_logical_cid: aoaLogicalCid,
     }), ...limits));
   const prepared = evidence('prepared_invocation', {
     version: 'actql-prepared-invocation/0.1',
@@ -227,11 +227,14 @@ function publicationEvidence(program, parameters, semantics,
 function checkedValuesPublicationPlan(prepared, control) {
   const request = moon.clientProgramRequestIdentity(
     prepared, cid('a'), 'published-values-request', cid('b'));
+  const aoa = checked(
+    moon.clientProgramIssueLocalValuesAoAIdentity(prepared, 0));
   const evidence = publicationEvidence(
     moon.clientRequestProgramCid(request),
     moon.clientRequestParametersCid(request),
     moon.clientProgramSemanticsCid(prepared),
-    moon.clientProgramCheckEnvironmentCid(prepared));
+    moon.clientProgramCheckEnvironmentCid(prepared),
+    moon.clientProgramLocalValuesAoACid(aoa));
   const [template, preparedEvidence, authorization] = evidence
     .slice(0, 3).map((value, index) => control.admitRunEvidence(
       ['bound_invocation_template', 'prepared_invocation',
@@ -333,6 +336,19 @@ test('Node ABI derives the checked named Result and request identity', async () 
     output: 'values_0', sources: {}, steps: JSON.parse(steps),
     version: 'aoa-pipeline/0.1',
   }));
+  const aoa = checked(
+    moon.clientProgramIssueLocalValuesAoAIdentity(prepared, 0));
+  assert.equal(moon.clientProgramLocalValuesAoAWire(aoa), pipeline);
+  assert.equal(moon.clientProgramLocalValuesAoACid(aoa),
+    'sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723');
+  assert.doesNotThrow(() => checked(
+    moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
+      pipeline, moon.clientProgramLocalValuesAoACid(aoa))));
+  assert.throws(() => checked(
+    moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
+      pipeline.replace('"id":2', '"id":3'),
+      moon.clientProgramLocalValuesAoACid(aoa))),
+  {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramLocalValuesPipelineJson(prepared, 1)),
   {code: 'MoonBitHostFailure'});
