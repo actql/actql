@@ -570,6 +570,14 @@ The Node integration control supplies a conflicting extra Task property and
 observes the checked producer instead. This prevents a Stage/Task coordinate
 regression at the Host boundary, but does not replace a split-source physical
 pin-and-release integration test.
+
+An installed source-free Local fixture now gives two Effect members distinct
+pins on one completed Result. A failed under-capacity batch leaves no pin;
+closing the ordinary port bars new pins, and releasing one member leaves the
+other available with the same exact two projected rows until its own release.
+This covers shared custody on a
+nonsegmented physical source. Split-source lifetime and rollback still need
+an execution fixture rather than an expanded-graph-only assertion.
 Its cell exporter rejects a resident representation explicitly; a resident
 input only proves exact physical custody until the Host presents the same
 concrete output and establishes its checked view and payload. Concrete
