@@ -4,6 +4,7 @@
 pub struct EffectRiskAcceptanceBody {
   cid : String
   issuer_kind : String
+  decision : String
   issuer_evidence_cid : String
   policy_cid : String
   effect_preview_cid : String
@@ -28,6 +29,8 @@ pub(all) enum EffectRiskAcceptanceIssue {
   ForeignPolicy
   ForeignValidity
   ForeignIssuer
+  ForeignIssuerKind
+  ForeignDecision
   ForeignAuthentication
   MissingScopeAcceptance
   MissingPartialAcceptance
@@ -132,6 +135,7 @@ pub fn admit_effect_risk_acceptance_body(
   Ok({
     cid,
     issuer_kind,
+    decision,
     issuer_evidence_cid,
     policy_cid,
     effect_preview_cid,
@@ -158,6 +162,8 @@ pub fn check_effect_risk_acceptance_body(
   validity_evidence_cid : String,
   issuer_evidence_cid : String,
   authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
 ) -> Result[Unit, EffectRiskAcceptanceIssue] {
   if body.effect_preview_cid !=
     @publication.effect_preview_semantic_identity(preview) {
@@ -177,6 +183,12 @@ pub fn check_effect_risk_acceptance_body(
   }
   if body.issuer_evidence_cid != issuer_evidence_cid {
     return Err(ForeignIssuer)
+  }
+  if body.issuer_kind != issuer_kind {
+    return Err(ForeignIssuerKind)
+  }
+  if body.decision != decision {
+    return Err(ForeignDecision)
   }
   if body.authentication_evidence_cid != authentication_evidence_cid {
     return Err(ForeignAuthentication)

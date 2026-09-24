@@ -782,10 +782,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const checkRisk = (body, {
         projection = cid('a'), authority = cid('e'), policy = cid('a'),
         validity = cid('a'), issuer = cid('a'), authentication = cid('a'),
+        issuerKind = 'policy', decision = 'allow',
       } = {}) => checked(
         moon.clientProgramCheckEffectRiskAcceptanceBody(
           previewInputs, body, projection, authority,
-          policy, validity, issuer, authentication));
+          policy, validity, issuer, authentication,
+          issuerKind, decision));
       assert.doesNotThrow(() => checkRisk(risk));
       assert.throws(() => checkRisk(admittedRisk(riskFor(
         ['effect_scope_approved']))), {code: 'MoonBitHostFailure'});
@@ -796,6 +798,10 @@ test('owned update Plan matches approved rows and rejects altered intent',
         assert.throws(() => checkRisk(risk, {[field]: cid('f')}),
           {code: 'MoonBitHostFailure'});
       }
+      assert.throws(() => checkRisk(risk, {issuerKind: 'human'}),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRisk(risk, {decision: 'approved'}),
+        {code: 'MoonBitHostFailure'});
       assert.throws(() => checkRisk(admittedRisk(riskFor(
         ['effect_scope_approved', 'partial_application_accepted'],
         cid('f')))), {code: 'MoonBitHostFailure'});

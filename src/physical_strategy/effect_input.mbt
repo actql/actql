@@ -430,6 +430,8 @@ pub fn check_captured_effect_risk_acceptance_body(
   validity_evidence_cid : String,
   issuer_evidence_cid : String,
   authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
 ) -> Result[Unit, CapturedEffectRiskIssue] {
   if !value.inputs.live {
     return Err(NotReady)
@@ -449,6 +451,8 @@ pub fn check_captured_effect_risk_acceptance_body(
     validity_evidence_cid,
     issuer_evidence_cid,
     authentication_evidence_cid,
+    issuer_kind,
+    decision,
   ).map_err(issue => Risk(issue))
 }
 
