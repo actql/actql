@@ -433,6 +433,15 @@ first consumer do not revoke the publication view or prematurely return its
 held bytes. The two consumers produce identical checked rows and fields. A
 failed export preparation also releases its acquired pin.
 This closes the cell-backed shared-consumer lifetime gap, not all of SF-4.
+
+Salesforce broad acquisition no longer imports the Host's `connector_sdk` or
+physical cost model merely to construct a candidate. The selected candidate
+is assembled in `connectors/salesforce/host`; a dependency gate prevents the
+provider acquisition package from taking those two direct dependencies back.
+This is an SF-1 boundary reduction, not public SPI closure. The acquisition
+package still exposes checked query, lowering, and execution types. An
+off-tree provider facade and source-compatibility fixture remain required
+before declaring the external Connector SPI complete.
 The standard Effectful Host still must acquire a nonterminal Result before its
 ordinary port closes; managed and Carrier-managed Results need representation-
 specific physical holding and generation proofs. No implicit copy, reread,

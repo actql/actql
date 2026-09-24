@@ -134,7 +134,7 @@ test "Salesforce broad candidate binds the exact checked source and common choic
     1,
     20,
   ).unwrap()
-  let candidate = @salesforce_query.salesforce_broad_candidate(
+  let candidate = @salesforce_host.salesforce_broad_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     preparation,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
@@ -462,7 +462,7 @@ fn salesforce_issued_fixture(
     1,
     20,
   ).unwrap()
-  let candidate = @salesforce_query.salesforce_broad_candidate(
+  let candidate = @salesforce_host.salesforce_broad_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     preparation,
     [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],

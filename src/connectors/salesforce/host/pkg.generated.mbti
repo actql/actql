@@ -2,10 +2,12 @@
 package "actql/actql/connectors/salesforce/host"
 
 import {
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/salesforce/acquisition",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
   "actql/actql/query_planning",
 }
 
@@ -19,6 +21,8 @@ pub fn close_salesforce_broad_host(SalesforceBroadHostRun) -> Unit
 pub fn complete_salesforce_broad_host(SalesforceBroadHostRun) -> Result[@acquisition.SalesforceBroadObservation, SalesforceBroadHostIssue]
 
 pub fn configure_salesforce_broad_host(@query_planning.QueryEvidenceContracts, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.SalesforceBroadPreparation], @acquisition.SalesforceBroadCompletionLimits) -> SalesforceBroadHostConfiguration
+
+pub fn salesforce_broad_candidate(@connector_sdk.CapabilityRegistration, @acquisition.SalesforceBroadPreparation, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@query_planning.PreparedAcquisition[@acquisition.SalesforceBroadPreparation], @query_planning.QueryPlanningIssue]
 
 pub fn salesforce_broad_host_attempt(SalesforceBroadHostRun) -> @acquisition.SalesforceBroadAttempt
 
