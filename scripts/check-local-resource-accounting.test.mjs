@@ -41,17 +41,45 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 23 with operation-specific boundary records, 6 with four-role boundary evidence, 5 with full work\/workspace assurance, 24 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 23 with operation-specific boundary records, 7 with four-role boundary evidence, 6 with full work\/workspace assurance, 25 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
-test('fixed event window work evidence must remain executable', () => {
+test('event window work, workspace, and Host evidence must remain executable', () => {
   assert.match(run(undefined, routes => {
     const window = routes.routes.find(entry => entry.family === 'TEA' &&
       entry.operation === 'window_events');
     window.boundary_tests.find(item =>
-      item.role === 'window_fixed_control_work_exact_one_short').fixture =
-      'missing-fixed-window-control-work';
-  }), /TEA window_events: missing operation boundary fixture missing-fixed-window-control-work/);
+      item.role === 'window_control_work_exact_one_short').fixture =
+      'missing-window-control-work';
+  }), /TEA window_events: missing operation boundary fixture missing-window-control-work/);
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    window.boundary_tests = window.boundary_tests.filter(item =>
+      item.role !== 'window_workspace_exact_one_short');
+  }), /TEA window_events: window_workspace_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    window.boundary_tests = window.boundary_tests.filter(item =>
+      item.role !== 'window_empty_finish_work_exact_one_short');
+  }), /TEA window_events: window_empty_finish_work_exact_one_short fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    window.environment_tests = window.environment_tests.filter(item =>
+      item.role !== 'window_sliding_host_timer');
+  }), /TEA window_events: window_sliding_host_timer fixture is missing/);
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    delete window.resource_assurance.entrypoint.workspace.one_short_limit;
+  }), /TEA window_events: entrypoint operation workspace needs exact and one-short proofs/);
+  assert.match(run(undefined, routes => {
+    const window = routes.routes.find(entry => entry.family === 'TEA' &&
+      entry.operation === 'window_events');
+    delete window.path_assurance.entrypoint;
+  }), /TEA window_events: fixed and sliding work, workspace, and lifecycle assurance is missing/);
 });
 
 test('global top-k loses its bounded ordinary evidence when removed', () => {

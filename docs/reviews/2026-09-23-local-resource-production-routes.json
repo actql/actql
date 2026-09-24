@@ -2930,13 +2930,70 @@
       },
       "boundary_tests": [
         {
-          "role": "window_fixed_control_work_exact_one_short",
+          "role": "window_control_work_exact_one_short",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
           "path": "src/local_tea/window_wbtest.mbt",
-          "fixture": "fixed event window admits exact control work across resumes"
+          "fixture": "event windows admit exact control work across resumes"
+        },
+        {
+          "role": "window_workspace_exact_one_short",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/window_wbtest.mbt",
+          "fixture": "event windows admit exact fixed and sliding workspace"
+        },
+        {
+          "role": "window_empty_finish_work_exact_one_short",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/window_wbtest.mbt",
+          "fixture": "empty event windows stop at the exact finish-work boundary"
+        },
+        {
+          "role": "window_kernel_cancel_cleanup",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/window_wbtest.mbt",
+          "fixture": "event windows admit capacity before allocation and clean cancellation"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "window_fixed_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "window-fixed"
+        },
+        {
+          "role": "window_sliding_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "window-sliding"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "window_workspace_exact_one_short",
+          "one_short_limit": "window_workspace_exact_one_short",
+          "in_flight_cancel": "window_fixed_host_timer",
+          "cleanup": "window_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "window_control_work_exact_one_short",
+            "one_short_limit": "window_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "window_workspace_exact_one_short",
+            "one_short_limit": "window_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

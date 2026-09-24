@@ -5,8 +5,8 @@ Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 This is a live implementation ledger, not a completion claim. The machine
 readable coverage manifest is authoritative for individual operation status.
 The current local resource gate maps 68 routes: 23 have operation-specific
-boundary records, 6 have all four lifecycle roles, and 5 have exact and
-one-short work/workspace assurance across every production path. Another 24
+boundary records, 7 have all four lifecycle roles, and 6 have exact and
+one-short work/workspace assurance across every production path. Another 25
 paths have path-scoped work/workspace evidence. Strict completion remains red.
 
 Global `top_k` now selects a bounded Relation task after its checked key
@@ -105,13 +105,21 @@ production entrypoint. This is literal-path evidence, not full work/workspace
 assurance for the Relation-selector and predicate variants.
 
 The Event window kernel now applies a cumulative control-work ceiling across
-bounded resumes. A fixed one-record fixture independently counts nine steps:
-record admission, three field reads, membership preparation, one seek,
-boundary construction, output commit, and finish. Nine steps complete and
-eight fail without publishing output; each quantum-one poll charges at most
-one step. This is fixed-window control-work evidence, not complete work and
-workspace assurance for fixed and sliding variants or Host-delivered
-cancellation of this exact fixture.
+bounded resumes. Fixed and sliding one-record fixtures independently count
+nine and twelve steps for three-field input: record admission, three field
+reads, membership preparation, one or two seeks, one or two boundary builds
+and commits, and finish. An extra field adds exactly one read step. Exact
+ceilings complete; one-short ceilings fail without publishing output; each
+quantum-one poll charges at most one step. Separate fixtures complete at
+seven and fourteen structural workspace slots, or eight and sixteen with
+an extra input field, and reject one-short admission. Both number and
+timestamp clocks use these fixtures. Fixed and sliding standard Host timers
+observe stop, nonpublication, and cleanup after positive operation work.
+Empty inputs take exactly one charged finish step, while a zero-step budget
+is rejected before allocating the output builder.
+The single production entrypoint now has complete work/workspace and lifecycle
+assurance; this does not discharge the other TEA operations or the
+providerless synchronous lane.
 
 Direct Graph `node_rows` and `edge_rows` Bridge fixtures now check exact and
 one-short structural workspace admission and admitted-value work on fixed

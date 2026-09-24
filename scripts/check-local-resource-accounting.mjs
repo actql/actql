@@ -456,6 +456,18 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'TEA' && route.operation === 'window_events') {
+    for (const role of [
+      'window_control_work_exact_one_short',
+      'window_workspace_exact_one_short',
+      'window_empty_finish_work_exact_one_short',
+      'window_kernel_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   const environmentRoles = new Set();
   for (const item of route.environment_tests ?? []) {
     if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -475,6 +487,16 @@ for (const [index, route] of routeEntries.entries()) {
     const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
     if (!sourceText.includes(`name: '${item.fixture}'`)) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
+    }
+  }
+  if (route.family === 'TEA' && route.operation === 'window_events') {
+    for (const role of [
+      'window_fixed_host_timer',
+      'window_sliding_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
     }
   }
   if (route.family === 'RelA' && route.operation === 'append' &&
@@ -721,6 +743,11 @@ for (const [index, route] of routeEntries.entries()) {
       !allowedReuse.some(grant => grant?.role === role)) {
       fail(`${label}: ${role} is reused across production paths`);
     }
+  }
+  if (route.family === 'TEA' && route.operation === 'window_events' &&
+    (pathAssurance.entrypoint === undefined ||
+      resourceAssurance.entrypoint === undefined)) {
+    fail(`${label}: fixed and sliding work, workspace, and lifecycle assurance is missing`);
   }
   if (requireBoundaryComplete) {
     for (const pathName of requiredPaths) {
