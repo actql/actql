@@ -1,0 +1,107 @@
+{
+  "version": "actql-compilation-manifests/0.1",
+  "schema_cids": {
+    "grammar_manifest": "sha256:fce1a3d02d7f99742b001b700c6f103a4aa08237de0c9417bab20ea8931eb700",
+    "barrier_contract_manifest": "sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342"
+  },
+  "schemas": {
+    "grammar_manifest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-grammar-manifest-0.1.json",
+      "title": "actql-grammar-manifest-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_grammar_cid",
+        "operations",
+        "expression_contract_cid",
+        "expression_text_grammar_sha256",
+        "expression_text_rules_sha256",
+        "grammar_manifest_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-grammar-manifest/0.1"
+        },
+        "source_grammar_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "expression_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "expression_text_grammar_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expression_text_rules_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "grammar_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "barrier_contract_manifest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-barrier-contract-manifest-0.1.json",
+      "title": "actql-barrier-contract-manifest-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "production_profile_registry_cid",
+        "contracts",
+        "barrier_contract_manifest_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-barrier-contract-manifest/0.1"
+        },
+        "production_profile_registry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "contracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "contract_cid"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "barrier_contract_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
