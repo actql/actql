@@ -2240,6 +2240,262 @@ pub fn client_program_effect_input_export_cancel(
 }
 
 ///|
+/// Keep the private Preview, checked Plan, and managed Result import under one
+/// owner. Physical rows enter through the same generation-checked bridge as
+/// publication. This owner cannot authorize an Effect send.
+struct ClientEffectPlanImport {
+  preview : @strategy.CapturedEffectPreviewInputs
+  preview_index : Int
+  verifier : @strategy.CapturedEffectPlanVerifier
+  importing : ClientEffectManagedInputImport
+  mut open : Bool
+}
+
+///|
+struct ClientEffectPlanPreparation {
+  owner : ClientEffectPlanImport
+  preparation : @execution.CompletedResultRelationExportPreparation
+}
+
+///|
+struct ClientEffectPlanCursor {
+  owner : ClientEffectPlanImport
+  stream : @execution.CompletedOutputExport
+  mut exhausted : Bool
+  mut closed : Bool
+}
+
+///|
+fn client_effect_plan_poison(value : ClientEffectPlanCursor) -> Unit {
+  value.closed = true
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
+  @execution.cancel_completed_output_export(value.stream)
+  client_program_effect_managed_input_cancel(value.owner.importing)
+}
+
+///|
+pub(all) enum ClientEffectPlanStreamIssue {
+  InvalidMember
+  NotReady
+  Closed
+  Plan(@strategy.CapturedEffectPlanVerifyIssue)
+  Import(ClientEffectManagedInputIssue)
+  Export(@execution.CompletedExportIssue)
+}
+
+///|
+/// A caller may choose which admitted Preview member to inspect, but cannot
+/// substitute a Plan, source Result, or physical generation.
+#export_name("clientProgramEffectPlanImportBegin")
+pub fn client_program_effect_plan_import_begin(
+  preview : @strategy.CapturedEffectPreviewInputs,
+  preview_index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[ClientEffectPlanImport, ClientEffectPlanStreamIssue] {
+  guard @strategy.captured_effect_preview_input_at(preview, preview_index)
+    is Some(input) else {
+    return Err(InvalidMember)
+  }
+  let verifier = match
+    @strategy.prepare_captured_effect_plan_verifier(
+      preview, preview_index, max_fields, max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Plan(issue))
+  }
+  let importing = match
+    client_program_effect_managed_input_begin(input, output, material, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Import(issue))
+  }
+  Ok({ preview, preview_index, verifier, importing, open: true, })
+}
+
+///|
+#export_name("clientProgramEffectPlanImportAppend")
+pub fn client_program_effect_plan_import_append(
+  value : ClientEffectPlanImport,
+  row : String,
+) -> Result[Unit, ClientEffectPlanStreamIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  client_program_effect_managed_input_append(value.importing, row).map_err(issue => {
+    Import(issue)
+  })
+}
+
+///|
+#export_name("clientProgramEffectPlanImportFinish")
+pub fn client_program_effect_plan_import_finish(
+  value : ClientEffectPlanImport,
+) -> Result[ClientEffectPlanPreparation, ClientEffectPlanStreamIssue] {
+  if !value.open {
+    return Err(Closed)
+  }
+  value.open = false
+  client_program_effect_managed_input_finish(value.importing)
+  .map(preparation => { owner: value, preparation, })
+  .map_err(issue => Import(issue))
+}
+
+///|
+#export_name("clientProgramEffectPlanAdvance")
+pub fn client_program_effect_plan_advance(
+  value : ClientEffectPlanPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), ClientEffectPlanStreamIssue] {
+  @execution.advance_completed_result_relation_export(
+    value.preparation,
+    quantum,
+  ).map_err(issue => Export(issue))
+}
+
+///|
+#export_name("clientProgramEffectPlanReady")
+pub fn client_program_effect_plan_ready(
+  value : ClientEffectPlanPreparation,
+) -> Result[ClientEffectPlanCursor, ClientEffectPlanStreamIssue] {
+  let stream = match
+    @execution.finish_completed_result_relation_export_preparation(
+      value.preparation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Export(issue))
+  }
+  Ok({ owner: value.owner, stream, exhausted: false, closed: false, })
+}
+
+///|
+/// Return publication bytes only after their checked Plan changes match the
+/// private Preview at the same source-row position. The cursor consumes one
+/// bounded canonical row at a time; Node never rebuilds the full Relation.
+#export_name("clientProgramEffectPlanNext")
+pub fn client_program_effect_plan_next(
+  value : ClientEffectPlanCursor,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+) -> Result[String?, ClientEffectPlanStreamIssue] {
+  if value.closed || value.exhausted {
+    return Err(Closed)
+  }
+  if @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is None {
+    client_effect_plan_poison(value)
+    return Err(NotReady)
+  }
+  let next = match
+    @execution.next_completed_output_export_canonical_row(
+      value.stream,
+      max_nodes,
+      max_depth,
+      max_utf16_units,
+    ) {
+    Ok(Some(row)) => row
+    Ok(None) => {
+      value.exhausted = true
+      return Ok(None)
+    }
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Export(issue))
+    }
+  }
+  let (index, batch, row) = next
+  match
+    @strategy.check_captured_effect_plan_row(
+      value.owner.verifier,
+      row,
+      index,
+      max_fields,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Plan(issue))
+    }
+  }
+  Ok(Some(batch))
+}
+
+///|
+/// Exhaustion and exact row count are required before a relation receipt can
+/// be returned. Target correlation, current guards, and apply remain separate.
+#export_name("clientProgramEffectPlanFinish")
+pub fn client_program_effect_plan_finish(
+  value : ClientEffectPlanCursor,
+) -> Result[
+  (@execution.CompletedRelationExportReceipt, String),
+  ClientEffectPlanStreamIssue,
+] {
+  if value.closed || !value.exhausted {
+    return Err(Closed)
+  }
+  if @strategy.captured_effect_preview_input_at(
+      value.owner.preview,
+      value.owner.preview_index,
+    )
+    is None {
+    client_effect_plan_poison(value)
+    return Err(NotReady)
+  }
+  match @strategy.finish_captured_effect_plan_verifier(value.owner.verifier) {
+    Ok(_) => ()
+    Err(issue) => {
+      client_effect_plan_poison(value)
+      return Err(Plan(issue))
+    }
+  }
+  value.closed = true
+  @execution.finish_completed_relation_export(value.stream).map_err(issue => {
+    Export(issue)
+  })
+}
+
+///|
+#export_name("clientProgramEffectPlanCancel")
+pub fn client_program_effect_plan_cancel(
+  value : ClientEffectPlanCursor,
+) -> Unit {
+  client_effect_plan_poison(value)
+}
+
+///|
+#export_name("clientProgramEffectPlanCancelPreparation")
+pub fn client_program_effect_plan_cancel_preparation(
+  value : ClientEffectPlanPreparation,
+) -> Bool {
+  @strategy.cancel_captured_effect_plan_verifier(value.owner.verifier)
+  client_program_effect_managed_input_cancel(value.owner.importing)
+  @execution.cancel_completed_result_relation_export(value.preparation)
+}
+
+///|
+#export_name("clientProgramEffectPlanCancelImport")
+pub fn client_program_effect_plan_cancel_import(
+  value : ClientEffectPlanImport,
+) -> Unit {
+  value.open = false
+  @strategy.cancel_captured_effect_plan_verifier(value.verifier)
+  client_program_effect_managed_input_cancel(value.importing)
+}
+
+///|
 #export_name("clientProgramReleaseEffectInputs")
 pub fn client_program_release_effect_inputs(
   value : @strategy.CapturedEffectInputs,

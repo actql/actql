@@ -25,6 +25,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/canonical_json" @identity,
   "actql/actql/numeric_reduction" @numeric,
   "actql/actql/execution_authorization" @authorization,
 }
