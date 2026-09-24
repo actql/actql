@@ -153,6 +153,21 @@ durability without re-encrypting or sending an Effect. A failed confirmation
 sync remains retryable against the same ciphertext. This closes physical
 holding reconciliation only; it is not a committed Effectful Run index.
 
+The next final-Receipt integration must start with durable row outcomes, not
+with a Host wrapper around `issueEffectfulFinalRunReceipt`. The current
+SQLite Effect Ledger stores possible-dispatch heads and raw HTTP responses;
+its `outcome_receipt_cid` is an exact reference but does not itself prove a
+provider projection, typed row result, or member/set partition. The common
+MoonBit final-Receipt issuer currently validates the references supplied to
+it, while its contract explicitly leaves physical outcome admission to the
+Host. A direct wrapper accepting caller-assembled member receipt wires would
+permit a fabricated successful result to reach final issuance. The required
+order is: admit each stored physical observation under its exact claim,
+durably record the typed row outcome and its receipt, derive member and set
+receipts from those admitted heads, then issue the final Run Receipt from the
+same captured computation owner. Unknown remains possible-send and cannot be
+converted to failure or retried as a new physical send.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
