@@ -90,6 +90,11 @@ priv struct BoundedBindingRowsState {
   binding_ordinals : Map[String, Int]
   projection_ordinals : Map[String, Int]?
   take_range : (Int, Int)?
+  partition_limit : Int64?
+  partition_terms : Int
+  mut partition_leader : Int
+  mut partition_taken : Int64
+  mut partition_checked : Bool
   sort_kernel : @lower.PreparedKernel?
   sort_only : Bool
   engine : @bounded.Control
@@ -570,13 +575,27 @@ fn bounded_binding_rows_step(
         guard state.sort_kernel is Some(kernel) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if state.column == @lower.kernel_sort_term_count(kernel) {
+        if state.column ==
+          state.partition_terms + @lower.kernel_sort_term_count(kernel) {
           state.phase = StartSort
           continue
         }
-        guard @lower.kernel_sort_term_at(kernel, state.column)
-          is Some((field, descending, nulls_first)) else {
-          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        let (field, descending, nulls_first) = if state.column <
+          state.partition_terms {
+          guard @lower.kernel_top_k_partition_at(kernel, state.column)
+            is Some(field) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          (field, false, true)
+        } else {
+          guard @lower.kernel_sort_term_at(
+              kernel,
+              state.column - state.partition_terms,
+            )
+            is Some(order) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          order
         }
         let name = @schema.reference_name(field)
         if !spend_control(state.control, 1) ||
@@ -753,6 +772,53 @@ fn bounded_binding_rows_step(
         }
         if state.row == count {
           state.phase = FinishOutput
+          continue
+        }
+        if state.partition_limit is Some(limit) && !state.partition_checked {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          guard state.sorted_indices is Some(indices) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          let source = indices[state.row]
+          let different = if state.partition_leader < 0 {
+            true
+          } else {
+            let rows : ProducerReadIndexedRows = {
+              input: state.input,
+              width: state.input_names.length(),
+            }
+            match
+              compare_row_indices_prefix(
+                rows,
+                state.partition_leader,
+                source,
+                state.sort_orders,
+                state.partition_terms,
+                state.control,
+              ) {
+              Ok(value) => value != 0
+              Err(issue) =>
+                return fail_bounded_binding_rows(
+                  Rows(ordering_row_issue(issue)),
+                  progress,
+                  used + 1,
+                )
+            }
+          }
+          if different {
+            state.partition_leader = source
+            state.partition_taken = 0L
+          }
+          state.partition_checked = true
+          used += 1
+          if state.partition_taken >= limit {
+            state.row += 1
+            state.partition_checked = false
+          } else {
+            state.partition_taken += 1L
+          }
           continue
         }
         if state.distinct {
@@ -1069,6 +1135,7 @@ fn bounded_binding_rows_step(
         state.output_row = []
         state.checked_row = []
         state.row += 1
+        state.partition_checked = false
         state.phase = BeginRow
         progress += 1
         used += 1
@@ -1198,6 +1265,19 @@ pub fn start_bounded_binding_rows(
       }
       ([], false, None, false, Some((0, selected)), Some(kernel))
     }
+    @lower.PartitionedTopK(top_count, _) => {
+      if top_count < 1L {
+        return Err(InvalidExecution)
+      }
+      (
+        [],
+        false,
+        None,
+        false,
+        Some((0, producer_read_row_count(input))),
+        Some(kernel),
+      )
+    }
     @lower.Limit(take_count, offset, _) => {
       let prepared = @lower.bound_preparation(owner)
       guard @lower.node_at(prepared, step) is Some(node) &&
@@ -1228,7 +1308,18 @@ pub fn start_bounded_binding_rows(
     !admit_metadata(bindings.length()) {
     return Err(InvalidExecution)
   }
-  let sort_only = body is @lower.StableSort(_) || body is @lower.TopK(_, _)
+  let sort_only = body is @lower.StableSort(_) ||
+    body is @lower.TopK(_, _) ||
+    body is @lower.PartitionedTopK(_, _)
+  let partition_limit = match body {
+    @lower.PartitionedTopK(count, _) => Some(count)
+    _ => None
+  }
+  let partition_terms = if partition_limit is Some(_) {
+    @lower.kernel_top_k_partition_count(kernel)
+  } else {
+    0
+  }
   let distinct = body is @lower.DistinctRows
   let assertion = body is @lower.AssertAll(_)
   let unique_keys = match body {
@@ -1250,7 +1341,10 @@ pub fn start_bounded_binding_rows(
     return Err(InvalidExecution)
   }
   if sort_kernel is Some(sort) &&
-    !admit_metadata(@lower.kernel_sort_term_count(sort)) {
+    (
+      !admit_metadata(@lower.kernel_sort_term_count(sort)) ||
+      !admit_metadata(partition_terms)
+    ) {
     return Err(InvalidExecution)
   }
   let mut logical : LogicalBudget? = None
@@ -1335,6 +1429,7 @@ pub fn start_bounded_binding_rows(
     }
     @lower.StableSort(_)
     | @lower.TopK(_, _)
+    | @lower.PartitionedTopK(_, _)
     | @lower.Limit(_, _, _)
     | @lower.AssertUnique(_) => {
       let projection : Map[String, Int] = Map([])
@@ -1410,6 +1505,11 @@ pub fn start_bounded_binding_rows(
     binding_ordinals,
     projection_ordinals,
     take_range,
+    partition_limit,
+    partition_terms,
+    partition_leader: -1,
+    partition_taken: 0L,
+    partition_checked: false,
     sort_kernel,
     sort_only,
     engine,

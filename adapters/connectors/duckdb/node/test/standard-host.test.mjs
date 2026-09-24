@@ -5963,7 +5963,7 @@ async function exerciseStrategyGraph(
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
     ['global top k', globalTopKProgram, [1, 2, 3, 4, 5]],
-    ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4]],
+    ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
@@ -6174,7 +6174,7 @@ async function exerciseStrategyGraph(
       if (name === 'global top k' || name === 'partitioned top k') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          name === 'global top k' ? [4, 4, 2, 2, 2] : [4, 2, 2, 2],
+          [4, 4, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -6467,13 +6467,26 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-sort-in-flight', kind: 'sort'},
     {name: 'ordinary-distinct-in-flight', kind: 'distinct'},
     {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
+    {name: 'ordinary-partitioned-top-k-in-flight', kind: 'top-k-by'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
   ]) {
     const ordinaryUnaryProgram = structuredClone(selectProgram);
-    ordinaryUnaryProgram.stages.find(stage =>
-      stage.id === 'select_values').steps[0].values.rows = Array.from(
-      {length: 80}, (_, index) => ({id: index + 1, amount: index}),
+    const hasPreliminary = ordinaryUnaryCase.kind === 'top-k' ||
+      ordinaryUnaryCase.kind === 'top-k-by';
+    const source = ordinaryUnaryProgram.stages.find(stage =>
+      stage.id === 'select_values');
+    source.steps[0].values.rows = Array.from(
+      {length: 80}, (_, index) => ({
+        id: index + 1,
+        amount: index,
+        ...(ordinaryUnaryCase.kind === 'top-k-by'
+          ? {group: index % 2 === 0 ? 'a' : 'b'} : {}),
+      }),
     );
+    if (ordinaryUnaryCase.kind === 'top-k-by') {
+      source.steps[0].values.schema.group = {type: 'string', nullable: false};
+      source.results.r.fields = ['id', 'amount', 'group'];
+    }
     if (ordinaryUnaryCase.kind !== 'select') {
       const unary = ordinaryUnaryProgram.stages.find(stage =>
         stage.id === 'selected');
@@ -6487,9 +6500,12 @@ async function exerciseStrategyGraph(
         sort: {sort: [{id: 'desc'}], as: 'out'},
         distinct: {distinct: true, as: 'out'},
         'top-k': {top_k: {k: 60, by: [{id: 'desc'}]}, as: 'out'},
+        'top-k-by': {top_k_by: {
+          partition_by: ['group'], k: 30, by: [{id: 'desc'}],
+        }, as: 'out'},
         take: {take: 60, as: 'out'},
       }[ordinaryUnaryCase.kind];
-      unary.steps = ordinaryUnaryCase.kind === 'top-k'
+      unary.steps = hasPreliminary
         ? [
           {assert_rows: {unique_by: ['id']}, as: 'unique'},
           {from: 'unique', ...unaryStep},
@@ -6499,6 +6515,8 @@ async function exerciseStrategyGraph(
         ? ['id', 'amount', 'next']
         : ordinaryUnaryCase.kind === 'rename' ? ['id', 'total']
           : ordinaryUnaryCase.kind === 'drop' ? ['id']
+            : ordinaryUnaryCase.kind === 'top-k-by'
+              ? ['id', 'amount', 'group']
             : ['id', 'amount'];
       unary.results.r.fields = fields;
       for (const consumer of ordinaryUnaryProgram.stages.filter(stage =>
@@ -6560,7 +6578,7 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const result = active.advance(quantum);
                   const poll = checked(result);
-                  if (start === (ordinaryUnaryCase.kind === 'top-k'
+                  if (start === (hasPreliminary
                     ? 3 : 2)) {
                     assert(poll.work <= BigInt(quantum));
                     if (poll.complete === false && poll.progress > 0n &&
@@ -6587,7 +6605,7 @@ async function exerciseStrategyGraph(
         cancellation.signal,
       );
       assert.equal(managedStarts,
-        ordinaryUnaryCase.kind === 'top-k' ? 3 : 2);
+        hasPreliminary ? 3 : 2);
       assert(progressAfterStart > 0n,
         `${ordinaryUnaryCase.name}: row work must precede abort`);
       assert.equal(cancellation.signal.aborted, true);
@@ -6597,7 +6615,7 @@ async function exerciseStrategyGraph(
       assert.equal(execution.status, 'host-tasks-failed');
       assert.equal(execution.failure?.name, 'AbortError');
       assert.deepEqual(execution.completed.map(item => item.task),
-        ordinaryUnaryCase.kind === 'top-k' ? [1, 2] : [1]);
+        hasPreliminary ? [1, 2] : [1]);
     } finally {
       ordinaryUnaryCapture.close();
       await execution?.close();

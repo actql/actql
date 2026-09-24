@@ -98,6 +98,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Sort(_)
     | Limit(_)
     | TopK(_)
+    | TopKBy(_)
     | Distinct(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
@@ -169,6 +170,7 @@ pub fn node_accepts_managed_relation_view(
     | Sort(_)
     | Limit(_)
     | TopK(_)
+    | TopKBy(_)
     | Distinct(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||

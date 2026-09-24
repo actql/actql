@@ -4,10 +4,13 @@ fn bounded_binding_rows_source(
   id_nullable? : Bool = false,
   distinct? : Bool = false,
   top_k_source? : Bool = false,
+  top_k_by_source? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   let text = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
     (if id_nullable { "true" } else { "false" }) +
-    (if distinct {
+    (if top_k_by_source {
+      "},\"group\":{\"type\":\"string\",\"nullable\":true},\"score\":{\"type\":\"number\",\"nullable\":false}}"
+    } else if distinct {
       "},\"tag\":{\"type\":\"string\",\"nullable\":true}}"
     } else {
       "},\"left\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"right\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}}"
@@ -15,7 +18,7 @@ fn bounded_binding_rows_source(
     ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]"
-  let text = if top_k_source {
+  let text = if top_k_source || top_k_by_source {
     text.replace(
       old="\"as\":\"seed\"}]",
       new="\"as\":\"rows\"},{\"from\":\"rows\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"seed\"}]",
@@ -25,7 +28,7 @@ fn bounded_binding_rows_source(
   }
   let owner = bound_pipeline(text)
   let sequence = prepared_sequence(owner)
-  let output_step = if top_k_source { 1 } else { 0 }
+  let output_step = if top_k_source || top_k_by_source { 1 } else { 0 }
   let nodes = Array::makei(output_step + 1, index => {
     @lower.node_id(
       @lower.node_at(@lower.bound_preparation(owner), index).unwrap(),
@@ -60,6 +63,8 @@ fn bounded_binding_rows_receiver(
   drop? : Bool = false,
   take? : Bool = false,
   top_k? : Bool = false,
+  top_k_by? : Bool = false,
+  top_k_by_empty? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
@@ -79,6 +84,12 @@ fn bounded_binding_rows_receiver(
         "{\"distinct\":true,\"from\":\"rows\",\"as\":\"derived\"}"
       } else if top_k {
         "{\"top_k\":{\"k\":1,\"by\":[{\"id\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if top_k_by {
+        "{\"top_k_by\":{\"partition_by\":[\"group\"],\"k\":1," +
+        "\"by\":[{\"score\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if top_k_by_empty {
+        "{\"top_k_by\":{\"partition_by\":[],\"k\":2," +
+        "\"by\":[{\"score\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if take {
         "{\"take\":{\"count\":1,\"offset\":1},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if sort || sort_empty {
@@ -147,6 +158,8 @@ fn bounded_binding_rows_fixture(
   drop? : Bool = false,
   take? : Bool = false,
   top_k? : Bool = false,
+  top_k_by? : Bool = false,
+  top_k_by_empty? : Bool = false,
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
@@ -162,10 +175,11 @@ fn bounded_binding_rows_fixture(
     id_nullable~,
     distinct=distinct || distinct_keyed,
     top_k_source=top_k,
+    top_k_by_source=top_k_by || top_k_by_empty,
   )
   let receiver = bounded_binding_rows_receiver(
     source_owner,
-    source_step=if top_k { 1 } else { 0 },
+    source_step=if top_k || top_k_by || top_k_by_empty { 1 } else { 0 },
     following_step~,
     filter~,
     assert_all~,
@@ -175,6 +189,8 @@ fn bounded_binding_rows_fixture(
     drop~,
     take~,
     top_k~,
+    top_k_by~,
+    top_k_by_empty~,
     sort~,
     sort_empty~,
     distinct~,
@@ -192,6 +208,8 @@ fn bounded_binding_rows_fixture(
       assert_unique ||
       take ||
       top_k ||
+      top_k_by ||
+      top_k_by_empty ||
       sort ||
       sort_empty ||
       distinct ||
@@ -686,6 +704,78 @@ test "bounded global top-k stops before publishing partial output" {
   )
   assert_true(bounded_binding_rows_cleanup_pending(execution))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded partitioned top-k selects each nullable partition and reclaims" {
+  let rows = "[{\"id\":1,\"group\":\"b\",\"score\":1}," +
+    "{\"id\":2,\"group\":\"a\",\"score\":3}," +
+    "{\"id\":3,\"group\":\"b\",\"score\":2}," +
+    "{\"id\":4,\"group\":\"a\",\"score\":1}," +
+    "{\"id\":5,\"group\":null,\"score\":4}," +
+    "{\"id\":6,\"group\":null,\"score\":1}]"
+  let (_, execution, input) = bounded_binding_rows_fixture(rows, top_k_by=true)
+  let mut completed : CompletedOutput? = None
+  let mut polls = 0
+  while completed is None && polls < 2000 {
+    polls += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("partitioned top-k failed")
+    }
+  }
+  guard completed is Some(output) else {
+    fail("partitioned top-k did not finish")
+  }
+  assert_eq(completed_row_count(output), 3)
+  assert_eq(completed_column_name(output, 1), Some("id"))
+  assert_true(completed_cell(output, 0, 1) is Some(Number(5.0)))
+  assert_true(completed_cell(output, 1, 1) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 2, 1) is Some(Number(3.0)))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, global, input) = bounded_binding_rows_fixture(
+    rows,
+    top_k_by_empty=true,
+  )
+  let mut global_output : CompletedOutput? = None
+  let mut polls = 0
+  while global_output is None && polls < 2000 {
+    polls += 1
+    match advance_bounded_binding_rows(global, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => global_output = Some(output)
+      _ => fail("empty-partition top-k failed")
+    }
+  }
+  guard global_output is Some(output) else {
+    fail("empty-partition top-k did not finish")
+  }
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 1) is Some(Number(5.0)))
+  assert_true(completed_cell(output, 1, 1) is Some(Number(2.0)))
+  assert_true(cleanup_bounded_binding_rows(global).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (control, cancelled, input) = bounded_binding_rows_fixture(
+    rows,
+    top_k_by=true,
+  )
+  for _ in 0..<20 {
+    assert_true(
+      advance_bounded_binding_rows(cancelled, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(cancelled, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(cleanup_bounded_binding_rows(cancelled).unwrap())
   assert_true(producer_read_available(input))
 }
 

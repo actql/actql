@@ -32,7 +32,24 @@ fn[T : IndexedRows] compare_row_indices(
   order : Array[ColumnOrder],
   control : ControlBudget,
 ) -> Result[Int, OrderingIssue] {
-  for term in order {
+  compare_row_indices_prefix(table, a, b, order, order.length(), control)
+}
+
+///|
+/// Compare only the canonical partition prefix of a resolved sort order.
+fn[T : IndexedRows] compare_row_indices_prefix(
+  table : T,
+  a : Int,
+  b : Int,
+  order : Array[ColumnOrder],
+  terms : Int,
+  control : ControlBudget,
+) -> Result[Int, OrderingIssue] {
+  if terms < 0 || terms > order.length() {
+    return Err(InvalidInput)
+  }
+  for index in 0..<terms {
+    let term = order[index]
     if !spend_control(control, 1) {
       return Err(Limit)
     }

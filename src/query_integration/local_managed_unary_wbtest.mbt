@@ -44,12 +44,12 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":2}", "{\"amount\":30,\"id\":3}",
       ]
-    "top_k_by" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
+    "top_k_by" => ["{\"amount\":10,\"id\":1}", "{\"amount\":30,\"id\":2}"]
     "top_k_by_parameter" =>
-      ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
+      ["{\"amount\":10,\"id\":1}", "{\"amount\":30,\"id\":2}"]
     "top_k_by_nullable" =>
       [
-        "{\"id\":3,\"amount\":30,\"group\":null}", "{\"id\":4,\"amount\":40,\"group\":\"a\"}",
+        "{\"amount\":30,\"group\":null,\"id\":3}", "{\"amount\":40,\"group\":\"a\",\"id\":4}",
       ]
     "unnest" =>
       [
@@ -235,6 +235,8 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     [
       "{\"id\":1,\"amount\":null}", "{\"id\":2,\"amount\":null}", "{\"id\":3,\"amount\":30}",
     ]
+  } else if kind == "top_k_by" || kind == "top_k_by_parameter" {
+    ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
   } else if kind == "distinct" {
     [
       "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}",
@@ -249,13 +251,16 @@ fn run_local_managed_unary_case(
   kind : String,
   publication? : Bool = false,
 ) -> Unit raise {
-  let global_top_k = kind == "top_k" ||
+  let bounded_top_k_chain = kind == "top_k" ||
     kind == "top_k_parameter" ||
-    kind == "top_k_compound"
+    kind == "top_k_compound" ||
+    kind == "top_k_by" ||
+    kind == "top_k_by_parameter" ||
+    kind == "top_k_by_nullable"
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
     managed_publication=publication,
-    ledger_limits=if global_top_k {
+    ledger_limits=if bounded_top_k_chain {
       Some({
         planning_work: 10000,
         attempts: 10,
@@ -268,7 +273,7 @@ fn run_local_managed_unary_case(
       None
     },
   )
-  if global_top_k {
+  if bounded_top_k_chain {
     let graph = @strategy.captured_dag_graph(run)
     assert_eq(@strategy.graph_task_count(graph), 6)
     assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
@@ -329,7 +334,7 @@ fn run_local_managed_unary_case(
   let value_rows = local_managed_test_rows(values_ops)
   assert_eq(value_rows, local_managed_unary_input_expected(kind))
 
-  let preliminary = if global_top_k {
+  let preliminary = if bounded_top_k_chain {
     let live = Ref(true)
     let obligations = if publication {
       Some(@strategy.captured_next_managed_obligations(run, 10).unwrap())
@@ -363,7 +368,7 @@ fn run_local_managed_unary_case(
     Some((_, _, rows, _)) => rows
     None => value_rows
   }
-  let unary_task = if global_top_k { 3 } else { 2 }
+  let unary_task = if bounded_top_k_chain { 3 } else { 2 }
 
   let unary_live = Ref(true)
   let unary_obligations = if publication {
@@ -402,13 +407,16 @@ fn run_local_managed_unary_case(
       kind == "take_parameter" ||
       kind == "top_k" ||
       kind == "top_k_parameter" ||
-      kind == "top_k_compound" {
+      kind == "top_k_compound" ||
+      kind == "top_k_by" ||
+      kind == "top_k_by_parameter" ||
+      kind == "top_k_by_nullable" {
       1
     } else {
       0
     },
     execution_advances=Some(bounded_advances),
-    require_provider=global_top_k,
+    require_provider=bounded_top_k_chain,
   )
   if kind == "select" ||
     kind == "derive_map" ||
@@ -431,7 +439,10 @@ fn run_local_managed_unary_case(
     kind == "take_parameter" ||
     kind == "top_k" ||
     kind == "top_k_parameter" ||
-    kind == "top_k_compound" {
+    kind == "top_k_compound" ||
+    kind == "top_k_by" ||
+    kind == "top_k_by_parameter" ||
+    kind == "top_k_by_nullable" {
     assert_true(bounded_advances.val > 4)
   }
   let expected = local_managed_unary_expected(kind)
@@ -562,6 +573,13 @@ test "Local managed unary source forms feed two downstream Computes" {
 test "ordinary Local sort resumes within quantum and feeds two Computes" {
   run_local_managed_unary_case("sort")
   run_local_managed_unary_case("sort_compound")
+}
+
+///|
+test "ordinary Local partitioned top-k resumes and feeds two Computes" {
+  run_local_managed_unary_case("top_k_by")
+  run_local_managed_unary_case("top_k_by_parameter")
+  run_local_managed_unary_case("top_k_by_nullable")
 }
 
 ///|
