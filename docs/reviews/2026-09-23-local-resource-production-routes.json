@@ -3201,6 +3201,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_tea/session_wbtest.mbt",
           "fixture": "session admits exact and one-short cumulative control work"
+        },
+        {
+          "role": "session_output_workspace_exact_one_short",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/session_wbtest.mbt",
+          "fixture": "session output workspace includes scratch and temporary fields"
         }
       ],
       "environment_tests": [
