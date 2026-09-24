@@ -562,6 +562,50 @@ pub fn client_program_publication_plan_fact_entries(
 }
 
 ///|
+/// The checked publication-limit witness closure is private Plan material.
+#export_name("clientProgramIssuePublicationWitnesses")
+pub fn client_program_issue_publication_witnesses(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientPublicationWitnesses,
+  @publication_host.ClientPublicationWitnessIssue,
+] {
+  @publication_host.issue_prepared_client_publication_witnesses(
+    prepared, 10000, 100000, 10000, 100,
+  )
+}
+
+///|
+#export_name("clientProgramPublicationWitnessBodies")
+pub fn client_program_publication_witness_bodies(
+  value : @publication_host.ClientPublicationWitnesses,
+) -> Array[String] {
+  @publication_host.client_publication_witness_bodies(value)
+}
+
+///|
+#export_name("clientProgramPublicationWitnessCids")
+pub fn client_program_publication_witness_cids(
+  value : @publication_host.ClientPublicationWitnesses,
+) -> Array[String] {
+  @publication_host.client_publication_witness_cids(value)
+}
+
+///|
+#export_name("clientProgramAdmitPublicationWitnesses")
+pub fn client_program_admit_publication_witnesses(
+  prepared : @publication_host.PreparedClientProgram,
+  saved : Array[String],
+) -> Result[
+  @publication_host.ClientPublicationWitnesses,
+  @publication_host.ClientPublicationWitnessAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_publication_witnesses(
+    prepared, saved, 10000, 100000, 10000, 100,
+  )
+}
+
+///|
 /// Check saved Result-publication entries against the prepared Program.
 #export_name("clientProgramAdmitPublicationFactEntries")
 pub fn client_program_admit_publication_fact_entries(
