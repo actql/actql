@@ -443,6 +443,29 @@ export function issueDurableResultBinding(runDefinition, definition,
     'RunHostDurableBindingRejected'));
 }
 
+export function inspectCanonicalResultRows(rowsWire, fields, limits) {
+  if (typeof rowsWire !== 'string' || !Array.isArray(fields) ||
+      !fields.every(value => typeof value === 'string')) {
+    throw new TypeError('InvalidRunHostResultRows');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const result = checked(owner.clientValuesHostInspectCanonicalResultRows(
+    rowsWire, fields, maxWireBytes, maxNodes, maxDepth),
+  'RunHostResultRowsRejected');
+  if (!Array.isArray(result) || result.length !== 2 ||
+      typeof result[0] !== 'string' ||
+      !/^sha256:[0-9a-f]{64}$/u.test(result[0]) ||
+      typeof result[1] !== 'string' ||
+      !/^(0|[1-9][0-9]*)$/u.test(result[1])) {
+    throw new Error('InvalidRunHostResultRowsProjection');
+  }
+  const rowCount = Number(result[1]);
+  if (!Number.isSafeInteger(rowCount)) {
+    throw new Error('InvalidRunHostResultRowsProjection');
+  }
+  return Object.freeze({logicalRelationCid: result[0], rowCount});
+}
+
 export function issueResultManifest(runDefinition, invocation,
   definitions, artifacts, limits) {
   if (!Array.isArray(definitions) || !Array.isArray(artifacts)) {

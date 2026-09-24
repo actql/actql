@@ -143,6 +143,8 @@ pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[Durabl
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
+pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
+
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
 pub fn issue_delivery_attempt(PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]

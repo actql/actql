@@ -10,6 +10,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueResultManifest,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
   issueDurableResultBinding,
+  inspectCanonicalResultRows,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
@@ -59,6 +60,23 @@ test('portable Host re-admits exact publication evidence', () => {
   assert.throws(() => admitPublicationContract('result_definition',
     definition.wire, {maxWireBytes: 0, maxNodes: 100, maxDepth: 10}),
   {name: 'TypeError', message: 'InvalidRunHostPublicationLimits'});
+});
+
+test('portable Host derives logical identity from exact ordered rows', () => {
+  const limits = {maxWireBytes: 4096, maxNodes: 100, maxDepth: 16};
+  const rows = '[{"id":1},{"id":2}]';
+  assert.deepEqual(inspectCanonicalResultRows(rows, ['id'], limits), {
+    logicalRelationCid:
+      'sha256:ffd3ea44b8fb5324bbdc17735e31f10e00f60e5debddd3be1957f712204f331f',
+    rowCount: 2,
+  });
+  for (const body of ['[{"id":1}, {"id":2}]',
+    '[{"id":1},{"other":2}]', '{"id":1}']) {
+    assert.throws(() => inspectCanonicalResultRows(body, ['id'], limits),
+    {code: 'RunHostResultRowsRejected'});
+  }
+  assert.throws(() => inspectCanonicalResultRows(rows, ['other'], limits),
+    {code: 'RunHostResultRowsRejected'});
 });
 
 test('portable Host issues a Manifest for exact admitted Result evidence',

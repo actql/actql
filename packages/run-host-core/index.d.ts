@@ -199,6 +199,10 @@ export function issueDurableResultBinding(
     byteCount: number;
     physicalSha256: string;
   }>, limits: PublicationLimits): PublicationContract;
+/** Establish logical identity from bounded bytes at the physical holder. */
+export function inspectCanonicalResultRows(rowsWire: string,
+  fields: readonly string[], limits: PublicationLimits):
+  Readonly<{logicalRelationCid: string; rowCount: number}>;
 export function validatePublicationChain(runDefinition: PublicationContract,
   invocation: PublicationContract,
   definitions: readonly PublicationContract[],

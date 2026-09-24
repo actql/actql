@@ -111,6 +111,45 @@ fn captured_fields_valid(
 }
 
 ///|
+/// Inspect a bounded, canonical ordered-row payload at its physical holder.
+/// This establishes a logical Relation CID from bytes; the caller must still
+/// bind the checked fields, schema, Result Definition and Store custody before
+/// issuing any publication or read grant.
+pub fn inspect_canonical_result_rows(
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, Int), CapturedRunIssuanceIssue] {
+  let rows = match
+    parse_contract_wire(rows_wire, max_wire_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(_) => return Err(CaptureIssuanceInvalidRows("payload"))
+  }
+  guard rows is @json.Array(frozen) else {
+    return Err(CaptureIssuanceInvalidRows("payload"))
+  }
+  let row_values = @json.array_values(frozen)
+  let canonical = @json.stringify_value(
+    rows, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(CaptureIssuanceEncoding)
+  }
+  if canonical != rows_wire {
+    return Err(CaptureIssuanceInvalidRows("payload"))
+  }
+  if !captured_fields_valid(row_values, fields) {
+    return Err(CaptureIssuanceInvalidFields("payload"))
+  }
+  guard captured_relation_cid(rows, max_wire_bytes, max_nodes, max_depth)
+    is Some(logical_cid) else {
+    return Err(CaptureIssuanceEncoding)
+  }
+  Ok((logical_cid, row_values.length()))
+}
+
+///|
 /// Admit the exact canonical row array produced by a checked Result export.
 /// The logical Relation CID and row count must equal the already issued
 /// Artifact, so arbitrary JSON cannot become Captured Run evidence.

@@ -41,6 +41,8 @@ pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bo
 
 pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
 
+pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[Array[String], @run_publication.CapturedRunIssuanceIssue]
+
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
 pub fn client_values_host_issue_complete_result_artifact(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.ResultOrderingEvidence, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultArtifactIssuanceIssue]

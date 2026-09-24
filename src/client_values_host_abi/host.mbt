@@ -849,6 +849,26 @@ pub fn client_values_host_issue_durable_result_binding(
 }
 
 ///|
+/// A physical Store calls this on its own bounded bytes. No bulk payload
+/// needs to return to the Coordinator merely to establish logical identity.
+#export_name("clientValuesHostInspectCanonicalResultRows")
+pub fn client_values_host_inspect_canonical_result_rows(
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[String], @publication.CapturedRunIssuanceIssue] {
+  match
+    @publication.inspect_canonical_result_rows(
+      rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok((cid, count)) => Ok([cid, count.to_string()])
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 /// The shared owner checks the exact Named Result inventory and references.
 #export_name("clientValuesHostValidatePublicationChain")
 pub fn client_values_host_validate_publication_chain(
