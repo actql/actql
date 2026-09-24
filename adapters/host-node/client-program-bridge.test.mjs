@@ -83,7 +83,8 @@ async function checkedFixture() {
 }
 
 async function effectFixture({splitSource = false,
-  splitEffectSource = 'consumer', writeKind = 'create'} = {}) {
+  splitEffectSource = 'consumer', writeKind = 'create',
+  memberIds = ['save']} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -150,7 +151,9 @@ async function effectFixture({splitSource = false,
     : {target: 'connector://crm/account', mapping: mapping.mapping_ref,
       from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}};
-  document.stages[0].effects = {save: {[writeKind]: write}};
+  const effects = Object.fromEntries(memberIds.map(id =>
+    [id, {[writeKind]: write}]));
+  document.stages[0].effects = effects;
   if (splitSource) {
     delete document.stages[0].effects;
     document.stages.push({
@@ -174,16 +177,17 @@ async function effectFixture({splitSource = false,
       inputs: {rows: {result: {stage: 'middle', result: 'rows'}}},
       steps: [{take: 2, as: 'selected'}],
       results: {rows: {from: 'selected', fields: ['id']}},
-      effects: {save: {[writeKind]: write}},
+      effects,
     });
     document.results.answer.from.stage = 'consumer';
     if (splitEffectSource !== 'consumer') {
       document.stages.pop();
       document.results.answer.from.stage = 'middle';
-      document.stages[1].effects = {save: {[writeKind]: {
-        ...write,
-        from: {result: splitEffectSource === 'early' ? 'early' : 'rows'},
-      }}};
+      document.stages[1].effects = Object.fromEntries(memberIds.map(id =>
+        [id, {[writeKind]: {
+          ...write,
+          from: {result: splitEffectSource === 'early' ? 'early' : 'rows'},
+        }}]));
     }
   }
   return {document: JSON.stringify(document), environment,
@@ -193,7 +197,8 @@ async function effectFixture({splitSource = false,
 function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
   approvedValues = [], targetRows = approvedValues.map((_, index) =>
-    index + 1)) {
+    index + 1), memberIds = ['save'],
+  memberBoundaries = memberIds.map((_, index) => cid(String(index)))) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -213,8 +218,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     authoring_context: authoring, barrier_provenance_cids: [],
     model_derived: false, model_task_contract_cids: [],
     model_invocation_evidence_cids: [], model_response_artifact_cids: [],
-    effects: [{
-      effect_id: 'save', effect_kind: writeKind,
+    effects: memberIds.map((effectId, memberIndex) => ({
+      effect_id: effectId, effect_kind: writeKind,
       target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
       resolved_mapping_contract_cid: mappingCid,
       effect_identity_cid: cid('a'), source_result: 'rows',
@@ -223,7 +228,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       authority_scope_cid: cid('e'),
       write_footprint: {
         kind: 'collection', resource_identity_scheme_cid: cid('f'),
-        provider_namespace: 'salesforce', provider_boundary_cid: cid('0'),
+        provider_namespace: 'salesforce',
+        provider_boundary_cid: memberBoundaries[memberIndex],
         resource_kind: 'Account', provider_object_identity_cids: [],
       },
       count: approvedValues.length, max_items: 2,
@@ -239,26 +245,33 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       })),
       row_order: [],
       effect_member_preview_cid: cid('1'), executed: false,
-    }],
+    })),
     executed: false, effect_preview_cid: cid('2'),
   };
   if (writeKind !== 'create') {
-    preview.effects[0].effect_plan_logical_cid = checked(
-      moon.clientProgramEffectPlanCid(prepared, 0, 10, 100,
-        20000, 1000, 20));
+    for (const [index, member] of preview.effects.entries()) {
+      member.effect_plan_logical_cid = checked(
+        moon.clientProgramEffectPlanCid(prepared, index, 10, 100,
+          20000, 1000, 20));
+    }
   }
   if (approvedValues.length > 0) {
-    const rows = checked(moon.strategyEffectPreviewRowIdentities(
-      canonicalJson(preview), 20000, 1000, 20))[0];
-    preview.effects[0].changes.forEach((change, index) => {
-      change.row_preview_cid = rows[index];
-      change.row_idempotency_key = cid(String(index + 7));
-    });
-    preview.effects[0].row_order = rows;
+    const rowsByMember = checked(moon.strategyEffectPreviewRowIdentities(
+      canonicalJson(preview), 20000, 1000, 20));
+    for (const [memberIndex, member] of preview.effects.entries()) {
+      const rows = rowsByMember[memberIndex];
+      member.changes.forEach((change, index) => {
+        change.row_preview_cid = rows[index];
+        change.row_idempotency_key = cid(String(index + 7));
+      });
+      member.row_order = rows;
+    }
   }
-  preview.effects[0].effect_member_preview_cid =
-    checked(moon.strategyEffectPreviewIdentities(canonicalJson(preview),
-      20000, 1000, 20))[1];
+  const identities = checked(moon.strategyEffectPreviewIdentities(
+    canonicalJson(preview), 20000, 1000, 20));
+  preview.effects.forEach((member, index) => {
+    member.effect_member_preview_cid = identities[index + 1];
+  });
   preview.effect_preview_cid = checked(moon.strategyEffectPreviewIdentities(
     canonicalJson(preview), 20000, 1000, 20))[0];
   return {wire: canonicalJson(preview), authoringCid:
@@ -565,8 +578,9 @@ test('admitted source-free Effect Run computes through the installed Host',
 
 test('owned update Plan matches approved rows and rejects altered intent',
   async t => {
+    const memberIds = ['save', 'save_again'];
     const {document, environment, mappingCid} = await effectFixture({
-      writeKind: 'update',
+      writeKind: 'update', memberIds,
     });
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
@@ -652,13 +666,25 @@ test('owned update Plan matches approved rows and rejects altered intent',
         }}],
         outputLimits, contractLimits: publicationLimits,
       });
-      inputs = checked(moon.clientProgramPinEffectSources(owned, 1));
-      const preview = effectInputPreview(
+      inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+      const previewFor = (values, targets = values.map((_, index) =>
+        index + 1)) => effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
-        storedResults.artifacts[0].identity, 'update', [1, 2]);
+        storedResults.artifacts[0].identity, 'update', values,
+        targets, memberIds);
+      const preview = previewFor([1, 2]);
       const previewLimits = moon.clientProgramEffectPreviewInputLimits(
         20000, 1000, 20, 1000, 100, 20000, 1000, 20,
-        1, 2, 100, 100);
+        2, 2, 100, 100);
+      const conflicting = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        storedResults.artifacts[0].identity, 'update', [1, 2],
+        [1, 2], memberIds, [cid('0'), cid('0')]);
+      assert.throws(() => checked(
+        moon.clientProgramBindEffectPreviewInputs(
+          owned, inputs, invocation, 0, conflicting.wire,
+          conflicting.authoringCid, previewLimits)),
+      {code: 'MoonBitHostFailure'});
       const previewInputs = checked(
         moon.clientProgramBindEffectPreviewInputs(
           owned, inputs, invocation, 0, preview.wire,
@@ -679,24 +705,34 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.match(verified.logicalCid, /^sha256:[0-9a-f]{64}$/);
       assert.equal(moon.clientProgramEffectPlanProofMatches(
         verified.proof, previewInputs, 0), true);
+      assert.equal(moon.clientProgramEffectPlanProofMatches(
+        verified.proof, previewInputs, 1), false);
+      const secondChunks = [];
+      const second = await verifyPinnedEffectPlan({
+        moon, execution, previewInputs, previewIndex: 1, limits,
+        planLimits,
+        onChunk: async chunk => { secondChunks.push(chunk); },
+      });
+      assert.deepEqual(JSON.parse(secondChunks.join('')),
+        [{id: 1}, {id: 2}]);
+      assert.notEqual(second.proof, verified.proof);
       assert.doesNotThrow(() => checked(
         moon.clientProgramCheckEffectPlanProofs(
-          previewInputs, [verified.proof], 1, 2)));
+          previewInputs, [second.proof, verified.proof], 2, 4)));
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
-        previewInputs, [], 1, 2)), {code: 'MoonBitHostFailure'});
+        previewInputs, [verified.proof], 2, 4)),
+      {code: 'MoonBitHostFailure'});
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
         previewInputs, [verified.proof, verified.proof], 2, 4)),
       {code: 'MoonBitHostFailure'});
-      const altered = effectInputPreview(
-        prepared, evidence, definition, invocation, mappingCid,
-        storedResults.artifacts[0].identity, 'update', [1, 99]);
+      const altered = previewFor([1, 99]);
       const alteredInputs = checked(moon.clientProgramBindEffectPreviewInputs(
         owned, inputs, invocation, 0, altered.wire,
         altered.authoringCid, previewLimits));
       assert.equal(moon.clientProgramEffectPlanProofMatches(
         verified.proof, alteredInputs, 0), false);
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
-        alteredInputs, [verified.proof], 1, 2)),
+        alteredInputs, [verified.proof, second.proof], 2, 4)),
       {code: 'MoonBitHostFailure'});
       const partial = [];
       await assert.rejects(verifyPinnedEffectPlan({
@@ -705,9 +741,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         onChunk: async chunk => { partial.push(chunk); },
       }), {code: 'MoonBitHostFailure'});
       assert.equal(partial.length, 1);
-      const swapped = effectInputPreview(
-        prepared, evidence, definition, invocation, mappingCid,
-        storedResults.artifacts[0].identity, 'update', [1, 2], [2, 1]);
+      const swapped = previewFor([1, 2], [2, 1]);
       const swappedInputs = checked(moon.clientProgramBindEffectPreviewInputs(
         owned, inputs, invocation, 0, swapped.wire,
         swapped.authoringCid, previewLimits));
@@ -718,9 +752,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         onChunk: async chunk => { swappedChunks.push(chunk); },
       }), {code: 'MoonBitHostFailure'});
       assert.deepEqual(swappedChunks, []);
-      const omitted = effectInputPreview(
-        prepared, evidence, definition, invocation, mappingCid,
-        storedResults.artifacts[0].identity, 'update');
+      const omitted = previewFor([]);
       const omittedInputs = checked(moon.clientProgramBindEffectPreviewInputs(
         owned, inputs, invocation, 0, omitted.wire,
         omitted.authoringCid, previewLimits));
@@ -748,7 +780,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.equal(moon.clientProgramEffectPlanProofMatches(
         verified.proof, previewInputs, 0), false);
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
-        previewInputs, [verified.proof], 1, 2)),
+        previewInputs, [verified.proof, second.proof], 2, 4)),
       {code: 'MoonBitHostFailure'});
     } finally {
       if (inputs !== undefined) {
