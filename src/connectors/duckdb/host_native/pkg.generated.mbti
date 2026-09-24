@@ -186,6 +186,13 @@ pub(all) struct NativeStandardStrategyTaskCompletion {
   task : Int
   output : @execution_relation.CompletedOutput
   usage : NativeStandardStrategyTaskUsage?
+  holding : NativeStandardStrategyTaskHolding?
+}
+
+pub(all) struct NativeStandardStrategyTaskHolding {
+  rows : Int
+  rows_cid : String
+  bytes : Int64
 }
 
 pub(all) struct NativeStandardStrategyTaskUsage {

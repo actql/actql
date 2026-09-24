@@ -145,6 +145,21 @@ pub fn NativeRetainedTaskFile::stored_bytes(
 }
 
 ///|
+/// Return the exact producer identity and durable byte count recorded at
+/// seal. This does not rescan or rehash the file; availability still checks
+/// the generation and any later integrity failure revokes further use.
+pub fn NativeRetainedTaskFile::sealed_content(
+  self : NativeRetainedTaskFile,
+) -> (String, Int64)? {
+  guard self.available() &&
+    self.cid is Some(cid) &&
+    self.generation is Some(generation) else {
+    return None
+  }
+  Some((cid, generation.size))
+}
+
+///|
 /// The common execution may return reserved holding capacity only after this
 /// owner confirms removal and directory durability.
 pub fn NativeRetainedTaskFile::release_confirmed(

@@ -487,9 +487,13 @@ completed task's value measurement and comparison charge from the exact Local
 or DuckDB attempt. A mixed Local/DuckDB three-task case and a four-task join
 case both retain the independent final CID while reporting all task charges.
 These are observed product facts rather than quantities inferred from the
-fixture. Receipt metadata parity and independent Comparator admission still
-need explicit connection before a Native sample can enter the registered
-paired assessment.
+fixture. The probe now also reads each exact task's row count, logical CID and
+byte count from its sealed holding without another file hash. The mixed
+three-task case and four-task join case match their registered cardinalities
+and final independent oracle. Full receipt metadata parity, the remaining
+logical consumer charges and independent Comparator admission still need
+explicit connection before a Native sample can enter the registered paired
+assessment.
 
 The Native rate profile is admitted against the clean revision, exact release
 binary digest, distinct training and target fixtures, all forced-choice

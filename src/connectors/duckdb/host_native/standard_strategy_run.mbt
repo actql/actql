@@ -38,6 +38,15 @@ pub(all) struct NativeStandardStrategyTaskCompletion {
   task : Int
   output : @execution.CompletedOutput
   usage : NativeStandardStrategyTaskUsage?
+  holding : NativeStandardStrategyTaskHolding?
+}
+
+///|
+/// The sealed independent representation of this exact completed output.
+pub(all) struct NativeStandardStrategyTaskHolding {
+  rows : Int
+  rows_cid : String
+  bytes : Int64
 }
 
 ///|
@@ -64,6 +73,18 @@ fn native_standard_task_usage(
     comparison_bytes: measured.4,
     comparison_nodes: measured.5,
   }
+}
+
+///|
+fn native_standard_task_holding(
+  run : NativeStandardStrategyRun,
+  output : @execution.CompletedOutput,
+) -> NativeStandardStrategyTaskHolding? {
+  guard native_standard_retained_result(run, output) is Some(source) &&
+    source.file.sealed_content() is Some((rows_cid, bytes)) else {
+    return None
+  }
+  Some({ rows: @execution.completed_row_count(output), rows_cid, bytes, })
 }
 
 ///|
@@ -243,7 +264,14 @@ pub fn execute_next_native_standard_strategy_task(
     } else {
       None
     }
-    return Ok(Some({ task: task_index, output, usage, }))
+    return Ok(
+      Some({
+        task: task_index,
+        output,
+        usage,
+        holding: native_standard_task_holding(run, output),
+      }),
+    )
   }
   if !physical_equal(
       selected,
@@ -311,6 +339,7 @@ pub fn execute_next_native_standard_strategy_task(
           usage: native_strategy_compute_task_usage(run.runtimes, task_index).map(
             native_standard_task_usage,
           ),
+          holding: native_standard_task_holding(run, output),
         }),
       )
     Err(issue) => {

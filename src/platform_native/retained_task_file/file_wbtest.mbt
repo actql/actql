@@ -23,6 +23,7 @@ test "native retained task file seals before a fresh verified read" {
   file.seal(cid, 7).unwrap()
   assert_true(file.available())
   assert_eq(file.stored_bytes(), Some(7L))
+  assert_eq(file.sealed_content(), Some((cid, 7L)))
   let reader = file.open_reader().unwrap()
   assert_true(file.release() is Err(InvalidState))
   assert_true(file.available())
@@ -43,6 +44,7 @@ test "native retained task file seals before a fresh verified read" {
   fresh.finish().unwrap()
   file.release().unwrap()
   assert_false(file.available())
+  assert_eq(file.sealed_content(), None)
   assert_true(file.open_reader() is Err(InvalidState))
   file.release().unwrap()
 }
@@ -78,6 +80,7 @@ test "native retained task file cannot admit incomplete or mismatched content" {
   assert_true(reader.next(3).unwrap().eof)
   assert_true(reader.finish() is Err(ContentMismatch))
   assert_false(file.available())
+  assert_eq(file.sealed_content(), None)
   assert_true(file.open_reader() is Err(InvalidState))
   reader.close().unwrap()
   file.release().unwrap()

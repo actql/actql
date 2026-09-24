@@ -154,6 +154,9 @@ fn execute_timed_native_strategy_run(
         guard completion.usage is Some(usage) else {
           abort("completed task lacks product measurement")
         }
+        guard completion.holding is Some(holding) else {
+          abort("completed task lacks sealed holding")
+        }
         println(
           "task-elapsed-us:" +
           completion.task.to_string() +
@@ -175,6 +178,16 @@ fn execute_timed_native_strategy_run(
           usage.comparison_bytes.to_string() +
           ":" +
           usage.comparison_nodes.to_string(),
+        )
+        println(
+          "task-holding:" +
+          completion.task.to_string() +
+          ":" +
+          holding.rows.to_string() +
+          ":" +
+          holding.rows_cid +
+          ":" +
+          holding.bytes.to_string(),
         )
       }
       Ok(None) => return Ok(())

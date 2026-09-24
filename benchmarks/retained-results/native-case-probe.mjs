@@ -161,6 +161,18 @@ try {
       return {task, measurementWork, measurementBytes, measurementNodes,
         comparisonWork, comparisonBytes, comparisonNodes};
     });
+  const taskHoldings = stdout.split('\n')
+    .filter(line => line.startsWith('task-holding:'))
+    .map(line => {
+      const match = /^task-holding:([1-9][0-9]*):(0|[1-9][0-9]*):(sha256:[0-9a-f]{64}):(0|[1-9][0-9]*)$/.exec(line);
+      assert(match, 'InvalidNativeTaskHolding');
+      const task = Number(match[1]);
+      const rows = Number(match[2]);
+      const bytes = Number(match[4]);
+      assert([task, rows, bytes].every(Number.isSafeInteger),
+        'InvalidNativeTaskHolding');
+      return {task, rows, rowsCid: match[3], bytes};
+    });
   assert.equal(result.rows_cid, expected.rowsCid);
   assert.equal(result.task_count, finalTask);
   assert(Number.isSafeInteger(result.execution_us) && result.execution_us >= 0,
@@ -183,13 +195,22 @@ try {
     Array.from({length: finalTask}, (_, index) => index + 1));
   assert.deepEqual(taskUsages.map(value => value.task),
     Array.from({length: finalTask}, (_, index) => index + 1));
+  assert.deepEqual(taskHoldings.map(value => value.task),
+    Array.from({length: finalTask}, (_, index) => index + 1));
+  assert.deepEqual(taskHoldings.map(value => value.rows),
+    fixture.workload === workloads[1]
+      ? [fixture.cardinalities.a, fixture.cardinalities.b,
+        fixture.cardinalities.join, fixture.cardinalities.count]
+      : [fixture.cardinalities.a, fixture.cardinalities.b,
+        fixture.cardinalities.c]);
+  assert.equal(taskHoldings.at(-1).rowsCid, expected.rowsCid);
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
     scope: registered ? 'registered-feasibility' : 'calibration-training',
     elapsedMilliseconds,
     executionMilliseconds: result.execution_us / 1000,
     cleanupMilliseconds: result.cleanup_us / 1000,
-    taskIntervals, taskUsages, selections, result,
+    taskIntervals, taskUsages, taskHoldings, selections, result,
     selectionInput: {nativeMs, localEligible, localRates, nativeRates},
   }));
 } catch (error) {
