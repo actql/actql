@@ -78,6 +78,8 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
+pub fn bind_effect_program_run_preview(EffectProgramRunCandidate, @run_publication.PublicationContract, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue]
+
 pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue]
 
 pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue]
@@ -147,6 +149,12 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 pub fn effect_program_run_admission(EffectProgramRunCandidate) -> @run_publication.RunPublicationAdmission
 
 pub fn effect_program_run_definition(EffectProgramRunCandidate) -> @run_publication.PublicationContract
+
+pub fn effect_program_run_preview_identity(EffectProgramRunPreview) -> @run_publication.EffectPreviewIdentity
+
+pub fn effect_program_run_preview_invocation(EffectProgramRunPreview) -> @run_publication.PublicationContract
+
+pub fn effect_program_run_preview_owner(EffectProgramRunPreview) -> EffectProgramRunCandidate
 
 pub fn effect_program_run_static_candidate(EffectProgramRunCandidate) -> EffectProgramStaticCandidate
 
@@ -837,6 +845,17 @@ pub struct EffectProgramRunCandidate {
 
 pub(all) enum EffectProgramRunIssue {
   Binding(@run_publication.RunProgramBindingIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectProgramRunPreview {
+  run : EffectProgramRunCandidate
+  invocation : @run_publication.PublicationContract
+  preview : EffectProgramStaticPreview
+}
+
+pub(all) enum EffectProgramRunPreviewIssue {
+  Static(EffectProgramStaticPreviewIssue)
+  Run(@run_publication.EffectPreviewRunBindingIssue)
 } derive(Eq, @debug.Debug)
 
 type EffectProgramStaticCandidate

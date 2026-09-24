@@ -67,6 +67,15 @@ pub(all) enum RunProgramBindingIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum EffectPreviewRunBindingIssue {
+  PreviewRunWrongInvocation
+  PreviewRunForeignTemplate
+  PreviewRunForeignRun
+  PreviewRunForeignPlan
+  PreviewRunForeignInvocation
+} derive(Eq, Debug)
+
+///|
 /// Admit the exact authority that permits a Run to start. A syntactically
 /// valid deny decision or an unapproved review never becomes execution
 /// authority.
@@ -158,6 +167,13 @@ pub fn run_publication_authorization(
 }
 
 ///|
+pub fn run_publication_compiled_plan_cid(
+  admission : RunPublicationAdmission,
+) -> String {
+  admission.compiled_plan_cid
+}
+
+///|
 /// Bind an admitted Run to the exact checked Program identities supplied by
 /// its owner. This closes the Plan, Template, and Run references; it does not
 /// prove that execution or Effect application has occurred.
@@ -203,6 +219,48 @@ pub fn check_run_publication_program_binding(
   }
   if created_at >= valid_until || valid_until > admission.expires_at {
     return Err(RunProgramInvalidLifetime)
+  }
+  Ok(())
+}
+
+///|
+/// Bind one private Preview to the exact Run and concrete Invocation identity.
+/// ObservationSet closure, static Program closure, and current apply authority
+/// are independently required by their own owners.
+pub fn check_effect_preview_run_binding(
+  admission : RunPublicationAdmission,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  preview : EffectPreviewIdentity,
+) -> Result[Unit, EffectPreviewRunBindingIssue] {
+  match
+    check_run_publication_program_binding(
+      admission,
+      run_definition,
+      preview.program_definition_cid,
+      preview.program_semantics_cid,
+      preview.check_environment_cid,
+    ) {
+    Ok(_) => ()
+    Err(RunProgramForeignPlan) => return Err(PreviewRunForeignPlan)
+    Err(RunProgramForeignTemplate) => return Err(PreviewRunForeignTemplate)
+    Err(_) => return Err(PreviewRunForeignRun)
+  }
+  if invocation.name != "run_invocation" {
+    return Err(PreviewRunWrongInvocation)
+  }
+  if contract_string(invocation, "invocation_template_cid") !=
+    Some(admission.template.identity) {
+    return Err(PreviewRunForeignTemplate)
+  }
+  if preview.run_identity_cid != run_definition.identity {
+    return Err(PreviewRunForeignRun)
+  }
+  if preview.compiled_plan_cid != admission.compiled_plan_cid {
+    return Err(PreviewRunForeignPlan)
+  }
+  if preview.invocation_cid != invocation.identity {
+    return Err(PreviewRunForeignInvocation)
   }
   Ok(())
 }
