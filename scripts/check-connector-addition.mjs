@@ -1,13 +1,14 @@
 // Prove an implementation addition in an isolated tree, not by inferring
 // extensibility from names or a successful test against an already-built core.
 import {cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, symlinkSync} from 'node:fs';
-import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
+import {assertClientWireDependency} from
+  './connector-addition-wire-dependency.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const git = args => {
@@ -16,11 +17,14 @@ const git = args => {
   return result.stdout.trim();
 };
 const sourceHead = git(['rev-parse', 'HEAD']);
-const sourcePaths = ['src', 'adapters', 'scripts', 'moon.mod'];
+const sourcePaths = ['src', 'adapters', 'scripts', 'packages/client-wire',
+  'moon.mod'];
 if (git(['status', '--porcelain', '--', ...sourcePaths])) {
   throw new Error('Commit product sources and assembly checks before the connector-addition check');
 }
-const isolated = mkdtempSync(join(tmpdir(), 'actql-connector-addition-'));
+mkdirSync(join(root, '.artifacts'), {recursive: true});
+const isolated = mkdtempSync(join(root, '.artifacts',
+  'connector-addition-'));
 const artifactDirectory = process.env.ACTQL_CONNECTOR_ADDITION_ARTIFACTS;
 if (artifactDirectory) process.on('exit', code => {
   mkdirSync(artifactDirectory, {recursive:true});
@@ -48,6 +52,11 @@ cpSync(join(root, 'adapters'), join(isolated, 'adapters'), {recursive:true,
 });
 symlinkSync(join(root, 'adapters/connectors/duckdb/node/node_modules'), join(isolated, 'adapters/connectors/duckdb/node/node_modules'), 'dir');
 cpSync(join(root, 'spec'), join(isolated, 'spec'), {recursive:true});
+assertClientWireDependency(root);
+mkdirSync(join(isolated, 'packages'), {recursive: true});
+cpSync(join(root, 'packages/client-wire'),
+  join(isolated, 'packages/client-wire'), {recursive: true});
+assertClientWireDependency(isolated);
 mkdirSync(join(isolated, 'vendor/duckdb'), {recursive:true});
 cpSync(join(root, 'vendor/duckdb/1.4.3'), join(isolated, 'vendor/duckdb/1.4.3'), {
   recursive: true,
@@ -114,7 +123,9 @@ if (checkComputeAssembly(isolated, true) !== 2) throw new Error('Expected the de
 checkNodeAssembly(isolated, true);
 if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Error('Third implementation leaked into baseline');
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
-  ...inventory(join(isolated, 'adapters'), 'adapters/'), ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/')]);
+  ...inventory(join(isolated, 'adapters'), 'adapters/'),
+  ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
+  ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/')]);
 const before = snapshot();
 writeFileSync(join(isolated,'common-before.json'),JSON.stringify(
   Object.fromEntries([...before].filter(([path]) => !allowed(path))),null,2)+'\n');

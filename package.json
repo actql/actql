@@ -20,7 +20,7 @@
     "check:run-host-core": "moon build --target js --release src/client_values_host_abi && node scripts/build-run-host-core-package.mjs --check && node --test packages/run-host-core/index.test.mjs",
     "check:native-separated-network": "bash scripts/test-native-separated-network.sh",
     "check:native-remote-runtime": "node scripts/test-native-remote-runtime.mjs",
-    "check:connector-addition": "node scripts/check-duckdb-environment-contract.mjs && node scripts/check-connector-addition.mjs",
+    "check:connector-addition": "node scripts/check-duckdb-environment-contract.mjs && node --test scripts/connector-addition-wire-dependency.test.mjs && node scripts/check-connector-addition.mjs",
     "check:salesforce-site": "moon build --target js --release src/connectors_builtin_node src/connectors/salesforce/host_node src/connectors/salesforce/site_test && node --test adapters/host-common/effect-application-control.test.mjs adapters/host-node/effect-ledger.test.mjs adapters/host-node/effect-physical-dispatch.test.mjs adapters/host-node/sqlite-effect-ledger.test.mjs adapters/site-node/salesforce-catalog-sync.test.mjs adapters/site-node/salesforce-cli-secret.test.mjs",
     "check:engine-accounting": "node scripts/check-engine-accounting.mjs && moon test --target js src/execution_relation",
     "check:windows": "node scripts/window-schema.mjs && node --test scripts/window-schema.test.mjs scripts/window-capacity.test.mjs",
