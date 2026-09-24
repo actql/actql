@@ -341,6 +341,17 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(moon.clientProgramLocalValuesAoAWire(aoa), pipeline);
   assert.equal(moon.clientProgramLocalValuesAoACid(aoa),
     'sha256:5e502ceb8e7f0833fd2491ac223453d9204e99a3c29642cad6d782cee9ff7723');
+  const unitSource = checked(
+    moon.clientProgramLocalValuesUnitSourceJson(prepared, 0));
+  assert.deepEqual(JSON.parse(unitSource), {
+    id: 'source', inputs: {},
+    results: {rows: {fields: ['id'], from: 'selected'}},
+    steps: [{as: 'selected', values: {
+      rows: [{id: 1}, {id: 2}],
+      schema: {id: {nullable: false, type: 'number'}},
+    }}],
+    version: 'actql/0.1',
+  });
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitLocalValuesAoAIdentity(prepared, 0,
       pipeline, moon.clientProgramLocalValuesAoACid(aoa))));
@@ -351,6 +362,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(
     moon.clientProgramLocalValuesPipelineJson(prepared, 1)),
+  {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(
+    moon.clientProgramLocalValuesUnitSourceJson(prepared, 1)),
   {code: 'MoonBitHostFailure'});
   assert.throws(() => checked(moon.clientProgramLocalAoASteps(prepared, 1)),
     {code: 'MoonBitHostFailure'});
@@ -367,6 +381,9 @@ test('Node ABI derives the checked named Result and request identity', async () 
   assert.equal(checked(
     moon.clientProgramSemanticDocumentJson(annotatedPrepared)),
   semanticDocument);
+  assert.equal(checked(
+    moon.clientProgramLocalValuesUnitSourceJson(annotatedPrepared, 0)),
+  unitSource);
   const semanticsCid = moon.clientProgramSemanticsCid(prepared);
   assert.match(semanticsCid, /^sha256:[a-f0-9]{64}$/u);
   const definition = checked(moon.clientProgramDefinitionJson(prepared));
