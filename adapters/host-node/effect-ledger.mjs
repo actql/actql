@@ -87,7 +87,7 @@ export function openEffectLedger({
       entry: validateStored(result.entry).row,
     });
   };
-  return Object.freeze({
+  const ledger = Object.freeze({
     scopeCid,
     current(locatorCid) {
       return validateStored(physical.current(locatorCid))?.row;
@@ -178,6 +178,18 @@ export function openEffectLedger({
       return control.setFrontierFromLedger(
         admittedPreview, scopes, locators, keys, bases, heads, activeOwners,
         members.length, totalRows, maxWork);
+    },
+    // The standard Client Host supplies the same captured Preview owner that
+    // retained the Result inputs. Historical progress survives pin release;
+    // this path does not turn an uncertain row into a new send permission.
+    frontierFromCapturedHeads(captured, members, maxWork) {
+      if (typeof moon.clientProgramEffectPreviewLedgerIdentity !== 'function' ||
+          !captured) {
+        fail('InvalidCapturedEffectProgress');
+      }
+      return ledger.frontierFromDurableHeads(
+        moon.clientProgramEffectPreviewLedgerIdentity(captured),
+        members, maxWork);
     },
     // The caller must have won the durable send claim. This observation ends
     // when the physical call settles, independently of response persistence.
@@ -510,4 +522,5 @@ export function openEffectLedger({
     },
     close: () => physical.close(),
   });
+  return ledger;
 }

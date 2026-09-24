@@ -7,6 +7,7 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {openEffectLedger} from './effect-ledger.mjs';
 import {exportPinnedEffectInput} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
@@ -729,6 +730,54 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.throws(() => checkKeys([
         [foreignKey, preview.keys[0][1]], preview.keys[1],
       ]), {code: 'MoonBitHostFailure'});
+      const progressRoot = join(directory, 'effect-ledger');
+      await mkdir(progressRoot);
+      const openProgress = () => openEffectLedger({moon,
+        root: progressRoot, authorityScopeCid: cid('e'),
+        callerRequestId: 'two-effect-request', maxEntryBytes: 4096});
+      const effect = runtimeCore(moon).effectApplicationControl;
+      const progressMembers = JSON.parse(preview.wire).effects.map(
+        (member, memberIndex) => ({claims: member.changes.map(
+          (change, rowIndex) => {
+            const correlation = canonicalJson(change.target_row_identity);
+            const key = preview.keys[memberIndex][rowIndex];
+            const locator = effect.logicalItemLocator(
+              requestScope, 'program-1', 'node-1', member.effect_id,
+              correlation, 64, 128, 8, 3);
+            const canonicalRequestCid = cid('9');
+            const intentFingerprintCid = change.row_preview_cid;
+            const basis = effect.ledgerBasis(
+              requestScope, locator, key, cid('6'),
+              member.effect_member_preview_cid, intentFingerprintCid,
+              canonicalRequestCid, cid('0'), 'unavailable', cid('1'), cid('2'));
+            return {scope: requestScope, locator, key, basis,
+              intentFingerprintCid, canonicalRequestCid};
+          })}));
+      const ready = ledger => {
+        const frontier = ledger.frontierFromCapturedHeads(
+          previewInputs, progressMembers, 64);
+        return Array.from({length: effect.setFrontierReadyCount(frontier)},
+          (_, index) => [effect.setFrontierReadyMember(frontier, index),
+            effect.setFrontierReadyRow(frontier, index)]);
+      };
+      const firstProgress = openProgress();
+      try {
+        assert.deepEqual(ready(firstProgress), [[0, 0], [1, 0]]);
+        const claimed = firstProgress.claimDispatch(
+          progressMembers[0].claims[0]);
+        assert.equal(claimed.claimed, true);
+        assert.deepEqual(ready(firstProgress), [[1, 0]]);
+      } finally {
+        firstProgress.close();
+      }
+      const reopenedProgress = openProgress();
+      try {
+        assert.deepEqual(ready(reopenedProgress), [[1, 0]]);
+        assert.equal(reopenedProgress.claimDispatch(
+          progressMembers[0].claims[0]).claimed, false);
+      } finally {
+        reopenedProgress.close();
+      }
       assert.throws(() => checkCurrent({capabilities: [cid('d')]}),
       {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent({sources: [cid('c'), cid('f')]}),
@@ -827,6 +876,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.equal(releasedChunks.length, 1);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
+      const historicalProgress = openProgress();
+      try {
+        assert.deepEqual(ready(historicalProgress), [[1, 0]]);
+      } finally {
+        historicalProgress.close();
+      }
       assert.throws(() => checkKeys(preview.keys),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent(),
