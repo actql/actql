@@ -73,6 +73,25 @@ test "sequence match passes the common kernel budget sweep" {
 }
 
 ///|
+test "sequence match admits its input-name index before construction" {
+  let (owner, kernel) = sequence_test_kernel("allow", "subsequence")
+  let workspace = row_workspace(8)
+  assert_true(
+    evaluate_sequence_match_rows(
+      kernel,
+      sequence_test_input(owner, kernel),
+      100,
+      { remaining: 100000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    is Err(RowLimit),
+  )
+  assert_eq(workspace.peak, 5)
+  assert_eq(workspace.live, 0)
+}
+
+///|
 test "sequence allow returns every bounded match in canonical group order" {
   let table = sequence_test_evaluate("allow", "subsequence").unwrap()
   assert_eq(table.names, [

@@ -68,8 +68,14 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
       descending: false,
       nulls_first: false,
     })
+    if !reserve_slots(workspace, input_names.length()) {
+      return Err(RowLimit)
+    }
     let ordinals : Map[String, Int] = Map([])
     for index, name in input_names {
+      if !spend_control(control, 1) || !spend_control_text(control, name) {
+        return Err(RowLimit)
+      }
       ordinals[name] = index
     }
     match
@@ -376,7 +382,13 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
       names.push(name)
     }
     let rows : Array[Array[Value]] = []
+    guard checked_row_slots_add(names.length(), 1) is Some(row_slots) else {
+      return Err(RowLimit)
+    }
     for match_ in matches {
+      if !reserve_slots(workspace, row_slots) {
+        return Err(RowLimit)
+      }
       let first_row = ordered[match_.positions[0]]
       let last_row = ordered[match_.positions[match_.positions.length() - 1]]
       let row : Array[Value] = []
@@ -406,12 +418,10 @@ fn[T : RelationRows] evaluate_sequence_match_rows(
         guard value is Some(value) else { return Err(InvalidRows) }
         row.push(value)
       }
-      if row.length() != names.length() ||
-        !reserve_slots(workspace, 1 + row.length()) ||
-        !retain_row(row, names, output) {
+      if row.length() != names.length() || !retain_row(row, names, output) {
         return Err(RowLimit)
       }
-      retained += 1 + row.length()
+      retained += row_slots
       rows.push(row)
     }
     Ok({

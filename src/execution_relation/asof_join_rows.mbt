@@ -75,8 +75,14 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
     let identity_order : Array[ColumnOrder] = [
       { column: left_time, descending: false, nulls_first: false, },
     ]
+    if !reserve_slots(workspace, left_names.length()) {
+      return Err(RowLimit)
+    }
     let left_ordinals : Map[String, Int] = Map([])
     for index, name in left_names {
+      if !spend_control(control, 1) || !spend_control_text(control, name) {
+        return Err(RowLimit)
+      }
       left_ordinals[name] = index
     }
     for index in 0..<@lower.asof_join_identity_count(kernel) {
@@ -190,6 +196,9 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
       }
     }
     let rows : Array[Array[Value]] = []
+    guard checked_row_slots_add(names.length(), 1) is Some(row_slots) else {
+      return Err(RowLimit)
+    }
     let equal_keys = fn(
       left_row : Int,
       right_row : Int,
@@ -291,9 +300,6 @@ fn[L : RelationRows, R : RelationRows] evaluate_asof_join_rows(
         return Err(AsOfTopTie(left_row, prior, other))
       }
       if best is Some(_) || @lower.asof_join_kind(kernel) == @join.Left {
-        guard checked_row_slots_add(names.length(), 1) is Some(row_slots) else {
-          return Err(RowLimit)
-        }
         if rows.length() == ceiling ||
           !reserve_slots(workspace, row_slots) ||
           !spend_control(control, row_slots) {

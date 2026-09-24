@@ -51,6 +51,15 @@ own production routes. `lag` charges partition and ordering term counts
 separately and uses the checked output width for each row's work and
 workspace, avoiding overflow in both additions. These local admission fixes
 do not turn the synchronous whole-sequence entrypoint into a bounded session.
+The synchronous as-of join and sequence match evaluators now reserve their
+width-sized input-name indices before constructing them. Fixed one-short
+fixtures reject at independently derived pre-index workspace peaks of two
+and five slots, respectively. Each indexed name also consumes a control
+step and UTF-8 name work. Sequence match reserves each output row
+before assembling its values, and as-of join computes its row charge once
+outside the candidate search. These fixtures cover the legacy evaluator's
+admission order; they do not prove the bounded managed entrypoints or close
+the providerless cancellation gap.
 
 The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
 use fixed control-work expectations of 354, 145, 160, and 116 units for their
