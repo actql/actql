@@ -173,3 +173,109 @@ pub fn client_values_host_compiled_plan_wire(
     @host.client_values_compilation_compiled_plan(value),
   )
 }
+
+///|
+/// The Host must first admit caller input intent and authority scope. This
+/// owner then binds the checked Program and effective Parameter Values to the
+/// caller request ID; neither the CID nor this handle grants authorization.
+#export_name("clientValuesHostRequestIdentity")
+pub fn client_values_host_request_identity(
+  prepared : @host.PreparedClientProgram,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  caller_input_intent_cid : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  @host.prepare_client_request_identity(
+    prepared, authority_scope_cid, caller_request_id, caller_input_intent_cid,
+  )
+}
+
+///|
+/// Re-admit exactly the fields retained with a durable request. Physical
+/// record custody and current caller authorization remain Host duties.
+#export_name("clientValuesHostAdmitRequestIdentity")
+pub fn client_values_host_admit_request_identity(
+  authority_scope_cid : String,
+  caller_request_id : String,
+  program_definition_cid : String,
+  parameter_values_cid : String,
+  caller_input_intent_cid : String,
+  logical_request_scope_cid : String,
+  intent_fingerprint_cid : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  @host.admit_client_request_identity_record(
+    authority_scope_cid, caller_request_id, program_definition_cid, parameter_values_cid,
+    caller_input_intent_cid, logical_request_scope_cid, intent_fingerprint_cid,
+  )
+}
+
+///|
+#export_name("clientValuesHostRequestAuthorityScopeCid")
+pub fn client_values_host_request_authority_scope_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_authority_scope_cid(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestCallerId")
+pub fn client_values_host_request_caller_id(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_caller_id(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestScopeCid")
+pub fn client_values_host_request_scope_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_scope_cid(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestIntentCid")
+pub fn client_values_host_request_intent_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_intent_cid(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestProgramCid")
+pub fn client_values_host_request_program_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_program_cid(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestParametersCid")
+pub fn client_values_host_request_parameters_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_parameters_cid(identity)
+}
+
+///|
+#export_name("clientValuesHostRequestInputCid")
+pub fn client_values_host_request_input_cid(
+  identity : @host.ClientRequestIdentity,
+) -> String {
+  @host.client_request_input_cid(identity)
+}
+
+///|
+/// Different logical key, same checked intent, and changed intent are
+/// distinct outcomes. The caller never guesses from transport JSON equality.
+#export_name("clientValuesHostRequestRelation")
+pub fn client_values_host_request_relation(
+  requested : @host.ClientRequestIdentity,
+  retained : @host.ClientRequestIdentity,
+) -> Int {
+  match @host.client_request_identity_relation(requested, retained) {
+    DifferentRequest => 0
+    SameRequest => 1
+    ChangedIntent => 2
+  }
+}

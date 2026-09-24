@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
 pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
@@ -20,6 +22,24 @@ pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesC
 pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
+
+pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_caller_id(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
+
+pub fn client_values_host_request_input_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_intent_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_parameters_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_program_cid(@run_publication_host.ClientRequestIdentity) -> String
+
+pub fn client_values_host_request_relation(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity) -> Int
+
+pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
 pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
 
