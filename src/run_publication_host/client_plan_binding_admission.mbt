@@ -163,3 +163,101 @@ pub fn admit_prepared_client_publication_binding(
   }
   Ok(())
 }
+
+///|
+pub(all) enum ClientPublicationBindingSetIssue {
+  InvalidLimit
+  BudgetExceeded
+  CheckedBinding(ClientPublicationBindingIssue)
+  InvalidBinding
+  MismatchedBinding
+  UnexpectedBinding
+  DuplicateBinding
+  MissingBinding
+} derive(Eq, Debug)
+
+///|
+/// Check the complete Result publication binding set against every checked
+/// Unit Result port. Input order is immaterial, but no required measurement
+/// may be missing, duplicated, or replaced by another valid binding.
+pub fn admit_prepared_client_publication_binding_set(
+  value : PreparedClientProgram,
+  bodies : Array[String],
+  max_bindings : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientPublicationBindingSetIssue] {
+  if max_bindings <= 0 ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 {
+    return Err(InvalidLimit)
+  }
+  if bodies.length() > max_bindings {
+    return Err(BudgetExceeded)
+  }
+  let program = @strategy.graph_program(value.graph)
+  let expected : Array[ParsedClientPublicationBinding] = []
+  for unit in 0..<@checked.unit_count(program) {
+    guard @checked.unit_publication_count(program, unit) is Some(count) else {
+      return Err(CheckedBinding(MissingPublication))
+    }
+    for index in 0..<count {
+      for scope in [Rows, Bytes] {
+        if expected.length() >= max_bindings {
+          return Err(BudgetExceeded)
+        }
+        let body = match
+          emit_prepared_client_publication_binding(
+            value, unit, index, scope, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(body) => body
+          Err(issue) => return Err(CheckedBinding(issue))
+        }
+        guard parse_client_publication_binding(
+            body, max_wire_bytes, max_nodes, max_depth,
+          )
+          is Some(binding) else {
+          return Err(CheckedBinding(Encoding))
+        }
+        if expected.any(candidate => {
+            candidate.binding_cid == binding.binding_cid
+          }) {
+          return Err(CheckedBinding(MismatchedCheckedLimit))
+        }
+        expected.push(binding)
+      }
+    }
+  }
+  let seen : Array[String] = []
+  for body in bodies {
+    guard parse_client_publication_binding(
+        body, max_wire_bytes, max_nodes, max_depth,
+      )
+      is Some(binding) else {
+      return Err(InvalidBinding)
+    }
+    let mut found = false
+    for candidate in expected {
+      if binding.binding_cid == candidate.binding_cid {
+        if binding != candidate {
+          return Err(MismatchedBinding)
+        }
+        if seen.contains(binding.binding_cid) {
+          return Err(DuplicateBinding)
+        }
+        seen.push(binding.binding_cid)
+        found = true
+        break
+      }
+    }
+    if !found {
+      return Err(UnexpectedBinding)
+    }
+  }
+  if seen.length() != expected.length() {
+    return Err(MissingBinding)
+  }
+  Ok(())
+}
