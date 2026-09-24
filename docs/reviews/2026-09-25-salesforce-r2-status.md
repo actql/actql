@@ -216,8 +216,12 @@ response. A common evidence-read path checks current read authorization
 before that access. Real SQLite restart tests cover single and Collections
 custody, distinct row owners, foreign order, and zero resend. The Site suite
 passes 122/122 and common publication tests pass 124/124 on JS, Wasm, and
-native. Semantic outcome Receipt issuance and terminal transitions remain
-open; these physical records must not be counted as successful writes.
+native. The original physical response and row outcome remain readable after
+the durable ledger head advances to applied or failed. Real SQLite tests
+cover both terminal single and mixed-terminal Collections rows after reopen;
+the Site suite still passes 122/122. Those tests append synthetic terminal
+facts. Product issuance of semantic outcome Receipts and their terminal
+transitions remains open; physical records alone are not successful writes.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
