@@ -626,51 +626,34 @@ fn prepare_native_remote_application_output_plan(
   NativeRemoteApplicationOutputPlan,
   NativeRemoteApplicationOutputPlanIssue,
 ] {
-  let manifest = facts.physical_manifest
-  if facts.result_schema_cid != manifest.schema_contract_cid ||
-    facts.logical_view_cid != manifest.view_contract_cid ||
-    facts.representation_codec_cid != manifest.codec_contract_cid ||
-    facts.row_count != manifest.row_count ||
-    facts.retained_bytes != manifest.referenced_bytes {
-    return Err(InvalidOutputFacts)
+  let selected : @remote_standard.NativeRemoteObservedOutputIntent = {
+    store_authority_cid: intent.store_authority_cid,
+    publication_attempt_cid: intent.publication_attempt_cid,
+    result_definition_cid: intent.result_definition_cid,
+    ordering_evidence_cid: intent.ordering_evidence_cid,
+    coordinator_authority: intent.coordinator_authority,
+    transfer_attempt: intent.transfer_attempt,
+    transfer_route: intent.transfer_route,
+    destination_site_key: intent.destination_site_key,
+    destination_site_generation: intent.destination_site_generation,
+    transfer_max_bytes: intent.transfer_max_bytes,
+    transfer_expires_unix_ms: intent.transfer_expires_unix_ms,
+    source_grant_cid: intent.source_grant_cid,
+    destination_grant_cid: intent.destination_grant_cid,
+    route_capability_cid: intent.route_capability_cid,
   }
-  let payload = match
-    @payload.prepare_publication_payload_request(
-      intent.store_authority_cid,
-      intent.publication_attempt_cid,
-      facts.material_generation,
-      intent.result_definition_cid,
-      facts.logical_view_cid,
-      facts.result_schema_cid,
-      intent.ordering_evidence_cid,
-      facts.representation_codec_cid,
-      manifest.referenced_bytes,
-      manifest.row_count.to_int64(),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Publication(issue))
-  }
-  let transfer = match
-    @transfer.prepare_request(
-      intent.coordinator_authority,
-      intent.transfer_attempt,
-      intent.transfer_route,
+  match
+    @remote_standard.prepare_native_remote_observed_output_plan(
       @site.site_key(site),
       @site.site_generation(site),
-      intent.destination_site_key,
-      intent.destination_site_generation,
-      facts.material_generation,
-      manifest,
-      intent.transfer_max_bytes,
-      intent.transfer_expires_unix_ms,
-      intent.source_grant_cid,
-      intent.destination_grant_cid,
-      intent.route_capability_cid,
+      facts,
+      selected,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(Transfer(issue))
+    Ok(value) => Ok({ payload: value.payload, transfer: value.transfer, })
+    Err(@remote_standard.InvalidOutputFacts) => Err(InvalidOutputFacts)
+    Err(@remote_standard.Publication(issue)) => Err(Publication(issue))
+    Err(@remote_standard.Transfer(issue)) => Err(Transfer(issue))
   }
-  Ok({ payload, transfer, })
 }
 
 ///|

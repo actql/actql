@@ -77,6 +77,8 @@ pub fn open_native_remote_standard_site_distribution(@execution_site.ExecutionSi
 
 pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue]
 
+pub fn prepare_native_remote_observed_output_plan(String, Int, @remote_runtime.NativeRemoteOutputFacts, NativeRemoteObservedOutputIntent) -> Result[NativeRemoteObservedOutputPlan, NativeRemoteObservedOutputPlanIssue]
+
 pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool) -> NativeRemoteStandardRunOwner
 
 pub fn prepare_native_remote_standard_compute_owner(@host_native.NativeStandardStrategyRun, () -> Bool) -> NativeRemoteStandardComputeOwner
@@ -120,6 +122,34 @@ pub fn retry_native_remote_standard_payload_failure_cleanup(NativeRemoteStandard
 // Errors
 
 // Types and methods
+pub(all) struct NativeRemoteObservedOutputIntent {
+  store_authority_cid : String
+  publication_attempt_cid : String
+  result_definition_cid : String
+  ordering_evidence_cid : String
+  coordinator_authority : String
+  transfer_attempt : String
+  transfer_route : @remote_transfer.RemoteTransferRoute
+  destination_site_key : String
+  destination_site_generation : Int
+  transfer_max_bytes : Int64
+  transfer_expires_unix_ms : Int64
+  source_grant_cid : String
+  destination_grant_cid : String
+  route_capability_cid : String
+}
+
+pub(all) struct NativeRemoteObservedOutputPlan {
+  payload : @publication_payload.PublicationPayloadRequest
+  transfer : @remote_transfer.RemoteTransferRequest
+}
+
+pub(all) enum NativeRemoteObservedOutputPlanIssue {
+  InvalidOutputFacts
+  Publication(@publication_payload.PublicationPayloadIssue)
+  Transfer(@remote_transfer.RemoteTransferIssue)
+}
+
 type NativeRemoteStandardBoundRun
 
 type NativeRemoteStandardBoundRunFactory
