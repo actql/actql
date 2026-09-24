@@ -188,3 +188,16 @@ pub fn effect_row_outcome_receipt_terminal_state(
     None
   }
 }
+
+///|
+pub fn effect_row_outcome_receipt_row_identity(
+  receipt : PublicationContract,
+) -> String? {
+  if receipt.name != "effect_row_outcome_receipt" {
+    return None
+  }
+  match @json.object_field(receipt.value, "row_preview_cid") {
+    Some(@json.String(cid)) => Some(cid)
+    _ => None
+  }
+}

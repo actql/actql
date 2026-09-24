@@ -259,6 +259,34 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
       authorizeEvidenceRead: async () => true,
     });
     assert.equal(observedTerminal.receipt.identity, recorded.receipt.identity);
+    const other = claims[0][1];
+    const memberReceipt = runtimeCore(moon).publicationControl.seal(
+      'effect_apply_receipt', JSON.stringify({
+        version: 'actql-effect-apply-receipt/0.1',
+        effect_preview_cid: JSON.parse(recorded.receipt.wire)
+          .effect_preview_cid,
+        effect_member_preview_cid: JSON.parse(recorded.receipt.wire)
+          .effect_member_preview_cid,
+        applied: [effect.previewOrderedRowCid(admitted, 0, 0)],
+        accepted: [], unknown: [], failed: [],
+        unattempted: [effect.previewOrderedRowCid(admitted, 0, 1)],
+        status: 'partial_failure',
+        outcome: {state: 'failed', error: {code: 'NotStarted',
+          message: 'Later row was not dispatched'}},
+      }), {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16});
+    const checkMember = (heads, rowReceipts, activeOwners = [false, false]) =>
+      effect.checkMemberReceiptRowPartitionEvidence(
+        admitted, 0, [claim.scope, other.scope],
+        [claim.locator, other.locator], [claim.key, other.key],
+        [claim.basis, other.basis], heads, activeOwners, rowReceipts,
+        memberReceipt.wire, 2, 4096, 512, 16);
+    assert.equal(checkMember([terminal, undefined],
+      [observedTerminal.receipt.wire, undefined]), true);
+    assert.throws(() => checkMember([terminal, undefined],
+      [undefined, undefined]), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checkMember([terminal, undefined],
+      [observedTerminal.receipt.wire, undefined], [true, false]),
+    {code: 'MoonBitHostFailure'});
     await assert.rejects(readAuthorizedEffectTerminalOutcome({
       ...terminalRead, ledger: restarted, previewRowIndex: 1,
       authorizeEvidenceRead: async () => true,

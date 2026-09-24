@@ -188,6 +188,16 @@ receipts from those admitted heads, then issue the final Run Receipt from the
 same captured computation owner. Unknown remains possible-send and cannot be
 converted to failure or retried as a new physical send.
 
+The common MoonBit member-row evidence gate now checks a candidate member
+receipt partition against the exact admitted Preview row order, each Ledger
+basis and durable head, active physical ownership, and the CID and state of
+each physically re-admitted terminal row Receipt. A restarted real-SQLite
+Host fixture accepts an applied row plus an unattempted row and rejects a
+missing terminal Receipt or a still-active owner. The gate deliberately
+returns only a partition check: the member's aggregate typed outcome is not
+yet derived from the row observations, and the ordinary Host does not yet
+issue or durably commit member, set, or final Run Receipts through this gate.
+
 The shared Effect apply Receipt admission now accepts a member with known
 applied or accepted rows and later unattempted rows as `partial_failure`.
 Its previous guard required an explicit failed row, contradicting the 0.1
