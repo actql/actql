@@ -139,6 +139,14 @@ Preview admission, read authorization, or Effectful publication metadata.
 Effectful commit integration must bind it to MoonBit's exact Preview admission
 and carry the holding through apply, final commit, and Run retention policy.
 The Store must not duplicate canonical identity or final-chain rules in JS.
+The common MoonBit owner now derives a distinct private Preview holding CID
+from the admitted Preview, exact Run occurrence, authoring context, and Store
+authority. The Host control exposes that binding only from its opaque admitted
+Preview handle; a product-shaped fixture stores and reads the encrypted wire
+under the derived holding. An independent fixture fixes the 0.1 preimage and
+checks that changing Run or Store authority changes the holding while leaving
+the semantic Preview CID unchanged. The fixture retires the holding afterward;
+ordinary apply, final commit, restart recovery, and retention are still open.
 
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
