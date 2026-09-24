@@ -38,7 +38,9 @@ function responseCode(error) {
       error?.code === 'ClientAuthenticationDenied' ||
       error?.code === 'ClientConnectionDenied' ||
       error?.code === 'ClientRequestLookupDenied' ||
+      error?.code === 'ClientRunStartDenied' ||
       error?.code === 'ClientRunAttachDenied') return 403;
+  if (error?.code === 'ClientRequestIntentConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;

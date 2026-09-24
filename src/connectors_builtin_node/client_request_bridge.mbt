@@ -91,3 +91,30 @@ pub fn client_request_relation(
     ChangedIntent => 2
   }
 }
+
+///|
+/// In-process decision for one durable Run start. The physical journal must
+/// reserve dispatch atomically before opening the task; code 1 never starts
+/// another Compute, including after response loss or process restart.
+#export_name("clientRunStartAction")
+pub fn client_run_start_action(
+  requested : @publication_host.ClientRequestIdentity,
+  retained : @publication_host.ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  current_authorization : Bool,
+) -> Int {
+  match
+    @publication_host.prepare_client_run_start(
+      requested, retained, run_definition, retained_run_definition_cid, dispatch_reserved,
+      current_authorization,
+    ) {
+    Ok(ReserveDispatch) => 0
+    Ok(ReconcileReservedDispatch) => 1
+    Err(DifferentRequest) => 2
+    Err(ChangedIntent) => 3
+    Err(ForeignRunDefinition) => 4
+    Err(AuthorizationDenied) => 5
+  }
+}
