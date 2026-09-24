@@ -151,6 +151,11 @@ input in the Node bridge. This prevents a caller-supplied Mapping rule or a
 separate Result-name lookup from choosing the Plan. It still does not prove
 that the values in a captured Result row equal the Preview's approved payload;
 the row iterator and payload comparison remain required before apply.
+The common Result exporter can now return each bounded canonical row together
+with the exact bytes it already hashes, without re-encoding a full Relation in
+Node. Its row order and finished logical CID remain those of the checked Result
+view. The captured Plan must still consume this cursor under the same owner;
+the existence of the generic cursor alone is not payload admission.
 The Node Host bridge can now issue the final Effectful Receipt from the same
 opaque Preview and an exact computation chain. MoonBit checks the complete
 computation and set/member receipt reference closure before returning it;
