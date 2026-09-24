@@ -5,6 +5,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_workers",
+  "actql/actql/effect_application",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
@@ -60,9 +61,83 @@ pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @ru
 
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_effect_apply_key(@effect_application.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
+
+pub fn strategy_effect_apply_key_cid(@effect_application.EffectApplyKey) -> String
+
+pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool
+
+pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_dispatch_key(@effect_application.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
+
+pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_effect_free_run_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
+
+pub fn strategy_effect_issue_next_ledger_entry(@effect_application.EffectLedgerEntry, String, String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_effect_issue_prepared_ledger_entry(@effect_application.EffectLedgerBasis, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
+
+pub fn strategy_effect_ledger_basis(@effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String, String, String, String, String, String, String, String) -> @effect_application.EffectLedgerBasis raise NodeHostFailure
+
+pub fn strategy_effect_ledger_entry_admits_dispatch(@effect_application.EffectLedgerEntry, @effect_application.LogicalRequestScope, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey, String) -> Bool
+
+pub fn strategy_effect_ledger_entry_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_follows(@effect_application.EffectLedgerEntry?, @effect_application.EffectLedgerEntry) -> Bool
+
+pub fn strategy_effect_ledger_entry_locator_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_matches_basis(@effect_application.EffectLedgerEntry, @effect_application.EffectLedgerBasis) -> Bool
+
+pub fn strategy_effect_ledger_entry_scope_cid(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_ledger_entry_wire(@effect_application.EffectLedgerEntry) -> String
+
+pub fn strategy_effect_logical_item_locator(@effect_application.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> @effect_application.LogicalItemLocator raise NodeHostFailure
+
+pub fn strategy_effect_logical_item_locator_cid(@effect_application.LogicalItemLocator) -> String
+
+pub fn strategy_effect_logical_request_scope(String, String, Int) -> @effect_application.LogicalRequestScope raise NodeHostFailure
+
+pub fn strategy_effect_logical_request_scope_cid(@effect_application.LogicalRequestScope) -> String
+
+pub fn strategy_effect_member_row_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @effect_application.LogicalRequestScope, String, @effect_application.LogicalItemLocator, @effect_application.EffectDispatchKey) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_preview_apply_identity(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise NodeHostFailure
+
+pub fn strategy_effect_preview_apply_identity_admit(String, String, String, @effect_application.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int) -> String raise NodeHostFailure
+
+pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], Array[Int], Array[String], Int, Int, Int, Int, Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
+
+pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int
+
+pub fn strategy_effect_row_recovery_action_from_entry(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, @effect_application.EffectLedgerEntry?, Bool) -> Int
+
+pub fn strategy_effect_set_footprint_conflicts_check(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_effect_set_frontier(Array[String], Array[Int], Array[Array[Int]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+
+pub fn strategy_effect_set_frontier_from_ledger(@run_publication.EffectPreviewIdentity, Array[Array[@effect_application.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> @effect_application.EffectSetFrontier raise NodeHostFailure
+
+pub fn strategy_effect_set_frontier_outcome(@effect_application.EffectSetFrontier) -> Int
+
+pub fn strategy_effect_set_frontier_ready_count(@effect_application.EffectSetFrontier) -> Int
+
+pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFrontier, Int) -> Int
+
+pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
@@ -1095,6 +1170,14 @@ pub(all) suberror NodeHostFailure {
   Encoding(@encode_core.EncodeFailure)
   OutputExport(@execution_relation.CompletedExportIssue)
   PublicationEvidence(@run_publication.ResultEvidenceIssuanceIssue)
+  EffectIdentity(@effect_application.EffectIdentityIssue)
+  EffectSetProgress(@effect_application.EffectSetProgressIssue)
+  EffectFootprint(@effect_application.EffectFootprintIssue)
+  EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
+  EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
+  EffectPreviewTargetGuard(@effect_application.EffectPreviewTargetGuardIssue)
+  EffectCollectionBatch(@effect_application.EffectCollectionBatchIssue)
+  EffectLedger(@effect_application.EffectLedgerIssue)
   CapturedRun(@run_publication.CapturedRunIssuanceIssue)
   RemoteDispatch(@remote_site_protocol.DispatchIssue)
   RemoteTransfer(@remote_transfer.RemoteTransferIssue)

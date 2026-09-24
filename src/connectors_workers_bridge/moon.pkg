@@ -20,5 +20,6 @@ import {
   "actql/actql/remote_bundle" @bundle,
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/connectors/local/driver" @binding15,
+  "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
 }
