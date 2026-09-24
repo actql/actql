@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/https_server"
+
+// Values
+pub fn open(String, Int, String, String, String, Int, Int, Int) -> Result[NativeHttpsServer, NativeHttpsServerIssue]
+
+// Errors
+
+// Types and methods
+pub struct NativeHttpsRequest {
+  request : Request
+}
+pub fn NativeHttpsRequest::body(Self) -> Bytes
+pub fn NativeHttpsRequest::header(Self, String) -> String?
+pub fn NativeHttpsRequest::path(Self) -> String
+pub fn NativeHttpsRequest::peer_fingerprint(Self) -> String
+pub fn NativeHttpsRequest::request_method(Self) -> String
+
+pub struct NativeHttpsServer {
+  server : Server
+  max_response_bytes : Int
+}
+pub fn NativeHttpsServer::close(Self) -> Bool
+pub fn NativeHttpsServer::poll(Self, Int) -> Result[NativeHttpsRequest?, NativeHttpsServerIssue]
+pub fn NativeHttpsServer::port(Self) -> Int
+pub fn NativeHttpsServer::respond(Self, NativeHttpsRequest, Int, String, Bytes) -> Result[Unit, NativeHttpsServerIssue]
+
+pub(all) enum NativeHttpsServerIssue {
+  UnsupportedTarget
+  InvalidConfiguration
+  Start(String)
+  Closed
+  InvalidRequest
+  ResponseFailed
+}
+
+type Request
+
+type Server
+
+// Type aliases
+
+// Traits

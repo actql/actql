@@ -5,6 +5,11 @@ type Server
 type Request
 
 ///|
+fn supported_ffi() -> Bool {
+  true
+}
+
+///|
 #borrow(host, certificate_path, key_path, client_ca_path)
 extern "C" fn open_ffi(
   host : Bytes,

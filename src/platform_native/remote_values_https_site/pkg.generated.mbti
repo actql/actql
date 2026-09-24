@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/remote_values_https_site"
+
+import {
+  "actql/actql/platform_native/https_server",
+  "actql/actql/platform_native/remote_values_host",
+}
+
+// Values
+pub fn open_native_remote_values_https_site(@https_server.NativeHttpsServer, @remote_values_host.NativeRemoteValuesSiteEndpoint, String) -> Result[NativeRemoteValuesHttpsSite, NativeRemoteValuesHttpsSiteIssue]
+
+// Errors
+
+// Types and methods
+type NativeRemoteValuesHttpsSite
+pub fn NativeRemoteValuesHttpsSite::close(Self) -> Bool
+pub fn NativeRemoteValuesHttpsSite::poll(Self, Int) -> Result[Bool, NativeRemoteValuesHttpsSiteIssue]
+pub fn NativeRemoteValuesHttpsSite::port(Self) -> Int
+
+pub(all) enum NativeRemoteValuesHttpsSiteIssue {
+  InvalidConfiguration
+  Server(@https_server.NativeHttpsServerIssue)
+}
+
+// Type aliases
+
+// Traits

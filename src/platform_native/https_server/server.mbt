@@ -1,5 +1,6 @@
 ///|
 pub(all) enum NativeHttpsServerIssue {
+  UnsupportedTarget
   InvalidConfiguration
   Start(String)
   Closed
@@ -41,6 +42,9 @@ pub fn open(
   max_response_bytes : Int,
   max_pending_requests : Int,
 ) -> Result[NativeHttpsServer, NativeHttpsServerIssue] {
+  if !supported_ffi() {
+    return Err(UnsupportedTarget)
+  }
   if !valid_text(host) ||
     !valid_text(certificate_path) ||
     !valid_text(key_path) ||
