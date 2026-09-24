@@ -7,6 +7,8 @@ import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {isDeepStrictEqual, promisify} from 'node:util';
 import {releaseArtifactDigest} from './release-artifacts.mjs';
+import {retainedCase} from './fixtures.mjs';
+import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
 
@@ -28,8 +30,10 @@ async function checkoutState(root) {
 // one immutable source. This records the performance decision; formal matrix
 // admission still requires the complete Native obligation/accounting report.
 export async function runNativeDirectPair({checkout, fixture, database,
-  directory, index = 0, nativeRates, localRates}) {
+  directory, index = 0, nativeRates, localRates, nativeEstimateProfile}) {
   assert(Number.isSafeInteger(index) && index >= 0, 'InvalidNativePairIndex');
+  assert(!nativeEstimateProfile || !nativeRates && !localRates,
+    'NativePairConflictingRates');
   const root = resolve(checkout);
   const initial = await checkoutState(root);
   assert.equal(initial.dirty, false, 'NativePairRequiresCleanCheckout');
@@ -40,6 +44,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
   await mkdir(nativeRoot);
   await mkdir(independentRoot);
   const samples = {};
+  let admittedProfile;
   const labels = index % 2
     ? ['independent', 'native'] : ['native', 'independent'];
   try {
@@ -47,12 +52,32 @@ export async function runNativeDirectPair({checkout, fixture, database,
       if (label === 'native') {
         const started = performance.now();
         const invocation = await prepareNativeDirectProduct({root, fixture,
-          database, directory: nativeRoot, nativeMs: nativeRates?.[0] ?? '1000',
-          nativeRates, localRates});
+          database, directory: nativeRoot,
+          nativeMs: nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
+            nativeRates?.[0] ?? '1000',
+          nativeRates: nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
+          localRates: nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
+        if (nativeEstimateProfile) {
+          const [workload, layout, rowText, ...remaining] =
+            nativeEstimateProfile.trainingCaseId.split('/');
+          assert.equal(remaining.length, 0, 'InvalidNativePairTrainingCase');
+          const trainingFixture = retainedCase(workload, layout,
+            Number(rowText));
+          admittedProfile = admitNativeEstimateProfile({
+            profile: nativeEstimateProfile, trainingFixture,
+            targetFixture: fixture, revision: initial.revision,
+            binaryDigest: `sha256:${await fileHash(invocation.binary)}`,
+          });
+        }
         const execution = await executeNativeDirectProduct(invocation,
           {root, timeoutMs: fixture.limits.timeoutMs});
         const cycleMs = performance.now() - started;
         const product = admitNativeDirectProduct(fixture, invocation, execution);
+        if (admittedProfile) {
+          assert.deepEqual(product.selected,
+            nativeEstimateProfile.ordinary.selected,
+          'NativePairOrdinarySelectionChanged');
+        }
         samples.native = {cycleMs, coldMs: cycleMs - product.cleanupMs,
           warmMs: product.warmMs, executionMs: product.executionMs,
           cleanupMs: product.cleanupMs, product};
@@ -107,6 +132,11 @@ export async function runNativeDirectPair({checkout, fixture, database,
         taskUsages: native.taskUsages,
         usage: native.record.usage,
         acquisition: native.record.acquisition},
+      selectionProfile: admittedProfile ? {
+        admitted: true, estimateSource: admittedProfile.estimateSource,
+        trainingCaseId: admittedProfile.trainingCaseId,
+        targetCaseId: admittedProfile.targetCaseId,
+      } : {admitted: false},
       independent: {coldMs: samples.independent.coldMs,
         warmMs: samples.independent.warmMs,
         executionMs: samples.independent.executionMs,
