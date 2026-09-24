@@ -42,6 +42,10 @@ pub fn bind_captured_effect_preview_inputs(CapturedEffectInputs, @program_check.
 
 pub fn bind_checked_effect_run_dag(CheckedEffectComputationDAG, @program_check.EffectProgramRunCandidate) -> Result[CheckedEffectRunDAG, RunIssue]
 
+pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
+
+pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
+
 pub fn borrow_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
@@ -119,6 +123,14 @@ pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relatio
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_resident_output_available(CapturedDAG, TaskExecution) -> Bool
+
+pub fn captured_resident_result_borrow_available(CapturedResidentResultBorrow) -> Bool
+
+pub fn captured_resident_result_borrow_matches_carrier(CapturedResidentResultBorrow, @execution_relation.CarrierManagedCompletedOutput) -> Bool
+
+pub fn[T] captured_resident_result_borrow_matches_managed(CapturedResidentResultBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_resident_result_borrow_occurrence(CapturedResidentResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
 pub fn captured_result_borrow_available(CapturedResultBorrow) -> Bool
 
@@ -432,6 +444,8 @@ pub fn release_captured_managed_transfer(CapturedDAG, ManagedTransferReceipt) ->
 
 pub fn release_captured_output_pin(CapturedOutputPin) -> Bool
 
+pub fn release_captured_resident_result_borrow(CapturedResidentResultBorrow) -> Bool
+
 pub fn release_captured_result_borrow(CapturedResultBorrow) -> Bool
 
 pub fn release_captured_result_output_set(CapturedResultOutputSet) -> Bool
@@ -582,6 +596,8 @@ type CapturedEffectPreviewInputs
 type CapturedEffectRunDAG
 
 type CapturedOutputPin
+
+type CapturedResidentResultBorrow
 
 type CapturedResultBorrow
 
