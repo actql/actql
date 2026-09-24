@@ -2,16 +2,30 @@
 package "actql/actql/platform_native/remote_values_https_site"
 
 import {
+  "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/https_server",
+  "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
 }
 
 // Values
 pub fn open_native_remote_values_https_site(@https_server.NativeHttpsServer, @remote_values_host.NativeRemoteValuesSiteEndpoint, String) -> Result[NativeRemoteValuesHttpsSite, NativeRemoteValuesHttpsSiteIssue]
 
+pub fn open_native_remote_values_https_site_with_direct_output(@https_server.NativeHttpsServer, @remote_values_host.NativeRemoteValuesSiteEndpoint, String, NativeRemoteValuesDirectOutput) -> Result[NativeRemoteValuesHttpsSite, NativeRemoteValuesHttpsSiteIssue]
+
 // Errors
 
 // Types and methods
+pub(all) struct NativeRemoteValuesDirectOutput {
+  client : @http_client.Client
+  transfer_journal : @remote_transfer_journal.Journal
+  destination_origin : String
+  max_chunk_bytes : Int
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
+}
+
 type NativeRemoteValuesHttpsSite
 pub fn NativeRemoteValuesHttpsSite::close(Self) -> Bool
 pub fn NativeRemoteValuesHttpsSite::poll(Self, Int) -> Result[Bool, NativeRemoteValuesHttpsSiteIssue]

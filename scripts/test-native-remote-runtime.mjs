@@ -182,6 +182,9 @@ async function testValuesHttps(tls, environment) {
     assert.equal(planned.version, 'actql-remote-output-plan/0.1');
     assert.equal(planned.dispatch_request_cid, cid);
     assert.equal(planned.subject_cid, status.subject.cid);
+    const absentDestination = await sendValuesSiteRequest(tls, port,
+      `${path}/outputs/execute`, outputPlan, cid);
+    assert.equal(absentDestination.status, 404);
     await exited;
     process.stdout.write('Native Values mTLS dispatch and query passed.\n');
   } catch (error) {

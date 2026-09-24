@@ -2,7 +2,9 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/platform_native/https_server" @https,
+  "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/remote_values_host" @values,
   "moonbitlang/core/encoding/utf8",
 }

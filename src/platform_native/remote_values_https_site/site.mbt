@@ -9,6 +9,21 @@ struct NativeRemoteValuesHttpsSite {
   dispatch_path : String
   query_path : String
   output_plan_path : String
+  output_execute_path : String
+  direct_output : NativeRemoteValuesDirectOutput?
+}
+
+///|
+/// Borrowed physical destination wiring. The owner of the HTTP client and
+/// Transfer journal remains responsible for their shutdown and recovery.
+pub(all) struct NativeRemoteValuesDirectOutput {
+  client : @http.Client
+  transfer_journal : @transfer_journal.Journal
+  destination_origin : String
+  max_chunk_bytes : Int
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
 }
 
 ///|
@@ -78,7 +93,35 @@ pub fn open_native_remote_values_https_site(
     dispatch_path: path,
     query_path: path + "/query",
     output_plan_path: path + "/outputs/plan",
+    output_execute_path: path + "/outputs/execute",
+    direct_output: None,
   })
+}
+
+///|
+/// Enable the physical send route only with an installed destination. The
+/// Coordinator poll never chooses an arbitrary destination URL.
+pub fn open_native_remote_values_https_site_with_direct_output(
+  server : @https.NativeHttpsServer,
+  endpoint : @values.NativeRemoteValuesSiteEndpoint,
+  coordinator_fingerprint : String,
+  direct_output : NativeRemoteValuesDirectOutput,
+) -> Result[NativeRemoteValuesHttpsSite, NativeRemoteValuesHttpsSiteIssue] {
+  if direct_output.destination_origin.is_empty() ||
+    direct_output.max_chunk_bytes <= 0 ||
+    direct_output.max_chunks <= 0 ||
+    direct_output.max_manifest_bytes <= 0 ||
+    direct_output.max_referenced_bytes <= 0L {
+    return Err(InvalidConfiguration)
+  }
+  let site = match
+    open_native_remote_values_https_site(
+      server, endpoint, coordinator_fingerprint,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..site, direct_output: Some(direct_output), })
 }
 
 ///|
@@ -110,8 +153,12 @@ pub fn NativeRemoteValuesHttpsSite::poll(
     (
       request.path() != self.dispatch_path &&
       request.path() != self.query_path &&
-      request.path() != self.output_plan_path
+      request.path() != self.output_plan_path &&
+      request.path() != self.output_execute_path
     ) {
+    return self.reply(request, 404, "{\"error\":\"not_found\"}").map(_ => true)
+  }
+  if request.path() == self.output_execute_path && self.direct_output is None {
     return self.reply(request, 404, "{\"error\":\"not_found\"}").map(_ => true)
   }
   if request.header("content-type") != Some("application/json") {
@@ -136,6 +183,22 @@ pub fn NativeRemoteValuesHttpsSite::poll(
     self.endpoint.dispatch_json(body, claimed_cid)
   } else if request.path() == self.output_plan_path {
     self.endpoint.output_plan_json(body, claimed_cid)
+  } else if request.path() == self.output_execute_path {
+    match self.direct_output {
+      Some(direct) =>
+        self.endpoint.send_output_direct_json(
+          direct.client,
+          direct.transfer_journal,
+          direct.destination_origin,
+          body,
+          claimed_cid,
+          direct.max_chunk_bytes,
+          direct.max_chunks,
+          direct.max_manifest_bytes,
+          direct.max_referenced_bytes,
+        )
+      None => Err(@values.InvalidConfiguration)
+    }
   } else {
     self.endpoint.query_json(body, claimed_cid)
   }
@@ -146,7 +209,9 @@ pub fn NativeRemoteValuesHttpsSite::poll(
     Err(@values.InvalidEnvelope) =>
       self.reply(request, 400, "{\"error\":\"invalid_request\"}")
     Err(@values.Journal(@journal.MissingDispatch)) if request.path() ==
-      self.query_path => self.reply(request, 404, "{\"error\":\"not_found\"}")
+      self.query_path ||
+      request.path() == self.output_execute_path =>
+      self.reply(request, 404, "{\"error\":\"not_found\"}")
     Err(_) => self.reply(request, 503, "{\"error\":\"site_unavailable\"}")
   }
   sent.map(_ => true)

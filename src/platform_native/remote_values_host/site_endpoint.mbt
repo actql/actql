@@ -22,6 +22,7 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
   InvalidOutput
   OutputPlan(@output.NativeRemoteObservedOutputPlanIssue)
   OutputSource(@output.NativeRemoteStandardSiteComponentIssue)
+  Transfer(@transfer.RemoteTransferIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
   Journal(@journal.NativeRemoteJournalIssue)
   Protocol(@remote.DispatchIssue)
@@ -323,4 +324,30 @@ pub fn NativeRemoteValuesSiteEndpoint::send_output_direct(
     @remote.remote_output_plan_transfer_request(plan),
     max_chunk_bytes,
   ).map_err(issue => OutputSource(issue))
+}
+
+///|
+/// Return only the common Transfer reply for the exact request selected by
+/// the checked Output Plan. A reply does not publish the Named Result.
+pub fn NativeRemoteValuesSiteEndpoint::send_output_direct_json(
+  self : NativeRemoteValuesSiteEndpoint,
+  client : @http.Client,
+  transfer_journal : @transfer_journal.Journal,
+  destination_origin : String,
+  envelope : String,
+  claimed_cid : String,
+  max_chunk_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[String, NativeRemoteValuesSiteEndpointIssue] {
+  let record = match
+    self.send_output_direct(
+      client, transfer_journal, destination_origin, envelope, claimed_cid,
+      max_chunk_bytes, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @transfer.remote_transfer_reply_json(record).map_err(issue => Transfer(issue))
 }

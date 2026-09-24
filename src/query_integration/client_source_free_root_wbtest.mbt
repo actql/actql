@@ -601,7 +601,7 @@ test "ordinary AQL values root reaches the installed Local kernel" {
       is Some(_) {
       7
     } else {
-      6
+      7
     }
     for _ in 0..<requests {
       assert_true(https_site.poll(30000).unwrap())
