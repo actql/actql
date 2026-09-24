@@ -198,6 +198,13 @@ async function testValuesHttps(tls, environment, transferControl) {
       throw error;
     }
   }
+  // Compile before starting the Site readiness clock. A cold native link can
+  // exceed the runtime startup allowance without indicating a Site failure.
+  execFileSync(moon, ['test',
+    'src/query_integration/client_source_free_root_wbtest.mbt',
+    '--target', 'native', '--build-only'], {
+    cwd: repositoryRoot, env: environment, stdio: 'inherit',
+  });
   const child = spawn(moon, [
     'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
     '--target', 'native',
