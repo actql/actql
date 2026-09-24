@@ -27,6 +27,7 @@ try {
   assert.equal(pair.identityEqual, true);
   assert.equal(pair.metadataEqual, true);
   assert.equal(pair.stageRowsEqual, true);
+  assert.equal(pair.stageContentsEqual, true);
   assert.equal(pair.acceptanceEligible, false);
   assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
   console.log('Direct Native product and independent assembly agree');

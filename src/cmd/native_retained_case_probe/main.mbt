@@ -611,8 +611,20 @@ fn main {
     usage.planning_work.to_string() +
     ",\"attempts\":" +
     usage.attempts.to_string() +
+    ",\"holdings\":" +
+    usage.holdings.to_string() +
     ",\"transferred_bytes\":" +
     usage.transferred_bytes.to_string() +
+    ",\"uncertain_transfer_bytes\":" +
+    usage.uncertain_transfer_bytes.to_string() +
+    ",\"reserved_transfer_bytes\":" +
+    usage.reserved_transfer_bytes.to_string() +
+    ",\"held_bytes\":" +
+    usage.held_bytes.to_string() +
+    ",\"reserved_retention_bytes\":" +
+    usage.reserved_retention_bytes.to_string() +
+    ",\"reserved_execution_bytes\":" +
+    usage.reserved_execution_bytes.to_string() +
     ",\"peak_retention_bytes\":" +
     usage.peak_retention_bytes.to_string() +
     "},\"acquisition_evidence\":" +

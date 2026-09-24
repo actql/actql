@@ -115,8 +115,12 @@ export async function runNativeDirectPair({checkout, fixture, database,
     const stageRowsEqual = isDeepStrictEqual(
       native.taskHoldings.map(value => value.rows),
       independent.stages.slice(1).map(value => value.rows));
+    const stageContentsEqual = isDeepStrictEqual(
+      native.taskHoldings.map(value => [value.rowsCid, value.bytes]),
+      independent.stages.slice(1).map(value => [value.cid, value.bytes]));
     return {caseId: fixture.id, index, labels,
-      status: identityEqual && metadataEqual && stageRowsEqual
+      status: identityEqual && metadataEqual && stageRowsEqual &&
+        stageContentsEqual
         ? 'diagnostic-completed' : 'failed',
       acceptanceEligible: false,
       missing: ['Native logical-work and physical-traffic obligation admission'],
@@ -141,7 +145,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         warmMs: samples.independent.warmMs,
         executionMs: samples.independent.executionMs,
         cleanupMs: samples.independent.cleanupMs},
-      identityEqual, metadataEqual, stageRowsEqual};
+      identityEqual, metadataEqual, stageRowsEqual, stageContentsEqual};
   } finally {
     await rm(nativeRoot, {recursive: true, force: true});
     await rm(independentRoot, {recursive: true, force: true});

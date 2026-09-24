@@ -123,10 +123,16 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
     assert(Number.isSafeInteger(record[key]) && record[key] >= 0,
       `InvalidNativeProductInterval:${key}`);
   }
-  for (const key of ['planning_work', 'attempts', 'transferred_bytes',
-    'peak_retention_bytes']) {
+  for (const key of ['planning_work', 'attempts', 'holdings',
+    'transferred_bytes', 'uncertain_transfer_bytes',
+    'reserved_transfer_bytes', 'held_bytes', 'reserved_retention_bytes',
+    'reserved_execution_bytes', 'peak_retention_bytes']) {
     assert(Number.isSafeInteger(record.usage?.[key]) && record.usage[key] >= 0,
       `InvalidNativeProductLedger:${key}`);
+  }
+  for (const key of ['uncertain_transfer_bytes', 'reserved_transfer_bytes',
+    'held_bytes', 'reserved_retention_bytes', 'reserved_execution_bytes']) {
+    assert.equal(record.usage[key], 0, `NativeProductCleanupPending:${key}`);
   }
   for (const key of ['guard_work', 'guard_bytes', 'guard_nodes',
     'comparison_work', 'comparison_bytes', 'comparison_nodes',
