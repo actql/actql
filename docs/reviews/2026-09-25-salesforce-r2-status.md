@@ -110,6 +110,18 @@ to zero charged schema bytes after unpublished Result-set release. This
 fixes prepared Result schema custody; it does not by itself complete the
 ordinary Effectful apply or final publication path.
 
+The common MoonBit publication validator now admits an Effectful final
+Receipt together with the full computation chain, Result evidence, durable
+bindings, immutable publication request and attempt, and exact public index.
+The index must reference the final Receipt, not the pre-effect computation
+Receipt. The generated Node bridge and common Host control expose this
+validator without adding a second JS chain rule. A product-shaped control
+fixture accepts complete Result evidence and rejects a computation-Receipt
+index, missing derivation, and foreign Preview owner. This is a commit
+admission prerequisite only: the existing Store and publication coordinator
+still accept Effect-free chains exclusively. No Effectful durable commit or
+ordinary Effectful Run success is claimed by this change.
+
 At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
 distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
 and native Client mTLS. This does not replace the missing Effectful submit and
