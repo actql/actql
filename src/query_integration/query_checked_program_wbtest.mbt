@@ -153,7 +153,17 @@ fn query_checked_program_fixture(
   let text = if local_values_two_consumer_chain {
     let program =
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"values_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":null,"label":"none"},{"id":1,"label":"one"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
-    if local_values_two_consumer_relation_variant == "separate_sort_take" ||
+    if local_values_two_consumer_relation_variant == "independent_branches" {
+      program
+      .replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"left\"},{\"from\":\"left\",\"filter\":\"id > 0\",\"as\":\"left_out\"},{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":true},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"id\":3,\"label\":\"three\"}]},\"as\":\"right\"},{\"from\":\"right\",\"select\":[\"id\",\"label\"],\"as\":\"right_out\"}],\"results\":{\"r\":{\"from\":\"left_out\",\"fields\":[\"id\",\"label\"]},\"s\":{\"from\":\"right_out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+      .replace(
+        old="\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}}",
+        new="\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"s\"}}}",
+      )
+    } else if local_values_two_consumer_relation_variant == "separate_sort_take" ||
       local_values_two_consumer_relation_variant == "separate_filter_sort_take" ||
       local_values_two_consumer_relation_variant == "chained_filter_sort_take" {
       let separated = program

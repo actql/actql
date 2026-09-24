@@ -62,7 +62,9 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut found_carrier = false
   let mut found_relation = false
   let mut found_zero_input = false
+  let mut zero_input_count = 0
   let mut found_binary = false
+  let mut found_external_input = false
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
@@ -73,6 +75,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     }
     if @lower.node_input_count(node) == 0 {
       found_zero_input = true
+      zero_input_count += 1
     } else if @lower.node_input_count(node) == 2 {
       found_binary = true
     }
@@ -113,7 +116,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
             }
           }
         }
-        Some(@pipeline.Input(_)) => ()
+        Some(@pipeline.Input(_)) => found_external_input = true
         None => return None
       }
     }
@@ -126,6 +129,14 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   // A checked multi-source Relation DAG can use the same per-edge handoff
   // when every zero-input producer and binary consumer has a bounded provider.
   if all_selected && found_zero_input && found_binary && found_relation {
+    return Some(-1)
+  }
+  // Independent zero-input branches need no external representation plan.
+  // Split their exact internal Relation edges even without a binary join.
+  if all_selected &&
+    zero_input_count > 1 &&
+    found_relation &&
+    !found_external_input {
     return Some(-1)
   }
   // A chain of bounded, independently owned Relation Stages gives the unary

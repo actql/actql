@@ -436,6 +436,110 @@ test "standard Host splits zero-input values from distinct" {
 }
 
 ///|
+test "standard Host executes independent bounded Relation branches" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="independent_branches",
+    ledger_limits=Some({
+      planning_work: 10000,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 300000L,
+      retained_bytes: 128000000L,
+      execution_bytes: 134217728L,
+    }),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 64,
+    },
+    None,
+  ).unwrap()
+  let live = Array::makei(6, _ => Ref(true))
+  let operations = []
+  let outputs = []
+  let rows = []
+  for task in 1..<7 {
+    let inputs = if task == 2 {
+      [outputs[0]]
+    } else if task == 4 {
+      [outputs[2]]
+    } else if task == 5 {
+      [outputs[1]]
+    } else if task == 6 {
+      [outputs[3]]
+    } else {
+      []
+    }
+    let input_rows = if task == 2 {
+      [rows[0]]
+    } else if task == 4 {
+      [rows[2]]
+    } else if task == 5 {
+      [rows[1]]
+    } else if task == 6 {
+      [rows[3]]
+    } else {
+      []
+    }
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      inputs,
+      input_rows,
+      task,
+      live[task - 1],
+      execution_quantum=1,
+      require_provider=true,
+    )
+    operations.push(ops)
+    outputs.push(output)
+    rows.push(local_managed_test_rows(ops))
+  }
+  assert_eq(rows[1], ["{\"id\":1,\"label\":\"one\"}"])
+  assert_eq(rows[3], ["{\"id\":3,\"label\":\"three\"}"])
+  assert_eq(rows[4], rows[1])
+  assert_eq(rows[5], ["{\"label\":\"three\",\"id\":3}"])
+  live[4].val = false
+  @strategy.close_captured_task_output(run, 5)
+  (operations[4].close)()
+  ignore((operations[4].cleanup_refresh)())
+  assert_true(@execution.managed_completed_output_available(outputs[5]))
+  assert_true(@execution.managed_completed_output_available(outputs[1]))
+  for task in [6, 4, 3, 2, 1] {
+    live[task - 1].val = false
+    @strategy.close_captured_task_output(run, task)
+    (operations[task - 1].close)()
+    ignore((operations[task - 1].cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 fn run_standard_host_values_sort_take(
   separate_stage : Bool,
   filter_first : Bool,

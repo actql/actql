@@ -331,6 +331,26 @@ test "physical DAG separates bounded values from select take and derive" {
 }
 
 ///|
+test "physical DAG separates independent bounded Relation branches" {
+  let program = query_checked_program_fixture(
+    dag=true,
+    local_values_two_consumer_chain=true,
+    local_values_two_consumer_relation_variant="independent_branches",
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 7)
+  for step in 0..<4 {
+    assert_eq(@strategy.graph_task_selected_step(graph, step + 1), Some(step))
+  }
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+}
+
+///|
 test "physical DAG retains both append input occurrences after values split" {
   for variant in ["local", "self", "aligned"] {
     let program = query_checked_program_fixture(
