@@ -93,6 +93,34 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
     moon.clientProgramAdmitPublicationRowsBinding(prepared, 0, 0, body)));
 });
 
+test('binding set covers every checked Unit Result port', async () => {
+  const {document, environment} = await checkedFixture();
+  const doubled = JSON.parse(document);
+  doubled.stages[0].results.second =
+    structuredClone(doubled.stages[0].results.rows);
+  doubled.results.second = {from: {stage: 'source', result: 'second'}};
+  const prepared = moon.clientProgramPrepareEffectFree(
+    JSON.stringify(doubled), 'json', environment);
+  assert.ok(prepared);
+  const bindings = [0, 1].flatMap(index => [
+    checked(moon.clientProgramPublicationRowsBindingJson(
+      prepared, 0, index)),
+    checked(moon.clientProgramPublicationBytesBindingJson(
+      prepared, 0, index)),
+  ]);
+  assert.equal(new Set(bindings.map(body => JSON.parse(body).binding_cid))
+    .size, 4);
+  assert.doesNotThrow(() => checked(
+    moon.clientProgramAdmitPublicationBindingSet(prepared,
+      bindings.toReversed())));
+  for (const omitted of [0, 1, 2, 3]) {
+    assert.throws(() => checked(
+      moon.clientProgramAdmitPublicationBindingSet(prepared,
+        bindings.filter((_, index) => index !== omitted))),
+    {code: 'MoonBitHostFailure'});
+  }
+});
+
 // Test-only evidence isolates checked Program binding. Product admission must
 // derive every other evidence CID from its real compiler and Host authority.
 function publicationEvidence(program, parameters, semantics,
@@ -354,8 +382,26 @@ test('Node ABI derives the checked named Result and request identity', async () 
     moon.clientProgramAdmitPublicationRowsBinding(prepared, 0, 0, body));
   const admitBytes = body => checked(
     moon.clientProgramAdmitPublicationBytesBinding(prepared, 0, 0, body));
+  const admitSet = bodies => checked(
+    moon.clientProgramAdmitPublicationBindingSet(prepared, bodies));
   assert.doesNotThrow(() => admitRows(rowsBindingBody));
   assert.doesNotThrow(() => admitBytes(bytesBindingBody));
+  assert.doesNotThrow(() => admitSet([bytesBindingBody, rowsBindingBody]));
+  assert.doesNotThrow(() => admitSet([JSON.stringify({
+    version: rowsBinding.version, target: rowsBinding.target,
+    unit: rowsBinding.unit, subject_ref: rowsBinding.subject_ref,
+    resolved_limit_cid: rowsBinding.resolved_limit_cid,
+    effective_max: rowsBinding.effective_max,
+    binding_cid: rowsBinding.binding_cid,
+  }), bytesBindingBody]));
+  for (const invalid of [
+    [rowsBindingBody],
+    [rowsBindingBody, rowsBindingBody],
+    [rowsBindingBody, JSON.stringify({...bytesBinding,
+      binding_cid: cid('f')})],
+    [bytesBindingBody, '{}'],
+  ]) assert.throws(() => admitSet(invalid),
+    {code: 'MoonBitHostFailure'});
   assert.doesNotThrow(() => admitRows(JSON.stringify({
     version: rowsBinding.version,
     target: rowsBinding.target,
