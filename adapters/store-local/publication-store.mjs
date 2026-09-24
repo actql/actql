@@ -17,7 +17,13 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import {createHash, randomUUID} from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID,
+} from 'node:crypto';
 import {resolve} from 'node:path';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
@@ -157,7 +163,7 @@ async function acquireStoreOwnership(root) {
 }
 
 function validateConfiguration(options) {
-  if (!exactKeys(options, [
+  const fields = [
     'directory',
     'storeAuthorityCid',
     'capacityBytes',
@@ -165,7 +171,13 @@ function validateConfiguration(options) {
     'maxObjects',
     'maxContractNodes',
     'maxContractDepth',
-  ]) || typeof options.directory !== 'string' ||
+  ];
+  if ((!exactKeys(options, fields) &&
+      !exactKeys(options, [...fields, 'privateEvidenceKey'])) ||
+      options.privateEvidenceKey !== undefined &&
+        (!(options.privateEvidenceKey instanceof Uint8Array) ||
+          options.privateEvidenceKey.byteLength !== 32) ||
+      typeof options.directory !== 'string' ||
       options.directory.length === 0 ||
       !cidPattern.test(options.storeAuthorityCid) ||
       !quantity(options.capacityBytes) ||
@@ -175,7 +187,9 @@ function validateConfiguration(options) {
       !quantity(options.maxContractDepth) || options.maxContractDepth === 0) {
     fail('InvalidPublicationStoreConfiguration');
   }
-  return Object.freeze({...options, directory: resolve(options.directory)});
+  return Object.freeze({...options, directory: resolve(options.directory),
+    privateEvidenceKey: options.privateEvidenceKey === undefined
+      ? undefined : Buffer.from(options.privateEvidenceKey)});
 }
 
 function validateContractControl(value) {
@@ -1891,6 +1905,120 @@ export async function openLocalPublicationStore(
     } finally {
       await handle.close();
     }
+  };
+
+  // Private evidence uses the existing object allocation and semantic alias
+  // custody. Its ciphertext is the durable body; the semantic CID still
+  // belongs to the MoonBit contract, not to this encryption envelope.
+  const privateEvidenceWrites = new Map();
+  let privateEvidenceReaders = 0;
+  const privateEvidenceAad = (name, semanticCid) => Buffer.from(
+    `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`,
+    'utf8',
+  );
+  const privateEvidenceKey = () => {
+    if (configuration.privateEvidenceKey === undefined) {
+      fail('PublicationPrivateEvidenceKeyUnavailable');
+    }
+    return configuration.privateEvidenceKey;
+  };
+  const privateEvidenceField = (value, bytes) => {
+    if (typeof value !== 'string' ||
+        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
+          .test(value)) {
+      fail('PublicationPrivateEvidenceCorrupt');
+    }
+    const decoded = Buffer.from(value, 'base64');
+    if ((bytes !== undefined && decoded.byteLength !== bytes) ||
+        decoded.toString('base64') !== value) {
+      fail('PublicationPrivateEvidenceCorrupt');
+    }
+    return decoded;
+  };
+  const readPrivateSemantic = async (name, semanticCid) => {
+    active();
+    if (typeof name !== 'string' || name.length === 0) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    cidHex(semanticCid);
+    const key = privateEvidenceKey();
+    privateEvidenceReaders++;
+    try {
+      const bytes = await readSemanticBytes(semanticCid);
+      let envelope;
+      try { envelope = JSON.parse(bytes.toString('utf8')); }
+      catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }
+      if (!exactKeys(envelope, ['version', 'nonce', 'tag', 'ciphertext']) ||
+          envelope.version !== 'actql-private-publication-evidence/0.1') {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
+      const nonce = privateEvidenceField(envelope.nonce, 12);
+      const tag = privateEvidenceField(envelope.tag, 16);
+      const ciphertext = privateEvidenceField(envelope.ciphertext);
+      const decipher = createDecipheriv('aes-256-gcm', key, nonce);
+      decipher.setAAD(privateEvidenceAad(name, semanticCid));
+      decipher.setAuthTag(tag);
+      return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    } catch (error) {
+      if (error?.code === 'PublicationContractMissing' ||
+          error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
+      fail('PublicationPrivateEvidenceCorrupt', error);
+    } finally {
+      privateEvidenceReaders--;
+    }
+  };
+  const putPrivateSemantic = async (name, wire, semanticCid) => {
+    active();
+    if (typeof name !== 'string' || name.length === 0 ||
+        typeof wire !== 'string' ||
+        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    cidHex(semanticCid);
+    const key = privateEvidenceKey();
+    let flight = privateEvidenceWrites.get(semanticCid);
+    if (flight === undefined) {
+      flight = (async () => {
+        let existing;
+        try { existing = await readPrivateSemantic(name, semanticCid); }
+        catch (error) {
+          if (error?.code !== 'PublicationContractMissing') throw error;
+        }
+        if (existing !== undefined) {
+          if (!existing.equals(Buffer.from(wire, 'utf8'))) {
+            fail('PublicationSemanticIdentityConflict');
+          }
+          return Object.freeze({semanticCid, created: false});
+        }
+        const nonce = randomBytes(12);
+        const cipher = createCipheriv('aes-256-gcm', key, nonce);
+        cipher.setAAD(privateEvidenceAad(name, semanticCid));
+        const ciphertext = Buffer.concat([
+          cipher.update(wire, 'utf8'), cipher.final(),
+        ]);
+        const envelope = JSON.stringify({
+          version: 'actql-private-publication-evidence/0.1',
+          nonce: nonce.toString('base64'),
+          tag: cipher.getAuthTag().toString('base64'),
+          ciphertext: ciphertext.toString('base64'),
+        });
+        const stored = await putSemantic(envelope, semanticCid);
+        return Object.freeze({semanticCid, created: stored.created});
+      })();
+      privateEvidenceWrites.set(semanticCid, flight);
+      try { return await flight; }
+      finally {
+        if (privateEvidenceWrites.get(semanticCid) === flight) {
+          privateEvidenceWrites.delete(semanticCid);
+        }
+      }
+    }
+    await flight;
+    if (!(await readPrivateSemantic(name, semanticCid))
+      .equals(Buffer.from(wire, 'utf8'))) {
+      fail('PublicationSemanticIdentityConflict');
+    }
+    return Object.freeze({semanticCid, created: false});
   };
 
   const readContract = async (cid, contractName) => {
@@ -4511,12 +4639,14 @@ export async function openLocalPublicationStore(
     recoverPhysicalHoldingDeletions,
     putBytes,
     putSemantic,
+    putPrivateSemantic,
     putPreparedResultSchema,
     putPublicationContract,
     verifyObject,
     observeTrustedClock,
     readClockObservation,
     readSemanticBytes,
+    readPrivateSemantic,
     consumeObject,
     withCommittedResult,
     withCommittedResultRows,
@@ -4589,12 +4719,16 @@ export async function openLocalPublicationStore(
           pendingMetadataDeletions.size !== 0 ||
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
-          activePhysicalHoldingReaders.size !== 0) {
+          activePhysicalHoldingReaders.size !== 0 ||
+          privateEvidenceWrites.size !== 0 ||
+          privateEvidenceReaders !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
         ));
       }
-      return ownership.release();
+      return Promise.resolve(ownership.release()).finally(() => {
+        configuration.privateEvidenceKey?.fill(0);
+      });
     },
   });
 }

@@ -376,6 +376,60 @@ test('bounded object writes are durable, streamed, and physically addressed',
     assert.equal(reopened.status().storedBytes, 6);
   });
 
+test('private evidence is encrypted, bound, and readable after restart',
+  async t => {
+    const suppliedKey = Buffer.alloc(32, 7);
+    const {store, configuration} = await fixture(t, {
+      privateEvidenceKey: suppliedKey,
+    });
+    const cid = digest('private-effect-preview');
+    const wire = '{"sensitivity":"private","value":"secret-marker"}';
+    suppliedKey.fill(0);
+    const [first, joined] = await Promise.all([
+      store.putPrivateSemantic('effect_preview', wire, cid),
+      store.putPrivateSemantic('effect_preview', wire, cid),
+    ]);
+    assert.equal(first.semanticCid, cid);
+    assert.equal(joined.semanticCid, cid);
+    const stored = await store.readSemanticBytes(cid);
+    assert.equal(stored.includes(Buffer.from('secret-marker')), false);
+    assert.deepEqual(await store.readPrivateSemantic('effect_preview', cid),
+      Buffer.from(wire));
+    await assert.rejects(store.readPrivateSemantic('review_projection', cid),
+      code('PublicationPrivateEvidenceCorrupt'));
+    await assert.rejects(store.putPrivateSemantic(
+      'effect_preview', '{"value":"changed"}', cid,
+    ), code('PublicationSemanticIdentityConflict'));
+    await store.close();
+
+    const reopened = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: Buffer.alloc(32, 7),
+    }, contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.readPrivateSemantic(
+      'effect_preview', cid,
+    ), Buffer.from(wire));
+    assert.equal((await reopened.putPrivateSemantic(
+      'effect_preview', wire, cid,
+    )).created, false);
+    await reopened.close();
+
+    const wrongKey = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: Buffer.alloc(32, 8),
+    }, contractControl);
+    t.after(async () => { await wrongKey.close(); });
+    await assert.rejects(wrongKey.readPrivateSemantic('effect_preview', cid),
+      code('PublicationPrivateEvidenceCorrupt'));
+    await wrongKey.close();
+    const withoutKey = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: undefined,
+    }, contractControl);
+    t.after(async () => { await withoutKey.close(); });
+    await assert.rejects(withoutKey.readPrivateSemantic(
+      'effect_preview', cid,
+    ), code('PublicationPrivateEvidenceKeyUnavailable'));
+  });
+
 test('trusted clock high-water mark survives restart and rejects rollback',
   async t => {
     const {store, configuration} = await fixture(t);
