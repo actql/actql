@@ -7782,6 +7782,26 @@ pub fn strategy_effect_preview_apply_identity_admit(
 }
 
 ///|
+#export_name("strategyEffectPreviewPrivateHoldingCid")
+pub fn strategy_effect_preview_private_holding_cid(
+  preview : @publication.EffectPreviewIdentity,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match @publication.effect_preview_private_holding_cid(preview, store_authority_cid) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectPreviewSemanticCid")
+pub fn strategy_effect_preview_semantic_cid(
+  preview : @publication.EffectPreviewIdentity,
+) -> String {
+  @publication.effect_preview_semantic_identity(preview)
+}
+
+///|
 #export_name("strategyEffectPreviewApplyIdentity")
 pub fn strategy_effect_preview_apply_identity(
   preview_wire : String,

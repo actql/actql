@@ -1586,6 +1586,7 @@ function publicationControl(moon) {
   const snapshotTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
+  const computationPreviewWires = new WeakMap();
   const inspect = contract => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
@@ -1903,7 +1904,22 @@ function publicationControl(moon) {
       ));
       const owned = Object.freeze({kind: 'effect-computation-preview'});
       computationPreviewTokens.set(owned, preview);
+      computationPreviewWires.set(owned, wire);
       return owned;
+    },
+    effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return Object.freeze({
+        name: 'effect_preview',
+        semanticCid: moon.strategyEffectPreviewSemanticCid(ownedPreview),
+        holdingCid: checked(moon.strategyEffectPreviewPrivateHoldingCid(
+          ownedPreview, storeAuthorityCid,
+        )),
+        wire: computationPreviewWires.get(preview),
+      });
     },
     issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
       issuanceLimits(limits, 'Effectful Captured Run');

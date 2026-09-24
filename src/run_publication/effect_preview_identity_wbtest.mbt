@@ -173,6 +173,37 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
     12,
   ).unwrap()
   assert_eq(effect_preview_semantic_identity(admitted), preview_cid)
+  assert_eq(
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+    Some(
+      "sha256:3a6b74ed61b92f77c62ac07d1a09e4f35b5952631374560d0da6c7235f21625b",
+    ),
+  )
+  assert_eq(effect_preview_private_holding_cid(admitted, "foreign"), None)
+  assert_true(
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("d")) !=
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+  )
+  let another_run_wire = valid.replace_all(
+    old=preview_identity_test_cid("b"),
+    new=preview_identity_test_cid("d"),
+  )
+  let another_run = admit_effect_preview_identity(
+    another_run_wire,
+    preview_identity_test_cid("d"),
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(effect_preview_semantic_identity(another_run), preview_cid)
+  assert_true(
+    effect_preview_private_holding_cid(
+      another_run,
+      preview_identity_test_cid("c"),
+    ) !=
+    effect_preview_private_holding_cid(admitted, preview_identity_test_cid("c")),
+  )
   assert_eq(effect_preview_member_identity(admitted, 0), Some(expected_member))
   assert_eq(effect_preview_member_identity(admitted, 1), None)
   assert_eq(effect_preview_member_capability_evidence_cid(admitted, 0), Some(a))

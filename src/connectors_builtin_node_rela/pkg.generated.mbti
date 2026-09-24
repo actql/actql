@@ -418,7 +418,11 @@ pub fn strategy_effect_preview_footprint_conflicts_check(String, Array[String], 
 
 pub fn strategy_effect_preview_identities(String, Int, Int, Int) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_effect_preview_private_holding_cid(@run_publication.EffectPreviewIdentity, String) -> String raise NodeHostFailure
+
 pub fn strategy_effect_preview_row_identities(String, Int, Int, Int) -> Array[Array[String]] raise NodeHostFailure
+
+pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdentity) -> String
 
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
 

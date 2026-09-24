@@ -125,6 +125,8 @@ pub fn effect_preview_ordered_row_intended_changes_wire(EffectPreviewIdentity, I
 
 pub fn effect_preview_ordered_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
 
+pub fn effect_preview_private_holding_cid(EffectPreviewIdentity, String) -> String?
+
 pub fn effect_preview_program_definition_cid(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_program_semantics_cid(EffectPreviewIdentity) -> String
