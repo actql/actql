@@ -78,9 +78,9 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
-pub fn bind_effect_program_run_preview(EffectProgramRunCandidate, @run_publication.PublicationContract, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue]
+pub fn bind_effect_program_run_preview(EffectProgramRunCandidate, @run_publication.PublicationContract, Int, @run_publication.EffectPreviewIdentity, Int, @stage_results.EffectPlanIdentityLimits) -> Result[EffectProgramRunPreview, EffectProgramRunPreviewIssue]
 
-pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue]
+pub fn bind_effect_program_static_preview(EffectProgramStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int, @stage_results.EffectPlanIdentityLimits) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue]
 
 pub fn bind_effect_program_static_run(EffectProgramStaticCandidate, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue]
 
@@ -861,6 +861,7 @@ pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignResolvedLimit(String)
   LimitWorkExceeded
   Inventory(@stage_results.EffectPreviewStaticInventoryIssue)
+  PlanInventory(@stage_results.EffectPlanInventoryIssue)
 } derive(Eq, @debug.Debug)
 
 type EffectivePolicy

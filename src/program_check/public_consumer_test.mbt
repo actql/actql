@@ -63,6 +63,17 @@ fn public_effect_preview_canonical(wire : String) -> String {
 }
 
 ///|
+fn public_effect_plan_limits() -> @results.EffectPlanIdentityLimits {
+  {
+    max_work: 1000,
+    max_fields: 100,
+    max_bytes: 20000,
+    max_nodes: 1000,
+    max_depth: 20,
+  }
+}
+
+///|
 fn public_effect_preview_member(
   id : String,
   mapping_cid : String,
@@ -708,7 +719,11 @@ test "Effect computation candidate closes the exact Mapping environment" {
   )
   let preview = public_effect_preview_for_static(static_candidate, mapping_cid)
   let bound = @program_check.bind_effect_program_static_preview(
-    static_candidate, 1, preview, 1000,
+    static_candidate,
+    1,
+    preview,
+    1000,
+    public_effect_plan_limits(),
   ).unwrap()
   assert_true(
     physical_equal(
@@ -731,6 +746,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         first_max_items=2,
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignResolvedLimit("first")),
   )
@@ -744,6 +760,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         second_max_items=2,
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignResolvedLimit("second")),
   )
@@ -787,7 +804,11 @@ test "Effect computation candidate closes the exact Mapping environment" {
   )
   assert_true(
     @program_check.bind_effect_program_static_preview(
-      rebound_static, 1, rebound_preview, 1000,
+      rebound_static,
+      1,
+      rebound_preview,
+      1000,
+      public_effect_plan_limits(),
     )
     is Ok(_),
   )
@@ -801,6 +822,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         first_max_items=3,
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignResolvedLimit("first")),
   )
@@ -895,7 +917,12 @@ test "Effect computation candidate closes the exact Mapping environment" {
     invocation_cid=Some(invocation_identity),
   )
   let bound_run_preview = @program_check.bind_effect_program_run_preview(
-    run_owner, invocation, 1, run_preview, 1000,
+    run_owner,
+    invocation,
+    1,
+    run_preview,
+    1000,
+    public_effect_plan_limits(),
   ).unwrap()
   assert_true(
     @program_check.check_effect_program_run_preview_footprints(
@@ -920,7 +947,12 @@ test "Effect computation candidate closes the exact Mapping environment" {
     second_target_cid=Some(same_target),
   )
   let overlapping_owner = @program_check.bind_effect_program_run_preview(
-    run_owner, invocation, 1, overlapping, 1000,
+    run_owner,
+    invocation,
+    1,
+    overlapping,
+    1000,
+    public_effect_plan_limits(),
   ).unwrap()
   assert_true(
     @program_check.check_effect_program_run_preview_footprints(
@@ -985,7 +1017,12 @@ test "Effect computation candidate closes the exact Mapping environment" {
     )
     match
       @program_check.bind_effect_program_run_preview(
-        run_owner, invocation, 1, foreign, 1000,
+        run_owner,
+        invocation,
+        1,
+        foreign,
+        1000,
+        public_effect_plan_limits(),
       ) {
       Err(Run(actual)) => assert_eq(actual, expected)
       _ => fail("Foreign Run Preview escaped")
@@ -1005,7 +1042,12 @@ test "Effect computation candidate closes the exact Mapping environment" {
   ).unwrap()
   assert_true(
     @program_check.bind_effect_program_run_preview(
-      run_owner, foreign_invocation, 1, run_preview, 1000,
+      run_owner,
+      foreign_invocation,
+      1,
+      run_preview,
+      1000,
+      public_effect_plan_limits(),
     )
     is Err(Run(@run_publication.PreviewRunForeignTemplate)),
   )
@@ -1025,6 +1067,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         definition_cid=Some("sha256:" + "f".repeat(64)),
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignProgramDefinition),
   )
@@ -1038,6 +1081,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         semantics_cid=Some("sha256:" + "f".repeat(64)),
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignProgramSemantics),
   )
@@ -1051,6 +1095,7 @@ test "Effect computation candidate closes the exact Mapping environment" {
         environment_cid=Some("sha256:" + "f".repeat(64)),
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(ForeignCheckEnvironment),
   )
@@ -1063,12 +1108,17 @@ test "Effect computation candidate closes the exact Mapping environment" {
         "sha256:" + "f".repeat(64),
       ),
       1000,
+      public_effect_plan_limits(),
     )
     is Err(Inventory(@results.ForeignResolvedContract("first"))),
   )
   assert_true(
     @program_check.bind_effect_program_static_preview(
-      static_candidate, 0, preview, 1000,
+      static_candidate,
+      0,
+      preview,
+      1000,
+      public_effect_plan_limits(),
     )
     is Err(Inventory(@results.Inventory(@results.MemberCountMismatch))),
   )
