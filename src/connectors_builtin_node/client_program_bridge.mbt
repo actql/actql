@@ -368,6 +368,44 @@ pub fn client_program_stage_semantics_json(
 }
 
 ///|
+/// Keep the checked Result row ceiling and its owner-issued witnesses intact.
+#export_name("clientProgramPublicationRowsLimitJson")
+pub fn client_program_publication_rows_limit_json(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+) -> Result[String, @publication_host.ClientPublicationLimitIssue] {
+  @publication_host.emit_prepared_client_publication_limit(
+    prepared,
+    unit,
+    index,
+    @publication_host.Rows,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+/// Keep the checked Result byte ceiling separate from its row ceiling.
+#export_name("clientProgramPublicationBytesLimitJson")
+pub fn client_program_publication_bytes_limit_json(
+  prepared : @publication_host.PreparedClientProgram,
+  unit : Int,
+  index : Int,
+) -> Result[String, @publication_host.ClientPublicationLimitIssue] {
+  @publication_host.emit_prepared_client_publication_limit(
+    prepared,
+    unit,
+    index,
+    @publication_host.Bytes,
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 /// In-process compiler material for this installed Local profile. The same
 /// bounded sequence limits govern physical task preparation below. The output
 /// is not an Executable Plan, publication authority or Client wire value.
