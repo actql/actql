@@ -34,6 +34,8 @@
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "time_series", "path": "entrypoint"},
+    {"family": "TEA", "operation": "interval_join", "path": "entrypoint"},
+    {"family": "TEA", "operation": "asof_join", "path": "entrypoint"},
     {"family": "VecA", "operation": "normalize_vectors", "path": "entrypoint"},
     {"family": "VecA", "operation": "score_vectors", "path": "entrypoint"},
     {"family": "VecA", "operation": "nearest", "path": "entrypoint"},

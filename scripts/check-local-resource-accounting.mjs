@@ -1229,6 +1229,13 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: direct and Relation work/workspace assurances are required`);
     }
   }
+  if (route.family === 'TEA' &&
+      ['interval_join', 'asof_join'].includes(route.operation)) {
+    if (pathAssurance.entrypoint === undefined ||
+      resourceAssurance.entrypoint === undefined) {
+      fail(`${label}: bounded join production assurance is missing`);
+    }
+  }
   if (route.family === 'VecA' && route.operation === 'nearest') {
     if (route.relation_entrypoint?.symbol !==
         'start_nearest_inputs_with_relations' ||
