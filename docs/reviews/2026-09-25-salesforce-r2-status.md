@@ -67,3 +67,8 @@ The Host fixture verifies matching update rows, altered changes, swapped
 targets, and a released pin. This is payload evidence only: it neither admits
 current target guards nor issues an apply permit, dispatches writes, or commits
 an Effectful Run. Prepared-output sinks must reclaim partial bytes on failure.
+
+At `24bff12682889e5004ea60de347ff0c580a2a588`, the grouped Client
+distribution gate passed: 73/73 Node tests, packed Node/browser Client smoke,
+and native Client mTLS. This does not replace the missing Effectful submit and
+apply E2E or same-SHA Linux CI.
