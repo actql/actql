@@ -282,3 +282,28 @@ test "session scratch initialization advances within the resume quantum" {
   assert_true(cleanup_session(stopped).unwrap())
   assert_true(@records.discard_completed(source))
 }
+
+///|
+test "empty session input fails on the first bounded resume" {
+  let producer = event_window_producer()
+  let owner = session_owner(producer, "[\"payload\"]")
+  let live = Ref(true)
+  let source = event_window_source(producer, [], live)
+  let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  let execution = start_session(
+    @bounded.control(),
+    event_window_sequence(owner),
+    0,
+    input,
+    event_window_limits(),
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  assert_true(
+    advance_session(execution, 1).unwrap()
+    is SessionFailed(EmptySessionInput, progress=0L, work=1L),
+  )
+  assert_true(cleanup_session(execution).unwrap())
+  assert_true(@records.producer_read_available(input))
+  assert_true(@records.discard_completed(source))
+}

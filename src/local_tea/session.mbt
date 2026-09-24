@@ -971,7 +971,11 @@ fn start_session_with_source(
     start_contract,
     end_contract,
     id_contract,
-    phase: InitializeCells,
+    phase: if records == 0 {
+      LoadBegin
+    } else {
+      InitializeCells
+    },
     record: 0,
     field: 0,
     term: 0,
