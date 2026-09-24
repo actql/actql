@@ -93,7 +93,27 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   let cachedInsert;
   let activeAppender;
   let appenderFailure;
+  let appenderFailed = false;
   const inFlight = new Set();
+  const recordAppenderFailure = error => {
+    if (!appenderFailed) appenderFailure = error;
+    appenderFailed = true;
+  };
+  const recordCommandFailure = error => {
+    if (!commandFailed) commandFailure = error;
+    commandFailed = true;
+  };
+  const trackFlight = (promise, recordFailure) => {
+    inFlight.add(promise);
+    promise.then(
+      () => inFlight.delete(promise),
+      error => {
+        recordFailure(error);
+        inFlight.delete(promise);
+      },
+    );
+    return promise;
+  };
   const usage = { rows: 0, cells: 0, transportBytes: 0, statements: 0, preparations: 0, chunks: 0,
     appendedRows: 0,
     commandMilliseconds: 0, prepareMilliseconds: 0, receiveCallbackMilliseconds: 0, cleanupMilliseconds: 0 };
@@ -116,7 +136,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     accounting?.chargeTransfer(n);
     usage.transportBytes += n;
   };
-  const openResidentAppender = async (table, columns) => {
+  const startResidentAppender = async (table, columns) => {
     assertLive();
     if (busy || readonly || !shared || activeAppender ||
         typeof table !== 'string' || !/^resident_(0|[1-9][0-9]{0,9})$/.test(table) ||
@@ -162,7 +182,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             usage.appendedRows++;
           } catch (error) {
             live = false;
-            appenderFailure ??= error;
+            recordAppenderFailure(error);
             throw error;
           }
         },
@@ -174,7 +194,7 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             finally { pending = false; }
           } catch (error) {
             live = false;
-            appenderFailure ??= error;
+            recordAppenderFailure(error);
             throw error;
           }
         },
@@ -190,18 +210,20 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
             } finally { pending = false; }
           } catch (error) {
             live = false;
-            appenderFailure ??= error;
+            recordAppenderFailure(error);
             throw error;
           }
         },
       });
     } catch (error) {
-      appenderFailure ??= error;
+      recordAppenderFailure(error);
       busy = false;
       pending = false;
       throw error;
     }
   };
+  const openResidentAppender = (...args) =>
+    trackFlight(startResidentAppender(...args), recordAppenderFailure);
   const runCommand = async (sql, parameters, consume, reuseInsert = false,
     statementMode = 'ordinary') => {
     assertLive();
@@ -372,18 +394,9 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
   };
   const command = (...args) => {
     const promise = runCommand(...args);
-    inFlight.add(promise);
     // Observe failures even if trusted orchestration accidentally catches or
     // forgets to await a command. Such an attempt must never return success.
-    promise.then(
-      () => inFlight.delete(promise),
-      (error) => {
-        if (!commandFailed) commandFailure = error;
-        commandFailed = true;
-        inFlight.delete(promise);
-      },
-    );
-    return promise;
+    return trackFlight(promise, recordCommandFailure);
   };
   const createFileView = (sql, inputPath, consume) => {
     if (typeof sql !== 'string' || typeof inputPath !== 'string' ||
@@ -403,6 +416,23 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
     chargeBytes(pathBytes);
     return command(sql.replace('?', quoted), [], consume);
   };
+  const runCopyParquet = async (selectSql, parameters, outputPath) => {
+    if (typeof selectSql !== 'string' || !inputFiles.includes(outputPath)) {
+      throw new DuckDBTransportError('UnauthorizedOutputPath');
+    }
+    const quoted = `'${outputPath.replaceAll("'", "''")}'`;
+    await command(`COPY (${selectSql}) TO ${quoted} (FORMAT PARQUET)`,
+      parameters, () => {}, false, 'copy-parquet');
+    assertLive();
+    const state = await lstat(outputPath);
+    if (!state.isFile() || !Number.isSafeInteger(state.dev) ||
+        !Number.isSafeInteger(state.ino) || !Number.isSafeInteger(state.size) ||
+        state.size < 0) throw new DuckDBTransportError('InvalidNativeOutput');
+    return Object.freeze({device: state.dev, inode: state.ino,
+      bytes: state.size});
+  };
+  const copyParquet = (...args) =>
+    trackFlight(runCopyParquet(...args), recordCommandFailure);
   let result;
   let failure;
   let failed = false;
@@ -477,27 +507,13 @@ async function usingSession(path, readonly, suppliedLimits, body, signal, accoun
       // Installed Host operation only. The output path must be one of the exact
       // paths admitted when this private session was created; callers cannot
       // choose a format, option, glob or arbitrary destination.
-      async copyParquet(selectSql, parameters, outputPath) {
-        if (typeof selectSql !== 'string' || !inputFiles.includes(outputPath)) {
-          throw new DuckDBTransportError('UnauthorizedOutputPath');
-        }
-        const quoted = `'${outputPath.replaceAll("'", "''")}'`;
-        await command(`COPY (${selectSql}) TO ${quoted} (FORMAT PARQUET)`,
-          parameters, () => {}, false, 'copy-parquet');
-        assertLive();
-        const state = await lstat(outputPath);
-        if (!state.isFile() || !Number.isSafeInteger(state.dev) ||
-            !Number.isSafeInteger(state.ino) || !Number.isSafeInteger(state.size) ||
-            state.size < 0) throw new DuckDBTransportError('InvalidNativeOutput');
-        return Object.freeze({device: state.dev, inode: state.ino,
-          bytes: state.size});
-      },
+      copyParquet,
       usage: () => Object.freeze({ ...usage }),
     }));
     assertLive();
     if (inFlight.size !== 0) throw new DuckDBTransportError('UnawaitedCommand');
     if (commandFailed) throw commandFailure;
-    if (appenderFailure) throw appenderFailure;
+    if (appenderFailed) throw appenderFailure;
     if (activeAppender) throw new DuckDBTransportError('UnclosedAppender');
     if (shared) {
       // The trusted body must finish provisional-output validation before

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {DuckDBAppender, DuckDBConnection} from '@duckdb/node-api';
 import { provisionComputeDatabase } from '../session.mjs';
 import { runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from '../fixed-compute.mjs';
 
@@ -146,6 +147,191 @@ test('resident appender commits exact rows and rejects swallowed partial input',
     await db.run(limits, session =>
       session.command('CREATE TABLE main.resident_1(id DOUBLE)', [], discard));
   } finally { await db.close(); }
+});
+
+test('unawaited appender acquisition settles and closes before the connection', async t => {
+  const events = [];
+  const settled = [];
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const createAppender = DuckDBConnection.prototype.createAppender;
+  const closeAppender = DuckDBAppender.prototype.closeSync;
+  const closeConnection = DuckDBConnection.prototype.closeSync;
+  try {
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_0(id INTEGER)', [], discard));
+    t.mock.method(DuckDBConnection.prototype, 'createAppender', async function (...args) {
+      events.push('acquiring');
+      await gate;
+      const appender = await createAppender.apply(this, args);
+      events.push('acquired');
+      return appender;
+    });
+    t.mock.method(DuckDBAppender.prototype, 'closeSync', function () {
+      events.push('appender-closed');
+      return closeAppender.call(this);
+    });
+    t.mock.method(DuckDBConnection.prototype, 'closeSync', function () {
+      events.push('connection-closed');
+      return closeConnection.call(this);
+    });
+    let finished = false;
+    const operation = db.run(limits, session => {
+      session.openResidentAppender('resident_0', 1).catch(() => {});
+      return 'must not commit';
+    }, undefined, {started() {}, settled(value) { settled.push(value); }});
+    operation.then(() => { finished = true; }, () => { finished = true; });
+    while (!events.includes('acquiring')) await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(finished, false);
+    assert.deepEqual(events, ['acquiring']);
+    assert.deepEqual(settled, []);
+    release();
+    await assert.rejects(operation, {code: 'UnawaitedCommand'});
+    assert.deepEqual(events, ['acquiring', 'acquired', 'appender-closed', 'connection-closed']);
+    assert.deepEqual(settled, [true]);
+  } finally {
+    release();
+    await db.close();
+  }
+});
+
+test('failed body retains a late appender until acquisition and cleanup settle', async t => {
+  const events = [];
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const createAppender = DuckDBConnection.prototype.createAppender;
+  const closeAppender = DuckDBAppender.prototype.closeSync;
+  const closeConnection = DuckDBConnection.prototype.closeSync;
+  const primary = new Error('body failed');
+  try {
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_0(id INTEGER)', [], discard));
+    t.mock.method(DuckDBConnection.prototype, 'createAppender', async function (...args) {
+      events.push('acquiring');
+      await gate;
+      const appender = await createAppender.apply(this, args);
+      events.push('acquired');
+      return appender;
+    });
+    t.mock.method(DuckDBAppender.prototype, 'closeSync', function () {
+      events.push('appender-closed');
+      return closeAppender.call(this);
+    });
+    t.mock.method(DuckDBConnection.prototype, 'closeSync', function () {
+      events.push('connection-closed');
+      return closeConnection.call(this);
+    });
+    let finished = false;
+    const operation = db.run(limits, session => {
+      session.openResidentAppender('resident_0', 1).catch(() => {});
+      throw primary;
+    });
+    operation.then(() => { finished = true; }, () => { finished = true; });
+    while (!events.includes('acquiring')) await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(finished, false);
+    assert.deepEqual(events, ['acquiring']);
+    release();
+    await assert.rejects(operation, error => error === primary);
+    assert.deepEqual(events, ['acquiring', 'acquired', 'appender-closed', 'connection-closed']);
+  } finally {
+    release();
+    await db.close();
+  }
+});
+
+test('caught falsy appender acquisition failure still aborts the session', async t => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  try {
+    for (const reason of [undefined, null, false, 0, '']) {
+      t.mock.method(DuckDBConnection.prototype, 'createAppender', async () => { throw reason; });
+      let rejected = false;
+      try {
+        await db.run(limits, async session => {
+          try { await session.openResidentAppender('resident_0', 1); }
+          catch (error) { assert.equal(error, reason); }
+        });
+      } catch (error) { rejected = true; assert.equal(error, reason); }
+      assert.equal(rejected, true);
+      t.mock.reset();
+    }
+  } finally { await db.close(); }
+});
+
+test('cancelled appender acquisition waits for the late handle and closes it', async t => {
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  const controller = new AbortController();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const createAppender = DuckDBConnection.prototype.createAppender;
+  const closeAppender = DuckDBAppender.prototype.closeSync;
+  let acquired = false;
+  let closed = 0;
+  try {
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_0(id INTEGER)', [], discard));
+    t.mock.method(DuckDBConnection.prototype, 'createAppender', async function (...args) {
+      await gate;
+      const appender = await createAppender.apply(this, args);
+      acquired = true;
+      return appender;
+    });
+    t.mock.method(DuckDBAppender.prototype, 'closeSync', function () {
+      closed++;
+      return closeAppender.call(this);
+    });
+    let finished = false;
+    const operation = db.run(limits, session => {
+      session.openResidentAppender('resident_0', 1).catch(() => {});
+      controller.abort();
+    }, controller.signal);
+    operation.then(() => { finished = true; }, () => { finished = true; });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(finished, false);
+    release();
+    await assert.rejects(operation, {code: 'Cancelled'});
+    assert.equal(acquired, true);
+    assert.equal(closed, 1);
+  } finally {
+    release();
+    await db.close();
+  }
+});
+
+test('failed appender close retains cleanup responsibility for retry', async t => {
+  const settled = [];
+  const db = await provisionComputeDatabase(limits, {started() {}, settled() {}});
+  const closeAppender = DuckDBAppender.prototype.closeSync;
+  let failOnce = true;
+  let closed = 0;
+  try {
+    await db.run(limits, session =>
+      session.command('CREATE TABLE main.resident_0(id INTEGER)', [], discard));
+    t.mock.method(DuckDBAppender.prototype, 'closeSync', function () {
+      if (failOnce) { failOnce = false; throw new Error('injected appender close failure'); }
+      closed++;
+      return closeAppender.call(this);
+    });
+    let failure;
+    try {
+      await db.run(limits, async session => {
+        await session.openResidentAppender('resident_0', 1);
+      }, undefined, {started() {}, settled(value) { settled.push(value); }});
+    } catch (error) { failure = error; }
+    assert.equal(failure.code, 'UnclosedAppender');
+    assert.equal(failure.cleanupPending, true);
+    assert.deepEqual(settled, [false]);
+    assert.equal(closed, 0);
+    assert.equal(db.status().pending, true);
+    await db.close();
+    assert.deepEqual(settled, [false, true]);
+    assert.equal(closed, 1);
+  } finally {
+    if (db.status().pending) await db.close();
+  }
 });
 const collect = async (session, sql) => {
   const values = [];
