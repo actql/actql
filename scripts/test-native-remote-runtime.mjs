@@ -4,7 +4,7 @@ import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {existsSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {request as httpsRequest} from 'node:https';
-import {isAbsolute, join} from 'node:path';
+import {dirname, isAbsolute, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
@@ -96,6 +96,8 @@ function sendValuesSiteRequest(tls, port, path, body, cid) {
 
 async function testValuesHttps(tls, environment, transferControl) {
   const externalDriver = process.env.ACTQL_TEST_NATIVE_VALUES_DRIVER;
+  const externalDestinationDriver =
+    process.env.ACTQL_TEST_NATIVE_VALUES_DESTINATION_DRIVER;
   const destinationAttempts = [];
   const destinationStore = externalDriver === undefined ?
     await createLocalRetainedStore({
@@ -141,12 +143,69 @@ async function testValuesHttps(tls, environment, transferControl) {
       '/v1/ready', '{}', 'probe');
     assert.equal(probe.status, 404);
   }
+  let destinationChild;
+  let destinationExited;
+  let externalDestinationOrigin;
+  if (externalDestinationDriver !== undefined) {
+    if (externalDriver === undefined ||
+        !isAbsolute(externalDestinationDriver)) {
+      throw new Error('external destination requires an absolute driver');
+    }
+    const destinationReady = join(root, 'destination-ready');
+    destinationChild = spawn(process.execPath,
+      ['--experimental-strip-types', externalDestinationDriver], {
+        cwd: process.env.ACTQL_TEST_NATIVE_VALUES_DESTINATION_CWD ??
+          dirname(externalDestinationDriver),
+        env: {...process.env,
+          ACTQL_TEST_NATIVE_VALUES_DESTINATION_READY_PATH: destinationReady,
+          ACTQL_TEST_NATIVE_VALUES_DESTINATION_STATE_ROOT:
+            join(root, 'cloud-destination'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_SERVER_CERT: join(root, 'server.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_SERVER_KEY: join(root, 'server.key'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_CERT: join(root, 'coordinator.crt'),
+        },
+        stdio: 'inherit',
+      });
+    destinationExited = new Promise((resolve, reject) => {
+      destinationChild.once('error', reject);
+      destinationChild.once('exit', (code, signal) =>
+        resolve({code, signal}));
+    });
+    try {
+      const deadline = Date.now() + 30000;
+      while (!existsSync(destinationReady)) {
+        if (destinationChild.exitCode !== null ||
+            destinationChild.signalCode !== null || Date.now() >= deadline) {
+          throw new Error('external destination did not become ready');
+        }
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      externalDestinationOrigin =
+        (await readFile(destinationReady, 'utf8')).trim();
+      const selected = new URL(externalDestinationOrigin);
+      if (selected.protocol !== 'https:' ||
+          selected.hostname !== 'localhost' ||
+          selected.pathname !== '/' || selected.search || selected.hash) {
+        throw new Error('invalid external destination origin');
+      }
+    } catch (error) {
+      if (destinationChild.exitCode === null &&
+          destinationChild.signalCode === null) {
+        destinationChild.kill('SIGTERM');
+      }
+      await destinationExited.catch(() => undefined);
+      throw error;
+    }
+  }
   const child = spawn(moon, [
     'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
     '--target', 'native',
-  ], {cwd: repositoryRoot, env: destination === undefined ? environment : {
+  ], {cwd: repositoryRoot, env: destination === undefined &&
+    externalDestinationOrigin === undefined ? environment : {
     ...environment,
-    ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN: destination.origin,
+    ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN:
+      destination?.origin ?? externalDestinationOrigin,
     ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_CERT:
       join(root, 'coordinator.crt'),
     ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_KEY:
@@ -204,6 +263,10 @@ async function testValuesHttps(tls, environment, transferControl) {
           ACTQL_TEST_NATIVE_VALUES_TLS_KEY: join(root, 'coordinator.key'),
           ACTQL_TEST_NATIVE_VALUES_TLS_OTHER_CERT: join(root, 'other.crt'),
           ACTQL_TEST_NATIVE_VALUES_TLS_OTHER_KEY: join(root, 'other.key'),
+          ...(externalDestinationOrigin === undefined ? {} : {
+            ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN:
+              externalDestinationOrigin,
+          }),
         },
         stdio: 'inherit',
       });
@@ -289,6 +352,13 @@ async function testValuesHttps(tls, environment, transferControl) {
       {cause: error});
   } finally {
     if (child.exitCode === null) child.kill('SIGTERM');
+    if (destinationChild !== undefined) {
+      if (destinationChild.exitCode === null &&
+          destinationChild.signalCode === null) {
+        destinationChild.kill('SIGTERM');
+      }
+      await destinationExited;
+    }
     if (destination !== undefined) {
       try { await destination.close(); }
       catch (error) {
