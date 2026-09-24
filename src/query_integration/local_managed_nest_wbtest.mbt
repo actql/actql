@@ -142,6 +142,15 @@ test "Local managed nest reaches two consumers and final reclamation" {
     "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":1,\"key\":1}", "{\"items\":[{\"amount\":null},{\"amount\":10}],\"id\":2,\"key\":1}",
     "{\"items\":[],\"id\":3,\"key\":null}", "{\"items\":[],\"id\":4,\"key\":2}",
   ])
+  assert_true(
+    @strategy.pin_captured_task_output(
+      run,
+      4,
+      @strategy.captured_task_target(run, 4).unwrap(),
+      1,
+    )
+    is Err(UnsupportedGraph),
+  )
 
   first_live.val = false
   @strategy.close_captured_task_output(run, 4)

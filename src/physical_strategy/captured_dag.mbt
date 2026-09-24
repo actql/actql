@@ -565,7 +565,10 @@ fn open_checked_dag(
       return Err(UnsupportedGraph)
     }
   }
-  let lifetimes = Array::makei(count, _ => TaskLifetime::{ live: true, })
+  let lifetimes = Array::makei(count, _ => TaskLifetime::{
+    live: true,
+    pins: 0,
+  })
   let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
   if !root_is_compute {

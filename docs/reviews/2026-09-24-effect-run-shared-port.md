@@ -100,6 +100,14 @@ The static Mapping/Command close now returns one opaque
 complete Effect inventory. Downstream capture must consume this same owner;
 the static close does not satisfy conversion, current authority, or apply
 obligations.
+The shared Captured DAG now offers a bounded pin for a completed cell-backed
+task output. Closing the ordinary output port prevents new pins while an
+existing pin keeps the allocation charged and avoids revoking its borrowed
+view solely because of port close. The original completion must still be
+available. Managed and external resident outputs are rejected by this pin:
+their physical owner must supply an equivalent retention proof. The pin is not
+yet bound to an Effect source occurrence or accepted as Preview input, so it
+does not close `CapturedEffectInput` or the standard Effect Run port.
 The Program check also retains the exact admitted Catalog role-reference
 closure. Downstream Command selection can reuse that proof without repeating
 Catalog hashing, while still checking the exact Program owner and current

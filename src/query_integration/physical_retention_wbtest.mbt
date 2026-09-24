@@ -42,6 +42,48 @@ test "captured external holding waits for physical release in either close order
 }
 
 ///|
+test "captured output pin keeps one completed allocation after port close" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  captured_graph_local(run, 1).unwrap()
+  let held = @resources.ledger_usage(ledger).held_bytes
+  assert_true(held > 0L)
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(0), 1) is Err(_))
+  let pin = @strategy.pin_captured_task_output(run, 1, Step(1), 1).unwrap()
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(1), 1) is Err(_))
+  let borrowed = @strategy.captured_output_pin_materialized(pin)
+  assert_true(@execution.completed_output_available(borrowed))
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 1)
+  assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+  assert_true(@strategy.pin_captured_task_output(run, 1, Step(1), 1) is Err(_))
+  assert_true(@execution.completed_output_available(borrowed))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, held)
+  assert_true(@strategy.release_captured_output_pin(pin))
+  assert_false(@execution.completed_output_available(borrowed))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_false(@strategy.release_captured_output_pin(pin))
+}
+
+///|
+test "captured output waits for every independent consumer pin" {
+  let (run, _) = captured_graph_fixture()
+  let ledger = @strategy.captured_dag_ledger(run)
+  captured_graph_local(run, 1).unwrap()
+  let first = @strategy.pin_captured_task_output(run, 1, Step(1), 2).unwrap()
+  let second = @strategy.pin_captured_task_output(run, 1, Step(1), 2).unwrap()
+  let second_view = @strategy.captured_output_pin_materialized(second)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 1)
+  assert_true(@strategy.release_captured_output_pin(first))
+  assert_true(@execution.completed_output_available(second_view))
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  assert_true(@strategy.release_captured_output_pin(second))
+  assert_false(@execution.completed_output_available(second_view))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
 test "capture cleanup confirmation does not erase completed child retention" {
   let (run, _) = captured_graph_fixture()
   let ledger = @strategy.captured_dag_ledger(run)
