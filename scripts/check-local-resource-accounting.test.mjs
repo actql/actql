@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 33 with operation-specific boundary records, 12 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 34 with operation-specific boundary records, 13 with four-role boundary evidence, 9 with full work\/workspace assurance, 30 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('sequence retains product cancellation and cleanup evidence', () => {
@@ -361,6 +361,28 @@ test('vector scoring retains its bounded production evidence', () => {
       entry.operation === 'score_vectors');
     score.environment_tests = [];
   }), /VecA score_vectors: bounded Host cancellation assurance is missing/);
+});
+
+test('vector pooling retains its bounded production evidence', () => {
+  for (const role of [
+    'pool_empty_work_exact_one_short',
+    'pool_record_work_exact_one_short',
+    'pool_workspace_exact',
+    'pool_workspace_one_short',
+    'pool_kernel_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      pool.boundary_tests = pool.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const pool = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    pool.environment_tests = [];
+  }), /VecA pool_vectors: bounded Host cancellation assurance is missing/);
 });
 
 for (const operation of ['node_rows', 'edge_rows']) {
