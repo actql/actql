@@ -60,6 +60,7 @@ fn bounded_sequence_try_fixture(
   max_output_rows? : Int? = None,
   max_work? : Int = 100000,
   max_rows? : Int = 100,
+  max_entries? : Int = 10000,
   unicode? : Bool = false,
 ) -> (
   @bounded.Control,
@@ -138,7 +139,7 @@ fn bounded_sequence_try_fixture(
     run_limits().output_values,
     max_work,
     100,
-    10000,
+    max_entries,
     10000,
   )
   (control, execution, input)
@@ -153,6 +154,7 @@ fn bounded_sequence_fixture(
   max_output_rows? : Int? = None,
   max_work? : Int = 100000,
   max_rows? : Int = 100,
+  max_entries? : Int = 10000,
   unicode? : Bool = false,
 ) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
   let (control, execution, input) = bounded_sequence_try_fixture(
@@ -163,6 +165,7 @@ fn bounded_sequence_fixture(
     max_output_rows~,
     max_work~,
     max_rows~,
+    max_entries~,
     unicode~,
   )
   (control, execution.unwrap(), input)
@@ -299,6 +302,45 @@ test "bounded sequence work boundary charges output before row allocation" {
     BoundedSequenceMatchContinue(..) => fail("terminal helper continued")
   }
   cleanup_bounded_sequence_match(short).unwrap() |> ignore
+  assert_bounded_sequence_scratch_reclaimed(short)
+}
+
+///|
+test "bounded sequence admits exact and one-short workspace" {
+  // The five-row, two-pattern fixture starts with 29 metadata slots:
+  // four input names, one group key, five clocks, two pattern containers,
+  // ten predicate cells, and seven output names. During output, five
+  // ordered indices and three two-position matches add 14 more slots.
+  // The charged output row and checked copy add eight and seven slots,
+  // respectively, for a 58-slot peak.
+  let (_, early, _) = bounded_sequence_try_fixture(max_entries=28)
+  assert_true(early is Err(Rows(RowLimit)))
+  let (control, admitted, input) = bounded_sequence_try_fixture(max_entries=29)
+  let admitted = admitted.unwrap()
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_sequence_match(admitted, 1).unwrap()
+    is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(admitted).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, exact, _) = bounded_sequence_fixture(max_entries=58)
+  assert_true(
+    finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),
+  )
+  assert_eq(bounded_sequence_match_state(exact).workspace.peak, 58)
+  assert_true(cleanup_bounded_sequence_match(exact).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(exact)
+
+  let (_, short, input) = bounded_sequence_fixture(max_entries=57)
+  assert_true(
+    finish_bounded_sequence(short)
+    is BoundedSequenceMatchFailed(Rows(RowLimit), ..),
+  )
+  assert_true(producer_read_available(input))
+  assert_true(bounded_sequence_match_cleanup_pending(short))
+  assert_true(cleanup_bounded_sequence_match(short).unwrap())
   assert_bounded_sequence_scratch_reclaimed(short)
 }
 

@@ -3581,6 +3581,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
           "fixture": "bounded sequence startup charges independently counted field probes"
+        },
+        {
+          "role": "sequence_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+          "fixture": "bounded sequence admits exact and one-short workspace"
         }
       ],
       "environment_tests": [
