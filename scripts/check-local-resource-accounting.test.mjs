@@ -41,7 +41,7 @@ function run(mutator, routeMutator, args = []) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 17 with full work\/workspace assurance, 40 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 19 with full work\/workspace assurance, 42 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Events projection loses its boundary evidence when the fixture is removed', () => {
