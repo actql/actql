@@ -121,6 +121,22 @@ test "ordinary values document prepares one named Effect-free result" {
     20,
   ).unwrap()
   assert_true(rows_binding != bytes_binding)
+  let facts = issue_prepared_client_publication_plan_facts(
+    prepared, 2, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(client_publication_plan_fact_limits(facts), [
+    rows_limit, bytes_limit,
+  ])
+  assert_eq(client_publication_plan_fact_bindings(facts), [
+    rows_binding, bytes_binding,
+  ])
+  let changed_limits = client_publication_plan_fact_limits(facts)
+  changed_limits.push("foreign")
+  assert_eq(client_publication_plan_fact_limits(facts).length(), 2)
+  assert_true(
+    issue_prepared_client_publication_plan_facts(prepared, 1, 10000, 1000, 20)
+    is Err(ClientPublicationPlanFactIssue::Limits(BudgetExceeded)),
+  )
   assert_true(
     admit_prepared_client_publication_plan_facts(
       prepared,
