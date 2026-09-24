@@ -48,6 +48,143 @@ fn public_checked(
 }
 
 ///|
+fn public_effect_preview_canonical(wire : String) -> String {
+  let parsed = @source.parse_json(wire, {
+    max_input_bytes: 20000,
+    max_nodes: 1000,
+    max_depth: 20,
+  }).unwrap()
+  let value = @json.from_source(parsed, 1000, 20, 20000) catch {
+    _ => abort("Expected Preview fixture")
+  }
+  @json.stringify_value(value, 20000, 1000, 20) catch {
+    _ => abort("Expected canonical Preview fixture")
+  }
+}
+
+///|
+fn public_effect_preview_member(
+  id : String,
+  mapping_cid : String,
+  placeholder : String,
+) -> String {
+  let cid = "sha256:" + "a".repeat(64)
+  "{\"effect_id\":\"" +
+  id +
+  "\",\"effect_kind\":\"create\",\"target\":\"Object\"," +
+  "\"mapping\":\"mapping:crm.account.v1\"," +
+  "\"resolved_mapping_contract_cid\":\"" +
+  mapping_cid +
+  "\",\"effect_identity_cid\":\"" +
+  cid +
+  "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
+  cid +
+  "\",\"capability_evidence_cid\":\"" +
+  cid +
+  "\",\"authority_scope_cid\":\"" +
+  cid +
+  "\",\"write_footprint\":{\"kind\":\"exact_targets\"," +
+  "\"resource_identity_scheme_cid\":\"" +
+  cid +
+  "\",\"provider_namespace\":\"provider\",\"provider_boundary_cid\":\"" +
+  cid +
+  "\",\"resource_kind\":\"Object\",\"provider_object_identity_cids\":[]}," +
+  "\"count\":0,\"max_items\":1,\"required_permissions\":[\"write\"]," +
+  "\"approval\":\"none\",\"on_item_failure\":\"halt\",\"changes\":[]," +
+  "\"row_order\":[],\"effect_member_preview_cid\":\"" +
+  placeholder +
+  "\",\"executed\":false}"
+}
+
+///|
+fn public_effect_preview_for_static(
+  candidate : @program_check.EffectProgramStaticCandidate,
+  mapping_cid : String,
+  definition_cid? : String? = None,
+  semantics_cid? : String? = None,
+  environment_cid? : String? = None,
+) -> @run_publication.EffectPreviewIdentity {
+  let cid = "sha256:" + "a".repeat(64)
+  let definition = definition_cid.unwrap_or(
+    @program_check.effect_program_static_definition_cid(candidate),
+  )
+  let semantics = semantics_cid.unwrap_or(
+    @program_check.effect_program_static_semantics_cid(candidate),
+  )
+  let environment = environment_cid.unwrap_or(
+    @environment.cid(
+      @program_check.effect_program_static_environment(candidate),
+    ),
+  )
+  let authoring_body = "{\"annotations\":[],\"program_definition_cid\":\"" +
+    definition +
+    "\",\"version\":\"actql-authoring-context/0.1\"}"
+  let authoring_cid = "sha256:" + @sha.hex(@utf8.encode(authoring_body))
+  let first_placeholder = "sha256:" + "b".repeat(64)
+  let second_placeholder = "sha256:" + "c".repeat(64)
+  let members = public_effect_preview_member(
+      "first", mapping_cid, first_placeholder,
+    ) +
+    "," +
+    public_effect_preview_member("second", mapping_cid, second_placeholder)
+  let raw = "{\"version\":\"actql-effect-preview/0.1\"," +
+    "\"sensitivity\":\"private\",\"retention_class\":\"authority-evidence\"," +
+    "\"encryption_required\":true,\"program_semantics_cid\":\"" +
+    semantics +
+    "\",\"program_definition_cid\":\"" +
+    definition +
+    "\",\"invocation_cid\":\"" +
+    cid +
+    "\",\"run_identity_cid\":\"" +
+    cid +
+    "\",\"compiled_plan_cid\":\"" +
+    cid +
+    "\",\"check_environment_cid\":\"" +
+    environment +
+    "\",\"authoring_context\":{\"version\":\"actql-authoring-context/0.1\"," +
+    "\"program_definition_cid\":\"" +
+    definition +
+    "\",\"annotations\":[],\"authoring_context_cid\":\"" +
+    authoring_cid +
+    "\"},\"barrier_provenance_cids\":[],\"model_derived\":false," +
+    "\"model_task_contract_cids\":[],\"model_invocation_evidence_cids\":[]," +
+    "\"model_response_artifact_cids\":[],\"effects\":[" +
+    members +
+    "],\"executed\":false,\"effect_preview_cid\":\"" +
+    cid +
+    "\"}"
+  let canonical = public_effect_preview_canonical(raw)
+  let (_, member_cids) = @run_publication.derive_effect_preview_identities(
+    canonical, 20000, 1000, 20,
+  ).unwrap()
+  let members_fixed = public_effect_preview_canonical(
+    canonical
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + first_placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + member_cids[0] + "\"",
+    )
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + second_placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + member_cids[1] + "\"",
+    ),
+  )
+  let (preview_cid, _) = @run_publication.derive_effect_preview_identities(
+    members_fixed, 20000, 1000, 20,
+  ).unwrap()
+  @run_publication.admit_effect_preview_identity(
+    members_fixed.replace_all(
+      old="\"effect_preview_cid\":\"" + cid + "\"",
+      new="\"effect_preview_cid\":\"" + preview_cid + "\"",
+    ),
+    cid,
+    authoring_cid,
+    20000,
+    1000,
+    20,
+  ).unwrap()
+}
+
+///|
 test "checked Program retains its exact admitted Environment owner" {
   let (_, source, configured, evidence, limits) = public_input_fixture()
   let checked = public_checked(
@@ -326,6 +463,80 @@ test "Effect computation candidate closes the exact Mapping environment" {
       max_admission_text_bytes: 1000,
     },
   ).unwrap()
+  let preview = public_effect_preview_for_static(static_candidate, mapping_cid)
+  let bound = @program_check.bind_effect_program_static_preview(
+    static_candidate, 1, preview, 1000,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_static_preview_identity(bound),
+      preview,
+    ),
+  )
+  assert_eq(@program_check.effect_program_static_preview_stage(bound), 1)
+  assert_true(
+    physical_equal(
+      @program_check.effect_program_static_preview_candidate(bound),
+      static_candidate,
+    ),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        mapping_cid,
+        definition_cid=Some("sha256:" + "f".repeat(64)),
+      ),
+      1000,
+    )
+    is Err(ForeignProgramDefinition),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        mapping_cid,
+        semantics_cid=Some("sha256:" + "f".repeat(64)),
+      ),
+      1000,
+    )
+    is Err(ForeignProgramSemantics),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        mapping_cid,
+        environment_cid=Some("sha256:" + "f".repeat(64)),
+      ),
+      1000,
+    )
+    is Err(ForeignCheckEnvironment),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate,
+      1,
+      public_effect_preview_for_static(
+        static_candidate,
+        "sha256:" + "f".repeat(64),
+      ),
+      1000,
+    )
+    is Err(Inventory(@results.ForeignResolvedContract("first"))),
+  )
+  assert_true(
+    @program_check.bind_effect_program_static_preview(
+      static_candidate, 0, preview, 1000,
+    )
+    is Err(Inventory(@results.Inventory(@results.MemberCountMismatch))),
+  )
   assert_true(
     physical_equal(
       @program_check.effect_program_static_headers(static_candidate),

@@ -795,6 +795,27 @@ pub fn effect_preview_semantic_identity(
 }
 
 ///|
+pub fn effect_preview_program_semantics_cid(
+  value : EffectPreviewIdentity,
+) -> String {
+  value.program_semantics_cid
+}
+
+///|
+pub fn effect_preview_program_definition_cid(
+  value : EffectPreviewIdentity,
+) -> String {
+  value.program_definition_cid
+}
+
+///|
+pub fn effect_preview_check_environment_cid(
+  value : EffectPreviewIdentity,
+) -> String {
+  value.check_environment_cid
+}
+
+///|
 pub fn effect_preview_member_identity(
   value : EffectPreviewIdentity,
   index : Int,

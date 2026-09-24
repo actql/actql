@@ -17,6 +17,24 @@ struct EffectProgramStaticCandidate {
 }
 
 ///|
+/// One private Preview statically bound to its checked Program and exact
+/// resolved member contracts. Captured Run, current authority and apply
+/// admission are separate obligations; this is not an execution permit.
+pub struct EffectProgramStaticPreview {
+  candidate : EffectProgramStaticCandidate
+  stage_index : Int
+  preview : @run_publication.EffectPreviewIdentity
+}
+
+///|
+pub(all) enum EffectProgramStaticPreviewIssue {
+  ForeignProgramDefinition
+  ForeignProgramSemantics
+  ForeignCheckEnvironment
+  Inventory(@results.EffectPreviewStaticInventoryIssue)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum EffectComputationIssue {
   InvalidLimits
   InvalidProgram(@syntax.SyntaxError)
@@ -155,4 +173,76 @@ pub fn effect_program_static_environment(
   candidate : EffectProgramStaticCandidate,
 ) -> @environment.WireEnvironment {
   checked_environment(candidate.computation.checked)
+}
+
+///|
+pub fn effect_program_static_definition_cid(
+  candidate : EffectProgramStaticCandidate,
+) -> String {
+  @context.program_identity_definition_cid(
+    source_identity(candidate.computation.checked),
+  )
+}
+
+///|
+pub fn effect_program_static_semantics_cid(
+  candidate : EffectProgramStaticCandidate,
+) -> String {
+  @references.program_definition_semantics_cid(
+    @context.program_identity_definition(
+      source_identity(candidate.computation.checked),
+    ),
+  )
+}
+
+///|
+pub fn bind_effect_program_static_preview(
+  candidate : EffectProgramStaticCandidate,
+  stage_index : Int,
+  preview : @run_publication.EffectPreviewIdentity,
+  max_work : Int,
+) -> Result[EffectProgramStaticPreview, EffectProgramStaticPreviewIssue] {
+  if @run_publication.effect_preview_program_definition_cid(preview) !=
+    effect_program_static_definition_cid(candidate) {
+    return Err(ForeignProgramDefinition)
+  }
+  if @run_publication.effect_preview_program_semantics_cid(preview) !=
+    effect_program_static_semantics_cid(candidate) {
+    return Err(ForeignProgramSemantics)
+  }
+  if @run_publication.effect_preview_check_environment_cid(preview) !=
+    @environment.cid(effect_program_static_environment(candidate)) {
+    return Err(ForeignCheckEnvironment)
+  }
+  match
+    @results.check_effect_preview_static_inventory(
+      candidate.effects,
+      stage_index,
+      preview,
+      max_work,
+    ) {
+    Ok(_) => Ok({ candidate, stage_index, preview, })
+    Err(issue) => Err(Inventory(issue))
+  }
+}
+
+///|
+pub fn effect_program_static_preview_identity(
+  value : EffectProgramStaticPreview,
+) -> @run_publication.EffectPreviewIdentity {
+  value.preview
+}
+
+///|
+pub fn effect_program_static_preview_stage(
+  value : EffectProgramStaticPreview,
+) -> Int {
+  value.stage_index
+}
+
+///|
+pub fn effect_program_static_preview_candidate(
+  value : EffectProgramStaticPreview,
+) -> EffectProgramStaticCandidate {
+  value.candidate
 }
