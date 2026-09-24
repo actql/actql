@@ -33,6 +33,16 @@ struct PreparedClientProgram {
 }
 
 ///|
+/// The same checked Stage lowering is used by Effect-free and Effectful
+/// computations. This does not admit an Effect or grant physical execution.
+pub(all) enum ClientStageOwnerIssue {
+  MissingCheckedStage(Int)
+  MissingStageIdentity(Int)
+  Lowering(@lower.Issue)
+  Binding(@lower.BindingIssue)
+}
+
+///|
 /// Checked identity components of one prepared Program. Request admission
 /// additionally binds scope, authority, grants, owner and durability; these
 /// two CIDs alone are not a complete Client request fingerprint.
@@ -611,31 +621,12 @@ pub fn prepare_client_task_sequence(
 }
 
 ///|
-/// Use the ordinary parser and semantic checker. Every lowered owner is
-/// derived from that same CheckedProgram; callers cannot inject a parallel
-/// graph, Result list or effect-free claim.
-pub fn prepare_effect_free_client_program(
-  document : String,
-  format : @syntax.Format,
-  environment : @checked.CheckEnvironment,
-  supplied : @decode.Cursor?,
+/// Lower only the Stages sealed by the same checked Program. A caller cannot
+/// substitute a pipeline, parameter binding, profile, or owner at this step.
+fn prepare_client_stage_owners(
+  checked : @checked.CheckedProgram,
   limits : ClientProgramPreparationLimits,
-) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
-  let parsed = match @syntax.parse(document, limits.checking.input, format~) {
-    Ok(value) => value
-    Err(issue) => return Err(Syntax(issue))
-  }
-  for stage in @syntax.stages(parsed) {
-    if !@syntax.effect_names(stage).is_empty() {
-      return Err(EffectNotSupported(stage.id))
-    }
-  }
-  let checked = match
-    @checked.check_parsed(parsed, environment, supplied, limits.checking) {
-    Checked(value) => value
-    NeedsInputs(requests) => return Err(NeedsInputs(requests))
-    Rejected(diagnostic) => return Err(Check(diagnostic))
-  }
+) -> Result[Array[@lower.BoundPrepared], ClientStageOwnerIssue] {
   let identity = @checked.source_identity(checked)
   let selected = @checked.selected_expression_profiles(checked)
   let owners : Array[@lower.BoundPrepared] = []
@@ -668,6 +659,47 @@ pub fn prepare_effect_free_client_program(
       Err(issue) => return Err(Binding(issue))
     }
     owners.push(owner)
+  }
+  Ok(owners)
+}
+
+///|
+/// Use the ordinary parser and semantic checker. Every lowered owner is
+/// derived from that same CheckedProgram; callers cannot inject a parallel
+/// graph, Result list or effect-free claim.
+pub fn prepare_effect_free_client_program(
+  document : String,
+  format : @syntax.Format,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  limits : ClientProgramPreparationLimits,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  let parsed = match @syntax.parse(document, limits.checking.input, format~) {
+    Ok(value) => value
+    Err(issue) => return Err(Syntax(issue))
+  }
+  for stage in @syntax.stages(parsed) {
+    if !@syntax.effect_names(stage).is_empty() {
+      return Err(EffectNotSupported(stage.id))
+    }
+  }
+  let checked = match
+    @checked.check_parsed(parsed, environment, supplied, limits.checking) {
+    Checked(value) => value
+    NeedsInputs(requests) => return Err(NeedsInputs(requests))
+    Rejected(diagnostic) => return Err(Check(diagnostic))
+  }
+  let owners = match prepare_client_stage_owners(checked, limits) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err(
+        match issue {
+          MissingCheckedStage(stage) => MissingCheckedStage(stage)
+          MissingStageIdentity(stage) => MissingStageIdentity(stage)
+          Lowering(issue) => Lowering(issue)
+          Binding(issue) => Binding(issue)
+        },
+      )
   }
   match
     @strategy.prepare_checked_dag(

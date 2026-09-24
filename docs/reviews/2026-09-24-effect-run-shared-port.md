@@ -525,3 +525,12 @@ concrete output and establishes its checked view and payload. Concrete
 resident use checks the committed generation and the checked owner and port;
 release or producer revocation invalidates that use. A failed later pin
 releases earlier member pins without rerunning the producer.
+
+The standard Client preparation package now has a separate Effectful
+computation path. It parses the ordinary document, retains the exact static
+Effect closure, and uses the same checked Stage lowering as the Effect-free
+path. A source-free Values fixture proves that the resulting graph retains
+its Effect source occurrence; the Effect-free Client entry still rejects it.
+The preparation can bind an admitted exact Run owner, but neither this
+preparation nor that binding admits a Preview, current grant, mutation send,
+final Receipt, or publication. The standard Host caller remains open.

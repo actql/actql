@@ -24,11 +24,12 @@ import {
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/relation_schema" @schema,
   "actql/actql/relation_results" @results,
+  "actql/actql/stage_results",
+  "actql/actql/check_environment" @environment,
   "actql/actql/order_key" @order,
 }
 
 import {
-  "actql/actql/check_environment" @environment,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host_driver,
 } for "test"
