@@ -1250,6 +1250,16 @@ remain mandatory even though this compilation envelope references them through
 the [family contract index](../conformance.md#contract-index) is informative
 navigation to other owners.
 
+<!-- requirement-block: compilation-identities.plan-fact-manifest -->
+The private `actql-plan-fact-manifest/0.1` body has exactly `version`,
+`plan_facts`, and `plan_fact_manifest_cid`. Its CID hashes the canonical body
+without its own CID field. `plan_facts` uses the same closed fixed-language-law,
+resolved-limit, and Contract-fact union as an Executable Plan; the Plan's
+`plan_facts` array MUST match the referenced manifest's array exactly. A
+schema-valid manifest or matching CID alone does not prove that every required
+fact was issued, that each witness is valid, or that each limit has one exact
+executable consumer. Those remain Plan-admission obligations.
+
 <a id="diagnostic-documents"></a>
 
 ### Diagnostic documents
@@ -1482,6 +1492,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:c2002906ae8133abb606cce66e5f35ce0f591fbe63979d74d57b16778c77e966
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a
