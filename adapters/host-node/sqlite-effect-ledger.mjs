@@ -437,6 +437,26 @@ export function openSqliteEffectLedger(root, {
   };
   return Object.freeze({
     current,
+    // One SQLite read transaction gives every member the same durable head
+    // snapshot. A missing head remains distinct from an unknown dispatch.
+    currentSnapshot(locatorCids) {
+      active();
+      if (!Array.isArray(locatorCids) || locatorCids.length > maxEntries ||
+          locatorCids.some(value => !cid(value)) ||
+          new Set(locatorCids).size !== locatorCids.length) {
+        fail('InvalidEffectLedgerSnapshot');
+      }
+      database.exec('BEGIN');
+      try {
+        const rows = Object.freeze(locatorCids.map(current));
+        database.exec('COMMIT');
+        return rows;
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch { fail('EffectLedgerRollbackFailed'); }
+        throw error;
+      }
+    },
     response,
     dispatchForLocator(locatorCid) {
       active();
