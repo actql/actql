@@ -562,3 +562,17 @@ The Node integration fixture checks the bounded pin, wrong-member rejection,
 single release, and absence of a second Compute. This establishes physical
 input custody, not row-to-payload equivalence, a Preview, apply authority, or
 the final Receipt.
+
+The Node Host bridge now drives the common MoonBit checked-Result exporter from
+that pinned Effect input. It advances the bounded projection and ordering
+preparation, emits canonical rows without a caller-supplied replacement, and
+finishes with the existing logical Relation identity and field inventory. The
+installed Local profile uses a resident representation, so the cell-only
+exporter correctly rejects it. Its Site adapter supplies the exact managed
+generation and bounded row stream to the existing managed-publication bridge;
+MoonBit checks that generation against the Effect pin before import and again
+before finishing. The fixture verifies two actual Values rows after the
+ordinary task port closes. This is one bounded re-admission into the common
+checked Result view, not a JavaScript cell-by-cell interpretation. It does not
+yet bind those rows to a private Preview's intended changes or physical
+Salesforce request, so it is not mutation admission.
