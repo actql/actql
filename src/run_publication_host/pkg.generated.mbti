@@ -67,6 +67,16 @@ pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
 
+pub fn client_values_fragment_logical_cid(ClientValuesFragmentNode) -> String
+
+pub fn client_values_fragment_node_id(ClientValuesFragmentNode) -> String
+
+pub fn client_values_fragment_output_contract_cid(ClientValuesFragmentNode) -> String
+
+pub fn client_values_fragment_output_contract_wire(ClientValuesFragmentNode) -> String
+
+pub fn client_values_fragment_wire(ClientValuesFragmentNode) -> String
+
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -92,6 +102,8 @@ pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, 
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
+
+pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
 
@@ -291,6 +303,23 @@ pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
   Encoding
+}
+
+pub(all) enum ClientValuesFragmentIssue {
+  InvalidLimits
+  AoA(ClientValuesAoAIdentityIssue)
+  MissingCheckedOutput
+  OutputMismatch
+  UnrepresentableOutput
+  Encoding
+}
+
+pub struct ClientValuesFragmentNode {
+  wire : String
+  node_id : String
+  logical_cid : String
+  output_contract_wire : String
+  output_contract_cid : String
 }
 
 pub(all) enum ClientValuesOutputSchemaIssue {
