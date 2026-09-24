@@ -11,6 +11,11 @@ fn captured_graph_fixture(
   sort_take? : Bool = false,
   values? : Bool = false,
   local_values_two_consumer_chain? : Bool = false,
+  local_values_two_consumer_filter? : Bool = false,
+  local_values_two_consumer_assert? : Bool = false,
+  local_values_two_consumer_assert_unique? : Bool = false,
+  local_values_two_consumer_sort_take? : Bool = false,
+  local_values_two_consumer_relation_variant? : String = "",
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
@@ -37,6 +42,9 @@ fn captured_graph_fixture(
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
+  local_values_cross_direct? : Bool = false,
+  local_values_cross_external_chain? : Bool = false,
+  local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
   local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
@@ -72,6 +80,11 @@ fn captured_graph_fixture(
     sort_take~,
     dag_values=values,
     local_values_two_consumer_chain~,
+    local_values_two_consumer_filter~,
+    local_values_two_consumer_assert~,
+    local_values_two_consumer_assert_unique~,
+    local_values_two_consumer_sort_take~,
+    local_values_two_consumer_relation_variant~,
     local_values_managed_variant~,
     local_values_group_chain~,
     local_values_group_variant~,
@@ -98,6 +111,9 @@ fn captured_graph_fixture(
     local_values_append_chain~,
     local_values_append_variant~,
     local_values_cross_chain~,
+    local_values_cross_direct~,
+    local_values_cross_external_chain~,
+    local_values_cross_external_filter~,
     local_values_cross_singleton~,
     local_values_cross_output_guard~,
     local_values_set_operation~,
@@ -2285,6 +2301,14 @@ fn local_values_asof_program() -> String {
 
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
+fn local_values_cross_external_program() -> String {
+  (
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"left_values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}},{"id":"right_values","inputs":{},"steps":[{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"},{"tag":"b"},{"tag":"c"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["tag"]}}},{"id":"crossed","inputs":{"l":{"result":{"stage":"left_values","result":"r"}},"r":{"result":{"stage":"right_values","result":"r"}}},"steps":[{"from":"l","cross_join":{"with":"r","max_output_rows":6,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+/// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
     variant {
@@ -3452,6 +3476,11 @@ fn query_checked_program_fixture(
   sort_take? : Bool = false,
   dag_values? : Bool = false,
   local_values_two_consumer_chain? : Bool = false,
+  local_values_two_consumer_filter? : Bool = false,
+  local_values_two_consumer_assert? : Bool = false,
+  local_values_two_consumer_assert_unique? : Bool = false,
+  local_values_two_consumer_sort_take? : Bool = false,
+  local_values_two_consumer_relation_variant? : String = "",
   local_values_managed_variant? : String = "",
   local_values_group_chain? : Bool = false,
   local_values_group_variant? : String = "keyed",
@@ -3478,6 +3507,9 @@ fn query_checked_program_fixture(
   local_values_append_chain? : Bool = false,
   local_values_append_variant? : String = "local",
   local_values_cross_chain? : Bool = false,
+  local_values_cross_direct? : Bool = false,
+  local_values_cross_external_chain? : Bool = false,
+  local_values_cross_external_filter? : Bool = false,
   local_values_cross_singleton? : Bool = false,
   local_values_cross_output_guard? : Int? = None,
   local_values_set_operation? : String = "",
@@ -3584,9 +3616,82 @@ fn query_checked_program_fixture(
     text
   }
   let text = if local_values_two_consumer_chain {
-    (
+    let program =
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"values_a","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":true},"label":{"type":"string","nullable":false}},"rows":[{"id":null,"label":"none"},{"id":1,"label":"one"}]} ,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"values_a","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
-    )
+    if local_values_two_consumer_relation_variant == "separate_sort_take" ||
+      local_values_two_consumer_relation_variant == "separate_filter_sort_take" ||
+      local_values_two_consumer_relation_variant == "chained_filter_sort_take" {
+      let separated = program
+        .replace(
+          old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+          new="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"ordered\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}},\"steps\":[{\"from\":\"x\",\"sort\":[{\"field\":\"id\",\"dir\":\"desc\",\"nulls\":\"last\"}],\"as\":\"ordered_rows\"},{\"from\":\"ordered_rows\",\"take\":1,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        )
+        .replace(
+          old="\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\"",
+          new="\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"ordered\"",
+        )
+        .replace(
+          old="\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\"",
+          new="\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"ordered\"",
+        )
+      if local_values_two_consumer_relation_variant ==
+        "separate_filter_sort_take" {
+        separated.replace(
+          old="\"steps\":[{\"from\":\"x\",\"sort\"",
+          new="\"steps\":[{\"from\":\"x\",\"filter\":\"true\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"sort\"",
+        )
+      } else if local_values_two_consumer_relation_variant ==
+        "chained_filter_sort_take" {
+        separated.replace(
+          old="\"id\":\"ordered\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}},\"steps\":[",
+          new="\"id\":\"filtered\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"values_a\",\"result\":\"r\"}}},\"steps\":[{\"from\":\"x\",\"filter\":\"true\",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"ordered\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"filtered\",\"result\":\"r\"}}},\"steps\":[",
+        )
+      } else {
+        separated
+      }
+    } else if local_values_two_consumer_sort_take {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"sort\":[{\"field\":\"id\",\"dir\":\"desc\",\"nulls\":\"last\"}],\"as\":\"ordered\"},{\"from\":\"ordered\",\"take\":1,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_assert_unique {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"assert_rows\":{\"unique_by\":[\"label\"]},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_assert {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"assert_rows\":{\"where\":\"1 > 0\"},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_filter {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"filter\":\"id > 0\",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "take" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"take\":1,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "select" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"select\":[\"id\",\"label\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "derive" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"derive\":{\"copy\":\"label\"},\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\",\"copy\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else if local_values_two_consumer_relation_variant == "distinct" {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"values_rows\"},{\"from\":\"values_rows\",\"distinct\":true,\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"label\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else {
+      program
+    }
   } else {
     text
   }
@@ -3648,6 +3753,21 @@ fn query_checked_program_fixture(
   let text = if local_values_cross_chain {
     let cross =
       #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"crossed","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]} ,"as":"left_raw"},{"from":"left_raw","distinct":["id"],"as":"left_rows"},{"values":{"schema":{"tag":{"type":"string","nullable":false}},"rows":[{"tag":"a"}__RIGHT_EXTRA__]} ,"as":"right_raw"},{"from":"right_raw","distinct":["tag"],"as":"right_rows"},{"from":"left_rows","cross_join":{"with":"right_rows"__RIGHT_ONE____OUTPUT_GUARD__,"select":{"id":"left.id","tag":"right.tag"}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["id","tag"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","tag"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"crossed","result":"r"}}},"steps":[{"select":["tag","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["tag","id"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+    let cross = if local_values_cross_direct {
+      cross
+      .replace(
+        old=",{\"from\":\"left_raw\",\"distinct\":[\"id\"],\"as\":\"left_rows\"}",
+        new="",
+      )
+      .replace(
+        old=",{\"from\":\"right_raw\",\"distinct\":[\"tag\"],\"as\":\"right_rows\"}",
+        new="",
+      )
+      .replace(old="\"as\":\"left_raw\"", new="\"as\":\"left_rows\"")
+      .replace(old="\"as\":\"right_raw\"", new="\"as\":\"right_rows\"")
+    } else {
+      cross
+    }
     cross
     .replace(
       old="__RIGHT_EXTRA__",
@@ -3668,6 +3788,19 @@ fn query_checked_program_fixture(
         None => ""
       },
     )
+  } else {
+    text
+  }
+  let text = if local_values_cross_external_chain {
+    let program = local_values_cross_external_program()
+    if local_values_cross_external_filter {
+      program.replace(
+        old="\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"tag\"]}}},{\"id\":\"consumer_a\"",
+        new="\"as\":\"crossed_rows\"},{\"from\":\"crossed_rows\",\"filter\":\"id > 0\",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"tag\"]}}},{\"id\":\"consumer_a\"",
+      )
+    } else {
+      program
+    }
   } else {
     text
   }
@@ -4003,6 +4136,38 @@ fn query_checked_program_fixture(
     ]
   } else if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
+  } else if local_values_cross_external_chain {
+    let left = query_capacity_proof(
+      "actql.bound.values",
+      2L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let right = query_capacity_proof(
+      "actql.bound.values",
+      3L,
+      "{\"op\":\"source\"}",
+      step=0,
+    )
+    let joined = query_capacity_proof(
+      "actql.bound.join-output",
+      6L,
+      "{\"op\":\"source\"}",
+      inputs=[
+        @wire.cid(@wire.program_proof_witness(left)),
+        @wire.cid(@wire.program_proof_witness(right)),
+      ],
+      step=0,
+    )
+    [
+      join_graph_capacity_material(
+        environment,
+        "crossed",
+        steps=[0],
+        proofs=[left, right, joined],
+        candidates=[joined],
+      ),
+    ]
   } else if local_values_cross_chain {
     let left = query_capacity_proof(
       "actql.bound.values",
@@ -4018,7 +4183,7 @@ fn query_checked_program_fixture(
         2L
       },
       "{\"op\":\"source\"}",
-      step=2,
+      step=if local_values_cross_direct { 1 } else { 2 },
     )
     let joined = query_capacity_proof(
       "actql.bound.join-output",
@@ -4032,13 +4197,13 @@ fn query_checked_program_fixture(
         @wire.cid(@wire.program_proof_witness(left)),
         @wire.cid(@wire.program_proof_witness(right)),
       ],
-      step=4,
+      step=if local_values_cross_direct { 2 } else { 4 },
     )
     [
       join_graph_capacity_material(
         environment,
         "crossed",
-        steps=[4],
+        steps=[if local_values_cross_direct { 2 } else { 4 }],
         proofs=[left, right, joined],
         candidates=[joined],
       ),
