@@ -1911,6 +1911,60 @@ pub fn client_program_check_effect_preview_current_bindings(
 }
 
 ///|
+/// Project an already authenticated registered route observation. Raw codes
+/// supplied by a caller are not proof of a Connector capability or authority.
+#export_name("clientProgramEffectApplyCapabilityFromCodes")
+pub fn client_program_effect_apply_capability_from_codes(
+  evidence_cid : String,
+  route_code : Int,
+  atomicity_code : Int,
+  failure_code : Int,
+  row_error_identity : Bool,
+  request_order_preserved : Bool,
+  idempotency_code : Int,
+  reconciliation_code : Int,
+) -> Result[
+  @effect.EffectApplyCapabilityObservation,
+  @effect.EffectApplyCapabilityIssue,
+] {
+  @effect.prepare_effect_apply_capability_from_codes(
+    evidence_cid, route_code, atomicity_code, failure_code, row_error_identity, request_order_preserved,
+    idempotency_code, reconciliation_code,
+  )
+}
+
+///|
+#export_name("clientProgramEffectApplyCapabilityIdempotencyMode")
+pub fn client_program_effect_apply_capability_idempotency_mode(
+  value : @effect.EffectApplyCapabilityObservation,
+) -> String {
+  @effect.effect_apply_capability_idempotency_mode(value)
+}
+
+///|
+#export_name("clientProgramEffectApplyCapabilityReconciliationMode")
+pub fn client_program_effect_apply_capability_reconciliation_mode(
+  value : @effect.EffectApplyCapabilityObservation,
+) -> String {
+  @effect.effect_apply_capability_reconciliation_mode(value)
+}
+
+///|
+/// Verify the selected execution route of every member against the captured
+/// Preview's capability evidence and authored row policy before any send.
+#export_name("clientProgramCheckEffectPreviewCapabilities")
+pub fn client_program_check_effect_preview_capabilities(
+  value : @strategy.CapturedEffectPreviewInputs,
+  observations : Array[@effect.EffectApplyCapabilityObservation],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectCapabilityIssue] {
+  @strategy.check_captured_effect_preview_capabilities(
+    value, observations, max_members, max_work,
+  )
+}
+
+///|
 /// Verify the complete derived key inventory using this captured Preview,
 /// not another reading of its transported body. No mutation is authorized.
 #export_name("clientProgramCheckEffectPreviewApplyKeys")

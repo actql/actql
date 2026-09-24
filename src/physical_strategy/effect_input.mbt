@@ -379,6 +379,39 @@ pub fn check_captured_effect_preview_current_bindings(
 }
 
 ///|
+pub(all) enum CapturedEffectCapabilityIssue {
+  NotReady
+  Current(@effect.EffectApplyCapabilityIssue)
+} derive(Debug)
+
+///|
+/// Selected-route capability must be rechecked for every member while the
+/// captured inputs remain available. The Site authenticates the observations;
+/// this semantic check alone is not permission to send.
+pub fn check_captured_effect_preview_capabilities(
+  value : CapturedEffectPreviewInputs,
+  observations : Array[@effect.EffectApplyCapabilityObservation],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectCapabilityIssue] {
+  if !value.inputs.live {
+    return Err(NotReady)
+  }
+  for index in 0..<value.source_indexes.length() {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return Err(NotReady)
+    }
+  }
+  @effect.check_effect_preview_apply_capabilities(
+    @checked.effect_program_run_preview_identity(value.preview),
+    observations,
+    max_members,
+    max_work,
+  ).map_err(issue => Current(issue))
+}
+
+///|
 pub(all) enum CapturedEffectApplyKeyIssue {
   InvalidLimits
   CapacityExceeded

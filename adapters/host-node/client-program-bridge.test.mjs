@@ -710,6 +710,27 @@ test('owned update Plan matches approved rows and rejects altered intent',
           previewInputs, sources, contracts, capabilities, authorities,
           2, 8));
       assert.doesNotThrow(() => checkCurrent());
+      const capability = (evidence = cid('d'), route = 0,
+        reconciliation = 1) => checked(
+        moon.clientProgramEffectApplyCapabilityFromCodes(
+          evidence, route, 0, 0, true, true, 2, reconciliation));
+      const selectedRoutes = [capability(), capability()];
+      assert.equal(moon.clientProgramEffectApplyCapabilityIdempotencyMode(
+        selectedRoutes[0]), 'unavailable');
+      assert.equal(moon.clientProgramEffectApplyCapabilityReconciliationMode(
+        selectedRoutes[0]), 'manual');
+      const checkRoutes = routes => checked(
+        moon.clientProgramCheckEffectPreviewCapabilities(
+          previewInputs, routes, 2, 2));
+      assert.doesNotThrow(() => checkRoutes(selectedRoutes));
+      assert.throws(() => checkRoutes([selectedRoutes[0]]),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRoutes([capability(cid('f')),
+        selectedRoutes[1]]), {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRoutes([capability(cid('d'), 1),
+        selectedRoutes[1]]), {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRoutes([capability(cid('d'), 0, 2),
+        selectedRoutes[1]]), {code: 'MoonBitHostFailure'});
       const checkKeys = keys => checked(
         moon.clientProgramCheckEffectPreviewApplyKeys(
           previewInputs, requestScope, keys, 4, 10));
@@ -883,6 +904,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
         historicalProgress.close();
       }
       assert.throws(() => checkKeys(preview.keys),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checkRoutes(selectedRoutes),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent(),
       {code: 'MoonBitHostFailure'});
