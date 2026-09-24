@@ -27,6 +27,20 @@ pub struct EffectProgramStaticPreview {
 }
 
 ///|
+/// The same statically closed checked Program retained with its admitted
+/// Run. Effect capture, current authority, and apply remain separate proofs.
+pub struct EffectProgramRunCandidate {
+  candidate : EffectProgramStaticCandidate
+  admission : @run_publication.RunPublicationAdmission
+  run_definition : @run_publication.PublicationContract
+}
+
+///|
+pub(all) enum EffectProgramRunIssue {
+  Binding(@run_publication.RunProgramBindingIssue)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignProgramDefinition
   ForeignProgramSemantics
@@ -193,6 +207,46 @@ pub fn effect_program_static_semantics_cid(
       source_identity(candidate.computation.checked),
     ),
   )
+}
+
+///|
+pub fn bind_effect_program_static_run(
+  candidate : EffectProgramStaticCandidate,
+  admission : @run_publication.RunPublicationAdmission,
+  run_definition : @run_publication.PublicationContract,
+) -> Result[EffectProgramRunCandidate, EffectProgramRunIssue] {
+  match
+    @run_publication.check_run_publication_program_binding(
+      admission,
+      run_definition,
+      effect_program_static_definition_cid(candidate),
+      effect_program_static_semantics_cid(candidate),
+      @environment.cid(effect_program_static_environment(candidate)),
+    ) {
+    Ok(_) => Ok({ candidate, admission, run_definition, })
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
+pub fn effect_program_run_static_candidate(
+  value : EffectProgramRunCandidate,
+) -> EffectProgramStaticCandidate {
+  value.candidate
+}
+
+///|
+pub fn effect_program_run_admission(
+  value : EffectProgramRunCandidate,
+) -> @run_publication.RunPublicationAdmission {
+  value.admission
+}
+
+///|
+pub fn effect_program_run_definition(
+  value : EffectProgramRunCandidate,
+) -> @run_publication.PublicationContract {
+  value.run_definition
 }
 
 ///|
