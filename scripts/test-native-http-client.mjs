@@ -412,7 +412,7 @@ try {
         return;
       }
       if (request.url === '/placement-policy/late') {
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise(resolve => setTimeout(resolve, 2250));
       }
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(JSON.stringify({

@@ -202,7 +202,7 @@ test "native standard Host consults mTLS policy and retains a failed choice" {
       max_work: 1000,
       max_revisions: 2,
     }).unwrap()
-    let duration = if index == 2 { 100L } else { 5000L }
+    let duration = if index == 2 { 2000L } else { 5000L }
     let consultation = @native_host.prepare_native_standard_policy_consultation(
         other,
         client,
