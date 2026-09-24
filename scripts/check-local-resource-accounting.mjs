@@ -576,6 +576,12 @@ for (const [index, route] of routeEntries.entries()) {
     !environmentRoles.has('time_series_host_timer')) {
     fail(`${label}: time_series_host_timer fixture is missing`);
   }
+  for (const operation of ['interval_join', 'asof_join']) {
+    if (route.family === 'TEA' && route.operation === operation &&
+      !environmentRoles.has(`${operation}_host_in_flight_cancel`)) {
+      fail(`${label}: ${operation}_host_in_flight_cancel fixture is missing`);
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'append' &&
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
     fail(`${label}: same-stage append timer evidence is missing`);
