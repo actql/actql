@@ -171,21 +171,8 @@ export async function captureClaimedSalesforceSingleResponse({
     }),
   });
   if (captured.claimed) return captured;
-  const stored = captured.ownership?.response ??
-    ledger.readClaimedResponse(ownedClaim);
-  if (stored === undefined) return captured;
-  // The Store has verified these exact physical bytes. Re-projecting them is
-  // read-only: it never claims another use or sends the mutation again.
-  const recovered = projectSalesforceSingleObservation({
-    moon, request,
-    observation: Object.freeze({
-      useCid: stored.credentialUseCid,
-      statusCode: stored.statusCode,
-      body: stored.responseBytes,
-    }),
-    limits: context.limits,
-  });
-  return Object.freeze({...captured, recovered});
+  return Object.freeze({claimed: false,
+    ownership: Object.freeze({action: captured.ownership.action})});
 }
 
 // Bind one physical REST request to the admitted member and row before the
@@ -199,6 +186,7 @@ export async function captureSalesforceSingleEffectWrite({
   claim,
   moon,
   request,
+  authorizeEvidenceRead,
   ...physical
 }) {
   if (!commonMoon || !admittedPreview || !moon || !request || !claim ||
@@ -218,11 +206,24 @@ export async function captureSalesforceSingleEffectWrite({
     moon.salesforceSingleWriteRequestEffectKind(request), ownedClaim.scope,
     rowPreviewCid, ownedClaim.locator, ownedClaim.key);
   const projectionLimits = ownInvocationLimits(physical.limits);
+  const resourceOrigin = physical.authorization?.scope?.resourceOrigin;
   const captured = await captureClaimedSalesforceSingleResponse({
     claim: ownedClaim, moon, request, ...physical,
   });
-  const observed = captured.claimed ? captured.physical : captured.recovered;
-  if (observed?.kind !== 'typed-success-response') return captured;
+  let result = captured;
+  if (!captured.claimed) {
+    result = Object.freeze({claimed: false,
+      ownership: Object.freeze({action: captured.ownership.action})});
+    if (authorizeEvidenceRead === undefined) return result;
+    const recovery = await recoverStoredSalesforceSingleResponse({
+      ledger: physical.ledger, claim: ownedClaim, commonMoon, moon, request,
+      resourceOrigin, authorizeEvidenceRead, limits: projectionLimits,
+      maxRequestIdentityBytes: physical.maxRequestIdentityBytes ?? 4096,
+    });
+    result = Object.freeze({...result, recovered: recovery.recovered});
+  }
+  const observed = result.claimed ? result.physical : result.recovered;
+  if (observed?.kind !== 'typed-success-response') return result;
   const projection = checked(moon.salesforceProjectSingleEffectOutcome(
     admittedPreview, memberIndex, rowIndex, request, observed.response,
     physical.maxRequestIdentityBytes ?? 4096,
@@ -237,7 +238,7 @@ export async function captureSalesforceSingleEffectWrite({
     claim: ownedClaim, preview: admittedPreview, memberIndex,
     previewRowIndex: rowIndex,
   });
-  return Object.freeze({...captured, outcomeReceipt: outcome.receipt,
+  return Object.freeze({...result, outcomeReceipt: outcome.receipt,
     terminal: terminal.transition});
 }
 
@@ -260,6 +261,7 @@ export async function captureSalesforceCollectionEffectWrite({
   signal,
   maxRequestIdentityBytes = 4096,
   maxBindingWork = 100_000,
+  authorizeEvidenceRead,
   callResource,
 }) {
   const scope = authorization?.scope;
@@ -342,21 +344,16 @@ export async function captureSalesforceCollectionEffectWrite({
     }),
   });
   let result = captured;
-  if (!captured.claimed &&
-      captured.ownership.actions.every(action => action >= 3 && action <= 7)) {
-    const response = ledger.readClaimedBatchResponse(ownedClaims);
-    if (response !== undefined) {
-      const recovered = projectSalesforceCollectionObservation({
-        moon, request,
-        observation: Object.freeze({
-          useCid: response.credentialUseCid,
-          statusCode: response.statusCode,
-          body: response.responseBytes,
-        }),
-        limits: context.limits,
-      });
-      result = Object.freeze({...captured, recovered});
-    }
+  if (!captured.claimed) {
+    result = Object.freeze({claimed: false,
+      ownership: Object.freeze({actions: captured.ownership.actions})});
+    if (authorizeEvidenceRead === undefined) return result;
+    const recovery = await recoverStoredSalesforceCollectionResponse({
+      ledger, claims: ownedClaims, commonMoon, moon, request,
+      resourceOrigin: ownedScope.resourceOrigin, authorizeEvidenceRead,
+      limits: context.limits, maxRequestIdentityBytes,
+    });
+    result = Object.freeze({...result, recovered: recovery.recovered});
   }
   const observed = result.claimed ? result.physical : result.recovered;
   if (observed?.kind !== 'typed-row-response') return result;
