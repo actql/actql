@@ -123,6 +123,20 @@ test('binding set covers every checked Unit Result port', async () => {
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitPublicationFactEntries(prepared,
       entries.toReversed())));
+  const manifestBody = {
+    plan_facts: entries.map(entry => JSON.parse(entry)),
+    version: 'actql-plan-fact-manifest/0.1',
+  };
+  const manifestCid = hashWithoutSelf(manifestBody,
+    'plan_fact_manifest_cid');
+  const manifest = JSON.stringify({...manifestBody,
+    plan_fact_manifest_cid: manifestCid});
+  assert.equal(checked(moon.clientProgramCheckPlanFactManifestIdentity(
+    manifest, JSON.stringify(manifestBody.plan_facts))), manifestCid);
+  assert.throws(() => checked(
+    moon.clientProgramCheckPlanFactManifestIdentity(manifest,
+      JSON.stringify(manifestBody.plan_facts.slice(1)))),
+  {code: 'MoonBitHostFailure'});
   assert.equal(new Set(bindings.map(body => JSON.parse(body).binding_cid))
     .size, 4);
   assert.equal(new Set(limits.map(body => JSON.parse(body).resolved_limit_cid))
