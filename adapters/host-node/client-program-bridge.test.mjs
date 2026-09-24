@@ -1,13 +1,22 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {createServer} from 'node:http';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {runCapturedStrategy} from './entry.mjs';
+import {createClientHttpHandler} from './client-http.mjs';
+import {runCapturedStrategy, runPublishedCapturedStrategy} from './entry.mjs';
+import {installNodeResultAccessService,
+  installResultAccessAuthority} from './result-access.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {inspectAuthorizedRunState, installRunStateAuthority,
+  installRunStateService} from '../host-common/run-state-access.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {connect as connectClient} from '../../packages/sdk/index.mjs';
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
@@ -18,6 +27,20 @@ const programCid =
   'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c';
 const parametersCid =
   'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52';
+const publicationLimits = Object.freeze({
+  maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64,
+});
+const outputLimits = Object.freeze({
+  maxResultFields: 10, maxResultMappingWork: 1000,
+  maxResultOrderWork: 10000, maxResultWorkspaceEntries: 100,
+  maxRows: 100, maxValueNodes: 10000, maxValueTextBytes: 100000,
+  maxValueDepth: 64, maxValueWork: 100000, maxWireBytes: 100000,
+  maxWireNodes: 10000, maxWireDepth: 64, maxColumns: 10,
+  maxOrderWork: 10000, maxLogicalWireBytes: 100000,
+  maxLogicalWireNodes: 10003, maxLogicalWireDepth: 66,
+  maxSchemaFields: 10, maxSchemaBytes: 100000,
+  maxSchemaNodes: 10000, maxSchemaDepth: 64, maxBatchBytes: 4096,
+});
 
 async function checkedFixture() {
   const [document, environmentBody] = await Promise.all([
@@ -78,6 +101,96 @@ function publicationEvidence(program, parameters, semantics,
     decision: 'allowed',
   });
   return [template, prepared, authorization, plan];
+}
+
+// This fixture provides missing compiler/Host policy evidence. Its checked
+// Program identity and the physical Result bytes come from product owners.
+function checkedValuesPublicationPlan(prepared, control) {
+  const request = moon.clientProgramRequestIdentity(
+    prepared, cid('a'), 'published-values-request', cid('b'));
+  const evidence = publicationEvidence(
+    moon.clientRequestProgramCid(request),
+    moon.clientRequestParametersCid(request),
+    moon.clientProgramSemanticsCid(prepared),
+    moon.clientProgramCheckEnvironmentCid(prepared));
+  const [template, preparedEvidence, authorization] = evidence
+    .slice(0, 3).map((value, index) => control.admitRunEvidence(
+      ['bound_invocation_template', 'prepared_invocation',
+        'run_authorization'][index],
+      moon.strategyRunEvidenceJson(value), publicationLimits));
+  const compiledPlan = control.admit('compiled_plan',
+    moon.strategyPublicationContractJson(evidence[3]), publicationLimits);
+  const admission = control.admitCheckedClientRunPublication(
+    prepared, template, preparedEvidence, authorization, compiledPlan);
+  const runDefinition = control.issueRunDefinition(admission, {
+    scopeId: 'tenant-a-scope', runId: 'checked-values-published',
+    inputArtifactSetCid: cid('c'),
+    createdAt: '2026-09-24T00:00:00.000Z',
+    validUntil: '2027-01-01T00:00:00.000Z',
+  }, publicationLimits);
+  const effectiveDataPolicyCid = cid('d');
+  const observation = control.sealRunEvidence('observation_set',
+    JSON.stringify({
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: template.identity,
+      source_evidence_cids: [], captured_input_artifact_cids: [],
+      consistency: 'no_external_sources', capture_started_at: null,
+      capture_completed_at: null,
+      replayability: {materialized: false, availability_evidence_cids: []},
+      data_policy_cid: effectiveDataPolicyCid,
+    }), publicationLimits);
+  const invocation = control.issueRunInvocation(
+    template, observation, publicationLimits);
+  const retention = control.seal('result_retention_policy', JSON.stringify({
+    version: 'actql-result-retention-policy/0.1',
+    retention_contract_cid: cid('e'),
+    effective_data_policy_cid: effectiveDataPolicyCid,
+    available_until: '2026-09-24T01:00:00.000Z',
+    delete_by: '2026-09-24T02:00:00.000Z',
+    extension_ceiling_at: '2026-09-24T03:00:00.000Z',
+    metadata_retention_policy_cid: cid('f'),
+    metadata_delete_by: '2026-09-24T04:00:00.000Z',
+    clock_contract_cid: cid('0'),
+  }), publicationLimits);
+  const normalizationJournal = control.sealRunEvidence(
+    'normalization_journal', JSON.stringify({
+      version: 'actql-normalization-journal/0.1',
+      rule_catalog_cid: cid('1'), entries: [],
+    }), publicationLimits);
+  const authoringContext = control.sealRunEvidence('authoring_context',
+    JSON.stringify({
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: moon.clientRequestProgramCid(request),
+      annotations: [],
+    }), publicationLimits);
+  return Object.freeze({
+    admission, runDefinition, invocation, observation,
+    normalizationJournal, authoringContext,
+    results: Object.freeze([Object.freeze({
+      retention,
+      evidenceContext: Object.freeze({
+        computationContractCid: cid('2'), inputRelationCids: [],
+        scopeCid: cid('3'), effectiveDataPolicyCid,
+        authorityScopeCid: cid('a'),
+      }),
+    })]),
+    receiptEvidence: Object.freeze({bindings: [], sourceEvidence: [],
+      modelEvidence: [], barrierAttemptReceiptCids: []}),
+    captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
+      modelEvidence: []}),
+    request: Object.freeze({
+      tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+      publicationPolicyCid: cid('4'), publicationTargetCid: cid('5'),
+      requestedAt: '2026-09-24T00:00:00.000Z',
+    }),
+    attempt: Object.freeze({
+      attemptId: 'published-values-attempt', fenceCid: cid('6'),
+      externalIdempotencyKey: undefined,
+      startedAt: '2026-09-24T00:00:01.000Z',
+    }),
+    outputLimits, contractLimits: publicationLimits,
+    now: () => '2026-09-24T00:02:00.000Z',
+  });
 }
 
 test('Node ABI derives the checked named Result and request identity', async () => {
@@ -262,5 +375,166 @@ test('checked source-free Program executes through the standard Local Host',
     } finally {
       await execution.close();
       assert.equal(execution.cleanupPending(), false);
+    }
+  });
+
+test('checked Values Program publishes and reads its real Local Result',
+  async t => {
+    const {document, environment} = await checkedFixture();
+    const expected = JSON.parse(await readFile(new URL('values.expected.json',
+      fixture), 'utf8'));
+    const prepared = moon.clientProgramPrepareEffectFree(
+      document, 'json', environment);
+    assert.ok(prepared);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    const setup = moon.clientProgramOpenSourceFreeLocalHost(
+      prepared, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(setup);
+    const control = runtimeCore(moon).publicationControl;
+    const plan = checkedValuesPublicationPlan(prepared, control);
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname, 'result-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const configuration = {
+      directory, storeAuthorityCid: cid('7'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: outputLimits.maxWireBytes,
+      maxObjects: 100, maxContractNodes: 10000,
+      maxContractDepth: 64,
+    };
+    const journalDirectory = join(directory, 'requests');
+    await mkdir(journalDirectory);
+    const identity = moon.clientProgramRequestIdentity(
+      prepared, cid('a'), 'published-values-request', cid('b'));
+    const journal = openClientRequestJournal(journalDirectory);
+    try {
+      const accepted = journal.acceptDefinition(identity, {
+        tenantId: 'tenant-a', runDefinition: plan.runDefinition,
+        lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      }, moon, control);
+      assert.equal(accepted.inserted, true);
+      assert.equal(accepted.ref.runDefinitionCid,
+        plan.runDefinition.identity);
+    } finally {
+      journal.close();
+    }
+    let store = await openLocalPublicationStore(configuration, control);
+    let published;
+    try {
+      published = await runPublishedCapturedStrategy(setup, {store, plan});
+      assert.equal(published.status, 'published');
+      assert.equal(published.execution.status, 'host-tasks-completed');
+      assert.deepEqual(published.execution.resultInventory.map(
+        result => result.name), ['answer']);
+      assert.equal(published.execution.completed[0].outputRows,
+        expected.length);
+      assert.equal(published.publication.publication.state, 'succeeded');
+      await published.close();
+      assert.equal(published.cleanupPending(), false);
+      assert.equal(await published.cleanup(), true);
+      published = undefined;
+      await store.close();
+      store = await openLocalPublicationStore(configuration, control);
+      const reopened = openClientRequestJournal(journalDirectory);
+      let ref;
+      try {
+        const retained = reopened.lookupDefinition({
+          tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          requestId: 'published-values-request',
+        }, moon, control);
+        assert.equal(retained.runDefinition.wire, plan.runDefinition.wire);
+        ref = retained.ref;
+      } finally {
+        reopened.close();
+      }
+      const authority = installResultAccessAuthority({
+        authorizeResultReadRequest: () => true,
+        admitResultRead: facts => ({
+          authorizationContextCid: `sha256:${createHash('sha256')
+            .update(facts.attemptId).digest('hex')}`,
+          dataCeilingCid: cid('9'),
+          egressAdmissionCid: cid('a'),
+          expiresAt: '2026-09-24T01:00:00.000Z',
+          maxBytes: 100000, maxUses: 1,
+        }),
+        authorizeResultRead: () => true,
+        authorizeDeliveryAttemptLookup: () => true,
+      });
+      const service = installNodeResultAccessService({
+        store, control, authority,
+        now: () => '2026-09-24T00:30:00.000Z',
+        limits: publicationLimits,
+        frameLimits: {maxRowBytes: 4096, maxDepth: 32,
+          maxFrameBytes: 4096},
+      });
+      const stateService = installRunStateService({
+        store, control,
+        authority: installRunStateAuthority({
+          authorizeRunState: () => true,
+          resultPolicyAvailable: () => true,
+        }),
+        now: () => '2026-09-24T00:30:00.000Z',
+        limits: publicationLimits,
+      });
+      const server = createServer(createClientHttpHandler({
+        authenticate: header => header === 'Bearer scoped-token'
+          ? 'principal-after-restart' : undefined,
+        authorizeConnection: facts => facts.connection.mode === 'local' &&
+          facts.connection.owner === 'local' &&
+          (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+        negotiate: () => ({
+          version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'volatile', scopeRef: 'principal-after-restart',
+          capabilities: ['result-jsonl'],
+          limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+            maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 100,
+            maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+        }),
+        attach: async ({ref: requested, principalId}) => {
+          await inspectAuthorizedRunState(stateService, {
+            indexKey: requested, principalId, purpose: 'inspect',
+          });
+          return {ref: requested, durability: 'volatile', revision: 0};
+        },
+        stateService, resultService: service,
+      }));
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      try {
+        const client = await connectClient({
+          mode: 'local', owner: 'local',
+          endpoint: `http://127.0.0.1:${server.address().port}/`,
+          token: 'scoped-token',
+        });
+        const execution = await client.attach(ref);
+        assert.equal((await execution.status()).status, 'succeeded');
+        assert.deepEqual(await execution.result('answer').all(), expected);
+        const reader = execution.result('answer').rows();
+        assert.deepEqual(await Array.fromAsync(reader), expected);
+        assert.equal(reader.state(), 'complete');
+        let attempt = await execution.result('answer')
+          .deliveryAttempt(reader.attemptId);
+        assert.equal(attempt.kind, 'found');
+        for (let tries = 0; tries < 100 &&
+          attempt.record?.state !== 'succeeded'; tries++) {
+          await new Promise(resolve => setTimeout(resolve, 10));
+          attempt = await execution.result('answer')
+            .deliveryAttempt(reader.attemptId);
+        }
+        assert.equal(attempt.record.state, 'succeeded');
+        client.close();
+      } finally {
+        await new Promise(resolve => server.close(resolve));
+      }
+    } finally {
+      await published?.close();
+      await store.close();
     }
   });
