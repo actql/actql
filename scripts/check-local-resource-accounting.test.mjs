@@ -59,6 +59,16 @@ test('global top-k loses its bounded ordinary evidence when removed', () => {
   }), /RelA top_k: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
+test('subgraph literal control-work evidence must remain executable', () => {
+  assert.match(run(undefined, routes => {
+    const subgraph = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'subgraph');
+    subgraph.boundary_tests.find(item =>
+      item.role === 'subgraph_literal_control_work_exact_one_short').fixture =
+      'missing-subgraph-control-work';
+  }), /SGA subgraph: missing operation boundary fixture missing-subgraph-control-work/);
+});
+
 for (const operation of ['node_rows', 'edge_rows']) {
   test(`${operation} loses its Bridge boundary record when removed`, () => {
     assert.match(run(undefined, routes => {

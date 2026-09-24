@@ -259,6 +259,61 @@ test "subgraph rejects one short combined selector and output workspace" {
 }
 
 ///|
+test "subgraph admits exact literal-selection control work" {
+  let producer = source_owner()
+  let source = subgraph_source_graph(producer, Ref(true))
+  let owner = subgraph_owner(producer, "[1,2]")
+  // Three selection flags, two selector reads, six identity comparisons,
+  // two selector checks, three node copies, two edge checks, and one finish
+  // require exactly 19 control steps, independent of output-value work.
+  for (work, accepted) in [(19, true), (18, false)] {
+    let input = @graph.prepare_producer_read(owner, 0, producer, source).unwrap()
+    let execution = start_subgraph(
+      @bounded.control(),
+      sequence(owner),
+      0,
+      input,
+      None,
+      storage_limits(),
+      4096L,
+      fn() { true },
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<64 {
+      if !terminal {
+        match advance_subgraph(execution, 1).unwrap() {
+          SubgraphContinue(work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+          }
+          SubgraphComplete(output, work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+            assert_true(accepted)
+            assert_true(@graph.completed_storage(output) is Some(_))
+            terminal = true
+          }
+          SubgraphFailed(SubgraphWorkLimit, work=delta, ..) => {
+            assert_true(delta >= charged && delta - charged <= 1L)
+            charged = delta
+            assert_false(accepted)
+            assert_true(subgraph_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("unexpected literal subgraph work result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, work.to_int64())
+    assert_eq(cleanup_subgraph(execution), Ok(true))
+    assert_true(@graph.producer_read_available(input))
+  }
+}
+
+///|
 test "subgraph rejects every missing identity before materialization" {
   let producer = source_owner()
   let source = subgraph_source_graph(producer, Ref(true))
