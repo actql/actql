@@ -102,16 +102,12 @@ an Effectful Run. Prepared-output sinks must reclaim partial bytes on failure.
 
 The common publication coordinator now issues an Effectful computation
 Manifest, pre-effect Receipt, and Captured Run from a real retained Host
-Result set and an admitted private Preview. Its positive product fixture uses
-the same name for the Stage Result and declared Program Result, and rejects
-a Preview referring to a foreign Artifact. Issuance does not publish or
-release the prepared Store owners. The ordinary Effect fixture exposed a 0.1
-contract gap: an Effect may consume Stage Result `rows` while the published
-Program Result is `answer`. The current Captured Run issuer only looks for
-the Effect source Artifact in the published Result inventory by name.
-Changing the fixture's name would not resolve that general case. The exact
-Effect-source Artifact inventory and its Preview binding still need a
-coordinated contract correction before ordinary Effectful Run completion.
+Result set and an admitted private Preview. Its product fixture publishes
+Program Result `answer` while the Effect consumes Stage Result `rows`.
+Captured Run 0.1 retains the latter in a separate exact Effect-source
+Artifact inventory and holding inventory; the regression asserts that it
+does not masquerade as a published Result. A foreign Artifact in the Preview
+is rejected. Issuance does not publish or release the prepared Store owners.
 The coordinator also requires the exact in-process export owner, not a copied
 result object or a second execution of the same checked Run. This is physical
 custody for issuance, not a durable publication or recovery guarantee.

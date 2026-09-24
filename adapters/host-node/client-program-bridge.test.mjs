@@ -801,8 +801,18 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(computation.manifest.name, 'result_manifest');
         assert.equal(computation.computationReceipt.name, 'run_receipt');
         assert.equal(computation.capturedRun.name, 'captured_run');
-        assert.deepEqual(JSON.parse(computation.capturedRun.wire).receipt,
+        const capturedBody = JSON.parse(computation.capturedRun.wire);
+        assert.deepEqual(capturedBody.receipt,
           JSON.parse(computation.computationReceipt.wire));
+        assert.equal(capturedBody.effect_context.effect_source_artifacts.save
+          .result_artifact_cid, sourceArtifact.identity);
+        assert.equal(capturedBody.effect_context.effect_source_artifacts.save
+          .source_result,
+          'rows');
+        assert.equal(capturedBody.effect_context.effect_source_holding_cids.save,
+          sourceHoldingCid);
+        assert.deepEqual(Object.keys(capturedBody.effect_context
+          .result_artifacts), ['answer']);
         const foreignArtifactPreview = effectInputPreview(
           prepared, evidence, definition, invocation, mappingCid, cid('9'));
         const foreignAdmittedPreview =
