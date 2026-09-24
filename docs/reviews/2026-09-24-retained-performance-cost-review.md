@@ -56,6 +56,17 @@ that they do not establish a reliable speedup or a passing performance result.
 The remaining whole-cell admission, JSON transport, output row construction,
 and parent/worker preparation costs remain open.
 
+At clean revision `c1ffb07a4`, the unchanged local registered narrow/100
+runner completed seven qualified equivalent-obligations pairs. Its warm
+overhead interval was 41.963–74.565 milliseconds against the 10 ms limit;
+cold overhead was 971.479–1392.912 milliseconds against the 100 ms limit.
+This is still a failure. The result was slower than earlier local assessments
+under different machine conditions and must not be used to attribute a
+regression to the scalar change. It also confirms that removing scalar
+traversal does not resolve the startup gap. The one-case evidence is in
+workspace scratch at `.codex-scratch/perf-equivalent-small-c1ffb07`; the
+other 26 cases and the fixed Linux assessment remain outstanding.
+
 ## Small-case startup cost
 
 The 100-row narrow fixture used about 225 milliseconds for parent preparation,
