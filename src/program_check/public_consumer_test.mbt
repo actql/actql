@@ -550,8 +550,8 @@ test "Effect computation candidate retains owners without admitting execution" {
 }
 
 ///|
-test "Effect computation candidate closes the exact Mapping environment" {
-  let (plain, _, _, evidence, limits) = public_input_fixture()
+fn public_effect_mapping_closure(generated : Bool) -> Unit raise {
+  let (plain, _, _, evidence, limits) = public_input_fixture(generated~)
   let program = @syntax.parse(
     plain
     .replace(
@@ -669,7 +669,11 @@ test "Effect computation candidate closes the exact Mapping environment" {
     ).unwrap()
   })
   let graph_owner = @strategy.prepare_checked_effect_computation_dag(
-    static_candidate, owners, 2, 10000,
+    static_candidate,
+    owners,
+    2,
+    10000,
+    source_free_root=generated,
   ).unwrap()
   assert_eq(
     @strategy.graph_result_name(
@@ -869,6 +873,43 @@ test "Effect computation candidate closes the exact Mapping environment" {
   let checked_run = @strategy.bind_checked_effect_run_dag(
     graph_owner, run_owner,
   ).unwrap()
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 32000000L,
+    execution_bytes: 134217728L,
+  }).unwrap()
+  if generated {
+    assert_true(
+      @strategy.open_source_free_dag(
+        @strategy.checked_effect_run_graph(checked_run),
+        ledger,
+      )
+      is Err(UnsupportedGraph),
+    )
+    let captured = @strategy.open_source_free_effect_run_dag(
+      checked_run, ledger,
+    ).unwrap()
+    assert_true(
+      physical_equal(@strategy.captured_effect_run_owner(captured), run_owner),
+    )
+    assert_true(
+      physical_equal(
+        @strategy.captured_dag_graph(
+          @strategy.captured_effect_run_dag(captured),
+        ),
+        @strategy.checked_effect_run_graph(checked_run),
+      ),
+    )
+    @strategy.stop_captured_dag(@strategy.captured_effect_run_dag(captured))
+  } else {
+    assert_true(
+      @strategy.open_source_free_effect_run_dag(checked_run, ledger)
+      is Err(UnsupportedGraph),
+    )
+  }
   assert_eq(@strategy.checked_effect_run_source_count(checked_run), 2)
   assert_true(
     physical_equal(
@@ -1268,6 +1309,16 @@ test "Effect computation candidate closes the exact Mapping environment" {
     )
     is Err(ForeignEnvironment),
   )
+}
+
+///|
+test "Effect computation candidate closes the exact Mapping environment" {
+  public_effect_mapping_closure(false)
+}
+
+///|
+test "Values-root Effect Run keeps its checked owner through capture" {
+  public_effect_mapping_closure(true)
 }
 
 ///|
