@@ -159,6 +159,26 @@ the mapped Task. Do not reintroduce a parallel resolver. A split Effect source
 pin/rollback/product-path regression remains necessary beyond the existing
 coordinate checks; the standard multi-member Run remains open.
 
+The remaining regression must distinguish two expansions: a source Stage
+whose own final or intermediate Result maps to a different Task, and an
+unchanged source Stage shifted by an earlier split Stage. It must also cover
+independent pins for members sharing a Result, late batch failure with no
+stranded earlier pin, use of an existing pin after the ordinary port closes,
+and rejection of new pins and foreign graph/owner/occurrence inputs. The
+existing source-free Host fixture covers shared pins, a capacity-failed batch,
+and exact checked Result export; it does not prove all split runtime cases.
+The local HTTPS standard-Run test must additionally assert zero physical
+writes on preflight rejection. These obligations cannot be discharged by the
+static Task-coordinate assertion alone.
+
+The retained Result exporter already applies the checked projection and order
+inside MoonBit before yielding canonical row batches. An Effect Plan consumer
+must derive typed rows from that same retained, live owner and correlate them
+with the admitted Preview before apply. Passing caller-created row objects to
+the pure `project_effect_plan_row` helper, or reconstructing all rows in the
+Node adapter, would not prove payload equality and must not become the
+product path.
+
 ## Required port and owners
 
 | Output from shared boundary | Required content | Consumer |
