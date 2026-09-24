@@ -535,6 +535,26 @@ pub fn client_program_bind_effect_run(
 }
 
 ///|
+/// Keep publication admission paired with the exact checked Effect Program.
+/// Generic evidence admission alone cannot substitute for this owner check.
+#export_name("clientProgramAdmitEffectPublication")
+pub fn client_program_admit_effect_publication(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  template : @publication.RunEvidenceValue,
+  invocation : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  plan : @publication.PublicationContract,
+) -> @publication.RunPublicationAdmission? {
+  match
+    @publication_host.admit_prepared_client_effect_run_publication(
+      prepared, template, invocation, authorization, plan,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("clientProgramResultName")
 pub fn client_program_result_name(
   prepared : @publication_host.PreparedClientProgram,

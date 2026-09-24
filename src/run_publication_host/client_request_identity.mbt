@@ -128,17 +128,8 @@ pub fn prepare_client_effect_request_identity(
   caller_request_id : String,
   caller_input_intent_cid : String,
 ) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
-  let checked = @checked.effect_program_static_checked_computation(
-    prepared.candidate,
-  )
-  let source = @checked.source_identity(checked)
   derive_client_request_identity(
-    {
-      program_definition_cid: @context.program_identity_definition_cid(source),
-      parameter_values_cid: @context.program_identity_parameter_values_cid(
-        source,
-      ),
-    },
+    prepared_client_effect_identity(prepared),
     authority_scope_cid,
     caller_request_id,
     caller_input_intent_cid,

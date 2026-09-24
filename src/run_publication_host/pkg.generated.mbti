@@ -22,6 +22,8 @@ pub fn admit_client_request_identity_record(String, String, String, String, Stri
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
 
+pub fn admit_prepared_client_effect_run_publication(PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
+
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
 
 pub fn admit_prepared_client_publication_binding_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationBindingSetIssue]
@@ -187,6 +189,8 @@ pub fn prepared_client_effect_computation_graph(PreparedClientEffectComputation)
 pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComputation) -> String
 
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
+
+pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
 
 pub fn prepared_client_effect_run_computation(PreparedClientEffectRun) -> PreparedClientEffectComputation
 

@@ -146,6 +146,47 @@ pub fn prepared_client_effect_computation_semantics_cid(
 }
 
 ///|
+pub fn prepared_client_effect_identity(
+  value : PreparedClientEffectComputation,
+) -> ClientProgramIdentity {
+  let checked = @checked.effect_program_static_checked_computation(
+    value.candidate,
+  )
+  let source = @checked.source_identity(checked)
+  {
+    program_definition_cid: @context.program_identity_definition_cid(source),
+    parameter_values_cid: @context.program_identity_parameter_values_cid(source),
+  }
+}
+
+///|
+/// Admit an Effectful Run only when the template, prepared invocation,
+/// authorization, and compiled plan bind the exact checked Effect owner.
+/// This is Run admission, not a Preview or mutation permit.
+pub fn admit_prepared_client_effect_run_publication(
+  value : PreparedClientEffectComputation,
+  template : @publication.RunEvidenceValue,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  compiled_plan : @publication.PublicationContract,
+) -> Result[
+  @publication.RunPublicationAdmission,
+  @publication.RunPublicationAdmissionIssue,
+] {
+  let identity = prepared_client_effect_identity(value)
+  @publication.admit_checked_run_publication(
+    template,
+    prepared,
+    authorization,
+    compiled_plan,
+    identity.program_definition_cid,
+    identity.parameter_values_cid,
+    prepared_client_effect_computation_semantics_cid(value),
+    prepared_client_effect_computation_environment_cid(value),
+  )
+}
+
+///|
 /// Bind the prepared computation to its admitted exact Run. This preserves
 /// the Effect closure instead of passing only its graph to a source-free Host.
 pub(all) enum ClientEffectRunIssue {

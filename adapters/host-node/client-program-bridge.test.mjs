@@ -32,6 +32,9 @@ import {validRunState} from '../../packages/client-wire/index.mjs';
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const effectParametersCid = prepared => moon.clientRequestParametersCid(
+  moon.clientProgramEffectRequestIdentity(
+    prepared, cid('a'), 'effect-fixture', cid('b')));
 const hashWithoutSelf = (value, selfKey) => {
   const body = {...value};
   delete body[selfKey];
@@ -397,10 +400,30 @@ test('admitted source-free Effect Run computes through the installed Host',
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
     const evidence = publicationEvidence(
-      moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+      moon.clientProgramEffectDefinitionCid(prepared),
+      effectParametersCid(prepared),
       moon.clientProgramEffectSemanticsCid(prepared),
       moon.clientProgramEffectEnvironmentCid(prepared));
-    const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+    const admission = moon.clientProgramAdmitEffectPublication(
+      prepared, ...evidence);
+    assert.ok(admission);
+    for (const changed of [
+      publicationEvidence(cid('f'), effectParametersCid(prepared),
+        moon.clientProgramEffectSemanticsCid(prepared),
+        moon.clientProgramEffectEnvironmentCid(prepared)),
+      publicationEvidence(moon.clientProgramEffectDefinitionCid(prepared),
+        cid('f'), moon.clientProgramEffectSemanticsCid(prepared),
+        moon.clientProgramEffectEnvironmentCid(prepared)),
+      publicationEvidence(moon.clientProgramEffectDefinitionCid(prepared),
+        effectParametersCid(prepared), cid('f'),
+        moon.clientProgramEffectEnvironmentCid(prepared)),
+      publicationEvidence(moon.clientProgramEffectDefinitionCid(prepared),
+        effectParametersCid(prepared),
+        moon.clientProgramEffectSemanticsCid(prepared), cid('f')),
+    ]) {
+      assert.equal(moon.clientProgramAdmitEffectPublication(
+        prepared, ...changed), undefined);
+    }
     const definition = checked(moon.strategyIssueRunDefinition(
       admission, 'tenant-a-scope', 'effect-compute', cid('c'),
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
@@ -656,10 +679,13 @@ test('owned update Plan matches approved rows and rejects altered intent',
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
     const evidence = publicationEvidence(
-      moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+      moon.clientProgramEffectDefinitionCid(prepared),
+      effectParametersCid(prepared),
       moon.clientProgramEffectSemanticsCid(prepared),
       moon.clientProgramEffectEnvironmentCid(prepared));
-    const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+    const admission = moon.clientProgramAdmitEffectPublication(
+      prepared, ...evidence);
+    assert.ok(admission);
     const definition = checked(moon.strategyIssueRunDefinition(
       admission, 'tenant-a-scope', 'update-effect-compute', cid('c'),
       '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
@@ -1084,10 +1110,13 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   const prepared = moon.clientProgramEffectPreparationReady(outcome);
   assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(outcome));
   const evidence = publicationEvidence(
-    moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+    moon.clientProgramEffectDefinitionCid(prepared),
+    effectParametersCid(prepared),
     moon.clientProgramEffectSemanticsCid(prepared),
     moon.clientProgramEffectEnvironmentCid(prepared));
-  const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+  const admission = moon.clientProgramAdmitEffectPublication(
+    prepared, ...evidence);
+  assert.ok(admission);
   const definition = checked(moon.strategyIssueRunDefinition(
     admission, 'tenant-a-scope', 'two-effect-compute', cid('c'),
     '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
@@ -1170,10 +1199,13 @@ test('Effect sources retain exact physical producers across split Stages',
       assert.ok(prepared,
         `${splitEffectSource}: ${moon.clientProgramEffectPreparationIssueCode(outcome)}`);
       const evidence = publicationEvidence(
-        moon.clientProgramEffectDefinitionCid(prepared), cid('2'),
+        moon.clientProgramEffectDefinitionCid(prepared),
+        effectParametersCid(prepared),
         moon.clientProgramEffectSemanticsCid(prepared),
         moon.clientProgramEffectEnvironmentCid(prepared));
-      const admission = checked(moon.strategyRunPublicationAdmit(...evidence));
+      const admission = moon.clientProgramAdmitEffectPublication(
+        prepared, ...evidence);
+      assert.ok(admission);
       const definition = checked(moon.strategyIssueRunDefinition(
         admission, 'tenant-a-scope', 'split-effect-compute', cid('c'),
         '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
