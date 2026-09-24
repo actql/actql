@@ -788,8 +788,19 @@ test('Host claim owns one local HTTPS write', async t => {
   const restarted = open();
   t.after(() => restarted.close());
   const usesBeforeRetry = setup.journal.recover().length;
-  const retry = await captureSalesforceSingleEffectWrite({
+  const withoutEvidence = await captureSalesforceSingleEffectWrite({
     ...options, ledger: restarted, admittedPreview: preview.admit()});
+  assert.equal(withoutEvidence.ownership.action, 5);
+  assert.equal(withoutEvidence.recovered, undefined);
+  assert.equal(withoutEvidence.outcomeReceipt, undefined);
+  assert.equal(withoutEvidence.ownership.response, undefined);
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...options, ledger: restarted, admittedPreview: preview.admit(),
+    authorizeEvidenceRead: async () => false,
+  }), {code: 'EffectEvidenceAccessDenied'});
+  const retry = await captureSalesforceSingleEffectWrite({
+    ...options, ledger: restarted, admittedPreview: preview.admit(),
+    authorizeEvidenceRead: async () => true});
   assert.equal(retry.claimed, false);
   assert.equal(retry.ownership.action, 5);
   assert.equal(retry.recovered.kind, 'typed-success-response');
@@ -874,12 +885,14 @@ test('Host claim owns one local HTTPS write', async t => {
   t.after(() => resumed.close());
   const reconciled = await captureSalesforceSingleEffectWrite({
     ...faultOptions, ledger: resumed,
+    authorizeEvidenceRead: async () => true,
   });
   assert.equal(reconciled.claimed, false);
   assert.equal(reconciled.ownership.action, 3);
   assert.equal(reconciled.terminal.created, true);
   const repeated = await captureSalesforceSingleEffectWrite({
     ...faultOptions, ledger: resumed,
+    authorizeEvidenceRead: async () => true,
   });
   assert.equal(repeated.ownership.action, 5);
   assert.equal(repeated.terminal.created, false);
@@ -1355,8 +1368,19 @@ test('Host custody binds one HTTPS Collections response to every row',
     const restarted = open();
     t.after(() => restarted.close());
     const usesBeforeRetry = setup.journal.recover().length;
+    const withoutEvidence = await captureSalesforceCollectionEffectWrite({
+      ...options, ledger: restarted, admittedPreview: admitPreview()});
+    assert.deepEqual(withoutEvidence.ownership.actions, [5, 7]);
+    assert.equal(withoutEvidence.recovered, undefined);
+    assert.equal(withoutEvidence.outcomeReceipts, undefined);
+    assert.equal(withoutEvidence.ownership.response, undefined);
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...options, ledger: restarted, admittedPreview: admitPreview(),
+      authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
     const retry = await captureSalesforceCollectionEffectWrite({
       ...options, ledger: restarted, admittedPreview: admitPreview(),
+      authorizeEvidenceRead: async () => true,
     });
     assert.equal(retry.claimed, false);
     assert.deepEqual(retry.ownership.actions, [5, 7]);
@@ -1490,6 +1514,7 @@ test('Host custody binds one HTTPS Collections response to every row',
     t.after(() => resumed.close());
     const reconciled = await captureSalesforceCollectionEffectWrite({
       ...faultOptions, ledger: resumed,
+      authorizeEvidenceRead: async () => true,
     });
     assert.equal(reconciled.claimed, false);
     assert.deepEqual(reconciled.ownership.actions, [5, 3]);
@@ -1497,6 +1522,7 @@ test('Host custody binds one HTTPS Collections response to every row',
       [false, true]);
     const repeated = await captureSalesforceCollectionEffectWrite({
       ...faultOptions, ledger: resumed,
+      authorizeEvidenceRead: async () => true,
     });
     assert.deepEqual(repeated.ownership.actions, [5, 7]);
     assert.deepEqual(repeated.terminalTransitions.map(value => value.created),
