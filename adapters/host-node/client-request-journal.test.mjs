@@ -155,6 +155,72 @@ test('Run Definition and request acceptance survive one atomic restart',
       moon, publicationControl), undefined);
   });
 
+test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
+  async t => {
+    const path = await directory(t);
+    const first = openClientRequestJournal(path);
+    t.after(() => first.close());
+    let issued = 0;
+    const accepted = await first.admitOrLookupDefinition(identity(), {
+      tenantId: 'tenant-a', lookupExpiresAt: expires,
+      issueDefinition: () => { issued++; return runDefinition(); },
+    }, moon, publicationControl);
+    assert.equal(accepted.inserted, true);
+    assert.equal(issued, 1);
+    first.close(); // The caller never observes the acceptance reply.
+
+    const restarted = openClientRequestJournal(path);
+    t.after(() => restarted.close());
+    const repeated = await restarted.admitOrLookupDefinition(identity(), {
+      tenantId: 'tenant-a', lookupExpiresAt: expires,
+      issueDefinition: () => { issued++; return runDefinition('foreign'); },
+    }, moon, publicationControl);
+    assert.equal(repeated.inserted, false);
+    assert.equal(repeated.ref.runDefinitionCid,
+      accepted.ref.runDefinitionCid);
+    assert.equal(repeated.runDefinition.wire, accepted.runDefinition.wire);
+    assert.equal(issued, 1);
+
+    const changed = {...fixture, parameterValuesCid: cid('c')};
+    changed.intentFingerprintCid = hashCanonical({
+      caller_input_intent_cid: changed.callerInputIntentCid,
+      parameter_values_cid: changed.parameterValuesCid,
+      program_definition_cid: changed.programDefinitionCid,
+      version: 'actql-logical-request-intent/0.1',
+    });
+    await assert.rejects(restarted.admitOrLookupDefinition(
+      identity(changed), {
+        tenantId: 'tenant-a', lookupExpiresAt: expires,
+        issueDefinition: () => { issued++; return runDefinition('changed'); },
+      }, moon, publicationControl), {code: 'ClientRequestIntentConflict'});
+    assert.equal(issued, 1);
+  });
+
+test('racing issuers return one atomic Run acceptance', async t => {
+  const path = await directory(t);
+  const left = openClientRequestJournal(path);
+  const right = openClientRequestJournal(path);
+  t.after(() => left.close());
+  t.after(() => right.close());
+  const gate = Promise.withResolvers();
+  let issuers = 0;
+  const submit = (journal, runId) => journal.admitOrLookupDefinition(
+    identity(), {tenantId: 'tenant-a', lookupExpiresAt: expires,
+      issueDefinition: async () => {
+        issuers++;
+        await gate.promise;
+        return runDefinition(runId);
+      }}, moon, publicationControl);
+  const pending = [submit(left, 'race-left'), submit(right, 'race-right')];
+  assert.equal(issuers, 2);
+  gate.resolve();
+  const accepted = await Promise.all(pending);
+  assert.equal(accepted.filter(entry => entry.inserted).length, 1);
+  assert.deepEqual(accepted[0].ref, accepted[1].ref);
+  assert.equal(accepted[0].runDefinition.wire,
+    accepted[1].runDefinition.wire);
+});
+
 test('Run Definition re-admission rejects corruption and incomplete records',
   async t => {
     const path = await directory(t);
