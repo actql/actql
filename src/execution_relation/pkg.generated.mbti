@@ -790,6 +790,8 @@ pub fn register_managed_identity_issuance_capability(ManagedIdentityDomain, Mana
 
 pub fn relation_schema_cid(RelationSchemaIdentity) -> String
 
+pub fn relation_schema_field_names(RelationSchemaIdentity) -> Array[String]
+
 pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
 pub fn relation_schema_wire(RelationSchemaIdentity) -> String

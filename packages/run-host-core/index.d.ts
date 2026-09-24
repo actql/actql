@@ -95,6 +95,13 @@ export function resultDefinitions(prepared: PreparedProgram,
   cid: string;
   wire: string;
 }>[];
+/** Checked output schema for this Values compilation, not a read grant. */
+export function resultSchema(prepared: PreparedProgram,
+  compilation: ValuesCompilation): Readonly<{
+    cid: string;
+    wire: string;
+    fields: readonly string[];
+  }>;
 // The Host establishes authority scope and admitted input intent. An identity
 // handle or its fields do not grant Run access or permission to dispatch.
 export function prepareRequest(prepared: PreparedProgram,

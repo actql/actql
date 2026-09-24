@@ -201,6 +201,36 @@ pub fn client_values_host_result_names(
 }
 
 ///|
+/// Checked schema of the direct Values output. The Host binds this to the
+/// admitted compilation before permitting payload identity inspection.
+#export_name("clientValuesHostResultSchema")
+pub fn client_values_host_result_schema(
+  prepared : @host.PreparedClientProgram,
+) -> Result[Array[String], @host.ClientValuesOutputSchemaIssue] {
+  let schema = match
+    @host.issue_prepared_client_values_output_schema(
+      prepared,
+      0,
+      @host.client_standard_values_sequence_limits(),
+      { max_fields: 100, max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(schema) => schema
+    Err(issue) => return Err(issue)
+  }
+  let facts = [
+    @execution.relation_schema_cid(schema),
+    @execution.relation_schema_wire(schema),
+  ]
+  for field in @execution.relation_schema_field_names(schema) {
+    facts.push(field)
+  }
+  Ok(facts)
+}
+
+///|
 /// The complete checked Result inventory for the single Values task. The
 /// flattened triples are name, CID and canonical body in declaration order.
 /// These identities do not authorize publication or payload access.

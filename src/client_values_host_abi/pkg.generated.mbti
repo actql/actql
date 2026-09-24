@@ -97,6 +97,8 @@ pub fn client_values_host_result_occurrence_derivation(@run_publication.ResultOr
 
 pub fn client_values_host_result_occurrence_ordering(@run_publication.ResultOrderingEvidence) -> @run_publication.PublicationContract
 
+pub fn client_values_host_result_schema(@run_publication_host.PreparedClientProgram) -> Result[Array[String], @run_publication_host.ClientValuesOutputSchemaIssue]
+
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
 
 pub fn client_values_host_run_definition_wire(@run_publication.PublicationContract) -> String

@@ -15,7 +15,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
   executionShape,
-  resultDefinitions,
+  resultDefinitions, resultSchema,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires,
@@ -78,6 +78,24 @@ test('portable Host derives logical identity from exact ordered rows', () => {
   assert.throws(() => inspectCanonicalResultRows(rows, ['other'], limits),
     {code: 'RunHostResultRowsRejected'});
 });
+
+test('portable Host exposes the checked Values schema for row custody',
+  () => {
+    const environment = admitEnvironment(environmentWire, evidenceCid,
+      {rela: true});
+    const prepared = prepare(read('values.json'), 'json', environment);
+    const compilation = compileValues(prepared);
+    assert.deepEqual(resultSchema(prepared, compilation), {
+      cid:
+        'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513',
+      wire: '{"id":{"nullable":false,"type":"number"}}',
+      fields: ['id'],
+    });
+    const foreign = prepare(read('values.json').replace('"id": 2',
+      '"id": 3'), 'json', environment);
+    assert.throws(() => resultSchema(foreign, compilation),
+      {name: 'TypeError', message: 'ForeignRunHostCompilation'});
+  });
 
 test('portable Host issues a Manifest for exact admitted Result evidence',
   () => {

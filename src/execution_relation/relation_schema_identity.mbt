@@ -25,6 +25,7 @@ struct RelationSchemaIdentity {
   bytes : Int
   nodes : Int
   fields : Int
+  field_names : Array[String]
 }
 
 ///|
@@ -74,7 +75,12 @@ pub fn identify_relation_schema(
     emit_relation_schema_identity(schema, wire_writer)
     let wire = @encode.finish(wire_writer)
     let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(identity_writer)
-    Ok({ cid: "sha256:" + hash, wire, bytes, nodes, fields, })
+    let field_names : Array[String] = []
+    for index = 0; index < fields; index = index + 1 {
+      let field = @schema.field_at(schema, index).unwrap()
+      field_names.push(@schema.reference_name(field.name))
+    }
+    Ok({ cid: "sha256:" + hash, wire, bytes, nodes, fields, field_names, })
   } catch {
     issue => Err(Encoding(issue))
   }
@@ -88,6 +94,13 @@ pub fn relation_schema_cid(value : RelationSchemaIdentity) -> String {
 ///|
 pub fn relation_schema_wire(value : RelationSchemaIdentity) -> String {
   value.wire
+}
+
+///|
+pub fn relation_schema_field_names(
+  value : RelationSchemaIdentity,
+) -> Array[String] {
+  value.field_names.copy()
 }
 
 ///|

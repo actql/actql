@@ -109,6 +109,27 @@ export function resultDefinitions(prepared, compilation) {
   }));
 }
 
+export function resultSchema(prepared, compilation) {
+  const compiled = requireHandle(compilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const facts = checked(owner.clientValuesHostResultSchema(
+    requireHandle(preparations, prepared)),
+  'RunHostResultSchemaRejected');
+  if (!Array.isArray(facts) || facts.length < 2 ||
+      !facts.every(value => typeof value === 'string') ||
+      !/^sha256:[0-9a-f]{64}$/u.test(facts[0])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  const fields = Object.freeze(facts.slice(2));
+  if (Object.keys(JSON.parse(facts[1])).join('\0') !==
+      fields.join('\0')) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  return Object.freeze({cid: facts[0], wire: facts[1], fields});
+}
+
 // The Host must establish scope and admitted input intent before calling this
 // pure identity operation. The returned handle is not a Run or a grant.
 export function prepareRequest(prepared, authorityScopeCid, requestId,

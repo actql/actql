@@ -38,6 +38,7 @@ test "schema identity hashes the complete recursive field-contract map" {
     ),
   )
   assert_eq(relation_schema_usage(identity), (217, 16, 2))
+  assert_eq(relation_schema_field_names(identity), ["😀", "\ue000"])
 }
 
 ///|
@@ -50,6 +51,7 @@ test "empty schema has an identity and every bound is enforced independently" {
   )
   assert_eq(relation_schema_wire(identity), "{}")
   assert_eq(relation_schema_usage(identity), (2, 1, 0))
+  assert_eq(relation_schema_field_names(identity), [])
   let source = export_fixture(capture_fixture())
   let owner = @lower.sequence_owner(source.completion.sequence)
   let schema = @lower.preparation_schema_at(
