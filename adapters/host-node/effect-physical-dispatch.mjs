@@ -66,7 +66,7 @@ export async function captureClaimedEffectResponse({
   // Provider interpretation follows durable custody of the exact raw bytes.
   // A projection failure leaves those bytes available for read-only recovery.
   const projected = projectStored === undefined
-    ? physical : projectStored(stored.response, physical);
+    ? physical : projectStored(stored.response);
   return Object.freeze({claimed: true, ownership, physical: projected,
     response: stored.response});
 }
@@ -126,7 +126,7 @@ export async function captureClaimedEffectCollectionResponse({
     fail('EffectPhysicalResponseMissingAfterStore');
   }
   const projected = projectStored === undefined
-    ? physical : projectStored(response, physical);
+    ? physical : projectStored(response);
   return Object.freeze({claimed: true, ownership, physical: projected,
     response: stored});
 }
