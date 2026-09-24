@@ -25,6 +25,8 @@
     {"family": "RelA", "operation": "append", "path": "external_input_entrypoint"},
     {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
     {"family": "SGA", "operation": "degree", "path": "entrypoint"},
+    {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
+    {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
     {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
     {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"}
   ],
