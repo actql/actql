@@ -2,6 +2,7 @@
 node_modules/
 __pycache__/
 _build/
+.artifacts/
 target/
 .toolchains/
 .moon/
