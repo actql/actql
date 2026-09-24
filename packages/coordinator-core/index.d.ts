@@ -7,6 +7,11 @@ export type IntentRecord = {readonly [ownerHandle]: 'intent-record'};
 export type DurableRecord = {readonly [ownerHandle]: 'durable-record'};
 export type Transition = {readonly [ownerHandle]: 'transition'};
 export type DispatchResponse = {readonly [ownerHandle]: 'dispatch-response'};
+export type CheckedOutputPlan = {readonly [ownerHandle]: 'checked-output-plan'};
+export type OutputIntentAdmission = {
+  readonly [ownerHandle]: 'output-intent-admission'
+};
+export type OutputRecord = {readonly [ownerHandle]: 'output-record'};
 
 export interface DispatchInput {
   coordinatorAuthority: string;
@@ -68,6 +73,18 @@ export interface AcceptedSiteOutput {
 }
 export function acceptedSiteOutput(durable: DurableRecord):
   Readonly<AcceptedSiteOutput> | undefined;
+export function admitCheckedOutputPlan(durable: DurableRecord,
+  pollBody: string, planBody: string, expectedResultDefinitionCid: string,
+  limits: Readonly<{maxChunks: number; maxManifestBytes: number;
+    maxReferencedBytes: number | bigint}>): CheckedOutputPlan;
+export function checkedOutputPlanCid(plan: CheckedOutputPlan): string;
+export function checkedOutputIntentCid(plan: CheckedOutputPlan): string;
+export function prepareOutputIntent(journal: Journal,
+  plan: CheckedOutputPlan): OutputIntentAdmission;
+export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;
+/** Call only after the matching output intent and plan were persisted. */
+export function commitOutputIntent(admission: OutputIntentAdmission): OutputRecord;
+export function outputRecordStatus(record: OutputRecord): string[];
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;

@@ -66,6 +66,31 @@ export const acceptedSiteOutput = durable => {
     physicalManifestCid, measurementEvidenceCid, rowCount,
     retainedBytes, subjectCid});
 };
+export const admitCheckedOutputPlan = (durable, pollBody, planBody,
+  expectedResultDefinitionCid, {maxChunks, maxManifestBytes,
+    maxReferencedBytes}) => {
+  if (typeof pollBody !== 'string' || typeof planBody !== 'string' ||
+      typeof expectedResultDefinitionCid !== 'string' ||
+      !Number.isSafeInteger(maxChunks) || maxChunks < 1 ||
+      !Number.isSafeInteger(maxManifestBytes) || maxManifestBytes < 1 ||
+      !(typeof maxReferencedBytes === 'bigint' &&
+        maxReferencedBytes > 0n && maxReferencedBytes <= 9223372036854775807n ||
+        Number.isSafeInteger(maxReferencedBytes) && maxReferencedBytes > 0)) {
+    throw new TypeError('InvalidCoordinatorOutputPlanInput');
+  }
+  return checked(owner.coordinatorAdmitCheckedOutputPlan(
+    durable, pollBody, planBody, expectedResultDefinitionCid, maxChunks,
+    maxManifestBytes, BigInt(maxReferencedBytes)));
+};
+export const checkedOutputPlanCid = owner.coordinatorCheckedOutputPlanCid;
+export const checkedOutputIntentCid = owner.coordinatorCheckedOutputIntentCid;
+export const prepareOutputIntent = (journal, plan) =>
+  checked(owner.coordinatorPrepareOutputIntent(journal, plan));
+export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;
+/** Call only after the matching output intent and plan were persisted. */
+export const commitOutputIntent = admission =>
+  checked(owner.coordinatorCommitOutputIntent(admission));
+export const outputRecordStatus = owner.coordinatorOutputRecordStatus;
 export const prepareUnknown = record =>
   checked(owner.coordinatorPrepareUnknown(record));
 export const admitResponseJson = (body, request, statusReply) =>

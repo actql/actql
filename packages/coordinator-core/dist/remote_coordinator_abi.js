@@ -16,14 +16,6 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27Coordin
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTP35actql5actql12encode__core5Frame10ArrayItems(param0) {
   this._0 = param0;
 }
@@ -45,14 +37,14 @@ function _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13Dispat
   this._0 = param0;
 }
 _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
-_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
   this._0 = param0;
 }
-_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(param0) {
   this._0 = param0;
 }
@@ -105,12 +97,156 @@ function _M0TP35actql5actql13source__value11ParseLimits(param0, param1, param2) 
   this.max_nodes = param1;
   this.max_depth = param2;
 }
+function _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok.prototype.$tag = 1;
 function _M0TP35actql5actql12decode__core6Limits(param0, param1, param2, param3) {
   this.max_nodes = param0;
   this.max_depth = param1;
   this.max_string_bytes = param2;
   this.max_total_string_bytes = param3;
 }
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteInputBindingRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -143,14 +279,6 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23RemoteE
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26RemoteManagedOutputSubjectRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -183,14 +311,6 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32Durable
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32DurableCoordinatorDispatchRecordRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol22RemoteDispatchResponseRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
   this._0 = param0;
 }
@@ -319,6 +439,14 @@ function _M0TPB3MapGsiE(param0, param1, param2, param3, param4, param5, param6) 
   this.head = param5;
   this.tail = param6;
 }
+function _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(param0, param1, param2, param3, param4, param5) {
+  this.prev = param0;
+  this.next = param1;
+  this.psl = param2;
+  this.hash = param3;
+  this.key = param4;
+  this.value = param5;
+}
 function _M0TPB5EntryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(param0, param1, param2, param3, param4, param5) {
   this.prev = param0;
   this.next = param1;
@@ -328,14 +456,6 @@ function _M0TPB5EntryGsRP35actql5actql22remote__site__protocol31CoordinatorDispa
   this.value = param5;
 }
 function _M0TPB5EntryGssE(param0, param1, param2, param3, param4, param5) {
-  this.prev = param0;
-  this.next = param1;
-  this.psl = param2;
-  this.hash = param3;
-  this.key = param4;
-  this.value = param5;
-}
-function _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(param0, param1, param2, param3, param4, param5) {
   this.prev = param0;
   this.next = param1;
   this.psl = param2;
@@ -405,14 +525,23 @@ function _M0DTPC16result6ResultGsRPC28encoding4utf89MalformedE2Ok(param0) {
 }
 _M0DTPC16result6ResultGsRPC28encoding4utf89MalformedE2Ok.prototype.$tag = 1;
 function _M0DTPC15error5Error78actql_2factql_2fremote__site__protocol_2eDurableRecordStop_2eDurableRecordStop() {}
-_M0DTPC15error5Error78actql_2factql_2fremote__site__protocol_2eDurableRecordStop_2eDurableRecordStop.prototype.$tag = 12;
+_M0DTPC15error5Error78actql_2factql_2fremote__site__protocol_2eDurableRecordStop_2eDurableRecordStop.prototype.$tag = 15;
 const _M0DTPC15error5Error78actql_2factql_2fremote__site__protocol_2eDurableRecordStop_2eDurableRecordStop__ = new _M0DTPC15error5Error78actql_2factql_2fremote__site__protocol_2eDurableRecordStop_2eDurableRecordStop();
 function _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop() {}
-_M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop.prototype.$tag = 11;
+_M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop.prototype.$tag = 14;
 const _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__ = new _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop();
 function _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop() {}
-_M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop.prototype.$tag = 10;
+_M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop.prototype.$tag = 13;
 const _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop__ = new _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop();
+function _M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop() {}
+_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop.prototype.$tag = 12;
+const _M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__ = new _M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop();
+function _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop() {}
+_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop.prototype.$tag = 11;
+const _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__ = new _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop();
+function _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop() {}
+_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop.prototype.$tag = 10;
+const _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__ = new _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop();
 function _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure() {}
 _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure.prototype.$tag = 9;
 const _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure__ = new _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure();
@@ -446,6 +575,22 @@ function _M0DTPC15error5Error60moonbitlang_2fcore_2fencoding_2futf8_2eMalformed_
   this._0 = param0;
 }
 _M0DTPC15error5Error60moonbitlang_2fcore_2fencoding_2futf8_2eMalformed_2eMalformed.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUiRPC16string10StringViewbERPB7FailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUiRPC16string10StringViewbERPB7FailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUiRPC16string10StringViewbERPB7FailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUiRPC16string10StringViewbERPB7FailureE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGuRPB7FailureE3Err(param0) {
   this._0 = param0;
 }
@@ -454,6 +599,22 @@ function _M0DTPC16result6ResultGuRPB7FailureE2Ok(param0) {
   this._0 = param0;
 }
 _M0DTPC16result6ResultGuRPB7FailureE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGiRPB7FailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRPB7FailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGiRPB7FailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRPB7FailureE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRPB7FailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRPB7FailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRPB7FailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRPB7FailureE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGdRPB7FailureE3Err(param0) {
   this._0 = param0;
 }
@@ -470,14 +631,6 @@ function _M0DTPC16result6ResultGORPC28internal7strconv6NumberRPB7FailureE2Ok(par
   this._0 = param0;
 }
 _M0DTPC16result6ResultGORPC28internal7strconv6NumberRPB7FailureE2Ok.prototype.$tag = 1;
-function _M0DTPC16result6ResultGRPC16string10StringViewRPB7FailureE3Err(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRPC16string10StringViewRPB7FailureE3Err.prototype.$tag = 0;
-function _M0DTPC16result6ResultGRPC16string10StringViewRPB7FailureE2Ok(param0) {
-  this._0 = param0;
-}
-_M0DTPC16result6ResultGRPC16string10StringViewRPB7FailureE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGORPC28internal7strconv6NumberRPC15error5ErrorE3Err(param0) {
   this._0 = param0;
 }
@@ -509,6 +662,14 @@ function $i64_clz(a) {
   }
   return 32 + Math.clz32(Number(a & 0xffffffffn));
 }
+function _M0DTPC16result6ResultGlRPC15error5ErrorE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRPC15error5ErrorE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRPC15error5ErrorE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRPC15error5ErrorE2Ok.prototype.$tag = 1;
 function _M0TPC28internal7strconv12EiselProduct(param0, param1) {
   this.lo = param0;
   this.hi = param1;
@@ -1070,6 +1231,22 @@ function _M0TPB9ArrayViewGyE(param0, param1, param2) {
   this.start = param1;
   this.end = param2;
 }
+function _M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGsRP35actql5actql6sha25611HashFailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql6sha25611HashFailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGsRP35actql5actql6sha25611HashFailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGsRP35actql5actql6sha25611HashFailureE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGsRP35actql5actql6sha25617TextEncodingErrorE3Err(param0) {
   this._0 = param0;
 }
@@ -1140,6 +1317,17 @@ function _M0DTPC16result6ResultGUsiiiERP35actql5actql12encode__core13EncodeFailu
   this._0 = param0;
 }
 _M0DTPC16result6ResultGUsiiiERP35actql5actql12encode__core13EncodeFailureE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok.prototype.$tag = 1;
+function $f64_convert_i64(a) {
+  return Number(BigInt.asIntN(64, a));
+}
 function _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(param0) {
   this._0 = param0;
 }
@@ -1148,6 +1336,136 @@ function _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2O
   this._0 = param0;
 }
 _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok.prototype.$tag = 1;
+function _M0TP35actql5actql18physical__manifest13PhysicalChunk(param0, param1, param2) {
+  this.cid = param0;
+  this.byte_length = param1;
+  this.row_count = param2;
+}
+function _M0TP35actql5actql18physical__manifest16PhysicalManifest(param0, param1, param2, param3, param4, param5, param6, param7) {
+  this.schema_contract_cid = param0;
+  this.view_contract_cid = param1;
+  this.codec_contract_cid = param2;
+  this.row_count = param3;
+  this.chunks = param4;
+  this.manifest_cid = param5;
+  this.metadata_bytes = param6;
+  this.referenced_bytes = param7;
+}
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok.prototype.$tag = 1;
+function _M0TP35actql5actql20publication__payload25PublicationPayloadRequest(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) {
+  this.store_authority_cid = param0;
+  this.publication_attempt_cid = param1;
+  this.material_generation_cid = param2;
+  this.result_definition_cid = param3;
+  this.logical_relation_cid = param4;
+  this.result_schema_cid = param5;
+  this.ordering_evidence_cid = param6;
+  this.durable_codec_cid = param7;
+  this.max_bytes = param8;
+  this.row_count = param9;
+  this.request_cid = param10;
+  this.body = param11;
+}
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok.prototype.$tag = 1;
+function _M0TP35actql5actql16remote__transfer21RemoteTransferRequest(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14, param15, param16, param17, param18) {
+  this.coordinator_authority = param0;
+  this.transfer_attempt = param1;
+  this.route = param2;
+  this.source_site_key = param3;
+  this.source_site_generation = param4;
+  this.destination_site_key = param5;
+  this.destination_site_generation = param6;
+  this.source_material_generation = param7;
+  this.physical = param8;
+  this.schema_contract_cid = param9;
+  this.view_contract_cid = param10;
+  this.codec_contract_cid = param11;
+  this.physical_manifest_cid = param12;
+  this.max_bytes = param13;
+  this.expires_unix_ms = param14;
+  this.source_grant_cid = param15;
+  this.destination_grant_cid = param16;
+  this.route_capability_cid = param17;
+  this.request_cid = param18;
+}
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok.prototype.$tag = 1;
+function _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok.prototype.$tag = 1;
 function _M0DTPC16result6ResultGRP35actql5actql12decode__core10ObjectViewRP35actql5actql22remote__site__protocol16ResponseJsonStopE3Err(param0) {
   this._0 = param0;
 }
@@ -1320,6 +1638,23 @@ function _M0TP35actql5actql22remote__site__protocol18RemoteInputBinding(param0, 
   this.body = param0;
   this.cid = param1;
 }
+function _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14) {
+  this.store_authority_cid = param0;
+  this.publication_attempt_cid = param1;
+  this.result_definition_cid = param2;
+  this.ordering_evidence_cid = param3;
+  this.coordinator_authority = param4;
+  this.transfer_attempt = param5;
+  this.transfer_route = param6;
+  this.destination_site_key = param7;
+  this.destination_site_generation = param8;
+  this.transfer_max_bytes = param9;
+  this.transfer_expires_unix_ms = param10;
+  this.source_grant_cid = param11;
+  this.destination_grant_cid = param12;
+  this.route_capability_cid = param13;
+  this.transfer_origin = param14;
+}
 function _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql22remote__site__protocol17DurableRecordStopE3Err(param0) {
   this._0 = param0;
 }
@@ -1363,6 +1698,36 @@ function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15Dispatc
   this._0 = param0;
 }
 _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol17DurableRecordStopE2Ok.prototype.$tag = 1;
+function _M0TP35actql5actql22remote__site__protocol18RemoteOutputIntent(param0, param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14, param15, param16, param17) {
+  this.dispatch_request_cid = param0;
+  this.store_authority_cid = param1;
+  this.publication_attempt_cid = param2;
+  this.result_definition_cid = param3;
+  this.ordering_evidence_cid = param4;
+  this.coordinator_authority = param5;
+  this.transfer_attempt = param6;
+  this.transfer_route = param7;
+  this.destination_site_key = param8;
+  this.destination_site_generation = param9;
+  this.transfer_max_bytes = param10;
+  this.transfer_expires_unix_ms = param11;
+  this.source_grant_cid = param12;
+  this.destination_grant_cid = param13;
+  this.route_capability_cid = param14;
+  this.transfer_origin = param15;
+  this.body = param16;
+  this.intent_cid = param17;
+}
+function _M0TP35actql5actql22remote__site__protocol16RemotePollOutput(param0, param1) {
+  this.request = param0;
+  this.intent = param1;
+}
+function _M0TP35actql5actql22remote__site__protocol16RemoteOutputPlan(param0, param1, param2, param3) {
+  this.payload_request = param0;
+  this.transfer_request = param1;
+  this.body = param2;
+  this.plan_cid = param3;
+}
 function _M0TP35actql5actql22remote__site__protocol26CoordinatorDispatchJournal(param0, param1, param2, param3) {
   this.authority = param0;
   this.dispatches = param1;
@@ -1433,6 +1798,22 @@ function _M0TP35actql5actql22remote__site__protocol32DurableCoordinatorDispatchR
   this.measurement = param17;
   this.body = param18;
 }
+function _M0TP35actql5actql22remote__site__protocol26CoordinatorOutputAdmission(param0, param1, param2, param3, param4, param5) {
+  this.journal = param0;
+  this.output = param1;
+  this.payload_request = param2;
+  this.transfer_request = param3;
+  this.acceptance = param4;
+  this.consumed = param5;
+}
+function _M0TP35actql5actql22remote__site__protocol23CoordinatorOutputRecord(param0, param1, param2, param3, param4, param5) {
+  this.output = param0;
+  this.payload_request = param1;
+  this.transfer_request = param2;
+  this.revision = param3;
+  this.progress = param4;
+  this.result = param5;
+}
 function _M0DTPC16option6OptionGRPB5ArrayGsEE4None() {}
 _M0DTPC16option6OptionGRPB5ArrayGsEE4None.prototype.$tag = 0;
 const _M0DTPC16option6OptionGRPB5ArrayGsEE4None__ = new _M0DTPC16option6OptionGRPB5ArrayGsEE4None();
@@ -1440,6 +1821,18 @@ function _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(param0) {
   this._0 = param0;
 }
 _M0DTPC16option6OptionGRPB5ArrayGsEE4Some.prototype.$tag = 1;
+function _M0TP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlan(param0, param1) {
+  this.output = param0;
+  this.plan = param1;
+}
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE3Err.prototype.$tag = 0;
+function _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(param0) {
+  this._0 = param0;
+}
+_M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok.prototype.$tag = 1;
 function _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None() {}
 _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None.prototype.$tag = 0;
 const _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None__ = new _M0DTPC16option6OptionGORP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceE4None();
@@ -1469,10 +1862,12 @@ const _M0MPB4Iter3newN6constrS9863GjE = 0;
 const _M0FPC16double14not__a__number = $i64_reinterpret_f64(9221120237041090561n);
 const _M0FPC16double8infinity = $i64_reinterpret_f64(9218868437227405312n);
 const _M0FPC16double13neg__infinity = $i64_reinterpret_f64(18442240474082181120n);
+const _M0FPC28internal7strconv14base__err__str = "invalid base";
 const _M0FPC28internal7strconv15range__err__str = "value out of range";
 const _M0FPC28internal7strconv16syntax__err__str = "invalid syntax";
 const _M0FPC28internal7strconv17min__19digit__int = 1000000000000000000n;
 const _M0FPC28internal7strconv17parse__scientificN8exp__numS354 = 0n;
+const _M0FPC28internal7strconv20parse__int64_2einnerN7_2abindS682 = "";
 const _M0FPC28internal7strconv27eisel__lemire__pow10__table = [18054884314459144840n, 1671618768450675795n, 11284302696536965525n, 1044761730281672372n, 14105378370671206906n, 5917638181279478369n, 17631722963339008632n, 16620419763454123769n, 11019826852086880395n, 10387762352158827356n, 13774783565108600494n, 8373016921771146291n, 17218479456385750618n, 1242899115359157055n, 10761549660241094136n, 5388497965526861063n, 13451937075301367670n, 6735622456908576329n, 16814921344126709587n, 17642900107990496220n, 10509325840079193492n, 8720969558280366185n, 13136657300098991865n, 10901211947850457732n, 16420821625123739831n, 18238200953240460069n, 10263013515702337394n, 18316404623416369399n, 12828766894627921743n, 13672133742415685941n, 16035958618284902179n, 12478481159592219522n, 10022474136428063862n, 5493207715531443249n, 12528092670535079827n, 16089881681269079869n, 15660115838168849784n, 15500666083158961933n, 9787572398855531115n, 9687916301974351208n, 12234465498569413894n, 7498209359040551106n, 15293081873211767368n, 149389661945913074n, 9558176170757354605n, 93368538716195671n, 11947720213446693256n, 4728396691822632493n, 14934650266808366570n, 5910495864778290617n, 9334156416755229106n, 8305745933913819539n, 11667695520944036383n, 1158810380537498616n, 14584619401180045478n, 15283571030954036982n, 18230774251475056848n, 9881091751837770420n, 11394233907171910530n, 6175682344898606512n, 14242792383964888162n, 16942974967978033949n, 17803490479956110203n, 11955346673117766628n, 11127181549972568877n, 5166248661484910190n, 13908976937465711096n, 11069496845283525642n, 17386221171832138870n, 13836871056604407053n, 10866388232395086794n, 4036358391950366504n, 13582985290493858492n, 14268820026792733938n, 16978731613117323115n, 17836025033490917422n, 10611707258198326947n, 8841672636718129437n, 13264634072747908684n, 6440404777470273892n, 16580792590934885855n, 8050505971837842365n, 10362995369334303659n, 11949095260039733334n, 12953744211667879574n, 10324683056622278764n, 16192180264584849468n, 3682481783923072647n, 10120112665365530917n, 11524923151806696212n, 12650140831706913647n, 571095884476206553n, 15812676039633642058n, 14548927910877421904n, 9882922524771026286n, 13704765962725776594n, 12353653155963782858n, 7907585416552444934n, 15442066444954728573n, 661109733835780360n, 9651291528096705358n, 2719036592861056677n, 12064114410120881697n, 12622167777931096654n, 15080143012651102122n, 1942651667131707105n, 9425089382906938826n, 5825843310384704845n, 11781361728633673532n, 16505676174835656864n, 14726702160792091916n, 2185351144835019464n, 18408377700990114895n, 2731688931043774330n, 11505236063118821809n, 8624834609543440812n, 14381545078898527261n, 15392729280356688919n, 17976931348623159077n, 5405853545163697437n, 11235582092889474423n, 5684501474941004850n, 14044477616111843029n, 2493940825248868159n, 17555597020139803786n, 7729112049988473103n, 10972248137587377366n, 9442381049670183593n, 13715310171984221708n, 2579604275232953683n, 17144137714980277135n, 3224505344041192104n, 10715086071862673209n, 8932844867666826921n, 13393857589828341511n, 15777742103010921555n, 16742321987285426889n, 15110491610336264040n, 10463951242053391806n, 2526528228819083169n, 13079939052566739757n, 12381532322878629770n, 16349923815708424697n, 1641857348316123500n, 10218702384817765435n, 12555375888766046947n, 12773377981022206794n, 11082533842530170780n, 15966722476277758493n, 4629795266307937667n, 9979201547673599058n, 5199465050656154994n, 12474001934591998822n, 15722703350174969551n, 15592502418239998528n, 10430007150863936130n, 9745314011399999080n, 6518754469289960081n, 12181642514249998850n, 8148443086612450102n, 15227053142812498563n, 962181821410786819n, 9516908214257811601n, 16742264702877599426n, 11896135267822264502n, 7092772823314835570n, 14870169084777830627n, 18089338065998320271n, 9293855677986144142n, 8999993282035256217n, 11617319597482680178n, 2026619565689294464n, 14521649496853350222n, 11756646493966393888n, 18152061871066687778n, 5472436080603216552n, 11345038669416679861n, 8031958568804398249n, 14181298336770849826n, 14651634229432885715n, 17726622920963562283n, 9091170749936331336n, 11079139325602226427n, 3376138709496513133n, 13848924157002783033n, 18055231442152805128n, 17311155196253478792n, 8733981247408842698n, 10819471997658424245n, 5458738279630526686n, 13524339997073030306n, 11435108867965546262n, 16905424996341287883n, 5070514048102157020n, 10565890622713304927n, 863228270850154185n, 13207363278391631158n, 14914093393844856443n, 16509204097989538948n, 9419244705451294746n, 10318252561243461842n, 15110399977761835024n, 12897815701554327303n, 9664627935347517973n, 16122269626942909129n, 7469098900757009562n, 10076418516839318205n, 16197401859041600736n, 12595523146049147757n, 6411694268519837208n, 15744403932561434696n, 12626303854077184414n, 9840252457850896685n, 7891439908798240259n, 12300315572313620856n, 14475985904425188227n, 15375394465392026070n, 18094982380531485284n, 9609621540870016294n, 6697677969404790399n, 12012026926087520367n, 17595469498610763806n, 15015033657609400459n, 17382650854836066854n, 9384396036005875287n, 8558313775058847832n, 11730495045007344109n, 6086206200396171886n, 14663118806259180136n, 12219443768922602761n, 18328898507823975170n, 15274304711153253452n, 11455561567389984481n, 14158126462898171311n, 14319451959237480602n, 3862600023340550427n, 17899314949046850752n, 14051622066030463842n, 11187071843154281720n, 8782263791269039901n, 13983839803942852150n, 10977829739086299876n, 17479799754928565188n, 4498915137003099037n, 10924874846830353242n, 12035193997481712706n, 13656093558537941553n, 5820620459997365075n, 17070116948172426941n, 11887461593424094248n, 10668823092607766838n, 9735506505103752857n, 13336028865759708548n, 2946011094524915263n, 16670036082199635685n, 3682513868156144079n, 10418772551374772303n, 4607414176811284001n, 13023465689218465379n, 1147581702586717097n, 16279332111523081723n, 15269535183515560084n, 10174582569701926077n, 7237616480483531100n, 12718228212127407596n, 13658706619031801779n, 15897785265159259495n, 17073383273789752224n, 9936115790724537184n, 17588393573759676996n, 12420144738405671481n, 3538747893490044629n, 15525180923007089351n, 9035120885289943691n, 9703238076879430844n, 12564479580947296663n, 12129047596099288555n, 15705599476184120828n, 15161309495124110694n, 15020313326802763131n, 9475818434452569184n, 4776009810824339053n, 11844773043065711480n, 5970012263530423816n, 14805966303832139350n, 7462515329413029771n, 9253728939895087094n, 52386062455755702n, 11567161174868858867n, 9288854614924470436n, 14458951468586073584n, 6999382250228200141n, 18073689335732591980n, 8749227812785250177n, 11296055834832869987n, 14691639419845557168n, 14120069793541087484n, 13752863256379558556n, 17650087241926359355n, 17191079070474448196n, 11031304526203974597n, 8438581409832836170n, 13789130657754968246n, 15159912780718433117n, 17236413322193710308n, 9726518939043265588n, 10772758326371068942n, 15302446373756816800n, 13465947907963836178n, 9904685930341245193n, 16832434884954795223n, 3157485376071780683n, 10520271803096747014n, 8890957387685944783n, 13150339753870933768n, 1890324697752655170n, 16437924692338667210n, 2362905872190818963n, 10273702932711667006n, 6088502188546649756n, 12842128665889583757n, 16833999772538088003n, 16052660832361979697n, 7207441660390446292n, 10032913020226237310n, 16033866083812498692n, 12541141275282796638n, 10818960567910847557n, 15676426594103495798n, 4300328673033783639n, 9797766621314684873n, 16522763475928278486n, 12247208276643356092n, 6818396289628184396n, 15309010345804195115n, 8522995362035230495n, 9568131466127621947n, 3021029092058325107n, 11960164332659527433n, 17611344420355070096n, 14950205415824409292n, 8179122470161673908n, 9343878384890255807n, 14335323580705822000n, 11679847981112819759n, 13307468457454889596n, 14599809976391024699n, 12022649553391224092n, 18249762470488780874n, 10416625923311642211n, 11406101544055488046n, 11122077220497164286n, 14257626930069360058n, 4679224488766679549n, 17822033662586700072n, 15072402647813125244n, 11138771039116687545n, 9420251654883203278n, 13923463798895859431n, 16387000587031392001n, 17404329748619824289n, 15872064715361852097n, 10877706092887390181n, 3002511419460075705n, 13597132616109237726n, 8364825292752482535n, 16996415770136547158n, 1232659579085827361n, 10622759856335341973n, 14605470292210805812n, 13278449820419177467n, 4421779809981343554n, 16598062275523971834n, 915538744049291538n, 10373788922202482396n, 5183897733458195115n, 12967236152753102995n, 6479872166822743894n, 16209045190941378744n, 3488154190101041964n, 10130653244338361715n, 2180096368813151227n, 12663316555422952143n, 16560178516298602746n, 15829145694278690179n, 16088537126945865529n, 9893216058924181362n, 7749492695127472003n, 12366520073655226703n, 463493832054564196n, 15458150092069033378n, 14414425345350368957n, 9661343807543145861n, 13620701859271368502n, 12076679759428932327n, 3190819268807046916n, 15095849699286165408n, 17823582141290972357n, 9434906062053853380n, 11139738838306857723n, 11793632577567316725n, 13924673547883572154n, 14742040721959145907n, 3570783879572301480n, 18427550902448932383n, 18298537904747540562n, 11517219314030582739n, 18354115218108294707n, 14396524142538228424n, 18330958004207980480n, 17995655178172785531n, 4466953431550423984n, 11247284486357990957n, 486002885505321038n, 14059105607947488696n, 5219189625309039202n, 17573882009934360870n, 6523987031636299002n, 10983676256208975543n, 17912549950054850588n, 13729595320261219429n, 17779001419141175331n, 17161994150326524287n, 8388693718644305452n, 10726246343954077679n, 12160462601793772764n, 13407807929942597099n, 10588892233814828051n, 16759759912428246374n, 8624429273841147159n, 10474849945267653984n, 778582277723329070n, 13093562431584567480n, 973227847154161338n, 16366953039480709350n, 1216534808942701673n, 10229345649675443343n, 14595392310871352257n, 12786682062094304179n, 13632554370161802418n, 15983352577617880224n, 12429006944274865118n, 9989595361011175140n, 7768129340171790699n, 12486994201263968925n, 9710161675214738374n, 15608742751579961156n, 16749388112445810871n, 9755464219737475723n, 1244995533423855986n, 12194330274671844653n, 15391302472061983695n, 15242912843339805817n, 5404070034795315907n, 9526820527087378635n, 14906758817815542202n, 11908525658859223294n, 14021762503842039848n, 14885657073574029118n, 8303831092947774002n, 9303535670983768199n, 578208414664970847n, 11629419588729710248n, 14557818573613377271n, 14536774485912137810n, 18197273217016721589n, 18170968107390172263n, 13523219484416126178n, 11356855067118857664n, 15369541205401160717n, 14196068833898572081n, 765182433041899281n, 17745086042373215101n, 5568164059729762005n, 11090678776483259438n, 5785945546544795205n, 13863348470604074297n, 16455803970035769814n, 17329185588255092872n, 6734696907262548556n, 10830740992659433045n, 4209185567039092847n, 13538426240824291306n, 9873167977226253963n, 16923032801030364133n, 3118087934678041646n, 10576895500643977583n, 4254647968387469981n, 13221119375804971979n, 706623942056949572n, 16526399219756214973n, 14718337982853350677n, 10328999512347634358n, 11504804248497038125n, 12911249390434542948n, 5157633273766521849n, 16139061738043178685n, 6447041592208152311n, 10086913586276986678n, 6335244004343789146n, 12608641982846233347n, 17142427042284512241n, 15760802478557791684n, 16816347784428252397n, 9850501549098619803n, 1286845328412881940n, 12313126936373274753n, 15443614715798266137n, 15391408670466593442n, 5469460339465668959n, 9619630419041620901n, 8030098730593431003n, 12024538023802026126n, 14649309431669176658n, 15030672529752532658n, 9088264752731695015n, 9394170331095332911n, 10291851488884697288n, 11742712913869166139n, 8253128342678483706n, 14678391142336457674n, 5704724409920716729n, 18347988927920572092n, 16354277549255671720n, 11467493079950357558n, 998051431430019017n, 14334366349937946947n, 10470936326142299579n, 17917957937422433684n, 8476984389250486570n, 11198723710889021052n, 14521487280136329914n, 13998404638611276315n, 18151859100170412392n, 17498005798264095394n, 18078137856785627587n, 10936253623915059621n, 15910522178918405146n, 13670317029893824527n, 6053094668365842720n, 17087896287367280659n, 2954682317029915496n, 10679935179604550411n, 17987577512639554849n, 13349918974505688014n, 17872785872372055657n, 16687398718132110018n, 13117610303610293764n, 10429624198832568761n, 12810192458183821506n, 13037030248540710952n, 2177682517447613171n, 16296287810675888690n, 2722103146809516464n, 10185179881672430431n, 6313000485183335694n, 12731474852090538039n, 3279564588051781713n, 15914343565113172548n, 17934513790346890853n, 9946464728195732843n, 1985699082112030975n, 12433080910244666053n, 16317181907922202431n, 15541351137805832567n, 6561419329620589327n, 9713344461128645354n, 11018416108653950185n, 12141680576410806693n, 4549648098962661924n, 15177100720513508366n, 10298746142130715309n, 9485687950320942729n, 1825030320404309164n, 11857109937901178411n, 6892973918932774359n, 14821387422376473014n, 4004531380238580045n, 9263367138985295633n, 16337890167931276240n, 11579208923731619542n, 6587304654631931588n, 14474011154664524427n, 17457502855144690293n, 18092513943330655534n, 17210192550503474962n, 11307821214581659709n, 6144684325637283947n, 14134776518227074636n, 12292541425473992838n, 17668470647783843295n, 15365676781842491048n, 11042794154864902059n, 16521077016292638761n, 13803492693581127574n, 16039660251938410547n, 17254365866976409468n, 10826203278068237376n, 10783978666860255917n, 15989749085647424168n, 13479973333575319897n, 6152128301777116498n, 16849966666969149871n, 12301846395648783526n, 10531229166855718669n, 14606183024921571560n, 13164036458569648337n, 4422670725869800738n, 16455045573212060421n, 10140024425764638826n, 10284403483257537763n, 8643358275316593218n, 12855504354071922204n, 6192511825718353619n, 16069380442589902755n, 7740639782147942024n, 10043362776618689222n, 2532056854628769813n, 12554203470773361527n, 12388443105140738074n, 15692754338466701909n, 10873867862998534689n, 9807971461541688693n, 9102010423587778132n, 12259964326927110866n, 15989199047912110569n, 15324955408658888583n, 10763126773035362404n, 9578097130411805364n, 13644483260788183358n, 11972621413014756705n, 17055604075985229198n, 14965776766268445882n, 7484447039699372786n, 9353610478917778676n, 9289465418239495895n, 11692013098647223345n, 11611831772799369869n, 14615016373309029182n, 679731660717048624n, 18268770466636286477n, 10073036612751086588n, 11417981541647679048n, 8601490892183123069n, 14272476927059598810n, 10751863615228903837n, 17840596158824498513n, 4216457482181353988n, 11150372599265311570n, 14164500972431816002n, 13937965749081639463n, 8482254178684994195n, 17422457186352049329n, 5991131704928854840n, 10889035741470030830n, 15273672361649004035n, 13611294676837538538n, 9868718415206479236n, 17014118346046923173n, 3112525982153323237n, 10633823966279326983n, 4251171748059520975n, 13292279957849158729n, 702278666647013314n, 16615349947311448411n, 5489534351736154547n, 10384593717069655257n, 1125115960621402640n, 12980742146337069071n, 6018080969204141204n, 16225927682921336339n, 2910915193077788601n, 10141204801825835211n, 17960223060169475539n, 12676506002282294014n, 17838592806784456520n, 15845632502852867518n, 13074868971625794843n, 9903520314283042199n, 3560107088838733872n, 12379400392853802748n, 18285191916330581053n, 15474250491067253436n, 4409745821703674700n, 9671406556917033397n, 11979463175419572495n, 12089258196146291747n, 1139270913992301907n, 15111572745182864683n, 15259146697772541096n, 9444732965739290427n, 7231123676894144233n, 11805916207174113034n, 4427218577690292387n, 14757395258967641292n, 14757395258967641292n, 9223372036854775808n, 0n, 11529215046068469760n, 0n, 14411518807585587200n, 0n, 18014398509481984000n, 0n, 11258999068426240000n, 0n, 14073748835532800000n, 0n, 17592186044416000000n, 0n, 10995116277760000000n, 0n, 13743895347200000000n, 0n, 17179869184000000000n, 0n, 10737418240000000000n, 0n, 13421772800000000000n, 0n, 16777216000000000000n, 0n, 10485760000000000000n, 0n, 13107200000000000000n, 0n, 16384000000000000000n, 0n, 10240000000000000000n, 0n, 12800000000000000000n, 0n, 16000000000000000000n, 0n, 10000000000000000000n, 0n, 12500000000000000000n, 0n, 15625000000000000000n, 0n, 9765625000000000000n, 0n, 12207031250000000000n, 0n, 15258789062500000000n, 0n, 9536743164062500000n, 0n, 11920928955078125000n, 0n, 14901161193847656250n, 0n, 9313225746154785156n, 4611686018427387904n, 11641532182693481445n, 5764607523034234880n, 14551915228366851806n, 11817445422220181504n, 18189894035458564758n, 5548434740920451072n, 11368683772161602973n, 17302829768357445632n, 14210854715202003717n, 7793479155164643328n, 17763568394002504646n, 14353534962383192064n, 11102230246251565404n, 4359273333062107136n, 13877787807814456755n, 5449091666327633920n, 17347234759768070944n, 2199678564482154496n, 10842021724855044340n, 1374799102801346560n, 13552527156068805425n, 1718498878501683200n, 16940658945086006781n, 6759809616554491904n, 10587911840678754238n, 6530724019560251392n, 13234889800848442797n, 17386777061305090048n, 16543612251060553497n, 7898413271349198848n, 10339757656912845935n, 16465723340661719040n, 12924697071141057419n, 15970468157399760896n, 16155871338926321774n, 15351399178322313216n, 10097419586828951109n, 4982938468024057856n, 12621774483536188886n, 10840359103457460224n, 15777218104420236108n, 4327076842467049472n, 9860761315262647567n, 11927795063396681728n, 12325951644078309459n, 10298057810818464256n, 15407439555097886824n, 8260886245095692416n, 9629649721936179265n, 5163053903184807760n, 12037062152420224081n, 11065503397408397604n, 15046327690525280101n, 18443565265187884909n, 9403954806578300063n, 13833071299956122020n, 11754943508222875079n, 12679653106517764621n, 14693679385278593849n, 11237880364719817872n, 18367099231598242312n, 212292400617608628n, 11479437019748901445n, 132682750386005392n, 14349296274686126806n, 4777539456409894645n, 17936620343357658507n, 15195296357367144114n, 11210387714598536567n, 7191217214140771119n, 14012984643248170709n, 4377335499248575995n, 17516230804060213386n, 10083355392488107898n, 10947644252537633366n, 10913783138732455340n, 13684555315672041708n, 4418856886560793367n, 17105694144590052135n, 5523571108200991709n, 10691058840368782584n, 10369760970266701674n, 13363823550460978230n, 12962201212833377092n, 16704779438076222788n, 6979379479186945558n, 10440487148797639242n, 13585484211346616781n, 13050608935997049053n, 7758483227328495169n, 16313261169996311316n, 14309790052588006865n, 10195788231247694572n, 18166990819722280098n, 12744735289059618216n, 4261994450943298507n, 15930919111324522770n, 5327493063679123134n, 9956824444577826731n, 7941369183226839863n, 12446030555722283414n, 5315025460606161924n, 15557538194652854267n, 15867153862612478214n, 9723461371658033917n, 7611128154919104931n, 12154326714572542396n, 14125596212076269068n, 15192908393215677995n, 17656995265095336336n, 9495567745759798747n, 8729779031470891258n, 11869459682199748434n, 6300537770911226168n, 14836824602749685542n, 17099044250493808518n, 9273015376718553464n, 6075216638131242420n, 11591269220898191830n, 7594020797664053025n, 14489086526122739788n, 269153960225290473n, 18111358157653424735n, 336442450281613091n, 11319598848533390459n, 7127805559067090038n, 14149498560666738074n, 4298070930406474644n, 17686873200833422592n, 14595960699862869113n, 11054295750520889120n, 9122475437414293195n, 13817869688151111400n, 11403094296767866494n, 17272337110188889250n, 14253867870959833118n, 10795210693868055781n, 13520353437777283602n, 13494013367335069727n, 3065383741939440791n, 16867516709168837158n, 17666787732706464701n, 10542197943230523224n, 6430056314514152534n, 13177747429038154030n, 8037570393142690668n, 16472184286297692538n, 823590954573587527n, 10295115178936057836n, 5126430365035880108n, 12868893973670072295n, 6408037956294850135n, 16086117467087590369n, 3398361426941174765n, 10053823416929743980n, 13653190937906703988n, 12567279271162179975n, 17066488672383379985n, 15709099088952724969n, 16721424822051837077n, 9818186930595453106n, 3533361486141316317n, 12272733663244316382n, 13640073894531421205n, 15340917079055395478n, 7826720331309500698n, 9588073174409622174n, 280014188641050032n, 11985091468012027717n, 9573389772656088348n, 14981364335015034646n, 16578423234247498339n, 9363352709384396654n, 5749828502977298558n, 11704190886730495817n, 16410657665576399005n, 14630238608413119772n, 6678264026688335045n, 18287798260516399715n, 8347830033360418806n, 11429873912822749822n, 2911550761636567802n, 14287342391028437277n, 12862810488900485560n, 17859177988785546597n, 2243455055843443238n, 11161986242990966623n, 3708002419115845976n, 13952482803738708279n, 23317005467419566n, 17440603504673385348n, 13864204312116438170n, 10900377190420865842n, 17888499731927549664n, 13625471488026082303n, 13137252628054661272n, 17031839360032602879n, 11809879766640938686n, 10644899600020376799n, 14298703881791668535n, 13306124500025470999n, 13261693833812197764n, 16632655625031838749n, 11965431273837859301n, 10395409765644899218n, 9784237555362356015n, 12994262207056124023n, 3006924907348169211n, 16242827758820155028n, 17593714189467375226n, 10151767349262596893n, 1772699331562333708n, 12689709186578246116n, 6827560182880305039n, 15862136483222807645n, 8534450228600381299n, 9913835302014254778n, 7639874402088932264n, 12392294127517818473n, 326470965756389522n, 15490367659397273091n, 5019774725622874806n, 9681479787123295682n, 831516194300602802n, 12101849733904119602n, 10262767279730529310n, 15127312167380149503n, 3605087062808385830n, 9454570104612593439n, 9170708441896323000n, 11818212630765741799n, 6851699533943015846n, 14772765788457177249n, 3952938399001381903n, 9232978617785735780n, 13999801545444333449n, 11541223272232169725n, 17499751931805416812n, 14426529090290212157n, 8039631859474607303n, 18033161362862765196n, 14661225842770647033n, 11270725851789228247n, 18386638188586430203n, 14088407314736535309n, 18371611717305649850n, 17610509143420669137n, 9129456591349898601n, 11006568214637918210n, 17235125415662156385n, 13758210268297397763n, 12320534732722919674n, 17197762835371747204n, 10788982397476261688n, 10748601772107342002n, 15966486035277439363n, 13435752215134177503n, 10734735507242023396n, 16794690268917721879n, 8806733365625141341n, 10496681418073576174n, 12421737381156795194n, 13120851772591970218n, 6303799689591218185n, 16401064715739962772n, 17103121648843798539n, 10250665447337476733n, 1466078993672598279n, 12813331809171845916n, 6444284760518135752n, 16016664761464807395n, 8055355950647669691n, 10010415475915504622n, 2728754459941099604n, 12513019344894380777n, 12634315111781150314n, 15641274181117975972n, 1957835834444274180n, 9775796363198734982n, 10447019433382447170n, 12219745453998418728n, 3835402254873283155n, 15274681817498023410n, 4794252818591603944n, 9546676135936264631n, 7608094030047140369n, 11933345169920330789n, 4898431519131537557n, 14916681462400413486n, 10734725417341809851n, 9322925914000258429n, 2097517367411243253n, 11653657392500323036n, 7233582727691441970n, 14567071740625403795n, 9041978409614302462n, 18208839675781754744n, 6690786993590490174n, 11380524797363596715n, 4181741870994056359n, 14225655996704495894n, 615491320315182544n, 17782069995880619867n, 9992736187248753989n, 11113793747425387417n, 3939617107816777291n, 13892242184281734271n, 9536207403198359517n, 17365302730352167839n, 7308573235570561493n, 10853314206470104899n, 11485387299872682789n, 13566642758087631124n, 9745048106413465582n, 16958303447609538905n, 12181310133016831978n, 10598939654755961816n, 695789805494438130n, 13248674568444952270n, 869737256868047663n, 16560843210556190337n, 10310543607939835386n, 10350527006597618960n, 17973304801030866876n, 12938158758247023701n, 4019886927579031980n, 16172698447808779626n, 9636544677901177879n, 10107936529880487266n, 10634526442115624078n, 12634920662350609083n, 4069786015789754290n, 15793650827938261354n, 475546501309804958n, 9871031767461413346n, 4908902581746016003n, 12338789709326766682n, 15359500264037295811n, 15423487136658458353n, 9976003293191843956n, 9639679460411536470n, 17764217104313372233n, 12049599325514420588n, 12981899343536939483n, 15061999156893025735n, 16227374179421174354n, 9413749473058141084n, 17059637889779315827n, 11767186841322676356n, 2877803288514593168n, 14708983551653345445n, 3597254110643241460n, 18386229439566681806n, 9108253656731439729n, 11491393399729176129n, 1080972517029761926n, 14364241749661470161n, 5962901664714590312n, 17955302187076837701n, 12065313099320625794n, 11222063866923023563n, 9846663696289085073n, 14027579833653779454n, 7696643601933968437n, 17534474792067224318n, 397432465562684739n, 10959046745042015198n, 14083453346258841674n, 13698808431302518998n, 8380944645968776284n, 17123510539128148748n, 1252808770606194547n, 10702194086955092967n, 10006377518483647400n, 13377742608693866209n, 7896285879677171346n, 16722178260867332761n, 14482043368023852087n, 10451361413042082976n, 2133748077373825698n, 13064201766302603720n, 2667185096717282123n, 16330252207878254650n, 3333981370896602653n, 10206407629923909156n, 6695424375237764562n, 12758009537404886445n, 8369280469047205703n, 15947511921756108056n, 15073286604736395033n, 9967194951097567535n, 9420804127960246895n, 12458993688871959419n, 7164319141522920715n, 15573742111089949274n, 4343712908476262990n, 9733588819431218296n, 7326506586225052273n, 12166986024289022870n, 9158133232781315341n, 15208732530361278588n, 2224294504121868368n, 9505457831475799117n, 10613556101930943538n, 11881822289344748896n, 17878631145841067327n, 14852277861680936121n, 3901544858591782542n, 9282673663550585075n, 13967680582688333849n, 11603342079438231344n, 12847914709933029407n, 14504177599297789180n, 16059893387416286759n, 18130221999122236476n, 1628122660560806833n, 11331388749451397797n, 10240948699705280078n, 14164235936814247246n, 17412871893058988002n, 17705294921017809058n, 12542717829468959195n, 11065809325636130661n, 12450884661845487401n, 13832261657045163327n, 1728547772024695539n, 17290327071306454158n, 15995742770313033136n, 10806454419566533849n, 5385653213018257806n, 13508068024458167311n, 11343752534700210161n, 16885085030572709139n, 9568004649947874797n, 10553178144107943212n, 3674159897003727796n, 13191472680134929015n, 4592699871254659745n, 16489340850168661269n, 1129188820640936778n, 10305838031355413293n, 3011586022114279438n, 12882297539194266616n, 8376168546070237202n, 16102871923992833270n, 10470210682587796502n, 10064294952495520794n, 1932195658189984910n, 12580368690619400992n, 11638616609592256945n, 15725460863274251240n, 14548270761990321182n, 9828413039546407025n, 9092669226243950738n, 12285516299433008781n, 15977522551232326327n, 15356895374291260977n, 6136845133758244197n, 9598059608932038110n, 15364743254667372383n, 11997574511165047638n, 9982557031479439671n, 14996968138956309548n, 3254824252494523781n, 9373105086847693467n, 11257637194663853171n, 11716381358559616834n, 9460360474902428559n, 14645476698199521043n, 2602078556773259891n, 18306845872749401303n, 17087656251248738576n, 11441778670468375814n, 17597314184671543466n, 14302223338085469768n, 12773270693984653525n, 17877779172606837210n, 15966588367480816906n, 11173611982879273256n, 14590803748102898470n, 13967014978599091570n, 18238504685128623088n, 17458768723248864463n, 13574758819556003052n, 10911730452030540289n, 15401753289863583763n, 13639663065038175362n, 5417133557047315992n, 17049578831297719202n, 15994788983163920798n, 10655986769561074501n, 14608429132904838403n, 13319983461951343127n, 4425478360848884291n, 16649979327439178909n, 920161932633717460n, 10406237079649486818n, 2880944217109767365n, 13007796349561858522n, 12824552308241985014n, 16259745436952323153n, 6807318348447705459n, 10162340898095201970n, 15783789013848285672n, 12702926122619002463n, 10506364230455581282n, 15878657653273753079n, 8521269269642088699n, 9924161033296095674n, 12243322321167387293n, 12405201291620119593n, 6080780864604458308n, 15506501614525149491n, 12212662099182960789n, 9691563509078218432n, 5327070802775656541n, 12114454386347773040n, 6658838503469570676n, 15143067982934716300n, 8323548129336963345n, 9464417489334197687n, 14425589617690377899n, 11830521861667747109n, 13420301003685584469n, 14788152327084683887n, 2940318199324816875n, 9242595204427927429n, 8755227902219092403n, 11553244005534909286n, 15555720896201253407n, 14441555006918636608n, 10221279083396790951n, 18051943758648295760n, 12776598854245988689n, 11282464849155184850n, 7985374283903742931n, 14103081061443981063n, 758345818024902856n, 17628851326804976328n, 14782990327813292282n, 11018032079253110205n, 9239368954883307676n, 13772540099066387756n, 16160897212031522499n, 17215675123832984696n, 1754377441329851508n, 10759796952395615435n, 1096485900831157192n, 13449746190494519293n, 15205665431321110202n, 16812182738118149117n, 5172023733869224041n, 10507614211323843198n, 5538357842881958977n, 13134517764154803997n, 16146319340457224530n, 16418147205193504997n, 6347841120289366950n, 10261342003245940623n, 6273243709394548296n, 12826677504057425779n, 3229868618315797466n, 16033346880071782223n, 17872393828176910545n, 10020841800044863889n, 18087775170251650946n, 12526052250056079862n, 8774660907532399971n, 15657565312570099828n, 1744954097560724156n, 9785978320356312392n, 10313968347830228405n, 12232472900445390490n, 12892460434787785506n, 15290591125556738113n, 6892203506629956075n, 9556619453472961320n, 15836842237712192307n, 11945774316841201651n, 1349308723430688768n, 14932217896051502063n, 15521693959570524672n, 9332636185032188789n, 16618587752372659776n, 11665795231290235987n, 6938176635183661008n, 14582244039112794984n, 4061034775552188356n, 18227805048890993730n, 5076293469440235445n, 11392378155556871081n, 7784369436827535057n, 14240472694446088851n, 14342147814461806725n, 17800590868057611064n, 13315998749649870503n, 11125369292536006915n, 8322499218531169064n, 13906711615670008644n, 5791438004736573426n, 17383389519587510805n, 7239297505920716783n, 10864618449742194253n, 6830403950414141941n, 13580773062177742816n, 13149690956445065330n, 16975966327722178520n, 16437113695556331663n, 10609978954826361575n, 10273196059722707289n, 13262473693532951969n, 8229809056225996208n, 16578092116916189961n, 14898947338709883164n, 10361307573072618726n, 2394313059052595121n, 12951634466340773407n, 12216263360670519709n, 16189543082925966759n, 10658643182410761733n, 10118464426828729224n, 13579181016647807939n, 12648080533535911530n, 16973976270809759924n, 15810100666919889413n, 11994098301657424097n, 9881312916824930883n, 9802154447749584012n, 12351641146031163604n, 7641007041259592112n, 15439551432538954505n, 9551258801574490140n, 9649719645336846565n, 17498751797052526097n, 12062149556671058207n, 8038381691033493909n, 15077686945838822759n, 5436291095364479483n];
 const _M0FPC28internal7strconv12double__info = new _M0TPC28internal7strconv9FloatInfo(52, 11, -1023);
 const _M0FPC28internal7strconv25min__exponent__fast__path = 18446744073709551594n;
@@ -1562,20 +1957,40 @@ const _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS205 = "\
 const _M0FP35actql5actql6sha25614initial__state = [1779033703, -1150833019, 1013904242, -1521486534, 1359893119, -1694144372, 528734635, 1541459225];
 const _M0FP35actql5actql6sha25616round__constants = [1116352408, 1899447441, -1245643825, -373957723, 961987163, 1508970993, -1841331548, -1424204075, -670586216, 310598401, 607225278, 1426881987, 1925078388, -2132889090, -1680079193, -1046744716, -459576895, -272742522, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, -1740746414, -1473132947, -1341970488, -1084653625, -958395405, -710438585, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, -2117940946, -1838011259, -1564481375, -1474664885, -1035236496, -949202525, -778901479, -694614492, -200395387, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, -2067236844, -1933114872, -1866530822, -1538233109, -1090935817, -965641998];
 const _M0FP35actql5actql12encode__core6quotedN6digitsS82 = "0123456789abcdef";
+const _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163 = "sha256:";
+const _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187 = "sha256:";
+const _M0FP35actql5actql16remote__transfer20valid__transfer__cidN7_2abindS751 = "sha256:";
 const _M0FP35actql5actql22remote__site__protocol10valid__cidN7_2abindS1542 = "sha256:";
 const _M0FP35actql5actql22remote__site__protocol33coordinator__progress__from__codeN6constrS3388 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(0);
 const _M0FP35actql5actql22remote__site__protocol33coordinator__progress__from__codeN6constrS3389 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(1);
 const _M0FP35actql5actql22remote__site__protocol33coordinator__progress__from__codeN6constrS3390 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(2);
 const _M0FP35actql5actql22remote__site__protocol33coordinator__progress__from__codeN6constrS3391 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FPB4seed = _M0FPB12random__seed();
-const _M0FP35actql5actql22remote__site__protocol38create__coordinator__dispatch__journalN6constrS3378 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql12encode__core12value__startN6constrS363 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(false);
+const _M0FPB4seed = _M0FPB12random__seed();
+const _M0FP35actql5actql12encode__core12begin__arrayN6constrS364 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(true);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3223 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3224 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3225 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol46remote__managed__output__measurement__identityN6constrS3226 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3228 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3229 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3230 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol42remote__managed__output__subject__identityN6constrS3231 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3217 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3218 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3219 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol37remote__execution__evidence__identityN6constrS3220 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3233 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3234 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol29emit__dispatch__request__bodyN6constrS3235 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol17request__identityN6constrS3236 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol26prepare__dispatch__requestN6constrS3288 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3271 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3237 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3238 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3239 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3240 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3241 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS166 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS167 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS455 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(8);
 const _M0FP35actql5actql12decode__core12text__chargeN6constrS456 = new _M0DTPC16result6ResultGiRP35actql5actql12decode__core9IssueKindE3Err(9);
 const _M0FP35actql5actql16canonical__value17nfc__quick__checkN6constrS229 = new _M0DTPC16result6ResultGbRP35actql5actql16canonical__value22TextNormalizationErrorE2Ok(false);
@@ -1604,10 +2019,86 @@ const _M0MP35actql5actql13source__value6Parser8documentN6constrS1185 = new _M0DT
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1186 = new _M0DTP35actql5actql13source__value5Value4Bool(false);
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1187 = 44;
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1188 = 58;
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS382 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS383 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS384 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS385 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS386 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS387 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS388 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS389 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(3);
+const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1403 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1404 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer17request__identityN6constrS1405 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS384 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS385 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS386 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS387 = new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS388 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS389 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS390 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS391 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(2);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS392 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest5admitN6constrS393 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(3);
+const _M0FP35actql5actql16remote__transfer13request__jsonN6constrS1406 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer13request__jsonN6constrS1407 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest17rebuild__manifestN6constrS394 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest14manifest__jsonN6constrS395 = new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer23request__manifest__jsonN6constrS1408 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer23request__manifest__jsonN6constrS1409 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3310 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3311 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3312 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3313 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3314 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3315 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3316 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS396 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS397 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS398 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(1);
+const _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS399 = new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1413 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1414 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1415 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(2);
+const _M0FP35actql5actql16remote__transfer20admit__request__bodyN6recordS1416 = new _M0TP35actql5actql13source__value11ParseLimits(16384, 48, 2);
+const _M0FP35actql5actql16remote__transfer20admit__request__bodyN6recordS1417 = new _M0TP35actql5actql12decode__core6Limits(48, 2, 16384, 16384);
+const _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1418 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1419 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
+const _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1420 = new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS405 = new _M0TP35actql5actql13source__value11ParseLimits(32768, 64, 2);
+const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS406 = new _M0TP35actql5actql12decode__core6Limits(64, 2, 32768, 32768);
+const _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS407 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql22remote__site__protocol33admit__remote__output__plan__jsonN6constrS3317 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol26prepare__dispatch__requestN6constrS3288 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3271 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__bodyN6recordS3289 = new _M0TP35actql5actql13source__value11ParseLimits(65536, 32, 2);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__bodyN6recordS3290 = new _M0TP35actql5actql12decode__core6Limits(32, 2, 65536, 65536);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__jsonN6constrS3291 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__jsonN6constrS3292 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS160 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS161 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS162 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS163 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(1);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS164 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
+const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS165 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3279 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3280 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3281 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3282 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol35admit__remote__output__intent__jsonN6constrS3295 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol44admit__remote__poll__output__operation__jsonN6constrS3296 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS168 = new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS169 = new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS170 = new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3450 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3451 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(2);
+const _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3452 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3453 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(5);
+const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3454 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(7);
+const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3455 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(11);
+const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3456 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(5);
+const _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3457 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(7);
+const _M0FP35actql5actql22remote__site__protocol38create__coordinator__dispatch__journalN6constrS3378 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorDispatchJournalRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol28remote__poll__dispatch__jsonN6constrS3275 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
 const _M0FP35actql5actql22remote__site__protocol28remote__poll__dispatch__jsonN6constrS3276 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol28remote__poll__dispatch__jsonN6constrS3277 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -1630,35 +2121,11 @@ const _M0FP35actql5actql22remote__site__protocol37commit__coordinator__dispatch_
 const _M0FP35actql5actql22remote__site__protocol37commit__coordinator__dispatch__intentN6constrS3381 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(5);
 const _M0FP35actql5actql22remote__site__protocol37commit__coordinator__dispatch__intentN6constrS3382 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(7);
 const _M0FP35actql5actql22remote__site__protocol37commit__coordinator__dispatch__intentN6constrS3383 = new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(6);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3217 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3218 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol39emit__remote__execution__evidence__bodyN6constrS3219 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol37remote__execution__evidence__identityN6constrS3220 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol33remote__execution__evidence__jsonN6constrS3221 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol33remote__execution__evidence__jsonN6constrS3222 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol34admit__remote__execution__evidenceN6constrS3250 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
 const _M0FP35actql5actql22remote__site__protocol40admit__remote__execution__evidence__jsonN6constrS3251 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23RemoteExecutionEvidenceRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql12encode__core12begin__arrayN6constrS364 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(true);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3223 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3224 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3225 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol46remote__managed__output__measurement__identityN6constrS3226 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3228 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3229 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol44emit__remote__managed__output__subject__bodyN6constrS3230 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol42remote__managed__output__subject__identityN6constrS3231 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3237 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3238 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3239 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3240 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3241 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol38remote__managed__output__subject__jsonN6constrS3232 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS160 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS161 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS162 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(0);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS163 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(1);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS164 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
-const _M0FP35actql5actql14decode__scalar20read__decimal__int64N6constrS165 = new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar12DecimalIssueE3Err(2);
 const _M0FP35actql5actql22remote__site__protocol41prepare__remote__managed__output__subjectN6constrS3255 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26RemoteManagedOutputSubjectRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol39admit__remote__managed__output__subjectN6constrS3256 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26RemoteManagedOutputSubjectRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
 const _M0FP35actql5actql22remote__site__protocol45admit__remote__managed__output__subject__jsonN6constrS3257 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26RemoteManagedOutputSubjectRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -1671,8 +2138,6 @@ const _M0FP35actql5actql22remote__site__protocol38restore__coordinator__dispatch
 const _M0FP35actql5actql22remote__site__protocol38restore__coordinator__dispatch__recordN6constrS3394 = new _M0DTPC16result6ResultGuRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol38restore__coordinator__dispatch__recordN6constrS3395 = new _M0DTPC16result6ResultGuRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol45admit__durable__coordinator__dispatch__recordN6constrS3396 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol32DurableCoordinatorDispatchRecordRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS107 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS108 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol14response__rootN6recordS3248 = new _M0TP35actql5actql13source__value11ParseLimits(524288, 64, 3);
 const _M0FP35actql5actql22remote__site__protocol14response__rootN6recordS3249 = new _M0TP35actql5actql12decode__core6Limits(64, 3, 262144, 524288);
 const _M0FP35actql5actql22remote__site__protocol39admit__remote__dispatch__response__jsonN6constrS3258 = new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol22RemoteDispatchResponseRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -1802,6 +2267,18 @@ function _M0IPB13StringBuilderPB6Logger11write__char(self, ch) {
 function _M0IPB13StringBuilderPB6Logger13write__string(self, str) {
   self.val = `${self.val}${str}`;
 }
+function _M0FPB32code__point__of__surrogate__pair(leading, trailing) {
+  return (((Math.imul(leading - 55296 | 0, 1024) | 0) + trailing | 0) - 56320 | 0) + 65536 | 0;
+}
+function _M0MPC16string6String16unsafe__char__at(self, index) {
+  const c1 = self.charCodeAt(index);
+  if (c1 >= 55296 && c1 <= 56319) {
+    const c2 = self.charCodeAt(index + 1 | 0);
+    return _M0FPB32code__point__of__surrogate__pair(c1, c2);
+  } else {
+    return c1;
+  }
+}
 function _M0MPC14byte4Byte7to__hexN14to__hex__digitS3978(i) {
   if (i < 10) {
     const _p = 48;
@@ -1863,8 +2340,14 @@ function _M0IP016_24default__implPB2Eq10not__equalGRPC16result6ResultGsRP35actql
 function _M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressE(x, y) {
   return !_M0IP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressPB2Eq5equal(x, y);
 }
+function _M0IP016_24default__implPB2Eq10not__equalGRPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueEE(x, y) {
+  return !_M0IPC16result6ResultPB2Eq5equalGsRP35actql5actql16remote__transfer19RemoteTransferIssueE(x, y);
+}
 function _M0IP016_24default__implPB2Eq10not__equalGOiE(x, y) {
   return !_M0IPC16option6OptionPB2Eq5equalGiE(x, y);
+}
+function _M0IP016_24default__implPB2Eq10not__equalGRPC16string10StringViewE(x, y) {
+  return !_M0IPC16string10StringViewPB2Eq5equal(x, y);
 }
 function _M0FPB14avalanche__acc(acc) {
   let acc$2 = acc;
@@ -1965,6 +2448,17 @@ function _M0MPC16string6String20unsafe__range__equal(self, self_off, other, othe
     }
   }
   return true;
+}
+function _M0IPC16string10StringViewPB2Eq5equal(self, other) {
+  const len = self.end - self.start | 0;
+  if (len === (other.end - other.start | 0)) {
+    if (self.str === other.str && self.start === other.start) {
+      return true;
+    }
+    return _M0MPC16string6String20unsafe__range__equal(self.str, self.start, other.str, other.start, len);
+  } else {
+    return false;
+  }
 }
 function _M0MPC16string6String11from__array(chars) {
   const buf = _M0MPB13StringBuilder21StringBuilder_2einner(Math.imul(chars.end - chars.start | 0, 4) | 0);
@@ -2527,6 +3021,29 @@ function _M0IPC16result6ResultPB2Eq5equalGsRP35actql5actql22remote__site__protoc
     }
   }
 }
+function _M0IPC16result6ResultPB2Eq5equalGsRP35actql5actql16remote__transfer19RemoteTransferIssueE(self, other) {
+  if (self.$tag === 1) {
+    const _Ok = self;
+    const _x = _Ok._0;
+    if (other.$tag === 1) {
+      const _Ok$2 = other;
+      const _y = _Ok$2._0;
+      return _x === _y;
+    } else {
+      return false;
+    }
+  } else {
+    const _Err = self;
+    const _x = _Err._0;
+    if (other.$tag === 0) {
+      const _Err$2 = other;
+      const _y = _Err$2._0;
+      return _M0IP35actql5actql16remote__transfer19RemoteTransferIssuePB2Eq5equal(_x, _y);
+    } else {
+      return false;
+    }
+  }
+}
 function _M0IPC16option6OptionPB2Eq5equalGiE(self, other) {
   if (self === undefined) {
     return other === undefined;
@@ -2601,7 +3118,7 @@ function _M0FPB21capacity__for__length(length) {
   }
   return capacity;
 }
-function _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry) {
+function _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry) {
   const _bind = self.tail;
   if (_bind === -1) {
     self.head = entry;
@@ -2661,7 +3178,7 @@ function _M0MPB3Map20add__entry__to__tailGsiE(self, idx, entry) {
   self.entries[idx] = entry;
   self.size = self.size + 1 | 0;
 }
-function _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, entry, new_idx) {
+function _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, entry, new_idx) {
   const _bind = entry.next;
   if (_bind === undefined) {
     self.tail = new_idx;
@@ -2694,7 +3211,7 @@ function _M0MPB3Map10set__entryGsiE(self, entry, new_idx) {
   }
   self.entries[new_idx] = entry;
 }
-function _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry) {
+function _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry) {
   let _tmp = entry.psl + 1 | 0;
   let _tmp$2 = idx + 1 & self.capacity_mask;
   let _tmp$3 = entry;
@@ -2705,14 +3222,14 @@ function _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31Coordi
     const _bind = self.entries[idx$2];
     if (_bind === undefined) {
       entry$2.psl = psl;
-      _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, entry$2, idx$2);
+      _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, entry$2, idx$2);
       return;
     } else {
       const _Some = _bind;
       const _curr_entry = _Some;
       if (psl > _curr_entry.psl) {
         entry$2.psl = psl;
-        _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, entry$2, idx$2);
+        _M0MPB3Map10set__entryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, entry$2, idx$2);
         _tmp = _curr_entry.psl + 1 | 0;
         _tmp$2 = idx$2 + 1 & self.capacity_mask;
         _tmp$3 = _curr_entry;
@@ -2787,7 +3304,7 @@ function _M0MPB3Map10push__awayGsiE(self, idx, entry) {
     }
   }
 }
-function _M0MPB3Map20rehash__place__entryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, outer) {
+function _M0MPB3Map20rehash__place__entryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, outer) {
   const hash = outer.hash;
   let _tmp = 0;
   let _tmp$2 = hash & self.capacity_mask;
@@ -2798,16 +3315,16 @@ function _M0MPB3Map20rehash__place__entryGsRP35actql5actql22remote__site__protoc
     if (_bind === undefined) {
       outer.psl = psl;
       outer.prev = self.tail;
-      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, outer);
+      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, outer);
       return undefined;
     } else {
       const _Some = _bind;
       const _curr = _Some;
       if (psl > _curr.psl) {
-        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, _curr);
+        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, _curr);
         outer.psl = psl;
         outer.prev = self.tail;
-        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, outer);
+        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, outer);
         return undefined;
       } else {
         _tmp = psl + 1 | 0;
@@ -2877,7 +3394,7 @@ function _M0MPB3Map20rehash__place__entryGsiE(self, outer) {
     }
   }
 }
-function _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self) {
+function _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self) {
   const old_head = self.head;
   const new_capacity = self.capacity << 1;
   self.entries = $make_array_len_and_init(new_capacity, undefined);
@@ -2898,7 +3415,7 @@ function _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDi
       const _e = _Some;
       const next_in_chain = _e.next;
       _e.next = undefined;
-      _M0MPB3Map20rehash__place__entryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, _e);
+      _M0MPB3Map20rehash__place__entryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, _e);
       _tmp = next_in_chain;
       continue;
     }
@@ -2958,7 +3475,7 @@ function _M0MPB3Map4growGsiE(self) {
     }
   }
 }
-function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, key, value, hash) {
+function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value, hash) {
   let _tmp = 0;
   let _tmp$2 = hash & self.capacity_mask;
   while (true) {
@@ -2967,15 +3484,15 @@ function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol31C
     const _bind = self.entries[idx];
     if (_bind === undefined) {
       if (self.size >= self.grow_at) {
-        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
+        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
         _tmp = 0;
         _tmp$2 = hash & self.capacity_mask;
         continue;
       }
       const _bind$2 = self.tail;
       const _bind$3 = undefined;
-      const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(_bind$2, _bind$3, psl, hash, key, value);
-      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
+      const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(_bind$2, _bind$3, psl, hash, key, value);
+      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
       return undefined;
     } else {
       const _Some = _bind;
@@ -2986,16 +3503,62 @@ function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol31C
       }
       if (psl > _curr_entry.psl) {
         if (self.size >= self.grow_at) {
-          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
+          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
           _tmp = 0;
           _tmp$2 = hash & self.capacity_mask;
           continue;
         }
-        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, _curr_entry);
+        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, _curr_entry);
+        const _bind$2 = self.tail;
+        const _bind$3 = undefined;
+        const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(_bind$2, _bind$3, psl, hash, key, value);
+        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
+        return undefined;
+      }
+      _tmp = psl + 1 | 0;
+      _tmp$2 = idx + 1 & self.capacity_mask;
+      continue;
+    }
+  }
+}
+function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, key, value, hash) {
+  let _tmp = 0;
+  let _tmp$2 = hash & self.capacity_mask;
+  while (true) {
+    const psl = _tmp;
+    const idx = _tmp$2;
+    const _bind = self.entries[idx];
+    if (_bind === undefined) {
+      if (self.size >= self.grow_at) {
+        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
+        _tmp = 0;
+        _tmp$2 = hash & self.capacity_mask;
+        continue;
+      }
+      const _bind$2 = self.tail;
+      const _bind$3 = undefined;
+      const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(_bind$2, _bind$3, psl, hash, key, value);
+      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
+      return undefined;
+    } else {
+      const _Some = _bind;
+      const _curr_entry = _Some;
+      if (_curr_entry.hash === hash && _curr_entry.key === key) {
+        _curr_entry.value = value;
+        return undefined;
+      }
+      if (psl > _curr_entry.psl) {
+        if (self.size >= self.grow_at) {
+          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
+          _tmp = 0;
+          _tmp$2 = hash & self.capacity_mask;
+          continue;
+        }
+        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, _curr_entry);
         const _bind$2 = self.tail;
         const _bind$3 = undefined;
         const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(_bind$2, _bind$3, psl, hash, key, value);
-        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
+        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
         return undefined;
       }
       _tmp = psl + 1 | 0;
@@ -3013,7 +3576,7 @@ function _M0MPB3Map15set__with__hashGssE(self, key, value, hash) {
     const _bind = self.entries[idx];
     if (_bind === undefined) {
       if (self.size >= self.grow_at) {
-        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
+        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
         _tmp = 0;
         _tmp$2 = hash & self.capacity_mask;
         continue;
@@ -3021,7 +3584,7 @@ function _M0MPB3Map15set__with__hashGssE(self, key, value, hash) {
       const _bind$2 = self.tail;
       const _bind$3 = undefined;
       const entry = new _M0TPB5EntryGssE(_bind$2, _bind$3, psl, hash, key, value);
-      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
+      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
       return undefined;
     } else {
       const _Some = _bind;
@@ -3032,62 +3595,16 @@ function _M0MPB3Map15set__with__hashGssE(self, key, value, hash) {
       }
       if (psl > _curr_entry.psl) {
         if (self.size >= self.grow_at) {
-          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
+          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self);
           _tmp = 0;
           _tmp$2 = hash & self.capacity_mask;
           continue;
         }
-        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, _curr_entry);
+        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, _curr_entry);
         const _bind$2 = self.tail;
         const _bind$3 = undefined;
         const entry = new _M0TPB5EntryGssE(_bind$2, _bind$3, psl, hash, key, value);
-        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
-        return undefined;
-      }
-      _tmp = psl + 1 | 0;
-      _tmp$2 = idx + 1 & self.capacity_mask;
-      continue;
-    }
-  }
-}
-function _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value, hash) {
-  let _tmp = 0;
-  let _tmp$2 = hash & self.capacity_mask;
-  while (true) {
-    const psl = _tmp;
-    const idx = _tmp$2;
-    const _bind = self.entries[idx];
-    if (_bind === undefined) {
-      if (self.size >= self.grow_at) {
-        _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
-        _tmp = 0;
-        _tmp$2 = hash & self.capacity_mask;
-        continue;
-      }
-      const _bind$2 = self.tail;
-      const _bind$3 = undefined;
-      const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(_bind$2, _bind$3, psl, hash, key, value);
-      _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
-      return undefined;
-    } else {
-      const _Some = _bind;
-      const _curr_entry = _Some;
-      if (_curr_entry.hash === hash && _curr_entry.key === key) {
-        _curr_entry.value = value;
-        return undefined;
-      }
-      if (psl > _curr_entry.psl) {
-        if (self.size >= self.grow_at) {
-          _M0MPB3Map4growGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self);
-          _tmp = 0;
-          _tmp$2 = hash & self.capacity_mask;
-          continue;
-        }
-        _M0MPB3Map10push__awayGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, _curr_entry);
-        const _bind$2 = self.tail;
-        const _bind$3 = undefined;
-        const entry = new _M0TPB5EntryGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(_bind$2, _bind$3, psl, hash, key, value);
-        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, idx, entry);
+        _M0MPB3Map20add__entry__to__tailGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, idx, entry);
         return undefined;
       }
       _tmp = psl + 1 | 0;
@@ -3188,14 +3705,14 @@ function _M0MPB3Map15set__with__hashGsiE(self, key, value, hash) {
     }
   }
 }
+function _M0MPB3Map3setGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value) {
+  _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value, _M0IPC16string6StringPB4Hash4hash(key));
+}
 function _M0MPB3Map3setGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, key, value) {
   _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(self, key, value, _M0IPC16string6StringPB4Hash4hash(key));
 }
 function _M0MPB3Map3setGssE(self, key, value) {
   _M0MPB3Map15set__with__hashGssE(self, key, value, _M0IPC16string6StringPB4Hash4hash(key));
-}
-function _M0MPB3Map3setGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value) {
-  _M0MPB3Map15set__with__hashGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key, value, _M0IPC16string6StringPB4Hash4hash(key));
 }
 function _M0MPB3Map3setGsuE(self, key, value) {
   _M0MPB3Map15set__with__hashGsuE(self, key, value, _M0IPC16string6StringPB4Hash4hash(key));
@@ -3363,6 +3880,31 @@ function _M0MPB3Map3getGsRP35actql5actql22remote__site__protocol31CoordinatorDis
     }
   }
 }
+function _M0MPB3Map3getGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(self, key) {
+  const hash = _M0IPC16string6StringPB4Hash4hash(key);
+  let _tmp = 0;
+  let _tmp$2 = hash & self.capacity_mask;
+  while (true) {
+    const i = _tmp;
+    const idx = _tmp$2;
+    const _bind = self.entries[idx];
+    if (_bind === undefined) {
+      return undefined;
+    } else {
+      const _Some = _bind;
+      const _entry = _Some;
+      if (_entry.hash === hash && _entry.key === key) {
+        return _entry.value;
+      }
+      if (i > _entry.psl) {
+        return undefined;
+      }
+      _tmp = i + 1 | 0;
+      _tmp$2 = idx + 1 & self.capacity_mask;
+      continue;
+    }
+  }
+}
 function _M0MPB3Map3getGsiE(self, key) {
   const hash = _M0IPC16string6StringPB4Hash4hash(key);
   let _tmp = 0;
@@ -3495,11 +4037,11 @@ function _M0MPC15array5Array4copyGiE(self) {
 function _M0MPC15array5Array4copyGRP35actql5actql13source__value11PathSegmentE(self) {
   return _M0MPB7JSArray4copy(self);
 }
-function _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(self, index) {
+function _M0MPC15array5Array2atGiE(self, index) {
   const len = self.length;
   return index >= 0 && index < len ? self[index] : $panic();
 }
-function _M0MPC15array5Array2atGiE(self, index) {
+function _M0MPC15array5Array2atGsE(self, index) {
   const len = self.length;
   return index >= 0 && index < len ? self[index] : $panic();
 }
@@ -4155,20 +4697,175 @@ function _M0FPC28encoding4utf814decode_2einner(bytes, ignore_bom) {
     return new _M0DTPC16result6ResultGsRPC28encoding4utf89MalformedE3Err(new _M0DTPC15error5Error60moonbitlang_2fcore_2fencoding_2futf8_2eMalformed_2eMalformed(_M0FPC28encoding4utf825strict__malformed__suffix(bytes$2)));
   }
 }
+function _M0FPC28internal7strconv9base__errGUiRPC16string10StringViewbEE() {
+  return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv14base__err__str));
+}
+function _M0FPC28internal7strconv25check__and__consume__base(view, base) {
+  if (base === 0) {
+    _L: {
+      let rest;
+      _L$2: {
+        let rest$2;
+        _L$3: {
+          let rest$3;
+          _L$4: {
+            if ((view.end - view.start | 0) >= 2) {
+              const _x = view.str.charCodeAt(view.start);
+              if (_x === 48) {
+                const _x$2 = view.str.charCodeAt(view.start + 1 | 0);
+                switch (_x$2) {
+                  case 120: {
+                    const _x$3 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest$3 = _x$3;
+                    break _L$4;
+                  }
+                  case 88: {
+                    const _x$4 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest$3 = _x$4;
+                    break _L$4;
+                  }
+                  case 111: {
+                    const _x$5 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest$2 = _x$5;
+                    break _L$3;
+                  }
+                  case 79: {
+                    const _x$6 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest$2 = _x$6;
+                    break _L$3;
+                  }
+                  case 98: {
+                    const _x$7 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest = _x$7;
+                    break _L$2;
+                  }
+                  case 66: {
+                    const _x$8 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    rest = _x$8;
+                    break _L$2;
+                  }
+                  default: {
+                    break _L;
+                  }
+                }
+              } else {
+                break _L;
+              }
+            } else {
+              break _L;
+            }
+          }
+          return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 16, _1: rest$3, _2: true });
+        }
+        return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 8, _1: rest$2, _2: true });
+      }
+      return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 2, _1: rest, _2: true });
+    }
+    return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 10, _1: view, _2: false });
+  } else {
+    _L: {
+      let rest;
+      _L$2: {
+        let rest$2;
+        _L$3: {
+          let rest$3;
+          _L$4: {
+            if ((view.end - view.start | 0) >= 2) {
+              const _x = view.str.charCodeAt(view.start);
+              if (_x === 48) {
+                const _x$2 = view.str.charCodeAt(view.start + 1 | 0);
+                switch (_x$2) {
+                  case 120: {
+                    const _x$3 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 16) {
+                      rest$3 = _x$3;
+                      break _L$4;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  case 88: {
+                    const _x$4 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 16) {
+                      rest$3 = _x$4;
+                      break _L$4;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  case 111: {
+                    const _x$5 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 8) {
+                      rest$2 = _x$5;
+                      break _L$3;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  case 79: {
+                    const _x$6 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 8) {
+                      rest$2 = _x$6;
+                      break _L$3;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  case 98: {
+                    const _x$7 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 2) {
+                      rest = _x$7;
+                      break _L$2;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  case 66: {
+                    const _x$8 = new _M0TPC16string10StringView(view.str, view.start + 2 | 0, view.end);
+                    if (base === 2) {
+                      rest = _x$8;
+                      break _L$2;
+                    } else {
+                      break _L;
+                    }
+                  }
+                  default: {
+                    break _L;
+                  }
+                }
+              } else {
+                break _L;
+              }
+            } else {
+              break _L;
+            }
+          }
+          return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 16, _1: rest$3, _2: true });
+        }
+        return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 8, _1: rest$2, _2: true });
+      }
+      return new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: 2, _1: rest, _2: true });
+    }
+    return base >= 2 && base <= 36 ? new _M0DTPC16result6ResultGUiRPC16string10StringViewbERPC15error5ErrorE2Ok({ _0: base, _1: view, _2: false }) : _M0FPC28internal7strconv9base__errGUiRPC16string10StringViewbEE();
+  }
+}
 function _M0FPC28internal7strconv10range__errGuE() {
   return new _M0DTPC16result6ResultGuRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv15range__err__str));
+}
+function _M0FPC28internal7strconv11syntax__errGiE() {
+  return new _M0DTPC16result6ResultGiRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
+}
+function _M0FPC28internal7strconv11syntax__errGuE() {
+  return new _M0DTPC16result6ResultGuRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
+}
+function _M0FPC28internal7strconv11syntax__errGlE() {
+  return new _M0DTPC16result6ResultGlRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
 }
 function _M0FPC28internal7strconv11syntax__errGdE() {
   return new _M0DTPC16result6ResultGdRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
 }
 function _M0FPC28internal7strconv11syntax__errGORPC28internal7strconv6NumberE() {
   return new _M0DTPC16result6ResultGORPC28internal7strconv6NumberRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
-}
-function _M0FPC28internal7strconv11syntax__errGuE() {
-  return new _M0DTPC16result6ResultGuRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
-}
-function _M0FPC28internal7strconv11syntax__errGRPC16string10StringViewE() {
-  return new _M0DTPC16result6ResultGRPC16string10StringViewRPB7FailureE3Err(new _M0DTPC15error5Error48moonbitlang_2fcore_2fbuiltin_2eFailure_2eFailure(_M0FPC28internal7strconv16syntax__err__str));
 }
 function _M0EPC16string10StringViewPC28internal7strconv12fold__digitsGmE(self, init, f) {
   let _tmp = self;
@@ -4584,6 +5281,292 @@ function _M0FPC28internal7strconv12checked__mul(a, b) {
     return undefined;
   }
   return BigInt.asUintN(64, a * b);
+}
+function _M0FPC28internal7strconv19overflow__threshold(base, neg) {
+  if (!neg) {
+    if (base === 10) {
+      return 922337203685477581n;
+    } else {
+      if (base === 16) {
+        return 576460752303423488n;
+      } else {
+        const _tmp = BigInt.asUintN(64, BigInt(base));
+        if (_tmp === 0n) {
+          $panic();
+        }
+        return BigInt.asUintN(64, BigInt.asUintN(64, BigInt.asIntN(64, 9223372036854775807n) / BigInt.asIntN(64, _tmp)) + 1n);
+      }
+    }
+  } else {
+    if (base === 10) {
+      return 17524406870024074036n;
+    } else {
+      if (base === 16) {
+        return 17870283321406128128n;
+      } else {
+        const _tmp = BigInt.asUintN(64, BigInt(base));
+        if (_tmp === 0n) {
+          $panic();
+        }
+        return BigInt.asUintN(64, BigInt.asIntN(64, 9223372036854775808n) / BigInt.asIntN(64, _tmp));
+      }
+    }
+  }
+}
+function _M0FPC28internal7strconv20parse__int64_2einner(str, base) {
+  if (_M0IP016_24default__implPB2Eq10not__equalGRPC16string10StringViewE(str, new _M0TPC16string10StringView(_M0FPC28internal7strconv20parse__int64_2einnerN7_2abindS682, 0, _M0FPC28internal7strconv20parse__int64_2einnerN7_2abindS682.length))) {
+    let neg;
+    let rest;
+    _L: {
+      let rest$2;
+      _L$2: {
+        const _bind = _M0MPC16string10StringView12view_2einner(str, 0, undefined);
+        if ((_bind.end - _bind.start | 0) >= 1) {
+          const _x = _bind.str.charCodeAt(_bind.start);
+          switch (_x) {
+            case 43: {
+              const _x$2 = new _M0TPC16string10StringView(_bind.str, _bind.start + 1 | 0, _bind.end);
+              neg = false;
+              rest = _x$2;
+              break _L;
+            }
+            case 45: {
+              const _x$3 = new _M0TPC16string10StringView(_bind.str, _bind.start + 1 | 0, _bind.end);
+              neg = true;
+              rest = _x$3;
+              break _L;
+            }
+            default: {
+              rest$2 = _bind;
+              break _L$2;
+            }
+          }
+        } else {
+          rest$2 = _bind;
+          break _L$2;
+        }
+      }
+      neg = false;
+      rest = rest$2;
+      break _L;
+    }
+    const _bind = _M0FPC28internal7strconv25check__and__consume__base(rest, base);
+    let _bind$2;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _bind$2 = _ok._0;
+    } else {
+      return _bind;
+    }
+    const _num_base = _bind$2._0;
+    const _rest = _bind$2._1;
+    const _allow_underscore = _bind$2._2;
+    const overflow_threshold = _M0FPC28internal7strconv19overflow__threshold(_num_base, neg);
+    let has_digit;
+    if ((_rest.end - _rest.start | 0) >= 1) {
+      const _x = _rest.str.charCodeAt(_rest.start);
+      if (_x >= 48 && _x <= 57) {
+        has_digit = true;
+      } else {
+        if (_x >= 97 && _x <= 122) {
+          has_digit = true;
+        } else {
+          if (_x >= 65 && _x <= 90) {
+            has_digit = true;
+          } else {
+            if ((_rest.end - _rest.start | 0) >= 2) {
+              if (_x === 95) {
+                const _x$2 = _rest.str.charCodeAt(_rest.start + 1 | 0);
+                has_digit = _x$2 >= 48 && _x$2 <= 57 ? true : _x$2 >= 97 && _x$2 <= 122 ? true : _x$2 >= 65 && _x$2 <= 90;
+              } else {
+                has_digit = false;
+              }
+            } else {
+              has_digit = false;
+            }
+          }
+        }
+      }
+    } else {
+      has_digit = false;
+    }
+    if (has_digit) {
+      let _tmp;
+      let _tmp$2 = _rest;
+      let _tmp$3 = 0n;
+      let _tmp$4 = _allow_underscore;
+      while (true) {
+        const rest$2 = _tmp$2;
+        const acc = _tmp$3;
+        const allow_underscore = _tmp$4;
+        let acc$2;
+        let rest$3;
+        let c;
+        _L$2: {
+          _L$3: {
+            if ((rest$2.end - rest$2.start | 0) === 1) {
+              const _x = rest$2.str.charCodeAt(rest$2.start);
+              if (_x === 95) {
+                const _bind$3 = _M0FPC28internal7strconv11syntax__errGuE();
+                if (_bind$3.$tag === 1) {
+                  const _ok = _bind$3;
+                  _ok._0;
+                } else {
+                  return _bind$3;
+                }
+              } else {
+                const _c = _M0MPC16string6String16unsafe__char__at(rest$2.str, _M0MPC16string6String29offset__of__nth__char_2einner(rest$2.str, 0, rest$2.start, rest$2.end));
+                const _tmp$5 = rest$2.str;
+                const _bind$3 = _M0MPC16string6String29offset__of__nth__char_2einner(rest$2.str, 1, rest$2.start, rest$2.end);
+                let _tmp$6;
+                if (_bind$3 === undefined) {
+                  _tmp$6 = rest$2.end;
+                } else {
+                  const _Some = _bind$3;
+                  _tmp$6 = _Some;
+                }
+                const _x$2 = new _M0TPC16string10StringView(_tmp$5, _tmp$6, rest$2.end);
+                acc$2 = acc;
+                rest$3 = _x$2;
+                c = _c;
+                break _L$3;
+              }
+            } else {
+              if ((rest$2.end - rest$2.start | 0) >= 1) {
+                const _x = rest$2.str.charCodeAt(rest$2.start);
+                if (_x === 95) {
+                  if (allow_underscore === false) {
+                    const _bind$3 = _M0FPC28internal7strconv11syntax__errGuE();
+                    if (_bind$3.$tag === 1) {
+                      const _ok = _bind$3;
+                      _ok._0;
+                    } else {
+                      return _bind$3;
+                    }
+                  } else {
+                    const _x$2 = new _M0TPC16string10StringView(rest$2.str, rest$2.start + 1 | 0, rest$2.end);
+                    _tmp$2 = _x$2;
+                    _tmp$4 = false;
+                    continue;
+                  }
+                } else {
+                  const _c = _M0MPC16string6String16unsafe__char__at(rest$2.str, _M0MPC16string6String29offset__of__nth__char_2einner(rest$2.str, 0, rest$2.start, rest$2.end));
+                  const _tmp$5 = rest$2.str;
+                  const _bind$3 = _M0MPC16string6String29offset__of__nth__char_2einner(rest$2.str, 1, rest$2.start, rest$2.end);
+                  let _tmp$6;
+                  if (_bind$3 === undefined) {
+                    _tmp$6 = rest$2.end;
+                  } else {
+                    const _Some = _bind$3;
+                    _tmp$6 = _Some;
+                  }
+                  const _x$2 = new _M0TPC16string10StringView(_tmp$5, _tmp$6, rest$2.end);
+                  acc$2 = acc;
+                  rest$3 = _x$2;
+                  c = _c;
+                  break _L$3;
+                }
+              } else {
+                _tmp = acc;
+                break;
+              }
+            }
+            break _L$2;
+          }
+          const c$2 = c;
+          let d;
+          if (c$2 >= 48 && c$2 <= 57) {
+            d = c$2 - 48 | 0;
+          } else {
+            if (c$2 >= 97 && c$2 <= 122) {
+              d = c$2 + -87 | 0;
+            } else {
+              if (c$2 >= 65 && c$2 <= 90) {
+                d = c$2 + -55 | 0;
+              } else {
+                const _bind$3 = _M0FPC28internal7strconv11syntax__errGiE();
+                if (_bind$3.$tag === 1) {
+                  const _ok = _bind$3;
+                  d = _ok._0;
+                } else {
+                  return _bind$3;
+                }
+              }
+            }
+          }
+          if (d < _num_base) {
+            if (neg) {
+              if (BigInt.asIntN(64, acc$2) >= BigInt.asIntN(64, overflow_threshold)) {
+                const next_acc = BigInt.asUintN(64, BigInt.asUintN(64, acc$2 * BigInt.asUintN(64, BigInt(_num_base))) - BigInt.asUintN(64, BigInt(d)));
+                if (BigInt.asIntN(64, next_acc) <= BigInt.asIntN(64, acc$2)) {
+                  _tmp$2 = rest$3;
+                  _tmp$3 = next_acc;
+                  _tmp$4 = true;
+                  continue;
+                } else {
+                  const _bind$3 = _M0FPC28internal7strconv10range__errGuE();
+                  if (_bind$3.$tag === 1) {
+                    const _ok = _bind$3;
+                    _ok._0;
+                  } else {
+                    return _bind$3;
+                  }
+                }
+              } else {
+                const _bind$3 = _M0FPC28internal7strconv10range__errGuE();
+                if (_bind$3.$tag === 1) {
+                  const _ok = _bind$3;
+                  _ok._0;
+                } else {
+                  return _bind$3;
+                }
+              }
+            } else {
+              if (BigInt.asIntN(64, acc$2) < BigInt.asIntN(64, overflow_threshold)) {
+                const next_acc = BigInt.asUintN(64, BigInt.asUintN(64, acc$2 * BigInt.asUintN(64, BigInt(_num_base))) + BigInt.asUintN(64, BigInt(d)));
+                if (BigInt.asIntN(64, next_acc) >= BigInt.asIntN(64, acc$2)) {
+                  _tmp$2 = rest$3;
+                  _tmp$3 = next_acc;
+                  _tmp$4 = true;
+                  continue;
+                } else {
+                  const _bind$3 = _M0FPC28internal7strconv10range__errGuE();
+                  if (_bind$3.$tag === 1) {
+                    const _ok = _bind$3;
+                    _ok._0;
+                  } else {
+                    return _bind$3;
+                  }
+                }
+              } else {
+                const _bind$3 = _M0FPC28internal7strconv10range__errGuE();
+                if (_bind$3.$tag === 1) {
+                  const _ok = _bind$3;
+                  _ok._0;
+                } else {
+                  return _bind$3;
+                }
+              }
+            }
+          } else {
+            const _bind$3 = _M0FPC28internal7strconv11syntax__errGuE();
+            if (_bind$3.$tag === 1) {
+              const _ok = _bind$3;
+              _ok._0;
+            } else {
+              return _bind$3;
+            }
+          }
+        }
+        continue;
+      }
+      return new _M0DTPC16result6ResultGlRPC15error5ErrorE2Ok(_tmp);
+    } else {
+      return _M0FPC28internal7strconv11syntax__errGlE();
+    }
+  } else {
+    return _M0FPC28internal7strconv11syntax__errGlE();
+  }
 }
 function _M0FPC28internal7strconv17check__underscore(str) {
   if (_M0MPC16string10StringView20contains__code__unit(str, 95)) {
@@ -5262,7 +6245,7 @@ function _M0FPC28internal7strconv26parse__decimal__from__view(str) {
           }
           break _L$4;
         }
-        const _bind = _M0FPC28internal7strconv11syntax__errGRPC16string10StringViewE();
+        const _bind = _M0FPC28internal7strconv11syntax__errGlE();
         if (_bind.$tag === 1) {
           const _ok = _bind;
           rest$3 = _ok._0;
@@ -5275,10 +6258,10 @@ function _M0FPC28internal7strconv26parse__decimal__from__view(str) {
       _M0MPC28internal7strconv7Decimal4trim(d);
       return new _M0DTPC16result6ResultGRPC28internal7strconv7DecimalRPC15error5ErrorE2Ok(d);
     } else {
-      return _M0FPC28internal7strconv11syntax__errGRPC16string10StringViewE();
+      return _M0FPC28internal7strconv11syntax__errGlE();
     }
   } else {
-    return _M0FPC28internal7strconv11syntax__errGRPC16string10StringViewE();
+    return _M0FPC28internal7strconv11syntax__errGlE();
   }
 }
 function _M0FPC28internal7strconv20parse__decimal__priv(str) {
@@ -5756,6 +6739,9 @@ function _M0FPC28internal7strconv13parse__double(str) {
     return _M0FPC28internal7strconv11syntax__errGdE();
   }
 }
+function _M0IPC15int645Int64PC16string7FromStr9from__str(str) {
+  return _M0FPC28internal7strconv20parse__int64_2einner(str, 0);
+}
 function _M0FP35actql5actql14decode__scalar19admit__utf8__window(text, limit, window) {
   if (BigInt.asIntN(64, limit) < BigInt.asIntN(64, 0n) || window < 4) {
     return new _M0DTPC16result6ResultGlRP35actql5actql14decode__scalar18Utf8AdmissionIssueE3Err(_M0DTP35actql5actql14decode__scalar18Utf8AdmissionIssue12InvalidLimit__);
@@ -5995,7 +6981,7 @@ function _M0FP35actql5actql13decode__shape19check__object__keys(keys, required, 
         while (true) {
           const earlier = _tmp$3;
           if (earlier < index) {
-            if (_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(keys, earlier) === name) {
+            if (_M0MPC15array5Array2atGsE(keys, earlier) === name) {
               return new _M0DTPC16result6ResultGuRP35actql5actql13decode__shape14ObjectKeyIssueE3Err(new _M0DTP35actql5actql13decode__shape14ObjectKeyIssue12DuplicateKey(name));
             }
             _tmp$3 = earlier + 1 | 0;
@@ -8607,10 +9593,10 @@ function _M0MP35actql5actql13source__value6Parser19yaml__block__scalar(self, par
           let _tmp$4;
           if (i > 0) {
             let _tmp$5;
-            const _p$2 = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, i - 1 | 0).text;
+            const _p$2 = _M0MPC15array5Array2atGsE(lines, i - 1 | 0).text;
             const _p$3 = "";
             if (!(_p$2 === _p$3)) {
-              _tmp$5 = !_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, i - 1 | 0).more;
+              _tmp$5 = !_M0MPC15array5Array2atGsE(lines, i - 1 | 0).more;
             } else {
               _tmp$5 = false;
             }
@@ -8621,14 +9607,14 @@ function _M0MP35actql5actql13source__value6Parser19yaml__block__scalar(self, par
           if (_tmp$4) {
             let next = i + 1 | 0;
             while (true) {
-              if (next < lines.length && _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, next).text === "") {
+              if (next < lines.length && _M0MPC15array5Array2atGsE(lines, next).text === "") {
                 next = next + 1 | 0;
                 continue;
               } else {
                 break;
               }
             }
-            folded_break = next < lines.length && !_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, next).more;
+            folded_break = next < lines.length && !_M0MPC15array5Array2atGsE(lines, next).more;
           }
           if (!folded_break) {
             _M0IPB13StringBuilderPB6Logger11write__char(output, 10);
@@ -8637,10 +9623,10 @@ function _M0MP35actql5actql13source__value6Parser19yaml__block__scalar(self, par
           let _tmp$4;
           if ((i + 1 | 0) < lines.length) {
             let _tmp$5;
-            const _p$2 = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, i + 1 | 0).text;
+            const _p$2 = _M0MPC15array5Array2atGsE(lines, i + 1 | 0).text;
             const _p$3 = "";
             if (!(_p$2 === _p$3)) {
-              _tmp$5 = !line.more && !_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(lines, i + 1 | 0).more;
+              _tmp$5 = !line.more && !_M0MPC15array5Array2atGsE(lines, i + 1 | 0).more;
             } else {
               _tmp$5 = false;
             }
@@ -8849,10 +9835,10 @@ function _M0MP35actql5actql13source__value6Parser12yaml__prefix(self) {
       }
       const text = _M0MPC16string10StringView9to__owned(_M0MPC16string6String11sub_2einner(self.source, begin, self.offset));
       const words = _M0FP35actql5actql13source__value22yaml__directive__words(text);
-      if (words.length === 0 || _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(words, 0) === "%") {
+      if (words.length === 0 || _M0MPC15array5Array2atGsE(words, 0) === "%") {
         return new _M0DTPC16result6ResultGOiRP35actql5actql13source__value10ParseAbortE3Err(_M0MP35actql5actql13source__value6Parser11failure__at(self, _M0DTP35actql5actql13source__value10ParseIssue20InvalidYamlDirective__, self.path, start));
       }
-      if (_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(words, 0) === "%YAML") {
+      if (_M0MPC15array5Array2atGsE(words, 0) === "%YAML") {
         let _tmp;
         if (version) {
           _tmp = true;
@@ -8861,7 +9847,7 @@ function _M0MP35actql5actql13source__value6Parser12yaml__prefix(self) {
           if (words.length !== 2) {
             _tmp$2 = true;
           } else {
-            const _p = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(words, 1);
+            const _p = _M0MPC15array5Array2atGsE(words, 1);
             const _p$2 = "1.2";
             _tmp$2 = !(_p === _p$2);
           }
@@ -8872,7 +9858,7 @@ function _M0MP35actql5actql13source__value6Parser12yaml__prefix(self) {
         }
         version = true;
       } else {
-        if (_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(words, 0) === "%TAG") {
+        if (_M0MPC15array5Array2atGsE(words, 0) === "%TAG") {
           return new _M0DTPC16result6ResultGOiRP35actql5actql13source__value10ParseAbortE3Err(_M0MP35actql5actql13source__value6Parser11failure__at(self, _M0DTP35actql5actql13source__value10ParseIssue20ForbiddenYamlFeature__, self.path, start));
         }
       }
@@ -9242,7 +10228,7 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
         }
         return new _M0DTPC16result6ResultGRP35actql5actql13source__value4NodeRP35actql5actql13source__value10ParseAbortE2Ok(_node);
       }
-      const parent = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(frames, frames.length - 1 | 0);
+      const parent = _M0MPC15array5Array2atGsE(frames, frames.length - 1 | 0);
       const _bind$3 = parent.container;
       if (_bind$3.$tag === 0) {
         const _ArrayItems = _bind$3;
@@ -9269,7 +10255,7 @@ function _M0MP35actql5actql13source__value6Parser14yaml__document(self) {
       _M0MPC15array5Array3popGRP35actql5actql12encode__core5FrameE(self.path);
       completed = undefined;
     }
-    const frame = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(frames, frames.length - 1 | 0);
+    const frame = _M0MPC15array5Array2atGsE(frames, frames.length - 1 | 0);
     const block = _M0IP35actql5actql13source__value9YamlStylePB2Eq5equal(frame.style, 1) || _M0IP35actql5actql13source__value9YamlStylePB2Eq5equal(frame.style, 0);
     const _bind$3 = _M0MP35actql5actql13source__value6Parser18yaml__skip_2einner(self, block ? undefined : frame.indent);
     if (_bind$3.$tag === 1) {
@@ -10178,7 +11164,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
         }
         return new _M0DTPC16result6ResultGRP35actql5actql13source__value4NodeRP35actql5actql13source__value10ParseAbortE2Ok(_node);
       }
-      const parent = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(frames, frames.length - 1 | 0);
+      const parent = _M0MPC15array5Array2atGsE(frames, frames.length - 1 | 0);
       const _bind$2 = parent.container;
       if (_bind$2.$tag === 0) {
         const _ArrayItems = _bind$2;
@@ -10204,7 +11190,7 @@ function _M0MP35actql5actql13source__value6Parser8document(self) {
       parent.phase = 3;
       completed = undefined;
     }
-    const frame = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(frames, frames.length - 1 | 0);
+    const frame = _M0MPC15array5Array2atGsE(frames, frames.length - 1 | 0);
     const _bind$2 = _M0MP35actql5actql13source__value6Parser11skip__space(self);
     if (_bind$2.$tag === 1) {
       const _ok = _bind$2;
@@ -10418,8 +11404,8 @@ function _M0FP35actql5actql12decode__core8path__at(tree, parent, edge) {
     if (current < 0) {
       break;
     }
-    step = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(tree, current).edge;
-    current = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(tree, current).parent;
+    step = _M0MPC15array5Array2atGsE(tree, current).edge;
+    current = _M0MPC15array5Array2atGsE(tree, current).parent;
     continue;
   }
   let _tmp = 0;
@@ -10427,8 +11413,8 @@ function _M0FP35actql5actql12decode__core8path__at(tree, parent, edge) {
     const left = _tmp;
     if (left < (reversed.length / 2 | 0)) {
       const right = (reversed.length - 1 | 0) - left | 0;
-      const saved = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(reversed, left);
-      _M0MPC15array5Array3setGRP35actql5actql12encode__core5FrameE(reversed, left, _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(reversed, right));
+      const saved = _M0MPC15array5Array2atGsE(reversed, left);
+      _M0MPC15array5Array3setGRP35actql5actql12encode__core5FrameE(reversed, left, _M0MPC15array5Array2atGsE(reversed, right));
       _M0MPC15array5Array3setGRP35actql5actql12encode__core5FrameE(reversed, right, saved);
       _tmp = left + 1 | 0;
       continue;
@@ -10442,11 +11428,11 @@ function _M0FP35actql5actql12decode__core2at(tree, parent, edge, span, kind) {
   return new _M0TP35actql5actql12decode__core5Issue(kind, _M0FP35actql5actql12decode__core8path__at(tree, parent, edge), span);
 }
 function _M0FP35actql5actql12decode__core5issue(cursor, kind) {
-  const node = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index);
+  const node = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index);
   return _M0FP35actql5actql12decode__core2at(cursor.tree, node.parent, node.edge, node.span, kind);
 }
 function _M0FP35actql5actql12decode__core12open__object(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 5) {
     const _ObjectValue = _bind;
     const _entries = _ObjectValue._0;
@@ -10471,7 +11457,7 @@ function _M0FP35actql5actql12decode__core12open__object(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core14closed__object(cursor, allowed) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 5) {
     const _ObjectValue = _bind;
     const _entries = _ObjectValue._0;
@@ -10550,7 +11536,7 @@ function _M0FP35actql5actql12decode__core6lookup(object, name) {
   });
 }
 function _M0FP35actql5actql12decode__core8is__null(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 0) {
     return true;
   } else {
@@ -10561,7 +11547,7 @@ function _M0FP35actql5actql12decode__core8required(object, name) {
   const _bind = _M0FP35actql5actql12decode__core6lookup(object, name);
   if (_bind === undefined) {
     const _p = object.cursor;
-    const span = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(_p.tree, _p.index).span;
+    const span = _M0MPC15array5Array2atGsE(_p.tree, _p.index).span;
     return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql12decode__core5IssueE3Err(_M0FP35actql5actql12decode__core2at(object.cursor.tree, object.cursor.index, new _M0DTP35actql5actql12decode__core4Edge5Field(name, span), span, 1));
   } else {
     const _Some = _bind;
@@ -10570,7 +11556,7 @@ function _M0FP35actql5actql12decode__core8required(object, name) {
   }
 }
 function _M0FP35actql5actql12decode__core8elements(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 4) {
     const _ArrayValue = _bind;
     const _items = _ArrayValue._0;
@@ -10594,7 +11580,7 @@ function _M0FP35actql5actql12decode__core8elements(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core4text(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 3) {
     const _Text = _bind;
     const _value = _Text._0;
@@ -10604,7 +11590,7 @@ function _M0FP35actql5actql12decode__core4text(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core7boolean(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 1) {
     const _Bool = _bind;
     const _value = _Bool._0;
@@ -10614,7 +11600,7 @@ function _M0FP35actql5actql12decode__core7boolean(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core14finite__number(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 2) {
     const _Number = _bind;
     const _value = _Number._0;
@@ -10650,7 +11636,7 @@ function _M0FP35actql5actql12decode__core13safe__integer(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core13array__length(cursor) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 4) {
     const _ArrayValue = _bind;
     const _items = _ArrayValue._0;
@@ -10660,7 +11646,7 @@ function _M0FP35actql5actql12decode__core13array__length(cursor) {
   }
 }
 function _M0FP35actql5actql12decode__core11element__at(cursor, position) {
-  const _bind = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(cursor.tree, cursor.index).value;
+  const _bind = _M0MPC15array5Array2atGsE(cursor.tree, cursor.index).value;
   if (_bind.$tag === 4) {
     const _ArrayValue = _bind;
     const _items = _ArrayValue._0;
@@ -10797,7 +11783,7 @@ function _M0FP35actql5actql12decode__core5admit(root, limits) {
           if (_parent >= 0) {
             _L: {
               _L$2: {
-                const _bind$4 = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(tree, _parent).value;
+                const _bind$4 = _M0MPC15array5Array2atGsE(tree, _parent).value;
                 switch (_bind$4.$tag) {
                   case 4: {
                     const _ArrayValue = _bind$4;
@@ -10856,7 +11842,7 @@ function _M0FP35actql5actql12decode__core5admit(root, limits) {
           const _depth = _ArrayNext._3;
           if (_next < _items$3.length) {
             _M0MPC15array5Array4pushGsE(work, new _M0DTP35actql5actql12decode__core4Work9ArrayNext(_items$3, _parent$2, _next + 1 | 0, _depth));
-            _M0MPC15array5Array4pushGsE(work, new _M0DTP35actql5actql12decode__core4Work5Visit(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(_items$3, _next), _parent$2, new _M0DTP35actql5actql12decode__core4Edge7Element(_next), _depth));
+            _M0MPC15array5Array4pushGsE(work, new _M0DTP35actql5actql12decode__core4Work5Visit(_M0MPC15array5Array2atGsE(_items$3, _next), _parent$2, new _M0DTP35actql5actql12decode__core4Edge7Element(_next), _depth));
           }
           break;
         }
@@ -10868,7 +11854,7 @@ function _M0FP35actql5actql12decode__core5admit(root, limits) {
           const _depth$2 = _ObjectNext._3;
           const _seen = _ObjectNext._4;
           if (_next$2 < _fields$3.length) {
-            const field = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(_fields$3, _next$2);
+            const field = _M0MPC15array5Array2atGsE(_fields$3, _next$2);
             const edge = new _M0DTP35actql5actql12decode__core4Edge5Field(field.key, field.key_span);
             const _bind$5 = _M0FP35actql5actql12decode__core12text__charge(field.key, limits, remaining_text);
             if (_bind$5.$tag === 1) {
@@ -11141,6 +12127,12 @@ function _M0FP35actql5actql6sha25613finish__bytes(h) {
   }
   return _M0MPC15bytes5Bytes11from__array(new _M0TPB9ArrayViewGyE(output, 0, output.length));
 }
+function _M0FP35actql5actql6sha25614finish__digest(h) {
+  if (h.closed) {
+    return new _M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE3Err(_M0DTPC15error5Error51actql_2factql_2fsha256_2eHashFailure_2eClosedHasher__);
+  }
+  return new _M0DTPC16result6ResultGzRP35actql5actql6sha25611HashFailureE2Ok(_M0FP35actql5actql6sha25613finish__bytes(h));
+}
 function _M0FP35actql5actql6sha25610hex__bytes(bytes) {
   const builder = _M0MPB13StringBuilder21StringBuilder_2einner(64);
   const _bind = bytes.length;
@@ -11161,6 +12153,17 @@ function _M0FP35actql5actql6sha25610hex__bytes(bytes) {
     }
   }
   return builder.val;
+}
+function _M0FP35actql5actql6sha25611finish__hex(h) {
+  const _bind = _M0FP35actql5actql6sha25614finish__digest(h);
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  return new _M0DTPC16result6ResultGsRP35actql5actql6sha25611HashFailureE2Ok(_M0FP35actql5actql6sha25610hex__bytes(_tmp));
 }
 function _M0FP35actql5actql6sha2566digest(input) {
   const h = _M0FP35actql5actql6sha2566hasher();
@@ -11237,6 +12240,9 @@ function _M0FP35actql5actql12encode__core14create__writer(max_bytes, max_nodes, 
 }
 function _M0FP35actql5actql12encode__core6writer(max_bytes, max_nodes, max_depth) {
   return _M0FP35actql5actql12encode__core14create__writer(max_bytes, max_nodes, max_depth, new _M0DTP35actql5actql12encode__core10OutputSink10TextOutput(_M0MPB13StringBuilder21StringBuilder_2einner(0)));
+}
+function _M0FP35actql5actql12encode__core15hashing__writer(max_bytes, max_nodes, max_depth) {
+  return _M0FP35actql5actql12encode__core14create__writer(max_bytes, max_nodes, max_depth, new _M0DTP35actql5actql12encode__core10OutputSink10HashOutput(_M0FP35actql5actql6sha2566hasher()));
 }
 function _M0FP35actql5actql12encode__core6active(w) {
   if (w.closed) {
@@ -11839,7 +12845,7 @@ function _M0FP35actql5actql12encode__core12value__start(w) {
     w.root_written = true;
   } else {
     const index = w.frames.length - 1 | 0;
-    const _bind$2 = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(w.frames, index);
+    const _bind$2 = _M0MPC15array5Array2atGsE(w.frames, index);
     switch (_bind$2.$tag) {
       case 0: {
         const _ArrayItems = _bind$2;
@@ -12004,7 +13010,7 @@ function _M0FP35actql5actql12encode__core3key(w, name) {
   }
   const index = w.frames.length - 1 | 0;
   _L: {
-    const _bind$2 = _M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(w.frames, index);
+    const _bind$2 = _M0MPC15array5Array2atGsE(w.frames, index);
     switch (_bind$2.$tag) {
       case 1: {
         const _ObjectKey = _bind$2;
@@ -12176,6 +13182,2625 @@ function _M0FP35actql5actql12encode__core19finish__text__usage(w) {
   } else {
     return _M0FP35actql5actql12encode__core4failGUsiiiEE(w, _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure__);
   }
+}
+function _M0FP35actql5actql12encode__core21finish__hash__metrics(w) {
+  const _bind = _M0FP35actql5actql12encode__core6active(w);
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _ok._0;
+  } else {
+    return _bind;
+  }
+  let h;
+  _L: {
+    _L$2: {
+      const _bind$2 = w.output;
+      switch (_bind$2.$tag) {
+        case 2: {
+          const _HashOutput = _bind$2;
+          h = _HashOutput._0;
+          break;
+        }
+        case 3: {
+          const _BufferedHashOutput = _bind$2;
+          const _buffer = _BufferedHashOutput._0;
+          if (_buffer.bytes !== 0) {
+            const _bind$3 = _M0FP35actql5actql12encode__core4failGuE(w, _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure__);
+            if (_bind$3.$tag === 1) {
+              const _ok = _bind$3;
+              _ok._0;
+            } else {
+              return _bind$3;
+            }
+          }
+          h = _buffer.hash;
+          break;
+        }
+        case 0: {
+          break _L$2;
+        }
+        default: {
+          break _L$2;
+        }
+      }
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql12encode__core4failGUsiiiEE(w, _M0DTPC15error5Error63actql_2factql_2fencode__core_2eEncodeFailure_2eInvalidStructure__);
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      h = _ok._0;
+    } else {
+      return _bind$2;
+    }
+  }
+  const _bind$2 = _M0FP35actql5actql12encode__core13finish__state(w);
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    _ok._0;
+  } else {
+    return _bind$2;
+  }
+  let hex;
+  let _try_err;
+  _L$2: {
+    _L$3: {
+      const _bind$3 = _M0FP35actql5actql6sha25611finish__hex(h);
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        hex = _ok._0;
+      } else {
+        const _err = _bind$3;
+        _try_err = _err._0;
+        break _L$3;
+      }
+      break _L$2;
+    }
+    if (_try_err.$tag === 4) {
+      const _bind$3 = _M0FP35actql5actql12encode__core4failGUsiiiEE(w, _M0DTPC15error5Error59actql_2factql_2fencode__core_2eEncodeFailure_2eClosedWriter__);
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        hex = _ok._0;
+      } else {
+        return _bind$3;
+      }
+    } else {
+      const _bind$3 = _M0FP35actql5actql12encode__core4failGUsiiiEE(w, _M0DTPC15error5Error58actql_2factql_2fencode__core_2eEncodeFailure_2eOutputLimit__);
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        hex = _ok._0;
+      } else {
+        return _bind$3;
+      }
+    }
+  }
+  return new _M0DTPC16result6ResultGUsiiiERP35actql5actql12encode__core13EncodeFailureE2Ok({ _0: hex, _1: w.max_bytes - w.remaining_bytes | 0, _2: w.max_nodes - w.remaining_nodes | 0, _3: w.peak_depth });
+}
+function _M0FP35actql5actql12encode__core19finish__hash__usage(w) {
+  const _bind = _M0FP35actql5actql12encode__core21finish__hash__metrics(w);
+  let _bind$2;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _bind$2 = _ok._0;
+  } else {
+    return _bind;
+  }
+  const _hash = _bind$2._0;
+  const _bytes = _bind$2._1;
+  const _nodes = _bind$2._2;
+  return new _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok({ _0: _hash, _1: _bytes, _2: _nodes });
+}
+function _M0FP35actql5actql18physical__manifest10valid__cid(value) {
+  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163, 0, _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163.length))) {
+    return false;
+  }
+  let _tmp = 7;
+  while (true) {
+    const index = _tmp;
+    if (index < 71) {
+      const unit = index >>> 0 < value.length ? value.charCodeAt(index) : $oob();
+      if (!(unit >= 48 && unit <= 57 || unit >= 97 && unit <= 102)) {
+        return false;
+      }
+      _tmp = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+function _M0FP35actql5actql18physical__manifest14emit__manifest(manifest, max_manifest_bytes) {
+  const nodes = (Math.imul(manifest.chunks.length, 4) | 0) + 16 | 0;
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql12encode__core6writer(max_manifest_bytes, nodes, 3);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        writer = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS384;
+  }
+  let _try_err$2;
+  _L$2: {
+    const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "chunks");
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$3 = _M0FP35actql5actql12encode__core12begin__array(writer);
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$4 = manifest.chunks;
+    const _bind$5 = _bind$4.length;
+    let _tmp = 0;
+    while (true) {
+      const _ = _tmp;
+      if (_ < _bind$5) {
+        const chunk = _bind$4[_];
+        const _bind$6 = _M0FP35actql5actql12encode__core13begin__object(writer);
+        if (_bind$6.$tag === 1) {
+          const _ok = _bind$6;
+          _ok._0;
+        } else {
+          const _err = _bind$6;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "byte_length");
+        if (_bind$7.$tag === 1) {
+          const _ok = _bind$7;
+          _ok._0;
+        } else {
+          const _err = _bind$7;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$8 = _M0FP35actql5actql12encode__core13number__value(writer, $f64_convert_i64(BigInt.asIntN(64, chunk.byte_length)));
+        if (_bind$8.$tag === 1) {
+          const _ok = _bind$8;
+          _ok._0;
+        } else {
+          const _err = _bind$8;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "cid");
+        if (_bind$9.$tag === 1) {
+          const _ok = _bind$9;
+          _ok._0;
+        } else {
+          const _err = _bind$9;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$10 = _M0FP35actql5actql12encode__core13string__value(writer, chunk.cid);
+        if (_bind$10.$tag === 1) {
+          const _ok = _bind$10;
+          _ok._0;
+        } else {
+          const _err = _bind$10;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
+        if (_bind$11.$tag === 1) {
+          const _ok = _bind$11;
+          _ok._0;
+        } else {
+          const _err = _bind$11;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$12 = _M0FP35actql5actql12encode__core13number__value(writer, chunk.row_count + 0);
+        if (_bind$12.$tag === 1) {
+          const _ok = _bind$12;
+          _ok._0;
+        } else {
+          const _err = _bind$12;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        const _bind$13 = _M0FP35actql5actql12encode__core11end__object(writer);
+        if (_bind$13.$tag === 1) {
+          const _ok = _bind$13;
+          _ok._0;
+        } else {
+          const _err = _bind$13;
+          _try_err$2 = _err._0;
+          break _L$2;
+        }
+        _tmp = _ + 1 | 0;
+        continue;
+      } else {
+        break;
+      }
+    }
+    const _bind$6 = _M0FP35actql5actql12encode__core10end__array(writer);
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "codec_contract_cid");
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$8 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.codec_contract_cid);
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$10 = _M0FP35actql5actql12encode__core13number__value(writer, manifest.row_count + 0);
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "schema_contract_cid");
+    if (_bind$11.$tag === 1) {
+      const _ok = _bind$11;
+      _ok._0;
+    } else {
+      const _err = _bind$11;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$12 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.schema_contract_cid);
+    if (_bind$12.$tag === 1) {
+      const _ok = _bind$12;
+      _ok._0;
+    } else {
+      const _err = _bind$12;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$13 = _M0FP35actql5actql12encode__core3key(writer, "version");
+    if (_bind$13.$tag === 1) {
+      const _ok = _bind$13;
+      _ok._0;
+    } else {
+      const _err = _bind$13;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$14 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-managed-physical-manifest/0.1");
+    if (_bind$14.$tag === 1) {
+      const _ok = _bind$14;
+      _ok._0;
+    } else {
+      const _err = _bind$14;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$15 = _M0FP35actql5actql12encode__core3key(writer, "view_contract_cid");
+    if (_bind$15.$tag === 1) {
+      const _ok = _bind$15;
+      _ok._0;
+    } else {
+      const _err = _bind$15;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$16 = _M0FP35actql5actql12encode__core13string__value(writer, manifest.view_contract_cid);
+    if (_bind$16.$tag === 1) {
+      const _ok = _bind$16;
+      _ok._0;
+    } else {
+      const _err = _bind$16;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$17 = _M0FP35actql5actql12encode__core11end__object(writer);
+    if (_bind$17.$tag === 1) {
+      const _ok = _bind$17;
+      _ok._0;
+    } else {
+      const _err = _bind$17;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    let _bind$18;
+    let _p;
+    _L$3: {
+      _L$4: {
+        const _bind$19 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
+        let _tmp$2;
+        if (_bind$19.$tag === 1) {
+          const _ok = _bind$19;
+          _tmp$2 = _ok._0;
+        } else {
+          const _err = _bind$19;
+          _p = _err._0;
+          break _L$4;
+        }
+        _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp$2._0);
+        break _L$3;
+      }
+      _bind$18 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+    }
+    let body;
+    if (_bind$18.$tag === 1) {
+      const _ok = _bind$18;
+      body = _ok._0;
+    } else {
+      const _err = _bind$18;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$19 = _M0FP35actql5actql6sha2569text__hex(body);
+    let hex;
+    if (_bind$19.$tag === 1) {
+      const _Ok = _bind$19;
+      hex = _Ok._0;
+    } else {
+      return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS387;
+    }
+    return new _M0DTPC16result6ResultGUssiERP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok({ _0: body, _1: `sha256:${hex}`, _2: body.length });
+  }
+  if (_try_err$2.$tag === 6) {
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS385;
+  } else {
+    return _M0FP35actql5actql18physical__manifest14emit__manifestN6constrS386;
+  }
+}
+function _M0FP35actql5actql18physical__manifest5admit(version, schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  let _tmp;
+  const _p = "actql-managed-physical-manifest/0.1";
+  if (!(version === _p)) {
+    _tmp = true;
+  } else {
+    _tmp = max_chunks < 0 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || (row_count < 0 || (!_M0FP35actql5actql18physical__manifest10valid__cid(schema_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(view_contract_cid) || (!_M0FP35actql5actql18physical__manifest10valid__cid(codec_contract_cid) || (chunk_cids.length !== chunk_byte_lengths.length || chunk_cids.length !== chunk_row_counts.length)))))));
+  }
+  if (_tmp) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS388;
+  }
+  if (chunk_cids.length > max_chunks) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS389;
+  }
+  let rows = 0n;
+  let referenced = 0n;
+  const chunks = [];
+  const _bind = chunk_cids.length;
+  let _tmp$2 = 0;
+  while (true) {
+    const index = _tmp$2;
+    if (index < _bind) {
+      const cid = chunk_cids[index];
+      const bytes = _M0MPC15array5Array2atGsE(chunk_byte_lengths, index);
+      const chunk_rows = _M0MPC15array5Array2atGiE(chunk_row_counts, index);
+      if (!_M0FP35actql5actql18physical__manifest10valid__cid(cid) || (!(BigInt.asIntN(64, bytes) >= BigInt.asIntN(64, 0n) && BigInt.asIntN(64, bytes) <= BigInt.asIntN(64, 9007199254740991n)) || chunk_rows < 0)) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS390;
+      }
+      const chunk_rows64 = BigInt.asUintN(64, BigInt(chunk_rows));
+      if (BigInt.asIntN(64, rows) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - chunk_rows64)) || BigInt.asIntN(64, referenced) > BigInt.asIntN(64, BigInt.asUintN(64, 9007199254740991n - bytes))) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS391;
+      }
+      rows = BigInt.asUintN(64, rows + chunk_rows64);
+      referenced = BigInt.asUintN(64, referenced + bytes);
+      if (BigInt.asIntN(64, referenced) > BigInt.asIntN(64, max_referenced_bytes)) {
+        return _M0FP35actql5actql18physical__manifest5admitN6constrS392;
+      }
+      _M0MPC15array5Array4pushGsE(chunks, new _M0TP35actql5actql18physical__manifest13PhysicalChunk(cid, bytes, chunk_rows));
+      _tmp$2 = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  if (BigInt.asUintN(64, rows) !== BigInt.asUintN(64, BigInt.asUintN(64, BigInt(row_count)))) {
+    return _M0FP35actql5actql18physical__manifest5admitN6constrS393;
+  }
+  const pending = new _M0TP35actql5actql18physical__manifest16PhysicalManifest(schema_contract_cid, view_contract_cid, codec_contract_cid, row_count, chunks, "pending", 0, referenced);
+  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(pending, max_manifest_bytes);
+  let _bind$3;
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    _bind$3 = _Ok._0;
+  } else {
+    const _Err = _bind$2;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+  const _manifest_cid = _bind$3._1;
+  const _metadata_bytes = _bind$3._2;
+  return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(new _M0TP35actql5actql18physical__manifest16PhysicalManifest(pending.schema_contract_cid, pending.view_contract_cid, pending.codec_contract_cid, pending.row_count, pending.chunks, _manifest_cid, _metadata_bytes, pending.referenced_bytes));
+}
+function _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(value) {
+  if (value.$tag === 1) {
+    const _Ok = value;
+    const _result = _Ok._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(_result);
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+}
+function _M0FP35actql5actql18physical__manifest14manifest__text(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  return _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core4text(_tmp));
+}
+function _M0FP35actql5actql18physical__manifest17manifest__count64(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core13safe__integer(_tmp));
+  let value;
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    value = _ok._0;
+  } else {
+    return _bind$2;
+  }
+  if (BigInt.asIntN(64, value) < BigInt.asIntN(64, 0n) || BigInt.asIntN(64, value) > BigInt.asIntN(64, 9007199254740991n)) {
+    return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGlRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(value);
+}
+function _M0FP35actql5actql18physical__manifest15manifest__count(object, key) {
+  const _bind = _M0FP35actql5actql18physical__manifest17manifest__count64(object, key);
+  let value;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    value = _ok._0;
+  } else {
+    return _bind;
+  }
+  if (BigInt.asIntN(64, value) > BigInt.asIntN(64, 2147483647n)) {
+    return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE3Err(_M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGiRP35actql5actql18physical__manifest26PhysicalManifestDecodeStopE2Ok(Number(BigInt.asIntN(32, value)) | 0);
+}
+function _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest) {
+  const chunks = manifest.chunks;
+  const _tmp = manifest.schema_contract_cid;
+  const _tmp$2 = manifest.view_contract_cid;
+  const _tmp$3 = manifest.codec_contract_cid;
+  const _tmp$4 = manifest.row_count;
+  const _p = new Array(chunks.length);
+  const _p$2 = chunks.length;
+  let _tmp$5 = 0;
+  while (true) {
+    const _p$3 = _tmp$5;
+    if (_p$3 < _p$2) {
+      const _p$4 = chunks[_p$3];
+      _p[_p$3] = _p$4.cid;
+      _tmp$5 = _p$3 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$3 = new Array(chunks.length);
+  const _p$4 = chunks.length;
+  let _tmp$6 = 0;
+  while (true) {
+    const _p$5 = _tmp$6;
+    if (_p$5 < _p$4) {
+      const _p$6 = chunks[_p$5];
+      _p$3[_p$5] = _p$6.byte_length;
+      _tmp$6 = _p$5 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$5 = new Array(chunks.length);
+  const _p$6 = chunks.length;
+  let _tmp$7 = 0;
+  while (true) {
+    const _p$7 = _tmp$7;
+    if (_p$7 < _p$6) {
+      const _p$8 = chunks[_p$7];
+      _p$5[_p$7] = _p$8.row_count;
+      _tmp$7 = _p$7 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const rebuilt = _M0FP35actql5actql18physical__manifest5admit("actql-managed-physical-manifest/0.1", _tmp, _tmp$2, _tmp$3, _tmp$4, _p, _p$3, _p$5, chunks.length, manifest.metadata_bytes, manifest.referenced_bytes);
+  if (rebuilt.$tag === 1) {
+    const _Ok = rebuilt;
+    const _value = _Ok._0;
+    return _value.manifest_cid === manifest.manifest_cid && (_value.metadata_bytes === manifest.metadata_bytes && BigInt.asUintN(64, _value.referenced_bytes) === BigInt.asUintN(64, manifest.referenced_bytes)) ? new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_value) : _M0FP35actql5actql18physical__manifest17rebuild__manifestN6constrS394;
+  } else {
+    const _Err = rebuilt;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql18physical__manifest14manifest__json(manifest) {
+  const _bind = _M0FP35actql5actql18physical__manifest17rebuild__manifest(manifest);
+  let admitted;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    admitted = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+  const _bind$2 = _M0FP35actql5actql18physical__manifest14emit__manifest(admitted, admitted.metadata_bytes);
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    const _x = _Ok._0;
+    const _body = _x._0;
+    const _cid = _x._1;
+    const _bytes = _x._2;
+    return _cid === admitted.manifest_cid && _bytes === admitted.metadata_bytes ? new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(_body) : _M0FP35actql5actql18physical__manifest14manifest__jsonN6constrS395;
+  } else {
+    const _Err = _bind$2;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql18physical__manifest11admit__json(body, claimed_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  if (max_chunks < 0 || (max_chunks > 536870907 || (max_manifest_bytes < 0 || (BigInt.asIntN(64, max_referenced_bytes) < BigInt.asIntN(64, 0n) || body.length > max_manifest_bytes)))) {
+    return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS396;
+  }
+  let _try_err;
+  _L: {
+    const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
+    const max_nodes = (Math.imul(max_chunks, 4) | 0) + 16 | 0;
+    const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, new _M0TP35actql5actql13source__value11ParseLimits(max_manifest_bytes, max_nodes, 3), "<memory>");
+    let node;
+    if (_bind.$tag === 1) {
+      const _Ok = _bind;
+      node = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, new _M0TP35actql5actql12decode__core6Limits(max_nodes, 3, max_manifest_bytes, max_manifest_bytes)));
+    let cursor;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      cursor = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$3 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(cursor, ["chunks", "codec_contract_cid", "row_count", "schema_contract_cid", "version", "view_contract_cid"]));
+    let object;
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      object = _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$4 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, "chunks"));
+    let chunks_cursor;
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      chunks_cursor = _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$5 = _M0FP35actql5actql12decode__core13array__length(chunks_cursor);
+    let chunk_count;
+    if (_bind$5 === undefined) {
+      _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+      break _L;
+    } else {
+      const _Some = _bind$5;
+      chunk_count = _Some;
+    }
+    if (chunk_count > max_chunks) {
+      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS398;
+    }
+    const chunk_cids = [];
+    const chunk_byte_lengths = [];
+    const chunk_row_counts = [];
+    let _tmp = 0;
+    while (true) {
+      const index = _tmp;
+      if (index < chunk_count) {
+        const _bind$6 = _M0FP35actql5actql12decode__core11element__at(chunks_cursor, index);
+        let chunk_cursor;
+        if (_bind$6 === undefined) {
+          _try_err = _M0DTPC15error5Error92actql_2factql_2fphysical__manifest_2ePhysicalManifestDecodeStop_2ePhysicalManifestDecodeStop__;
+          break _L;
+        } else {
+          const _Some = _bind$6;
+          chunk_cursor = _Some;
+        }
+        const _bind$7 = _M0FP35actql5actql18physical__manifest17manifest__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(chunk_cursor, ["byte_length", "cid", "row_count"]));
+        let chunk;
+        if (_bind$7.$tag === 1) {
+          const _ok = _bind$7;
+          chunk = _ok._0;
+        } else {
+          const _err = _bind$7;
+          _try_err = _err._0;
+          break _L;
+        }
+        const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(chunk, "cid");
+        let _tmp$2;
+        if (_bind$8.$tag === 1) {
+          const _ok = _bind$8;
+          _tmp$2 = _ok._0;
+        } else {
+          const _err = _bind$8;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGsE(chunk_cids, _tmp$2);
+        const _bind$9 = _M0FP35actql5actql18physical__manifest17manifest__count64(chunk, "byte_length");
+        let _tmp$3;
+        if (_bind$9.$tag === 1) {
+          const _ok = _bind$9;
+          _tmp$3 = _ok._0;
+        } else {
+          const _err = _bind$9;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGsE(chunk_byte_lengths, _tmp$3);
+        const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(chunk, "row_count");
+        let _tmp$4;
+        if (_bind$10.$tag === 1) {
+          const _ok = _bind$10;
+          _tmp$4 = _ok._0;
+        } else {
+          const _err = _bind$10;
+          _try_err = _err._0;
+          break _L;
+        }
+        _M0MPC15array5Array4pushGiE(chunk_row_counts, _tmp$4);
+        _tmp = index + 1 | 0;
+        continue;
+      } else {
+        break;
+      }
+    }
+    const _bind$6 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "version");
+    let _tmp$2;
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _tmp$2 = _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$3 = _tmp$2;
+    const _bind$7 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "schema_contract_cid");
+    let _tmp$4;
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _tmp$4 = _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$5 = _tmp$4;
+    const _bind$8 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "view_contract_cid");
+    let _tmp$6;
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _tmp$6 = _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$7 = _tmp$6;
+    const _bind$9 = _M0FP35actql5actql18physical__manifest14manifest__text(object, "codec_contract_cid");
+    let _tmp$8;
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _tmp$8 = _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$9 = _tmp$8;
+    const _bind$10 = _M0FP35actql5actql18physical__manifest15manifest__count(object, "row_count");
+    let _tmp$10;
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _tmp$10 = _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$11 = _M0FP35actql5actql18physical__manifest5admit(_tmp$3, _tmp$5, _tmp$7, _tmp$9, _tmp$10, chunk_cids, chunk_byte_lengths, chunk_row_counts, max_chunks, max_manifest_bytes, max_referenced_bytes);
+    let admitted;
+    if (_bind$11.$tag === 1) {
+      const _Ok = _bind$11;
+      admitted = _Ok._0;
+    } else {
+      const _Err = _bind$11;
+      const _issue = _Err._0;
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+    }
+    const _bind$12 = _M0FP35actql5actql18physical__manifest14manifest__json(admitted);
+    let canonical;
+    if (_bind$12.$tag === 1) {
+      const _Ok = _bind$12;
+      canonical = _Ok._0;
+    } else {
+      const _Err = _bind$12;
+      const _issue = _Err._0;
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE3Err(_issue);
+    }
+    let _tmp$11;
+    if (!(canonical === body)) {
+      _tmp$11 = true;
+    } else {
+      const _p = admitted.manifest_cid;
+      _tmp$11 = !(_p === claimed_cid);
+    }
+    if (_tmp$11) {
+      return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS399;
+    } else {
+      return new _M0DTPC16result6ResultGRP35actql5actql18physical__manifest16PhysicalManifestRP35actql5actql18physical__manifest21PhysicalManifestIssueE2Ok(admitted);
+    }
+  }
+  return _M0FP35actql5actql18physical__manifest11admit__jsonN6constrS397;
+}
+function _M0FP35actql5actql20publication__payload18valid__sha256__cid(value) {
+  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187, 0, _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS187.length))) {
+    return false;
+  }
+  let _tmp = 7;
+  while (true) {
+    const index = _tmp;
+    if (index < 71) {
+      const character = index >>> 0 < value.length ? value.charCodeAt(index) : $oob();
+      if (!(character >= 48 && character <= 57 || character >= 97 && character <= 102)) {
+        return false;
+      }
+      _tmp = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+function _M0FP35actql5actql20publication__payload22emit__payload__request(store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid, logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid, max_bytes, row_count) {
+  if (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(store_authority_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(publication_attempt_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(material_generation_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(result_definition_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(logical_relation_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(result_schema_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(ordering_evidence_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(durable_codec_cid) || (BigInt.asIntN(64, max_bytes) <= BigInt.asIntN(64, 0n) || BigInt.asIntN(64, row_count) < BigInt.asIntN(64, 0n)))))))))) {
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS382;
+  }
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql12encode__core15hashing__writer(32768, 64, 2);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        writer = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS383;
+  }
+  let _try_err$2;
+  _L$2: {
+    _L$3: {
+      const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "durable_codec_cid");
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$3 = _M0FP35actql5actql12encode__core13string__value(writer, durable_codec_cid);
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        _ok._0;
+      } else {
+        const _err = _bind$3;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$4 = _M0FP35actql5actql12encode__core3key(writer, "logical_relation_cid");
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$5 = _M0FP35actql5actql12encode__core13string__value(writer, logical_relation_cid);
+      if (_bind$5.$tag === 1) {
+        const _ok = _bind$5;
+        _ok._0;
+      } else {
+        const _err = _bind$5;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$6 = _M0FP35actql5actql12encode__core3key(writer, "material_generation_cid");
+      if (_bind$6.$tag === 1) {
+        const _ok = _bind$6;
+        _ok._0;
+      } else {
+        const _err = _bind$6;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$7 = _M0FP35actql5actql12encode__core13string__value(writer, material_generation_cid);
+      if (_bind$7.$tag === 1) {
+        const _ok = _bind$7;
+        _ok._0;
+      } else {
+        const _err = _bind$7;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$8 = _M0FP35actql5actql12encode__core3key(writer, "max_bytes");
+      if (_bind$8.$tag === 1) {
+        const _ok = _bind$8;
+        _ok._0;
+      } else {
+        const _err = _bind$8;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$9 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(max_bytes, 10));
+      if (_bind$9.$tag === 1) {
+        const _ok = _bind$9;
+        _ok._0;
+      } else {
+        const _err = _bind$9;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$10 = _M0FP35actql5actql12encode__core3key(writer, "ordering_evidence_cid");
+      if (_bind$10.$tag === 1) {
+        const _ok = _bind$10;
+        _ok._0;
+      } else {
+        const _err = _bind$10;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$11 = _M0FP35actql5actql12encode__core13string__value(writer, ordering_evidence_cid);
+      if (_bind$11.$tag === 1) {
+        const _ok = _bind$11;
+        _ok._0;
+      } else {
+        const _err = _bind$11;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$12 = _M0FP35actql5actql12encode__core3key(writer, "publication_attempt_cid");
+      if (_bind$12.$tag === 1) {
+        const _ok = _bind$12;
+        _ok._0;
+      } else {
+        const _err = _bind$12;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$13 = _M0FP35actql5actql12encode__core13string__value(writer, publication_attempt_cid);
+      if (_bind$13.$tag === 1) {
+        const _ok = _bind$13;
+        _ok._0;
+      } else {
+        const _err = _bind$13;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$14 = _M0FP35actql5actql12encode__core3key(writer, "result_definition_cid");
+      if (_bind$14.$tag === 1) {
+        const _ok = _bind$14;
+        _ok._0;
+      } else {
+        const _err = _bind$14;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$15 = _M0FP35actql5actql12encode__core13string__value(writer, result_definition_cid);
+      if (_bind$15.$tag === 1) {
+        const _ok = _bind$15;
+        _ok._0;
+      } else {
+        const _err = _bind$15;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$16 = _M0FP35actql5actql12encode__core3key(writer, "result_schema_cid");
+      if (_bind$16.$tag === 1) {
+        const _ok = _bind$16;
+        _ok._0;
+      } else {
+        const _err = _bind$16;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$17 = _M0FP35actql5actql12encode__core13string__value(writer, result_schema_cid);
+      if (_bind$17.$tag === 1) {
+        const _ok = _bind$17;
+        _ok._0;
+      } else {
+        const _err = _bind$17;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$18 = _M0FP35actql5actql12encode__core3key(writer, "row_count");
+      if (_bind$18.$tag === 1) {
+        const _ok = _bind$18;
+        _ok._0;
+      } else {
+        const _err = _bind$18;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$19 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(row_count, 10));
+      if (_bind$19.$tag === 1) {
+        const _ok = _bind$19;
+        _ok._0;
+      } else {
+        const _err = _bind$19;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$20 = _M0FP35actql5actql12encode__core3key(writer, "store_authority_cid");
+      if (_bind$20.$tag === 1) {
+        const _ok = _bind$20;
+        _ok._0;
+      } else {
+        const _err = _bind$20;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$21 = _M0FP35actql5actql12encode__core13string__value(writer, store_authority_cid);
+      if (_bind$21.$tag === 1) {
+        const _ok = _bind$21;
+        _ok._0;
+      } else {
+        const _err = _bind$21;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$22 = _M0FP35actql5actql12encode__core3key(writer, "version");
+      if (_bind$22.$tag === 1) {
+        const _ok = _bind$22;
+        _ok._0;
+      } else {
+        const _err = _bind$22;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$23 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-publication-payload-request/0.1");
+      if (_bind$23.$tag === 1) {
+        const _ok = _bind$23;
+        _ok._0;
+      } else {
+        const _err = _bind$23;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$24 = _M0FP35actql5actql12encode__core11end__object(writer);
+      if (_bind$24.$tag === 1) {
+        const _ok = _bind$24;
+        _ok._0;
+      } else {
+        const _err = _bind$24;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      break _L$2;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS384;
+  }
+  let _bind;
+  let _try_err$3;
+  _L$3: {
+    _L$4: {
+      const _bind$2 = _M0FP35actql5actql12encode__core19finish__hash__usage(writer);
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        _bind = _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$3 = _err._0;
+        break _L$4;
+      }
+      break _L$3;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS385;
+  }
+  const _digest = _bind._0;
+  let body_writer;
+  let _try_err$4;
+  _L$4: {
+    _L$5: {
+      const _bind$2 = _M0FP35actql5actql12encode__core6writer(32768, 64, 2);
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        body_writer = _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$4 = _err._0;
+        break _L$5;
+      }
+      break _L$4;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS386;
+  }
+  let _try_err$5;
+  _L$5: {
+    _L$6: {
+      const _bind$2 = _M0FP35actql5actql12encode__core13begin__object(body_writer);
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$3 = _M0FP35actql5actql12encode__core3key(body_writer, "durable_codec_cid");
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        _ok._0;
+      } else {
+        const _err = _bind$3;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$4 = _M0FP35actql5actql12encode__core13string__value(body_writer, durable_codec_cid);
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$5 = _M0FP35actql5actql12encode__core3key(body_writer, "logical_relation_cid");
+      if (_bind$5.$tag === 1) {
+        const _ok = _bind$5;
+        _ok._0;
+      } else {
+        const _err = _bind$5;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$6 = _M0FP35actql5actql12encode__core13string__value(body_writer, logical_relation_cid);
+      if (_bind$6.$tag === 1) {
+        const _ok = _bind$6;
+        _ok._0;
+      } else {
+        const _err = _bind$6;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$7 = _M0FP35actql5actql12encode__core3key(body_writer, "material_generation_cid");
+      if (_bind$7.$tag === 1) {
+        const _ok = _bind$7;
+        _ok._0;
+      } else {
+        const _err = _bind$7;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$8 = _M0FP35actql5actql12encode__core13string__value(body_writer, material_generation_cid);
+      if (_bind$8.$tag === 1) {
+        const _ok = _bind$8;
+        _ok._0;
+      } else {
+        const _err = _bind$8;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$9 = _M0FP35actql5actql12encode__core3key(body_writer, "max_bytes");
+      if (_bind$9.$tag === 1) {
+        const _ok = _bind$9;
+        _ok._0;
+      } else {
+        const _err = _bind$9;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$10 = _M0FP35actql5actql12encode__core13string__value(body_writer, _M0MPC15int645Int6418to__string_2einner(max_bytes, 10));
+      if (_bind$10.$tag === 1) {
+        const _ok = _bind$10;
+        _ok._0;
+      } else {
+        const _err = _bind$10;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$11 = _M0FP35actql5actql12encode__core3key(body_writer, "ordering_evidence_cid");
+      if (_bind$11.$tag === 1) {
+        const _ok = _bind$11;
+        _ok._0;
+      } else {
+        const _err = _bind$11;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$12 = _M0FP35actql5actql12encode__core13string__value(body_writer, ordering_evidence_cid);
+      if (_bind$12.$tag === 1) {
+        const _ok = _bind$12;
+        _ok._0;
+      } else {
+        const _err = _bind$12;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$13 = _M0FP35actql5actql12encode__core3key(body_writer, "publication_attempt_cid");
+      if (_bind$13.$tag === 1) {
+        const _ok = _bind$13;
+        _ok._0;
+      } else {
+        const _err = _bind$13;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$14 = _M0FP35actql5actql12encode__core13string__value(body_writer, publication_attempt_cid);
+      if (_bind$14.$tag === 1) {
+        const _ok = _bind$14;
+        _ok._0;
+      } else {
+        const _err = _bind$14;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$15 = _M0FP35actql5actql12encode__core3key(body_writer, "result_definition_cid");
+      if (_bind$15.$tag === 1) {
+        const _ok = _bind$15;
+        _ok._0;
+      } else {
+        const _err = _bind$15;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$16 = _M0FP35actql5actql12encode__core13string__value(body_writer, result_definition_cid);
+      if (_bind$16.$tag === 1) {
+        const _ok = _bind$16;
+        _ok._0;
+      } else {
+        const _err = _bind$16;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$17 = _M0FP35actql5actql12encode__core3key(body_writer, "result_schema_cid");
+      if (_bind$17.$tag === 1) {
+        const _ok = _bind$17;
+        _ok._0;
+      } else {
+        const _err = _bind$17;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$18 = _M0FP35actql5actql12encode__core13string__value(body_writer, result_schema_cid);
+      if (_bind$18.$tag === 1) {
+        const _ok = _bind$18;
+        _ok._0;
+      } else {
+        const _err = _bind$18;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$19 = _M0FP35actql5actql12encode__core3key(body_writer, "row_count");
+      if (_bind$19.$tag === 1) {
+        const _ok = _bind$19;
+        _ok._0;
+      } else {
+        const _err = _bind$19;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$20 = _M0FP35actql5actql12encode__core13string__value(body_writer, _M0MPC15int645Int6418to__string_2einner(row_count, 10));
+      if (_bind$20.$tag === 1) {
+        const _ok = _bind$20;
+        _ok._0;
+      } else {
+        const _err = _bind$20;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$21 = _M0FP35actql5actql12encode__core3key(body_writer, "store_authority_cid");
+      if (_bind$21.$tag === 1) {
+        const _ok = _bind$21;
+        _ok._0;
+      } else {
+        const _err = _bind$21;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$22 = _M0FP35actql5actql12encode__core13string__value(body_writer, store_authority_cid);
+      if (_bind$22.$tag === 1) {
+        const _ok = _bind$22;
+        _ok._0;
+      } else {
+        const _err = _bind$22;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$23 = _M0FP35actql5actql12encode__core3key(body_writer, "version");
+      if (_bind$23.$tag === 1) {
+        const _ok = _bind$23;
+        _ok._0;
+      } else {
+        const _err = _bind$23;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$24 = _M0FP35actql5actql12encode__core13string__value(body_writer, "actql-publication-payload-request/0.1");
+      if (_bind$24.$tag === 1) {
+        const _ok = _bind$24;
+        _ok._0;
+      } else {
+        const _err = _bind$24;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      const _bind$25 = _M0FP35actql5actql12encode__core11end__object(body_writer);
+      if (_bind$25.$tag === 1) {
+        const _ok = _bind$25;
+        _ok._0;
+      } else {
+        const _err = _bind$25;
+        _try_err$5 = _err._0;
+        break _L$6;
+      }
+      break _L$5;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS387;
+  }
+  let body;
+  let _try_err$6;
+  _L$6: {
+    _L$7: {
+      let _bind$2;
+      let _p;
+      _L$8: {
+        _L$9: {
+          const _bind$3 = _M0FP35actql5actql12encode__core19finish__text__usage(body_writer);
+          let _tmp;
+          if (_bind$3.$tag === 1) {
+            const _ok = _bind$3;
+            _tmp = _ok._0;
+          } else {
+            const _err = _bind$3;
+            _p = _err._0;
+            break _L$9;
+          }
+          _bind$2 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp._0);
+          break _L$8;
+        }
+        _bind$2 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+      }
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        body = _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$6 = _err._0;
+        break _L$7;
+      }
+      break _L$6;
+    }
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS388;
+  }
+  return new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok({ _0: body, _1: `sha256:${_digest}` });
+}
+function _M0FP35actql5actql20publication__payload38prepare__publication__payload__request(store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid, logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid, max_bytes, row_count) {
+  const _bind = _M0FP35actql5actql20publication__payload22emit__payload__request(store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid, logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid, max_bytes, row_count);
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    const _x = _Ok._0;
+    const _body = _x._0;
+    const _request_cid = _x._1;
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(new _M0TP35actql5actql20publication__payload25PublicationPayloadRequest(store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid, logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid, max_bytes, row_count, _request_cid, _body));
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql20publication__payload35publication__payload__request__json(request) {
+  _L: {
+    const _bind = _M0FP35actql5actql20publication__payload22emit__payload__request(request.store_authority_cid, request.publication_attempt_cid, request.material_generation_cid, request.result_definition_cid, request.logical_relation_cid, request.result_schema_cid, request.ordering_evidence_cid, request.durable_codec_cid, request.max_bytes, request.row_count);
+    if (_bind.$tag === 1) {
+      const _Ok = _bind;
+      const _x = _Ok._0;
+      const _body = _x._0;
+      const _identity = _x._1;
+      if (_body === request.body && _identity === request.request_cid) {
+        return new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_body);
+      } else {
+        break _L;
+      }
+    } else {
+      break _L;
+    }
+  }
+  return _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS389;
+}
+function _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(value) {
+  if (value.$tag === 1) {
+    const _Ok = value;
+    const _result = _Ok._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE2Ok(_result);
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+  }
+}
+function _M0FP35actql5actql20publication__payload4text(object, key) {
+  const _bind = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  return _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core4text(_tmp));
+}
+function _M0FP35actql5actql20publication__payload10parse__i64(value) {
+  let _try_err;
+  _L: {
+    const _bind = _M0IPC15int645Int64PC16string7FromStr9from__str(new _M0TPC16string10StringView(value, 0, value.length));
+    let _tmp;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _tmp = _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err = _err._0;
+      break _L;
+    }
+    return new _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE2Ok(_tmp);
+  }
+  return new _M0DTPC16result6ResultGlRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+}
+function _M0FP35actql5actql20publication__payload20admit__request__json(body) {
+  const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
+  const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS405, "<memory>");
+  let node;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    node = _Ok._0;
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+  }
+  const _bind$2 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS406));
+  let cursor;
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    cursor = _ok._0;
+  } else {
+    return _bind$2;
+  }
+  const _bind$3 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(cursor, ["durable_codec_cid", "logical_relation_cid", "material_generation_cid", "max_bytes", "ordering_evidence_cid", "publication_attempt_cid", "result_definition_cid", "result_schema_cid", "row_count", "store_authority_cid", "version"]));
+  let object;
+  if (_bind$3.$tag === 1) {
+    const _ok = _bind$3;
+    object = _ok._0;
+  } else {
+    return _bind$3;
+  }
+  const _bind$4 = _M0FP35actql5actql20publication__payload4text(object, "version");
+  let _p;
+  if (_bind$4.$tag === 1) {
+    const _ok = _bind$4;
+    _p = _ok._0;
+  } else {
+    return _bind$4;
+  }
+  const _p$2 = "actql-publication-payload-request/0.1";
+  if (!(_p === _p$2)) {
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+  }
+  const _bind$5 = _M0FP35actql5actql20publication__payload4text(object, "store_authority_cid");
+  let _tmp;
+  if (_bind$5.$tag === 1) {
+    const _ok = _bind$5;
+    _tmp = _ok._0;
+  } else {
+    return _bind$5;
+  }
+  const _tmp$2 = _tmp;
+  const _bind$6 = _M0FP35actql5actql20publication__payload4text(object, "publication_attempt_cid");
+  let _tmp$3;
+  if (_bind$6.$tag === 1) {
+    const _ok = _bind$6;
+    _tmp$3 = _ok._0;
+  } else {
+    return _bind$6;
+  }
+  const _tmp$4 = _tmp$3;
+  const _bind$7 = _M0FP35actql5actql20publication__payload4text(object, "material_generation_cid");
+  let _tmp$5;
+  if (_bind$7.$tag === 1) {
+    const _ok = _bind$7;
+    _tmp$5 = _ok._0;
+  } else {
+    return _bind$7;
+  }
+  const _tmp$6 = _tmp$5;
+  const _bind$8 = _M0FP35actql5actql20publication__payload4text(object, "result_definition_cid");
+  let _tmp$7;
+  if (_bind$8.$tag === 1) {
+    const _ok = _bind$8;
+    _tmp$7 = _ok._0;
+  } else {
+    return _bind$8;
+  }
+  const _tmp$8 = _tmp$7;
+  const _bind$9 = _M0FP35actql5actql20publication__payload4text(object, "logical_relation_cid");
+  let _tmp$9;
+  if (_bind$9.$tag === 1) {
+    const _ok = _bind$9;
+    _tmp$9 = _ok._0;
+  } else {
+    return _bind$9;
+  }
+  const _tmp$10 = _tmp$9;
+  const _bind$10 = _M0FP35actql5actql20publication__payload4text(object, "result_schema_cid");
+  let _tmp$11;
+  if (_bind$10.$tag === 1) {
+    const _ok = _bind$10;
+    _tmp$11 = _ok._0;
+  } else {
+    return _bind$10;
+  }
+  const _tmp$12 = _tmp$11;
+  const _bind$11 = _M0FP35actql5actql20publication__payload4text(object, "ordering_evidence_cid");
+  let _tmp$13;
+  if (_bind$11.$tag === 1) {
+    const _ok = _bind$11;
+    _tmp$13 = _ok._0;
+  } else {
+    return _bind$11;
+  }
+  const _tmp$14 = _tmp$13;
+  const _bind$12 = _M0FP35actql5actql20publication__payload4text(object, "durable_codec_cid");
+  let _tmp$15;
+  if (_bind$12.$tag === 1) {
+    const _ok = _bind$12;
+    _tmp$15 = _ok._0;
+  } else {
+    return _bind$12;
+  }
+  const _tmp$16 = _tmp$15;
+  const _bind$13 = _M0FP35actql5actql20publication__payload4text(object, "max_bytes");
+  let _tmp$17;
+  if (_bind$13.$tag === 1) {
+    const _ok = _bind$13;
+    _tmp$17 = _ok._0;
+  } else {
+    return _bind$13;
+  }
+  const _bind$14 = _M0FP35actql5actql20publication__payload10parse__i64(_tmp$17);
+  let _tmp$18;
+  if (_bind$14.$tag === 1) {
+    const _ok = _bind$14;
+    _tmp$18 = _ok._0;
+  } else {
+    return _bind$14;
+  }
+  const _tmp$19 = _tmp$18;
+  const _bind$15 = _M0FP35actql5actql20publication__payload4text(object, "row_count");
+  let _tmp$20;
+  if (_bind$15.$tag === 1) {
+    const _ok = _bind$15;
+    _tmp$20 = _ok._0;
+  } else {
+    return _bind$15;
+  }
+  const _bind$16 = _M0FP35actql5actql20publication__payload10parse__i64(_tmp$20);
+  let _tmp$21;
+  if (_bind$16.$tag === 1) {
+    const _ok = _bind$16;
+    _tmp$21 = _ok._0;
+  } else {
+    return _bind$16;
+  }
+  const _bind$17 = _M0FP35actql5actql20publication__payload38prepare__publication__payload__request(_tmp$2, _tmp$4, _tmp$6, _tmp$8, _tmp$10, _tmp$12, _tmp$14, _tmp$16, _tmp$19, _tmp$21);
+  let request;
+  if (_bind$17.$tag === 1) {
+    const _Ok = _bind$17;
+    request = _Ok._0;
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+  }
+  const _p$3 = request.body;
+  if (!(_p$3 === body)) {
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
+  }
+  return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE2Ok(request);
+}
+function _M0FP35actql5actql20publication__payload42admit__publication__payload__request__json(body, claimed_request_cid) {
+  let _try_err;
+  _L: {
+    const _bind = _M0FP35actql5actql20publication__payload20admit__request__json(body);
+    let request;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      request = _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _p = request.request_cid;
+    if (!(_p === claimed_request_cid)) {
+      _try_err = _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__;
+      break _L;
+    }
+    return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(request);
+  }
+  return _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS407;
+}
+function _M0IP35actql5actql16remote__transfer19RemoteTransferIssuePB2Eq5equal(_x_576, _x_577) {
+  switch (_x_576) {
+    case 0: {
+      if (_x_577 === 0) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    case 1: {
+      if (_x_577 === 1) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    default: {
+      if (_x_577 === 2) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+}
+function _M0FP35actql5actql16remote__transfer11route__name(route) {
+  if (route === 0) {
+    return "direct";
+  } else {
+    return "store";
+  }
+}
+function _M0FP35actql5actql16remote__transfer19emit__request__body(request) {
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql12encode__core6writer(16384, 48, 2);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        writer = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1403;
+  }
+  let _try_err$2;
+  _L$2: {
+    const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "codec_contract_cid");
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$3 = _M0FP35actql5actql12encode__core13string__value(writer, request.codec_contract_cid);
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$4 = _M0FP35actql5actql12encode__core3key(writer, "coordinator_authority");
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$5 = _M0FP35actql5actql12encode__core13string__value(writer, request.coordinator_authority);
+    if (_bind$5.$tag === 1) {
+      const _ok = _bind$5;
+      _ok._0;
+    } else {
+      const _err = _bind$5;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$6 = _M0FP35actql5actql12encode__core3key(writer, "destination_grant_cid");
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$7 = _M0FP35actql5actql12encode__core13string__value(writer, request.destination_grant_cid);
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$8 = _M0FP35actql5actql12encode__core3key(writer, "destination_site_generation");
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$9 = _M0FP35actql5actql12encode__core13number__value(writer, request.destination_site_generation + 0);
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$10 = _M0FP35actql5actql12encode__core3key(writer, "destination_site_key");
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$11 = _M0FP35actql5actql12encode__core13string__value(writer, request.destination_site_key);
+    if (_bind$11.$tag === 1) {
+      const _ok = _bind$11;
+      _ok._0;
+    } else {
+      const _err = _bind$11;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$12 = _M0FP35actql5actql12encode__core3key(writer, "expires_unix_ms");
+    if (_bind$12.$tag === 1) {
+      const _ok = _bind$12;
+      _ok._0;
+    } else {
+      const _err = _bind$12;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$13 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(request.expires_unix_ms, 10));
+    if (_bind$13.$tag === 1) {
+      const _ok = _bind$13;
+      _ok._0;
+    } else {
+      const _err = _bind$13;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$14 = _M0FP35actql5actql12encode__core3key(writer, "max_bytes");
+    if (_bind$14.$tag === 1) {
+      const _ok = _bind$14;
+      _ok._0;
+    } else {
+      const _err = _bind$14;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$15 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(request.max_bytes, 10));
+    if (_bind$15.$tag === 1) {
+      const _ok = _bind$15;
+      _ok._0;
+    } else {
+      const _err = _bind$15;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$16 = _M0FP35actql5actql12encode__core3key(writer, "physical_manifest_cid");
+    if (_bind$16.$tag === 1) {
+      const _ok = _bind$16;
+      _ok._0;
+    } else {
+      const _err = _bind$16;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$17 = _M0FP35actql5actql12encode__core13string__value(writer, request.physical_manifest_cid);
+    if (_bind$17.$tag === 1) {
+      const _ok = _bind$17;
+      _ok._0;
+    } else {
+      const _err = _bind$17;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$18 = _M0FP35actql5actql12encode__core3key(writer, "route");
+    if (_bind$18.$tag === 1) {
+      const _ok = _bind$18;
+      _ok._0;
+    } else {
+      const _err = _bind$18;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$19 = _M0FP35actql5actql12encode__core13string__value(writer, _M0FP35actql5actql16remote__transfer11route__name(request.route));
+    if (_bind$19.$tag === 1) {
+      const _ok = _bind$19;
+      _ok._0;
+    } else {
+      const _err = _bind$19;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$20 = _M0FP35actql5actql12encode__core3key(writer, "route_capability_cid");
+    if (_bind$20.$tag === 1) {
+      const _ok = _bind$20;
+      _ok._0;
+    } else {
+      const _err = _bind$20;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$21 = _M0FP35actql5actql12encode__core13string__value(writer, request.route_capability_cid);
+    if (_bind$21.$tag === 1) {
+      const _ok = _bind$21;
+      _ok._0;
+    } else {
+      const _err = _bind$21;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$22 = _M0FP35actql5actql12encode__core3key(writer, "schema_contract_cid");
+    if (_bind$22.$tag === 1) {
+      const _ok = _bind$22;
+      _ok._0;
+    } else {
+      const _err = _bind$22;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$23 = _M0FP35actql5actql12encode__core13string__value(writer, request.schema_contract_cid);
+    if (_bind$23.$tag === 1) {
+      const _ok = _bind$23;
+      _ok._0;
+    } else {
+      const _err = _bind$23;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$24 = _M0FP35actql5actql12encode__core3key(writer, "source_grant_cid");
+    if (_bind$24.$tag === 1) {
+      const _ok = _bind$24;
+      _ok._0;
+    } else {
+      const _err = _bind$24;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$25 = _M0FP35actql5actql12encode__core13string__value(writer, request.source_grant_cid);
+    if (_bind$25.$tag === 1) {
+      const _ok = _bind$25;
+      _ok._0;
+    } else {
+      const _err = _bind$25;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$26 = _M0FP35actql5actql12encode__core3key(writer, "source_material_generation");
+    if (_bind$26.$tag === 1) {
+      const _ok = _bind$26;
+      _ok._0;
+    } else {
+      const _err = _bind$26;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$27 = _M0FP35actql5actql12encode__core13string__value(writer, request.source_material_generation);
+    if (_bind$27.$tag === 1) {
+      const _ok = _bind$27;
+      _ok._0;
+    } else {
+      const _err = _bind$27;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$28 = _M0FP35actql5actql12encode__core3key(writer, "source_site_generation");
+    if (_bind$28.$tag === 1) {
+      const _ok = _bind$28;
+      _ok._0;
+    } else {
+      const _err = _bind$28;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$29 = _M0FP35actql5actql12encode__core13number__value(writer, request.source_site_generation + 0);
+    if (_bind$29.$tag === 1) {
+      const _ok = _bind$29;
+      _ok._0;
+    } else {
+      const _err = _bind$29;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$30 = _M0FP35actql5actql12encode__core3key(writer, "source_site_key");
+    if (_bind$30.$tag === 1) {
+      const _ok = _bind$30;
+      _ok._0;
+    } else {
+      const _err = _bind$30;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$31 = _M0FP35actql5actql12encode__core13string__value(writer, request.source_site_key);
+    if (_bind$31.$tag === 1) {
+      const _ok = _bind$31;
+      _ok._0;
+    } else {
+      const _err = _bind$31;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$32 = _M0FP35actql5actql12encode__core3key(writer, "transfer_attempt");
+    if (_bind$32.$tag === 1) {
+      const _ok = _bind$32;
+      _ok._0;
+    } else {
+      const _err = _bind$32;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$33 = _M0FP35actql5actql12encode__core13string__value(writer, request.transfer_attempt);
+    if (_bind$33.$tag === 1) {
+      const _ok = _bind$33;
+      _ok._0;
+    } else {
+      const _err = _bind$33;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$34 = _M0FP35actql5actql12encode__core3key(writer, "version");
+    if (_bind$34.$tag === 1) {
+      const _ok = _bind$34;
+      _ok._0;
+    } else {
+      const _err = _bind$34;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$35 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-remote-transfer-request/0.1");
+    if (_bind$35.$tag === 1) {
+      const _ok = _bind$35;
+      _ok._0;
+    } else {
+      const _err = _bind$35;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$36 = _M0FP35actql5actql12encode__core3key(writer, "view_contract_cid");
+    if (_bind$36.$tag === 1) {
+      const _ok = _bind$36;
+      _ok._0;
+    } else {
+      const _err = _bind$36;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$37 = _M0FP35actql5actql12encode__core13string__value(writer, request.view_contract_cid);
+    if (_bind$37.$tag === 1) {
+      const _ok = _bind$37;
+      _ok._0;
+    } else {
+      const _err = _bind$37;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    const _bind$38 = _M0FP35actql5actql12encode__core11end__object(writer);
+    if (_bind$38.$tag === 1) {
+      const _ok = _bind$38;
+      _ok._0;
+    } else {
+      const _err = _bind$38;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    let _bind$39;
+    let _p;
+    _L$3: {
+      _L$4: {
+        const _bind$40 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
+        let _tmp;
+        if (_bind$40.$tag === 1) {
+          const _ok = _bind$40;
+          _tmp = _ok._0;
+        } else {
+          const _err = _bind$40;
+          _p = _err._0;
+          break _L$4;
+        }
+        _bind$39 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp._0);
+        break _L$3;
+      }
+      _bind$39 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+    }
+    let _tmp;
+    if (_bind$39.$tag === 1) {
+      const _ok = _bind$39;
+      _tmp = _ok._0;
+    } else {
+      const _err = _bind$39;
+      _try_err$2 = _err._0;
+      break _L$2;
+    }
+    return new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(_tmp);
+  }
+  return _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1404;
+}
+function _M0FP35actql5actql16remote__transfer17request__identity(request) {
+  const _bind = _M0FP35actql5actql16remote__transfer19emit__request__body(request);
+  let body;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    body = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(_issue);
+  }
+  const _bind$2 = _M0FP35actql5actql6sha2569text__hex(body);
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    const _value = _Ok._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(`sha256:${_value}`);
+  } else {
+    return _M0FP35actql5actql16remote__transfer17request__identityN6constrS1405;
+  }
+}
+function _M0FP35actql5actql16remote__transfer18admitted__manifest(physical) {
+  const chunks = physical.chunks;
+  const _tmp = physical.schema_contract_cid;
+  const _tmp$2 = physical.view_contract_cid;
+  const _tmp$3 = physical.codec_contract_cid;
+  const _tmp$4 = physical.row_count;
+  const _p = new Array(chunks.length);
+  const _p$2 = chunks.length;
+  let _tmp$5 = 0;
+  while (true) {
+    const _p$3 = _tmp$5;
+    if (_p$3 < _p$2) {
+      const _p$4 = chunks[_p$3];
+      _p[_p$3] = _p$4.cid;
+      _tmp$5 = _p$3 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$3 = new Array(chunks.length);
+  const _p$4 = chunks.length;
+  let _tmp$6 = 0;
+  while (true) {
+    const _p$5 = _tmp$6;
+    if (_p$5 < _p$4) {
+      const _p$6 = chunks[_p$5];
+      _p$3[_p$5] = _p$6.byte_length;
+      _tmp$6 = _p$5 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const _p$5 = new Array(chunks.length);
+  const _p$6 = chunks.length;
+  let _tmp$7 = 0;
+  while (true) {
+    const _p$7 = _tmp$7;
+    if (_p$7 < _p$6) {
+      const _p$8 = chunks[_p$7];
+      _p$5[_p$7] = _p$8.row_count;
+      _tmp$7 = _p$7 + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  const rebuilt = _M0FP35actql5actql18physical__manifest5admit("actql-managed-physical-manifest/0.1", _tmp, _tmp$2, _tmp$3, _tmp$4, _p, _p$3, _p$5, chunks.length, physical.metadata_bytes, physical.referenced_bytes);
+  if (rebuilt.$tag === 1) {
+    const _Ok = rebuilt;
+    const _value = _Ok._0;
+    return _value.manifest_cid === physical.manifest_cid && (_value.metadata_bytes === physical.metadata_bytes && BigInt.asUintN(64, _value.referenced_bytes) === BigInt.asUintN(64, physical.referenced_bytes)) ? _value : undefined;
+  } else {
+    return undefined;
+  }
+}
+function _M0FP35actql5actql16remote__transfer20valid__transfer__cid(value) {
+  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql16remote__transfer20valid__transfer__cidN7_2abindS751, 0, _M0FP35actql5actql16remote__transfer20valid__transfer__cidN7_2abindS751.length))) {
+    return false;
+  }
+  let _tmp = 7;
+  while (true) {
+    const index = _tmp;
+    if (index < 71) {
+      const unit = index >>> 0 < value.length ? value.charCodeAt(index) : $oob();
+      if (!(unit >= 48 && unit <= 57 || unit >= 97 && unit <= 102)) {
+        return false;
+      }
+      _tmp = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+function _M0FP35actql5actql16remote__transfer22valid__request__fields(request) {
+  const physical = _M0FP35actql5actql16remote__transfer18admitted__manifest(request.physical);
+  const _p = request.coordinator_authority;
+  if (!(_p === "")) {
+    let _tmp;
+    const _p$2 = request.transfer_attempt;
+    if (!(_p$2 === "")) {
+      let _tmp$2;
+      const _p$3 = request.source_site_key;
+      if (!(_p$3 === "")) {
+        let _tmp$3;
+        if (request.source_site_generation >= 0) {
+          let _tmp$4;
+          const _p$4 = request.destination_site_key;
+          if (!(_p$4 === "")) {
+            let _tmp$5;
+            if (request.destination_site_generation >= 0) {
+              let _tmp$6;
+              const _p$5 = request.source_material_generation;
+              if (!(_p$5 === "")) {
+                let _tmp$7;
+                if (physical === undefined) {
+                  _tmp$7 = false;
+                } else {
+                  const _Some = physical;
+                  const _value = _Some;
+                  _tmp$7 = _value.manifest_cid === request.physical_manifest_cid && (_value.schema_contract_cid === request.schema_contract_cid && (_value.view_contract_cid === request.view_contract_cid && (_value.codec_contract_cid === request.codec_contract_cid && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.schema_contract_cid) && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.view_contract_cid) && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.codec_contract_cid) && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.physical_manifest_cid) && (BigInt.asIntN(64, request.max_bytes) >= BigInt.asIntN(64, 0n) && (BigInt.asIntN(64, request.expires_unix_ms) > BigInt.asIntN(64, 0n) && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.source_grant_cid) && (_M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.destination_grant_cid) && _M0FP35actql5actql16remote__transfer20valid__transfer__cid(request.route_capability_cid))))))))))));
+                }
+                _tmp$6 = _tmp$7;
+              } else {
+                _tmp$6 = false;
+              }
+              _tmp$5 = _tmp$6;
+            } else {
+              _tmp$5 = false;
+            }
+            _tmp$4 = _tmp$5;
+          } else {
+            _tmp$4 = false;
+          }
+          _tmp$3 = _tmp$4;
+        } else {
+          _tmp$3 = false;
+        }
+        _tmp$2 = _tmp$3;
+      } else {
+        _tmp$2 = false;
+      }
+      _tmp = _tmp$2;
+    } else {
+      _tmp = false;
+    }
+    return _tmp;
+  } else {
+    return false;
+  }
+}
+function _M0FP35actql5actql16remote__transfer13request__json(request) {
+  if (!_M0FP35actql5actql16remote__transfer22valid__request__fields(request)) {
+    return _M0FP35actql5actql16remote__transfer13request__jsonN6constrS1406;
+  }
+  const _bind = _M0FP35actql5actql16remote__transfer17request__identity(request);
+  let identity;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    identity = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(_issue);
+  }
+  const _p = request.request_cid;
+  if (!(identity === _p)) {
+    return _M0FP35actql5actql16remote__transfer13request__jsonN6constrS1407;
+  }
+  return _M0FP35actql5actql16remote__transfer19emit__request__body(request);
+}
+function _M0FP35actql5actql16remote__transfer23request__manifest__json(request) {
+  if (!_M0FP35actql5actql16remote__transfer22valid__request__fields(request)) {
+    return _M0FP35actql5actql16remote__transfer23request__manifest__jsonN6constrS1408;
+  }
+  const _bind = _M0FP35actql5actql18physical__manifest14manifest__json(request.physical);
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    const _value = _Ok._0;
+    return new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(_value);
+  } else {
+    return _M0FP35actql5actql16remote__transfer23request__manifest__jsonN6constrS1409;
+  }
+}
+function _M0FP35actql5actql16remote__transfer16prepare__request(coordinator_authority, transfer_attempt, route, source_site_key, source_site_generation, destination_site_key, destination_site_generation, source_material_generation, physical, max_bytes, expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid) {
+  const _bind = _M0FP35actql5actql16remote__transfer18admitted__manifest(physical);
+  let physical$2;
+  if (_bind === undefined) {
+    return _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1413;
+  } else {
+    const _Some = _bind;
+    physical$2 = _Some;
+  }
+  const pending = new _M0TP35actql5actql16remote__transfer21RemoteTransferRequest(coordinator_authority, transfer_attempt, route, source_site_key, source_site_generation, destination_site_key, destination_site_generation, source_material_generation, physical$2, physical$2.schema_contract_cid, physical$2.view_contract_cid, physical$2.codec_contract_cid, physical$2.manifest_cid, max_bytes, expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, "pending");
+  if (!_M0FP35actql5actql16remote__transfer22valid__request__fields(pending)) {
+    return _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1414;
+  }
+  if (BigInt.asIntN(64, physical$2.referenced_bytes) > BigInt.asIntN(64, max_bytes)) {
+    return _M0FP35actql5actql16remote__transfer16prepare__requestN6constrS1415;
+  }
+  const _bind$2 = _M0FP35actql5actql16remote__transfer17request__identity(pending);
+  let identity;
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    identity = _Ok._0;
+  } else {
+    const _Err = _bind$2;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(_issue);
+  }
+  return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(new _M0TP35actql5actql16remote__transfer21RemoteTransferRequest(pending.coordinator_authority, pending.transfer_attempt, pending.route, pending.source_site_key, pending.source_site_generation, pending.destination_site_key, pending.destination_site_generation, pending.source_material_generation, pending.physical, pending.schema_contract_cid, pending.view_contract_cid, pending.codec_contract_cid, pending.physical_manifest_cid, pending.max_bytes, pending.expires_unix_ms, pending.source_grant_cid, pending.destination_grant_cid, pending.route_capability_cid, identity));
+}
+function _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(value) {
+  if (value.$tag === 1) {
+    const _Ok = value;
+    const _result = _Ok._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(_result);
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql12decode__core6CursorRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+}
+function _M0FP35actql5actql16remote__transfer13transfer__int(object, key) {
+  const _bind = _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  const _bind$2 = _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core13safe__integer(_tmp));
+  let value;
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    value = _ok._0;
+  } else {
+    return _bind$2;
+  }
+  if (BigInt.asIntN(64, value) < BigInt.asIntN(64, 0n) || BigInt.asIntN(64, value) > BigInt.asIntN(64, 2147483647n)) {
+    return new _M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGiRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(Number(BigInt.asIntN(32, value)) | 0);
+}
+function _M0FP35actql5actql16remote__transfer21transfer__int64__text(value) {
+  if (value === "") {
+    return new _M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  let result = 0n;
+  let _tmp = 0;
+  while (true) {
+    const index = _tmp;
+    if (index < value.length) {
+      const digit = (index >>> 0 < value.length ? value.charCodeAt(index) : $oob()) - 48 | 0;
+      let _tmp$2;
+      if (digit < 0) {
+        _tmp$2 = true;
+      } else {
+        let _tmp$3;
+        if (digit > 9) {
+          _tmp$3 = true;
+        } else {
+          const _tmp$4 = result;
+          if (10n === 0n) {
+            $panic();
+          }
+          _tmp$3 = BigInt.asIntN(64, _tmp$4) > BigInt.asIntN(64, BigInt.asUintN(64, BigInt.asIntN(64, BigInt.asUintN(64, 9223372036854775807n - BigInt.asUintN(64, BigInt(digit)))) / BigInt.asIntN(64, 10n)));
+        }
+        _tmp$2 = _tmp$3;
+      }
+      if (_tmp$2) {
+        return new _M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+      }
+      result = BigInt.asUintN(64, BigInt.asUintN(64, result * 10n) + BigInt.asUintN(64, BigInt(digit)));
+      _tmp = index + 1 | 0;
+      continue;
+    } else {
+      break;
+    }
+  }
+  return new _M0DTPC16result6ResultGlRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(result);
+}
+function _M0FP35actql5actql16remote__transfer14transfer__text(object, key) {
+  const _bind = _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core8required(object, key));
+  let _tmp;
+  if (_bind.$tag === 1) {
+    const _ok = _bind;
+    _tmp = _ok._0;
+  } else {
+    return _bind;
+  }
+  return _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core4text(_tmp));
+}
+function _M0FP35actql5actql16remote__transfer20admit__request__body(body, physical) {
+  const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
+  const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql16remote__transfer20admit__request__bodyN6recordS1416, "<memory>");
+  let node;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    node = _Ok._0;
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  const _bind$2 = _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql16remote__transfer20admit__request__bodyN6recordS1417));
+  let cursor;
+  if (_bind$2.$tag === 1) {
+    const _ok = _bind$2;
+    cursor = _ok._0;
+  } else {
+    return _bind$2;
+  }
+  const _bind$3 = _M0FP35actql5actql16remote__transfer17transfer__decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core14closed__object(cursor, ["codec_contract_cid", "coordinator_authority", "destination_grant_cid", "destination_site_generation", "destination_site_key", "expires_unix_ms", "max_bytes", "physical_manifest_cid", "route", "route_capability_cid", "schema_contract_cid", "source_grant_cid", "source_material_generation", "source_site_generation", "source_site_key", "transfer_attempt", "version", "view_contract_cid"]));
+  let object;
+  if (_bind$3.$tag === 1) {
+    const _ok = _bind$3;
+    object = _ok._0;
+  } else {
+    return _bind$3;
+  }
+  const _bind$4 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "version");
+  let _p;
+  if (_bind$4.$tag === 1) {
+    const _ok = _bind$4;
+    _p = _ok._0;
+  } else {
+    return _bind$4;
+  }
+  const _p$2 = "actql-remote-transfer-request/0.1";
+  if (!(_p === _p$2)) {
+    return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  const _bind$5 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "route");
+  let _bind$6;
+  if (_bind$5.$tag === 1) {
+    const _ok = _bind$5;
+    _bind$6 = _ok._0;
+  } else {
+    return _bind$5;
+  }
+  let route;
+  switch (_bind$6) {
+    case "direct": {
+      route = 0;
+      break;
+    }
+    case "store": {
+      route = 1;
+      break;
+    }
+    default: {
+      return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+    }
+  }
+  const _bind$7 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "coordinator_authority");
+  let _tmp;
+  if (_bind$7.$tag === 1) {
+    const _ok = _bind$7;
+    _tmp = _ok._0;
+  } else {
+    return _bind$7;
+  }
+  const _tmp$2 = _tmp;
+  const _bind$8 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "transfer_attempt");
+  let _tmp$3;
+  if (_bind$8.$tag === 1) {
+    const _ok = _bind$8;
+    _tmp$3 = _ok._0;
+  } else {
+    return _bind$8;
+  }
+  const _tmp$4 = _tmp$3;
+  const _bind$9 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "source_site_key");
+  let _tmp$5;
+  if (_bind$9.$tag === 1) {
+    const _ok = _bind$9;
+    _tmp$5 = _ok._0;
+  } else {
+    return _bind$9;
+  }
+  const _tmp$6 = _tmp$5;
+  const _bind$10 = _M0FP35actql5actql16remote__transfer13transfer__int(object, "source_site_generation");
+  let _tmp$7;
+  if (_bind$10.$tag === 1) {
+    const _ok = _bind$10;
+    _tmp$7 = _ok._0;
+  } else {
+    return _bind$10;
+  }
+  const _tmp$8 = _tmp$7;
+  const _bind$11 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "destination_site_key");
+  let _tmp$9;
+  if (_bind$11.$tag === 1) {
+    const _ok = _bind$11;
+    _tmp$9 = _ok._0;
+  } else {
+    return _bind$11;
+  }
+  const _tmp$10 = _tmp$9;
+  const _bind$12 = _M0FP35actql5actql16remote__transfer13transfer__int(object, "destination_site_generation");
+  let _tmp$11;
+  if (_bind$12.$tag === 1) {
+    const _ok = _bind$12;
+    _tmp$11 = _ok._0;
+  } else {
+    return _bind$12;
+  }
+  const _tmp$12 = _tmp$11;
+  const _bind$13 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "source_material_generation");
+  let _tmp$13;
+  if (_bind$13.$tag === 1) {
+    const _ok = _bind$13;
+    _tmp$13 = _ok._0;
+  } else {
+    return _bind$13;
+  }
+  const _tmp$14 = _tmp$13;
+  const _bind$14 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "max_bytes");
+  let _tmp$15;
+  if (_bind$14.$tag === 1) {
+    const _ok = _bind$14;
+    _tmp$15 = _ok._0;
+  } else {
+    return _bind$14;
+  }
+  const _bind$15 = _M0FP35actql5actql16remote__transfer21transfer__int64__text(_tmp$15);
+  let _tmp$16;
+  if (_bind$15.$tag === 1) {
+    const _ok = _bind$15;
+    _tmp$16 = _ok._0;
+  } else {
+    return _bind$15;
+  }
+  const _tmp$17 = _tmp$16;
+  const _bind$16 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "expires_unix_ms");
+  let _tmp$18;
+  if (_bind$16.$tag === 1) {
+    const _ok = _bind$16;
+    _tmp$18 = _ok._0;
+  } else {
+    return _bind$16;
+  }
+  const _bind$17 = _M0FP35actql5actql16remote__transfer21transfer__int64__text(_tmp$18);
+  let _tmp$19;
+  if (_bind$17.$tag === 1) {
+    const _ok = _bind$17;
+    _tmp$19 = _ok._0;
+  } else {
+    return _bind$17;
+  }
+  const _tmp$20 = _tmp$19;
+  const _bind$18 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "source_grant_cid");
+  let _tmp$21;
+  if (_bind$18.$tag === 1) {
+    const _ok = _bind$18;
+    _tmp$21 = _ok._0;
+  } else {
+    return _bind$18;
+  }
+  const _tmp$22 = _tmp$21;
+  const _bind$19 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "destination_grant_cid");
+  let _tmp$23;
+  if (_bind$19.$tag === 1) {
+    const _ok = _bind$19;
+    _tmp$23 = _ok._0;
+  } else {
+    return _bind$19;
+  }
+  const _tmp$24 = _tmp$23;
+  const _bind$20 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "route_capability_cid");
+  let _tmp$25;
+  if (_bind$20.$tag === 1) {
+    const _ok = _bind$20;
+    _tmp$25 = _ok._0;
+  } else {
+    return _bind$20;
+  }
+  const _bind$21 = _M0FP35actql5actql16remote__transfer16prepare__request(_tmp$2, _tmp$4, route, _tmp$6, _tmp$8, _tmp$10, _tmp$12, _tmp$14, physical, _tmp$17, _tmp$20, _tmp$22, _tmp$24, _tmp$25);
+  let request;
+  if (_bind$21.$tag === 1) {
+    const _Ok = _bind$21;
+    request = _Ok._0;
+  } else {
+    return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  const expected_fields = [request.codec_contract_cid, request.physical_manifest_cid, request.schema_contract_cid, request.view_contract_cid];
+  const _bind$22 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "codec_contract_cid");
+  let _tmp$26;
+  if (_bind$22.$tag === 1) {
+    const _ok = _bind$22;
+    _tmp$26 = _ok._0;
+  } else {
+    return _bind$22;
+  }
+  const _tmp$27 = _tmp$26;
+  const _bind$23 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "physical_manifest_cid");
+  let _tmp$28;
+  if (_bind$23.$tag === 1) {
+    const _ok = _bind$23;
+    _tmp$28 = _ok._0;
+  } else {
+    return _bind$23;
+  }
+  const _tmp$29 = _tmp$28;
+  const _bind$24 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "schema_contract_cid");
+  let _tmp$30;
+  if (_bind$24.$tag === 1) {
+    const _ok = _bind$24;
+    _tmp$30 = _ok._0;
+  } else {
+    return _bind$24;
+  }
+  const _tmp$31 = _tmp$30;
+  const _bind$25 = _M0FP35actql5actql16remote__transfer14transfer__text(object, "view_contract_cid");
+  let _tmp$32;
+  if (_bind$25.$tag === 1) {
+    const _ok = _bind$25;
+    _tmp$32 = _ok._0;
+  } else {
+    return _bind$25;
+  }
+  const actual_fields = [_tmp$27, _tmp$29, _tmp$31, _tmp$32];
+  if (_M0IP016_24default__implPB2Eq10not__equalGRPB5ArrayGsEE(expected_fields, actual_fields) || _M0IP016_24default__implPB2Eq10not__equalGRPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueEE(_M0FP35actql5actql16remote__transfer13request__json(request), new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(body))) {
+    return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE3Err(_M0DTPC15error5Error86actql_2factql_2fremote__transfer_2eRemoteTransferDecodeStop_2eRemoteTransferDecodeStop__);
+  }
+  return new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer24RemoteTransferDecodeStopE2Ok(request);
+}
+function _M0FP35actql5actql16remote__transfer20admit__request__json(body, manifest_body, claimed_request_cid, claimed_manifest_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  const _bind = _M0FP35actql5actql18physical__manifest11admit__json(manifest_body, claimed_manifest_cid, max_chunks, max_manifest_bytes, max_referenced_bytes);
+  let physical;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    physical = _Ok._0;
+  } else {
+    return _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1418;
+  }
+  let _try_err;
+  _L: {
+    const _bind$2 = _M0FP35actql5actql16remote__transfer20admit__request__body(body, physical);
+    let request;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      request = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    return request.request_cid === claimed_request_cid ? new _M0DTPC16result6ResultGRP35actql5actql16remote__transfer21RemoteTransferRequestRP35actql5actql16remote__transfer19RemoteTransferIssueE2Ok(request) : _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1420;
+  }
+  return _M0FP35actql5actql16remote__transfer20admit__request__jsonN6constrS1419;
+}
+function _M0FP35actql5actql16remote__transfer21request__journal__key(request) {
+  return [request.coordinator_authority, request.destination_site_key, _M0MPC13int3Int18to__string_2einner(request.destination_site_generation, 10), request.transfer_attempt];
+}
+function _M0FP35actql5actql16remote__transfer19request__projection(request) {
+  return [request.request_cid, _M0FP35actql5actql16remote__transfer11route__name(request.route), request.source_site_key, _M0MPC13int3Int18to__string_2einner(request.source_site_generation, 10), request.destination_site_key, _M0MPC13int3Int18to__string_2einner(request.destination_site_generation, 10), request.source_material_generation, request.physical_manifest_cid, _M0MPC15int645Int6418to__string_2einner(request.max_bytes, 10), _M0MPC15int645Int6418to__string_2einner(request.expires_unix_ms, 10), request.source_grant_cid, request.destination_grant_cid, request.route_capability_cid];
 }
 function _M0IP35actql5actql22remote__site__protocol18DispatchAcceptancePB2Eq5equal(_x_1363, _x_1364) {
   if (_x_1363 === 0) {
@@ -14287,7 +17912,7 @@ function _M0FP35actql5actql22remote__site__protocol15response__state(object) {
   if (elements.length !== 5) {
     return new _M0DTPC16result6ResultGUiiibbERP35actql5actql22remote__site__protocol16ResponseJsonStopE3Err(_M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eResponseJsonStop_2eResponseJsonStop__);
   }
-  const _bind$3 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(elements, 0));
+  const _bind$3 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGsE(elements, 0));
   let execution;
   if (_bind$3.$tag === 1) {
     const _ok = _bind$3;
@@ -14295,7 +17920,7 @@ function _M0FP35actql5actql22remote__site__protocol15response__state(object) {
   } else {
     return _bind$3;
   }
-  const _bind$4 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(elements, 1));
+  const _bind$4 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGsE(elements, 1));
   let evidence;
   if (_bind$4.$tag === 1) {
     const _ok = _bind$4;
@@ -14303,7 +17928,7 @@ function _M0FP35actql5actql22remote__site__protocol15response__state(object) {
   } else {
     return _bind$4;
   }
-  const _bind$5 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(elements, 2));
+  const _bind$5 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGsE(elements, 2));
   let cleanup;
   if (_bind$5.$tag === 1) {
     const _ok = _bind$5;
@@ -14311,7 +17936,7 @@ function _M0FP35actql5actql22remote__site__protocol15response__state(object) {
   } else {
     return _bind$5;
   }
-  const _bind$6 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(elements, 3));
+  const _bind$6 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGsE(elements, 3));
   let material;
   if (_bind$6.$tag === 1) {
     const _ok = _bind$6;
@@ -14319,7 +17944,7 @@ function _M0FP35actql5actql22remote__site__protocol15response__state(object) {
   } else {
     return _bind$6;
   }
-  const _bind$7 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGRP35actql5actql12encode__core5FrameE(elements, 4));
+  const _bind$7 = _M0FP35actql5actql22remote__site__protocol21response__int__cursor(_M0MPC15array5Array2atGsE(elements, 4));
   let quarantined;
   if (_bind$7.$tag === 1) {
     const _ok = _bind$7;
@@ -15883,6 +19508,497 @@ function _M0FP35actql5actql22remote__site__protocol28remote__poll__dispatch__jso
   }
   return new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_tmp);
 }
+function _M0FP35actql5actql22remote__site__protocol19output__route__text(route) {
+  if (route === 0) {
+    return "direct";
+  } else {
+    return "store";
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol21valid__output__intent(dispatch_request_cid, projection) {
+  if (_M0FP35actql5actql22remote__site__protocol10valid__cid(dispatch_request_cid)) {
+    let _tmp;
+    if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.store_authority_cid)) {
+      let _tmp$2;
+      if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.publication_attempt_cid)) {
+        let _tmp$3;
+        if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.result_definition_cid)) {
+          let _tmp$4;
+          if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.ordering_evidence_cid)) {
+            let _tmp$5;
+            const _p = projection.coordinator_authority;
+            if (!(_p === "")) {
+              let _tmp$6;
+              const _p$2 = projection.transfer_attempt;
+              if (!(_p$2 === "")) {
+                let _tmp$7;
+                const _p$3 = projection.destination_site_key;
+                if (!(_p$3 === "")) {
+                  let _tmp$8;
+                  if (projection.destination_site_generation >= 0) {
+                    let _tmp$9;
+                    if (BigInt.asIntN(64, projection.transfer_max_bytes) > BigInt.asIntN(64, 0n)) {
+                      let _tmp$10;
+                      if (BigInt.asIntN(64, projection.transfer_expires_unix_ms) > BigInt.asIntN(64, 0n)) {
+                        let _tmp$11;
+                        if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.source_grant_cid)) {
+                          let _tmp$12;
+                          if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.destination_grant_cid)) {
+                            let _tmp$13;
+                            if (_M0FP35actql5actql22remote__site__protocol10valid__cid(projection.route_capability_cid)) {
+                              const _p$4 = projection.transfer_origin;
+                              _tmp$13 = !(_p$4 === "");
+                            } else {
+                              _tmp$13 = false;
+                            }
+                            _tmp$12 = _tmp$13;
+                          } else {
+                            _tmp$12 = false;
+                          }
+                          _tmp$11 = _tmp$12;
+                        } else {
+                          _tmp$11 = false;
+                        }
+                        _tmp$10 = _tmp$11;
+                      } else {
+                        _tmp$10 = false;
+                      }
+                      _tmp$9 = _tmp$10;
+                    } else {
+                      _tmp$9 = false;
+                    }
+                    _tmp$8 = _tmp$9;
+                  } else {
+                    _tmp$8 = false;
+                  }
+                  _tmp$7 = _tmp$8;
+                } else {
+                  _tmp$7 = false;
+                }
+                _tmp$6 = _tmp$7;
+              } else {
+                _tmp$6 = false;
+              }
+              _tmp$5 = _tmp$6;
+            } else {
+              _tmp$5 = false;
+            }
+            _tmp$4 = _tmp$5;
+          } else {
+            _tmp$4 = false;
+          }
+          _tmp$3 = _tmp$4;
+        } else {
+          _tmp$3 = false;
+        }
+        _tmp$2 = _tmp$3;
+      } else {
+        _tmp$2 = false;
+      }
+      _tmp = _tmp$2;
+    } else {
+      _tmp = false;
+    }
+    return _tmp;
+  } else {
+    return false;
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intent(dispatch_request_cid, projection) {
+  if (!_M0FP35actql5actql22remote__site__protocol21valid__output__intent(dispatch_request_cid, projection)) {
+    return _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3279;
+  }
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind = _M0FP35actql5actql12encode__core6writer(65536, 64, 2);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        writer = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3280;
+  }
+  let _try_err$2;
+  _L$2: {
+    _L$3: {
+      const _bind = _M0FP35actql5actql12encode__core13begin__object(writer);
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$2 = _M0FP35actql5actql12encode__core3key(writer, "coordinator_authority");
+      if (_bind$2.$tag === 1) {
+        const _ok = _bind$2;
+        _ok._0;
+      } else {
+        const _err = _bind$2;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$3 = _M0FP35actql5actql12encode__core13string__value(writer, projection.coordinator_authority);
+      if (_bind$3.$tag === 1) {
+        const _ok = _bind$3;
+        _ok._0;
+      } else {
+        const _err = _bind$3;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$4 = _M0FP35actql5actql12encode__core3key(writer, "destination_grant_cid");
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$5 = _M0FP35actql5actql12encode__core13string__value(writer, projection.destination_grant_cid);
+      if (_bind$5.$tag === 1) {
+        const _ok = _bind$5;
+        _ok._0;
+      } else {
+        const _err = _bind$5;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$6 = _M0FP35actql5actql12encode__core3key(writer, "destination_site_generation");
+      if (_bind$6.$tag === 1) {
+        const _ok = _bind$6;
+        _ok._0;
+      } else {
+        const _err = _bind$6;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$7 = _M0FP35actql5actql12encode__core13number__value(writer, projection.destination_site_generation + 0);
+      if (_bind$7.$tag === 1) {
+        const _ok = _bind$7;
+        _ok._0;
+      } else {
+        const _err = _bind$7;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$8 = _M0FP35actql5actql12encode__core3key(writer, "destination_site_key");
+      if (_bind$8.$tag === 1) {
+        const _ok = _bind$8;
+        _ok._0;
+      } else {
+        const _err = _bind$8;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$9 = _M0FP35actql5actql12encode__core13string__value(writer, projection.destination_site_key);
+      if (_bind$9.$tag === 1) {
+        const _ok = _bind$9;
+        _ok._0;
+      } else {
+        const _err = _bind$9;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$10 = _M0FP35actql5actql12encode__core3key(writer, "dispatch_request_cid");
+      if (_bind$10.$tag === 1) {
+        const _ok = _bind$10;
+        _ok._0;
+      } else {
+        const _err = _bind$10;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$11 = _M0FP35actql5actql12encode__core13string__value(writer, dispatch_request_cid);
+      if (_bind$11.$tag === 1) {
+        const _ok = _bind$11;
+        _ok._0;
+      } else {
+        const _err = _bind$11;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$12 = _M0FP35actql5actql12encode__core3key(writer, "ordering_evidence_cid");
+      if (_bind$12.$tag === 1) {
+        const _ok = _bind$12;
+        _ok._0;
+      } else {
+        const _err = _bind$12;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$13 = _M0FP35actql5actql12encode__core13string__value(writer, projection.ordering_evidence_cid);
+      if (_bind$13.$tag === 1) {
+        const _ok = _bind$13;
+        _ok._0;
+      } else {
+        const _err = _bind$13;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$14 = _M0FP35actql5actql12encode__core3key(writer, "publication_attempt_cid");
+      if (_bind$14.$tag === 1) {
+        const _ok = _bind$14;
+        _ok._0;
+      } else {
+        const _err = _bind$14;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$15 = _M0FP35actql5actql12encode__core13string__value(writer, projection.publication_attempt_cid);
+      if (_bind$15.$tag === 1) {
+        const _ok = _bind$15;
+        _ok._0;
+      } else {
+        const _err = _bind$15;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$16 = _M0FP35actql5actql12encode__core3key(writer, "result_definition_cid");
+      if (_bind$16.$tag === 1) {
+        const _ok = _bind$16;
+        _ok._0;
+      } else {
+        const _err = _bind$16;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$17 = _M0FP35actql5actql12encode__core13string__value(writer, projection.result_definition_cid);
+      if (_bind$17.$tag === 1) {
+        const _ok = _bind$17;
+        _ok._0;
+      } else {
+        const _err = _bind$17;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$18 = _M0FP35actql5actql12encode__core3key(writer, "route_capability_cid");
+      if (_bind$18.$tag === 1) {
+        const _ok = _bind$18;
+        _ok._0;
+      } else {
+        const _err = _bind$18;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$19 = _M0FP35actql5actql12encode__core13string__value(writer, projection.route_capability_cid);
+      if (_bind$19.$tag === 1) {
+        const _ok = _bind$19;
+        _ok._0;
+      } else {
+        const _err = _bind$19;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$20 = _M0FP35actql5actql12encode__core3key(writer, "source_grant_cid");
+      if (_bind$20.$tag === 1) {
+        const _ok = _bind$20;
+        _ok._0;
+      } else {
+        const _err = _bind$20;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$21 = _M0FP35actql5actql12encode__core13string__value(writer, projection.source_grant_cid);
+      if (_bind$21.$tag === 1) {
+        const _ok = _bind$21;
+        _ok._0;
+      } else {
+        const _err = _bind$21;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$22 = _M0FP35actql5actql12encode__core3key(writer, "store_authority_cid");
+      if (_bind$22.$tag === 1) {
+        const _ok = _bind$22;
+        _ok._0;
+      } else {
+        const _err = _bind$22;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$23 = _M0FP35actql5actql12encode__core13string__value(writer, projection.store_authority_cid);
+      if (_bind$23.$tag === 1) {
+        const _ok = _bind$23;
+        _ok._0;
+      } else {
+        const _err = _bind$23;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$24 = _M0FP35actql5actql12encode__core3key(writer, "transfer_attempt");
+      if (_bind$24.$tag === 1) {
+        const _ok = _bind$24;
+        _ok._0;
+      } else {
+        const _err = _bind$24;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$25 = _M0FP35actql5actql12encode__core13string__value(writer, projection.transfer_attempt);
+      if (_bind$25.$tag === 1) {
+        const _ok = _bind$25;
+        _ok._0;
+      } else {
+        const _err = _bind$25;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$26 = _M0FP35actql5actql12encode__core3key(writer, "transfer_expires_unix_ms");
+      if (_bind$26.$tag === 1) {
+        const _ok = _bind$26;
+        _ok._0;
+      } else {
+        const _err = _bind$26;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$27 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(projection.transfer_expires_unix_ms, 10));
+      if (_bind$27.$tag === 1) {
+        const _ok = _bind$27;
+        _ok._0;
+      } else {
+        const _err = _bind$27;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$28 = _M0FP35actql5actql12encode__core3key(writer, "transfer_max_bytes");
+      if (_bind$28.$tag === 1) {
+        const _ok = _bind$28;
+        _ok._0;
+      } else {
+        const _err = _bind$28;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$29 = _M0FP35actql5actql12encode__core13string__value(writer, _M0MPC15int645Int6418to__string_2einner(projection.transfer_max_bytes, 10));
+      if (_bind$29.$tag === 1) {
+        const _ok = _bind$29;
+        _ok._0;
+      } else {
+        const _err = _bind$29;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$30 = _M0FP35actql5actql12encode__core3key(writer, "transfer_origin");
+      if (_bind$30.$tag === 1) {
+        const _ok = _bind$30;
+        _ok._0;
+      } else {
+        const _err = _bind$30;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$31 = _M0FP35actql5actql12encode__core13string__value(writer, projection.transfer_origin);
+      if (_bind$31.$tag === 1) {
+        const _ok = _bind$31;
+        _ok._0;
+      } else {
+        const _err = _bind$31;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$32 = _M0FP35actql5actql12encode__core3key(writer, "transfer_route");
+      if (_bind$32.$tag === 1) {
+        const _ok = _bind$32;
+        _ok._0;
+      } else {
+        const _err = _bind$32;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$33 = _M0FP35actql5actql12encode__core13string__value(writer, _M0FP35actql5actql22remote__site__protocol19output__route__text(projection.transfer_route));
+      if (_bind$33.$tag === 1) {
+        const _ok = _bind$33;
+        _ok._0;
+      } else {
+        const _err = _bind$33;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$34 = _M0FP35actql5actql12encode__core3key(writer, "version");
+      if (_bind$34.$tag === 1) {
+        const _ok = _bind$34;
+        _ok._0;
+      } else {
+        const _err = _bind$34;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$35 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-remote-output-intent/0.1");
+      if (_bind$35.$tag === 1) {
+        const _ok = _bind$35;
+        _ok._0;
+      } else {
+        const _err = _bind$35;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$36 = _M0FP35actql5actql12encode__core11end__object(writer);
+      if (_bind$36.$tag === 1) {
+        const _ok = _bind$36;
+        _ok._0;
+      } else {
+        const _err = _bind$36;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      break _L$2;
+    }
+    return _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3281;
+  }
+  let body;
+  let _try_err$3;
+  _L$3: {
+    _L$4: {
+      let _bind;
+      let _p;
+      _L$5: {
+        _L$6: {
+          const _bind$2 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
+          let _tmp;
+          if (_bind$2.$tag === 1) {
+            const _ok = _bind$2;
+            _tmp = _ok._0;
+          } else {
+            const _err = _bind$2;
+            _p = _err._0;
+            break _L$6;
+          }
+          _bind = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp._0);
+          break _L$5;
+        }
+        _bind = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+      }
+      if (_bind.$tag === 1) {
+        const _ok = _bind;
+        body = _ok._0;
+      } else {
+        const _err = _bind;
+        _try_err$3 = _err._0;
+        break _L$4;
+      }
+      break _L$3;
+    }
+    return _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3282;
+  }
+  return new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok({ _0: body, _1: `sha256:${_M0FP35actql5actql6sha2563hex(_M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false))}` });
+}
+function _M0FP35actql5actql22remote__site__protocol34remote__output__intent__projection(intent) {
+  return new _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(intent.store_authority_cid, intent.publication_attempt_cid, intent.result_definition_cid, intent.ordering_evidence_cid, intent.coordinator_authority, intent.transfer_attempt, intent.transfer_route, intent.destination_site_key, intent.destination_site_generation, intent.transfer_max_bytes, intent.transfer_expires_unix_ms, intent.source_grant_cid, intent.destination_grant_cid, intent.route_capability_cid, intent.transfer_origin);
+}
+function _M0FP35actql5actql22remote__site__protocol41remote__output__intent__matches__dispatch(intent, request) {
+  return intent.dispatch_request_cid === request.dispatch_request_cid;
+}
 function _M0FP35actql5actql22remote__site__protocol25remote__poll__query__json(request) {
   return _M0FP35actql5actql22remote__site__protocol27remote__poll__request__json(request, "actql-remote-poll-query/0.1");
 }
@@ -16159,6 +20275,891 @@ function _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__j
     return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol15DispatchRequestRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(request);
   }
   return _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__jsonN6constrS3291;
+}
+function _M0FP35actql5actql22remote__site__protocol31prepare__remote__output__intent(request, projection) {
+  const dispatch_request_cid = request.dispatch_request_cid;
+  const _bind = _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intent(dispatch_request_cid, projection);
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    const _x = _Ok._0;
+    const _body = _x._0;
+    const _intent_cid = _x._1;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql22remote__site__protocol18RemoteOutputIntent(dispatch_request_cid, projection.store_authority_cid, projection.publication_attempt_cid, projection.result_definition_cid, projection.ordering_evidence_cid, projection.coordinator_authority, projection.transfer_attempt, projection.transfer_route, projection.destination_site_key, projection.destination_site_generation, projection.transfer_max_bytes, projection.transfer_expires_unix_ms, projection.source_grant_cid, projection.destination_grant_cid, projection.route_capability_cid, projection.transfer_origin, _body, _intent_cid));
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol35admit__remote__output__intent__json(body, claimed_cid, request) {
+  let _try_err;
+  _L: {
+    const _bind = _M0FP35actql5actql22remote__site__protocol14evidence__root(body, 65536, 64, 2);
+    let _tmp;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _tmp = _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql22remote__site__protocol16evidence__object(_tmp, ["coordinator_authority", "destination_grant_cid", "destination_site_generation", "destination_site_key", "dispatch_request_cid", "ordering_evidence_cid", "publication_attempt_cid", "result_definition_cid", "route_capability_cid", "source_grant_cid", "store_authority_cid", "transfer_attempt", "transfer_expires_unix_ms", "transfer_max_bytes", "transfer_origin", "transfer_route", "version"]);
+    let object;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      object = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    let _tmp$2;
+    const _bind$3 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "version");
+    let _p;
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _p = _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _p$2 = "actql-remote-output-intent/0.1";
+    if (!(_p === _p$2)) {
+      _tmp$2 = true;
+    } else {
+      const _bind$4 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "dispatch_request_cid");
+      let _p$3;
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _p$3 = _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err = _err._0;
+        break _L;
+      }
+      const _p$4 = request.dispatch_request_cid;
+      _tmp$2 = !(_p$3 === _p$4);
+    }
+    if (_tmp$2) {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$4 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "transfer_route");
+    let _bind$5;
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      _bind$5 = _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err = _err._0;
+      break _L;
+    }
+    let route;
+    switch (_bind$5) {
+      case "direct": {
+        route = 0;
+        break;
+      }
+      case "store": {
+        route = 1;
+        break;
+      }
+      default: {
+        _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+        break _L;
+      }
+    }
+    const _bind$6 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "store_authority_cid");
+    let _tmp$3;
+    if (_bind$6.$tag === 1) {
+      const _ok = _bind$6;
+      _tmp$3 = _ok._0;
+    } else {
+      const _err = _bind$6;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$4 = _tmp$3;
+    const _bind$7 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "publication_attempt_cid");
+    let _tmp$5;
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _tmp$5 = _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$6 = _tmp$5;
+    const _bind$8 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "result_definition_cid");
+    let _tmp$7;
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _tmp$7 = _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$8 = _tmp$7;
+    const _bind$9 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "ordering_evidence_cid");
+    let _tmp$9;
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _tmp$9 = _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$10 = _tmp$9;
+    const _bind$10 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "coordinator_authority");
+    let _tmp$11;
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _tmp$11 = _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$12 = _tmp$11;
+    const _bind$11 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "transfer_attempt");
+    let _tmp$13;
+    if (_bind$11.$tag === 1) {
+      const _ok = _bind$11;
+      _tmp$13 = _ok._0;
+    } else {
+      const _err = _bind$11;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$14 = _tmp$13;
+    const _bind$12 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "destination_site_key");
+    let _tmp$15;
+    if (_bind$12.$tag === 1) {
+      const _ok = _bind$12;
+      _tmp$15 = _ok._0;
+    } else {
+      const _err = _bind$12;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$16 = _tmp$15;
+    const _bind$13 = _M0FP35actql5actql22remote__site__protocol13evidence__int(object, "destination_site_generation");
+    let _tmp$17;
+    if (_bind$13.$tag === 1) {
+      const _ok = _bind$13;
+      _tmp$17 = _ok._0;
+    } else {
+      const _err = _bind$13;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$18 = _tmp$17;
+    const _bind$14 = _M0FP35actql5actql22remote__site__protocol21evidence__text__int64(object, "transfer_max_bytes");
+    let _tmp$19;
+    if (_bind$14.$tag === 1) {
+      const _ok = _bind$14;
+      _tmp$19 = _ok._0;
+    } else {
+      const _err = _bind$14;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$20 = _tmp$19;
+    const _bind$15 = _M0FP35actql5actql22remote__site__protocol21evidence__text__int64(object, "transfer_expires_unix_ms");
+    let _tmp$21;
+    if (_bind$15.$tag === 1) {
+      const _ok = _bind$15;
+      _tmp$21 = _ok._0;
+    } else {
+      const _err = _bind$15;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$22 = _tmp$21;
+    const _bind$16 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "source_grant_cid");
+    let _tmp$23;
+    if (_bind$16.$tag === 1) {
+      const _ok = _bind$16;
+      _tmp$23 = _ok._0;
+    } else {
+      const _err = _bind$16;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$24 = _tmp$23;
+    const _bind$17 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "destination_grant_cid");
+    let _tmp$25;
+    if (_bind$17.$tag === 1) {
+      const _ok = _bind$17;
+      _tmp$25 = _ok._0;
+    } else {
+      const _err = _bind$17;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$26 = _tmp$25;
+    const _bind$18 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "route_capability_cid");
+    let _tmp$27;
+    if (_bind$18.$tag === 1) {
+      const _ok = _bind$18;
+      _tmp$27 = _ok._0;
+    } else {
+      const _err = _bind$18;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$28 = _tmp$27;
+    const _bind$19 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "transfer_origin");
+    let _tmp$29;
+    if (_bind$19.$tag === 1) {
+      const _ok = _bind$19;
+      _tmp$29 = _ok._0;
+    } else {
+      const _err = _bind$19;
+      _try_err = _err._0;
+      break _L;
+    }
+    const projection = new _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(_tmp$4, _tmp$6, _tmp$8, _tmp$10, _tmp$12, _tmp$14, route, _tmp$16, _tmp$18, _tmp$20, _tmp$22, _tmp$24, _tmp$26, _tmp$28, _tmp$29);
+    const _bind$20 = _M0FP35actql5actql22remote__site__protocol31prepare__remote__output__intent(request, projection);
+    let admitted;
+    if (_bind$20.$tag === 1) {
+      const _Ok = _bind$20;
+      admitted = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    let _tmp$30;
+    const _p$3 = admitted.body;
+    if (!(_p$3 === body)) {
+      _tmp$30 = true;
+    } else {
+      const _p$4 = admitted.intent_cid;
+      _tmp$30 = !(_p$4 === claimed_cid);
+    }
+    if (_tmp$30) {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol18RemoteOutputIntentRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(admitted);
+  }
+  return _M0FP35actql5actql22remote__site__protocol35admit__remote__output__intent__jsonN6constrS3295;
+}
+function _M0FP35actql5actql22remote__site__protocol44admit__remote__poll__output__operation__json(body, expected_version) {
+  let _try_err;
+  _L: {
+    const _bind = _M0FP35actql5actql22remote__site__protocol14evidence__root(body, 524288, 16, 2);
+    let _tmp;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _tmp = _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql22remote__site__protocol16evidence__object(_tmp, ["dispatch_request_cid", "intent_cid", "intent_json", "request_json", "version"]);
+    let object;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      object = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$3 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "version");
+    let _p;
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _p = _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err = _err._0;
+      break _L;
+    }
+    if (!(_p === expected_version)) {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$4 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "request_json");
+    let _tmp$2;
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      _tmp$2 = _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$3 = _tmp$2;
+    const _bind$5 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "dispatch_request_cid");
+    let _tmp$4;
+    if (_bind$5.$tag === 1) {
+      const _ok = _bind$5;
+      _tmp$4 = _ok._0;
+    } else {
+      const _err = _bind$5;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$6 = _M0FP35actql5actql22remote__site__protocol30admit__dispatch__request__json(_tmp$3, _tmp$4);
+    let request;
+    if (_bind$6.$tag === 1) {
+      const _Ok = _bind$6;
+      request = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$7 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "intent_json");
+    let _tmp$5;
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _tmp$5 = _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$6 = _tmp$5;
+    const _bind$8 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "intent_cid");
+    let _tmp$7;
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _tmp$7 = _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$9 = _M0FP35actql5actql22remote__site__protocol35admit__remote__output__intent__json(_tmp$6, _tmp$7, request);
+    let intent;
+    if (_bind$9.$tag === 1) {
+      const _Ok = _bind$9;
+      intent = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemotePollOutputRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql22remote__site__protocol16RemotePollOutput(request, intent));
+  }
+  return _M0FP35actql5actql22remote__site__protocol44admit__remote__poll__output__operation__jsonN6constrS3296;
+}
+function _M0FP35actql5actql22remote__site__protocol39admit__remote__poll__output__plan__json(body) {
+  return _M0FP35actql5actql22remote__site__protocol44admit__remote__poll__output__operation__json(body, "actql-remote-poll-output-plan/0.1");
+}
+function _M0FP35actql5actql22remote__site__protocol31output__expected__inputs__valid(output, payload_request, transfer_request) {
+  const request = output.request;
+  const intent = output.intent;
+  const intent_projection = _M0FP35actql5actql22remote__site__protocol34remote__output__intent__projection(intent);
+  const transfer_projection = _M0FP35actql5actql16remote__transfer19request__projection(transfer_request);
+  const transfer_occurrence = _M0FP35actql5actql16remote__transfer21request__journal__key(transfer_request);
+  return _M0FP35actql5actql22remote__site__protocol41remote__output__intent__matches__dispatch(intent, request) && (payload_request.store_authority_cid === intent_projection.store_authority_cid && (payload_request.publication_attempt_cid === intent_projection.publication_attempt_cid && (payload_request.result_definition_cid === intent_projection.result_definition_cid && (payload_request.ordering_evidence_cid === intent_projection.ordering_evidence_cid && (BigInt.asIntN(64, payload_request.max_bytes) <= BigInt.asIntN(64, intent_projection.transfer_max_bytes) && (transfer_projection.length === 13 && (_M0MPC15array5Array2atGsE(transfer_projection, 1) === _M0FP35actql5actql22remote__site__protocol19output__route__text(intent_projection.transfer_route) && (_M0MPC15array5Array2atGsE(transfer_projection, 2) === request.site_key && (_M0MPC15array5Array2atGsE(transfer_projection, 3) === _M0MPC13int3Int18to__string_2einner(request.site_generation, 10) && (_M0MPC15array5Array2atGsE(transfer_projection, 4) === intent_projection.destination_site_key && (_M0MPC15array5Array2atGsE(transfer_projection, 5) === _M0MPC13int3Int18to__string_2einner(intent_projection.destination_site_generation, 10) && (_M0MPC15array5Array2atGsE(transfer_projection, 6) === payload_request.material_generation_cid && (_M0MPC15array5Array2atGsE(transfer_projection, 8) === _M0MPC15int645Int6418to__string_2einner(intent_projection.transfer_max_bytes, 10) && (_M0MPC15array5Array2atGsE(transfer_projection, 9) === _M0MPC15int645Int6418to__string_2einner(intent_projection.transfer_expires_unix_ms, 10) && (_M0MPC15array5Array2atGsE(transfer_projection, 10) === intent_projection.source_grant_cid && (_M0MPC15array5Array2atGsE(transfer_projection, 11) === intent_projection.destination_grant_cid && (_M0MPC15array5Array2atGsE(transfer_projection, 12) === intent_projection.route_capability_cid && _M0IPC15array5ArrayPB2Eq5equalGsE(transfer_occurrence, [intent_projection.coordinator_authority, intent_projection.destination_site_key, _M0MPC13int3Int18to__string_2einner(intent_projection.destination_site_generation, 10), intent_projection.transfer_attempt]))))))))))))))))));
+}
+function _M0FP35actql5actql22remote__site__protocol27output__plan__inputs__valid(output, subject, payload_request, transfer_request) {
+  const manifest = transfer_request.physical;
+  return _M0FP35actql5actql22remote__site__protocol31output__expected__inputs__valid(output, payload_request, transfer_request) && (_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__dispatch(subject, output.request) && (subject.material_generation === payload_request.material_generation_cid && (subject.result_schema_cid === payload_request.result_schema_cid && (subject.logical_view_cid === payload_request.logical_relation_cid && (subject.representation_codec_cid === payload_request.durable_codec_cid && (BigInt.asUintN(64, BigInt.asUintN(64, BigInt(subject.row_count))) === BigInt.asUintN(64, payload_request.row_count) && (BigInt.asUintN(64, subject.retained_bytes) === BigInt.asUintN(64, payload_request.max_bytes) && (subject.physical_manifest_cid === manifest.manifest_cid && (subject.result_schema_cid === manifest.schema_contract_cid && (subject.logical_view_cid === manifest.view_contract_cid && (subject.representation_codec_cid === manifest.codec_contract_cid && (subject.row_count === manifest.row_count && BigInt.asUintN(64, subject.retained_bytes) === BigInt.asUintN(64, manifest.referenced_bytes)))))))))))));
+}
+function _M0FP35actql5actql22remote__site__protocol26emit__remote__output__plan(output, subject, payload_request, transfer_request) {
+  if (!_M0FP35actql5actql22remote__site__protocol27output__plan__inputs__valid(output, subject, payload_request, transfer_request)) {
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3310;
+  }
+  const _bind = _M0FP35actql5actql20publication__payload35publication__payload__request__json(payload_request);
+  let payload_body;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    payload_body = _Ok._0;
+  } else {
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3311;
+  }
+  const _bind$2 = _M0FP35actql5actql16remote__transfer13request__json(transfer_request);
+  let transfer_body;
+  if (_bind$2.$tag === 1) {
+    const _Ok = _bind$2;
+    transfer_body = _Ok._0;
+  } else {
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3312;
+  }
+  const _bind$3 = _M0FP35actql5actql16remote__transfer23request__manifest__json(transfer_request);
+  let manifest_body;
+  if (_bind$3.$tag === 1) {
+    const _Ok = _bind$3;
+    manifest_body = _Ok._0;
+  } else {
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3313;
+  }
+  let writer;
+  let _try_err;
+  _L: {
+    _L$2: {
+      const _bind$4 = _M0FP35actql5actql12encode__core6writer(3145728, 32, 2);
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        writer = _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err = _err._0;
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3314;
+  }
+  let _try_err$2;
+  _L$2: {
+    _L$3: {
+      const _bind$4 = _M0FP35actql5actql12encode__core13begin__object(writer);
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$5 = _M0FP35actql5actql12encode__core3key(writer, "dispatch_request_cid");
+      if (_bind$5.$tag === 1) {
+        const _ok = _bind$5;
+        _ok._0;
+      } else {
+        const _err = _bind$5;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _p = output.request;
+      const _bind$6 = _M0FP35actql5actql12encode__core13string__value(writer, _p.dispatch_request_cid);
+      if (_bind$6.$tag === 1) {
+        const _ok = _bind$6;
+        _ok._0;
+      } else {
+        const _err = _bind$6;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$7 = _M0FP35actql5actql12encode__core3key(writer, "intent_cid");
+      if (_bind$7.$tag === 1) {
+        const _ok = _bind$7;
+        _ok._0;
+      } else {
+        const _err = _bind$7;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _p$2 = output.intent;
+      const _bind$8 = _M0FP35actql5actql12encode__core13string__value(writer, _p$2.intent_cid);
+      if (_bind$8.$tag === 1) {
+        const _ok = _bind$8;
+        _ok._0;
+      } else {
+        const _err = _bind$8;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$9 = _M0FP35actql5actql12encode__core3key(writer, "payload_request_cid");
+      if (_bind$9.$tag === 1) {
+        const _ok = _bind$9;
+        _ok._0;
+      } else {
+        const _err = _bind$9;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$10 = _M0FP35actql5actql12encode__core13string__value(writer, payload_request.request_cid);
+      if (_bind$10.$tag === 1) {
+        const _ok = _bind$10;
+        _ok._0;
+      } else {
+        const _err = _bind$10;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$11 = _M0FP35actql5actql12encode__core3key(writer, "payload_request_json");
+      if (_bind$11.$tag === 1) {
+        const _ok = _bind$11;
+        _ok._0;
+      } else {
+        const _err = _bind$11;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$12 = _M0FP35actql5actql12encode__core13string__value(writer, payload_body);
+      if (_bind$12.$tag === 1) {
+        const _ok = _bind$12;
+        _ok._0;
+      } else {
+        const _err = _bind$12;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$13 = _M0FP35actql5actql12encode__core3key(writer, "physical_manifest_cid");
+      if (_bind$13.$tag === 1) {
+        const _ok = _bind$13;
+        _ok._0;
+      } else {
+        const _err = _bind$13;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _p$3 = transfer_request.physical;
+      const _bind$14 = _M0FP35actql5actql12encode__core13string__value(writer, _p$3.manifest_cid);
+      if (_bind$14.$tag === 1) {
+        const _ok = _bind$14;
+        _ok._0;
+      } else {
+        const _err = _bind$14;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$15 = _M0FP35actql5actql12encode__core3key(writer, "physical_manifest_json");
+      if (_bind$15.$tag === 1) {
+        const _ok = _bind$15;
+        _ok._0;
+      } else {
+        const _err = _bind$15;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$16 = _M0FP35actql5actql12encode__core13string__value(writer, manifest_body);
+      if (_bind$16.$tag === 1) {
+        const _ok = _bind$16;
+        _ok._0;
+      } else {
+        const _err = _bind$16;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$17 = _M0FP35actql5actql12encode__core3key(writer, "subject_cid");
+      if (_bind$17.$tag === 1) {
+        const _ok = _bind$17;
+        _ok._0;
+      } else {
+        const _err = _bind$17;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$18 = _M0FP35actql5actql12encode__core13string__value(writer, subject.subject_cid);
+      if (_bind$18.$tag === 1) {
+        const _ok = _bind$18;
+        _ok._0;
+      } else {
+        const _err = _bind$18;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$19 = _M0FP35actql5actql12encode__core3key(writer, "transfer_request_cid");
+      if (_bind$19.$tag === 1) {
+        const _ok = _bind$19;
+        _ok._0;
+      } else {
+        const _err = _bind$19;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$20 = _M0FP35actql5actql12encode__core13string__value(writer, transfer_request.request_cid);
+      if (_bind$20.$tag === 1) {
+        const _ok = _bind$20;
+        _ok._0;
+      } else {
+        const _err = _bind$20;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$21 = _M0FP35actql5actql12encode__core3key(writer, "transfer_request_json");
+      if (_bind$21.$tag === 1) {
+        const _ok = _bind$21;
+        _ok._0;
+      } else {
+        const _err = _bind$21;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$22 = _M0FP35actql5actql12encode__core13string__value(writer, transfer_body);
+      if (_bind$22.$tag === 1) {
+        const _ok = _bind$22;
+        _ok._0;
+      } else {
+        const _err = _bind$22;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$23 = _M0FP35actql5actql12encode__core3key(writer, "version");
+      if (_bind$23.$tag === 1) {
+        const _ok = _bind$23;
+        _ok._0;
+      } else {
+        const _err = _bind$23;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$24 = _M0FP35actql5actql12encode__core13string__value(writer, "actql-remote-output-plan/0.1");
+      if (_bind$24.$tag === 1) {
+        const _ok = _bind$24;
+        _ok._0;
+      } else {
+        const _err = _bind$24;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      const _bind$25 = _M0FP35actql5actql12encode__core11end__object(writer);
+      if (_bind$25.$tag === 1) {
+        const _ok = _bind$25;
+        _ok._0;
+      } else {
+        const _err = _bind$25;
+        _try_err$2 = _err._0;
+        break _L$3;
+      }
+      break _L$2;
+    }
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3315;
+  }
+  let body;
+  let _try_err$3;
+  _L$3: {
+    _L$4: {
+      let _bind$4;
+      let _p;
+      _L$5: {
+        _L$6: {
+          const _bind$5 = _M0FP35actql5actql12encode__core19finish__text__usage(writer);
+          let _tmp;
+          if (_bind$5.$tag === 1) {
+            const _ok = _bind$5;
+            _tmp = _ok._0;
+          } else {
+            const _err = _bind$5;
+            _p = _err._0;
+            break _L$6;
+          }
+          _bind$4 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE2Ok(_tmp._0);
+          break _L$5;
+        }
+        _bind$4 = new _M0DTPC16result6ResultGsRP35actql5actql12encode__core13EncodeFailureE3Err(_p);
+      }
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        body = _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err$3 = _err._0;
+        break _L$4;
+      }
+      break _L$3;
+    }
+    return _M0FP35actql5actql22remote__site__protocol26emit__remote__output__planN6constrS3316;
+  }
+  return new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok({ _0: body, _1: `sha256:${_M0FP35actql5actql6sha2563hex(_M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false))}` });
+}
+function _M0FP35actql5actql22remote__site__protocol29prepare__remote__output__plan(output, subject, payload_request, transfer_request) {
+  const _bind = _M0FP35actql5actql22remote__site__protocol26emit__remote__output__plan(output, subject, payload_request, transfer_request);
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    const _x = _Ok._0;
+    const _body = _x._0;
+    const _plan_cid = _x._1;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql22remote__site__protocol16RemoteOutputPlan(payload_request, transfer_request, _body, _plan_cid));
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol33admit__remote__output__plan__json(body, output, subject, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  let _try_err;
+  _L: {
+    const _bind = _M0FP35actql5actql22remote__site__protocol14evidence__root(body, 3145728, 32, 2);
+    let _tmp;
+    if (_bind.$tag === 1) {
+      const _ok = _bind;
+      _tmp = _ok._0;
+    } else {
+      const _err = _bind;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$2 = _M0FP35actql5actql22remote__site__protocol16evidence__object(_tmp, ["dispatch_request_cid", "intent_cid", "payload_request_cid", "payload_request_json", "physical_manifest_cid", "physical_manifest_json", "subject_cid", "transfer_request_cid", "transfer_request_json", "version"]);
+    let object;
+    if (_bind$2.$tag === 1) {
+      const _ok = _bind$2;
+      object = _ok._0;
+    } else {
+      const _err = _bind$2;
+      _try_err = _err._0;
+      break _L;
+    }
+    let _tmp$2;
+    const _bind$3 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "version");
+    let _p;
+    if (_bind$3.$tag === 1) {
+      const _ok = _bind$3;
+      _p = _ok._0;
+    } else {
+      const _err = _bind$3;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _p$2 = "actql-remote-output-plan/0.1";
+    if (!(_p === _p$2)) {
+      _tmp$2 = true;
+    } else {
+      let _tmp$3;
+      const _bind$4 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "dispatch_request_cid");
+      let _p$3;
+      if (_bind$4.$tag === 1) {
+        const _ok = _bind$4;
+        _p$3 = _ok._0;
+      } else {
+        const _err = _bind$4;
+        _try_err = _err._0;
+        break _L;
+      }
+      const _p$4 = output.request;
+      const _p$5 = _p$4.dispatch_request_cid;
+      if (!(_p$3 === _p$5)) {
+        _tmp$3 = true;
+      } else {
+        let _tmp$4;
+        const _bind$5 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "intent_cid");
+        let _p$6;
+        if (_bind$5.$tag === 1) {
+          const _ok = _bind$5;
+          _p$6 = _ok._0;
+        } else {
+          const _err = _bind$5;
+          _try_err = _err._0;
+          break _L;
+        }
+        const _p$7 = output.intent;
+        const _p$8 = _p$7.intent_cid;
+        if (!(_p$6 === _p$8)) {
+          _tmp$4 = true;
+        } else {
+          const _bind$6 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "subject_cid");
+          let _p$9;
+          if (_bind$6.$tag === 1) {
+            const _ok = _bind$6;
+            _p$9 = _ok._0;
+          } else {
+            const _err = _bind$6;
+            _try_err = _err._0;
+            break _L;
+          }
+          const _p$10 = subject.subject_cid;
+          _tmp$4 = !(_p$9 === _p$10);
+        }
+        _tmp$3 = _tmp$4;
+      }
+      _tmp$2 = _tmp$3;
+    }
+    if (_tmp$2) {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$4 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "payload_request_json");
+    let _tmp$3;
+    if (_bind$4.$tag === 1) {
+      const _ok = _bind$4;
+      _tmp$3 = _ok._0;
+    } else {
+      const _err = _bind$4;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$4 = _tmp$3;
+    const _bind$5 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "payload_request_cid");
+    let _tmp$5;
+    if (_bind$5.$tag === 1) {
+      const _ok = _bind$5;
+      _tmp$5 = _ok._0;
+    } else {
+      const _err = _bind$5;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$6 = _M0FP35actql5actql20publication__payload42admit__publication__payload__request__json(_tmp$4, _tmp$5);
+    let payload_request;
+    if (_bind$6.$tag === 1) {
+      const _Ok = _bind$6;
+      payload_request = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$7 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "transfer_request_json");
+    let _tmp$6;
+    if (_bind$7.$tag === 1) {
+      const _ok = _bind$7;
+      _tmp$6 = _ok._0;
+    } else {
+      const _err = _bind$7;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$7 = _tmp$6;
+    const _bind$8 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "physical_manifest_json");
+    let _tmp$8;
+    if (_bind$8.$tag === 1) {
+      const _ok = _bind$8;
+      _tmp$8 = _ok._0;
+    } else {
+      const _err = _bind$8;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$9 = _tmp$8;
+    const _bind$9 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "transfer_request_cid");
+    let _tmp$10;
+    if (_bind$9.$tag === 1) {
+      const _ok = _bind$9;
+      _tmp$10 = _ok._0;
+    } else {
+      const _err = _bind$9;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _tmp$11 = _tmp$10;
+    const _bind$10 = _M0FP35actql5actql22remote__site__protocol14evidence__text(object, "physical_manifest_cid");
+    let _tmp$12;
+    if (_bind$10.$tag === 1) {
+      const _ok = _bind$10;
+      _tmp$12 = _ok._0;
+    } else {
+      const _err = _bind$10;
+      _try_err = _err._0;
+      break _L;
+    }
+    const _bind$11 = _M0FP35actql5actql16remote__transfer20admit__request__json(_tmp$7, _tmp$9, _tmp$11, _tmp$12, max_chunks, max_manifest_bytes, max_referenced_bytes);
+    let transfer_request;
+    if (_bind$11.$tag === 1) {
+      const _Ok = _bind$11;
+      transfer_request = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _bind$12 = _M0FP35actql5actql22remote__site__protocol29prepare__remote__output__plan(output, subject, payload_request, transfer_request);
+    let admitted;
+    if (_bind$12.$tag === 1) {
+      const _Ok = _bind$12;
+      admitted = _Ok._0;
+    } else {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    const _p$3 = admitted.body;
+    if (!(_p$3 === body)) {
+      _try_err = _M0DTPC15error5Error76actql_2factql_2fremote__site__protocol_2eEvidenceJsonStop_2eEvidenceJsonStop__;
+      break _L;
+    }
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol16RemoteOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(admitted);
+  }
+  return _M0FP35actql5actql22remote__site__protocol33admit__remote__output__plan__jsonN6constrS3317;
 }
 function _M0FP35actql5actql22remote__site__protocol5keyed(value) {
   return `${_M0MPC13int3Int18to__string_2einner(value.length, 10)}:${value}`;
@@ -17318,6 +22319,130 @@ function _M0FP35actql5actql22remote__site__protocol47restore__durable__coordinat
 function _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(subject) {
   return [subject.dispatch_request_cid, subject.material_generation, subject.holding_evidence_cid, subject.managed_profile_cid, subject.result_schema_cid, subject.logical_view_cid, subject.representation_codec_cid, subject.physical_manifest_cid, subject.measurement_evidence_cid, _M0MPC13int3Int18to__string_2einner(subject.row_count, 10), _M0MPC15int645Int6418to__string_2einner(subject.retained_bytes, 10), subject.subject_cid];
 }
+function _M0FP35actql5actql22remote__site__protocol36coordinator__output__occurrence__key(output) {
+  const projection = _M0FP35actql5actql22remote__site__protocol34remote__output__intent__projection(output.intent);
+  const _p = output.request;
+  return `${_M0FP35actql5actql22remote__site__protocol5keyed(_p.dispatch_request_cid)}${_M0FP35actql5actql22remote__site__protocol5keyed(projection.result_definition_cid)}`;
+}
+function _M0FP35actql5actql22remote__site__protocol35coordinator__output__progress__code(progress) {
+  switch (progress) {
+    case 0: {
+      return 0;
+    }
+    case 1: {
+      return 1;
+    }
+    default: {
+      return 2;
+    }
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol48coordinator__output__result__identity__or__empty(result) {
+  if (result === undefined) {
+    return "";
+  } else {
+    const _Some = result;
+    const _value = _Some;
+    return _value.result_cid;
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol39coordinator__output__record__projection(record) {
+  return [_M0MPC13int3Int18to__string_2einner(record.revision, 10), _M0MPC13int3Int18to__string_2einner(_M0FP35actql5actql22remote__site__protocol35coordinator__output__progress__code(record.progress), 10), _M0FP35actql5actql22remote__site__protocol48coordinator__output__result__identity__or__empty(record.result)];
+}
+function _M0FP35actql5actql22remote__site__protocol28coordinator__output__matches(record, output, payload_request, transfer_request) {
+  const _p = record.output.intent;
+  const _tmp = _p.intent_cid;
+  const _p$2 = output.intent;
+  if (_tmp === _p$2.intent_cid) {
+    let _tmp$2;
+    const _p$3 = record.output.request;
+    const _tmp$3 = _p$3.dispatch_request_cid;
+    const _p$4 = output.request;
+    if (_tmp$3 === _p$4.dispatch_request_cid) {
+      let _tmp$4;
+      const _p$5 = record.payload_request;
+      if (_p$5.request_cid === payload_request.request_cid) {
+        const _p$6 = record.transfer_request;
+        _tmp$4 = _p$6.request_cid === transfer_request.request_cid;
+      } else {
+        _tmp$4 = false;
+      }
+      _tmp$2 = _tmp$4;
+    } else {
+      _tmp$2 = false;
+    }
+    return _tmp$2;
+  } else {
+    return false;
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intent(journal, output, payload_request, transfer_request) {
+  if (!_M0FP35actql5actql22remote__site__protocol31output__expected__inputs__valid(output, payload_request, transfer_request)) {
+    return _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3450;
+  }
+  const request = output.request;
+  const _p = request.coordinator_authority;
+  const _p$2 = journal.authority;
+  if (!(_p === _p$2)) {
+    return _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3451;
+  }
+  _L: {
+    _L$2: {
+      const _bind = _M0MPB3Map3getGsRP35actql5actql22remote__site__protocol31CoordinatorDispatchIntentRecordE(journal.dispatches, _M0FP35actql5actql22remote__site__protocol13dispatch__key(request));
+      if (_bind === undefined) {
+        break _L$2;
+      } else {
+        const _Some = _bind;
+        const _dispatch_record = _Some;
+        if (_dispatch_record.request.dispatch_request_cid === request.dispatch_request_cid) {
+        } else {
+          break _L$2;
+        }
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3452;
+  }
+  const occurrence = _M0FP35actql5actql22remote__site__protocol36coordinator__output__occurrence__key(output);
+  const _bind = _M0MPB3Map3getGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(journal.outputs, occurrence);
+  if (_bind === undefined) {
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql22remote__site__protocol26CoordinatorOutputAdmission(journal, output, payload_request, transfer_request, 0, false));
+  } else {
+    const _Some = _bind;
+    const _record = _Some;
+    return _M0FP35actql5actql22remote__site__protocol28coordinator__output__matches(_record, output, payload_request, transfer_request) ? new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol26CoordinatorOutputAdmissionRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql22remote__site__protocol26CoordinatorOutputAdmission(journal, output, payload_request, transfer_request, 1, false)) : _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intentN6constrS3453;
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intent(admission, durable) {
+  if (admission.consumed) {
+    return _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3454;
+  }
+  if (!durable) {
+    return _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3455;
+  }
+  const occurrence = _M0FP35actql5actql22remote__site__protocol36coordinator__output__occurrence__key(admission.output);
+  const _bind = _M0MPB3Map3getGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(admission.journal.outputs, occurrence);
+  if (_bind === undefined) {
+    if (_M0IP35actql5actql22remote__site__protocol18DispatchAcceptancePB2Eq5equal(admission.acceptance, 1)) {
+      return _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3457;
+    }
+    const record = new _M0TP35actql5actql22remote__site__protocol23CoordinatorOutputRecord(admission.output, admission.payload_request, admission.transfer_request, 0, 0, undefined);
+    _M0MPB3Map3setGsRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordE(admission.journal.outputs, occurrence, record);
+    admission.consumed = true;
+    return new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok({ _0: 0, _1: record });
+  } else {
+    const _Some = _bind;
+    const _record = _Some;
+    if (!_M0FP35actql5actql22remote__site__protocol28coordinator__output__matches(_record, admission.output, admission.payload_request, admission.transfer_request)) {
+      return _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intentN6constrS3456;
+    }
+    admission.consumed = true;
+    return new _M0DTPC16result6ResultGURP35actql5actql22remote__site__protocol18DispatchAcceptanceRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok({ _0: 1, _1: _record });
+  }
+}
+function _M0FP35actql5actql22remote__site__protocol35coordinator__output__record__status(record) {
+  return _M0FP35actql5actql22remote__site__protocol39coordinator__output__record__projection(record);
+}
 function _M0FP35actql5actql22remote__site__protocol44coordinator__exact__retransmission__eligible(record, request) {
   return record.request.dispatch_request_cid === request.dispatch_request_cid && (record.site_revision === -1 && (_M0IP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressPB2Eq5equal(record.progress, 0) || _M0IP35actql5actql22remote__site__protocol27CoordinatorDispatchProgressPB2Eq5equal(record.progress, 1)));
 }
@@ -17351,6 +22476,156 @@ function _M0FP35actql5actql22remote__site__protocol41commit__coordinator__dispat
 }
 function _M0FP35actql5actql22remote__site__protocol43coordinator__dispatch__record__state__codes(record) {
   return _M0FP35actql5actql22remote__site__protocol31coordinator__record__projection(record);
+}
+function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable) {
+  _L: {
+    const _bind = durable.evidence;
+    const _bind$2 = durable.subject;
+    const _bind$3 = durable.measurement;
+    if (_bind === undefined) {
+      if (_bind$2 === undefined) {
+        if (_bind$3 === undefined) {
+          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_M0DTPC16option6OptionGRPB5ArrayGsEE4None__);
+        } else {
+          break _L;
+        }
+      } else {
+        break _L;
+      }
+    } else {
+      const _Some = _bind;
+      const _evidence = _Some;
+      if (_bind$2 === undefined) {
+        break _L;
+      } else {
+        const _Some$2 = _bind$2;
+        const _subject = _Some$2;
+        if (_bind$3 === undefined) {
+          break _L;
+        } else {
+          const _Some$3 = _bind$3;
+          const _measurement = _Some$3;
+          const request = durable.request;
+          if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
+            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS167;
+          }
+          const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
+          const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
+          const _bind$5 = _bind$4.length;
+          let _tmp = 0;
+          while (true) {
+            const _ = _tmp;
+            if (_ < _bind$5) {
+              const field = _bind$4[_];
+              _M0MPC15array5Array4pushGsE(fields, field);
+              _tmp = _ + 1 | 0;
+              continue;
+            } else {
+              break;
+            }
+          }
+          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(fields));
+        }
+      }
+    }
+  }
+  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS166;
+}
+function _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan(durable, poll_body, plan_body, expected_result_definition_cid, max_chunks, max_manifest_bytes, max_referenced_bytes) {
+  const _bind = _M0FP35actql5actql22remote__site__protocol39admit__remote__poll__output__plan__json(poll_body);
+  let output;
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    output = _Ok._0;
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+  }
+  const request = output.request;
+  const retained = durable.request;
+  let _tmp;
+  const _p = request.dispatch_request_cid;
+  const _p$2 = retained.dispatch_request_cid;
+  if (!(_p === _p$2)) {
+    _tmp = true;
+  } else {
+    const _p$3 = _M0FP35actql5actql22remote__site__protocol34remote__output__intent__projection(output.intent).result_definition_cid;
+    _tmp = !(_p$3 === expected_result_definition_cid);
+  }
+  if (_tmp) {
+    return _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS168;
+  }
+  _L: {
+    _L$2: {
+      const _bind$2 = _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable);
+      if (_bind$2.$tag === 1) {
+        const _Ok = _bind$2;
+        const _x = _Ok._0;
+        if (_x.$tag === 1) {
+        } else {
+          break _L$2;
+        }
+      } else {
+        break _L$2;
+      }
+      break _L;
+    }
+    return _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS169;
+  }
+  const _bind$2 = durable.subject;
+  if (_bind$2 === undefined) {
+    return _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__planN6constrS170;
+  } else {
+    const _Some = _bind$2;
+    const _subject = _Some;
+    const _bind$3 = _M0FP35actql5actql22remote__site__protocol33admit__remote__output__plan__json(plan_body, output, _subject, max_chunks, max_manifest_bytes, max_referenced_bytes);
+    let plan;
+    if (_bind$3.$tag === 1) {
+      const _Ok = _bind$3;
+      plan = _Ok._0;
+    } else {
+      const _Err = _bind$3;
+      const _issue = _Err._0;
+      return new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+    }
+    return new _M0DTPC16result6ResultGRP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlanRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0TP35actql5actql24remote__coordinator__abi28CoordinatorCheckedOutputPlan(output, plan));
+  }
+}
+function _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid(checked) {
+  const _p = checked.plan;
+  return _p.plan_cid;
+}
+function _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid(checked) {
+  const _p = checked.output;
+  const _p$2 = _p.intent;
+  return _p$2.intent_cid;
+}
+function _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent(journal, checked) {
+  const _tmp = checked.output;
+  const _p = checked.plan;
+  const _tmp$2 = _p.payload_request;
+  const _p$2 = checked.plan;
+  return _M0FP35actql5actql22remote__site__protocol36prepare__coordinator__output__intent(journal, _tmp, _tmp$2, _p$2.transfer_request);
+}
+function _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new(admission) {
+  return _M0IP35actql5actql22remote__site__protocol18DispatchAcceptancePB2Eq5equal(admission.acceptance, 0);
+}
+function _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent(admission) {
+  const _bind = _M0FP35actql5actql22remote__site__protocol35commit__coordinator__output__intent(admission, true);
+  if (_bind.$tag === 1) {
+    const _Ok = _bind;
+    const _x = _Ok._0;
+    const _record = _x._1;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_record);
+  } else {
+    const _Err = _bind;
+    const _issue = _Err._0;
+    return new _M0DTPC16result6ResultGRP35actql5actql22remote__site__protocol23CoordinatorOutputRecordRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(_issue);
+  }
+}
+function _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status(record) {
+  return _M0FP35actql5actql22remote__site__protocol35coordinator__output__record__status(record);
 }
 function _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal(authority) {
   return _M0FP35actql5actql22remote__site__protocol38create__coordinator__dispatch__journal(authority);
@@ -17423,60 +22698,6 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dis
 function _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request(durable) {
   return durable.request;
 }
-function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output(durable) {
-  _L: {
-    const _bind = durable.evidence;
-    const _bind$2 = durable.subject;
-    const _bind$3 = durable.measurement;
-    if (_bind === undefined) {
-      if (_bind$2 === undefined) {
-        if (_bind$3 === undefined) {
-          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(_M0DTPC16option6OptionGRPB5ArrayGsEE4None__);
-        } else {
-          break _L;
-        }
-      } else {
-        break _L;
-      }
-    } else {
-      const _Some = _bind;
-      const _evidence = _Some;
-      if (_bind$2 === undefined) {
-        break _L;
-      } else {
-        const _Some$2 = _bind$2;
-        const _subject = _Some$2;
-        if (_bind$3 === undefined) {
-          break _L;
-        } else {
-          const _Some$3 = _bind$3;
-          const _measurement = _Some$3;
-          const request = durable.request;
-          if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
-            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS108;
-          }
-          const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
-          const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
-          const _bind$5 = _bind$4.length;
-          let _tmp = 0;
-          while (true) {
-            const _ = _tmp;
-            if (_ < _bind$5) {
-              const field = _bind$4[_];
-              _M0MPC15array5Array4pushGsE(fields, field);
-              _tmp = _ + 1 | 0;
-              continue;
-            } else {
-              break;
-            }
-          }
-          return new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE2Ok(new _M0DTPC16option6OptionGRPB5ArrayGsEE4Some(fields));
-        }
-      }
-    }
-  }
-  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS107;
-}
 function _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown(record) {
   return _M0FP35actql5actql22remote__site__protocol38prepare__coordinator__outcome__unknown(record);
 }
@@ -17511,4 +22732,4 @@ function _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__stat
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible(record, request) {
   return _M0FP35actql5actql22remote__site__protocol44coordinator__exact__retransmission__eligible(record, request);
 }
-export { _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }
+export { _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }
