@@ -21,6 +21,14 @@ and checked by `check:local-resource-accounting`.
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
 
+The synchronous `row_window`, `unpivot`, and `unnest` row evaluators now
+validate output schema names without first materializing the name array. They
+reserve the input and output metadata slots before constructing that array.
+Empty-input fixtures use fixed schema-width arithmetic for exact and one-short
+workspace limits. This closes a local allocation-order gap for those schema
+arrays; it does not make the enclosing providerless sequence cancellable or
+establish complete operation-level resource assurance.
+
 The generated-sequence tests for `group`, `pivot`, `unpivot`, and `unnest` now
 use fixed control-work expectations of 354, 145, 160, and 116 units for their
 respective authored fixtures. Each checks the independent constant against

@@ -115,13 +115,11 @@ fn[T : RelationRows] evaluate_window_rows(
   let names = RelationRows::field_names(input)
   let width = names.length()
   let output_schema = @lower.node_output_schema(node)
-  let output_names = Array::makei(@schema.field_count(output_schema), i => {
-    @schema.reference_name(@schema.field_at(output_schema, i).unwrap().name)
-  })
+  let output_width = @schema.field_count(output_schema)
   let (start_field, end_field) = @lower.window_boundaries(window)
   let start_name = @schema.reference_name(start_field)
   let end_name = @schema.reference_name(end_field)
-  if output_names.length() != width + 2 {
+  if output_width != width + 2 {
     return Err(InvalidRows)
   }
   let mut time_column = -1
@@ -149,7 +147,10 @@ fn[T : RelationRows] evaluate_window_rows(
   }
   let mut saw_start = false
   let mut saw_end = false
-  for name in output_names {
+  for i = 0; i < output_width; i = i + 1 {
+    let name = @schema.reference_name(
+      @schema.field_at(output_schema, i).unwrap().name,
+    )
     if !spend_control_text(control, name) {
       return Err(RowLimit)
     }
@@ -174,9 +175,12 @@ fn[T : RelationRows] evaluate_window_rows(
   if input_count > max_rows ||
     !reserve_slots(workspace, input_count) ||
     !reserve_slots(workspace, width) ||
-    !reserve_slots(workspace, output_names.length()) {
+    !reserve_slots(workspace, output_width) {
     return Err(RowLimit)
   }
+  let output_names = Array::makei(output_width, i => {
+    @schema.reference_name(@schema.field_at(output_schema, i).unwrap().name)
+  })
   let size_integer = @lower.window_size(window)
   let step_integer = @lower.window_effective_step(window)
   let offset_integer = @lower.window_offset(window)

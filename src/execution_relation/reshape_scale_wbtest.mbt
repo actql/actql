@@ -150,3 +150,55 @@ test "reshape kernels stay within their declared scaling floors" {
     assert_true(pivot.1 <= count * 4 + 500)
   }
 }
+
+///|
+test "empty reshape outputs reserve schema entries before construction" {
+  let unnest_owner = unnest_sequence_owner(
+    "{\"column\":\"items\",\"as\":\"item\",\"with_index\":\"position\"}",
+  )
+  let unnest_input : Table = {
+    owner: unnest_owner,
+    id: "source",
+    names: ["id", "items"],
+    rows: [],
+  }
+  // Two input fields and four output fields remain live together.
+  for (limit, succeeds) in [(6, true), (5, false)] {
+    let workspace = row_workspace(limit)
+    let result = evaluate_unnest_rows(
+      row_kernel(unnest_owner, 0),
+      unnest_input,
+      "unnested",
+      0,
+      { remaining: 10000, max_frames: 100, },
+      reshape_scale_budget(10000),
+      workspace,
+    )
+    assert_eq(result is Ok(_), succeeds)
+    assert_eq(workspace.peak, if succeeds { 6 } else { 2 })
+  }
+
+  let unpivot_owner = unpivot_sequence_owner()
+  let unpivot_input : Table = {
+    owner: unpivot_owner,
+    id: "source",
+    names: ["id", "jan", "feb"],
+    rows: [],
+  }
+  // Three column ordinals, three labels, two keep entries, three input
+  // fields, and four output fields require fifteen structural slots.
+  for (limit, succeeds) in [(15, true), (14, false)] {
+    let workspace = row_workspace(limit)
+    let result = evaluate_unpivot_rows(
+      row_kernel(unpivot_owner, 0),
+      unpivot_input,
+      "unpivoted",
+      0,
+      { remaining: 10000, max_frames: 100, },
+      reshape_scale_budget(10000),
+      workspace,
+    )
+    assert_eq(result is Ok(_), succeeds)
+    assert_eq(workspace.peak, if succeeds { 15 } else { 11 })
+  }
+}

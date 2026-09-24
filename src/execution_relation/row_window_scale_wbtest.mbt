@@ -90,3 +90,29 @@ test "row windows scale with input rows and emitted memberships" {
     }
   }
 }
+
+///|
+test "empty row window reserves its output schema before allocation" {
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 1)
+    is Some(@lower.WindowStep(window)) else {
+    fail("row window lowering")
+  }
+  let input : Table = { owner, id: "values_0", names: ["at", "id"], rows: [], }
+  // Two input names and four output names coexist even without rows.
+  for (limit, succeeds) in [(6, true), (5, false)] {
+    let workspace = row_workspace(limit)
+    let result = evaluate_window_rows(
+      window,
+      input,
+      0,
+      { remaining: 10000, max_frames: 100, },
+      value_budget(run_limits().output_values).unwrap(),
+      workspace,
+    )
+    assert_eq(result is Ok(_), succeeds)
+    assert_eq(workspace.peak, if succeeds { 6 } else { 2 })
+  }
+}
