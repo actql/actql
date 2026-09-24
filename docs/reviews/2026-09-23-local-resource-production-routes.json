@@ -4346,7 +4346,16 @@
       "entrypoint": {
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_vectors_to_rows"
-      }
+      },
+      "boundary_tests": [
+        {
+          "role": "vectors_projection_value_width_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "Vectors projection production entrypoint enforces value and width limits"
+        }
+      ]
     },
     {
       "inventory": "families",

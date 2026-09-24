@@ -1305,6 +1305,10 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
     fail(`${label}: Events projection boundary fixture is missing`);
   }
+  if (route.family === 'Bridge' && route.operation === 'vectors' &&
+    !boundaryRoles.has('vectors_projection_value_width_and_kernel_cancel_cleanup')) {
+    fail(`${label}: Vectors projection boundary fixture is missing`);
+  }
 }
 
 // Route fixtures cannot make a synchronous providerless resume interruptible.
