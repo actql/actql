@@ -105,6 +105,10 @@ pub fn effect_preview_member_plan_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_resolved_contract(EffectPreviewIdentity, Int) -> EffectPreviewResolvedContract?
 
+pub fn effect_preview_member_result_artifact_cid(EffectPreviewIdentity, Int) -> String?
+
+pub fn effect_preview_member_source_result(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_ordered_row_correlation_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_ordered_row_identity(EffectPreviewIdentity, Int, Int) -> String?
@@ -589,6 +593,8 @@ pub struct EffectPreviewIdentity {
   member_effect_ids : Array[String]
   member_effect_kinds : Array[String]
   member_effect_plan_cids : Array[String?]
+  member_source_results : Array[String?]
+  member_result_artifact_cids : Array[String?]
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
