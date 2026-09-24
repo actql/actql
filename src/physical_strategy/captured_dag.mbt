@@ -43,6 +43,14 @@ struct CapturedDAG {
 }
 
 ///|
+/// An exact admitted Effect Run retained through physical capture. Compute
+/// access does not authorize Preview admission or mutation dispatch.
+struct CapturedEffectRunDAG {
+  checked : CheckedEffectRunDAG
+  captured : CapturedDAG
+}
+
+///|
 /// One authoritative committed output slot per checked task. The variants
 /// preserve representation-specific typed access; they are not independent
 /// completion ledgers. A task can occupy this slot only once.
@@ -215,7 +223,7 @@ pub fn open_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
-  if graph.source_free_root {
+  if graph.source_free_root || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
   open_checked_dag(graph, Some(source), ledger, supplied)
@@ -236,7 +244,39 @@ pub fn open_source_free_dag(
     graph.supplied_slots.any(slot => slot.consumer == 0) {
     return Err(UnsupportedGraph)
   }
+  if graph_program_has_effects(graph) {
+    return Err(UnsupportedGraph)
+  }
   open_checked_dag(graph, None, ledger, [])
+}
+
+///|
+/// Open physical compute only from the bound Effect Run graph. The returned
+/// owner keeps the static closure and admitted Run beside the captured DAG.
+pub fn open_captured_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  source : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  supplied? : Array[@execution.CapturedRows] = [],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let captured = match
+    open_checked_dag(checked.computation.graph, Some(source), ledger, supplied) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ checked, captured, })
+}
+
+///|
+pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
+  value.captured
+}
+
+///|
+pub fn captured_effect_run_owner(
+  value : CapturedEffectRunDAG,
+) -> @checked.EffectProgramRunCandidate {
+  value.checked.run
 }
 
 ///|

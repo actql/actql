@@ -46,7 +46,7 @@ struct CheckedDAG {
 /// A physical computation graph paired with its exact checked Effect closure.
 /// The graph accessor supplies computation only; it never discharges Preview
 /// or apply obligations or turns this Program into an Effect-free Run.
-pub struct CheckedEffectComputationDAG {
+struct CheckedEffectComputationDAG {
   candidate : @checked.EffectProgramStaticCandidate
   graph : CheckedDAG
 }
@@ -54,7 +54,7 @@ pub struct CheckedEffectComputationDAG {
 ///|
 /// The same computation graph retained with its exact admitted Run owner.
 /// This is not a captured input, Preview, or Effect apply permit.
-pub struct CheckedEffectRunDAG {
+struct CheckedEffectRunDAG {
   computation : CheckedEffectComputationDAG
   run : @checked.EffectProgramRunCandidate
 }
@@ -67,7 +67,7 @@ pub fn prepare_checked_effect_computation_dag(
   max_work : Int,
 ) -> Result[CheckedEffectComputationDAG, GraphIssue] {
   match
-    prepare_checked_dag(
+    prepare_checked_dag_owned(
       @checked.effect_program_static_checked_computation(candidate),
       owners,
       max_tasks,
@@ -172,6 +172,7 @@ struct TaskNumericObservation {
 ///|
 pub(all) enum GraphIssue {
   InvalidLimits
+  EffectGraphOwnerRequired
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
@@ -195,6 +196,21 @@ pub fn prepare_checked_dag(
   max_tasks : Int,
   max_work : Int,
   source_free_root? : Bool = false,
+) -> Result[CheckedDAG, GraphIssue] {
+  if @checked.checked_program_has_effects(program) {
+    return Err(EffectGraphOwnerRequired)
+  }
+  prepare_checked_dag_owned(program, owners, max_tasks, max_work)
+}
+
+///|
+/// Shared physical preparation after the caller retains the appropriate
+/// checked owner. This private entry cannot discard an Effect owner.
+fn prepare_checked_dag_owned(
+  program : @checked.CheckedProgram,
+  owners : Array[@lower.BoundPrepared],
+  max_tasks : Int,
+  max_work : Int,
 ) -> Result[CheckedDAG, GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)

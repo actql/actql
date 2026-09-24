@@ -308,3 +308,10 @@ rejected even when a caller could reproduce matching CID strings. This keeps
 the checked computation and Run proof together for the next capture boundary;
 it is neither a captured Result nor apply authority. The ordinary Host still
 rejects Effectful execution, so COMMON-SF-05 remains open.
+
+The generic checked-DAG and captured-DAG entries now reject Effectful Programs.
+Only the Effect-specific entries can prepare and open their physical compute,
+and `CapturedEffectRunDAG` retains the same admitted Run owner through capture.
+This prevents a caller from discarding the Effect closure by using an ordinary
+computation entry. It does not yet prove the captured Result holdings, issue
+the Effect Context, or permit a physical write.
