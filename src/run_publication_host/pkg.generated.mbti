@@ -16,6 +16,8 @@ import {
 // Values
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
+
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
@@ -37,6 +39,8 @@ pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
+
+pub fn emit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, Int, Int, Int) -> Result[String, ClientPublicationBindingIssue]
 
 pub fn emit_prepared_client_publication_limit(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, Int, Int, Int) -> Result[String, ClientPublicationLimitIssue]
 
@@ -110,6 +114,19 @@ pub(all) struct ClientProgramPreparationLimits {
   max_graph_work : Int
 }
 
+pub(all) enum ClientPublicationBindingAdmissionIssue {
+  MissingPublication
+  InvalidBinding
+  MismatchedBinding
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientPublicationBindingIssue {
+  MissingPublication
+  MismatchedCheckedLimit
+  Encoding
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationLimitIssue {
   MissingPublication
   Encoding
@@ -161,6 +178,8 @@ pub(all) enum ClientValuesPipelineIssue {
   NotSingleValues
   Encoding
 }
+
+type ParsedClientPublicationBinding derive(Eq, @debug.Debug)
 
 type PreparedClientProgram
 
