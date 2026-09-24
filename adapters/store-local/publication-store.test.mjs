@@ -383,51 +383,96 @@ test('private evidence is encrypted, bound, and readable after restart',
       privateEvidenceKey: suppliedKey,
     });
     const cid = digest('private-effect-preview');
+    const holdingCid = digest('private-effect-preview-holding');
     const wire = '{"sensitivity":"private","value":"secret-marker"}';
     suppliedKey.fill(0);
-    const [first, joined] = await Promise.all([
-      store.putPrivateSemantic('effect_preview', wire, cid),
-      store.putPrivateSemantic('effect_preview', wire, cid),
-    ]);
-    assert.equal(first.semanticCid, cid);
-    assert.equal(joined.semanticCid, cid);
-    const stored = await store.readSemanticBytes(cid);
-    assert.equal(stored.includes(Buffer.from('secret-marker')), false);
-    assert.deepEqual(await store.readPrivateSemantic('effect_preview', cid),
-      Buffer.from(wire));
-    await assert.rejects(store.readPrivateSemantic('review_projection', cid),
-      code('PublicationPrivateEvidenceCorrupt'));
-    await assert.rejects(store.putPrivateSemantic(
-      'effect_preview', '{"value":"changed"}', cid,
-    ), code('PublicationSemanticIdentityConflict'));
+    const prepared = await store.preparePrivateEvidence(
+      'effect_preview', wire, cid,
+    );
+    const stored = await store.verifyObject(prepared.physicalCid);
+    assert.equal(stored.bytes, prepared.bytes);
+    const ciphertext = [];
+    await store.consumeObject(prepared.physicalCid,
+      chunk => ciphertext.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(ciphertext).includes(
+      Buffer.from('secret-marker')), false);
+    assert.equal(prepared.prepared.status().pending, true);
+    await assert.rejects(store.readSemanticBytes(cid),
+      code('PublicationContractMissing'));
+    await store.commitPhysicalHolding({
+      version: 'actql-local-physical-holding/0.1',
+      namespace: 'publication-private',
+      holding_cid: holdingCid,
+      manifest_cid: cid,
+      objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+    }, [prepared.prepared]);
+    assert.equal(prepared.prepared.status().pending, false);
+    assert.deepEqual(await store.readPrivateEvidence(
+      'effect_preview', cid, holdingCid,
+    ), Buffer.from(wire));
+    await assert.rejects(store.readPrivateEvidence(
+      'effect_preview', digest('foreign-preview'), holdingCid,
+    ), code('PublicationPrivateEvidenceUnavailable'));
+    await assert.rejects(store.readPrivateEvidence(
+      'review_projection', cid, holdingCid,
+    ), code('PublicationPrivateEvidenceCorrupt'));
     await store.close();
 
     const reopened = await openLocalPublicationStore({
       ...configuration, privateEvidenceKey: Buffer.alloc(32, 7),
     }, contractControl);
     t.after(async () => { await reopened.close(); });
-    assert.deepEqual(await reopened.readPrivateSemantic(
-      'effect_preview', cid,
+    assert.deepEqual(await reopened.readPrivateEvidence(
+      'effect_preview', cid, holdingCid,
     ), Buffer.from(wire));
-    assert.equal((await reopened.putPrivateSemantic(
-      'effect_preview', wire, cid,
-    )).created, false);
+    assert.equal((await reopened.inspectPhysicalHolding(holdingCid))
+      .objects[0].cid, prepared.physicalCid);
     await reopened.close();
 
     const wrongKey = await openLocalPublicationStore({
       ...configuration, privateEvidenceKey: Buffer.alloc(32, 8),
     }, contractControl);
     t.after(async () => { await wrongKey.close(); });
-    await assert.rejects(wrongKey.readPrivateSemantic('effect_preview', cid),
+    await assert.rejects(wrongKey.readPrivateEvidence(
+      'effect_preview', cid, holdingCid,
+    ),
       code('PublicationPrivateEvidenceCorrupt'));
     await wrongKey.close();
     const withoutKey = await openLocalPublicationStore({
       ...configuration, privateEvidenceKey: undefined,
     }, contractControl);
     t.after(async () => { await withoutKey.close(); });
-    await assert.rejects(withoutKey.readPrivateSemantic(
-      'effect_preview', cid,
+    await assert.rejects(withoutKey.readPrivateEvidence(
+      'effect_preview', cid, holdingCid,
     ), code('PublicationPrivateEvidenceKeyUnavailable'));
+    const retired = await withoutKey.retirePhysicalHolding(holdingCid);
+    assert.equal(retired.deleted, true);
+    assert.equal(withoutKey.status().storedBytes, 0);
+  });
+
+test('uncommitted private evidence retains a recoverable prepared owner',
+  async t => {
+    const {store, configuration} = await fixture(t, {
+      privateEvidenceKey: Buffer.alloc(32, 5),
+    });
+    const semanticCid = digest('uncommitted-private-preview');
+    const first = await store.preparePrivateEvidence(
+      'effect_preview', '{"value":"private"}', semanticCid,
+    );
+    assert.equal(first.prepared.status().pending, true);
+    assert.equal(store.status().storedBytes, first.bytes);
+    await assert.rejects(store.readPrivateEvidence(
+      'effect_preview', semanticCid, digest('no-holding'),
+    ), code('PublicationPrivateEvidenceUnavailable'));
+    await first.prepared.release();
+    assert.equal(store.status().storedBytes, 0);
+    assert.equal(store.status().objectCount, 0);
+    await store.close();
+    const reopened = await openLocalPublicationStore({
+      ...configuration, privateEvidenceKey: Buffer.alloc(32, 5),
+    }, contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.equal(reopened.status().storedBytes, 0);
   });
 
 test('trusted clock high-water mark survives restart and rejects rollback',
