@@ -397,6 +397,44 @@ fn effect_receipt_test_two_member_preview() -> EffectPreviewIdentity {
 }
 
 ///|
+test "typed Effect outcome stays bound to the exact Preview row" {
+  let preview = effect_receipt_test_two_member_preview()
+  let first = effect_preview_row_identity(preview, 0, 0).unwrap()
+  let second = effect_preview_row_identity(preview, 1, 0).unwrap()
+  let applied = "{\"result\":{\"record_id\":\"a001\"},\"state\":\"applied\"}"
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, first, applied, 4096, 128, 16,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 1, 0, second, applied, 4096, 128, 16,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, second, applied, 4096, 128, 16,
+    )
+    is Err(ForeignRow),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 1, first, applied, 4096, 128, 16,
+    )
+    is Err(InvalidRow),
+  )
+  assert_true(
+    check_effect_preview_row_outcome(
+      preview, 0, 0, first, "{\"state\":\"applied\"}", 4096, 128, 16,
+    )
+    is Err(Outcome(_)),
+  )
+}
+
+///|
 fn effect_receipt_test_member_body(
   preview_cid : String,
   member_cid : String,
