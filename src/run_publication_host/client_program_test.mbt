@@ -76,6 +76,56 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(prepared_client_result_count(prepared), 1)
   assert_eq(prepared_client_result_name(prepared, 0), Some("answer"))
   assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
+  assert_eq(
+    @checked.unit_publication_count(
+      @strategy.graph_program(prepared_client_graph(prepared)),
+      0,
+    ),
+    Some(1),
+  )
+  let rows_limit = emit_prepared_client_publication_limit(
+    prepared,
+    0,
+    0,
+    Rows,
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let bytes_limit = emit_prepared_client_publication_limit(
+    prepared,
+    0,
+    0,
+    Bytes,
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  assert_true(rows_limit != bytes_limit)
+  assert_true(
+    emit_prepared_client_publication_limit(
+      prepared,
+      0,
+      1,
+      Rows,
+      10000,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationLimitIssue::MissingPublication),
+  )
+  assert_true(
+    emit_prepared_client_publication_limit(
+      prepared,
+      0,
+      0,
+      Rows,
+      rows_limit.length() - 1,
+      1000,
+      20,
+    )
+    is Err(ClientPublicationLimitIssue::Encoding),
+  )
   let identity = prepared_client_identity(prepared)
   assert_eq(
     prepared_client_check_environment_cid(prepared),
@@ -208,6 +258,10 @@ test "ordinary values document prepares one named Effect-free result" {
     prepared_client_check_environment_cid(prepared),
   )
   assert_eq(prepared_client_program_semantics_cid(spaced), semantics_cid)
+  assert_eq(
+    emit_prepared_client_publication_limit(spaced, 0, 0, Rows, 10000, 1000, 20).unwrap(),
+    rows_limit,
+  )
   assert_eq(
     emit_prepared_client_program_definition(spaced, 10000, 1000, 20).unwrap(),
     definition,
