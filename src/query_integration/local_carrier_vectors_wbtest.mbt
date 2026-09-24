@@ -3665,6 +3665,149 @@ test "registered VecA provider consumes exact Vectors inputs" {
 }
 
 ///|
+test "nearest charges incremental initialization and cumulative work" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [(1.0, "[1,0]")])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1,0]")])
+  let generated = task_test_generated(owner)
+  // Each input: one identity slot, two field reads, two identity matches,
+  // one record finish, and three component checks = nine units. Two record
+  // scratch slots and two uniqueness checks bring the total to 22. One
+  // score scratch slot, two component folds, score finish, output emission,
+  // and completion bring the independent total to 28 units.
+  // Workspace: two three-slot records, four score slots, three record-sort
+  // slots, two identity slots, and eight fixed slots = 23.
+  let short_candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let short_query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  assert_true(
+    @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_carrier_producer(short_candidate_view),
+      @local_veca.nearest_carrier_producer(short_query_view),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      22,
+      1000,
+      1000,
+      28,
+    )
+    is Err(@local_veca.NearestWorkspaceLimit),
+  )
+  for (ceiling, accepted) in [(28, true), (27, false)] {
+    let candidate_view = @carrier_runtime.material_prepare_view(
+      candidate_material, owner, 0, candidates,
+    ).unwrap()
+    let query_view = @carrier_runtime.material_prepare_view(
+      query_material, owner, 1, queries,
+    ).unwrap()
+    let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      @local_veca.nearest_carrier_producer(candidate_view),
+      @local_veca.nearest_carrier_producer(query_view),
+      10,
+      { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      23,
+      1000,
+      1000,
+      ceiling,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<32 {
+      if !terminal {
+        match @local_veca.advance_nearest(execution, 1).unwrap() {
+          @local_veca.NearestContinue(work~, ..) => {
+            assert_eq(work - charged, 1L)
+            charged = work
+          }
+          @local_veca.NearestComplete(output, work~, ..) => {
+            assert_true(accepted)
+            assert_eq(work - charged, 1L)
+            charged = work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_veca.NearestFailed(@local_veca.NearestWorkLimit, work~, ..) => {
+            assert_false(accepted)
+            assert_eq(work, charged)
+            assert_true(@local_veca.nearest_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("nearest work boundary had another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(charged, ceiling.to_int64())
+    assert_true(@local_veca.nearest_stopped(execution))
+    assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+  }
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
+test "nearest stops during incremental identity initialization" {
+  let candidates = direct_nearest_vector_owner()
+  let queries = direct_nearest_vector_owner()
+  let owner = direct_nearest_owner(candidates, queries)
+  let candidate_material = direct_nearest_material(candidates, [(1.0, "[1,0]")])
+  let query_material = direct_nearest_material(queries, [(10.0, "[1,0]")])
+  let candidate_view = @carrier_runtime.material_prepare_view(
+    candidate_material, owner, 0, candidates,
+  ).unwrap()
+  let query_view = @carrier_runtime.material_prepare_view(
+    query_material, owner, 1, queries,
+  ).unwrap()
+  let generated = task_test_generated(owner)
+  let control = @bounded.control()
+  let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
+    control,
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    @local_veca.nearest_carrier_producer(candidate_view),
+    @local_veca.nearest_carrier_producer(query_view),
+    10,
+    { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+    23,
+    1000,
+    1000,
+    28,
+  ).unwrap()
+  assert_true(
+    @local_veca.advance_nearest(execution, 1).unwrap()
+    is @local_veca.NearestContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_veca.advance_nearest(execution, 1).unwrap()
+    is @local_veca.NearestStopped(_, work=1L, ..),
+  )
+  assert_true(@local_veca.nearest_stopped(execution))
+  assert_true(@local_veca.nearest_cleanup_pending(execution))
+  assert_eq(@local_veca.cleanup_nearest(execution), Ok(true))
+  assert_true(@carrier_runtime.material_available(candidate_material))
+  assert_true(@carrier_runtime.material_available(query_material))
+  assert_true(@carrier_runtime.reclaim_material(candidate_material))
+  assert_true(@carrier_runtime.reclaim_material(query_material))
+}
+
+///|
 test "nearest validates query components with an empty Vectors corpus" {
   let candidates = direct_nearest_vector_owner()
   let queries = direct_nearest_vector_owner()

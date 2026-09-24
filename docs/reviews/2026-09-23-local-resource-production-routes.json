@@ -3705,6 +3705,34 @@
       },
       "boundary_tests": [
         {
+          "role": "nearest_work_exact",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "nearest charges incremental initialization and cumulative work"
+        },
+        {
+          "role": "nearest_work_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "nearest charges incremental initialization and cumulative work"
+        },
+        {
+          "role": "nearest_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "nearest charges incremental initialization and cumulative work"
+        },
+        {
+          "role": "nearest_kernel_initialization_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "nearest stops during incremental identity initialization"
+        },
+        {
           "role": "nearest_mixed_carrier_relation_host",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

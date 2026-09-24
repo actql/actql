@@ -67,10 +67,12 @@ priv enum NearestSortTarget {
 ///|
 priv enum NearestPhase {
   BeginInputRecord
+  InitializeIdentitySlots
   ReadInputField
   MatchInputIdentity
   FinishInputRecord
   ValidateInputComponent
+  InitializeRecordScratch
   PrepareRecordSort
   PrepareRecordMerge
   MergeRecords
@@ -78,6 +80,7 @@ priv enum NearestPhase {
   CopyRecordPass
   ValidateUniqueRecords
   BeginQuery
+  InitializeScoreScratch
   BeginCandidateScore
   FoldCandidateScore
   PrepareScoreSort
@@ -133,6 +136,7 @@ priv struct NearestState {
   mut scores : Array[NearestScore]
   mut score_scratch : Array[NearestScore?]
   mut emit_index : Int
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -164,6 +168,7 @@ pub(all) enum NearestIssue {
   InvalidNearestRecord(Bool, Int)
   DuplicateNearestIdentity(Bool, Int)
   NearestWorkspaceLimit
+  NearestWorkLimit
   NearestOutputLimit
   NearestNumeric(@numeric.Issue)
   NearestKeyOrder(@value.KeyOrderIssue)
@@ -294,13 +299,12 @@ fn current_records(state : NearestState) -> Array[NearestRecord] {
 
 ///|
 fn begin_nearest_record(state : NearestState) -> Unit {
-  let input = current_input(state)
   state.field = 0
   state.identity_probe = 0
   state.current_field = None
-  state.identity_values = Array::make(input.identity_count, None)
+  state.identity_values = []
   state.source_vector = None
-  state.phase = ReadInputField
+  state.phase = InitializeIdentitySlots
 }
 
 ///|
@@ -751,6 +755,9 @@ fn nearest_step(
       !nearest_input_available(state.queries_input) {
       return @bounded.Failed(NearestInputUnavailable, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(NearestWorkLimit, progress, used)
+    }
     match state.phase {
       BeginInputRecord => {
         let input = current_input(state)
@@ -768,11 +775,18 @@ fn nearest_step(
           } else {
             state.candidates = []
           }
-          state.record_scratch = Array::make(state.sorting.length(), None)
+          state.record_scratch = []
           state.width = 1
-          state.phase = PrepareRecordSort
+          state.phase = InitializeRecordScratch
         }
       }
+      InitializeIdentitySlots =>
+        if state.identity_values.length() < current_input(state).identity_count {
+          state.identity_values.push(None)
+          used += 1
+        } else {
+          state.phase = ReadInputField
+        }
       ReadInputField => {
         let input = current_input(state)
         guard nearest_input_field_count(input, state.record)
@@ -814,6 +828,13 @@ fn nearest_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      InitializeRecordScratch =>
+        if state.record_scratch.length() < state.sorting.length() {
+          state.record_scratch.push(None)
+          used += 1
+        } else {
+          state.phase = PrepareRecordSort
+        }
       PrepareRecordSort =>
         if state.width >= state.sorting.length() {
           finish_nearest_record_sort(state)
@@ -867,10 +888,17 @@ fn nearest_step(
         if state.query_index < state.queries.length() {
           state.candidate_index = 0
           state.scores = []
-          state.score_scratch = Array::make(state.candidates.length(), None)
-          state.phase = BeginCandidateScore
+          state.score_scratch = []
+          state.phase = InitializeScoreScratch
         } else {
           state.phase = FinishNearest
+        }
+      InitializeScoreScratch =>
+        if state.score_scratch.length() < state.candidates.length() {
+          state.score_scratch.push(None)
+          used += 1
+        } else {
+          state.phase = BeginCandidateScore
         }
       BeginCandidateScore =>
         if state.candidate_index < state.candidates.length() {
@@ -989,6 +1017,7 @@ fn nearest_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1077,6 +1106,7 @@ fn start_nearest_producers(
   queries : NearestProducerInput,
   max_rows : Int,
   limits : @execution.ValueLimits,
+  control_work_limit : Int,
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
@@ -1085,7 +1115,8 @@ fn start_nearest_producers(
   if max_rows < 0 ||
     max_workspace_slots < 0 ||
     max_entries < 0 ||
-    max_name_bytes < 0 {
+    max_name_bytes < 0 ||
+    control_work_limit < 0 {
     return Err(InvalidNearestLimits)
   }
   let owner = @lower.sequence_owner(sequence)
@@ -1155,6 +1186,9 @@ fn start_nearest_producers(
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
     return Err(NearestWorkspaceLimit)
+  }
+  if control_work_limit == 0 {
+    return Err(NearestWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -1234,6 +1268,7 @@ fn start_nearest_producers(
     scores: [],
     score_scratch: [],
     emit_index: 0,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,
@@ -1283,6 +1318,38 @@ pub fn start_nearest_inputs(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[NearestExecution, NearestIssue] {
+  start_nearest_inputs_with_control_work_limit(
+    control,
+    preparation,
+    sequence,
+    step,
+    candidates,
+    queries,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    limits.max_work,
+  )
+}
+
+///|
+/// Bound kernel control work independently of admitted output value work.
+pub fn start_nearest_inputs_with_control_work_limit(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  candidates : NearestProducerInput,
+  queries : NearestProducerInput,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  control_work_limit : Int,
+) -> Result[NearestExecution, NearestIssue] {
   start_nearest_producers(
     control,
     preparation,
@@ -1292,6 +1359,7 @@ pub fn start_nearest_inputs(
     queries,
     max_rows,
     limits,
+    control_work_limit,
     max_workspace_slots,
     max_entries,
     max_name_bytes,
@@ -1325,6 +1393,7 @@ pub fn start_nearest_inputs_with_relations(
     queries,
     max_rows,
     limits,
+    limits.max_work,
     max_workspace_slots,
     max_entries,
     max_name_bytes,
@@ -1357,6 +1426,7 @@ pub fn start_nearest_relations(
     nearest_relation_producer(queries),
     max_rows,
     limits,
+    limits.max_work,
     max_workspace_slots,
     max_entries,
     max_name_bytes,
