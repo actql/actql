@@ -51,6 +51,17 @@ const outputLimits = Object.freeze({
   maxSchemaFields: 10, maxSchemaBytes: 100000,
   maxSchemaNodes: 10000, maxSchemaDepth: 64, maxBatchBytes: 4096,
 });
+const effectInputExportArgs = limits => [
+  limits.maxResultFields, limits.maxResultMappingWork,
+  limits.maxResultOrderWork, limits.maxResultWorkspaceEntries,
+  limits.maxRows, limits.maxValueNodes, limits.maxValueTextBytes,
+  limits.maxValueDepth, limits.maxValueWork, limits.maxWireBytes,
+  limits.maxWireNodes, limits.maxWireDepth, limits.maxColumns,
+  limits.maxOrderWork, limits.maxLogicalWireBytes,
+  limits.maxLogicalWireNodes, limits.maxLogicalWireDepth,
+  limits.maxSchemaFields, limits.maxSchemaBytes, limits.maxSchemaNodes,
+  limits.maxSchemaDepth, limits.maxBatchBytes,
+];
 
 async function checkedFixture() {
   const [document, environmentBody] = await Promise.all([
@@ -213,6 +224,65 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
         assert.throws(() => checked(moon.clientProgramPinEffectSources(
           owned, 1)), {code: 'MoonBitHostFailure'});
+        const input = moon.clientProgramEffectInputAt(inputs, 0);
+        assert.ok(input);
+        const limits = moon.clientProgramEffectInputExportLimits(
+          ...effectInputExportArgs(outputLimits));
+        assert.ok(limits);
+        assert.throws(() => checked(moon.clientProgramEffectInputExportStart(
+          input, limits)), {code: 'MoonBitHostFailure'});
+        const physical = execution.effectPhysicalSource(0);
+        assert.ok(physical);
+        const importing = checked(moon.clientProgramEffectManagedInputBegin(
+          input, physical.completed, physical.material, limits));
+        limits.max_rows = 0;
+        limits.values.max_nodes = 0;
+        let preparation, stream, receipt;
+        try {
+          preparation = await physical.withRows(
+            row => checked(moon.clientProgramEffectManagedInputAppend(
+              importing, row)),
+            undefined,
+            () => checked(moon.clientProgramEffectManagedInputFinish(
+              importing)),
+          );
+          let ready = false;
+          for (let steps = 0; steps < 100 && !ready; steps++) {
+            ready = checked(moon.clientProgramEffectInputExportAdvance(
+              preparation, 100))._0;
+          }
+          assert.equal(ready, true);
+          stream = checked(moon.clientProgramEffectInputExportReady(
+            preparation));
+          const chunks = [];
+          for (;;) {
+            const chunk = checked(moon.clientProgramEffectInputExportNext(
+              stream));
+            if (chunk === undefined) break;
+            chunks.push(chunk);
+          }
+          const finished = checked(
+            moon.clientProgramEffectInputExportFinish(stream));
+          receipt = finished._0;
+          const suffix = finished._1;
+          assert.deepEqual(JSON.parse(chunks.join('') + suffix),
+            [{id: 1}, {id: 2}]);
+          assert.equal(typeof suffix, 'string');
+          assert.deepEqual(moon.clientProgramEffectInputExportFields(receipt),
+            ['id']);
+          assert.match(moon.clientProgramEffectInputExportLogicalCid(receipt),
+            /^sha256:[0-9a-f]{64}$/);
+        } finally {
+          if (receipt !== undefined) {
+            moon.clientProgramEffectInputExportReleaseReceipt(receipt);
+          }
+          if (stream !== undefined) {
+            moon.clientProgramEffectInputExportCancel(stream);
+          } else if (preparation !== undefined) {
+            moon.clientProgramEffectInputExportCancelPreparation(preparation);
+          }
+          moon.clientProgramEffectManagedInputCancel(importing);
+        }
       } finally {
         assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
       }
@@ -1205,6 +1275,8 @@ test('checked source-free Program executes through the standard Local Host',
       assert.equal(execution.completed.length, 1);
       assert.equal(execution.completed[0].task, 0);
       assert.equal(execution.completed[0].outputRows, 2);
+      assert.throws(() => execution.effectPhysicalSource(0),
+        {code: 'InvalidEffectPhysicalSource'});
     } finally {
       await execution.close();
       assert.equal(execution.cleanupPending(), false);

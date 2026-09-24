@@ -1118,6 +1118,25 @@ export async function runInstalledStrategy(
       }
       return core.output(setup, task);
     },
+    // Physical observation for the installed Effect Site adapter. The
+    // MoonBit captured-source pin must still verify this exact generation
+    // before any row import or Preview use; this handle grants no apply.
+    effectPhysicalSource(task) {
+      if (closed || !programHasEffects || failed || !core.finished(setup) ||
+          !Number.isSafeInteger(task) || task < 0 ||
+          task >= core.count(setup)) {
+        throw new StrategyHostError('InvalidEffectPhysicalSource');
+      }
+      const source = managedOutputs.get(task);
+      if (source === undefined || typeof source.withRows !== 'function') {
+        return undefined;
+      }
+      return Object.freeze({
+        completed: source.completed,
+        material: source.material,
+        withRows: source.withRows,
+      });
+    },
     close() {
       if (closed) return closeResult;
       closed = true;
