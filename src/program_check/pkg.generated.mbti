@@ -874,6 +874,8 @@ pub(all) enum EffectProgramStaticPreviewIssue {
   ForeignProgramDefinition
   ForeignProgramSemantics
   ForeignCheckEnvironment
+  ForeignResolvedLimit(String)
+  LimitWorkExceeded
   Inventory(@stage_results.EffectPreviewStaticInventoryIssue)
 } derive(Eq, @debug.Debug)
 
