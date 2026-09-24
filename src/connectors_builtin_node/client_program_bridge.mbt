@@ -924,6 +924,72 @@ pub fn client_program_result_plan_row_contract_cid(
 }
 
 ///|
+/// A checked Result can reference a Values Fragment directly only when its
+/// published row schema, projection, and order are identical to that output.
+#export_name("clientProgramIssueDirectValuesResultRoot")
+pub fn client_program_issue_direct_values_result_root(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+) -> Result[
+  @publication_host.ClientDirectResultRoot,
+  @publication_host.ClientDirectResultRootIssue,
+] {
+  @publication_host.issue_prepared_client_direct_values_result_root(
+    prepared,
+    result,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitDirectValuesResultRoot")
+pub fn client_program_admit_direct_values_result_root(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+  saved_wire : String,
+) -> Result[
+  @publication_host.ClientDirectResultRoot,
+  @publication_host.ClientDirectResultRootAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_direct_values_result_root(
+    prepared,
+    result,
+    saved_wire,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramDirectValuesResultRootWire")
+pub fn client_program_direct_values_result_root_wire(
+  value : @publication_host.ClientDirectResultRoot,
+) -> String {
+  @publication_host.client_direct_result_root_wire(value)
+}
+
+///|
+#export_name("clientProgramDirectValuesResultRootPlanCid")
+pub fn client_program_direct_values_result_root_plan_cid(
+  value : @publication_host.ClientDirectResultRoot,
+) -> String {
+  @publication_host.client_direct_result_root_plan_cid(value)
+}
+
+///|
+#export_name("clientProgramDirectValuesResultRootRowContractCid")
+pub fn client_program_direct_values_result_root_row_contract_cid(
+  value : @publication_host.ClientDirectResultRoot,
+) -> String {
+  @publication_host.client_direct_result_root_row_contract_cid(value)
+}
+
+///|
 /// Saved AoA material is rechecked against the exact prepared Program.
 #export_name("clientProgramAdmitLocalValuesAoAIdentity")
 pub fn client_program_admit_local_values_aoa_identity(

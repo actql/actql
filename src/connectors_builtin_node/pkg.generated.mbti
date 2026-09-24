@@ -27,6 +27,8 @@ import {
 }
 
 // Values
+pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
+
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
 
 pub fn client_program_admit_local_values_fragment(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentAdmissionIssue]
@@ -53,7 +55,15 @@ pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Resul
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_direct_values_result_root_plan_cid(@run_publication_host.ClientDirectResultRoot) -> String
+
+pub fn client_program_direct_values_result_root_row_contract_cid(@run_publication_host.ClientDirectResultRoot) -> String
+
+pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
+
+pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
