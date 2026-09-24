@@ -3001,6 +3001,15 @@
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "standard Host runs a bounded scalar shortest path"
         }
+      ],
+      "environment_tests": [
+        {
+          "role": "shortest_host_in_flight_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "shortest-out"
+        }
       ]
     },
     {

@@ -3267,6 +3267,22 @@ async function exerciseStrategyGraph(
     },
     fields: ['start_id', 'node_id', 'depth'],
   }, {
+    name: 'shortest-out',
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    step: {
+      from: 'g',
+      shortest_path: {
+        source: 1,
+        target: 2,
+        direction: 'out',
+        max_hops: 2,
+      },
+      as: 'out',
+    },
+    fields: ['source_id', 'target_id', 'hop_count', 'node_ids', 'edge_ids'],
+  }, {
     name: 'traverse-out',
     rows: 40,
     advanceQuantum: 1,
@@ -4537,8 +4553,10 @@ async function exerciseStrategyGraph(
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
-      : cancellationCase.name === 'reach-out'
+        : cancellationCase.name === 'reach-out'
           ? fixture.strategyFixtureSgaReachSizedCreate
+        : cancellationCase.name === 'shortest-out'
+          ? fixture.strategyFixtureSgaShortestSizedCreate
         : cancellationCase.concise === true
           ? fixture.strategyFixtureSgaDerivedCreate
         : fixture.strategyFixtureSgaSizedCreate;

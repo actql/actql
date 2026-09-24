@@ -363,6 +363,8 @@ pub fn strategy_fixture_sga_reach_create(String, String, String, String, String,
 
 pub fn strategy_fixture_sga_reach_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
+pub fn strategy_fixture_sga_shortest_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
+
 pub fn strategy_fixture_sga_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]

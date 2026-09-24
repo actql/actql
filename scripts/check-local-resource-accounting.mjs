@@ -1381,6 +1381,9 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: reviewed ${role} fixture is missing`);
       }
     }
+    if (!environmentRoles.has('shortest_host_in_flight_cancel_cleanup')) {
+      fail(`${label}: shortest Host cancellation fixture is missing`);
+    }
   }
   if (route.family === 'SGA' &&
     ['match_nodes', 'match_edges'].includes(route.operation) &&

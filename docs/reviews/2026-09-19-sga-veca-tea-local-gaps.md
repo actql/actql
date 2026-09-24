@@ -31,6 +31,12 @@ through the shared bounded key cursor. A quantum-one long-text fixture checks
 active cancellation, cleanup, and canonical output order on all three targets.
 This proves key comparison responsiveness for that fixture, not full
 ShortestPath resource assurance or the providerless sequence path.
+The Node standard Host now supplies an independent one-row shortest-path
+program bound alongside the Host path/output ceilings and delivers timer
+cancellation after ShortestPath work begins. Stop, nonpublication, and final
+reclamation are checked through the ordinary Program fixture. This adds
+environment-delivered cancellation evidence, not exact/one-short work and
+workspace assurance for every ShortestPath variant.
 The ordinary partitioned `top_k_by` route now binds a fixed two-row,
 one-partition fixture to its bounded evaluator: work 56 and peak workspace
 23 pass, while work 55 and workspace 22 fail before publication. Quantum-one
