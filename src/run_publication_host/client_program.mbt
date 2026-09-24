@@ -64,6 +64,31 @@ pub fn prepared_client_program_semantics_cid(
 }
 
 ///|
+/// Admit publication authority only when it names the exact checked source
+/// and effective Parameter Values of this prepared Client Program.
+pub fn admit_prepared_client_run_publication(
+  value : PreparedClientProgram,
+  template : @publication.RunEvidenceValue,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+  compiled_plan : @publication.PublicationContract,
+) -> Result[
+  @publication.RunPublicationAdmission,
+  @publication.RunPublicationAdmissionIssue,
+] {
+  let identity = prepared_client_identity(value)
+  @publication.admit_checked_run_publication(
+    template,
+    prepared,
+    authorization,
+    compiled_plan,
+    identity.program_definition_cid,
+    identity.parameter_values_cid,
+    prepared_client_program_semantics_cid(value),
+  )
+}
+
+///|
 pub fn prepared_client_graph(
   value : PreparedClientProgram,
 ) -> @strategy.CheckedDAG {

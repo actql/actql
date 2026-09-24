@@ -6,6 +6,8 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runCapturedStrategy} from './entry.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
@@ -28,6 +30,53 @@ async function checkedFixture() {
   );
   assert.ok(environment);
   return {document, environment};
+}
+
+// Test-only evidence isolates checked Program binding. Product admission must
+// derive every other evidence CID from its real compiler and Host authority.
+function publicationEvidence(program, parameters, semantics) {
+  const limits = [100000, 10000, 64];
+  const evidence = (name, body) => checked(moon.strategyRunEvidenceSeal(
+    name, JSON.stringify(body), ...limits));
+  const template = evidence('bound_invocation_template', {
+    version: 'actql-bound-invocation-template/0.1',
+    program_definition_cid: program,
+    parameter_values_cid: parameters,
+    invocation_bindings_cid: cid('3'),
+    check_environment_cid: cid('4'),
+    grammar_manifest_cid: cid('5'),
+    required_profile_contracts: [],
+    barrier_contract_manifest_cid: cid('6'),
+    source_evidence: 'unbound',
+  });
+  const plan = checked(moon.strategyPublicationSeal('compiled_plan',
+    JSON.stringify({
+      version: 'actql-compiled-plan/0.1',
+      compiler_version: 'compiler-test-0.1',
+      aoa_ir_version: 'aoa-ir-test-0.1',
+      executable_plan_cid: cid('7'),
+      program_definition_cid: program,
+      program_semantics_cid: semantics,
+      aoa_contract_cid: cid('8'),
+      aoa_logical_cid: cid('9'),
+    }), ...limits));
+  const prepared = evidence('prepared_invocation', {
+    version: 'actql-prepared-invocation/0.1',
+    invocation_template_cid: moon.strategyRunEvidenceIdentity(template),
+    compiled_plan_cid: moon.strategyPublicationContractIdentity(plan),
+    execution_context_cid: cid('a'),
+    host_policy_cid: cid('b'),
+    policy_decision: 'allow',
+    expires_at: '2099-01-01T00:00:00.000Z',
+  });
+  const authorization = evidence('run_authorization', {
+    version: 'actql-run-authorization/0.1',
+    prepared_invocation_cid: moon.strategyRunEvidenceIdentity(prepared),
+    execution_context_cid: cid('a'),
+    host_policy_cid: cid('b'),
+    decision: 'allowed',
+  });
+  return [template, prepared, authorization, plan];
 }
 
 test('Node ABI derives the checked named Result and request identity', async () => {
@@ -67,6 +116,45 @@ test('Node ABI derives the checked named Result and request identity', async () 
     '{}', evidenceCid, false, false, true, false, false, false, false),
   undefined);
 });
+
+test('Node publication admission rejects evidence from another checked Program',
+  async () => {
+    const {document, environment} = await checkedFixture();
+    const prepared = moon.clientProgramPrepareEffectFree(
+      document, 'json', environment);
+    assert.ok(prepared);
+    const identity = moon.clientProgramRequestIdentity(
+      prepared, cid('a'), 'saved-request', cid('b'));
+    const evidence = publicationEvidence(
+      moon.clientRequestProgramCid(identity),
+      moon.clientRequestParametersCid(identity),
+      moon.clientProgramSemanticsCid(prepared));
+    assert.ok(moon.clientProgramAdmitPublication(prepared, ...evidence));
+    const control = runtimeCore(moon).publicationControl;
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const bound = evidence.slice(0, 3).map((value, index) =>
+      control.admitRunEvidence(
+        ['bound_invocation_template', 'prepared_invocation',
+          'run_authorization'][index],
+        moon.strategyRunEvidenceJson(value), limits));
+    const plan = control.admit('compiled_plan',
+      moon.strategyPublicationContractJson(evidence[3]), limits);
+    assert.equal(control.admitCheckedClientRunPublication(
+      prepared, ...bound, plan).kind, 'run-publication-admission');
+    const changed = moon.clientProgramPrepareEffectFree(
+      document.replace('"id": 2', '"id": 3'), 'json', environment);
+    assert.ok(changed);
+    assert.equal(moon.clientProgramAdmitPublication(changed, ...evidence),
+      undefined);
+    assert.throws(() => control.admitCheckedClientRunPublication(
+      changed, ...bound, plan),
+    /Publication evidence differs from checked Program/u);
+    const foreignSemantics = publicationEvidence(
+      moon.clientRequestProgramCid(identity),
+      moon.clientRequestParametersCid(identity), cid('f'));
+    assert.equal(moon.clientProgramAdmitPublication(
+      prepared, ...foreignSemantics), undefined);
+  });
 
 test('durable request deduplication uses checked Program identity', async t => {
   const {document, environment} = await checkedFixture();

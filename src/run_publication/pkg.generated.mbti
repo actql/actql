@@ -8,6 +8,8 @@ import {
 // Values
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
 
+pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
+
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -784,6 +786,7 @@ type RunPublicationAdmission
 pub(all) enum RunPublicationAdmissionIssue {
   RunAdmissionWrongEvidence
   RunAdmissionWrongPlan
+  RunAdmissionCheckedProgramMismatch
   RunAdmissionTemplateMismatch
   RunAdmissionPreparedMismatch
   RunAdmissionExecutionContextMismatch

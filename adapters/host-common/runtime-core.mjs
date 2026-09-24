@@ -1644,6 +1644,24 @@ function publicationControl(moon) {
         token(compiledPlan),
       )));
     },
+    admitCheckedClientRunPublication(
+      checkedProgram, template, prepared, authorization, compiledPlan,
+    ) {
+      if (typeof moon.clientProgramAdmitPublication !== 'function') {
+        throw new TypeError('Client Program admission is unavailable');
+      }
+      const admission = moon.clientProgramAdmitPublication(
+        checkedProgram,
+        evidenceToken(template),
+        evidenceToken(prepared),
+        evidenceToken(authorization),
+        token(compiledPlan),
+      );
+      if (admission === undefined) {
+        throw new TypeError('Publication evidence differs from checked Program');
+      }
+      return inspectAdmission(admission);
+    },
     issueRunDefinition(admission, definition, limits) {
       issuanceLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
