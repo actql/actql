@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 20 with full work\/workspace assurance, 44 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 39 with operation-specific boundary records, 20 with four-role boundary evidence, 20 with full work\/workspace assurance, 45 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('resource summary rejects stale route counts', () => {
@@ -58,8 +58,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 45 |',
     '| Path-scoped work/workspace assurance | 44 |',
-    '| Path-scoped work/workspace assurance | 43 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(
@@ -140,6 +140,33 @@ test('session Events view retains exact limits and delivered cancellation', () =
         delete session.resource_assurance.view_entrypoint[dimension][limit];
       }), new RegExp(
         `TEA session: view_entrypoint operation ${dimension} needs exact and one-short proofs`,
+      ));
+    }
+  }
+});
+
+test('session Relation path retains separate Host and resource evidence', () => {
+  const role = 'session_relation_work_workspace_exact_one_short';
+  assert.match(run(undefined, routes => {
+    const session = routes.routes.find(entry =>
+      entry.family === 'TEA' && entry.operation === 'session');
+    session.boundary_tests = session.boundary_tests.filter(item =>
+      item.role !== role);
+  }), /TEA session: relation_entrypoint exact_limit lacks an executable fixture/);
+  assert.match(run(undefined, routes => {
+    const session = routes.routes.find(entry =>
+      entry.family === 'TEA' && entry.operation === 'session');
+    session.environment_tests = session.environment_tests.filter(item =>
+      item.role !== 'session_relation_host_timer');
+  }), /TEA session: relation_entrypoint in_flight_cancel lacks an executable fixture/);
+  for (const dimension of ['work', 'workspace']) {
+    for (const limit of ['exact_limit', 'one_short_limit']) {
+      assert.match(run(undefined, routes => {
+        const session = routes.routes.find(entry =>
+          entry.family === 'TEA' && entry.operation === 'session');
+        delete session.resource_assurance.relation_entrypoint[dimension][limit];
+      }), new RegExp(
+        `TEA session: relation_entrypoint operation ${dimension} needs exact and one-short proofs`,
       ));
     }
   }

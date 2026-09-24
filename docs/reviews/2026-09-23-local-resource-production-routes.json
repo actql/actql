@@ -3250,9 +3250,22 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "session"
+        },
+        {
+          "role": "session_relation_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-relation"
         }
       ],
       "path_assurance": {
+        "relation_entrypoint": {
+          "exact_limit": "session_relation_work_workspace_exact_one_short",
+          "one_short_limit": "session_relation_work_workspace_exact_one_short",
+          "in_flight_cancel": "session_relation_host_timer",
+          "cleanup": "session_relation_work_workspace_exact_one_short"
+        },
         "view_entrypoint": {
           "exact_limit": "session_view_work_workspace_exact_one_short",
           "one_short_limit": "session_view_work_workspace_exact_one_short",
@@ -3261,6 +3274,16 @@
         }
       },
       "resource_assurance": {
+        "relation_entrypoint": {
+          "work": {
+            "exact_limit": "session_relation_work_workspace_exact_one_short",
+            "one_short_limit": "session_relation_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "session_relation_work_workspace_exact_one_short",
+            "one_short_limit": "session_relation_work_workspace_exact_one_short"
+          }
+        },
         "view_entrypoint": {
           "work": {
             "exact_limit": "session_view_work_workspace_exact_one_short",

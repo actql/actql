@@ -14,7 +14,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 39 |
 | Four-role lifecycle assurance | 20 |
 | Full route work/workspace assurance | 20 |
-| Path-scoped work/workspace assurance | 44 |
+| Path-scoped work/workspace assurance | 45 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -116,8 +116,10 @@ The Events-view `start_session_view` production path now binds its
 independently counted 44/43 control-work and 22/21 simultaneous-workspace
 fixture to the registered Host timer. Its own private-state cancellation
 check preserves the Events material through cleanup. Direct and
-Relation-backed sessions still need distinct delivered-cancellation proof
-before the three-path operation can be marked fully resource-assured.
+The Relation-backed path now has its own standard Host timer case, combined
+44/43 work and 22/21 workspace fixture, and private-state cancellation and
+cleanup check. The direct fused input path remains unassured, so the
+three-path operation is not fully resource-assured.
 
 The bounded interval and as-of join constructors now check their complete
 structural metadata dimensions before resolving fields or constructing the

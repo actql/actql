@@ -832,6 +832,29 @@ test "Relation-backed session checks combined output workspace" {
     assert_true(@local_tea.cleanup_session(execution).unwrap())
     assert_true(@execution.producer_read_available(input))
   }
+  let control = @bounded.control()
+  let interrupted = @local_tea.start_session_relation(
+    control,
+    prepared_sequence(owner),
+    0,
+    input,
+    { ..carrier_events_storage_limits(), max_workspace_slots: 22, },
+    4096L,
+    fn() { true },
+    control_work_limit=Some(44),
+  ).unwrap()
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_tea.advance_session(interrupted, 1).unwrap()
+    is @local_tea.SessionStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(@local_tea.session_cleanup_pending(interrupted))
+  assert_true(@local_tea.cleanup_session(interrupted).unwrap())
+  assert_true(@execution.producer_read_available(input))
 }
 
 ///|

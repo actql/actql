@@ -3449,6 +3449,24 @@ async function exerciseStrategyGraph(
       'session_id',
     ],
   }, {
+    name: 'session-relation',
+    family: 'tea',
+    operation: 'session',
+    relationSession: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 0,
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    fields: [
+      'event_id',
+      'occurred_at',
+      'payload',
+      'session_start_ms',
+      'session_end_ms',
+      'session_id',
+    ],
+  }, {
     name: 'sequence',
     family: 'sequence',
     rows: 40,
@@ -3880,13 +3898,24 @@ async function exerciseStrategyGraph(
         }, {
           id: 'events',
           inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-          steps: [{
-            from: 'rows',
-            to_events: {id: 'event_id', time: 'occurred_at'},
-          }, teaTransform, {
-            events: true,
-            as: 'out',
-          }],
+          steps: cancellationCase.relationSession
+            ? [{
+              from: 'rows',
+              session: {
+                id: 'event_id',
+                time: 'occurred_at',
+                by: ['payload'],
+                gap: 10,
+              },
+              as: 'out',
+            }]
+            : [{
+              from: 'rows',
+              to_events: {id: 'event_id', time: 'occurred_at'},
+            }, teaTransform, {
+              events: true,
+              as: 'out',
+            }],
           results: {
             r: {from: 'out', fields: cancellationCase.fields},
           },
