@@ -1,7 +1,12 @@
 ///|
-fn command_target_catalog(kind : String) -> @environment.CatalogContents {
+fn command_target_catalog(
+  kind : String,
+  input_fields? : String = "{}",
+) -> @environment.CatalogContents {
   let command_before = "{\"command_id\":\"command:crm.invoke.v1\",\"connector_id\":\"example\","
-  let command_after = "\"schema\":\"actql.command_contract/0.1\",\"target\":{\"cardinality\":\"single\",\"resource_kind\":\"" +
+  let command_after = "\"input_contract\":{\"additional_properties\":false,\"fields\":" +
+    input_fields +
+    "},\"schema\":\"actql.command_contract/0.1\",\"target\":{\"cardinality\":\"single\",\"resource_kind\":\"" +
     kind +
     "\"},\"version\":\"external-1\"}"
   let command_cid = "sha256:" +
