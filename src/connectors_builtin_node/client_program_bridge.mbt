@@ -690,6 +690,24 @@ pub fn client_program_local_values_aoa_cid(
 }
 
 ///|
+/// Unit-form source for the checked single-stage Values compilation path.
+/// The Host must still bind the complete Executable Plan and authorization.
+#export_name("clientProgramLocalValuesUnitSourceJson")
+pub fn client_program_local_values_unit_source_json(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[String, @publication_host.ClientValuesUnitSourceIssue] {
+  @publication_host.emit_prepared_client_values_unit_source(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 /// Saved AoA material is rechecked against the exact prepared Program.
 #export_name("clientProgramAdmitLocalValuesAoAIdentity")
 pub fn client_program_admit_local_values_aoa_identity(
