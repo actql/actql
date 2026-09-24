@@ -760,6 +760,9 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(sent.physical.kind, 'typed-success-response');
   assert.equal(first.readClaimedOutcome(options.claim).outcomeCid,
     sent.outcomeReceipt.identity);
+  assert.equal(sent.terminal.created, true);
+  assert.equal(JSON.parse(first.current(
+    effect.logicalItemLocatorCid(claim.locator)).entryJson).state, 'applied');
   assert.equal(JSON.parse(sent.outcomeReceipt.wire).row_preview_cid,
     rowPreviewCid);
   const sentOutcome = checked(salesforceMoon.salesforceProjectSingleEffectOutcome(
@@ -788,9 +791,10 @@ test('Host claim owns one local HTTPS write', async t => {
   const retry = await captureSalesforceSingleEffectWrite({
     ...options, ledger: restarted, admittedPreview: preview.admit()});
   assert.equal(retry.claimed, false);
-  assert.equal(retry.ownership.action, 3);
+  assert.equal(retry.ownership.action, 5);
   assert.equal(retry.recovered.kind, 'typed-success-response');
   assert.equal(retry.outcomeReceipt.identity, sent.outcomeReceipt.identity);
+  assert.equal(retry.terminal.created, false);
   const recoveredOutcome = checked(
     salesforceMoon.salesforceProjectSingleEffectOutcome(
       options.admittedPreview, 0, 0, outbound, retry.recovered.response,
@@ -836,6 +840,50 @@ test('Host claim owns one local HTTPS write', async t => {
   }), {code: 'ForeignSalesforceEffectResponse'});
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 1);
   assert.equal(setup.journal.recover().length, usesBeforeRetry);
+
+  const faultRoot = await mkdtemp(join(tmpdir(),
+    'actql-salesforce-terminal-retry-'));
+  t.after(() => rm(faultRoot, {recursive: true, force: true}));
+  const openFault = () => openEffectLedger({moon: commonMoon, root: faultRoot,
+    authorityScopeCid, callerRequestId: 'salesforce-business-request',
+    maxEntryBytes: 4096});
+  const faultLedger = openFault();
+  t.after(() => faultLedger.close());
+  let failTerminal = true;
+  const interrupted = Object.freeze({...faultLedger,
+    commitAdmittedRowOutcome(args) {
+      if (failTerminal) {
+        failTerminal = false;
+        throw new Error('InjectedTerminalCommitFailure');
+      }
+      return faultLedger.commitAdmittedRowOutcome(args);
+    },
+  });
+  const faultOptions = {...options,
+    authorization: {...options.authorization, useId: 'effect-write-fault-use'}};
+  await assert.rejects(captureSalesforceSingleEffectWrite({
+    ...faultOptions, ledger: interrupted,
+  }), {message: 'InjectedTerminalCommitFailure'});
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 2);
+  assert.ok(faultLedger.readClaimedOutcome(claim));
+  assert.equal(JSON.parse(faultLedger.current(
+    effect.logicalItemLocatorCid(claim.locator)).entryJson).state,
+  'dispatching');
+  faultLedger.close();
+  const resumed = openFault();
+  t.after(() => resumed.close());
+  const reconciled = await captureSalesforceSingleEffectWrite({
+    ...faultOptions, ledger: resumed,
+  });
+  assert.equal(reconciled.claimed, false);
+  assert.equal(reconciled.ownership.action, 3);
+  assert.equal(reconciled.terminal.created, true);
+  const repeated = await captureSalesforceSingleEffectWrite({
+    ...faultOptions, ledger: resumed,
+  });
+  assert.equal(repeated.ownership.action, 5);
+  assert.equal(repeated.terminal.created, false);
+  assert.equal(setup.seen.filter(item => item.method === 'POST').length, 2);
 });
 
 test('lost HTTPS reply remains uncertain across Effect ledger restart',
@@ -1290,6 +1338,8 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.equal(sent.claimed, true);
     assert.equal(sent.physical.kind, 'typed-row-response');
     assert.equal(sent.outcomeReceipts.length, 2);
+    assert.deepEqual(sent.terminalTransitions.map(value => value.created),
+      [true, true]);
     assert.deepEqual(first.readClaimedBatchOutcomes(claims)
       .map(value => value.outcomeCid), sent.outcomeReceipts.map(
       value => value.identity));
@@ -1309,11 +1359,13 @@ test('Host custody binds one HTTPS Collections response to every row',
       ...options, ledger: restarted, admittedPreview: admitPreview(),
     });
     assert.equal(retry.claimed, false);
-    assert.deepEqual(retry.ownership.actions, [3, 3]);
+    assert.deepEqual(retry.ownership.actions, [5, 7]);
     assert.equal(retry.recovered.kind, 'typed-row-response');
     assert.equal(retry.recovered.rowCount, 2);
     assert.deepEqual(retry.outcomeReceipts.map(value => value.identity),
       sent.outcomeReceipts.map(value => value.identity));
+    assert.deepEqual(retry.terminalTransitions.map(value => value.created),
+      [false, false]);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
       retry.recovered.result, 0)), true);
     assert.equal(checked(salesforceMoon.salesforceCollectionWriteResponseRowApplied(
@@ -1401,6 +1453,56 @@ test('Host custody binds one HTTPS Collections response to every row',
     assert.equal(setup.seen.filter(item => item.path?.endsWith(
       '/composite/sobjects')).length, 1);
     assert.equal(setup.journal.recover().length, usesBeforeRetry);
+
+    const faultRoot = await mkdtemp(join(tmpdir(),
+      'actql-salesforce-collection-terminal-retry-'));
+    t.after(() => rm(faultRoot, {recursive: true, force: true}));
+    const openFault = () => openEffectLedger({moon: commonMoon,
+      root: faultRoot, authorityScopeCid,
+      callerRequestId: 'collection-business-request', maxEntryBytes: 4096});
+    const faultLedger = openFault();
+    t.after(() => faultLedger.close());
+    let terminalCalls = 0;
+    const interrupted = Object.freeze({...faultLedger,
+      commitAdmittedRowOutcome(args) {
+        terminalCalls++;
+        if (terminalCalls === 2) {
+          throw new Error('InjectedSecondRowTerminalFailure');
+        }
+        return faultLedger.commitAdmittedRowOutcome(args);
+      },
+    });
+    const faultOptions = {...options,
+      authorization: {...options.authorization,
+        useId: 'collection-effect-fault-use'}};
+    await assert.rejects(captureSalesforceCollectionEffectWrite({
+      ...faultOptions, ledger: interrupted,
+    }), {message: 'InjectedSecondRowTerminalFailure'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 2);
+    assert.deepEqual(claims.map(claim => JSON.parse(faultLedger.current(
+      effect.logicalItemLocatorCid(claim.locator)).entryJson).state),
+    ['applied', 'dispatching']);
+    assert.deepEqual(faultLedger.readClaimedBatchOutcomes(claims).map(
+      value => value !== undefined), [true, true]);
+    faultLedger.close();
+    const resumed = openFault();
+    t.after(() => resumed.close());
+    const reconciled = await captureSalesforceCollectionEffectWrite({
+      ...faultOptions, ledger: resumed,
+    });
+    assert.equal(reconciled.claimed, false);
+    assert.deepEqual(reconciled.ownership.actions, [5, 3]);
+    assert.deepEqual(reconciled.terminalTransitions.map(value => value.created),
+      [false, true]);
+    const repeated = await captureSalesforceCollectionEffectWrite({
+      ...faultOptions, ledger: resumed,
+    });
+    assert.deepEqual(repeated.ownership.actions, [5, 7]);
+    assert.deepEqual(repeated.terminalTransitions.map(value => value.created),
+      [false, false]);
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/composite/sobjects')).length, 2);
   });
 
 test('Collections cannot swap two Preview targets before the send claim',

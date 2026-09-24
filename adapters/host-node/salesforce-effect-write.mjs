@@ -142,6 +142,7 @@ export async function captureClaimedSalesforceSingleResponse({
   }
   const context = ownInvocationContext({authorization, credential, limits,
     callbacks: {callResource}});
+  const ownedClaim = snapshotEffectDispatchClaim(claim);
   const ownedScope = context.scope;
   checked(moon.salesforceRecheckSingleWriteRequest(
     request, currentObservation));
@@ -150,7 +151,7 @@ export async function captureClaimedSalesforceSingleResponse({
     request, ownedScope.resourceOrigin, maxRequestIdentityBytes));
   const captured = await captureClaimedEffectResponse({
     ledger,
-    claim,
+    claim: ownedClaim,
     requestCid,
     execute: () => sendRawSalesforceSingleRecord({
       moon, request, currentObservation,
@@ -169,8 +170,10 @@ export async function captureClaimedSalesforceSingleResponse({
       limits: context.limits,
     }),
   });
-  const stored = captured.ownership?.response;
-  if (captured.claimed || stored === undefined) return captured;
+  if (captured.claimed) return captured;
+  const stored = captured.ownership?.response ??
+    ledger.readClaimedResponse(ownedClaim);
+  if (stored === undefined) return captured;
   // The Store has verified these exact physical bytes. Re-projecting them is
   // read-only: it never claims another use or sends the mutation again.
   const recovered = projectSalesforceSingleObservation({
@@ -209,13 +212,14 @@ export async function captureSalesforceSingleEffectWrite({
       physical.maxRequestIdentityBytes ?? 4096))) {
     fail('ForeignSalesforceEffectFootprint');
   }
+  const ownedClaim = snapshotEffectDispatchClaim(claim);
   runtimeCore(commonMoon).effectApplicationControl.admitMemberRow(
     admittedPreview, memberIndex, rowIndex,
-    moon.salesforceSingleWriteRequestEffectKind(request), claim.scope,
-    rowPreviewCid, claim.locator, claim.key);
+    moon.salesforceSingleWriteRequestEffectKind(request), ownedClaim.scope,
+    rowPreviewCid, ownedClaim.locator, ownedClaim.key);
   const projectionLimits = ownInvocationLimits(physical.limits);
   const captured = await captureClaimedSalesforceSingleResponse({
-    claim, moon, request, ...physical,
+    claim: ownedClaim, moon, request, ...physical,
   });
   const observed = captured.claimed ? captured.physical : captured.recovered;
   if (observed?.kind !== 'typed-success-response') return captured;
@@ -225,10 +229,16 @@ export async function captureSalesforceSingleEffectWrite({
     projectionLimits.maxResponseBytes, projectionLimits.maxNodes,
     projectionLimits.maxDepth));
   const outcome = physical.ledger.recordAdmittedRowOutcome({
-    claim, preview: admittedPreview, memberIndex, previewRowIndex: rowIndex,
+    claim: ownedClaim, preview: admittedPreview, memberIndex,
+    previewRowIndex: rowIndex,
     outcomeWire: moon.salesforceWriteEffectOutcomeWire(projection),
   });
-  return Object.freeze({...captured, outcomeReceipt: outcome.receipt});
+  const terminal = physical.ledger.commitAdmittedRowOutcome({
+    claim: ownedClaim, preview: admittedPreview, memberIndex,
+    previewRowIndex: rowIndex,
+  });
+  return Object.freeze({...captured, outcomeReceipt: outcome.receipt,
+    terminal: terminal.transition});
 }
 
 // The admitted Preview fixes the member's ordered row identities, logical
@@ -333,7 +343,7 @@ export async function captureSalesforceCollectionEffectWrite({
   });
   let result = captured;
   if (!captured.claimed &&
-      captured.ownership.actions.every(action => action === 3)) {
+      captured.ownership.actions.every(action => action >= 3 && action <= 7)) {
     const response = ledger.readClaimedBatchResponse(ownedClaims);
     if (response !== undefined) {
       const recovered = projectSalesforceCollectionObservation({
@@ -351,6 +361,7 @@ export async function captureSalesforceCollectionEffectWrite({
   const observed = result.claimed ? result.physical : result.recovered;
   if (observed?.kind !== 'typed-row-response') return result;
   const outcomeReceipts = [];
+  const terminalTransitions = [];
   for (let index = 0; index < count; index++) {
     const projection = checked(moon.salesforceProjectCollectionEffectOutcome(
       admittedPreview, memberIndex, firstRow, observed.result, index,
@@ -362,6 +373,13 @@ export async function captureSalesforceCollectionEffectWrite({
       outcomeWire: moon.salesforceWriteEffectOutcomeWire(projection),
     });
     outcomeReceipts.push(outcome.receipt);
+    const terminal = ledger.commitAdmittedRowOutcome({
+      claims: ownedClaims, batchRowIndex: index, preview: admittedPreview,
+      memberIndex, previewRowIndex: firstRow + index,
+    });
+    terminalTransitions.push(terminal.transition);
   }
-  return Object.freeze({...result, outcomeReceipts: Object.freeze(outcomeReceipts)});
+  return Object.freeze({...result,
+    outcomeReceipts: Object.freeze(outcomeReceipts),
+    terminalTransitions: Object.freeze(terminalTransitions)});
 }
