@@ -1580,6 +1580,15 @@ pub fn client_program_effect_input_task(
 }
 
 ///|
+/// Release one member holding without revoking another borrow of the Result.
+#export_name("clientProgramReleaseEffectInput")
+pub fn client_program_release_effect_input(
+  value : @strategy.CapturedEffectInput,
+) -> Bool {
+  @strategy.release_captured_effect_input(value)
+}
+
+///|
 /// Private bounds for binding one admitted Preview to a captured Effect Run.
 /// These do not replace current authorization, payload proof, or apply.
 struct ClientEffectPreviewInputLimits {

@@ -209,6 +209,8 @@ pub fn client_program_publication_witness_bodies(@run_publication_host.ClientPub
 
 pub fn client_program_publication_witness_cids(@run_publication_host.ClientPublicationWitnesses) -> Array[String]
 
+pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
+
 pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
