@@ -141,18 +141,46 @@ fn bounded_asof_fixture(
 }
 
 ///|
-test "bounded as-of join admits metadata before constructing it" {
+test "bounded as-of join checks metadata and output workspace limits" {
+  // Three rows per side, one key, two fields, identity, and tie retain 14
+  // entries. Sort peaks at 20; ordered indices, the output row, and its
+  // checked copy peak at 21 entries.
   match bounded_asof_fixture_result(13, 0) {
     Err(Rows(RowLimit)) => ()
     _ => fail("expected early workspace rejection")
   }
-  let (control, execution, _) = bounded_asof_fixture(max_entries=14)
-  assert_true(@bounded.request_cancel(control))
-  match advance_bounded_asof_join(execution, 1).unwrap() {
-    BoundedAsOfJoinStopped(@bounded.Cancelled, ..) => ()
-    _ => fail("expected cancellation")
+  let (_, execution, _) = bounded_asof_fixture(max_entries=21)
+  let mut complete = false
+  for _ in 0..<500 {
+    if !complete {
+      match advance_bounded_asof_join(execution, 1).unwrap() {
+        BoundedAsOfJoinContinue(..) => ()
+        BoundedAsOfJoinComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 3)
+          complete = true
+        }
+        _ => fail("unexpected terminal result")
+      }
+    }
   }
+  assert_true(complete)
   assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  let (_, short, inputs) = bounded_asof_fixture(max_entries=20)
+  let mut failed = false
+  for _ in 0..<500 {
+    if !failed {
+      match advance_bounded_asof_join(short, 1).unwrap() {
+        BoundedAsOfJoinContinue(..) => ()
+        BoundedAsOfJoinFailed(Rows(RowLimit), ..) => failed = true
+        _ => fail("one-short workspace did not fail before completion")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(inputs.all(producer_read_available))
+  assert_true(bounded_asof_join_cleanup_pending(short))
+  assert_true(cleanup_bounded_asof_join(short).unwrap())
+  assert_false(bounded_asof_join_cleanup_pending(short))
 }
 
 ///|

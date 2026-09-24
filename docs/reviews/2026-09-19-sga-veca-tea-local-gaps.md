@@ -23,6 +23,14 @@ cancel after positive managed work, confirm stop and nonpublication, and
 reclaim held and reserved resources. The resource checker rejects removal
 of either route's timer evidence. This closes the delivered-cancellation
 evidence gap for these paths, not their remaining work/workspace assurance.
+The fixed join fixtures now also complete at the independently counted peak
+workspace boundaries: interval at 18 entries and as-of at 21 entries.
+One-short limits (17 and 20) fail during output construction with RowLimit,
+without publishing output or invalidating either input, and cleanup remains
+owned until reclamation. The earlier combined value-validation/workspace
+condition misreported this capacity failure as InvalidExecution; the two
+causes are now separated. These tests cover the fixed variants, not every
+join mode or work boundary.
 
 The `dedupe_events` kernel now checks one cumulative control-work ceiling
 across resumes. Its one-record fixture counts 31 steps, including final
