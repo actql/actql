@@ -64,6 +64,92 @@ async function checkedFixture() {
   return {document, environment};
 }
 
+async function effectFixture() {
+  const [documentBody, environmentBody] = await Promise.all([
+    readFile(new URL('values.json', fixture), 'utf8'),
+    readFile(new URL('values.environment.json', fixture), 'utf8'),
+  ]);
+  const targetSchema = {
+    additional_properties: false,
+    fields: {
+      Id: {nullable: false, type: 'string'},
+      Name: {nullable: true, type: 'number'},
+    },
+    nullable: false,
+    type: 'object',
+  };
+  const mapping = {
+    connector_manifest_cid: cid('a'),
+    conversions: [],
+    mapping_contract_cid: '',
+    mapping_ref: 'mapping:crm.account.v1',
+    minimum_approval: 'none',
+    permission_rules: [{
+      effect_kind: 'create', permissions: ['scope:create'],
+      selector_class: 'none', write_fields: ['Name'],
+    }],
+    primary_identity: 'Id',
+    required_fields: [],
+    required_permissions: [],
+    resource_identity_cid: cid('b'),
+    row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
+    schema: 'actql.mapping_contract/0.1',
+    target_ref: 'connector://crm/account',
+    target_schema: targetSchema,
+    target_schema_identity: `sha256:${createHash('sha256')
+      .update(JSON.stringify(targetSchema)).digest('hex')}`,
+    version: 'salesforce-v1',
+    writable_fields: ['Name'],
+  };
+  mapping.mapping_contract_cid = hashWithoutSelf(mapping,
+    'mapping_contract_cid');
+  const environmentDocument = JSON.parse(environmentBody);
+  environmentDocument.mapping_contracts = [mapping];
+  environmentDocument.evidence_bundle_cid = hashWithoutSelf(
+    environmentDocument, 'evidence_bundle_cid');
+  const environment = moon.clientProgramCheckEnvironment(
+    JSON.stringify(environmentDocument),
+    environmentDocument.evidence_bundle_cid,
+    false, false, true, false, false, false, false,
+  );
+  assert.ok(environment);
+  const document = JSON.parse(documentBody);
+  document.stages[0].effects = {
+    save: {create: {
+      target: 'connector://crm/account',
+      mapping: mapping.mapping_ref,
+      from: {result: 'rows'},
+    }},
+  };
+  return {document: JSON.stringify(document), environment};
+}
+
+test('internal Client bridge retains Effect closure without public apply',
+  async () => {
+    const {document, environment} = await effectFixture();
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    assert.equal(moon.clientProgramEffectPreparationIssue(outcome), undefined);
+    assert.equal(moon.clientProgramPrepareEffectFree(
+      document, 'json', environment), undefined);
+    const foreign = moon.clientProgramPrepareEffectComputationWithParameters(
+      document.replace('mapping:crm.account.v1', 'mapping:crm.foreign.v1'),
+      'json', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationReady(foreign), undefined);
+    assert.ok(moon.clientProgramEffectPreparationIssueCode(foreign));
+    const invalidFormat = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'text', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidFormat),
+      'invalid_format');
+    const invalidParameters = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, '{', []);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidParameters),
+      'supplied_syntax');
+  });
+
 test('private Plan binding uses the escaped checked Unit Result name', async () => {
   const {document, environment} = await checkedFixture();
   const renamed = JSON.parse(document);

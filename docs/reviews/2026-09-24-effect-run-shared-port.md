@@ -534,3 +534,11 @@ its Effect source occurrence; the Effect-free Client entry still rejects it.
 The preparation can bind an admitted exact Run owner, but neither this
 preparation nor that binding admits a Preview, current grant, mutation send,
 final Receipt, or publication. The standard Host caller remains open.
+
+The internal Node Host bridge now exposes that prepared Effect computation
+through the same bounded document-format and supplied-Parameter admission as
+the Effect-free Client path. It retains the owned closure without promoting it
+to a public submit or apply permit. A Node fixture checks exact Mapping
+resolution and confirms that the public Effect-free submit still rejects the
+Effectful document. Standard multi-member execution, durable apply, and final
+publication remain open.
