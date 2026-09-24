@@ -246,3 +246,19 @@ captured-DAG identity admission rejects Effect-free Result publication for it.
 The task-only computation entry does not grant apply authority. This is a
 preparatory physical bridge, not a completed Effectful Run, Preview admission,
 or standard Host multi-effect path.
+
+The fixed-SHA common/Salesforce review at `871cc14c` identified mutable
+invocation bindings and provider projection before raw response custody. The
+shared Host/Site boundary now owns primitive scope bindings, limits, and the
+call wrapper before asynchronous work. The shared physical dispatch path
+stores exact bounded response bytes before Salesforce projection. Single and
+Collections responses can be read after restart without a second send. Local
+HTTPS and SQLite tests cover the mutation and crash-adjacent ordering cases;
+they are not live Salesforce-org tests.
+
+The common adapter now assembles scoped credential calls and owns exact
+evidence-read authorization, claim verification, and Ledger lookup. Provider
+code still derives the operation, request identity, and typed interpretation.
+The remaining review work is a shared MoonBit Acquisition evidence/capture
+owner and the standard Effectful Host Run path. Neither is complete merely
+because the adapters now share these procedures.

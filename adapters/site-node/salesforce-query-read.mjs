@@ -1,8 +1,8 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from './https-credential-resource.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
-import {invocationBindingsMatch, ownInvocationAuthorization,
-  ownInvocationContext} from
+import {invocationBindingsMatch, invokeScopedCredentialOperation,
+  ownInvocationAuthorization, ownInvocationContext} from
   '../host-common/owned-invocation-context.mjs';
 
 const operation = 'salesforce:query:read';
@@ -115,12 +115,10 @@ async function driveQueryPages({
         : await authorizationForPage(path, pages.length));
       validateAuthorization(authorization, scope);
       signal?.throwIfAborted();
-      const response = await callResource({
-        ...credential,
-        ...authorization,
-        operations: new Map([[operation, Object.freeze({method: 'GET', path})]]),
+      const response = await invokeScopedCredentialOperation({
+        authorization, credential, callResource, operation,
+        method: 'GET', path,
         maxResponseBytes: limits.maxBytes,
-        returnRejectedResponse: true,
         signal,
       });
       if (!response.accepted) {

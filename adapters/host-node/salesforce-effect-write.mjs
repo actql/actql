@@ -14,6 +14,7 @@ import {captureClaimedEffectResponse,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {ownInvocationContext, ownInvocationLimits} from
   '../host-common/owned-invocation-context.mjs';
+import {readAuthorizedEffectResponse} from './effect-response-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -41,25 +42,15 @@ export async function recoverStoredSalesforceSingleResponse({
   }
   const ownedLimits = ownInvocationLimits(limits);
   const ownedClaim = snapshotEffectDispatchClaim(claim);
-  const effect = runtimeCore(commonMoon).effectApplicationControl;
-  if (effect.logicalRequestScopeCid(ownedClaim.scope) !== ledger.scopeCid) {
-    fail('ForeignSalesforceEffectResponse');
-  }
   const expectedCid = checked(moon.salesforceSingleWriteRequestCid(
     request, resourceOrigin, maxRequestIdentityBytes));
-  if (ownedClaim.canonicalRequestCid !== expectedCid) {
-    fail('ForeignSalesforceEffectResponse');
-  }
-  const binding = Object.freeze({
-    logicalRequestScopeCid: ledger.scopeCid,
-    logicalItemLocatorCid: effect.logicalItemLocatorCid(ownedClaim.locator),
-    canonicalRequestCid: expectedCid,
-    orgId: moon.salesforceSingleWriteRequestOrgId(request),
+  const {stored} = await readAuthorizedEffectResponse({
+    ledger, claims: ownedClaim, commonMoon, expectedRequestCid: expectedCid,
+    providerBinding: {orgId: moon.salesforceSingleWriteRequestOrgId(request)},
+    authorizeEvidenceRead,
+    invalidCode: 'InvalidSalesforceEffectResponseRead',
+    foreignCode: 'ForeignSalesforceEffectResponse',
   });
-  if (await authorizeEvidenceRead(binding) !== true) {
-    fail('EffectEvidenceAccessDenied');
-  }
-  const stored = ledger.readClaimedResponse(ownedClaim);
   if (stored === undefined) return Object.freeze({recovered: undefined});
   return Object.freeze({
     recovered: projectSalesforceSingleObservation({
@@ -99,28 +90,17 @@ export async function recoverStoredSalesforceCollectionResponse({
     fail('InvalidSalesforceEffectResponseRead');
   }
   const ownedLimits = ownInvocationLimits(limits);
-  const effect = runtimeCore(commonMoon).effectApplicationControl;
-  if (ownedClaims.some(claim =>
-    effect.logicalRequestScopeCid(claim.scope) !== ledger.scopeCid)) {
-    fail('ForeignSalesforceEffectResponse');
-  }
   const expectedCid = checked(moon.salesforceCollectionWriteRequestCid(
     request, resourceOrigin, maxRequestIdentityBytes));
-  if (ownedClaims.some(claim =>
-    claim.canonicalRequestCid !== expectedCid)) {
-    fail('ForeignSalesforceEffectResponse');
-  }
-  const binding = Object.freeze({
-    logicalRequestScopeCid: ledger.scopeCid,
-    logicalItemLocatorCids: Object.freeze(ownedClaims.map(claim =>
-      effect.logicalItemLocatorCid(claim.locator))),
-    canonicalRequestCid: expectedCid,
-    orgId: moon.salesforceCollectionWriteRequestOrgId(request),
+  const {stored} = await readAuthorizedEffectResponse({
+    ledger, claims: ownedClaims, commonMoon, expectedRequestCid: expectedCid,
+    providerBinding: {
+      orgId: moon.salesforceCollectionWriteRequestOrgId(request),
+    },
+    authorizeEvidenceRead, batch: true,
+    invalidCode: 'InvalidSalesforceEffectResponseRead',
+    foreignCode: 'ForeignSalesforceEffectResponse',
   });
-  if (await authorizeEvidenceRead(binding) !== true) {
-    fail('EffectEvidenceAccessDenied');
-  }
-  const stored = ledger.readClaimedBatchResponse(ownedClaims);
   if (stored === undefined) return Object.freeze({recovered: undefined});
   return Object.freeze({
     recovered: projectSalesforceCollectionObservation({
