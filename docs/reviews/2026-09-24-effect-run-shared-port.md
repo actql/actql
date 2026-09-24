@@ -154,3 +154,23 @@ These component results do not close SF-3: the ordinary checked Program,
 standard Host, complete multi-member Preview/apply admission, final receipt,
 and restart-safe reconciliation still require one connected product test path.
 No live Salesforce org or authorized write scope has been provided.
+
+The follow-up review at `89ef91382f20dc092c398ce920860fa82a57e149`
+identified a mutable caller-owned JS claim wrapper across physical send awaits.
+The adapter now snapshots each wrapper and the collection order before durable
+claim and HTTP send, retaining the exact opaque MoonBit objects. Real SQLite
+tests mutate the caller's single claim and collection array during the send,
+then verify the original response binding after restart without a second send.
+The same review found stale Workers composition output. Both generated bridge
+packages and their conformance projection were regenerated from product
+templates; the Workers suite passes 24/24 locally. These are component fixes,
+not evidence that an Effectful standard Run is complete or that required CI has
+passed at the new SHA.
+
+Read-only recovery after a physical response was durably stored remains an
+explicit shared Host admission task. The current Salesforce capture entry
+checks current write authority and Catalog before returning the saved response.
+The eventual recovery entry must authenticate evidence viewing, verify the
+immutable request and ledger binding, and reproject stored bytes without a new
+write grant or physical send. It must not bypass current write admission for a
+new mutation or expose the saved response to an unauthorized caller.
