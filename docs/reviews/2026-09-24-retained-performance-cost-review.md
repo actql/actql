@@ -71,6 +71,24 @@ this revision. The raw one-case assessment is retained in the workspace at
 The compile cache is a useful reduction, but it does not close the fixed-cost
 gap. Full application preparation remains duplicated across processes.
 
+A scratch-only minification experiment reduced the generated example runtime
+from about 15 MB to 3 MB. With a warm Node compile cache, alternating local
+probes reduced median total time from about 510 to 463 milliseconds, while the
+sum of task intervals rose from about 34 to 39 milliseconds. This was not an
+accepted product change: it does not address the dominant remaining cold gap,
+and the warm effect needs a controlled paired assessment. The scratch runtime
+override was removed.
+
+A separate CPU profile of 100 repeated warm application preparations showed
+that the example re-admitted the same installed relation registry and fragment
+contract for every stage. The preparation now admits these immutable contracts
+once per application, while each stage still prepares and checks its own
+fragment against its own lowering request. In one profiler run, 100 repeated
+preparations took 2,259 milliseconds before this change and 2,080 milliseconds
+after it. This is a local attribution probe, not an alternating performance
+assessment or a claim that cold preparation is solved. The parent and worker
+still prepare the application independently.
+
 ## Next changes to test independently
 
 1. Separate immutable application preparation from per-run parameter,

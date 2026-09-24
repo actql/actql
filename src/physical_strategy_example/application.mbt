@@ -215,16 +215,25 @@ fn prepare_application_internal(
       max_name_bytes=10000,
     ).unwrap()
   })
+  // These installed contracts do not depend on the stage or its parameters.
+  // Admit them once; each stage still prepares and checks its own fragment.
+  let registry_limits : @execution.RegistryLimits = {
+    max_body_bytes: 100000,
+    max_body_nodes: 10000,
+    max_body_depth: 100,
+  }
+  let registered = @execution.admit_relation_registry(
+    contract(registry_json),
+    contract(values_json),
+    registry_limits,
+  ).unwrap()
+  let fragment = @execution.admit_fragment_contract(
+    registered,
+    contract(fragment_json),
+    registry_limits,
+  ).unwrap()
   let generated = owners.mapi((index, owner) => {
-    generate(
-      owner,
-      registry_json,
-      values_json,
-      fragment_json,
-      true,
-      data~,
-      acquisition=index == 0,
-    )
+    generate(owner, registered, fragment, true, data~, acquisition=index == 0)
   })
   let graph = @strategy.prepare_checked_dag(checked, owners, 5, 10000).unwrap()
   let sequence = @query.prepare_query_sequence(acquisition, generated[0], 10000).unwrap()

@@ -33,13 +33,12 @@ fn source_limits(stage_count : Int) -> @program_check.CompileLimits {
 // Example application wiring through the public registry and fragment verifier.
 fn generate(
   owner : @lower.BoundPrepared,
-  registry_json : String,
-  values_json : String,
-  fragment_json : String,
+  registered : @execution.RegisteredRelationContracts,
+  fragment : @execution.FragmentContract,
   filter : Bool,
   data? : DataProfile? = None,
   acquisition? : Bool = false,
-) -> @execution.GeneratedSequence raise {
+) -> @execution.GeneratedSequence {
   let row_limit = data
     .map(value => if acquisition { value.source_rows } else { value.task_rows })
     .unwrap_or(100)
@@ -50,16 +49,6 @@ fn generate(
     max_body_nodes: 10000,
     max_body_depth: 100,
   }
-  let registered = @execution.admit_relation_registry(
-    contract(registry_json),
-    contract(values_json),
-    registry_limits,
-  ).unwrap()
-  let fragment = @execution.admit_fragment_contract(
-    registered,
-    contract(fragment_json),
-    registry_limits,
-  ).unwrap()
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
     max_rows: row_limit,
