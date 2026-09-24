@@ -62,6 +62,8 @@ pub fn coordinator_issue_output_plan_poll_json(@remote_site_protocol.DurableCoor
 
 pub fn coordinator_output_admission_durable_json(CoordinatorCheckedOutputPlan) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_output_initial_poll_json(@remote_site_protocol.CoordinatorOutputRecord) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_output_intent_is_new(@remote_site_protocol.CoordinatorOutputAdmission) -> Bool
 
 pub fn coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]

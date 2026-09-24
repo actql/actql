@@ -111,6 +111,8 @@ pub fn coordinator_output_admission_json(CoordinatorOutputAdmission) -> Result[S
 
 pub fn coordinator_output_admission_key(CoordinatorOutputAdmission) -> Array[String]
 
+pub fn coordinator_output_initial_poll_json(CoordinatorOutputRecord) -> Result[String, DispatchIssue]
+
 pub fn coordinator_output_intent_kind(CoordinatorOutputAdmission) -> DispatchAcceptance
 
 pub fn coordinator_output_record_key(CoordinatorOutputRecord) -> Array[String]

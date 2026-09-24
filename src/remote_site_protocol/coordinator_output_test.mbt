@@ -34,6 +34,12 @@ test "Coordinator output success follows durable intent and unknown state" {
       true,
     ).unwrap().1
   assert_eq(coordinator_output_record_status(record), ["0", "0", ""])
+  assert_eq(
+    coordinator_output_initial_poll_json(record),
+    remote_poll_output_plan_json(
+      remote_poll_output_request(output), remote_poll_output_intent(output),
+    ),
+  )
   ignore(
     commit_coordinator_output_transition(
       prepare_coordinator_output_unknown(record).unwrap(),
@@ -41,6 +47,7 @@ test "Coordinator output success follows durable intent and unknown state" {
     ).unwrap(),
   )
   assert_eq(coordinator_output_record_status(record), ["1", "1", ""])
+  assert_true(coordinator_output_initial_poll_json(record) is Err(InvalidTransition))
   let result = prepare_remote_output_result(
     output,
     payload_request,

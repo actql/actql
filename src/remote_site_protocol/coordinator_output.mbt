@@ -255,6 +255,19 @@ pub fn coordinator_output_record_status(
 }
 
 ///|
+/// Issue the admitted poll only before the first physical output send. The
+/// caller durably records unknown responsibility before using this body.
+pub fn coordinator_output_initial_poll_json(
+  record : CoordinatorOutputRecord,
+) -> Result[String, DispatchIssue] {
+  if record.revision != 0 ||
+    record.progress != CoordinatorOutputIntentDurable {
+    return Err(InvalidTransition)
+  }
+  remote_poll_output_plan_json(record.output.request, record.output.intent)
+}
+
+///|
 pub fn coordinator_output_record_result_json(
   record : CoordinatorOutputRecord,
 ) -> Result[String, DispatchIssue] {

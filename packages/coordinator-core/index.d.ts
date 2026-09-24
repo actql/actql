@@ -109,6 +109,8 @@ export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;
 /** Call only after the matching output intent and plan were persisted. */
 export function commitOutputIntent(admission: OutputIntentAdmission): OutputRecord;
 export function outputRecordStatus(record: OutputRecord): string[];
+/** Available only before the first durably recorded physical send. */
+export function outputInitialPollJson(record: OutputRecord): string;
 export function outputAdmissionDurableJson(plan: CheckedOutputPlan): string;
 export function admitDurableOutputJson(body: string, dispatch: DurableRecord,
   expectedResultDefinitionCid: string,

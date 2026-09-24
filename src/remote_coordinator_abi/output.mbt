@@ -150,6 +150,14 @@ pub fn coordinator_output_record_status(
 }
 
 ///|
+#export_name("coordinatorOutputInitialPollJson")
+pub fn coordinator_output_initial_poll_json(
+  record : @remote.CoordinatorOutputRecord,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_initial_poll_json(record)
+}
+
+///|
 /// Physical storage must persist these exact bytes before committing the
 /// prepared output intent in the in-process owner.
 #export_name("coordinatorOutputAdmissionDurableJson")

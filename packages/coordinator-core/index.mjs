@@ -118,6 +118,8 @@ export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;
 export const commitOutputIntent = admission =>
   checked(owner.coordinatorCommitOutputIntent(admission));
 export const outputRecordStatus = owner.coordinatorOutputRecordStatus;
+export const outputInitialPollJson = record =>
+  checked(owner.coordinatorOutputInitialPollJson(record));
 export const outputAdmissionDurableJson = plan =>
   checked(owner.coordinatorOutputAdmissionDurableJson(plan));
 export const admitDurableOutputJson = (body, dispatch,
