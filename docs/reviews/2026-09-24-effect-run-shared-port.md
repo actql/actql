@@ -494,3 +494,21 @@ MoonBit project must then build an off-tree reference provider using only that
 package and its declared semantic dependencies. The generated `.mbti` closure
 must include callbacks and error payloads, not just nominal opaque types.
 An off-tree package that only registers a name is not the acceptance fixture.
+
+### Fixed-SHA Salesforce review disposition
+
+`01-salesforce-effects-review.md` at `15904a32` is an acceptance list, not a
+claim that every finding remains open at the current branch head:
+
+| Finding | Current disposition |
+| --- | --- |
+| SF-1 / SPI-01 | Partial. The Salesforce acquisition assembly now lives in the Host package while the provider Catalog has no Host or planning imports. `connector_sdk` still exposes internal checked-owner types; the external devkit, off-tree build, and source-compatibility test remain open. |
+| SF-2 / INT-01 | Addressed by the integrated common logical-request owner. Client intent fingerprint and Effect dispatch identity remain separate. |
+| SF-3 / INT-02 | Partial. The checked Effect Run owner has a source-free physical open through the ordinary private DAG lifecycle. The standard Values-to-Effect-to-final-Receipt Client/Host path remains open. |
+| SF-4 / INT-04 | Partial. Cell-backed completed outputs support independent common pins. Managed, Carrier-managed and nonterminal Result borrowing still require exact physical holding proofs. Unsupported representations must fail before Effect send. |
+| SF-5 | Open. The ordinary checker and standard Client/Host still reject nonempty Effects. No Salesforce-specific submit path substitutes for a multi-member Run. |
+
+The Host-package move passes Salesforce conformance on JS, Wasm and native,
+the query integration JS suite, and the local Salesforce Site suite. These
+tests do not replace the off-tree SPI, four-way source/Effect Run matrix,
+managed Result borrowing, or standard multi-member Effect Run acceptance.
