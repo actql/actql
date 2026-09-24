@@ -8,12 +8,127 @@ import {matchesSalesforceCredentialOrg} from
   '../site-node/salesforce-credential-binding.mjs';
 import {captureClaimedEffectResponse,
   captureClaimedEffectCollectionResponse,
+  snapshotEffectDispatchClaim,
   snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
+
+// An authorized evidence read is not another mutation attempt. The Host
+// supplies the current evidence-view decision; this adapter checks the exact
+// immutable request and stored claim, then only reprojects saved bytes.
+export async function recoverStoredSalesforceSingleResponse({
+  ledger,
+  claim,
+  commonMoon,
+  moon,
+  request,
+  resourceOrigin,
+  authorizeEvidenceRead,
+  limits,
+  maxRequestIdentityBytes = 4096,
+}) {
+  if (!ledger || typeof ledger.readClaimedResponse !== 'function' ||
+      typeof ledger.scopeCid !== 'string' || !claim || !commonMoon ||
+      !moon || !request || typeof resourceOrigin !== 'string' ||
+      typeof authorizeEvidenceRead !== 'function' || !limits) {
+    fail('InvalidSalesforceEffectResponseRead');
+  }
+  const ownedClaim = snapshotEffectDispatchClaim(claim);
+  const effect = runtimeCore(commonMoon).effectApplicationControl;
+  if (effect.logicalRequestScopeCid(ownedClaim.scope) !== ledger.scopeCid) {
+    fail('ForeignSalesforceEffectResponse');
+  }
+  const expectedCid = checked(moon.salesforceSingleWriteRequestCid(
+    request, resourceOrigin, maxRequestIdentityBytes));
+  if (ownedClaim.canonicalRequestCid !== expectedCid) {
+    fail('ForeignSalesforceEffectResponse');
+  }
+  const binding = Object.freeze({
+    logicalRequestScopeCid: ledger.scopeCid,
+    logicalItemLocatorCid: effect.logicalItemLocatorCid(ownedClaim.locator),
+    canonicalRequestCid: expectedCid,
+    orgId: moon.salesforceSingleWriteRequestOrgId(request),
+  });
+  if (await authorizeEvidenceRead(binding) !== true) {
+    fail('EffectEvidenceAccessDenied');
+  }
+  const stored = ledger.readClaimedResponse(ownedClaim);
+  if (stored === undefined) return Object.freeze({recovered: undefined});
+  return Object.freeze({
+    recovered: projectSalesforceSingleObservation({
+      moon, request,
+      observation: Object.freeze({
+        useCid: stored.credentialUseCid,
+        statusCode: stored.statusCode,
+        body: stored.responseBytes,
+      }),
+      limits,
+    }),
+  });
+}
+
+export async function recoverStoredSalesforceCollectionResponse({
+  ledger,
+  claims,
+  commonMoon,
+  moon,
+  request,
+  resourceOrigin,
+  authorizeEvidenceRead,
+  limits,
+  maxRequestIdentityBytes = 4096,
+}) {
+  const ownedClaims = Array.isArray(claims)
+    ? snapshotEffectDispatchClaims(claims) : undefined;
+  if (!ledger || typeof ledger.readClaimedBatchResponse !== 'function' ||
+      typeof ledger.scopeCid !== 'string' || !ownedClaims ||
+      ownedClaims.length === 0 || !commonMoon || !moon || !request ||
+      typeof resourceOrigin !== 'string' ||
+      typeof authorizeEvidenceRead !== 'function' || !limits ||
+      !Number.isSafeInteger(limits.maxRows) || limits.maxRows < 1 ||
+      ownedClaims.length > limits.maxRows ||
+      moon.salesforceCollectionWriteRequestRowCount(request) !==
+        ownedClaims.length) {
+    fail('InvalidSalesforceEffectResponseRead');
+  }
+  const effect = runtimeCore(commonMoon).effectApplicationControl;
+  if (ownedClaims.some(claim =>
+    effect.logicalRequestScopeCid(claim.scope) !== ledger.scopeCid)) {
+    fail('ForeignSalesforceEffectResponse');
+  }
+  const expectedCid = checked(moon.salesforceCollectionWriteRequestCid(
+    request, resourceOrigin, maxRequestIdentityBytes));
+  if (ownedClaims.some(claim =>
+    claim.canonicalRequestCid !== expectedCid)) {
+    fail('ForeignSalesforceEffectResponse');
+  }
+  const binding = Object.freeze({
+    logicalRequestScopeCid: ledger.scopeCid,
+    logicalItemLocatorCids: Object.freeze(ownedClaims.map(claim =>
+      effect.logicalItemLocatorCid(claim.locator))),
+    canonicalRequestCid: expectedCid,
+    orgId: moon.salesforceCollectionWriteRequestOrgId(request),
+  });
+  if (await authorizeEvidenceRead(binding) !== true) {
+    fail('EffectEvidenceAccessDenied');
+  }
+  const stored = ledger.readClaimedBatchResponse(ownedClaims);
+  if (stored === undefined) return Object.freeze({recovered: undefined});
+  return Object.freeze({
+    recovered: projectSalesforceCollectionObservation({
+      moon, request,
+      observation: Object.freeze({
+        useCid: stored.credentialUseCid,
+        statusCode: stored.statusCode,
+        body: stored.responseBytes,
+      }),
+      limits,
+    }),
+  });
+}
 
 // Low-level physical custody used only after the caller has established the
 // Preview row binding and whole-set apply admission.
@@ -197,32 +312,8 @@ export async function captureSalesforceCollectionEffectWrite({
       !captured.ownership.actions.every(action => action === 3)) {
     return captured;
   }
-  let response;
-  for (let index = 0; index < ownedClaims.length; index++) {
-    const locatorCid = effect.logicalItemLocatorCid(ownedClaims[index].locator);
-    const entry = ledger.currentAdmitted(locatorCid);
-    if (!entry || !effect.ledgerEntryAdmitsDispatch(
-        entry, ownedClaims[index].scope, ownedClaims[index].locator,
-        ownedClaims[index].key, requestCid)) {
-      return captured;
-    }
-    const dispatchEntryCid = effect.ledgerEntryCid(entry);
-    if (index === 0) {
-      response = ledger.response(dispatchEntryCid);
-      if (!response) return captured;
-    }
-    if (response.batchMembers?.[index]?.dispatchEntryCid !==
-        dispatchEntryCid ||
-        response.batchMembers[index].logicalItemLocatorCid !== locatorCid) {
-      fail('EffectCollectionResponseBindingMismatch');
-    }
-  }
-  if (response.batchOwnerCid !== response.dispatchEntryCid ||
-      response.batchPosition !== 0 ||
-      response.batchCount !== ownedClaims.length ||
-      response.batchMembers.length !== ownedClaims.length) {
-    fail('EffectCollectionResponseBindingMismatch');
-  }
+  const response = ledger.readClaimedBatchResponse(ownedClaims);
+  if (!response) return captured;
   const recovered = projectSalesforceCollectionObservation({
     moon, request,
     observation: Object.freeze({
