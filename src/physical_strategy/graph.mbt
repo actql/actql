@@ -49,6 +49,16 @@ struct CheckedDAG {
 struct CheckedEffectComputationDAG {
   candidate : @checked.EffectProgramStaticCandidate
   graph : CheckedDAG
+  sources : Array[CheckedEffectSourcePort?]
+}
+
+///|
+/// One authored Effect source bound to its exact checked Stage Result port.
+/// This is static provenance, not a retained output or permission to read it.
+struct CheckedEffectSourcePort {
+  member_index : Int
+  stage : Int
+  occurrence : @execution.ManagedResultOccurrence
 }
 
 ///|
@@ -66,16 +76,114 @@ pub fn prepare_checked_effect_computation_dag(
   max_tasks : Int,
   max_work : Int,
 ) -> Result[CheckedEffectComputationDAG, GraphIssue] {
+  let bindings = @results.effect_static_candidate_results(
+    @checked.effect_program_static_effects(candidate),
+  )
+  let member_count = @results.effect_result_binding_count(bindings)
+  if max_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if member_count > max_work {
+    return Err(WorkLimit)
+  }
   match
     prepare_checked_dag_owned(
       @checked.effect_program_static_checked_computation(candidate),
       owners,
       max_tasks,
-      max_work,
+      max_work - member_count,
     ) {
-    Ok(graph) => Ok({ candidate, graph, })
+    Ok(graph) => {
+      let sources = match
+        bind_checked_effect_source_ports(bindings, graph, owners) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok({ candidate, graph, sources, })
+    }
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// Consume the checked Stage wiring rather than resolving a Result by name
+/// against a caller-supplied or root-only inventory. One unit of graph work
+/// was reserved for each member before this bounded pass.
+fn bind_checked_effect_source_ports(
+  bindings : @results.EffectResultBindings,
+  graph : CheckedDAG,
+  owners : Array[@lower.BoundPrepared],
+) -> Result[Array[CheckedEffectSourcePort?], GraphIssue] {
+  let incoming = @context.incoming_links_requirements(
+    @context.program_incoming_gates_owner(
+      @checked.incoming_gates(graph.program),
+    ),
+  )
+  let wiring = @context.program_incoming_wiring(incoming)
+  let sources : Array[CheckedEffectSourcePort?] = []
+  for index in 0..<@results.effect_result_binding_count(bindings) {
+    let binding = @results.effect_result_binding_at(bindings, index).unwrap()
+    let header = @results.effect_result_binding_header(binding)
+    let stage = @syntax.effect_header_stage(header)
+    match @syntax.effect_header_source_result(header) {
+      None => {
+        if @results.effect_result_binding_result(binding) is Some(_) {
+          return Err(ForeignEffectSource(index))
+        }
+        sources.push(None)
+      }
+      Some(name) => {
+        guard @results.effect_result_binding_result(binding) is Some(result) &&
+          @results.wiring_stage_at(wiring, stage) is Some(stage_ports) &&
+          @ports.lookup_port(
+            @results.stage_port_publications(stage_ports),
+            name,
+          )
+          is Some(port) &&
+          physical_equal(@ports.port_result(port), result) &&
+          owners.get(stage) is Some(owner) else {
+          return Err(ForeignEffectSource(index))
+        }
+        let occurrence = match
+          @execution.bind_managed_result_occurrence(owner, name, port) {
+          Ok(value) => value
+          Err(_) => return Err(ForeignEffectSource(index))
+        }
+        sources.push(Some({ member_index: index, stage, occurrence, }))
+      }
+    }
+  }
+  Ok(sources)
+}
+
+///|
+pub fn checked_effect_source_count(value : CheckedEffectComputationDAG) -> Int {
+  value.sources.length()
+}
+
+///|
+pub fn checked_effect_source_at(
+  value : CheckedEffectComputationDAG,
+  index : Int,
+) -> CheckedEffectSourcePort? {
+  value.sources.get(index).bind(source => source)
+}
+
+///|
+pub fn checked_effect_source_member(value : CheckedEffectSourcePort) -> Int {
+  value.member_index
+}
+
+///|
+pub fn checked_effect_source_stage(value : CheckedEffectSourcePort) -> Int {
+  value.stage
+}
+
+///|
+pub fn checked_effect_source_occurrence(
+  value : CheckedEffectSourcePort,
+) -> @execution.ManagedResultOccurrence {
+  value.occurrence
 }
 
 ///|
@@ -118,6 +226,19 @@ pub fn checked_effect_run_owner(
   value : CheckedEffectRunDAG,
 ) -> @checked.EffectProgramRunCandidate {
   value.run
+}
+
+///|
+pub fn checked_effect_run_source_count(value : CheckedEffectRunDAG) -> Int {
+  value.computation.sources.length()
+}
+
+///|
+pub fn checked_effect_run_source_at(
+  value : CheckedEffectRunDAG,
+  index : Int,
+) -> CheckedEffectSourcePort? {
+  value.computation.sources.get(index).bind(source => source)
 }
 
 ///|
@@ -173,6 +294,7 @@ struct TaskNumericObservation {
 pub(all) enum GraphIssue {
   InvalidLimits
   EffectGraphOwnerRequired
+  ForeignEffectSource(Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
