@@ -143,6 +143,21 @@ test "ordinary values document prepares one named Effect-free result" {
     semantics_cid +
     "\",\"version\":\"actql-program-definition/0.1\"}",
   )
+  let semantic_program = emit_prepared_client_semantic_program(
+    prepared, 10000, 1000, 20,
+  ).unwrap()
+  assert_eq(
+    semantic_program, "{\"id\":\"client-values\",\"results\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"id\":\"source\",\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":1},{\"id\":2}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}]}],\"version\":\"actql/0.1\"}",
+  )
+  assert_true(
+    emit_prepared_client_semantic_program(
+      prepared,
+      semantic_program.length() - 1,
+      1000,
+      20,
+    )
+    is Err(ClientIdentityMaterialIssue::Encoding),
+  )
   let semantics = emit_prepared_client_program_semantics(
     prepared, 10000, 1000, 20,
   ).unwrap()
@@ -288,6 +303,10 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     emit_prepared_client_program_definition(spaced, 10000, 1000, 20).unwrap(),
     definition,
+  )
+  assert_eq(
+    emit_prepared_client_semantic_program(spaced, 10000, 1000, 20).unwrap(),
+    semantic_program,
   )
   assert_eq(
     emit_prepared_client_program_semantics(spaced, 10000, 1000, 20).unwrap(),

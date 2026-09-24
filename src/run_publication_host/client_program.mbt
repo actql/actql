@@ -29,6 +29,7 @@ pub(all) enum ClientProgramPreparationIssue {
 struct PreparedClientProgram {
   graph : @strategy.CheckedDAG
   check_environment_cid : String
+  source : @syntax.Program
 }
 
 ///|
@@ -68,6 +69,25 @@ pub fn prepared_client_program_semantics_cid(
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
   Encoding
+}
+
+///|
+/// Emit the accepted, annotation-free AQL document retained with the checked
+/// Program. A saved Plan must still replan this document with exact bindings.
+pub fn emit_prepared_client_semantic_program(
+  value : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientIdentityMaterialIssue] {
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  @syntax.emit_metadata_stripped_program(value.source, writer) catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  Ok(body)
 }
 
 ///|
@@ -465,6 +485,7 @@ pub fn prepare_effect_free_client_program(
       Ok({
         graph,
         check_environment_cid: @checked.checking_environment_cid(environment),
+        source: parsed,
       })
     Err(issue) => Err(Graph(issue))
   }
