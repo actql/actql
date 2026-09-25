@@ -495,11 +495,12 @@ design also reaches browser, edge, and managed runtimes.
 
 ## Status
 
-ActQL is in 0.1 stabilization. The CLI decides Effects with `effect_policy`
-and Connector minimums today. The authorization model in
-[docs/design/host-authorization.md](docs/design/host-authorization.md), which
-separates execution-account permissions from application-user decisions, is a
-design target and is not yet implemented in the CLI. Execution is governed by
+ActQL is in 0.1 stabilization. The specification routes protected execution
+through execution-account configuration (`allow`, `deny`, `delegate`) and
+Host-defined delegated decisions, as described in
+[docs/design/host-authorization.md](docs/design/host-authorization.md);
+Connector contracts no longer declare approval minimums. The CLI and Host
+implementation of this routing is not yet complete. Execution is governed by
 the currently pinned specifications and contracts.
 
 ## Contributing

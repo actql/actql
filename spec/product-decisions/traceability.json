@@ -40,7 +40,8 @@
         "execution.md#effect-application",
         "protocols/run.md#policy-risk-acceptance",
         "execution.md#checkpoints",
-        "protocols/run.md#resolution-admission"
+        "protocols/run.md#resolution-admission",
+        "execution.md#policy-routing"
       ],
       "status": "adopted",
       "acceptance_cases": [
@@ -48,7 +49,9 @@
         "D2.multi-delegate-immediate",
         "D2.multi-delegate-deferred",
         "D2.host-required-claim",
-        "D2.contract-floor",
+        "D2.no-contract-floor",
+        "D2.account-deny",
+        "D2.decision-failure",
         "D2.wrong-claim",
         "D2.future-outside-envelope"
       ]

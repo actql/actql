@@ -115,6 +115,24 @@ that the Host's declared policy for that delegated decision requires the risk
 claim; the number of Effect Set members alone never selects it, so a
 multi-member Effect Set Checkpoint with `[effect_scope_approved]` is valid.
 
+<!-- requirement-block: resolution-admission.an-immediate-delegated-answer-must-bind-the-exact-decision-subject resolution-admission.admitting-an-immediate-answer-must-not-persist-a-checkpoint-or-create-a-resume-intent resolution-admission.a-delegated-answer-must-not-be-admitted-without-a-delegate-outcome-for-its-subject -->
+Only an execution-account `delegate` outcome creates a delegated decision
+([Account authorization routing](../execution.md#policy-routing)). Its decision
+subject is the exact `actql-execution-checkpoint/0.1` body that the Host would
+persist if it deferred, identified by its `checkpoint_cid`, with one of the
+valid combinations above. An immediate permit or reject is an
+`actql-checkpoint-resolution/0.1` verified through the same Host authorization
+port. It MUST bind that subject CID, its preparation or Run identity, required
+artifact, review projection and current authorization context. Admitting an
+immediate answer MUST NOT persist a Checkpoint, enter `waiting_checkpoint`, or
+create a resume intent; the verified Resolution is retained as the decision
+evidence of the permitted or rejected unit. A deferred answer persists that
+same body as the Checkpoint, and its later Resolution uses the atomic admission
+below. A delegated answer MUST NOT be admitted for a subject whose current
+account outcome is not `delegate`, so no answer overrides an account `deny` or
+no-match. A missing, malformed, unauthenticated, expired or undelivered answer
+is a technical decision failure, not a permit or a rejection.
+
 <!-- requirement-block: resolution-admission.its-decision-time-must-be-no-earlier-than-checkpoint-creation resolution-admission.approved-resolution-evidence-bytes-must-hash-to-the-authored-approval-evidence-cid resolution-admission.a-rejection-must-not-carry-approval-evidence resolution-admission.a-host-authorization-port-must-authenticate-the-actor-and-verify resolution-admission.resolution-storage-checkpoint-closure-run-transition-and-creation-of-the -->
 An approval or rejection is an `actql-checkpoint-resolution/0.1` bound to the
 exact Checkpoint CID, its preparation or Run identity, required artifact, review

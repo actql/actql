@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:b21fd805a06af1ce2abb3d0907ef45a7b909c3715609329e3ce8ecff89acf541",
+  "registry_cid": "sha256:9733edd2e52626c724b1fa00ee705c4b82b57bec07c23de128d7c95ceedd9c46",
   "schema_cids": {
     "model_task": "sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -12,8 +12,8 @@
     "observation_facts": "sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4",
     "event_delivery_evidence": "sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582",
     "source_view": "sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74",
-    "command_contract": "sha256:1d4f0afc13fe2fb73b193d377cf7f42729f80f8438076f31bcb80f951c8eff01",
-    "connector_catalog": "sha256:877f1571d0ec91367c8ea53f39e9692a6b34fa788334a748f9f878bcefc004a3",
+    "command_contract": "sha256:d0d694427bd1ca9fede3fca5f2c490ca024c7763b3caf4165d8d5ba130f8f1ba",
+    "connector_catalog": "sha256:1ff8228ce7e75a9493e201a8991845d42a989e55a2f6e536b15461610a6ffaec",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
     "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
     "author_value_contract": "sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e",
@@ -4205,7 +4205,6 @@
         "input_contract",
         "output_schema",
         "permissions",
-        "minimum_approval",
         "idempotency",
         "preview",
         "reversibility",
@@ -4325,12 +4324,6 @@
             "minLength": 1
           },
           "uniqueItems": true
-        },
-        "minimum_approval": {
-          "enum": [
-            "none",
-            "required"
-          ]
         },
         "idempotency": {
           "type": "object",
@@ -6513,12 +6506,6 @@
               ],
               "type": "object"
             },
-            "minimum_approval": {
-              "enum": [
-                "none",
-                "required"
-              ]
-            },
             "outcome": {
               "enum": [
                 "synchronous",
@@ -6670,7 +6657,6 @@
             "input_contract",
             "output_schema",
             "permissions",
-            "minimum_approval",
             "idempotency",
             "preview",
             "reversibility",
@@ -10672,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:d4c19f4f850cb650e52cc73f92bc89bcad64a6a33aa5ee0338e4096c034753ae",
+  "artifact_registry_cid": "sha256:81304e67aabc3bfb4dfb1a9d3fbcc4aee9267243c4472e21cd4574e79346fa1d",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10704,7 +10690,7 @@
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
-    "plan_result": "sha256:25139dc3bb0b8cfa0969c2ea36dd0d2a69148459fc5a9a0279891b8e742cec1c",
+    "plan_result": "sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
   },
@@ -67069,8 +67055,6 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
-                      "contract_minimum_approval",
-                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -67164,19 +67148,6 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      "contract_minimum_approval": {
-                        "enum": [
-                          "none",
-                          "required",
-                          null
-                        ]
-                      },
-                      "resolved_approval": {
-                        "enum": [
-                          "none",
-                          "required"
-                        ]
-                      },
                       "executed": {
                         "const": false
                       }
@@ -67266,34 +67237,9 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "contract_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "effect",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "effect": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "reason": {
-                            "const": "contract_minimum"
-                          }
-                        }
-                      }
-                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {
@@ -69799,8 +69745,6 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
-                      "contract_minimum_approval",
-                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -69894,19 +69838,6 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      "contract_minimum_approval": {
-                        "enum": [
-                          "none",
-                          "required",
-                          null
-                        ]
-                      },
-                      "resolved_approval": {
-                        "enum": [
-                          "none",
-                          "required"
-                        ]
-                      },
                       "executed": {
                         "const": false
                       }
@@ -69996,34 +69927,9 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "contract_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "effect",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "effect": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "reason": {
-                            "const": "contract_minimum"
-                          }
-                        }
-                      }
-                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {

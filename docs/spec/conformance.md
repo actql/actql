@@ -233,8 +233,9 @@ A conforming implementation MUST publish and pass:
     complete resolved mapping contract identity, exact permission derivation,
     duplicate identity, missing target, target type mismatch,
     differently named output/target upsert keys, explicit write fields,
-    `max_items`, normative row idempotency, host-approval monotonicity, single-
-    effect/failure-policy semantics, and preview-CID reproducibility;
+    `max_items`, normative row idempotency, execution-account routing without
+    a Connector approval floor, single-effect/failure-policy semantics, and
+    preview-CID reproducibility;
 13. typed-input, `unnest`, complete closed expression, representative-dedupe,
     composite/full join cardinality/null/output-bound, global/partitioned rank,
     order-sensitive operation, and append schema/nullability tests;

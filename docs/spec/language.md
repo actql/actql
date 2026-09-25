@@ -7494,8 +7494,10 @@ author does not name an idempotency namespace.
 Permissions are not Program vocabulary. The compiler and preview derive the
 exact permission set from the resolved Mapping or Command Contract and expose
 it in the checked Plan and review projection.
-Approval policy is not Program vocabulary. It is resolved from the immutable
-Mapping or Command Contract and current Host policy. A Program MUST NOT author
+Approval policy is not Program vocabulary. Execution-account configuration
+and, for delegated decisions, the Host decide Effect authority; Mapping and
+Command Contracts declare exact technical permission requirements, not
+approval policy ([Account authorization routing](execution.md#policy-routing)). A Program MUST NOT author
 an `approval`, `review`, `allow`, `deny`, or `checkpoint` key as Effect policy;
 such a key is invalid rather than a request to weaken or strengthen authority.
 `on_item_failure`, when present, MUST be `continue`; omission is the sole

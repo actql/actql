@@ -1,6 +1,6 @@
 # ActQL CLI
 
-The CLI drives a durable Program Run through its ordered stages. Before each external boundary, the runtime either continues, denies the work, or pauses at a sealed Checkpoint. Approval resumes that Run from the protected boundary. See [stages](spec/language.md#stages) and [logical request recovery](spec/execution.md#logical-request).
+The CLI drives a durable Program Run through its ordered stages. Before each protected boundary, the runtime evaluates the execution-account configuration: `allow` continues, `deny` stops the work, and `delegate` asks the Host's decision policy, which permits or rejects immediately or defers to a sealed Checkpoint. Approval of a deferred decision resumes that Run from the protected boundary. See [stages](spec/language.md#stages) and [logical request recovery](spec/execution.md#logical-request).
 
 ```text
 check (optional) -> explain (optional) -> run -> [checkpoint -> approve | reject] -> status
@@ -18,7 +18,7 @@ actql status run_01
 
 `explain` and `run` share parameters, opaque bindings, input locators, environment flags, Result deliveries, and the stop-before setting. Explanation creates no Run, captures no input, fetches no new provider statistics, and writes no delivery destination. Estimates without admitted evidence are explicitly unknown. `explain --run <run>` reads saved evidence and marks strategy history as unavailable when not recorded.
 
-If no review is required, `run` finishes without another command. If it pauses, the command prints the Run and Checkpoint references:
+If no decision is deferred, `run` finishes without another command. If it pauses, the command prints the Run and Checkpoint references:
 
 ```bash
 actql approve checkpoint_run_01_effect_commit --signer production-approver
@@ -39,11 +39,13 @@ Result delivery checks retained material integrity and current local owner/read/
 
 ## Checkpoints
 
-A Checkpoint is a durable pause before protected work. It may occur during preparation, before a read or data egress, or before the complete Effect Set commits. `approve` atomically records a Host-authorized Resolution and a resume intent; the worker then resumes the same Run. `approve --wait` is a local convenience that also waits for the next stable state. `reject` ends the Run.
+A Checkpoint is a durable pause before protected work whose account outcome is `delegate` and whose Host decision was deferred. It may occur during preparation, before a read or data egress, or before the complete Effect Set commits. `approve` atomically records a Host-authorized Resolution and a resume intent; the worker then resumes the same Run. `approve --wait` is a local convenience that also waits for the next stable state. `reject` ends the Run. `approve` and `reject` resolve only deferred decisions: they cannot override an account `deny` or a no-match denial, and an account `allow` or an immediate Host answer creates no Checkpoint to approve.
+
+`run` never prompts for a decision. A deferred decision persists its Checkpoint and returns `waiting_checkpoint`, so noninteractive automation can exit and later inspect it with `status` and resolve it with `approve` or `reject`. TTY presence, EOF or piped stdin, and `--timeout` expiry never approve, reject or dispatch protected work. A missing, invalid or unavailable decision is a technical failure, not an approval or a rejection.
 
 Before a Run-scope pause, the local adapter copies every `--input` and `--replay-from` file into its private content-addressed artifact directory. Resumption reads those captured bytes, not the original mutable paths.
 
-Effects remain separate from computation in the checked Plan. Within each stage the runtime materializes and preflights the complete unordered Effect Set. Resolved `allow` needs no additional human Checkpoint; `require_review` pauses for approval of that exact scope. Approval never releases only a subset. Stage order is preserved even without data dependencies. The default `after: completed` waits for completion; `after: accepted` permits progression only when every required import is also available. Failure blocks normal successors, and unknown outcomes wait for reconciliation.
+Effects remain separate from computation in the checked Plan. Within each stage the runtime materializes and preflights the complete unordered Effect Set. An account `allow` needs no Checkpoint, decision callback or risk claim, including for multiple Effects; a deferred delegated decision pauses for approval of that exact scope. Approval never releases only a subset. Stage order is preserved even without data dependencies. The default `after: completed` waits for completion; `after: accepted` permits progression only when every required import is also available. Failure blocks normal successors, and unknown outcomes wait for reconciliation.
 
 The authenticated caller request ID identifies a logical request. If the caller supplies none, the CLI creates, persists and returns one. Resume and authorized recovery retain that request and the ledger's original Preview, canonical request and dispatch key; a new physical attempt does not create a new business request. The same scoped request ID with different intent is a conflict. Intentional repeated business requests use distinct IDs. Native, stamped and natural-key recovery require the corresponding admitted Connector evidence; a local ledger alone does not prove provider exactly-once execution.
 
@@ -130,6 +132,7 @@ The CLI searches from the current directory upward for `actql.config.json`. Path
   "model_tasks": "./model-tasks.json",
   "lock": "./actql.lock.json",
   "state_dir": "./.actql",
+  "account_config": "./actql.accounts.json",
   "run_policy": {
     "principal": "agent:customer-sync",
     "tenant": "acme",
@@ -157,7 +160,9 @@ The local CLI accepts only configured signers and checks each signer's allowed C
 
 The Local Host uses durable execution, encrypted private evidence and secure key/store/policy defaults. Checkpoint Resolution, Run transition and resume-intent creation are atomic. Before provider dispatch, durable reservations and worker fencing preserve the canonical request and accounting through crash/recovery. An uncertain dispatch is reconciled before resend. SQLite or a managed store is a physical choice, not a different recovery law. See [Reference Host](design/reference-host.md).
 
-`effect_policy` controls the current Host decision for an exact Effect Set. It may strengthen, but never weaken, the minimum declared by a Mapping or Command Contract.
+`account_config` selects the execution-account configuration file. It assigns the execution account and routes each principal, connection, resource and operation to `allow`, `deny` or `delegate`; overlapping entries with different outcomes are a configuration error, and a tuple without a matching entry is denied as no-match. A missing or invalid configuration never means allow. The CLI reports the selected file and account; discovery of a configuration file does not by itself make it trusted.
+
+`run_policy` and `effect_policy` are the Local Host's decision policies for delegated run-scope and Effect Set decisions. For a `delegate` outcome, `allow` permits immediately, `review` defers to a Checkpoint and `deny` rejects immediately. They apply only to delegated decisions: they never override an account `deny` or no-match, and they are not execution-account grants. Mapping and Command Contracts declare technical permission requirements, not an approval minimum.
 
 Command flags override discovered configuration. `--config <file>` selects a different configuration explicitly. Configuration chooses host evidence; it does not enter Program semantics. Resolved contracts and policy remain bound by the Check Environment CID.
 
