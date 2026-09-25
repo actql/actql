@@ -1186,6 +1186,19 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'SGA' && route.operation === 'components') {
+    const host = fs.readFileSync(path.join(
+      root, 'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
+    ), 'utf8');
+    const cases = host.slice(
+      host.indexOf('const graphCancellationCases = ['),
+      host.indexOf('for (const cancellationCase of graphCancellationCases)'),
+    );
+    if (!environmentRoles.has('components_strong_host_in_flight_cancel') ||
+      !cases.includes("name: 'components-strong',")) {
+      fail(`${label}: delivered components cancellation fixture is missing`);
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'filter') {
     if (route.selected_entrypoint?.symbol !==
       'selected_binding_rows_execution') {

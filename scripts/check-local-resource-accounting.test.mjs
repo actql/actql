@@ -524,6 +524,14 @@ test('graph matching loses control work evidence when either fixture is removed'
   }
 });
 
+test('components cancellation proof reaches the Host cancellation suite', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'components');
+    route.environment_tests = [];
+  }), /SGA components: delivered components cancellation fixture is missing/u);
+});
+
 test('graph matcher assurance requires its exact bounded provider call', () => {
   for (const operation of ['match_nodes', 'match_edges']) {
     assert.match(run(undefined, routes => {

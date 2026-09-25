@@ -109,6 +109,17 @@ formal variant.
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
 | Bounded product connection exists, route evidence is incomplete | 10 | Ten SGA entrypoints (`traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
+An ordinary remote Relation predecessor is a concrete connection gap: its
+downstream multi-step Relation Stage remains one task and can enter the
+providerless synchronous evaluator. Splitting every such predecessor changes
+task identity and port mapping across existing dispatch and retention paths;
+the remaining work is to connect the eligible checked shapes without losing
+those bindings, then prove the normal Host cancellation path. The `components`
+route now records an existing standard Host timer case that cancels after
+positive operation work. It remains in the evidence category until the fused
+product path has exact and one-short task-wide work/workspace proofs; the
+empty-kernel boundary alone does not establish that scope.
+
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,
 work, and workspace parameters exercised by independent exact/one-short kernel
