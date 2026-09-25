@@ -25,10 +25,12 @@ drives the admitted two-member, multi-row owner through the MoonBit frontier,
 credentialed Salesforce-shaped Site operations, durable row custody, and
 `publishCompletedEffectfulRun`. The Host regressions cover halt/continue,
 unknown without resend, Collections partial failure, claim and saved-response
-faults, and lost publication-index acknowledgement. After Store reopen, the
-installed SDK can attach, inspect committed success, and read `answer` through
-an authorized delivery attempt. After Store reopen, retiring the public
-Result alone leaves private Preview and both Effect-source holdings intact;
+faults, and lost publication-index acknowledgement. A Store restart after
+durable index commit leaves a commit-unknown owner that reconciles the exact
+index without another Effect send. The installed SDK can then attach, inspect
+committed success, and read `answer` through an authorized delivery attempt.
+After Store reopen, retiring the public Result alone leaves private Preview
+and both Effect-source holdings intact;
 metadata retirement removes them after the last owner. These tests do not
 constitute public Effectful `submit`, live Salesforce validation, or
 same-SHA Linux CI.
@@ -223,7 +225,8 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Run the same declared metadata projection against the isolated org; confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `client-program-bridge.test.mjs` runs each operation as a separate checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. A lost create reply remains unknown after Ledger reopen without resending POST. | Verify current target and Preview freshness against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
-| Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, rollback projection, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
+| Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
+| Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
 | Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
