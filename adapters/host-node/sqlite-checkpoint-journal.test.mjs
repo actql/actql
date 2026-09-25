@@ -1304,9 +1304,13 @@ test('resumed dispatch admission reads the live claim and committed approval',
       {code: 'ResumeClaimStale'});
     assert.throws(() => journal.enterResumedDispatch(second.claim,
       {resolutionCid: cid('e')}), {code: 'ResolutionNotCommitted'});
-    assert.equal(journal.enterResumedDispatch(second.claim).generation, 2);
+    // Generation 1 entered a protected dispatch with no durable identity
+    // and never completed: generation 2 gets no fresh start and nothing to
+    // reconcile.
     assert.throws(() => journal.enterResumedDispatch(second.claim),
-      {code: 'ResumeAdmissionConsumed'});
+      {code: 'PriorAdmissionUnresolved'});
+    assert.throws(() => journal.enterResumedReconciliation(second.claim,
+      {dispatchIdentity: 'dispatch-a'}), {code: 'PriorAdmissionUnresolved'});
     const current = journal.currentResume(waiting.checkpointCid);
     assert.equal(current.state, 'claimed');
     assert.equal(current.claimant, 'worker-b');
@@ -1316,6 +1320,100 @@ test('resumed dispatch admission reads the live claim and committed approval',
     assert.throws(() => journal.admitResume(second.claim),
       {code: 'ResumeClaimStale'});
   });
+
+test('a lease handoff after an entered admission cannot admit a second start',
+  async t => {
+    const {clock, open, root} = await workspace(t);
+    const journal = open();
+    const waiting = journal.persistCheckpoint({
+      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+      authorities, binding, decisionSubjectCid: cid('9'),
+      requestedClaims: ['effect_scope_approved'],
+    });
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolve(stored(journal), 'approved')});
+    const at = {checkpointCid: waiting.checkpointCid};
+    // Generation 1 enters its protected dispatch (durable identity
+    // `dispatch-a`) and then its lease lapses without a completion.
+    const first = journal.claimResume('run-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding});
+    const entered = journal.enterResumedDispatch(first.claim,
+      {...at, dispatchIdentity: 'dispatch-a'});
+    assert.equal(entered.mode, 'start');
+    assert.equal(entered.dispatchIdentity, 'dispatch-a');
+    clock.ms += 1000;
+    const second = journal.claimResume('run-1',
+      {claimant: 'worker-b', leaseMs: 1000, binding});
+    assert.equal(second.claim.generation, 2);
+    // No fresh start, with or without an identity, after reopening too.
+    let refused;
+    try {
+      journal.enterResumedDispatch(second.claim,
+        {...at, dispatchIdentity: 'dispatch-b'});
+    } catch (error) { refused = error; }
+    assert.equal(refused?.code, 'PriorAdmissionUnresolved');
+    assert.deepEqual({...refused.priorAdmission, admittedAt: undefined},
+      {generation: 1, claimant: 'worker-a', admittedAt: undefined,
+        dispatchIdentity: 'dispatch-a'});
+    journal.close();
+    const reopened = open();
+    assert.throws(() => reopened.enterResumedDispatch(second.claim, at),
+      {code: 'PriorAdmissionUnresolved'});
+    // Reconciliation admits only the same durable dispatch identity.
+    assert.throws(() => reopened.enterResumedReconciliation(second.claim, at),
+      {code: 'ReconciliationIdentityRequired'});
+    assert.throws(() => reopened.enterResumedReconciliation(second.claim,
+      {...at, dispatchIdentity: 'dispatch-b'}),
+    {code: 'ReconciliationIdentityMismatch'});
+    const reconciled = reopened.enterResumedReconciliation(second.claim,
+      {...at, dispatchIdentity: 'dispatch-a'});
+    assert.equal(reconciled.mode, 'reconcile');
+    assert.equal(reconciled.generation, 2);
+    assert.equal(reconciled.dispatchIdentity, 'dispatch-a');
+    assert.equal(reconciled.priorAdmission.generation, 1);
+    // One entry per generation, reconciliation included.
+    assert.throws(() => reopened.enterResumedReconciliation(second.claim,
+      {...at, dispatchIdentity: 'dispatch-a'}),
+    {code: 'ResumeAdmissionConsumed'});
+    // A later generation still reconciles against the first start only.
+    clock.ms += 1000;
+    const third = reopened.claimResume('run-1',
+      {claimant: 'worker-c', leaseMs: 1000, binding});
+    assert.throws(() => reopened.enterResumedDispatch(third.claim, at),
+      {code: 'PriorAdmissionUnresolved'});
+    assert.equal(reopened.enterResumedReconciliation(third.claim,
+      {...at, dispatchIdentity: 'dispatch-a'}).priorAdmission.generation, 1);
+    // The durable admissions: one start, then reconciliations of it.
+    const sqlite = new DatabaseSync(join(root, 'checkpoint-journal.sqlite3'),
+      {readOnly: true});
+    try {
+      assert.deepEqual(sqlite.prepare(`SELECT generation, mode,
+        dispatch_identity FROM resume_admissions ORDER BY generation`).all()
+        .map(row => ({...row})), [
+        {generation: 1, mode: 'start', dispatch_identity: 'dispatch-a'},
+        {generation: 2, mode: 'reconcile', dispatch_identity: 'dispatch-a'},
+        {generation: 3, mode: 'reconcile', dispatch_identity: 'dispatch-a'},
+      ]);
+    } finally { sqlite.close(); }
+  });
+
+test('reconciliation needs an earlier started admission', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  const waiting = journal.persistCheckpoint({
+    body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+    authorities, binding, decisionSubjectCid: cid('9'),
+    requestedClaims: ['effect_scope_approved'],
+  });
+  await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+    ...resolve(stored(journal), 'approved')});
+  const first = journal.claimResume('run-1',
+    {claimant: 'worker-a', leaseMs: 1000, binding});
+  assert.throws(() => journal.enterResumedReconciliation(first.claim,
+    {dispatchIdentity: 'dispatch-a'}), {code: 'NoPriorAdmission'});
+  assert.equal(journal.enterResumedDispatch(first.claim,
+    {dispatchIdentity: 'dispatch-a'}).mode, 'start');
+});
 
 test('a resumed approval stops admitting new work at its own expiry',
   async t => {

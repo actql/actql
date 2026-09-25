@@ -570,3 +570,50 @@ test('an approval whose permission lapsed resumes no provider session', async t 
   assert.equal(rows.runs, 0);
   assert.deepEqual(rows.intentRows.map(row => row.outcome_status), ['failed']);
 });
+
+// The resume binding stored with a Checkpoint, as the Host claims with it.
+function checkpointBinding(input, checkpointCid) {
+  const sqlite = new DatabaseSync(input.journalPath, { readOnly: true });
+  try {
+    const bound = JSON.parse(sqlite.prepare(
+      'SELECT binding_json FROM checkpoints WHERE checkpoint_cid = ?').get(checkpointCid)
+      .binding_json);
+    return { authorizationContextCid: bound.authorization_context_cid,
+      environmentBindingCid: bound.environment_binding_cid };
+  } finally { sqlite.close(); }
+}
+
+test('a later claimant after an entered provider session starts no second one', async t => {
+  const input = await fixture(t);
+  const clock = { ms: Date.now() };
+  const host = await openLocalHost(input.config, { now: () => clock.ms });
+  t.after(() => host.close());
+  const waiting = await host.run({ database: input.database,
+    environment: input.files.environment, environmentCid: input.environmentCid,
+    program: input.files.program, parameters: input.files.parameters });
+  assert.equal(waiting.status, 'waiting_checkpoint');
+  await host.answer([waiting.checkpoint.checkpoint_id], 'approved',
+    { signer: await readSigner(input.signer) });
+  // Generation 1 claims and enters its protected provider session, then
+  // stops before any completion; its lease lapses.
+  const first = host.journal.claimPreparationResume(waiting.prepare_attempt_id, {
+    claimant: 'claimant-1', leaseMs: 1000,
+    binding: checkpointBinding(input, waiting.checkpoint.checkpoint_cid) });
+  assert.equal(first.action, 'claimed');
+  host.journal.enterResumedDispatch(first.claim,
+    { checkpointCid: waiting.checkpoint.checkpoint_cid });
+  clock.ms += 1000;
+  // Generation 2 is refused a fresh start before any provider session and
+  // leaves the intent unresolved for reconciliation or a later completion.
+  const second = await host.resume(waiting.prepare_attempt_id, { claimant: 'claimant-2' });
+  assert.equal(second.status, 'reconciliation_required');
+  assert.equal(second.code, 'PriorAdmissionUnresolved');
+  assert.equal(second.prior_generation, 1);
+  assert.equal(second.counters.continuation_starts, 1);
+  assert.equal(second.counters.provider_sessions, 0);
+  const rows = input.rows();
+  assert.equal(rows.runs, 0);
+  assert.deepEqual(rows.intentRows, [{ state: 'claimed', generation: 2,
+    claimant: 'claimant-2', outcome_status: '' }]);
+  assert.equal(host.journal.getPreparation(waiting.prepare_attempt_id).status, 'resuming');
+});

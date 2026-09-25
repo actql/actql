@@ -1062,15 +1062,13 @@ test('a new claimant reconciles an unknown resumed dispatch, never restarts it',
     fail = false;
     x.clock.ms += 1000;
     // A new claimant is no permission for a new physical attempt of the
-    // same task: another dispatch identity is refused before any send, by
-    // the Coordinator journal's attempt collision (not by authorization).
+    // same task: the resume admission refuses a fresh start after an entered
+    // earlier generation, and admits reconciliation only of that exact
+    // durable dispatch identity. Another identity is refused before any send.
     const second = x.claim('coordinator-b', 1000);
     const restarted = await x.dispatch('resume-restart', {claim: second});
-    assert.notEqual(restarted.error, undefined);
-    assert.equal(restarted.error instanceof ExecutionAuthorizationError,
-      false);
-    assert.equal(restarted.sends, 0);
-    assert.equal(restarted.recorded, false);
+    refusedResume(restarted, 'ReconciliationIdentityMismatch', 'restart');
+    assert.equal(restarted.error instanceof ExecutionAuthorizationError, true);
     // The recorded attempt is reconciled under its own durable identity
     // (the Site deduplicates that identity), by the next live claimant only.
     x.clock.ms += 1000;
@@ -1079,4 +1077,37 @@ test('a new claimant reconciles an unknown resumed dispatch, never restarts it',
     assert.equal(reconciled.error, undefined);
     assert.equal(reconciled.sends, 1);
     assert.deepEqual(new Set(x.sends).size, 1);
+  });
+
+test('an entered resumed dispatch whose lease lapsed is reconciled, not restarted',
+  async t => {
+    const x = await resumedCoordinator(t);
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+    // Generation 1 enters and sends; its owner then stops before completing
+    // the intent and its lease lapses.
+    const first = x.claim('coordinator-a', 1000);
+    const sent = await x.dispatch('resume-first', {claim: first});
+    assert.equal(sent.error, undefined);
+    assert.equal(sent.sends, 1);
+    x.clock.ms += 1000;
+    // Generation 2 claims: a fresh protected start of another dispatch is
+    // refused before the durable intent and any send.
+    const second = x.claim('coordinator-b', 60_000);
+    assert.equal(second.claim.generation, 2);
+    assert.throws(() => x.deferral.journal.enterResumedDispatch(second.claim,
+      {dispatchIdentity: x.sends[0]}), {code: 'PriorAdmissionUnresolved'});
+    const fresh = await x.dispatch('resume-second', {claim: second});
+    refusedResume(fresh, 'ReconciliationIdentityMismatch', 'fresh');
+    // The only path is physical reconciliation of the same durable identity,
+    // which the Site deduplicates: no second distinct dispatch is sent.
+    const reconciled = await x.dispatch('resume-first', {claim: second});
+    assert.equal(reconciled.error, undefined);
+    assert.equal(reconciled.sends, 1);
+    assert.deepEqual(x.sends, [x.sends[0], x.sends[0]]);
+    assert.equal(new Set(x.sends).size, 1);
+    // The reconciliation admission is itself single-use per generation.
+    const again = await x.dispatch('resume-first', {claim: second});
+    assert.equal(again.error?.authorization?.detail, 'ResumeAdmissionConsumed');
+    assert.equal(again.sends, 0);
+    assert.equal(x.sends.length, 2);
   });

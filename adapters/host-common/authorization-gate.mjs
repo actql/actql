@@ -684,7 +684,11 @@ function gateFor(core, context) {
     // protected send, with no await in between. `enter` fences again at the
     // Host trusted time, rechecks the approval's validity and records the
     // single protected dispatch start of this claim generation; if it throws
-    // nothing may be sent. The decision itself is not a reusable token.
+    // nothing may be sent. The decision itself is not a reusable token. When
+    // an earlier claim generation already started a protected dispatch,
+    // `enter` refuses the fresh start (`PriorAdmissionUnresolved`): the
+    // caller may only re-send that exact durable dispatch identity through
+    // `admission.reconcile(identity)`, or leave the intent unresolved.
     async resume(boundary, scope, {subjectCid, signal, resumption,
       sealedSubjectCid} = {}) {
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
@@ -812,29 +816,49 @@ export function admitResumedDispatch(journal, resumption, {
     return {detail: 'RequiredClaimNotEstablished'};
   }
   let used = false;
+  const once = (method, dispatchIdentity) => {
+    if (used) {
+      throw Object.assign(new Error('ResumeAdmissionConsumed'),
+        {code: 'ResumeAdmissionConsumed'});
+    }
+    if (method === 'enterResumedReconciliation' &&
+        typeof journal[method] !== 'function') {
+      throw Object.assign(new Error('ResumeJournalUnavailable'),
+        {code: 'ResumeJournalUnavailable'});
+    }
+    const entered = journal[method]({
+      intentId: admitted.intentId,
+      claimant: admitted.claimant,
+      generation: admitted.generation,
+    }, {checkpointCid: admitted.checkpointCid,
+      resolutionCid: admitted.resolutionCid,
+      ...(dispatchIdentity === undefined ? {} : {dispatchIdentity})});
+    // Only a recorded entry consumes the admission: a refused fresh start
+    // (`PriorAdmissionUnresolved`) leaves the reconciliation path open.
+    used = true;
+    if (entered.intentId !== admitted.intentId ||
+        entered.generation !== admitted.generation ||
+        entered.claimant !== admitted.claimant) {
+      throw Object.assign(new Error('ResumeClaimStale'),
+        {code: 'ResumeClaimStale'});
+    }
+    return entered;
+  };
   const admission = Object.freeze({
     ...admitted,
     // Fence again at the Host trusted time immediately before the send and
-    // record the single protected dispatch start of this claim generation.
-    enter() {
-      if (used) {
-        throw Object.assign(new Error('ResumeAdmissionConsumed'),
-          {code: 'ResumeAdmissionConsumed'});
-      }
-      used = true;
-      const entered = journal.enterResumedDispatch({
-        intentId: admitted.intentId,
-        claimant: admitted.claimant,
-        generation: admitted.generation,
-      }, {checkpointCid: admitted.checkpointCid,
-        resolutionCid: admitted.resolutionCid});
-      if (entered.intentId !== admitted.intentId ||
-          entered.generation !== admitted.generation ||
-          entered.claimant !== admitted.claimant) {
-        throw Object.assign(new Error('ResumeClaimStale'),
-          {code: 'ResumeClaimStale'});
-      }
-      return entered;
+    // record the single protected dispatch start of this claim generation,
+    // with the send's durable identity when it has one. Throws
+    // `PriorAdmissionUnresolved` when an earlier claim generation of the
+    // same intent already started a protected dispatch: no fresh start.
+    enter(dispatchIdentity) {
+      return once('enterResumedDispatch', dispatchIdentity);
+    },
+    // The physical reconciliation path after `PriorAdmissionUnresolved`:
+    // the same fence, admitting only a re-send of the earlier generation's
+    // exact durable dispatch identity (never a second distinct dispatch).
+    reconcile(dispatchIdentity) {
+      return once('enterResumedReconciliation', dispatchIdentity);
     },
   });
   return {admission, claims: Object.freeze(requested)};

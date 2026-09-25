@@ -411,7 +411,12 @@ export function createRemoteSiteCoordinator({
   };
   // A decision taken from a committed approval (basis `resumed`) must carry
   // its admission; an account allow needs no Resolution and has none.
-  const enterResumed = decision => {
+  // The admission records the durable dispatch identity. When an earlier
+  // claim generation already started a protected dispatch (its outcome is
+  // unknown here), a fresh start is refused and the only path is physical
+  // reconciliation: re-send that exact durable dispatch identity, which the
+  // Site deduplicates. Another dispatch identity is refused before any send.
+  const enterResumed = (decision, dispatchIdentity) => {
     if (decision.admission === undefined && decision.basis !== 'resumed') {
       return;
     }
@@ -421,7 +426,15 @@ export function createRemoteSiteCoordinator({
         detail: 'ResumeAdmissionUnavailable'}));
     }
     try {
-      decision.admission.enter();
+      try {
+        decision.admission.enter(dispatchIdentity);
+      } catch (error) {
+        if (error?.code !== 'PriorAdmissionUnresolved' ||
+            typeof decision.admission.reconcile !== 'function') {
+          throw error;
+        }
+        decision.admission.reconcile(dispatchIdentity);
+      }
     } catch (error) {
       throw new ExecutionAuthorizationError(Object.freeze({...decision,
         action: 'failure', reason: 'adapter_error',
@@ -450,7 +463,9 @@ export function createRemoteSiteCoordinator({
       // here to the send nothing awaits. A recorded earlier attempt keeps its
       // durable identity (which the Site deduplicates); a new claimant gets
       // no new physical attempt of the same task.
-      if (request.resumption !== undefined) enterResumed(decision);
+      if (request.resumption !== undefined) {
+        enterResumed(decision, control.identity(request.dispatch));
+      }
       const admission = control.prepareCoordinatorIntent(
         journal,
         request.dispatch,

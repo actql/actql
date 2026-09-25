@@ -107,6 +107,22 @@ function subjectBinding(value) {
 // Claims the Host required of the decision when it deferred it, bound next to
 // the Checkpoint: the decision request's own claims, never claims an answer
 // establishes. Sorted and unique; '[]' when none were requested.
+// The durable identity of one protected send, recorded with its admission;
+// '' when the send has none.
+function admissionIdentity(value) {
+  if (value === undefined || value === null) return '';
+  if (!text(value)) fail('InvalidDispatchIdentity');
+  return value;
+}
+
+const priorAdmissionView = row => Object.freeze({
+  generation: Number(row.generation),
+  claimant: row.claimant,
+  admittedAt: row.admitted_at,
+  dispatchIdentity: row.dispatch_identity === '' ? null
+    : row.dispatch_identity,
+});
+
 function requestedClaimsJson(value) {
   if (value === undefined || value === null) return '[]';
   if (!Array.isArray(value) || !value.every(text) ||
@@ -267,6 +283,9 @@ export function openSqliteCheckpointJournal(root, {
         generation INTEGER NOT NULL CHECK (generation >= 1),
         claimant TEXT NOT NULL,
         admitted_at TEXT NOT NULL,
+        mode TEXT NOT NULL DEFAULT 'start'
+          CHECK (mode IN ('start', 'reconcile')),
+        dispatch_identity TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (intent_id, generation)
       ) STRICT;
     `);
@@ -282,6 +301,20 @@ export function openSqliteCheckpointJournal(root, {
       if (!columns.some(column => column.name === 'requested_claims_json')) {
         database.exec(`ALTER TABLE checkpoints ADD COLUMN
           requested_claims_json TEXT NOT NULL DEFAULT '[]'`);
+      }
+      // A resume admission recorded before the start/reconcile distinction
+      // is a fresh start with no recorded dispatch identity.
+      const admissionColumns = database.prepare(
+        'PRAGMA table_info(resume_admissions)').all();
+      if (!admissionColumns.some(column => column.name === 'mode')) {
+        database.exec(`ALTER TABLE resume_admissions ADD COLUMN
+          mode TEXT NOT NULL DEFAULT 'start'
+          CHECK (mode IN ('start', 'reconcile'))`);
+      }
+      if (!admissionColumns.some(column => column.name ===
+          'dispatch_identity')) {
+        database.exec(`ALTER TABLE resume_admissions ADD COLUMN
+          dispatch_identity TEXT NOT NULL DEFAULT ''`);
       }
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
@@ -383,8 +416,15 @@ export function openSqliteCheckpointJournal(root, {
     // One protected dispatch admission per claim generation of an intent.
     enterAdmission: database.prepare(`
       INSERT INTO resume_admissions (intent_id, generation, claimant,
-        admitted_at)
-      VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`),
+        admitted_at, mode, dispatch_identity)
+      VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`),
+    // The first protected dispatch started by an earlier claim generation of
+    // the same intent: its physical outcome is unknown to a later claimant.
+    priorAdmission: database.prepare(`
+      SELECT generation, claimant, admitted_at, dispatch_identity
+      FROM resume_admissions
+      WHERE intent_id = ? AND generation < ? AND mode = 'start'
+      ORDER BY generation LIMIT 1`),
   };
 
   const alive = () => { if (closed) fail('CheckpointJournalClosed'); };
@@ -1217,23 +1257,78 @@ export function openSqliteCheckpointJournal(root, {
     // The same admission, taken immediately before the protected send and
     // recorded durably: at most one protected dispatch start per claim
     // generation of an intent. A second entry with the same generation, by
-    // this or any other process, is `ResumeAdmissionConsumed`; a later
-    // claimant (a higher generation) is admitted again only through its own
-    // fence, and physical attempt reconciliation stays with the dispatcher.
-    enterResumedDispatch(claim, {checkpointCid, resolutionCid} = {}) {
+    // this or any other process, is `ResumeAdmissionConsumed`.
+    //
+    // A lease handoff cannot admit two starts: once an earlier claim
+    // generation of this (still uncompleted) intent entered a protected
+    // dispatch, its physical outcome is unknown to a later claimant, so a
+    // fresh start is refused with `PriorAdmissionUnresolved` (the error
+    // carries `priorAdmission`). The later claimant may only take the
+    // physical reconciliation path (`enterResumedReconciliation`) or leave
+    // the intent to a later completion. `dispatchIdentity` is the durable
+    // identity of the protected send when it has one (a remote dispatch the
+    // Site deduplicates); it is recorded for reconciliation.
+    enterResumedDispatch(claim, {checkpointCid, resolutionCid,
+      dispatchIdentity} = {}) {
       alive();
+      const identity = admissionIdentity(dispatchIdentity);
       const at = now();
       return transaction(database, () => {
-        const admission = admissionLocked(claim, checkpointCid, at);
-        if (resolutionCid !== undefined &&
-            resolutionCid !== admission.resolutionCid) {
-          fail('ResolutionNotCommitted');
+        const admission = enteredLocked(claim, checkpointCid, resolutionCid,
+          at);
+        const prior = statements.priorAdmission.get(admission.intentId,
+          admission.generation);
+        if (prior !== undefined) {
+          throw Object.assign(new Error('PriorAdmissionUnresolved'), {
+            code: 'PriorAdmissionUnresolved',
+            priorAdmission: priorAdmissionView(prior),
+          });
         }
         changed(statements.enterAdmission.run(admission.intentId,
-          admission.generation, admission.claimant, admission.admittedAt),
-        'ResumeAdmissionConsumed');
+          admission.generation, admission.claimant, admission.admittedAt,
+          'start', identity), 'ResumeAdmissionConsumed');
         fault('enterResumedDispatch');
-        return admission;
+        return Object.freeze({...admission, mode: 'start',
+          dispatchIdentity: identity === '' ? null : identity});
+      });
+    },
+
+    // Physical reconciliation of an earlier generation's protected dispatch
+    // by the current live claim (same fence, approval validity and single
+    // entry per generation as `enterResumedDispatch`). Admitted only when an
+    // earlier generation started a dispatch with a recorded durable identity
+    // and `dispatchIdentity` is exactly that identity: the caller re-sends
+    // the same durable dispatch (which the receiver deduplicates), never a
+    // second distinct one. A prior start with no durable identity (a Local
+    // provider session) cannot be reconciled here: `PriorAdmissionUnresolved`.
+    enterResumedReconciliation(claim, {checkpointCid, resolutionCid,
+      dispatchIdentity} = {}) {
+      alive();
+      const identity = admissionIdentity(dispatchIdentity);
+      if (identity === '') fail('ReconciliationIdentityRequired');
+      const at = now();
+      return transaction(database, () => {
+        const admission = enteredLocked(claim, checkpointCid, resolutionCid,
+          at);
+        const prior = statements.priorAdmission.get(admission.intentId,
+          admission.generation);
+        if (prior === undefined) fail('NoPriorAdmission');
+        if (prior.dispatch_identity === '') {
+          throw Object.assign(new Error('PriorAdmissionUnresolved'), {
+            code: 'PriorAdmissionUnresolved',
+            priorAdmission: priorAdmissionView(prior),
+          });
+        }
+        if (prior.dispatch_identity !== identity) {
+          fail('ReconciliationIdentityMismatch');
+        }
+        changed(statements.enterAdmission.run(admission.intentId,
+          admission.generation, admission.claimant, admission.admittedAt,
+          'reconcile', identity), 'ResumeAdmissionConsumed');
+        fault('enterResumedReconciliation');
+        return Object.freeze({...admission, mode: 'reconcile',
+          dispatchIdentity: identity,
+          priorAdmission: priorAdmissionView(prior)});
       });
     },
 
@@ -1347,6 +1442,15 @@ export function openSqliteCheckpointJournal(root, {
       row = rows[0];
     }
     return row;
+  }
+
+  function enteredLocked(claim, checkpointCid, resolutionCid, at) {
+    const admission = admissionLocked(claim, checkpointCid, at);
+    if (resolutionCid !== undefined &&
+        resolutionCid !== admission.resolutionCid) {
+      fail('ResolutionNotCommitted');
+    }
+    return admission;
   }
 
   function admissionLocked(claim, checkpointCid, at) {

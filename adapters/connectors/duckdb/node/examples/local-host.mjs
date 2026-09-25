@@ -796,7 +796,10 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
               fence.claim = journal.renewResume(fence.claim, leaseMs);
               // The provider session is the protected send: enter the
               // admission (fence, approval validity, single start per claim
-              // generation) immediately before it.
+              // generation) immediately before it. A session an earlier
+              // claim generation may have started refuses the fresh start
+              // (`PriorAdmissionUnresolved`): a provider session has no
+              // durable identity to reconcile, so no second one starts.
               admission?.enter();
             },
             // Preparation completed: the continuation creates its Run
@@ -816,6 +819,15 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           journal.finishRun(runId, {status: 'failed'});
           return plain({status: 'failed', run_id: runId, code: error.code,
             prepare_attempt_id: prepareAttemptId, counters: counts});
+        }
+        // An earlier claim generation entered its provider session and its
+        // outcome is unknown: the intent is neither completed nor failed
+        // here. It stays for reconciliation or that generation's completion.
+        if (error?.code === 'PriorAdmissionUnresolved') {
+          return plain({status: 'reconciliation_required',
+            prepare_attempt_id: prepareAttemptId, code: error.code,
+            prior_generation: error.priorAdmission?.generation,
+            counters: counts});
         }
         if (error?.code === 'ResumeClaimStale' ||
             admissionRefusal === 'ResumeClaimStale') {
