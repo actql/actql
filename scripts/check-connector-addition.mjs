@@ -71,11 +71,13 @@ for (const name of readdirSync(join(root, 'src'))) {
   }
 }
 // Rebuild generated composition packages in isolation while retaining their
-// handwritten common Carrier adapters. Omitting the whole package silently
-// changes managed execution semantics instead of testing connector addition.
+// handwritten common Carrier and execution-authorization adapters. Omitting
+// the whole package silently changes managed execution semantics instead of
+// testing connector addition.
 for (const path of [
   'src/connectors_builtin/local_carrier_dispatch.mbt',
   'src/connectors_builtin_node/local_carrier_bridge.mbt',
+  'src/connectors_builtin_node/authorization_bridge.mbt',
 ]) {
   mkdirSync(dirname(join(isolated, path)), {recursive: true});
   cpSync(join(root, path), join(isolated, path));

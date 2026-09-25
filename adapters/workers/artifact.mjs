@@ -42,6 +42,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // delegates reads without Node I/O despite its historical directory name. The
 // Store registry and row framing use only WeakMap/typed arrays/TextDecoder;
 // concrete files.mjs and delegated-file.mjs are NOT included in this allowance.
+// The execution-authorization gate imported by the common strategy has no
+// imports and uses only crypto.subtle, TextEncoder and timers; account
+// interpretation stays in the bundled MoonBit runtime.
 // No namespace-wide permission.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
@@ -60,6 +63,7 @@ export const conformanceModules = [
   'adapters/host-common/execution-sites.mjs',
   'adapters/host-common/managed-site-transfer.mjs',
   'adapters/host-common/strategy.mjs',
+  'adapters/host-common/authorization-gate.mjs',
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',
   'adapters/host-common/completed-run-publication.mjs',
@@ -89,6 +93,7 @@ export const hostModules = [
   'adapters/host-common/execution-sites.mjs',
   'adapters/host-common/managed-site-transfer.mjs',
   'adapters/host-common/strategy.mjs',
+  'adapters/host-common/authorization-gate.mjs',
   'adapters/host-common/managed-failure.mjs',
   'adapters/host-common/durable-result-payload.mjs',
   'adapters/host-common/completed-run-publication.mjs',

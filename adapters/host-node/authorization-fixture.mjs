@@ -1,8 +1,33 @@
 // Test and example installation helpers for the execution-authorization gate.
 // Every grant here is an explicit admitted account configuration; nothing is
 // inferred from a missing configuration.
+import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {createNodeAuthorizationGate} from './authorization.mjs';
+
+// Tests build the JS release bundles they load, as other release-bundle tests
+// do; product loaders never build. Each package is built at most once per
+// process, synchronously, because `fixtureSourceAccess` below installs a gate
+// while this module is evaluated.
+const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+const builtRuntimes = new Set();
+function ensureReleaseBundle(pkg) {
+  if (builtRuntimes.has(pkg)) return;
+  execFileSync('moon', ['build', '--target', 'js', '--release', `src/${pkg}`],
+    {cwd: repositoryRoot, stdio: ['ignore', 'ignore', 'pipe']});
+  builtRuntimes.add(pkg);
+}
+
+// The gate shares the standard strategy runtime (`connectors_builtin_node`).
+export function ensureAuthorizationRuntime() {
+  ensureReleaseBundle('connectors_builtin_node');
+}
+
+// The SQLite Checkpoint journal loads `checkpoint_runtime_node`.
+export function ensureCheckpointRuntime() {
+  ensureReleaseBundle('checkpoint_runtime_node');
+}
 
 export const FIXTURE_CONFIGURATION_CID = `sha256:${'c'.repeat(64)}`;
 export const FIXTURE_CONTEXT = Object.freeze({
@@ -44,6 +69,7 @@ export function accountConfiguration(entries, accountId = 'local-account') {
 }
 
 export function fixtureAuthorization(entries, options = {}) {
+  ensureAuthorizationRuntime();
   return createNodeAuthorizationGate({
     configuration: accountConfiguration(entries),
     configurationCid: FIXTURE_CONFIGURATION_CID,
@@ -82,6 +108,7 @@ const cidOf = value =>
 // Resolution as the fixture reviewer and commits it through the journal's
 // real admission (`submitResolution`).
 export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
+  ensureCheckpointRuntime();
   const {openSqliteCheckpointJournal, loadCheckpointRuntime} = await import(
     './sqlite-checkpoint-journal.mjs');
   const reviewer = generateKeyPairSync('ed25519');
