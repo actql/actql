@@ -62,17 +62,17 @@ test "native run-owner gate: refusals reach no server; allow sends one" {
   let other_site = authorization_request("other-site")
   let before = native_remote_received(client, origin)
   let denied = @authorization.runtime_action_for(
-      @authorization.evaluate_account(
-        authorization_configuration(Deny),
-        remote_dispatch_access_tuple("run-owner", request),
-      ),
-    ).unwrap()
+    @authorization.evaluate_account(
+      authorization_configuration(Deny),
+      remote_dispatch_access_tuple("run-owner", request),
+    ),
+  ).unwrap()
   let no_match = @authorization.runtime_action_for(
-      @authorization.evaluate_account(
-        authorization_configuration(Allow),
-        remote_dispatch_access_tuple("run-owner", other_site),
-      ),
-    ).unwrap()
+    @authorization.evaluate_account(
+      authorization_configuration(Allow),
+      remote_dispatch_access_tuple("run-owner", other_site),
+    ),
+  ).unwrap()
   let refusals : Array[(@remote.DispatchRequest, @authorization.RuntimeAction)] = [
     (request, denied),
     (other_site, no_match),

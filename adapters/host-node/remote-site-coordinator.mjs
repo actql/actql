@@ -420,7 +420,7 @@ export function createRemoteSiteCoordinator({
       await requireDispatch('activation', {
         connection: facts.site,
         resource: facts.registration,
-        operation: 'dispatch',
+        operation: 'write',
       }, facts.runDefinitionCid, request.signal, request.resumption);
       const admission = control.prepareCoordinatorIntent(
         journal,
@@ -489,7 +489,7 @@ export function createRemoteSiteCoordinator({
       await requireDispatch('transfer', {
         connection: transferFacts[4],
         resource: transferFacts[2],
-        operation: 'transfer',
+        operation: 'write',
       }, dispatchFacts(request.dispatch).runDefinitionCid, request.signal);
       if (record === undefined) {
         const admission = control.prepareCoordinatorOutput(

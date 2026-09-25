@@ -27,7 +27,7 @@ pub fn remote_dispatch_access_tuple(
     principal,
     connection: @remote.dispatch_request_execution_scope(request)[0],
     resource: @remote.dispatch_request_connector_registration(request),
-    operation: "dispatch",
+    operation: "write",
   }
 }
 
