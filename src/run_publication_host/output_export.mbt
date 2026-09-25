@@ -157,7 +157,7 @@ pub fn prepare_captured_result_publication_export(
     max_pins
   }
   let borrow = match
-    @strategy.borrow_captured_result_output(run, task, occurrence, ceiling) {
+    @strategy.borrow_captured_result_completion(run, task, occurrence, ceiling) {
     Ok(value) => value
     Err(issue) => return Err(Retain(issue))
   }

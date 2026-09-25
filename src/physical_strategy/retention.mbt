@@ -5,11 +5,12 @@ priv struct TaskLifetime {
 }
 
 ///|
-/// A bounded borrow of one exact cell-backed task output. Closing the
+/// A bounded borrow of one exact materialized task completion. Closing the
 /// ordinary output port revokes new borrows, but cannot release its allocation
 /// while a consumer still owns this pin. The original completion must also
-/// remain available. Managed resident material needs its own physical owner
-/// and is not admitted through this port.
+/// remain available. A pin alone does not grant cell access; that is checked
+/// by the cell-only entry point. Managed resident material needs its own
+/// physical owner and is not admitted through this port.
 struct CapturedOutputPin {
   run : CapturedDAG
   task : Int
@@ -78,11 +79,12 @@ struct CapturedResultOutputSet {
 /// Borrow an exact checked Result occurrence from its completed task. This
 /// remains Host-private retention, not permission to disclose the Result or
 /// use it as an Effect input. A different Program owner cannot relabel it.
-pub fn pin_captured_result_output(
+fn pin_captured_result_completion_internal(
   run : CapturedDAG,
   task : Int,
   occurrence : @execution.ManagedResultOccurrence,
   max_pins : Int,
+  require_cells : Bool,
 ) -> Result[CapturedOutputPin, RunIssue] {
   let owner = @execution.managed_result_occurrence_owner(occurrence)
   let port = @execution.managed_result_occurrence_port(occurrence)
@@ -94,7 +96,10 @@ pub fn pin_captured_result_output(
   if captured_task_target(run, task) != Some(target) {
     return Err(UnsupportedGraph)
   }
-  let pin = match pin_captured_task_output(run, task, target, max_pins) {
+  let pin = match
+    pin_captured_task_completion_internal(
+      run, task, target, max_pins, require_cells,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -104,6 +109,16 @@ pub fn pin_captured_result_output(
     return Err(ForeignCandidate)
   }
   Ok(pin)
+}
+
+///|
+pub fn pin_captured_result_output(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedOutputPin, RunIssue] {
+  pin_captured_result_completion_internal(run, task, occurrence, max_pins, true)
 }
 
 ///|
@@ -117,6 +132,21 @@ pub fn borrow_captured_result_output(
     occurrence,
     pin,
   })
+}
+
+///|
+/// Retain the exact checked completion for a bounded representation
+/// conversion. A non-cell completion still requires the installed Host to
+/// present and verify its physical bytes before publication can export rows.
+pub fn borrow_captured_result_completion(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+) -> Result[CapturedResultBorrow, RunIssue] {
+  pin_captured_result_completion_internal(
+    run, task, occurrence, max_pins, false,
+  ).map(pin => { occurrence, pin, })
 }
 
 ///|
@@ -552,15 +582,16 @@ pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
 }
 
 ///|
-/// Borrow an already completed cell-backed output before the Host closes its
+/// Retain an already completed materialized output before the Host closes its
 /// ordinary port. The caller supplies a finite per-task pin ceiling; no cells
 /// or rows are copied. Managed and Carrier outputs require a separate physical
 /// retention owner and are rejected here.
-pub fn pin_captured_task_output(
+fn pin_captured_task_completion_internal(
   run : CapturedDAG,
   task : Int,
   target : @pipeline.Target,
   max_pins : Int,
+  require_cells : Bool,
 ) -> Result[CapturedOutputPin, RunIssue] {
   if max_pins <= 0 || task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
@@ -573,7 +604,7 @@ pub fn pin_captured_task_output(
   guard run.outputs[task] is Some(Materialized(output)) else {
     return Err(UnsupportedGraph)
   }
-  if !@execution.completed_has_cell_access(output) {
+  if require_cells && !@execution.completed_has_cell_access(output) {
     return Err(UnsupportedGraph)
   }
   if !@execution.completed_output_available(output) {
@@ -584,6 +615,18 @@ pub fn pin_captured_task_output(
   }
   run.lifetimes[task].pins += 1
   Ok({ run, task, output, live: true, })
+}
+
+///|
+/// The ordinary task borrow requires cell access. Retained representations
+/// must be converted through an exact checked Result completion borrow.
+pub fn pin_captured_task_output(
+  run : CapturedDAG,
+  task : Int,
+  target : @pipeline.Target,
+  max_pins : Int,
+) -> Result[CapturedOutputPin, RunIssue] {
+  pin_captured_task_completion_internal(run, task, target, max_pins, true)
 }
 
 ///|
