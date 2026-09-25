@@ -45,10 +45,8 @@ fn selected_binding_rows_execution(
   execution : @execution.SequenceExecutionLimits,
   max_value_bytes : Int,
   step : Int,
-  work_limit? : Int? = None,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   let control = @bounded.control()
-  let admitted_work = work_limit.unwrap_or(execution.max_work)
   let started = match input {
     RelationInput(read) =>
       @execution.start_bounded_binding_rows(
@@ -58,7 +56,7 @@ fn selected_binding_rows_execution(
         execution.rows.max_rows,
         execution.rows.input_values,
         execution.rows.output_values,
-        admitted_work,
+        execution.max_work,
         execution.max_frames,
         execution.rows.operation_entries,
         max_value_bytes,
@@ -71,7 +69,7 @@ fn selected_binding_rows_execution(
         execution.rows.max_rows,
         execution.rows.input_values,
         execution.rows.output_values,
-        admitted_work,
+        execution.max_work,
         execution.max_frames,
         execution.rows.operation_entries,
         max_value_bytes,
@@ -171,22 +169,83 @@ fn selected_binding_rows_execution(
 }
 
 ///|
+/// A selected step keeps the same typed owner and operation input as the
+/// original sequence. Only already bounded Relation providers may join a
+/// multi-step chain.
+fn bounded_relation_step_provider(
+  selected : @execution.GeneratedSequence,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> ManagedProvider? {
+  for
+    provider in [
+      selected_relation_provider(execution, measurement),
+      global_count_provider(execution, measurement),
+      row_window_provider(execution, measurement),
+    ] {
+    if managed_provider_accepts(provider, selected) {
+      return Some(provider)
+    }
+  }
+  None
+}
+
+///|
+fn start_bounded_relation_step(
+  selected : @execution.GeneratedSequence,
+  input : ManagedProviderInput,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  max_value_bytes : Int,
+  remaining_work : Int,
+) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
+  guard remaining_work > 0 &&
+    bounded_relation_step_provider(selected, execution, measurement)
+    is Some(provider) else {
+    return Err(@connector.Execution(@execution.InputSet))
+  }
+  let limited : @execution.SequenceExecutionLimits = {
+    rows: execution.rows,
+    max_work: remaining_work,
+    max_frames: execution.max_frames,
+  }
+  start_managed_provider_with_inputs_and_execution(
+    provider,
+    selected,
+    [input],
+    execution.rows.max_rows,
+    max_value_bytes,
+    limited,
+  )
+}
+
+///|
 /// Execute a checked unary Relation chain inside its original task. Every
 /// intermediate result remains private and supplies only the next exact edge.
 fn bounded_relation_chain_execution(
   sequence : @execution.GeneratedSequence,
   input : ManagedProviderInput,
   execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
   let count = @execution.generated_sequence_step_count(sequence)
   guard count > 1 &&
-    @execution.select_generated_sequence_step(sequence, 0) is Some(first) else {
+    @execution.generated_sequence_step_index_at(sequence, 0) is Some(first_step) &&
+    @execution.select_generated_sequence_step(sequence, first_step)
+    is Some(first) else {
     return Err(@connector.Execution(@execution.InputSet))
   }
   let initial = match
-    selected_binding_rows_execution(first, input, execution, max_value_bytes, 0) {
+    start_bounded_relation_step(
+      first,
+      input,
+      execution,
+      measurement,
+      max_value_bytes,
+      execution.max_work,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -206,7 +265,7 @@ fn bounded_relation_chain_execution(
       previous.val is Some(output) &&
       @execution.generated_sequence_step_index_at(sequence, position.val)
       is Some(step) &&
-      @execution.select_generated_sequence_step(sequence, position.val)
+      @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) else {
       return Err(@connector.Execution(@execution.InputSet))
     }
@@ -230,13 +289,13 @@ fn bounded_relation_chain_execution(
       return Err(@connector.Execution(@execution.InputLimit))
     }
     let next = match
-      selected_binding_rows_execution(
+      start_bounded_relation_step(
         selected,
         RelationInput(read),
         execution,
+        measurement,
         max_value_bytes,
-        step,
-        work_limit=Some(remaining.to_int()),
+        remaining.to_int(),
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
@@ -428,11 +487,37 @@ fn selected_relation_provider(
         guard @execution.generated_sequence_step_index_at(sequence, index)
           is Some(step) &&
           @execution.generated_sequence_step_at(sequence, index)
-          is Some(@lower.RowStep(kernel)) &&
+          is Some(operation) &&
           @lower.node_at(prepared, step) is Some(node) else {
           return false
         }
-        if !selected_binding_rows_supported(kernel) ||
+        let selected = if count > 1 {
+          match @execution.select_generated_sequence_step(sequence, step) {
+            Some(value) => Some(value)
+            None => return false
+          }
+        } else {
+          None
+        }
+        let single_unsupported = if count == 1 {
+          match operation {
+            @lower.RowStep(kernel) => !selected_binding_rows_supported(kernel)
+            _ => true
+          }
+        } else {
+          false
+        }
+        let chain_unsupported = if count > 1 {
+          match selected {
+            Some(value) =>
+              bounded_relation_step_provider(value, limits, measurement) is None
+            None => true
+          }
+        } else {
+          false
+        }
+        if single_unsupported ||
+          chain_unsupported ||
           !@lower.node_accepts_managed_relation_view(node, 0) ||
           @lower.node_input_count(node) != 1 {
           return false
@@ -468,6 +553,11 @@ fn selected_relation_provider(
       guard inputs is [input] else {
         return Err(@connector.Execution(@execution.InputSet))
       }
+      if @execution.generated_sequence_step_count(sequence) > 1 {
+        return bounded_relation_chain_execution(
+          sequence, input, execution, measurement, max_value_bytes,
+        )
+      }
       guard @execution.generated_sequence_step_index_at(sequence, 0)
         is Some(step) &&
         @execution.generated_sequence_step_at(sequence, 0)
@@ -476,11 +566,6 @@ fn selected_relation_provider(
       }
       if !selected_binding_rows_supported(kernel) {
         return Err(@connector.Execution(@execution.InputSet))
-      }
-      if @execution.generated_sequence_step_count(sequence) > 1 {
-        return bounded_relation_chain_execution(
-          sequence, input, execution, max_value_bytes,
-        )
       }
       selected_binding_rows_execution(
         sequence, input, execution, max_value_bytes, step,

@@ -5029,6 +5029,31 @@ async function exerciseStrategyGraph(
     consumer.steps[0].select = ['id'];
     consumer.results.r.fields = ['id'];
   }
+  const capturedCountChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedCountStage = capturedCountChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedCountStage.steps = [
+    {from: 'x', group: {by: [], aggregates: {n: {fn: 'count'}}}, as: 'counted'},
+    {from: 'counted', filter: 'n > 0', as: 'filtered'},
+    {from: 'filtered', select: ['n'], as: 'out'},
+  ];
+  capturedCountStage.results.r.fields = ['n'];
+  for (const consumer of capturedCountChainProgram.stages.filter(
+    stage => stage.id.startsWith('consumer_'))) {
+    consumer.steps[0].select = ['n'];
+    consumer.results.r.fields = ['n'];
+  }
+  const capturedWindowChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedWindowStage = capturedWindowChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedWindowStage.steps = [
+    {from: 'x', row_window: {kind: 'fixed', time: 'id', size: 10},
+      as: 'windowed'},
+    {from: 'windowed', filter: 'id > 0', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
   const splitValuesStage = splitValuesProgram.stages.find(
     stage => stage.id === 'values_a',
   );
@@ -6102,6 +6127,10 @@ async function exerciseStrategyGraph(
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
       [1, 2, 3]],
+    ['captured Relation count/filter chain', capturedCountChainProgram,
+      [1, 2, 3]],
+    ['captured Relation window/filter chain', capturedWindowChainProgram,
+      [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
     ['split values select', splitValuesSelectProgram, [1, 2, 3, 4]],
     ['split values derive', splitValuesDeriveProgram, [1, 2, 3, 4]],
@@ -6207,6 +6236,20 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2],
           'an unsegmented captured input feeds two actual computations',
+        );
+      }
+      if (name === 'captured Relation window/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 3, 3],
+          'a bounded row window feeds two actual computations',
+        );
+      }
+      if (name === 'captured Relation count/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [1, 1, 1],
+          'an intermediate count feeds two actual bounded computations',
         );
       }
       if (name === 'split values') {
@@ -6825,6 +6868,10 @@ async function exerciseStrategyGraph(
   } of [
     {name: 'captured-relation-chain-in-flight',
       program: capturedRelationChainProgram, cancelAtStart: 1},
+    {name: 'captured-count-chain-in-flight',
+      program: capturedCountChainProgram, cancelAtStart: 1},
+    {name: 'captured-window-chain-in-flight',
+      program: capturedWindowChainProgram, cancelAtStart: 1},
     {name: 'zero-input-values-in-flight', program: zeroInputProgram,
       cancelAtStart: 2},
     {name: 'split-values-in-flight', program: splitValuesProgram,
@@ -6871,7 +6918,9 @@ async function exerciseStrategyGraph(
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const capturedRelationChainCancellation = cancellationName ===
-      'captured-relation-chain-in-flight';
+      'captured-relation-chain-in-flight' || cancellationName ===
+      'captured-count-chain-in-flight' || cancellationName ===
+      'captured-window-chain-in-flight';
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===

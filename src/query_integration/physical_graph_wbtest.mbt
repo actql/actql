@@ -612,6 +612,8 @@ test "physical DAG admits Carrier segmentation before allocation" {
 fn captured_graph_fixture(
   dag_two_consumers_of_compute_a? : Bool = false,
   count? : Bool = false,
+  count_filter_chain? : Bool = false,
+  window_filter_chain? : Bool = false,
   collections? : Bool = false,
   join? : Bool = false,
   self_join? : Bool = false,
@@ -683,6 +685,8 @@ fn captured_graph_fixture(
     dag=true,
     dag_two_consumers_of_compute_a~,
     dag_count=count,
+    dag_count_filter_chain=count_filter_chain,
+    dag_window_filter_chain=window_filter_chain,
     dag_collections=collections,
     dag_join=join,
     self_join~,

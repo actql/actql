@@ -5,6 +5,8 @@ fn query_checked_program_fixture(
   dag? : Bool = false,
   dag_two_consumers_of_compute_a? : Bool = false,
   dag_count? : Bool = false,
+  dag_count_filter_chain? : Bool = false,
+  dag_window_filter_chain? : Bool = false,
   dag_collections? : Bool = false,
   dag_join? : Bool = false,
   self_join? : Bool = false,
@@ -479,6 +481,22 @@ fn query_checked_program_fixture(
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
       new="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_count_filter_chain {
+    text.replace(
+      old="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"out\"}",
+      new="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"counted\"},{\"from\":\"counted\",\"filter\":\"id > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_window_filter_chain {
+    text.replace(
+      old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
+      new="{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10},\"as\":\"windowed\"},{\"from\":\"windowed\",\"filter\":\"id > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}",
     )
   } else {
     text
