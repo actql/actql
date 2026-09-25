@@ -1,6 +1,7 @@
 ///|
 fn bounded_global_count_fixture(
   rows : String,
+  keyed? : Bool = false,
   max_work? : Int = 100,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
@@ -24,10 +25,13 @@ fn bounded_global_count_fixture(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
+  let group_text = if keyed {
+    "[{\"from\":\"seed\",\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]"
+  } else {
+    "[{\"from\":\"seed\",\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]"
+  }
   let checked = @pipeline.check_with_evidence(
-    input_cursor(
-      "[{\"from\":\"seed\",\"group\":{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}}}]",
-    ),
+    input_cursor(group_text),
     [("seed", @pipeline.ProducedInput(producer))],
     None,
     None,
@@ -70,7 +74,11 @@ fn bounded_global_count_fixture(
     control,
     generated,
     read,
-    1,
+    if keyed {
+      3
+    } else {
+      1
+    },
     run_limits().input_values,
     run_limits().output_values,
     max_work,
@@ -98,6 +106,7 @@ test "bounded global count reads null fields once at quantum one" {
       }
       BoundedGlobalCountComplete(output, work=next, ..) => {
         assert_true(next - previous_work <= 1L)
+        previous_work = next
         complete = Some(output)
       }
       _ => fail("bounded global count did not complete")
@@ -128,6 +137,124 @@ test "bounded global count stops after work without publishing" {
   )
   assert_true(cleanup_bounded_global_count(execution).unwrap())
   assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded keyed count sorts and groups at quantum one" {
+  let (_, execution, source) = bounded_global_count_fixture(
+    "[{\"id\":1},{\"id\":null},{\"id\":1}]",
+    keyed=true,
+    max_work=1000,
+  )
+  let mut complete : CompletedOutput? = None
+  let mut polls = 0
+  let mut previous_work = 0L
+  while complete is None && polls < 1000 {
+    polls += 1
+    match advance_bounded_global_count(execution, 1).unwrap() {
+      BoundedGlobalCountContinue(work=next, ..) => {
+        assert_true(next - previous_work <= 1L)
+        previous_work = next
+      }
+      BoundedGlobalCountComplete(output, work=next, ..) => {
+        assert_true(next - previous_work <= 1L)
+        previous_work = next
+        complete = Some(output)
+      }
+      _ => fail("bounded keyed count did not complete")
+    }
+  }
+  guard complete is Some(output) else { fail("keyed count did not progress") }
+  assert_eq(previous_work, 70L)
+  assert_true(polls > 20)
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 0) is Some(Null))
+  assert_true(completed_cell(output, 0, 1) is Some(Number(1)))
+  assert_true(completed_cell(output, 0, 2) is Some(Number(0)))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1)))
+  assert_true(completed_cell(output, 1, 1) is Some(Number(2)))
+  assert_true(completed_cell(output, 1, 2) is Some(Number(2)))
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded keyed count cancels during key ordering" {
+  let (control, execution, source) = bounded_global_count_fixture(
+    "[{\"id\":1},{\"id\":null},{\"id\":1}]",
+    keyed=true,
+    max_work=1000,
+  )
+  for _ in 0..<30 {
+    assert_true(
+      advance_bounded_global_count(execution, 1).unwrap()
+      is BoundedGlobalCountContinue(..),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded keyed count admits exact work and workspace limits" {
+  let rows = "[{\"id\":1},{\"id\":null},{\"id\":1}]"
+  // One key, two counters and three output fields occupy 12 fixed slots.
+  // The three-row sort adds six slots; each output row reuses three slots.
+  let (_, exact, source) = bounded_global_count_fixture(
+    rows,
+    keyed=true,
+    max_work=68,
+    max_entries=18,
+  )
+  let mut completed = false
+  for _ in 0..<1000 {
+    if !completed {
+      match advance_bounded_global_count(exact, 1).unwrap() {
+        BoundedGlobalCountContinue(..) => ()
+        BoundedGlobalCountComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 2)
+          completed = true
+        }
+        _ => fail("exact keyed count budget rejected")
+      }
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_global_count(exact).unwrap())
+  assert_true(completed_output_available(source))
+
+  for (work, entries) in [(67, 18), (70, 17)] {
+    let (_, one_short, source) = bounded_global_count_fixture(
+      rows,
+      keyed=true,
+      max_work=work,
+      max_entries=entries,
+    )
+    let mut rejected = false
+    for _ in 0..<1000 {
+      if !rejected {
+        match advance_bounded_global_count(one_short, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountFailed(Rows(RowLimit), ..) => rejected = true
+          _ =>
+            fail(
+              "one-short keyed count budget accepted for work " +
+              work.to_string() +
+              " and entries " +
+              entries.to_string(),
+            )
+        }
+      }
+    }
+    assert_true(rejected)
+    assert_true(cleanup_bounded_global_count(one_short).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

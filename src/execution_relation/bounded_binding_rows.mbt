@@ -130,14 +130,16 @@ priv struct BoundedRowComparison {
 }
 
 ///|
-fn bounded_row_comparison_step(
-  state : BoundedBindingRowsState,
+fn bounded_row_comparison_step_with(
+  cursor : BoundedRowComparison,
+  orders : Array[ColumnOrder],
+  control : ControlBudget,
+  read_cell : (Int, Int) -> Value?,
   left_row : Int,
   right_row : Int,
   terms : Int,
 ) -> Result[Int?, OrderingIssue] {
-  let cursor = state.comparison
-  if terms < 0 || terms > state.sort_orders.length() {
+  if terms < 0 || terms > orders.length() {
     return Err(InvalidInput)
   }
   if cursor.phase == -1 {
@@ -156,15 +158,15 @@ fn bounded_row_comparison_step(
     cursor.phase = -1
     return Ok(Some(0))
   }
-  let order = state.sort_orders[cursor.term]
-  let left = bounded_binding_input_cell(state.input, left_row, order.column)
-  let right = bounded_binding_input_cell(state.input, right_row, order.column)
+  let order = orders[cursor.term]
+  let left = read_cell(left_row, order.column)
+  let right = read_cell(right_row, order.column)
   guard left is Some(left) && right is Some(right) else {
     return Err(InvalidInput)
   }
   match cursor.phase {
     0 => {
-      if !spend_control(state.control, 1) {
+      if !spend_control(control, 1) {
         return Err(Limit)
       }
       cursor.phase = 1
@@ -175,14 +177,14 @@ fn bounded_row_comparison_step(
         Text(value) =>
           if cursor.offset < value.length() {
             cursor.offset = match
-              bounded_text_charge_step(state.control, value, cursor.offset) {
+              bounded_text_charge_step(control, value, cursor.offset) {
               Ok(next) => next
               Err(issue) => return Err(issue)
             }
             return Ok(None)
           }
         _ =>
-          match charge_comparison_operand(state.control, left) {
+          match charge_comparison_operand(control, left) {
             Ok(_) => ()
             Err(ComparisonChargeLimit) => return Err(Limit)
             Err(ComparisonChargeInvalidOperand) =>
@@ -198,14 +200,14 @@ fn bounded_row_comparison_step(
         Text(value) =>
           if cursor.offset < value.length() {
             cursor.offset = match
-              bounded_text_charge_step(state.control, value, cursor.offset) {
+              bounded_text_charge_step(control, value, cursor.offset) {
               Ok(next) => next
               Err(issue) => return Err(issue)
             }
             return Ok(None)
           }
         _ =>
-          match charge_comparison_operand(state.control, right) {
+          match charge_comparison_operand(control, right) {
             Ok(_) => ()
             Err(ComparisonChargeLimit) => return Err(Limit)
             Err(ComparisonChargeInvalidOperand) =>
@@ -264,6 +266,24 @@ fn bounded_row_comparison_step(
     }
     _ => Err(InvalidInput)
   }
+}
+
+///|
+fn bounded_row_comparison_step(
+  state : BoundedBindingRowsState,
+  left_row : Int,
+  right_row : Int,
+  terms : Int,
+) -> Result[Int?, OrderingIssue] {
+  bounded_row_comparison_step_with(
+    state.comparison,
+    state.sort_orders,
+    state.control,
+    (row, column) => bounded_binding_input_cell(state.input, row, column),
+    left_row,
+    right_row,
+    terms,
+  )
 }
 
 ///|

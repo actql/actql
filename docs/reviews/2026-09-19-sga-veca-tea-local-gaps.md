@@ -101,7 +101,7 @@ and checked by `check:local-resource-accounting`.
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
-### Remaining path triage after the bounded global count slice
+### Remaining path triage after the bounded count-group slice
 
 The 38 unresolved path obligations below are paths, not 38 missing
 operations. They are whole-operation entrypoints. The categories identify the next
@@ -111,7 +111,7 @@ formal variant.
 | Category | Paths | Product limitation and next proof |
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
-| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
+| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond count-only cases, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
 | Bounded product connection exists, route evidence is incomplete | 9 | Nine SGA entrypoints (`traverse`, `shortest_path`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 An ordinary remote Relation predecessor is a concrete connection gap: its
@@ -133,9 +133,15 @@ cancellation. This closes these selected chain shapes without changing the
 20 connection, nine synchronous-body, or nine evidence-only whole-route gaps.
 Splitting every such predecessor changes task identity and port mapping across
 existing dispatch and retention paths; the remaining work is to connect the
-eligible checked shapes without losing those bindings. The `components`
-route has an independent one-node self-loop boundary: weak and strong
-execution require 16 and 19 charged steps respectively, and both require
+eligible checked shapes without losing those bindings.
+The count-group provider also admits keyed `COUNT(*)` and `COUNT(field)`:
+canonical NULL/compound key order, empty input, two consumers, exact and
+one-short work/workspace limits, and in-flight cancellation are checked on
+that route. Other aggregate members and providerless whole-sequence group
+execution remain open.
+The `components` route has an independent one-node self-loop boundary:
+weak and strong execution require 16 and 19 charged steps respectively,
+and both require
 22 workspace slots. Exact and one-short checks now join its positive-work
 standard Host timer cancellation and cleanup through the registered
 production entrypoint. This closes that route's resource assurance without

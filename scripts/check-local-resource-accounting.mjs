@@ -468,6 +468,9 @@ for (const [index, route] of routeEntries.entries()) {
       'global_count_work_workspace_exact_one_short',
       'global_count_cancel_cleanup',
       'global_count_two_consumers',
+      'keyed_count_work_workspace_exact_one_short',
+      'keyed_count_cancel_cleanup',
+      'keyed_count_two_consumers',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -791,6 +794,7 @@ for (const [index, route] of routeEntries.entries()) {
       'global_count_host_timer',
       'global_count_same_stage_two_consumers',
       'global_count_same_stage_timer',
+      'keyed_count_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -950,7 +954,8 @@ for (const [index, route] of routeEntries.entries()) {
   const proofPaths = new Map();
   const recordProofPaths = (pathName, assurance) => {
     const proofSets = route.family === 'RelA' &&
-      route.operation === 'assert_rows'
+      ['assert_rows', 'group'].includes(route.operation) &&
+      assurance?.variants
       ? Object.values(assurance?.variants ?? {})
       : [assurance];
     for (const proofSet of proofSets) {
@@ -993,6 +998,17 @@ for (const [index, route] of routeEntries.entries()) {
             prefix,
           );
         }
+      } else if (route.family === 'RelA' &&
+        route.operation === 'group' &&
+        pathName === 'global_count_entrypoint') {
+        const variants = assurance?.variants ?? {};
+        if (Object.keys(assurance ?? {}).length !== 1 ||
+          Object.keys(variants).length !== 2 ||
+          !variants.global || !variants.keyed) {
+          fail(`${label}: count group needs global and keyed proof sets`);
+        }
+        validateAssurance(pathName, variants.global, 'global_count_');
+        validateAssurance(pathName, variants.keyed, 'keyed_count_');
       } else {
         validateAssurance(pathName, assurance);
       }
@@ -1012,6 +1028,9 @@ for (const [index, route] of routeEntries.entries()) {
       }
       const assertion = route.family === 'RelA' &&
         route.operation === 'assert_rows';
+      const countGroup = route.family === 'RelA' &&
+        route.operation === 'group' &&
+        pathName === 'global_count_entrypoint';
       const rowVariants = route.family === 'RelA' &&
         ['selected_entrypoint', 'ordinary_entrypoint'].includes(pathName)
           ? {take: ['unkeyed', 'keyed'], sort: ['ordered', 'empty'],
@@ -1019,11 +1038,13 @@ for (const [index, route] of routeEntries.entries()) {
             route.operation
           ]
         : undefined;
-      if (assertion &&
+      if ((assertion || countGroup) &&
         (Object.keys(dimensions ?? {}).length !== 1 ||
           Object.keys(dimensions?.variants ?? {}).length !== 2 ||
-          !dimensions.variants.where || !dimensions.variants.unique_by)) {
-        fail(`${label}: ${pathName} needs both assertion resource variants`);
+          (assertion
+            ? !dimensions.variants.where || !dimensions.variants.unique_by
+            : !dimensions.variants.global || !dimensions.variants.keyed))) {
+        fail(`${label}: ${pathName} needs both resource variants`);
         continue;
       }
       if (rowVariants &&
@@ -1033,7 +1054,7 @@ for (const [index, route] of routeEntries.entries()) {
         fail(`${label}: ${pathName} needs ${rowVariants.join(' and ')} resource variants`);
         continue;
       }
-      const proofSets = assertion || rowVariants
+      const proofSets = assertion || countGroup || rowVariants
         ? Object.entries(dimensions.variants)
         : [['operation', dimensions]];
       for (const [variant, proofSet] of proofSets) {
@@ -1058,6 +1079,8 @@ for (const [index, route] of routeEntries.entries()) {
             if (!boundaryRoles.has(role) ||
               (assertion && !role.startsWith(
                 variant === 'unique_by' ? 'assert_unique_' : 'assert_where_')) ||
+              (countGroup && !role.startsWith(
+                variant === 'keyed' ? 'keyed_count_' : 'global_count_')) ||
               (rowVariants &&
                 !role.startsWith(`${route.operation}_${variant}_`))) {
               fail(`${label}: ${pathName} ${variant} ${dimension} lacks an executable fixture`);

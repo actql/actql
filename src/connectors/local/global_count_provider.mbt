@@ -24,8 +24,7 @@ fn global_count_provider(
         @execution.generated_sequence_step_index_at(sequence, 0) is Some(step) &&
         @execution.generated_sequence_step_at(sequence, 0)
         is Some(@lower.RowStep(kernel)) &&
-        @lower.kernel_count_group(kernel) is Some(group) &&
-        @lower.count_group_key_count(group) == 0 else {
+        @lower.kernel_count_group(kernel) is Some(_) else {
         return false
       }
       @lower.node_at(

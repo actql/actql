@@ -2187,6 +2187,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed bounded global count distinguishes null fields"
+        },
+        {
+          "role": "keyed_count_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded keyed count admits exact work and workspace limits"
+        },
+        {
+          "role": "keyed_count_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels keyed count after bounded work"
+        },
+        {
+          "role": "keyed_count_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed group count orders nullable keys for two consumers"
         }
       ],
       "environment_tests": [
@@ -2219,25 +2240,56 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-global-count-in-flight"
+        },
+        {
+          "role": "keyed_count_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "group-count-in-flight"
         }
       ],
       "path_assurance": {
         "global_count_entrypoint": {
-          "exact_limit": "global_count_work_workspace_exact_one_short",
-          "one_short_limit": "global_count_work_workspace_exact_one_short",
-          "in_flight_cancel": "global_count_host_timer",
-          "cleanup": "global_count_cancel_cleanup"
+          "variants": {
+            "global": {
+              "exact_limit": "global_count_work_workspace_exact_one_short",
+              "one_short_limit": "global_count_work_workspace_exact_one_short",
+              "in_flight_cancel": "global_count_host_timer",
+              "cleanup": "global_count_cancel_cleanup"
+            },
+            "keyed": {
+              "exact_limit": "keyed_count_work_workspace_exact_one_short",
+              "one_short_limit": "keyed_count_work_workspace_exact_one_short",
+              "in_flight_cancel": "keyed_count_host_timer",
+              "cleanup": "keyed_count_cancel_cleanup"
+            }
+          }
         }
       },
       "resource_assurance": {
         "global_count_entrypoint": {
-          "work": {
-            "exact_limit": "global_count_work_workspace_exact_one_short",
-            "one_short_limit": "global_count_work_workspace_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "global_count_work_workspace_exact_one_short",
-            "one_short_limit": "global_count_work_workspace_exact_one_short"
+          "variants": {
+            "global": {
+              "work": {
+                "exact_limit": "global_count_work_workspace_exact_one_short",
+                "one_short_limit": "global_count_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "global_count_work_workspace_exact_one_short",
+                "one_short_limit": "global_count_work_workspace_exact_one_short"
+              }
+            },
+            "keyed": {
+              "work": {
+                "exact_limit": "keyed_count_work_workspace_exact_one_short",
+                "one_short_limit": "keyed_count_work_workspace_exact_one_short"
+              },
+              "workspace": {
+                "exact_limit": "keyed_count_work_workspace_exact_one_short",
+                "one_short_limit": "keyed_count_work_workspace_exact_one_short"
+              }
+            }
           }
         }
       }

@@ -238,6 +238,31 @@ fn run_local_managed_test_task(
       fail("Local managed sequence exceeded an input limit")
     Err(@local_driver.Configuration(@connector.Execution(InputKey(_, _)))) =>
       fail("Local managed sequence rejected an input key")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.CaptureLimit))
+      )
+    ) => fail("Local managed sequence failed capture limit")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.ForeignCheckedValue(_, _)))
+      )
+    ) => fail("Local managed sequence failed capture contract")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.InvalidCheckedRow))
+      )
+    ) => fail("Local managed sequence failed capture row")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.ClosedCapture))
+      )
+    ) => fail("Local managed sequence failed capture closed")
+    Err(
+      @local_driver.Configuration(
+        @connector.Execution(Capture(_, @execution.NotRelationOutput))
+      )
+    ) => fail("Local managed sequence failed capture target")
     Err(@local_driver.Configuration(@connector.Execution(Capture(_, _)))) =>
       fail("Local managed sequence failed capture")
     Err(@local_driver.Configuration(@connector.Execution(Store(_)))) =>
@@ -637,7 +662,12 @@ fn run_local_managed_group_case(
   assert_eq(value_rows, input_expected)
 
   let group_live = Ref(true)
-  let bounded_global = variant == "empty_global" || variant == "global_counts"
+  let bounded_global = variant == "empty_global" ||
+    variant == "global_counts" ||
+    variant == "keyed" ||
+    variant == "compound" ||
+    variant == "empty_keyed" ||
+    variant == "counts"
   let execution_advances = Ref(0)
   let (group_ops, groups) = run_local_managed_test_task(
     installed,
@@ -775,10 +805,10 @@ test "Local managed bounded global count distinguishes null fields" {
 }
 
 ///|
-test "standard Host cancels global count after bounded work" {
+fn assert_standard_host_cancels_bounded_count(variant : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
-    local_values_group_variant="global_counts",
+    local_values_group_variant=variant,
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -847,6 +877,16 @@ test "standard Host cancels global count after bounded work" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "standard Host cancels global count after bounded work" {
+  assert_standard_host_cancels_bounded_count("global_counts")
+}
+
+///|
+test "standard Host cancels keyed count after bounded work" {
+  assert_standard_host_cancels_bounded_count("keyed")
 }
 
 ///|

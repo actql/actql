@@ -7041,6 +7041,8 @@ async function exerciseStrategyGraph(
       program: fixedRowWindowProgram, cancelAtStart: 2},
     {name: 'global-count-in-flight',
       program: globalCountProgram, cancelAtStart: 2},
+    {name: 'group-count-in-flight',
+      program: groupProgram, cancelAtStart: 2},
     {name: 'same-stage-global-count-in-flight',
       program: sameStageGlobalCountProgram, cancelAtStart: 2},
     {name: 'split-values-fixed-watermark-in-flight',
@@ -7088,7 +7090,9 @@ async function exerciseStrategyGraph(
     const sameStageGlobalCountCancellation = cancellationName ===
       'same-stage-global-count-in-flight';
     const globalCountCancellation = cancellationName ===
-      'global-count-in-flight' || sameStageGlobalCountCancellation;
+      'global-count-in-flight' ||
+      cancellationName === 'group-count-in-flight' ||
+      sameStageGlobalCountCancellation;
     const watermarkCancellation = cancellationName ===
       'split-values-fixed-watermark-in-flight' ||
       cancellationName === 'split-values-prefix-watermark-in-flight';

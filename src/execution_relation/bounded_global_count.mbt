@@ -70,9 +70,15 @@ fn global_count_trusted_input(
 ///|
 priv enum BoundedGlobalCountPhase {
   ResolveInput
+  ResolveKeys
   ResolveAggregates
   ResolveOutput
   ChargeInput
+  StartSort
+  SortRows
+  BeginGroup
+  ResetCounts
+  CheckGroupBoundary
   CountRows
   BuildOutput
   CommitOutput
@@ -97,15 +103,24 @@ priv struct BoundedGlobalCountState {
   mut phase : BoundedGlobalCountPhase
   ordinals : Map[String, Int]
   mut input_names : Array[String]
+  key_names : Map[String, Int]
+  mut key_orders : Array[ColumnOrder]
+  comparison : BoundedRowComparison
+  engine : @bounded.Control
+  mut sort_execution : BoundedIndexSort?
+  mut sorted_indices : Array[Int]?
   aggregate_names : Map[String, Int]
   mut aggregate_columns : Array[Int?]
   mut counts : Array[Int]
-  mut output_columns : Array[Int]
+  mut output_columns : Array[(Bool, Int)]
   mut field : Int
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
   mut row : Int
+  mut group_start : Int
+  mut representative : Int
+  mut boundary_checked : Bool
   mut aggregate : Int
   mut row_open : Bool
   mut checked_row : Array[@admitted.CheckedValue]
@@ -159,12 +174,31 @@ fn global_count_failure(
 
 ///|
 fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
+  if state.sort_execution is Some(execution) {
+    if !bounded_index_sort_stopped(execution) {
+      @bounded.request_cancel(state.engine) |> ignore
+      match advance_bounded_index_sort(execution, 1) {
+        Ok(BoundedIndexSortStopped(_)) => ()
+        Ok(BoundedIndexSortContinue)
+        | Ok(BoundedIndexSortComplete(_))
+        | Ok(BoundedIndexSortFailed(_))
+        | Err(_) => return false
+      }
+    }
+    if !cleanup_bounded_index_sort(execution) {
+      return false
+    }
+    state.sort_execution = None
+  }
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
   }
   state.ordinals.clear()
   state.input_names = []
+  state.key_names.clear()
+  state.key_orders = []
+  state.sorted_indices = None
   state.aggregate_names.clear()
   state.aggregate_columns = []
   state.counts = []
@@ -188,6 +222,7 @@ fn bounded_global_count_step(
   let mut progress = 0
   let width = @schema.field_count(global_count_input_schema(state.input))
   let aggregate_count = @lower.count_group_aggregate_count(state.group)
+  let key_count = @lower.count_group_key_count(state.group)
   let output_width = @schema.field_count(state.output_schema)
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
@@ -200,7 +235,7 @@ fn bounded_global_count_step(
       ResolveInput => {
         if state.field == width {
           state.field = 0
-          state.phase = ResolveAggregates
+          state.phase = ResolveKeys
           continue
         }
         guard @schema.field_at(
@@ -221,6 +256,29 @@ fn bounded_global_count_step(
         }
         state.ordinals[name] = state.field
         state.input_names.push(name)
+        state.field += 1
+        used += 1
+      }
+      ResolveKeys => {
+        if state.field == key_count {
+          state.field = 0
+          state.phase = ResolveAggregates
+          continue
+        }
+        guard @lower.count_group_key_at(state.group, state.field) is Some(key) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        let name = @schema.reference_name(key)
+        guard state.ordinals.get(name) is Some(column) else {
+          return global_count_failure(Rows(InvalidRows), progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) ||
+          !spend_control(state.control, 1) ||
+          !spend_control_text(state.control, name) {
+          return global_count_failure(Rows(RowLimit), progress, used)
+        }
+        state.key_names[name] = column
+        state.key_orders.push({ column, descending: false, nulls_first: true, })
         state.field += 1
         used += 1
       }
@@ -264,6 +322,7 @@ fn bounded_global_count_step(
       }
       ResolveOutput => {
         if state.field == output_width {
+          state.field = 0
           state.phase = ChargeInput
           continue
         }
@@ -271,20 +330,26 @@ fn bounded_global_count_step(
           return global_count_failure(InvalidExecution, progress, used)
         }
         let name = @schema.reference_name(field.name)
-        guard state.aggregate_names.get(name) is Some(index) else {
-          return global_count_failure(Rows(InvalidRows), progress, used)
+        let column = match state.aggregate_names.get(name) {
+          Some(index) => (true, index)
+          None =>
+            match state.key_names.get(name) {
+              Some(index) => (false, index)
+              None =>
+                return global_count_failure(Rows(InvalidRows), progress, used)
+            }
         }
         if !reserve_slots(state.workspace, 1) ||
           !spend_control_text(state.control, name) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        state.output_columns.push(index)
+        state.output_columns.push(column)
         state.field += 1
         used += 1
       }
       ChargeInput => {
         if state.charge_row == global_count_input_count(state.input) {
-          state.phase = CountRows
+          state.phase = if key_count == 0 { CountRows } else { StartSort }
           continue
         }
         if !state.charge_open {
@@ -318,10 +383,124 @@ fn bounded_global_count_step(
           state.charge_open = false
         }
       }
+      StartSort => {
+        let count = global_count_input_count(state.input)
+        if count > (state.workspace.limit - state.workspace.live) / 2 ||
+          !reserve_slots(state.workspace, count * 2) {
+          return global_count_failure(Rows(RowLimit), progress, used)
+        }
+        state.sort_execution = start_bounded_index_sort_stepped(
+          state.engine,
+          count,
+          (left, right) => {
+            bounded_row_comparison_step_with(
+              state.comparison,
+              state.key_orders,
+              state.control,
+              (row, column) => global_count_input_cell(state.input, row, column),
+              left,
+              right,
+              key_count,
+            ).map_err(ordering_row_issue)
+          },
+        )
+        guard state.sort_execution is Some(_) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        state.phase = SortRows
+        used += 1
+      }
+      SortRows => {
+        let count = global_count_input_count(state.input)
+        guard state.sort_execution is Some(execution) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
+          return global_count_failure(Rows(RowLimit), progress, used)
+        }
+        match advance_bounded_index_sort(execution, 1) {
+          Err(issue) | Ok(BoundedIndexSortFailed(issue)) =>
+            return global_count_failure(Rows(issue), progress, used + 1)
+          Ok(BoundedIndexSortStopped(reason)) =>
+            return @bounded.Stopped(reason, progress, used + 1)
+          Ok(BoundedIndexSortContinue) => used += 1
+          Ok(BoundedIndexSortComplete(indices)) => {
+            cleanup_bounded_index_sort(execution) |> ignore
+            state.sort_execution = None
+            release_slots(state.workspace, count)
+            state.sorted_indices = Some(indices)
+            state.row = 0
+            state.phase = BeginGroup
+            used += 1
+          }
+        }
+      }
+      BeginGroup => {
+        if state.row == global_count_input_count(state.input) {
+          state.phase = FinishOutput
+          continue
+        }
+        guard state.sorted_indices is Some(indices) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        state.group_start = state.row
+        state.representative = indices[state.row]
+        state.aggregate = 0
+        state.phase = ResetCounts
+      }
+      ResetCounts => {
+        if state.aggregate == aggregate_count {
+          state.aggregate = 0
+          state.row_open = false
+          state.boundary_checked = false
+          state.phase = CountRows
+          continue
+        }
+        state.counts[state.aggregate] = 0
+        state.aggregate += 1
+        used += 1
+      }
+      CheckGroupBoundary => {
+        guard state.sorted_indices is Some(indices) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
+          return global_count_failure(Rows(RowLimit), progress, used)
+        }
+        match
+          bounded_row_comparison_step_with(
+            state.comparison,
+            state.key_orders,
+            state.control,
+            (row, column) => global_count_input_cell(state.input, row, column),
+            state.representative,
+            indices[state.row],
+            key_count,
+          ) {
+          Ok(None) => used += 1
+          Ok(Some(comparison)) => {
+            state.boundary_checked = true
+            state.phase = if comparison == 0 { CountRows } else { BuildOutput }
+            used += 1
+          }
+          Err(issue) =>
+            return global_count_failure(
+              Rows(ordering_row_issue(issue)),
+              progress,
+              used + 1,
+            )
+        }
+      }
       CountRows => {
         if state.row == global_count_input_count(state.input) {
           state.field = 0
           state.phase = BuildOutput
+          continue
+        }
+        if key_count > 0 &&
+          state.row > state.group_start &&
+          !state.boundary_checked {
+          state.phase = CheckGroupBoundary
           continue
         }
         if !state.row_open {
@@ -337,7 +516,15 @@ fn bounded_global_count_step(
           let counted = match state.aggregate_columns[state.aggregate] {
             None => true
             Some(column) => {
-              guard global_count_input_cell(state.input, state.row, column)
+              let source_row = if key_count == 0 {
+                state.row
+              } else {
+                guard state.sorted_indices is Some(indices) else {
+                  return global_count_failure(InvalidExecution, progress, used)
+                }
+                indices[state.row]
+              }
+              guard global_count_input_cell(state.input, source_row, column)
                 is Some(value) else {
                 return global_count_failure(InvalidExecution, progress, used)
               }
@@ -353,6 +540,7 @@ fn bounded_global_count_step(
           state.row += 1
           state.aggregate = 0
           state.row_open = false
+          state.boundary_checked = false
         }
       }
       BuildOutput => {
@@ -367,9 +555,19 @@ fn bounded_global_count_step(
           !spend_control(state.control, 1) {
           return global_count_failure(Rows(RowLimit), progress, used)
         }
-        let count = state.counts[state.output_columns[state.field]]
+        let (aggregate, index) = state.output_columns[state.field]
+        let value = if aggregate {
+          Number(state.counts[index].to_double())
+        } else {
+          guard state.representative >= 0 &&
+            global_count_input_cell(state.input, state.representative, index)
+            is Some(value) else {
+            return global_count_failure(InvalidExecution, progress, used)
+          }
+          value
+        }
         guard checked_ordered_output_value(
-            Number(count.to_double()),
+            value,
             field.contract,
             state.admitted_limits,
           )
@@ -391,7 +589,8 @@ fn bounded_global_count_step(
         }
         release_slots(state.workspace, state.checked_row.length())
         state.checked_row = []
-        state.phase = FinishOutput
+        state.field = 0
+        state.phase = if key_count == 0 { FinishOutput } else { BeginGroup }
         progress += 1
         used += 1
       }
@@ -445,13 +644,13 @@ fn start_bounded_global_count_with_input(
     @lower.sequence_step(generated.sequence, step)
     is Some(@lower.RowStep(kernel)) &&
     @lower.kernel_count_group(kernel) is Some(group) &&
-    @lower.count_group_key_count(group) == 0 &&
     global_count_input_matches(input, owner, step) &&
     global_count_input_available(input) else {
     return Err(InvalidExecution)
   }
   let output_schema = @lower.count_group_output_schema(group)
   if @schema.field_count(output_schema) !=
+    @lower.count_group_key_count(group) +
     @lower.count_group_aggregate_count(group) {
     return Err(InvalidExecution)
   }
@@ -507,6 +706,19 @@ fn start_bounded_global_count_with_input(
     phase: ResolveInput,
     ordinals: Map([]),
     input_names: [],
+    key_names: Map([]),
+    key_orders: [],
+    comparison: {
+      left: -1,
+      right: -1,
+      terms: 0,
+      term: 0,
+      phase: -1,
+      offset: 0,
+    },
+    engine,
+    sort_execution: None,
+    sorted_indices: None,
     aggregate_names: Map([]),
     aggregate_columns: [],
     counts: [],
@@ -516,6 +728,9 @@ fn start_bounded_global_count_with_input(
     charge_column: 0,
     charge_open: false,
     row: 0,
+    group_start: -1,
+    representative: -1,
+    boundary_checked: false,
     aggregate: 0,
     row_open: false,
     checked_row: [],
