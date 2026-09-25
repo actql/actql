@@ -47,6 +47,8 @@ export function checkConnectorDispatchBoundary(root) {
       if (entry.isDirectory()) { inspect(directory + '/' + entry.name); continue; }
       if (!entry.isFile() || !/\.(mbt|mjs)$/.test(entry.name) || /(?:_test|_wbtest|_bbtest|\.test)\./.test(entry.name)) continue;
       const path = directory + '/' + entry.name;
+      // The installed Local Host is a concrete adapter, not shared dispatch.
+      if (path === 'adapters/host-node/embedded-local.mjs') continue;
       count += 1;
       for (const violation of connectorDispatchViolations(readFileSync(join(root, path), 'utf8'), connectors)) {
         failures.push({path, ...violation});
