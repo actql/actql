@@ -5841,6 +5841,24 @@ async function exerciseStrategyGraph(
         : [...jsonPickFields].reverse(),
     }},
   })));
+  const sameStageJsonPickProgram = structuredClone(jsonPickProgram);
+  const sameStageJsonValues = sameStageJsonPickProgram.stages.find(
+    stage => stage.id === 'json_pick_values');
+  const sameStageJsonIndex = sameStageJsonPickProgram.stages.findIndex(
+    stage => stage.id === 'json_picked');
+  const sameStageJsonStep = structuredClone(
+    sameStageJsonPickProgram.stages[sameStageJsonIndex].steps[0]);
+  sameStageJsonValues.steps.push({
+    from: 'out', ...sameStageJsonStep, as: 'picked_rows',
+  });
+  sameStageJsonValues.results.r = {
+    from: 'picked_rows', fields: jsonPickFields,
+  };
+  sameStageJsonPickProgram.stages.splice(sameStageJsonIndex, 1);
+  for (const stage of sameStageJsonPickProgram.stages.filter(stage =>
+    stage.id.startsWith('json_pick_consumer_'))) {
+    stage.inputs.x.result.stage = 'json_pick_values';
+  }
   const joinProgram = structuredClone(zeroInputProgram);
   const joinFields = ['id', 'l', 'r'];
   joinProgram.stages.splice(1, 3, {
@@ -6035,6 +6053,7 @@ async function exerciseStrategyGraph(
     ['unnest', unnestProgram, [1, 2, 3, 4]],
     ['same-stage unnest', sameStageUnnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
+    ['same-stage json pick', sameStageJsonPickProgram, [1, 2, 3, 4]],
     ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram,
       [1, 2, 3, 4, 5, 6, 7]],
@@ -6206,7 +6225,7 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'json pick') {
+      if (name === 'json pick' || name === 'same-stage json pick') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
@@ -6704,6 +6723,8 @@ async function exerciseStrategyGraph(
       program: unpivotProgram, cancelAtStart: 2},
     {name: 'split-values-unnest-in-flight',
       program: unnestProgram, cancelAtStart: 2},
+    {name: 'split-values-json-pick-in-flight',
+      program: jsonPickProgram, cancelAtStart: 2},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6725,11 +6746,14 @@ async function exerciseStrategyGraph(
       'split-values-unpivot-in-flight';
     const unnestCancellation = cancellationName ===
       'split-values-unnest-in-flight';
+    const jsonPickCancellation = cancellationName ===
+      'split-values-json-pick-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (rowWindowCancellation
         ? 'window_values' : unpivotCancellation
           ? 'unpivot_values' : unnestCancellation
-            ? 'unnest_values' : 'values_a'),
+            ? 'unnest_values' : jsonPickCancellation
+              ? 'json_pick_values' : 'values_a'),
     );
     valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
@@ -6738,6 +6762,8 @@ async function exerciseStrategyGraph(
           ? {a: index, b: index + 1, id: index}
           : unnestCancellation
             ? {id: index, items: [index, index + 1]}
+          : jsonPickCancellation
+            ? {id: index, payload: {inner: {leaf: index}}}
         : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
@@ -6792,7 +6818,7 @@ async function exerciseStrategyGraph(
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || unpivotCancellation ||
-                      unnestCancellation)
+                      unnestCancellation || jsonPickCancellation)
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);

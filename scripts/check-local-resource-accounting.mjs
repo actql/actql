@@ -480,6 +480,19 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('json_pick_leaf_work_workspace_exact_one_short')) {
     fail(`${label}: independent json pick resource evidence is missing`);
   }
+  if (route.family === 'RelA' && route.operation === 'json_pick') {
+    if (route.selected_entrypoint?.symbol !== 'selected_relation_provider') {
+      fail(`${label}: bounded selected json pick entrypoint is missing`);
+    }
+    for (const role of [
+      'json_pick_selected_work_workspace_exact_one_short',
+      'json_pick_selected_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'dedupe_rows' &&
     !boundaryRoles.has('dedupe_empty_keyed_work_workspace_exact_one_short')) {
     fail(`${label}: independent dedupe resource evidence is missing`);
@@ -712,6 +725,17 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'top_k_by' &&
     !environmentRoles.has('ordinary_top_k_by_host_timer')) {
     fail(`${label}: delivered Host cancellation evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'json_pick') {
+    for (const role of [
+      'json_pick_host_two_consumers',
+      'json_pick_same_stage_host_two_consumers',
+      'json_pick_in_flight_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'unpivot') {
     for (const role of [

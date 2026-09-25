@@ -2938,3 +2938,14 @@ and cleanup. Direct session-kernel fixtures independently enforce 44/43
 control-work and 22/21 peak-workspace boundaries. The resource gate now binds
 all three session source paths, but the providerless synchronous lane and the
 remaining operation-specific resource proofs still prevent full closure.
+
+The selected `json_pick` path now uses the shared bounded Relation row
+evaluator. Its object-field search charges one field visit or UTF-16 scalar
+per resume step, and the selected provider is required by the managed
+three-target fixture. The Node standard Host also exercises the separate
+and same-stage forms through two consumers and delivers an in-flight timer
+cancel to the selected step. An independent 20/19 control-work and 13/12
+structural-workspace fixture covers one admitted leaf. The original
+whole-sequence entrypoint remains synchronous, and nested value admission
+inside one output-cell step is not yet bounded. Neither the strict resource
+gate nor the overall Local closure is claimed by this selected-path change.

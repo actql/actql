@@ -212,6 +212,37 @@ test('json pick loses its independent resource boundary with its fixture', () =>
   }), /RelA json_pick: independent json pick resource evidence is missing/u);
 });
 
+test('json pick selected route loses evidence when a fixture is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'json_pick');
+    delete route.selected_entrypoint;
+  }), /RelA json_pick: bounded selected json pick entrypoint is missing/u);
+  for (const role of [
+    'json_pick_selected_work_workspace_exact_one_short',
+    'json_pick_selected_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'json_pick');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA json_pick: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'json_pick_host_two_consumers',
+    'json_pick_same_stage_host_two_consumers',
+    'json_pick_in_flight_host_timer',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'json_pick');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA json_pick: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('dedupe loses its independent resource boundary with its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&

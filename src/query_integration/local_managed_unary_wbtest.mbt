@@ -376,7 +376,8 @@ fn run_local_managed_unary_case(
   } else {
     None
   }
-  let bounded_unary = kind == "select" ||
+  let bounded_unary = kind == "json_pick" ||
+    kind == "select" ||
     kind == "derive_map" ||
     kind == "derive_empty" ||
     kind == "derive_ordered" ||
