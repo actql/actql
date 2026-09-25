@@ -88,11 +88,11 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
     binding.resolved_limit_cid,
     binding.binding_cid,
   ], [
-    'sha256:20cfb6440b10bee12f7647df2286cb63eca491c608df0ecbf1c13c21089eeb43',
+    'sha256:4339769bea313c9fbdd7e027fef68df7b4e5d966b37fcdea7fcc1973b4c08779',
     'a~/b',
-    'unit:sha256:20cfb6440b10bee12f7647df2286cb63eca491c608df0ecbf1c13c21089eeb43#/results/a~0~1b/rows',
-    'sha256:ee1d282f8b184e1f2202d5a70bf411a1a097fafe06b99e2ba87520206be820fc',
-    'sha256:8b311359a8abfa4ef16ac3237daef1bdcc26ba8d753107afa074cab36feac400',
+    'unit:sha256:4339769bea313c9fbdd7e027fef68df7b4e5d966b37fcdea7fcc1973b4c08779#/results/a~0~1b/rows',
+    'sha256:3040a95286927bb9fef09af584159fcf50a960342abea3a0149febf87f25cb09',
+    'sha256:6118084ed8c2229f72262c7da84c2c50307f71f4e8e93867d1c42a0c1e08e0a6',
   ]);
   assert.doesNotThrow(() => checked(
     moon.clientProgramAdmitPublicationRowsBinding(prepared, 0, 0, body)));
@@ -440,13 +440,13 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    'sha256:59fdfedffa402d123f1a04dd962b7cc1c404399ef08e825bb98151bb2ab39b68');
+    'sha256:db7320fcd0090a93ced0c41a6936103a1d2ab02f87beb95d8c99733c95713d53');
   assert.equal(moon.clientProgramResultPlanRowContractCid(resultPlan),
     moon.clientProgramResultRowContractCid(resultRow));
   assert.deepEqual(JSON.parse(resultPlanWire), {
     version: 'actql-result-plan/0.1', result_name: 'answer',
     unit_definition_cid:
-      'sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d',
+      'sha256:a95a846eda354702da7771206feebfae30ba6814682de74b416ad35c1b467a7b',
     unit_result_name: 'rows', unit_result_ordinal: 0,
     projection: [{input: 'id', output: 'id', value_contract_cid:
       'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
@@ -639,7 +639,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
   const unit =
-    'unit:sha256:61072398472dcda269c10498c3af97a2853703344a33e6471d31aec3ea0a554d';
+    'unit:sha256:a95a846eda354702da7771206feebfae30ba6814682de74b416ad35c1b467a7b';
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -680,10 +680,10 @@ test('Node ABI derives the checked named Result and request identity', async () 
     rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
     rowsBinding.binding_cid, bytesBinding.binding_cid,
   ], [
-    'sha256:d1dce9ccb30a076ebe729616043a663dddb85ba29c8de3f8f964bd8c71fbf1c0',
-    'sha256:4cdf56db345268d69b01d9b3216a5fbc8f8a7c648e8ae9176dde762f1d64e8b3',
-    'sha256:bd732ffbc9c3a523e3dffbb6e1ffd28a9696e12779ca32f099de040cd0d2cee2',
-    'sha256:33d623c5108cff887acbb28ef6b7fda20615a217b7d55e8bd898b2e10f65da3f',
+    'sha256:f8efdbb9bd20c92235643e7b52af77442a4c3a62e01211db4254962aa01bdf43',
+    'sha256:69c039d271fd3d3390e9abb0b03acfe18af34e23f5049e1d8f029dca3ce98937',
+    'sha256:53799d3278a54895ef07fc1af6206f6f29831387f0e0e917defb4b45476ed753',
+    'sha256:aa953d36dc697199be6819028aab771e12d229c7c085d2ec828581067d90baa0',
   ]);
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],
