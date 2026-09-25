@@ -973,6 +973,71 @@ pub fn client_values_host_issue_result_occurrence_evidence(
 }
 
 ///|
+pub(all) enum ClientValuesHostCheckedOccurrenceIssue {
+  Definition(@publication.ResultDefinitionIssue)
+  ForeignResult
+  ResultSchema(@host.ClientValuesOutputSchemaIssue)
+  ResultSchemaMismatch
+  Issuance(@publication.ResultEvidenceIssuanceIssue)
+}
+
+///|
+/// Bind one source-free Values occurrence to its checked Result, output
+/// schema and Compiled Plan. Site selection and dispatch remain separate.
+#export_name("clientValuesHostIssueCheckedValuesResultOccurrenceEvidence")
+pub fn client_values_host_issue_checked_values_result_occurrence_evidence(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  definition : @publication.PublicationContract,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  issuer_id : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.ResultOrderingEvidence, ClientValuesHostCheckedOccurrenceIssue] {
+  let admitted = match @publication.admit_result_definition(
+    @publication.publication_contract_json(definition), max_wire_bytes,
+    max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(issue) => return Err(Definition(issue))
+  }
+  if @publication.result_definition_program_cid(admitted) !=
+    @host.prepared_client_identity(prepared).program_definition_cid ||
+    !@host.client_values_compilation_result_names(compilation).contains(
+      @publication.result_definition_name(admitted),
+    ) {
+    return Err(ForeignResult)
+  }
+  let schema = match @host.issue_prepared_client_values_output_schema(
+    prepared, 0, @host.client_standard_values_sequence_limits(),
+    { max_fields: 100, max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    1000000, 100000, 100,
+  ) {
+    Ok(value) => value
+    Err(issue) => return Err(ResultSchema(issue))
+  }
+  if result_schema_cid != @execution.relation_schema_cid(schema) {
+    return Err(ResultSchemaMismatch)
+  }
+  match @publication.issue_result_occurrence_evidence(
+    definition, logical_value_cid, result_schema_cid,
+    @publication.publication_contract_identity(
+      @host.client_values_compilation_compiled_plan(compilation),
+    ),
+    [], scope_cid, effective_data_policy_cid, issuer_id,
+    authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Issuance(issue))
+  }
+}
+
+///|
 #export_name("clientValuesHostResultOccurrenceDerivation")
 pub fn client_values_host_result_occurrence_derivation(
   evidence : @publication.ResultOrderingEvidence,

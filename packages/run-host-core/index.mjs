@@ -508,12 +508,42 @@ export function issueResultOccurrenceEvidence(definition, facts, limits) {
     facts.effectiveDataPolicyCid, facts.issuerId,
     facts.authorityScopeCid, maxWireBytes, maxNodes, maxDepth),
   'RunHostResultEvidenceRejected');
+  return resultOccurrence(value);
+}
+
+function resultOccurrence(value) {
   const token = handle(resultOccurrences, value, 'result-occurrence');
   return Object.freeze({token,
     derivation: publicationContract(
       owner.clientValuesHostResultOccurrenceDerivation(value)),
     ordering: publicationContract(
       owner.clientValuesHostResultOccurrenceOrdering(value))});
+}
+
+export function issueCheckedValuesResultOccurrenceEvidence(prepared,
+  compilation, definition, facts, limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      Object.keys(facts).sort().join('\0') !==
+        ['logicalValueCid', 'resultSchemaCid', 'scopeCid',
+          'effectiveDataPolicyCid', 'issuerId', 'authorityScopeCid']
+          .sort().join('\0') ||
+      Object.values(facts).some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostCheckedResultEvidence');
+  }
+  const compiled = requireHandle(compilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const value = checked(
+    owner.clientValuesHostIssueCheckedValuesResultOccurrenceEvidence(
+      requireHandle(preparations, prepared), compiled.value,
+      publicationToken(definition), facts.logicalValueCid,
+      facts.resultSchemaCid, facts.scopeCid,
+      facts.effectiveDataPolicyCid, facts.issuerId,
+      facts.authorityScopeCid, maxWireBytes, maxNodes, maxDepth),
+    'RunHostCheckedResultEvidenceRejected');
+  return resultOccurrence(value);
 }
 
 export function issueCompleteResultArtifact(definition, invocation,

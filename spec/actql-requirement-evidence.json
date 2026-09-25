@@ -11586,6 +11586,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-values-derivation-cid",
+      "statement_sha256": "afb0dbd653016f814ae6c0b486b13e982a411144df4e81084892534d1901e061",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-values-derivation-admission",
+      "statement_sha256": "87c4b1110bba821285ca78e5404540ee2a0dc6af8fe67f345915cd9edc76fde9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/compilation-identities.plan-fact-manifest",
       "statement_sha256": "b3cd8b4312bbf9599cf64f20a5953b00356b96ba30bac8dd7f9375b386fe5694",
       "status": "pending",

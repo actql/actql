@@ -9,6 +9,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   validatePublicationRecordTransition,
   issueResultManifest,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
+  issueCheckedValuesResultOccurrenceEvidence,
   issueDurableResultBinding,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
@@ -349,6 +350,58 @@ test('portable Host package compiles the ordinary Values Program', () => {
     'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');
   assert.throws(() => compileValues({kind: 'prepared-program'}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
+});
+
+test('checked Values Derivation binds the declared Result and Plan', () => {
+  const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const prepared = prepare(read('values.json'), 'json', environment);
+  const compilation = compileValues(prepared);
+  const result = resultDefinitions(prepared, compilation)[0];
+  const definition = admitPublicationContract('result_definition',
+    result.wire, limits);
+  const schema = resultSchema(prepared, compilation);
+  const fixed = digit => `sha256:${digit.repeat(64)}`;
+  const facts = {logicalValueCid: fixed('1'), resultSchemaCid: schema.cid,
+    scopeCid: fixed('2'), effectiveDataPolicyCid: fixed('3'),
+    issuerId: 'common-host', authorityScopeCid: fixed('4')};
+  const issued = issueCheckedValuesResultOccurrenceEvidence(prepared,
+    compilation, definition, facts, limits);
+  const derivation = JSON.parse(issued.derivation.wire);
+  assert.equal(derivation.computation_contract_cid,
+    compiledPlanCid(compilation));
+  assert.equal(derivation.producer_contract_cid, definition.cid);
+  assert.deepEqual(derivation.input_relation_cids, []);
+  assert.equal(derivation.relation_schema_cid, schema.cid);
+  assert.throws(() => issueCheckedValuesResultOccurrenceEvidence(prepared,
+    compilation, definition, {...facts, resultSchemaCid: fixed('5')},
+    limits), {code: 'RunHostCheckedResultEvidenceRejected'});
+  const foreign = prepare(read('values.json').replace('"id": 2',
+    '"id": 3'), 'json', environment);
+  const foreignCompilation = compileValues(foreign);
+  assert.notEqual(compiledPlanCid(foreignCompilation),
+    compiledPlanCid(compilation));
+  const foreignResult = resultDefinitions(foreign, foreignCompilation)[0];
+  const foreignDefinition = admitPublicationContract('result_definition',
+    foreignResult.wire, limits);
+  assert.throws(() => issueCheckedValuesResultOccurrenceEvidence(prepared,
+    compilation, foreignDefinition, facts, limits),
+  {code: 'RunHostCheckedResultEvidenceRejected'});
+  const wrongName = admitPublicationContract('result_definition',
+    JSON.stringify({version: 'actql-result-definition/0.1',
+      program_definition_cid: JSON.parse(definition.wire)
+        .program_definition_cid,
+      result_name: 'other',
+      result_definition_cid: cid({version: 'actql-result-definition/0.1',
+        program_definition_cid: JSON.parse(definition.wire)
+          .program_definition_cid, result_name: 'other'})}), limits);
+  assert.throws(() => issueCheckedValuesResultOccurrenceEvidence(prepared,
+    compilation, wrongName, facts, limits),
+  {code: 'RunHostCheckedResultEvidenceRejected'});
+  assert.throws(() => issueCheckedValuesResultOccurrenceEvidence(prepared,
+    foreignCompilation, definition, facts, limits),
+  {name: 'TypeError', message: 'ForeignRunHostCompilation'});
 });
 
 test('portable Host rejects unadmitted environment and invalid Program', () => {

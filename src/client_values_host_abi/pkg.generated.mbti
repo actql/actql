@@ -49,6 +49,8 @@ pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], I
 
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
+pub fn client_values_host_issue_checked_values_result_occurrence_evidence(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.PublicationContract, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, ClientValuesHostCheckedOccurrenceIssue]
+
 pub fn client_values_host_issue_complete_result_artifact(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.ResultOrderingEvidence, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultArtifactIssuanceIssue]
 
 pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
@@ -132,6 +134,14 @@ pub struct ClientValuesHostAllowedRun {
   prepared_wire : String
   authorization_wire : String
   admission : @run_publication.RunPublicationAdmission
+}
+
+pub(all) enum ClientValuesHostCheckedOccurrenceIssue {
+  Definition(@run_publication.ResultDefinitionIssue)
+  ForeignResult
+  ResultSchema(@run_publication_host.ClientValuesOutputSchemaIssue)
+  ResultSchemaMismatch
+  Issuance(@run_publication.ResultEvidenceIssuanceIssue)
 }
 
 pub(all) enum ClientValuesHostCompilationIssue {

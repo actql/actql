@@ -1317,6 +1317,22 @@ AoA contract, and Result/Effect plan maps; its graph binds nodes, typed edges,
 root Results, facts, limits and enforcement references. Those dependencies
 remain mandatory even though this compilation envelope references them through
 `executable_plan_cid`. Neither envelope contains a later receipt CID.
+
+<!-- requirement-block: compilation-identities.source-free-values-derivation-cid compilation-identities.source-free-values-derivation-admission -->
+For a checked source-free Values Result, the Derivation Evidence
+`computation_contract_cid` MUST be the admitted
+`actql-compiled-plan/0.1` CID. Its preimage is the compilation envelope above;
+the referenced Executable Plan binds the checked semantic Program, its Values
+literals and order, AoA pipeline, and the declared name-to-Result-Plan map.
+The matching Result Definition identifies the Program and public Result name;
+the Result Plan and `requested_result` root identify that occurrence and typed
+output port. Issuance MUST recheck these bindings and the checked Result schema.
+Site candidate, placement, budget, task attempt, physical output and receipt
+are not members of this computation identity. Parameter Values remain bound
+by the admitted Template, Run and Invocation evidence. Source-free execution
+uses the registered no-input intent and an empty input Relation list; it does
+not invent an input Artifact. This rule reuses the existing Compiled Plan,
+Result Plan and Derivation schemas and their pinned identity vectors.
 [Machine contracts](#machine-contracts) pins this owner's closed wire schemas;
 the [family contract index](../conformance.md#contract-index) is informative
 navigation to other owners.

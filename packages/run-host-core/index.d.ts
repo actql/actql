@@ -227,6 +227,17 @@ export function issueResultOccurrenceEvidence(
     issuerId: string;
     authorityScopeCid: string;
   }>, limits: PublicationLimits): ResultOccurrenceEvidence;
+/** Checked source-free Values binding; Plan and Result port come from owner. */
+export function issueCheckedValuesResultOccurrenceEvidence(
+  prepared: PreparedProgram, compilation: ValuesCompilation,
+  definition: PublicationContract, facts: Readonly<{
+    logicalValueCid: string;
+    resultSchemaCid: string;
+    scopeCid: string;
+    effectiveDataPolicyCid: string;
+    issuerId: string;
+    authorityScopeCid: string;
+  }>, limits: PublicationLimits): ResultOccurrenceEvidence;
 export function issueCompleteResultArtifact(definition: PublicationContract,
   invocation: PublicationContract, evidence: ResultOccurrenceEvidence,
   retention: PublicationContract, actualRowCount: number,
