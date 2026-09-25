@@ -171,11 +171,19 @@ export function issueAllowedRun(prepared: PreparedProgram,
 export function issueRunDefinition(admission: RunAdmission, scopeId: string,
   runId: string, inputArtifactSetCid: string, createdAt: string,
   validUntil: string): RunDefinition;
+/** Bind zero captured Run-start inputs to the checked source-free Program. */
+export function issueSourceFreeRunDefinition(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission, scopeId: string,
+  runId: string, createdAt: string, validUntil: string): RunDefinition;
 export function privateRunDefinition(definition: RunDefinition): Readonly<{
   wire: string;
   cid: string;
 }>;
 export function admitRunDefinition(wire: string): RunDefinition;
+/** Re-admit the same checked source-free Run without changing its input set. */
+export function admitSourceFreeRunDefinition(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  wire: string): RunDefinition;
 export function prepareRunStart(requested: RequestIdentity,
   retained: RequestIdentity, definition: RunDefinition,
   retainedRunDefinitionCid: string, dispatchReserved: boolean,
