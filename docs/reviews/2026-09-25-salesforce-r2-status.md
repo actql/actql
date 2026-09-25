@@ -40,16 +40,16 @@ Salesforce-shaped Site operations, durable row custody, and
 `publishCompletedEffectfulRun`. The Host regressions cover halt/continue,
 unknown without resend, Collections partial failure, missing and stale guards,
 claim and saved-response faults, and lost publication-index acknowledgement.
-The update/upsert cases now derive Preview guards from real credentialed HTTPS
-target observations and reobserve at apply. The Site owns a target-set read
-operation bounded by row count and total response bytes; over-limit
-inventories fail before credential use, and a 404
-cannot become a version guard. A changed target is rejected by the common
+The update/upsert cases now derive Preview guards and typed `before` values
+from the same real credentialed HTTPS target observations, then reobserve at
+apply. The Site owns a target-set read operation bounded by row count and
+total response bytes; over-limit inventories fail before credential use, and
+a 404 cannot become a version guard. A changed target is rejected by the common
 preflight before any write request or write credential use. The observation
-inventory is a product Site operation, but Preview assembly remains in the
-Host fixture. The row-to-set identity and dispatch-key sealing step now uses
-one MoonBit product operation; semantic body assembly is still not a general
-Host authoring operation.
+inventory and its typed before-value projection are product Site operations,
+but Preview assembly remains in the Host fixture. The row-to-set identity and
+dispatch-key sealing step now uses one MoonBit product operation; semantic
+body assembly is still not a general Host authoring operation.
 A Store restart after durable index commit leaves a commit-unknown owner
 that reconciles the exact
 index without another Effect send. The installed SDK can then attach, inspect

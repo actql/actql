@@ -255,7 +255,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   memberBoundaries = memberIds.map((_, index) => cid(String(index))),
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
-    footprints, continueMembers = [], guardVersions} = {}) {
+    footprints, continueMembers = [], guardVersions, beforeValues} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -303,8 +303,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         intended_changes: {state: 'present', value: writeKind === 'create'
           ? {Name: value, External_Key__c: value} : {Name: value}},
         before: writeKind === 'create' ? {state: 'absent'}
-          : {state: 'present', value: {Name: typeof value === 'string'
-            ? 'before' : 0}},
+          : {state: 'present', value: beforeValues?.[memberIndex]?.[index]
+            ?? {Name: typeof value === 'string' ? 'before' : 0}},
         after: {state: 'present', value: writeKind === 'create'
           ? {Name: value, External_Key__c: value} : {Name: value}},
         row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
@@ -2299,6 +2299,10 @@ test(`two-member captured Effect Run ${
           writeKind === 'create' ? ['Name', 'External_Key__c'] :
             ['Name'], 2));
       });
+      if (siteRun && writeKind !== 'create') {
+        sites.forEach((site, index) =>
+          site.setTargetName(`observed-before-${index}`));
+      }
       const siteBodies = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map(value => checked(
           salesforceMoon.salesforcePrepareWriteBody(
@@ -2353,6 +2357,8 @@ test(`two-member captured Effect Run ${
         ? await observeCurrentTargets() : undefined;
       const previewGuardVersions = previewTargetObservations?.map(member =>
         member.map(observed => observed.versionCid));
+      const previewBeforeValues = previewTargetObservations?.map(member =>
+        member.map(observed => JSON.parse(observed.beforeWire)));
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
       const preview = effectInputPreview(
@@ -2365,7 +2371,8 @@ test(`two-member captured Effect Run ${
         requestScope, {target, mapping: mappingRef,
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
           footprints: siteFootprints, continueMembers,
-          guardVersions: previewGuardVersions});
+          guardVersions: previewGuardVersions,
+          beforeValues: previewBeforeValues});
       const authoringContext = control.admitRunEvidence(
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -2467,6 +2474,12 @@ test(`two-member captured Effect Run ${
       assert.equal(captured.effect_context.effect_source_artifacts.save
         .source_result, 'rows');
       const body = JSON.parse(preview.wire);
+      if (siteRun && writeKind !== 'create') {
+        body.effects.forEach((member, memberIndex) =>
+          member.changes.forEach(change => assert.deepEqual(
+            change.before, {state: 'present',
+              value: {Name: `observed-before-${memberIndex}`}})));
+      }
       const collectionRequest = collectionMode ? checked(
         salesforceMoon.salesforcePrepareContinueWriteCollection(
           body.effects[0].row_order, siteBodies[0], [1, 1],
