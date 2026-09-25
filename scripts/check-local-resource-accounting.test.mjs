@@ -74,6 +74,12 @@ test('global count assurance requires its bounded product path and proofs', () =
   assert.match(run(undefined, routes => {
     const group = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'group');
+    group.boundary_tests = group.boundary_tests.filter(item =>
+      item.role !== 'keyed_count_same_stage_workspace_exact_one_short');
+  }), /RelA group: keyed_count_same_stage_workspace_exact_one_short fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
     delete group.global_count_entrypoint;
   }), /RelA group: assurance names an unregistered production path/u);
   assert.match(run(undefined, routes => {

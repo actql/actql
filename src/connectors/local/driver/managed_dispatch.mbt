@@ -598,6 +598,7 @@ pub fn[T] start_local_managed_dispatch(
   )
   let row_copy_work = Ref(0L)
   let execution_finished = Ref(false)
+  let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
@@ -939,7 +940,7 @@ pub fn[T] start_local_managed_dispatch(
     })
   }
   let output_target = @strategy.captured_task_target(setup.run, setup.task)
-  let advance = fn(
+  let advance_once = fn(
     quantum : Int,
   ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
     if quantum <= 0 {
@@ -1140,15 +1141,36 @@ pub fn[T] start_local_managed_dispatch(
       }
     }
   }
+  let advance = fn(
+    quantum : Int,
+  ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
+    if execution_failure.val is Some(issue) {
+      return Err(issue)
+    }
+    if execution_finished.val && ordinary.val is None && carrier.val is None {
+      return Err(Configuration(InputUnavailable))
+    }
+    let result = advance_once(quantum)
+    if result is Err(issue) && execution_finished.val {
+      execution_failure.val = Some(issue)
+    }
+    result
+  }
   Ok({
     inputs: transfers,
     retained_inputs: retained_transfers,
     execute: fn() {
+      if execution_failure.val is Some(issue) {
+        return Err(issue)
+      }
       while !execution_finished.val {
         match advance(1024) {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }
+      }
+      if ordinary.val is None && carrier.val is None {
+        return Err(Configuration(InputUnavailable))
       }
       Ok(())
     },

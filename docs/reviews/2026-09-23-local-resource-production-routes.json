@@ -2217,6 +2217,13 @@
           "fixture": "ordinary keyed count chain admits exact work and one-short limits"
         },
         {
+          "role": "keyed_count_same_stage_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary keyed count chain admits exact workspace and one-short limit"
+        },
+        {
           "role": "keyed_count_same_stage_overlap_capacity",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

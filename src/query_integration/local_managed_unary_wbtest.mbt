@@ -722,6 +722,7 @@ test "ordinary captured Relation chains feed two bounded consumers" {
 fn assert_captured_keyed_count_chain_budget(
   max_work : Int,
   expected : String,
+  max_entries? : Int = 10000,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     count=true,
@@ -731,7 +732,7 @@ fn assert_captured_keyed_count_chain_budget(
   let registry = search_registry()
   let defaults = dispatch_test_limits()
   let execution : @execution.SequenceExecutionLimits = {
-    rows: defaults.local_execution.rows,
+    rows: { ..defaults.local_execution.rows, operation_entries: max_entries, },
     max_work,
     max_frames: defaults.local_execution.max_frames,
   }
@@ -782,6 +783,11 @@ fn assert_captured_keyed_count_chain_budget(
             @connector.Execution(@execution.InputLimit)
           )
         ) => rejected = expected == "work"
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+          )
+        ) => rejected = expected == "workspace"
         Err(_) => fail("keyed count chain rejected with another issue")
       }
     }
@@ -810,6 +816,41 @@ fn assert_captured_keyed_count_chain_budget(
     (operations.cleanup_refresh)() |> ignore
   } else {
     assert_true(rejected && !done)
+    if expected == "work" {
+      assert_true(
+        (operations.advance)(1)
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.InputLimit)
+          )
+        ),
+      )
+      assert_true(
+        (operations.execute)()
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.InputLimit)
+          )
+        ),
+      )
+    } else if expected == "workspace" {
+      assert_true(
+        (operations.advance)(1)
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+          )
+        ),
+      )
+      assert_true(
+        (operations.execute)()
+        is Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+          )
+        ),
+      )
+    }
     assert_true((operations.output_row)(0) is Err(_))
     assert_false(@strategy.captured_task_completed(run, 1))
     (operations.settle)().unwrap()
@@ -832,6 +873,15 @@ fn assert_captured_keyed_count_chain_budget(
 test "ordinary keyed count chain admits exact work and one-short limits" {
   assert_captured_keyed_count_chain_budget(91, "complete")
   assert_captured_keyed_count_chain_budget(90, "work")
+}
+
+///|
+test "ordinary keyed count chain admits exact workspace and one-short limit" {
+  // Count holds eight metadata slots. Three input rows add six sort slots;
+  // the later filter and select each stay below this 14-slot peak.
+  assert_captured_keyed_count_chain_budget(91, "complete", max_entries=14)
+  assert_captured_keyed_count_chain_budget(91, "workspace", max_entries=13)
+  assert_captured_keyed_count_chain_budget(91, "workspace", max_entries=12)
 }
 
 ///|

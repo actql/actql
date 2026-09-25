@@ -471,6 +471,7 @@ for (const [index, route] of routeEntries.entries()) {
       'keyed_count_work_workspace_exact_one_short',
       'keyed_count_cancel_cleanup',
       'keyed_count_two_consumers',
+      'keyed_count_same_stage_workspace_exact_one_short',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
