@@ -154,9 +154,9 @@ Receipt. The generated Node bridge and common Host control expose this
 validator without adding a second JS chain rule. A product-shaped control
 fixture accepts complete Result evidence and rejects a computation-Receipt
 index, missing derivation, and foreign Preview owner. This is a commit
-admission prerequisite only: the existing Store and publication coordinator
-still accept Effect-free chains exclusively. No Effectful durable commit or
-ordinary Effectful Run success is claimed by this change.
+admission prerequisite. The Store now accepts the exact Effectful chain, but
+the ordinary publication coordinator still accepts Effect-free Runs only.
+No ordinary Effectful Run success is claimed by this change.
 
 The local Store's `putPublicationContract` path writes complete contract wire
 into an immutable physical object and links it by semantic CID. Its commit
@@ -171,9 +171,9 @@ alias before a durable holding: such an alias would survive a crash without
 an owner. Local tests verify ciphertext at rest, uncommitted reclamation,
 binding to the exact name and semantic CID, key rejection, holding retirement,
 and reopen with a separately supplied key. This physical path is not private
-Preview admission, read authorization, or Effectful publication metadata.
-Effectful commit integration must bind it to MoonBit's exact Preview admission
-and carry the holding through apply, final commit, and Run retention policy.
+Preview read authorization or apply admission. Store commit now binds the
+holding to MoonBit's exact Preview admission and durable Run metadata;
+ordinary Effectful apply and Run retention admission remain open.
 The Store must not duplicate canonical identity or final-chain rules in JS.
 The common MoonBit owner now derives a distinct private Preview holding CID
 from the admitted Preview, exact Run occurrence, authoring context, and Store
@@ -187,7 +187,8 @@ The local Store can now re-open that exact encrypted holding, compare its
 decrypted wire with the admitted Preview binding, and confirm directory
 durability without re-encrypting or sending an Effect. A failed confirmation
 sync remains retryable against the same ciphertext. This closes physical
-holding reconciliation only; it is not a committed Effectful Run index.
+holding reconciliation. A later Store commit now uses that check before
+installing the Effectful public index.
 
 The next final-Receipt integration must start with durable row outcomes, not
 with a Host wrapper around `issueEffectfulFinalRunReceipt`. The current
@@ -389,15 +390,18 @@ an invalid owner. A Node/SQLite test runs checked Values-to-Effect Compute,
 reopens the exact request definition, and rejects changed intent. No public
 Effectful submit, mutation, or final publication is implied by this entry.
 
-The local Store now has a noncommitting Effectful stored-evidence check. It asks
+The local Store's Effectful stored-evidence check asks
 the common MoonBit owner to admit the final chain and exact public index,
 compares every supplied public contract with stored bytes, confirms the
 encrypted private Preview under its derived holding, and confirms every
 captured Effect-source holding and public Result binding. A real Store fixture
 rejects an Effect-free index, altered private wire, and omitted source holding.
-This check does not admit physical row outcomes, install a public index, or
-acquire final retention. The Effectful commit path and metadata deletion
-ownership remain open.
+Store commit now installs the public index only after this check and retains
+the private and Effect-source holdings in its durable metadata inventory.
+Reopen revalidates the exact chain; metadata retirement reclaims both holdings.
+A confirmed non-commit retains its inventory until an unshared physical
+holding is explicitly retired. These Store operations do not admit physical
+row outcomes or issue the final Receipt from an ordinary Effectful Run.
 
 The common MoonBit Effect owner can now issue a member Receipt from one
 durable row-head snapshot. The Host first authorizes evidence viewing, then
