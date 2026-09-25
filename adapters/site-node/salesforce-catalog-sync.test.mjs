@@ -38,7 +38,7 @@ import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
   './salesforce-query-read.mjs';
 import {writeSalesforceSingleRecord} from './salesforce-single-write.mjs';
-import {observeSalesforceSingleTarget} from
+import {observeSalesforceSingleTarget, observeSalesforceTargetSet} from
   './salesforce-target-observation.mjs';
 import {writeSalesforceContinueCollection} from
   './salesforce-collection-write.mjs';
@@ -620,6 +620,43 @@ test('Site reads the exact prospective target with separate read authority',
       'GET', '/services/data/v62.0/sobjects/Test_Record__c/a00123456789012',
     ]]);
     assert.equal(setup.seen.filter(item => item.method === 'PATCH').length, 0);
+    const targetReads = setup.seen.length;
+    await assert.rejects(observeSalesforceTargetSet({
+      moon: salesforceMoon, members: [{requests: [update, update],
+        currentCatalog: catalog.observation,
+        authorizationForRow: () => ({...setup.observe,
+          useId: 'target-set-over-limit'}),
+        credential: setup.credential, limits: options.limits}],
+      maxMembers: 1, maxRows: 1, maxTotalResponseBytes: 1024,
+    }), {code: 'InvalidSalesforceTargetSet'});
+    assert.equal(setup.seen.length, targetReads);
+    const abort = new AbortController();
+    await assert.rejects(observeSalesforceTargetSet({
+      moon: salesforceMoon, members: [{requests: [update, update],
+        currentCatalog: catalog.observation,
+        authorizationForRow: rowIndex => {
+          if (rowIndex === 1) abort.abort();
+          return {...setup.observe, useId: `target-set-${rowIndex}`};
+        },
+        credential: setup.credential, limits: options.limits}],
+      maxMembers: 1, maxRows: 2, maxTotalResponseBytes: 1024,
+      signal: abort.signal,
+    }), {name: 'AbortError'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/a00123456789012')).length, 2);
+    let admittedReads = 0;
+    await assert.rejects(observeSalesforceTargetSet({
+      moon: salesforceMoon, members: [{requests: [update, update],
+        currentCatalog: catalog.observation,
+        authorizationForRow: () => ({...setup.observe,
+          useId: `target-set-byte-${admittedReads++}`}),
+        credential: setup.credential, limits: options.limits}],
+      maxMembers: 1, maxRows: 2,
+      maxTotalResponseBytes: observed.body.byteLength,
+    }), {code: 'SalesforceTargetSetByteLimit'});
+    assert.equal(admittedReads, 1);
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/a00123456789012')).length, 3);
   });
 
 test('target read cannot turn absence or a foreign record into a guard',
@@ -667,12 +704,21 @@ test('target read cannot turn absence or a foreign record into a guard',
           assert.equal(observed.statusCode, 404);
           assert.equal(observed.record, undefined);
           assert.equal(observed.versionCid, undefined);
+          await assert.rejects(observeSalesforceTargetSet({
+            moon: salesforceMoon, members: [{requests: [update],
+              currentCatalog: catalog.observation,
+              authorizationForRow: () => ({...setup.observe,
+                useId: 'target-set-unresolved'}),
+              credential: setup.credential, limits: options.limits}],
+            maxMembers: 1, maxRows: 1, maxTotalResponseBytes: 1024,
+          }), {code: 'UnresolvedSalesforceTarget'});
         } else {
           await assert.rejects(observeSalesforceSingleTarget(options),
             {code: 'MoonBitHostFailure'});
         }
         assert.equal(setup.seen.filter(item => item.method === 'GET' &&
-          item.path?.endsWith('/a00123456789012')).length, 1);
+          item.path?.endsWith('/a00123456789012')).length,
+        scenario.expected === 'unresolved' ? 2 : 1);
         assert.equal(setup.seen.filter(item => item.method === 'PATCH').length,
           0);
       });

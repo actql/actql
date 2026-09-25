@@ -15,7 +15,7 @@ import {captureSalesforceCollectionEffectWrite,
   './salesforce-effect-write.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
-import {observeSalesforceSingleTarget} from
+import {observeSalesforceTargetSet} from
   '../site-node/salesforce-target-observation.mjs';
 import * as salesforceMoon from
   '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
@@ -2315,31 +2315,18 @@ test(`two-member captured Effect Run ${
         siteFootprints[1] = siteFootprints[0];
       }
       let targetRead = 0;
-      const observeCurrentTargets = async ({signal} = {}) => {
-        const observations = [];
-        for (let memberIndex = 0; memberIndex < memberIds.length;
-          memberIndex++) {
-          const site = sites[memberIndex];
-          const member = [];
-          for (const request of siteRequests[memberIndex]) {
-            const observed = await observeSalesforceSingleTarget({
-              moon: salesforceMoon, request,
-              currentCatalog: site.catalog.observation,
-              authorization: {...site.observe,
-                useId: `target-read-${targetRead++}`},
-              credential: site.credential,
-              limits: {maxResponseBytes: 1024, maxNodes: 32,
-                maxDepth: 5, maxIdentityBytes: 1024},
-              signal,
-            });
-            assert.equal(observed.statusCode, 200);
-            assert.ok(observed.versionCid);
-            member.push(observed);
-          }
-          observations.push(member);
-        }
-        return observations;
-      };
+      const observeCurrentTargets = ({signal} = {}) =>
+        observeSalesforceTargetSet({moon: salesforceMoon,
+          members: sites.map((site, memberIndex) => ({
+            requests: siteRequests[memberIndex],
+            currentCatalog: site.catalog.observation,
+            authorizationForRow: async () => ({...site.observe,
+              useId: `target-read-${targetRead++}`}),
+            credential: site.credential,
+            limits: {maxResponseBytes: 1024, maxNodes: 32,
+              maxDepth: 5, maxIdentityBytes: 1024},
+          })), maxMembers: 2, maxRows: 4,
+          maxTotalResponseBytes: 4096, signal});
       const previewTargetObservations = siteRun && writeKind !== 'create'
         ? await observeCurrentTargets() : undefined;
       const previewGuardVersions = previewTargetObservations?.map(member =>
