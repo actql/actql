@@ -977,6 +977,7 @@ export function issueSourceFreeCapturedRun(runDefinition, invocation,
 const deliveryViews = new WeakMap();
 const accessProgress = new WeakMap();
 const deliverySerializers = new WeakMap();
+const durableRowFrames = new WeakMap();
 
 function deliveryCall(method, ...args) {
   try { return owner[method](...args); }
@@ -1133,6 +1134,39 @@ export function openResultDeliveryControl() {
     },
     deliveryRecordRetryAction(next, count) {
       return owner.clientValuesHostDeliveryRecordRetryAction(next, count);
+    },
+    deliveryTransition(previous, next) {
+      return owner.clientValuesHostDeliveryRecordTransition(
+        previous === undefined ? undefined : deliveryToken(previous),
+        deliveryToken(next));
+    },
+    deliverySuccessValid(attempt, receipt, record) {
+      return owner.clientValuesHostDeliverySuccessValid(
+        deliveryToken(attempt), deliveryToken(receipt),
+        deliveryToken(record));
+    },
+    trustedClockNotBefore(previous, observedAt) {
+      return owner.clientValuesHostTrustedClockNotBefore(previous, observedAt);
+    },
+    prepareDurableResultRowFrames(bounds) {
+      const frames = deliveryResult(
+        'clientValuesHostPrepareDurableResultRowFrames',
+        bounds.maxBytes, bounds.maxRows, bounds.maxRowBytes,
+        bounds.maxDepth, bounds.maxFrameBytes);
+      return handle(durableRowFrames, frames, 'durable-row-frames');
+    },
+    feedDurableResultRowFrames(frames, chunk) {
+      return deliveryResult('clientValuesHostFeedDurableResultRowFrames',
+        requireHandle(durableRowFrames, frames), chunk);
+    },
+    finishDurableResultRowFrames(frames) {
+      const values = deliveryResult('clientValuesHostFinishDurableResultRowFrames',
+        requireHandle(durableRowFrames, frames));
+      return Object.freeze({bytes: values[0], rows: values[1]});
+    },
+    cancelDurableResultRowFrames(frames) {
+      return deliveryCall('clientValuesHostCancelDurableResultRowFrames',
+        requireHandle(durableRowFrames, frames));
     },
     prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
       const serializer = deliveryResult(

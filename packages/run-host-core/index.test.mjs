@@ -68,6 +68,19 @@ test('portable delivery control keeps progress and serializer opaque', () => {
   assert.equal(control.finishResultDelivery(serializer), '');
   assert.throws(() => control.finishResultDelivery({}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  assert.equal(control.trustedClockNotBefore(undefined,
+    '2026-09-24T00:00:00.000Z'), true);
+  assert.equal(control.trustedClockNotBefore(
+    '2026-09-24T00:00:01.000Z', '2026-09-24T00:00:00.000Z'), false);
+  const frames = control.prepareDurableResultRowFrames({maxBytes: 2,
+    maxRows: 0, maxRowBytes: 1024, maxDepth: 16, maxFrameBytes: 1024});
+  assert.deepEqual(control.feedDurableResultRowFrames(frames,
+    new TextEncoder().encode('[]')), []);
+  assert.deepEqual(control.finishDurableResultRowFrames(frames),
+    {bytes: 2, rows: 0});
+  assert.throws(() => control.feedDurableResultRowFrames({},
+    new Uint8Array()),
+  {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });
 
 test('captured completion requires owner-admitted handles', () => {

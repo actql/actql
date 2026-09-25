@@ -449,7 +449,7 @@ export async function deliverPublishedResult(options) {
       observedAt: committedAt,
       confirmedByteCount,
     });
-    const deliveredSha256 = digest.finish();
+    const deliveredSha256 = await digest.finish();
     if (!digestPattern.test(deliveredSha256)) {
       fail('InvalidResultDeliveryDigest');
     }

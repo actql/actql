@@ -32,6 +32,35 @@ pub fn client_values_host_existing_delivery_attempt_action(
 }
 
 ///|
+#export_name("clientValuesHostDeliveryRecordTransition")
+pub fn client_values_host_delivery_record_transition(
+  previous : @publication.PublicationContract?,
+  next : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_record_transition(previous, next) is Ok(_)
+}
+
+///|
+#export_name("clientValuesHostDeliverySuccessValid")
+pub fn client_values_host_delivery_success_valid(
+  attempt : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  record : @publication.PublicationContract,
+) -> Bool {
+  @publication.validate_delivery_success_evidence(attempt, receipt, record)
+  is Ok(_)
+}
+
+///|
+#export_name("clientValuesHostTrustedClockNotBefore")
+pub fn client_values_host_trusted_clock_not_before(
+  previous : String?,
+  observed_at : String,
+) -> Bool {
+  @publication.trusted_clock_not_before(previous, observed_at)
+}
+
+///|
 #export_name("clientValuesHostBeginResultAccessProgress")
 pub fn client_values_host_begin_result_access_progress() -> @publication.ResultAccessProgress {
   @publication.begin_result_access_progress()
@@ -353,4 +382,53 @@ pub fn client_values_host_finish_result_delivery(
     Ok(value) => value
     Err(_) => raise Rejected
   }
+}
+
+///|
+#export_name("clientValuesHostPrepareDurableResultRowFrames")
+pub fn client_values_host_prepare_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise ClientValuesHostDeliveryIssue {
+  match
+    @publication.prepare_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostFeedDurableResultRowFrames")
+pub fn client_values_host_feed_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+  chunk : Bytes,
+) -> Array[String] raise ClientValuesHostDeliveryIssue {
+  match @publication.feed_durable_result_row_frames(frames, chunk) {
+    Ok(value) => value
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostFinishDurableResultRowFrames")
+pub fn client_values_host_finish_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+) -> Array[Int] raise ClientValuesHostDeliveryIssue {
+  match @publication.finish_durable_result_row_frames(frames) {
+    Ok(value) => [value.bytes, value.rows]
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostCancelDurableResultRowFrames")
+pub fn client_values_host_cancel_durable_result_row_frames(
+  frames : @publication.DurableResultRowFrames,
+) -> Unit {
+  @publication.cancel_durable_result_row_frames(frames)
 }

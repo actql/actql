@@ -54,6 +54,10 @@ export interface ResultAccessProgress {
 export interface ResultDeliverySerializer {
   readonly [resultSerializerBrand]: true;
 }
+declare const durableRowFramesBrand: unique symbol;
+export interface DurableResultRowFrames {
+  readonly [durableRowFramesBrand]: true;
+}
 
 export interface ResultDeliveryControl {
   admit(name: string, wire: string,
@@ -115,6 +119,21 @@ export interface ResultDeliveryControl {
   existingDeliveryAttemptAction(record?: DeliveryContractView): number;
   deliveryFailureTerminalAction(observed: boolean): number;
   deliveryRecordRetryAction(next: number, count: number): number;
+  deliveryTransition(previous: DeliveryContractView | undefined,
+    next: DeliveryContractView): boolean;
+  deliverySuccessValid(attempt: DeliveryContractView,
+    receipt: DeliveryContractView, record: DeliveryContractView): boolean;
+  trustedClockNotBefore(previous: string | undefined,
+    observedAt: string): boolean;
+  prepareDurableResultRowFrames(bounds: Readonly<{
+    maxBytes: number; maxRows: number; maxRowBytes: number;
+    maxDepth: number; maxFrameBytes: number;
+  }>): DurableResultRowFrames;
+  feedDurableResultRowFrames(frames: DurableResultRowFrames,
+    chunk: Uint8Array): readonly string[];
+  finishDurableResultRowFrames(frames: DurableResultRowFrames):
+    Readonly<{bytes: number; rows: number}>;
+  cancelDurableResultRowFrames(frames: DurableResultRowFrames): void;
   prepareResultDeliverySerializer(format: string, schemaWire: string,
     fields: readonly string[], limits: PublicationLimits):
     ResultDeliverySerializer;

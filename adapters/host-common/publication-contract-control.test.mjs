@@ -2007,6 +2007,11 @@ test('portable control validates Receipt and Captured Run references',
       ...deliveryBase,
       format,
       attemptId: `delivery-${format}`,
+      createDigest: format === 'jsonl' ? () => {
+        const digest = createDigest();
+        return {update: bytes => digest.update(bytes),
+          finish: async () => digest.finish()};
+      } : createDigest,
       sink: {
         async write(bytes) {
           chunks.push(Buffer.from(bytes));
