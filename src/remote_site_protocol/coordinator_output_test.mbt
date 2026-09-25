@@ -129,6 +129,39 @@ test "Coordinator output transitions issue exact durable bodies" {
       true,
     ).unwrap().1
   let initial = prepare_durable_coordinator_output_record(output, plan).unwrap()
+  let facts = durable_coordinator_output_publication_facts(initial)
+  assert_eq(
+    facts.store_authority_cid,
+    @payload.publication_payload_request_store_authority(payload_request),
+  )
+  assert_eq(
+    facts.result_definition_cid,
+    @payload.publication_payload_request_result_definition(payload_request),
+  )
+  assert_eq(
+    facts.logical_relation_cid,
+    @payload.publication_payload_request_logical_relation(payload_request),
+  )
+  assert_eq(
+    facts.result_schema_cid,
+    @payload.publication_payload_request_schema(payload_request),
+  )
+  assert_eq(
+    facts.ordering_evidence_cid,
+    @payload.publication_payload_request_ordering_evidence(payload_request),
+  )
+  assert_eq(
+    facts.codec_contract_cid,
+    @payload.publication_payload_request_codec(payload_request),
+  )
+  assert_eq(
+    facts.row_count,
+    @payload.publication_payload_request_row_count(payload_request),
+  )
+  assert_eq(
+    facts.material_generation_cid,
+    @payload.publication_payload_material_identity(payload_request),
+  )
   let exact_poll = remote_poll_output_plan_json(
     remote_poll_output_request(output), remote_poll_output_intent(output),
   ).unwrap()
@@ -138,6 +171,10 @@ test "Coordinator output transitions issue exact durable bodies" {
   let unknown = prepare_coordinator_output_unknown(record).unwrap()
   assert_eq(coordinator_output_transition_expected_revision(unknown), 0)
   let uncertain = advance_durable_coordinator_output_record(initial, unknown).unwrap()
+  assert_eq(
+    durable_coordinator_output_publication_facts(uncertain).store_authority_cid,
+    facts.store_authority_cid,
+  )
   let unknown_body = durable_coordinator_output_record_json(uncertain)
   assert_eq(
     durable_coordinator_output_record_poll_json(uncertain), Ok(exact_poll),

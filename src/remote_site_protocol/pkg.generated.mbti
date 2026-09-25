@@ -209,6 +209,8 @@ pub fn durable_coordinator_output_admit_transfer_reply_json(DurableCoordinatorOu
 
 pub fn durable_coordinator_output_prepare_result_json(DurableCoordinatorOutputRecord, String, String) -> Result[String, DispatchIssue]
 
+pub fn durable_coordinator_output_publication_facts(DurableCoordinatorOutputRecord) -> DurableCoordinatorOutputPublicationFacts
+
 pub fn durable_coordinator_output_record_json(DurableCoordinatorOutputRecord) -> String
 
 pub fn durable_coordinator_output_record_poll_json(DurableCoordinatorOutputRecord) -> Result[String, DispatchIssue]
@@ -595,6 +597,17 @@ type DispatchRequest
 type DispatchTransition
 
 type DurableCoordinatorDispatchRecord
+
+pub(all) struct DurableCoordinatorOutputPublicationFacts {
+  store_authority_cid : String
+  result_definition_cid : String
+  logical_relation_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  codec_contract_cid : String
+  row_count : Int64
+  material_generation_cid : String
+}
 
 type DurableCoordinatorOutputRecord
 

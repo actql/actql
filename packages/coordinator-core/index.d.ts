@@ -114,6 +114,18 @@ export function checkedOutputPublicationFacts(plan: CheckedOutputPlan):
     rowCount: bigint;
     materialGenerationCid: string;
   }>;
+/** Retained Site claims; Store custody and publication need separate checks. */
+export function durableOutputPublicationFacts(durable: DurableOutputRecord):
+  Readonly<{
+    storeAuthorityCid: string;
+    resultDefinitionCid: string;
+    logicalRelationCid: string;
+    resultSchemaCid: string;
+    orderingEvidenceCid: string;
+    codecContractCid: string;
+    rowCount: bigint;
+    materialGenerationCid: string;
+  }>;
 export function prepareOutputIntent(journal: Journal,
   plan: CheckedOutputPlan): OutputIntentAdmission;
 export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;

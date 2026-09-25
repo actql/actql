@@ -11,6 +11,38 @@ struct DurableCoordinatorOutputRecord {
 }
 
 ///|
+/// Owner-admitted output claims recovered from the durable Site plan. The
+/// Store must independently verify its retained bytes and authority before
+/// these facts can enter a public Durable Result Binding.
+pub(all) struct DurableCoordinatorOutputPublicationFacts {
+  store_authority_cid : String
+  result_definition_cid : String
+  logical_relation_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+  codec_contract_cid : String
+  row_count : Int64
+  material_generation_cid : String
+}
+
+///|
+pub fn durable_coordinator_output_publication_facts(
+  durable : DurableCoordinatorOutputRecord,
+) -> DurableCoordinatorOutputPublicationFacts {
+  let request = durable.plan.payload_request
+  {
+    store_authority_cid: @payload.publication_payload_request_store_authority(request),
+    result_definition_cid: @payload.publication_payload_request_result_definition(request),
+    logical_relation_cid: @payload.publication_payload_request_logical_relation(request),
+    result_schema_cid: @payload.publication_payload_request_schema(request),
+    ordering_evidence_cid: @payload.publication_payload_request_ordering_evidence(request),
+    codec_contract_cid: @payload.publication_payload_request_codec(request),
+    row_count: @payload.publication_payload_request_row_count(request),
+    material_generation_cid: @payload.publication_payload_material_identity(request),
+  }
+}
+
+///|
 /// Re-admit all Site-supplied plan bodies against the durable dispatch output
 /// before allowing the Coordinator to persist an output occurrence.
 pub fn admit_coordinator_output_plan(

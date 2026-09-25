@@ -124,6 +124,22 @@ export const checkedOutputPublicationFacts = plan => {
     resultSchemaCid, orderingEvidenceCid, codecContractCid,
     rowCount: BigInt(rowCount), materialGenerationCid});
 };
+export const durableOutputPublicationFacts = durable => {
+  const facts = owner.coordinatorDurableOutputPublicationFacts(durable);
+  if (!Array.isArray(facts) || facts.length !== 8 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidCoordinatorDurableOutputPublicationFacts');
+  }
+  const [storeAuthorityCid, resultDefinitionCid, logicalRelationCid,
+    resultSchemaCid, orderingEvidenceCid, codecContractCid, rowCount,
+    materialGenerationCid] = facts;
+  if (!/^(0|[1-9][0-9]*)$/u.test(rowCount)) {
+    throw new Error('InvalidCoordinatorDurableOutputPublicationFacts');
+  }
+  return Object.freeze({storeAuthorityCid, resultDefinitionCid,
+    logicalRelationCid, resultSchemaCid, orderingEvidenceCid,
+    codecContractCid, rowCount: BigInt(rowCount), materialGenerationCid});
+};
 export const prepareOutputIntent = (journal, plan) =>
   checked(owner.coordinatorPrepareOutputIntent(journal, plan));
 export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;

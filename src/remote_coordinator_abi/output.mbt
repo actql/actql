@@ -261,6 +261,26 @@ pub fn coordinator_output_transfer_request_cid(
 }
 
 ///|
+/// Project only claims retained in the admitted Output Plan. A Store's
+/// physical custody check remains separate from this projection.
+#export_name("coordinatorDurableOutputPublicationFacts")
+pub fn coordinator_durable_output_publication_facts(
+  durable : @remote.DurableCoordinatorOutputRecord,
+) -> Array[String] {
+  let facts = @remote.durable_coordinator_output_publication_facts(durable)
+  [
+    facts.store_authority_cid,
+    facts.result_definition_cid,
+    facts.logical_relation_cid,
+    facts.result_schema_cid,
+    facts.ordering_evidence_cid,
+    facts.codec_contract_cid,
+    facts.row_count.to_string(),
+    facts.material_generation_cid,
+  ]
+}
+
+///|
 #export_name("coordinatorPrepareOutputResultJson")
 pub fn coordinator_prepare_output_result_json(
   durable : @remote.DurableCoordinatorOutputRecord,

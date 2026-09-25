@@ -50,6 +50,8 @@ pub fn coordinator_durable_output_json(@remote_site_protocol.DurableCoordinatorO
 
 pub fn coordinator_durable_output_poll_json(@remote_site_protocol.DurableCoordinatorOutputRecord) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_durable_output_publication_facts(@remote_site_protocol.DurableCoordinatorOutputRecord) -> Array[String]
+
 pub fn coordinator_durable_output_revision(@remote_site_protocol.DurableCoordinatorOutputRecord) -> Int
 
 pub fn coordinator_durable_request(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> @remote_site_protocol.DispatchRequest
