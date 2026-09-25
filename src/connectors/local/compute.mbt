@@ -1,4 +1,22 @@
 ///|
+/// Resolve the exact physical task target without changing the checked owner.
+/// A selected Step or prefix does not inherit the Stage's final output target.
+fn local_fixed_task_target(
+  sequence : @execution.GeneratedSequence,
+  owner : @lower.BoundPrepared,
+) -> @pipeline.Target? {
+  let prepared = @lower.bound_preparation(owner)
+  let selected_count = @execution.generated_sequence_step_count(sequence)
+  if selected_count < @pipeline.step_count(@lower.pipeline(prepared)) {
+    return @execution.generated_sequence_step_index_at(
+      sequence,
+      selected_count - 1,
+    ).map(step => @pipeline.Step(step))
+  }
+  @lower.preparation_output_target(prepared)
+}
+
+///|
 /// Local connector inventory: preparation, receiving admission, computation, retained
 /// output, cleanup. The existing driver still enforces selected fragment limits.
 pub fn local_fixed_compute_candidate(
@@ -323,10 +341,9 @@ pub fn[T] execute_local_managed_fixed_compute(
       Err(issue) => return Err(Execution(issue))
     }
   }
-  guard @lower.preparation_output_target(
-      @lower.bound_preparation(
-        @connector.managed_fixed_compute_request_owner(request),
-      ),
+  guard local_fixed_task_target(
+      constrained,
+      @connector.managed_fixed_compute_request_owner(request),
     )
     is Some(target) else {
     return Err(UnsupportedInputShape)
@@ -378,8 +395,9 @@ pub fn prepare_local_compute_execution(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
-  guard @lower.preparation_output_target(
-      @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+  guard local_fixed_task_target(
+      sequence,
+      @connector.fixed_compute_request_owner(request),
     )
     is Some(target) else {
     return Err(UnsupportedInputShape)
@@ -471,8 +489,9 @@ pub fn execute_local_fixed_compute_with_usage(
       Err(issue) => return Err(Execution(issue))
     }
   }
-  guard @lower.preparation_output_target(
-      @lower.bound_preparation(@connector.fixed_compute_request_owner(request)),
+  guard local_fixed_task_target(
+      sequence,
+      @connector.fixed_compute_request_owner(request),
     )
     is Some(target) else {
     return Err(UnsupportedInputShape)

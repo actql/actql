@@ -292,6 +292,12 @@ pub fn execute_fixed_producer_inputs(
       return Err(InputSet)
     }
   }
+  if sequence.selected_steps is Some([_]) && inputs is [input] {
+    return match execute_selected_relation_step(sequence, input, limits) {
+      Ok((output, _)) => Ok(output.completion)
+      Err((issue, _)) => Err(issue)
+    }
+  }
   execute_generated_sequence(
     sequence,
     [],
