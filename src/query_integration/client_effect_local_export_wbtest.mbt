@@ -447,6 +447,14 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     is Err(@publication_host.ForeignExport),
   )
   assert_true(
+    @publication_host.issue_source_free_client_effect_local_result_artifact(
+      prepared, inputs, 0, other, completed, bridge, out_preparation, local_definition,
+      local_invocation, out_receipt, retention, admission, run_definition, run_invocation,
+      observation, 65536, 4096, 32,
+    )
+    is Err(@publication_host.ForeignExport),
+  )
+  assert_true(
     issue(prepared, other_preparation, other_receipt)
     is Err(@publication_host.ForeignExport),
   )
@@ -472,13 +480,17 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     is Err(@publication_host.ForeignExport),
   )
   @execution.cancel_completed_relation_export_receipt(other_receipt) |> ignore
-  @execution.cancel_completed_relation_export_receipt(second_receipt) |> ignore
   @execution.cancel_completed_result_relation_export(out_preparation) |> ignore
   @execution.cancel_completed_result_relation_export(other_preparation)
   |> ignore
+  @execution.close_managed_publication_bridge(bridge)
+  assert_true(
+    issue(prepared, second_preparation, second_receipt)
+    is Err(@publication_host.ForeignExport),
+  )
+  @execution.cancel_completed_relation_export_receipt(second_receipt) |> ignore
   @execution.cancel_completed_result_relation_export(second_preparation)
   |> ignore
-  @execution.close_managed_publication_bridge(bridge)
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   available.val = false
   (operations.close)()
