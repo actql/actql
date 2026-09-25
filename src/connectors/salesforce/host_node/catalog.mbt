@@ -7,6 +7,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteProjection(@catalog.WriteProjectionIssue)
   WriteBody(@catalog.WriteBodyIssue)
   WriteRequest(@catalog.WriteRequestIssue)
+  TargetObservation(@catalog.TargetObservationIssue)
   WriteSingleResponse(@catalog.WriteSingleResponseIssue)
   WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)

@@ -56,6 +56,8 @@ pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, St
 
 pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRequestLimits) -> Result[SingleWriteRequest, WriteRequestIssue]
 
+pub fn prepare_target_observation(SingleWriteRequest, Int, Bytes, TargetObservationLimits) -> Result[TargetObservation, TargetObservationIssue]
+
 pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
 
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
@@ -159,6 +161,10 @@ pub fn single_write_request_path(SingleWriteRequest) -> String
 pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
+
+pub fn target_observation_response_sha256(TargetObservation) -> String
+
+pub fn target_observation_version_cid(TargetObservation) -> String
 
 pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int) -> ReadProjection?
 
@@ -487,6 +493,25 @@ pub struct SingleWriteRequest {
   projection : WriteProjection
   target : WriteTargetValue
   max_target_bytes : Int
+}
+
+pub struct TargetObservation {
+  version_cid : String
+  response_sha256 : String
+}
+
+pub(all) enum TargetObservationIssue {
+  InvalidLimits
+  CapacityExceeded
+  InvalidRecord
+  ForeignTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TargetObservationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_identity_bytes : Int
 }
 
 pub struct WriteBody {

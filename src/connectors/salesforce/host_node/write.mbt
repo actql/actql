@@ -293,6 +293,47 @@ pub fn salesforce_recheck_single_write_request(
 }
 
 ///|
+/// Interpret one bounded target read under the exact prepared request. A
+/// missing or foreign record cannot become an update-side Preview guard.
+#export_name("salesforcePrepareTargetObservation")
+pub fn salesforce_prepare_target_observation(
+  request : @catalog.SingleWriteRequest,
+  status : Int,
+  body : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_identity_bytes : Int,
+) -> @catalog.TargetObservation raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.prepare_target_observation(request, status, body, {
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_identity_bytes,
+    }) {
+    Ok(value) => value
+    Err(issue) => raise TargetObservation(issue)
+  }
+}
+
+///|
+#export_name("salesforceTargetObservationVersionCid")
+pub fn salesforce_target_observation_version_cid(
+  value : @catalog.TargetObservation,
+) -> String {
+  @catalog.target_observation_version_cid(value)
+}
+
+///|
+#export_name("salesforceTargetObservationResponseSha256")
+pub fn salesforce_target_observation_response_sha256(
+  value : @catalog.TargetObservation,
+) -> String {
+  @catalog.target_observation_response_sha256(value)
+}
+
+///|
 #export_name("salesforceSingleWriteRequestScopeMatches")
 pub fn salesforce_single_write_request_scope_matches(
   request : @catalog.SingleWriteRequest,
