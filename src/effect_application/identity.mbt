@@ -108,6 +108,11 @@ pub fn logical_request_scope_cid(scope : LogicalRequestScope) -> String {
 }
 
 ///|
+pub fn logical_request_scope_authority(scope : LogicalRequestScope) -> String {
+  @request_scope.logical_request_scope_authority(scope)
+}
+
+///|
 pub fn prepare_effect_dispatch_key(
   scope : LogicalRequestScope,
   effect_preview_cid : String,

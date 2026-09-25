@@ -133,6 +133,8 @@ export function authorObservedSalesforceEffectPreview({
           planLimits[key] > 0)) {
     fail('InvalidSalesforceEffectPreviewAuthoring');
   }
+  const requestAuthority = moon.clientProgramEffectRequestAuthority(
+    requestScope);
   if (templateWire === undefined) {
     templateWire = productPreviewDraft({moon, prepared, context, members,
       maxWireBytes, maxNodes, maxDepth, planLimits});
@@ -158,6 +160,9 @@ export function authorObservedSalesforceEffectPreview({
   const requestOrder = [];
   for (const [memberIndex, member] of members.entries()) {
     const proposal = template.effects[memberIndex];
+    if (proposal?.authority_scope_cid !== requestAuthority) {
+      fail('ForeignSalesforceEffectPreviewAuthority');
+    }
     if (!Number.isSafeInteger(member?.stageIndex) ||
         member.stageIndex < 0 || typeof member.effectId !== 'string') {
       fail('ForeignSalesforceEffectPreviewMember');

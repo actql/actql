@@ -2146,6 +2146,16 @@ pub fn client_program_canonical_effect_preview_draft(
 }
 
 ///|
+/// Bind Preview authoring to the authority already owned by the logical
+/// request. This does not authenticate that authority or grant an apply permit.
+#export_name("clientProgramEffectRequestAuthority")
+pub fn client_program_effect_request_authority(
+  scope : @effect.LogicalRequestScope,
+) -> String {
+  @effect.logical_request_scope_authority(scope)
+}
+
+///|
 /// Seal row, member and set identities before deriving non-semantic dispatch
 /// keys. This only authors a private Preview wire; checked Run binding,
 /// current authority and apply permission remain separate obligations.
