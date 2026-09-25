@@ -2986,8 +2986,20 @@ test(`two-member captured Effect Run ${
       }
       assert.equal((await store.retireCommittedResult(key,
         storedResults.definitions[0].identity)).deleted, true);
+      const privateHoldingCid = control.effectPrivateEvidenceBinding(
+        admittedPreview, store.storeAuthorityCid).holdingCid;
+      for (const holdingCid of [privateHoldingCid,
+        firstHolding.holdingCid, secondHolding.holdingCid]) {
+        assert.ok(await store.inspectPhysicalHolding(holdingCid));
+      }
+      assert.ok(store.status().storedBytes > 0);
       assert.equal((await store.retireCommittedPublicationMetadata(
         key, '2026-09-24T00:00:04.000Z')).deleted, true);
+      for (const holdingCid of [privateHoldingCid,
+        firstHolding.holdingCid, secondHolding.holdingCid]) {
+        assert.equal(await store.inspectPhysicalHolding(holdingCid),
+          undefined);
+      }
       assert.equal(store.status().storedBytes, 0);
       published = true;
     } finally {
