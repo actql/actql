@@ -40,6 +40,8 @@ implementation while retaining separate input bindings and route evidence.
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
 | Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
+| Ordinary keyed `group count` can still recheck and append a long text output key synchronously after its stepped input scan. | Reuse exact checked input evidence and charge the output value through bounded admission before publication. Test a long text key with quantum-one Host cancellation, exact/one-short output limits, two consumers and cleanup. Structured keys remain rejected by the formal checker. |
+| Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its single-sequence reservation previously omitted this overlap; the selected chain still lacks an independent logical peak-workspace boundary. | Keep the combined child reservation and prove the exact peak and one-short workspace threshold through the captured standard Host path. Verify failure cleanup and independent release of both downstream consumers. |
 | Standard SGA Graph programs still have nine registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
 
@@ -141,7 +143,12 @@ that route. The selected chain now also runs keyed count, filter and select
 within one task, with two downstream Computes and delivered cancellation.
 Its captured-task regression pins 91 charged steps, rejects a one-short
 work budget, and confirms failed-task reclamation. The selected chain's
-exact workspace boundary is still unproven.
+capacity reservation now includes all children retained by the parent until
+cleanup, their provisional outputs, and their handles. A captured-task
+fixture checks that sum against the single-sequence allowance. This closes
+the physical reservation undercount, not the selected chain's exact logical
+workspace boundary: an independent peak-workspace and one-short fixture is
+still required.
 The count input scan now resumes inside nested arrays, objects, and long
 text rather than treating a whole cell as one non-interruptible step.
 An unused 256-element array has exact and one-short value-budget fixtures,

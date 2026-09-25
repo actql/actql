@@ -2217,6 +2217,13 @@
           "fixture": "ordinary keyed count chain admits exact work and one-short limits"
         },
         {
+          "role": "keyed_count_same_stage_overlap_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary keyed count chain reserves overlapping child capacity"
+        },
+        {
           "role": "count_nested_input_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

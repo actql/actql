@@ -222,6 +222,51 @@ fn start_bounded_relation_step(
 }
 
 ///|
+/// Chain children remain owned until the parent is reclaimed. Their private
+/// scratch and provisional outputs can therefore overlap even though only one
+/// child advances at a time.
+fn bounded_relation_chain_capacity(
+  sequence : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity? {
+  guard @execution.generated_sequence_capacity(sequence, limits, measurement)
+    is Some(base) else {
+    return None
+  }
+  let count = @execution.generated_sequence_step_count(sequence)
+  if count < 2 {
+    return Some(base)
+  }
+  let mut live_children = 0L
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index)
+      is Some(step) &&
+      @execution.select_generated_sequence_step(sequence, step)
+      is Some(selected) &&
+      bounded_relation_step_provider(selected, limits, measurement)
+      is Some(provider) &&
+      managed_provider_capacity(provider, selected) is Some(child) else {
+      return None
+    }
+    if child.retained_bytes > 9223372036854775807L - child.execution_bytes ||
+      live_children >
+      9223372036854775807L - child.retained_bytes - child.execution_bytes {
+      return None
+    }
+    live_children += child.retained_bytes + child.execution_bytes
+  }
+  let handles = count.to_int64() * 256L
+  if live_children > 9223372036854775807L - handles {
+    return None
+  }
+  @execution.execution_capacity(
+    base.retained_bytes,
+    Int64::max(base.execution_bytes, live_children + handles),
+  )
+}
+
+///|
 /// Execute a checked unary Relation chain inside its original task. Every
 /// intermediate result remains private and supplies only the next exact edge.
 fn bounded_relation_chain_execution(
@@ -576,9 +621,7 @@ fn selected_relation_provider(
         None => true
       }
     },
-    sequence => {
-      @execution.generated_sequence_capacity(sequence, limits, measurement)
-    },
+    sequence => bounded_relation_chain_capacity(sequence, limits, measurement),
     (sequence, inputs, _max_rows, max_value_bytes, execution) => {
       guard inputs is [input] else {
         return Err(@connector.Execution(@execution.InputSet))
