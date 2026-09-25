@@ -48,9 +48,9 @@ The checked member-to-Mapping lookup also lives in that common owner; the Node
 bridge only forwards the request. A repeated check can reproduce the local
 Invocation CID, but cannot reuse the first check's opaque owner.
 It is not yet an `effect_identity_cid`: the normal Preview still receives
-example Effect identity CIDs. The next shared connection must project the
-exact local Result Artifact from authenticated completed Stage evidence, then
-issue each member identity from the local Invocation, authored Effect
+example Effect identity CIDs. The next shared connection must retain and
+admit the issued local Result Artifact in the exact Effect-source inventory,
+then issue each member identity from the local Invocation, authored Effect
 semantics, that Artifact, and the resolved Mapping or Command. The current
 private Effect-source Artifact is Run-bound custody evidence and cannot be
 silently substituted for the local semantic Result Artifact. Foreign member,
@@ -60,11 +60,18 @@ must not use the source-free issuer.
 
 The local Result Definition now has its own 0.1 schema, reference role,
 independent CID vectors, and checked-owner issuer. The captured Effect input
-export issues it from the exact live source pin before physical I/O. This
-does not yet issue the complete local Result Artifact: ordering, policy,
-retention, and provenance must still be resolved from authenticated completed
-Stage evidence. The private Effect-source Artifact remains Run-bound custody
-evidence and cannot be relabeled as that local semantic Artifact.
+export issues it from the exact live source pin before physical I/O. For a
+source-free Unit, the same export now issues a local Result Artifact and exact
+derivation/ordering witnesses from its checked local Invocation and completed
+export receipt. MoonBit checks that the receipt belongs to this exact export
+preparation; an equal-value foreign receipt or released receipt is rejected.
+The private Effect-source Artifact remains separate Run-bound custody evidence.
+The local Artifact and its witnesses are not yet retained in a durable exact
+Effect-source inventory or admitted to the completed local Manifest, and
+supplied scope, policy, authority, and retention references still require
+typed resolution against the admitted Run before that admission can succeed.
+Units with imported or external observations still need their corresponding
+local Invocation issuer. Neither gap is treated as completed Effect identity.
 
 The shared boundary is commit `07c99312f`: Distribution can use
 `clientProgramIssueSourceFreeLocalEffectInvocation` for the checked root Unit
