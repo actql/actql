@@ -210,6 +210,8 @@ test('one durable Run dispatch reservation survives an unknown start',
     }, moon, publicationControl);
     assert.equal(repeated.kind, 'reconcile');
     assert.equal(repeated.revision, 1);
+    assert.equal(recovered.lookupRunDefinition(reserved.ref, moon,
+      publicationControl).preDispatchFailureConfirmed, false);
     const changed = {...fixture, parameterValuesCid: cid('c')};
     changed.intentFingerprintCid = hashCanonical({
       caller_input_intent_cid: changed.callerInputIntentCid,
@@ -235,6 +237,41 @@ test('one durable Run dispatch reservation survives an unknown start',
     assert.equal(recovered.lookup({tenantId: 'tenant-a',
       authorityScopeCid: cid('a'), requestId: fixture.requestId}, moon)
       .revision, 1);
+  });
+
+test('only an exact reserved Run retains a confirmed pre-dispatch failure',
+  async t => {
+    const path = await directory(t);
+    const first = openClientRequestJournal(path);
+    const definition = runDefinition('failed-before-site');
+    const accepted = first.acceptDefinition(identity(), {
+      tenantId: 'tenant-a', runDefinition: definition,
+      lookupExpiresAt: expires,
+    }, moon, publicationControl);
+    assert.throws(() => first.markPreDispatchFailure(accepted.ref),
+      {code: 'ClientRunFailureObservationDenied'});
+    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    for (const ref of [
+      {...accepted.ref, tenantId: 'other-tenant'},
+      {...accepted.ref, authorityScopeCid: cid('c')},
+      {...accepted.ref, runDefinitionCid: cid('d')},
+    ]) {
+      assert.throws(() => first.markPreDispatchFailure(ref),
+        {code: 'ClientRunFailureObservationDenied'});
+    }
+    first.markPreDispatchFailure(accepted.ref);
+    first.markPreDispatchFailure(accepted.ref);
+    first.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    const retained = reopened.lookupRunDefinition(accepted.ref, moon,
+      publicationControl);
+    assert.equal(retained.preDispatchFailureConfirmed, true);
+    assert.equal(retained.revision, 2);
+    assert.equal(reopened.reserveDispatch(identity(), {
+      tenantId: 'tenant-a', currentAuthorization: true,
+    }, moon, publicationControl).kind, 'reconcile');
   });
 
 test('checked Result inventory stays with the durable Run', async t => {

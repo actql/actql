@@ -122,7 +122,8 @@ const columns = `authority_scope_cid, caller_request_id,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
   tenant_id, run_definition_cid, run_definition_wire, revision,
   lookup_expires_at, result_names_json`;
-const selectColumns = `${columns}, dispatch_reserved`;
+const selectColumns = `${columns}, dispatch_reserved,
+  pre_dispatch_failure_confirmed`;
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -163,6 +164,8 @@ export function openClientRequestJournal(directory, {
         result_names_json TEXT,
         dispatch_reserved INTEGER NOT NULL DEFAULT 0
           CHECK (dispatch_reserved IN (0, 1)),
+        pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0
+          CHECK (pre_dispatch_failure_confirmed IN (0, 1)),
         PRIMARY KEY (authority_scope_cid, caller_request_id)
       ) STRICT;
     `);
@@ -191,6 +194,12 @@ export function openClientRequestJournal(directory, {
         throw error;
       }
     }
+    if (!fields.some(field => field.name ===
+        'pre_dispatch_failure_confirmed')) {
+      database.exec('ALTER TABLE client_requests ADD COLUMN '
+        + 'pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0 '
+        + 'CHECK (pre_dispatch_failure_confirmed IN (0, 1))');
+    }
     if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
@@ -213,6 +222,11 @@ export function openClientRequestJournal(directory, {
     SET dispatch_reserved = 1, revision = revision + 1
     WHERE authority_scope_cid = ? AND caller_request_id = ? AND
       dispatch_reserved = 0`);
+  const confirmPreDispatchFailure = database.prepare(`UPDATE client_requests
+    SET pre_dispatch_failure_confirmed = 1, revision = revision + 1
+    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+      run_definition_cid = ? AND dispatch_reserved = 1 AND
+      pre_dispatch_failure_confirmed = 0`);
 
   const acceptRecord = (identity, {tenantId, runDefinitionCid,
     runDefinitionWire, resultNames, revision = 0, lookupExpiresAt}, control) => {
@@ -366,6 +380,8 @@ export function openClientRequestJournal(directory, {
         resultNames: retained.row.result_names_json === null ? undefined :
           JSON.parse(retained.row.result_names_json),
         dispatchReserved: retained.row.dispatch_reserved === 1,
+        preDispatchFailureConfirmed:
+          retained.row.pre_dispatch_failure_confirmed === 1,
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
@@ -395,6 +411,8 @@ export function openClientRequestJournal(directory, {
         resultNames: row.result_names_json === null ? undefined :
           JSON.parse(row.result_names_json),
         dispatchReserved: row.dispatch_reserved === 1,
+        preDispatchFailureConfirmed:
+          row.pre_dispatch_failure_confirmed === 1,
         runDefinition: retainedRunDefinition(
           row, publicationControl, maxRunDefinitionWireBytes),
       });
@@ -426,6 +444,8 @@ export function openClientRequestJournal(directory, {
         resultNames: retained.row.result_names_json === null ? undefined :
           JSON.parse(retained.row.result_names_json),
         dispatchReserved: retained.row.dispatch_reserved === 1,
+        preDispatchFailureConfirmed:
+          retained.row.pre_dispatch_failure_confirmed === 1,
       });
     },
     // Physical admit-or-lookup ordering for a checked request. The common
@@ -494,6 +514,36 @@ export function openClientRequestJournal(directory, {
             (error.code.startsWith('ClientRequest') ||
               error.code.startsWith('ClientRun'))) throw error;
         fail('ClientRunStartUnknown', error);
+      }
+    },
+    // Physical Host evidence only: a failure before invoking Site execution
+    // is confirmed. A lost reply or absent worker cannot call this method.
+    markPreDispatchFailure(ref) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid)) {
+        fail('InvalidClientRunFailureObservation');
+      }
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+        if (row === undefined || row.dispatch_reserved !== 1) {
+          fail('ClientRunFailureObservationDenied');
+        }
+        if (row.pre_dispatch_failure_confirmed === 0 &&
+            confirmPreDispatchFailure.run(ref.tenantId,
+              ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
+          fail('ClientRequestJournalCorrupt');
+        }
+        database.exec('COMMIT');
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) { fail('ClientRunFailureObservationUnknown', rollback); }
+        if (typeof error?.code === 'string' &&
+            (error.code.startsWith('ClientRun') ||
+              error.code.startsWith('ClientRequest'))) throw error;
+        fail('ClientRunFailureObservationUnknown', error);
       }
     },
     close() {

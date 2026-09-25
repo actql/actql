@@ -149,7 +149,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     const wire = moon.clientProgramIssueUnpublishedRunState(
       control.runDefinitionRunId(retained.runDefinition), now(),
       retained.resultNames, retained.dispatchReserved,
-      activeDispatches.has(ref.runDefinitionCid));
+      retained.preDispatchFailureConfirmed);
     if (wire === undefined) throw new Error('InvalidRunStateProjection');
     return JSON.parse(wire);
   };
@@ -209,12 +209,14 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
     }, moon, control);
     if (!activeDispatches.has(accepted.ref.runDefinitionCid) &&
         accepted.dispatchReserved !== true) {
-      const active = {promise: undefined};
+      const active = {promise: undefined, reserved: false,
+        physicalStarted: false};
       activeDispatches.set(accepted.ref.runDefinitionCid, active);
       active.promise = Promise.resolve().then(async () => {
         const start = await startRun({identity: requested, tenantId,
           principalId: actual, connection});
         if (start.kind !== 'reserved') return;
+        active.reserved = true;
         if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
         if (plan === undefined) {
           plan = sourceFreeValuesPlan({moon, control, preparedProgram,
@@ -228,11 +230,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+        active.physicalStarted = true;
         const published = await runPublishedCapturedStrategy(setup,
           {store, plan});
         await published.close();
         await published.cleanup();
       }).catch(async cause => {
+        if (active.reserved && !active.physicalStarted) {
+          try { journal.markPreDispatchFailure(accepted.ref); } catch {}
+        }
         if (cause?.execution) {
           try { await cause.execution.close(); } catch {}
           try { await cause.execution.cleanup(); } catch {}
