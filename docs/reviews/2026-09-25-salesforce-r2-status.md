@@ -17,7 +17,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The installed Host fixture authors its private Preview and supplies current target guards itself. The Site now obtains a bounded target GET under separate read authority and MoonBit binds a successful record response to its exact target, but the ordinary Salesforce path does not yet retain that observation, author the Preview from captured input, or obtain fresh whole-set guard evidence before apply. Connect those steps to the existing captured owner. | For update and upsert, author each guard from the authorized target observation, then reobserve every guarded target before the first write. A missing or changed observation rejects the whole set with zero write sends and zero write-credential uses; an approved Preview is never silently rebuilt from the new state. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
+| The installed Host fixture now authors update/upsert Preview guards from authorized target GETs and reobserves every target before the common MoonBit whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. The general Salesforce Host operation still needs to own the observation inventory and Preview authoring from captured input, rather than leaving that assembly to the fixture. | Connect the exact observed records and guard CIDs to one production Preview authoring operation. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -28,6 +28,10 @@ Salesforce-shaped Site operations, durable row custody, and
 `publishCompletedEffectfulRun`. The Host regressions cover halt/continue,
 unknown without resend, Collections partial failure, missing and stale guards,
 claim and saved-response faults, and lost publication-index acknowledgement.
+The update/upsert cases now derive Preview guards from real credentialed HTTPS
+target observations and reobserve at apply. A changed target is rejected by
+the common preflight before any write request or write credential use. This
+remains Host fixture assembly, not a general Preview authoring API.
 A Store restart after durable index commit leaves a commit-unknown owner
 that reconciles the exact
 index without another Effect send. The installed SDK can then attach, inspect

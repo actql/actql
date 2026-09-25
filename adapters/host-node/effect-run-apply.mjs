@@ -9,16 +9,32 @@ const fail = code => {
 // The Site operation owns current credential use and physical observation;
 // this Host boundary never infers a row outcome from its return value.
 export async function applyCapturedEffectSet({
-  moon, capturedInputs, preflight, ledger, members, dispatchRow,
-  maxFrontierWork, signal,
+  moon, capturedInputs, preflight: suppliedPreflight, ledger, members,
+  dispatchRow,
+  maxFrontierWork, signal, refreshGuardObservations,
 }) {
-  if (!moon || !capturedInputs || !preflight || !ledger ||
+  if (!moon || !capturedInputs || !suppliedPreflight || !ledger ||
       typeof ledger.frontierFromCapturedHeads !== 'function' ||
       !Array.isArray(members) || members.length === 0 ||
       typeof dispatchRow !== 'function' ||
+      (refreshGuardObservations !== undefined &&
+        typeof refreshGuardObservations !== 'function') ||
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1) {
     fail('InvalidCapturedEffectApply');
   }
+  const preflight = {...suppliedPreflight};
+  for (const name of ['proofs', 'sources', 'contracts', 'capabilities',
+    'authorities', 'observedRows', 'guardVersions', 'routes']) {
+    if (!Array.isArray(preflight[name])) fail('InvalidCapturedEffectApply');
+    preflight[name] = Object.freeze([...preflight[name]]);
+  }
+  if (!Array.isArray(preflight.keys) ||
+      !preflight.keys.every(Array.isArray)) {
+    fail('InvalidCapturedEffectApply');
+  }
+  preflight.keys = Object.freeze(preflight.keys.map(keys =>
+    Object.freeze([...keys])));
+  Object.freeze(preflight);
   const ownedMembers = Object.freeze(members.map(member => {
     if (!Array.isArray(member?.claims)) fail('InvalidCapturedEffectApply');
     return Object.freeze({claims: Object.freeze(member.claims.map(claim =>
@@ -30,10 +46,18 @@ export async function applyCapturedEffectSet({
     fail('InvalidCapturedEffectApply');
   }
   signal?.throwIfAborted();
+  const currentGuards = refreshGuardObservations === undefined
+    ? preflight : await refreshGuardObservations({signal});
+  if (!Array.isArray(currentGuards?.observedRows) ||
+      !Array.isArray(currentGuards.guardVersions)) {
+    fail('InvalidCapturedEffectGuardObservations');
+  }
+  signal?.throwIfAborted();
   checked(moon.clientProgramCheckEffectApplyPreflight(
     capturedInputs, preflight.proofs, preflight.sources,
     preflight.contracts, preflight.capabilities, preflight.authorities,
-    preflight.observedRows, preflight.guardVersions, preflight.routes,
+    currentGuards.observedRows, currentGuards.guardVersions,
+    preflight.routes,
     preflight.risk, preflight.reviewProjectionCid,
     preflight.authorityScopeCid, preflight.policyCid,
     preflight.validityCid, preflight.issuerCid,
