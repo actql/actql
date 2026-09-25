@@ -61,6 +61,41 @@ pub fn client_values_host_trusted_clock_not_before(
 }
 
 ///|
+#export_name("clientValuesHostPrepareDeliveryGrantUsageClaim")
+pub fn client_values_host_prepare_delivery_grant_usage_claim(
+  grant : @publication.PublicationContract,
+  existing_wire : String?,
+  attempt : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.DeliveryGrantUsageClaim raise ClientValuesHostDeliveryIssue {
+  match
+    @publication.prepare_delivery_grant_usage_claim(
+      grant, existing_wire, attempt, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostDeliveryGrantUsageClaimWire")
+pub fn client_values_host_delivery_grant_usage_claim_wire(
+  claim : @publication.DeliveryGrantUsageClaim,
+) -> String {
+  @publication.delivery_grant_usage_claim_wire(claim)
+}
+
+///|
+#export_name("clientValuesHostDeliveryGrantUsageClaimIsNew")
+pub fn client_values_host_delivery_grant_usage_claim_is_new(
+  claim : @publication.DeliveryGrantUsageClaim,
+) -> Bool {
+  @publication.delivery_grant_usage_claim_is_new(claim)
+}
+
+///|
 #export_name("clientValuesHostBeginResultAccessProgress")
 pub fn client_values_host_begin_result_access_progress() -> @publication.ResultAccessProgress {
   @publication.begin_result_access_progress()

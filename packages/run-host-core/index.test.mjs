@@ -383,6 +383,17 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
         attemptId: 'reader-1', requestedAt: '2026-09-18T00:31:00.000Z'},
       limits);
     assert.equal(delivery.name, 'delivery_attempt');
+    const usage = readControl.prepareDeliveryGrantUsageClaim(grant,
+      undefined, delivery, limits);
+    assert.equal(usage.newlyClaimed, true);
+    assert.equal(readControl.prepareDeliveryGrantUsageClaim(grant,
+      usage.wire, delivery, limits).newlyClaimed, false);
+    const another = readControl.issueDeliveryAttempt(publicIndex,
+      readManifest, grant, {resultName: 'answer', format: 'jsonl',
+        attemptId: 'reader-2', requestedAt: '2026-09-18T00:32:00.000Z'},
+      limits);
+    assert.throws(() => readControl.prepareDeliveryGrantUsageClaim(grant,
+      usage.wire, another, limits), {code: 'RunHostDeliveryRejected'});
     assert.equal(readControl.deliveryResultDefinitionCid(readManifest,
       delivery), definition.cid);
     assert.throws(() => readControl.issueDeliveryAttempt(publicIndex,

@@ -1148,6 +1148,17 @@ export function openResultDeliveryControl() {
     trustedClockNotBefore(previous, observedAt) {
       return owner.clientValuesHostTrustedClockNotBefore(previous, observedAt);
     },
+    prepareDeliveryGrantUsageClaim(grant, existingWire, attempt, limits) {
+      const claim = deliveryResult(
+        'clientValuesHostPrepareDeliveryGrantUsageClaim',
+        deliveryToken(grant), existingWire, deliveryToken(attempt),
+        ...limitsOf(limits));
+      return Object.freeze({
+        wire: owner.clientValuesHostDeliveryGrantUsageClaimWire(claim),
+        newlyClaimed:
+          owner.clientValuesHostDeliveryGrantUsageClaimIsNew(claim),
+      });
+    },
     prepareDurableResultRowFrames(bounds) {
       const frames = deliveryResult(
         'clientValuesHostPrepareDurableResultRowFrames',

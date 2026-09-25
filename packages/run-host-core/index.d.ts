@@ -125,6 +125,11 @@ export interface ResultDeliveryControl {
     receipt: DeliveryContractView, record: DeliveryContractView): boolean;
   trustedClockNotBefore(previous: string | undefined,
     observedAt: string): boolean;
+  prepareDeliveryGrantUsageClaim(grant: DeliveryContractView,
+    existingWire: string | undefined, attempt: DeliveryContractView,
+    limits: PublicationLimits): Readonly<{
+      wire: string; newlyClaimed: boolean;
+    }>;
   prepareDurableResultRowFrames(bounds: Readonly<{
     maxBytes: number; maxRows: number; maxRowBytes: number;
     maxDepth: number; maxFrameBytes: number;
