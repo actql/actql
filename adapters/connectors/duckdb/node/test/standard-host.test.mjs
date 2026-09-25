@@ -6735,6 +6735,10 @@ async function exerciseStrategyGraph(
       program: splitValuesTakeProgram, cancelAtStart: 3},
     {name: 'split-values-row-window-in-flight',
       program: fixedRowWindowProgram, cancelAtStart: 2},
+    {name: 'split-values-fixed-watermark-in-flight',
+      program: fixedWatermarkProgram, cancelAtStart: 2},
+    {name: 'split-values-prefix-watermark-in-flight',
+      program: prefixWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-unpivot-in-flight',
       program: unpivotProgram, cancelAtStart: 2},
     {name: 'split-values-unnest-in-flight',
@@ -6760,6 +6764,9 @@ async function exerciseStrategyGraph(
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
+    const watermarkCancellation = cancellationName ===
+      'split-values-fixed-watermark-in-flight' ||
+      cancellationName === 'split-values-prefix-watermark-in-flight';
     const unpivotCancellation = cancellationName ===
       'split-values-unpivot-in-flight';
     const unnestCancellation = cancellationName ===
@@ -6770,7 +6777,8 @@ async function exerciseStrategyGraph(
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (rowWindowCancellation
-        ? 'window_values' : unpivotCancellation
+        ? 'window_values' : watermarkCancellation
+          ? 'watermark_values' : unpivotCancellation
           ? 'unpivot_values' : unnestCancellation
             ? 'unnest_values' : jsonPickCancellation ||
               sameStageJsonFilterCancellation
@@ -6779,6 +6787,8 @@ async function exerciseStrategyGraph(
     valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
+        : watermarkCancellation
+          ? {id: index, time: 100 - index}
         : unpivotCancellation
           ? {a: index, b: index + 1, id: index}
           : unnestCancellation
@@ -6838,7 +6848,8 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
-                      rowWindowCancellation || unpivotCancellation ||
+                      rowWindowCancellation || watermarkCancellation ||
+                      unpivotCancellation ||
                       unnestCancellation || jsonPickCancellation ||
                       sameStageJsonFilterCancellation)
                     ? Math.min(quantum, 7) : quantum;
@@ -6849,7 +6860,9 @@ async function exerciseStrategyGraph(
                   }
                   if (start === cancelAtStart &&
                       observation?.complete === false &&
-                      observation.work > 0n && !valuesWorkObserved) {
+                      observation.work > 0n &&
+                      (!watermarkCancellation || observation.progress > 0n) &&
+                      !valuesWorkObserved) {
                     valuesWorkObserved = true;
                     setTimeout(() => valuesCancellation.abort(), 0);
                   }

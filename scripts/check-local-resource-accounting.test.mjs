@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 51 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 52 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -227,6 +227,8 @@ test('watermark loses its independent resource boundary with its fixture', () =>
   for (const role of [
     'watermark_fixed_host_two_consumers',
     'watermark_prefix_host_two_consumers',
+    'watermark_fixed_in_flight_host_timer',
+    'watermark_prefix_in_flight_host_timer',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&
@@ -235,6 +237,11 @@ test('watermark loses its independent resource boundary with its fixture', () =>
         item.role !== role);
     }), new RegExp(`RelA watermark_rows: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'watermark_rows');
+    delete route.resource_assurance.selected_entrypoint;
+  }), /RelA:watermark_rows:selected_entrypoint: assured production claim lacks its exact route proofs/u);
 });
 
 test('json pick loses its independent resource boundary with its fixture', () => {
@@ -511,8 +518,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 52 |',
     '| Path-scoped work/workspace assurance | 51 |',
-    '| Path-scoped work/workspace assurance | 50 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(

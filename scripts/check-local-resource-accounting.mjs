@@ -736,6 +736,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'watermark_fixed_host_two_consumers',
       'watermark_prefix_host_two_consumers',
+      'watermark_fixed_in_flight_host_timer',
+      'watermark_prefix_in_flight_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

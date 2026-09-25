@@ -2,7 +2,7 @@
 
 ## Current delivery unit and acceptance boundary
 
-Assessed at `53b650f6959b565b6dabeb8d0d11be43c7545694` against the
+Assessed at product source commit `b9b183987c7a9d37e4cc1c41f667a2b652c7e84b` against the
 current product code and the historical Local work order and progress review.
 This section describes the current delivery unit, not the whole original
 RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
@@ -27,7 +27,7 @@ prove these properties; a normal gate result or an operation count does not.
 
 ### Remaining product work and its acceptance tests
 
-The strict gate currently rejects 29 RelA whole-sequence entrypoints, four
+The strict gate currently rejects 29 RelA whole-sequence entrypoints, five
 additional selected RelA paths, two same-Stage binary paths, thirteen SGA
 entrypoints, `merge_rankings`, two VecA row expressions, and the providerless
 synchronous computation. These are route/evidence gaps, not 53 claims of
@@ -43,7 +43,7 @@ separate input bindings and route-specific evidence.
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 51 path-scoped counts describe evidence, not
+list. Its 23 full-route and 52 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -91,12 +91,18 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 51 |
-| Selected-only assurance | 0 |
+| Path-scoped work/workspace assurance | 52 |
+| Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
+The selected watermark route now has fixed and prefix quantum-one fixtures,
+exact/one-short work and workspace limits, two downstream consumers, and
+Host-delivered timer cancellation after positive work. Its independent
+whole-sequence entrypoint remains unassured and the providerless synchronous
+fallback remains reachable; this is selected-only evidence, not completion
+of `watermark_rows` or of the delivery unit.
 The review of `0e8e0ada` found a binary input scan cleanup gap. The shared
 scan cleanup, Append/CrossJoin wiring, retained-frame assertions, borrowed
 input checks, and standard Host input-admission cancellation were already
