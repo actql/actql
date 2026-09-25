@@ -847,6 +847,23 @@ test('admitted source-free Effect Run computes through the installed Host',
           beforeSource.reservedBytes);
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
+        await assert.rejects(preparePinnedEffectSourcePayload({
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: outputLimits.maxWireBytes,
+          control: {...control,
+            issueSourceFreeLocalEffectResultArtifact(...args) {
+              moon.clientProgramEffectInputExportReleaseReceipt(args[6]);
+              return control.issueSourceFreeLocalEffectResultArtifact(...args);
+            }},
+          invocation: invocationContract, retention,
+          sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+        }), {code: 'MoonBitHostFailure'});
+        assert.equal(store.status().storedBytes,
+          beforeSource.storedBytes);
         const foreignLocalDefinition = checked(
           moon.clientProgramIssueLocalEffectResultDefinition(
             foreignPrepared, 0, 'rows', 4096, 16, 4));
@@ -912,6 +929,40 @@ test('admitted source-free Effect Run computes through the installed Host',
           localEvidenceContext: {scopeCid: cid('3'),
             effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
         });
+        const exportLimits = moon.clientProgramEffectInputExportLimits(
+          ...effectInputExportArgs(outputLimits));
+        const capturedInvocation = checked(
+          moon.clientProgramIssueCapturedEffectInputLocalInvocation(
+            prepared, inputs, 0, publicationLimits.maxWireBytes,
+            publicationLimits.maxNodes, publicationLimits.maxDepth));
+        await exportPinnedEffectInput({
+          moon, execution, inputs, memberIndex: 0, limits: exportLimits,
+          onChunk() {},
+          async onReceipt(firstInput, firstReceipt, firstImporting) {
+            await exportPinnedEffectInput({
+              moon, execution, inputs, memberIndex: 0,
+              limits: exportLimits, onChunk() {},
+              onReceipt(secondInput, secondReceipt, secondImporting) {
+                assert.equal(firstInput, secondInput);
+                assert.notEqual(firstImporting, secondImporting);
+                assert.throws(() => control
+                  .issueSourceFreeLocalEffectResultArtifact(
+                    prepared, inputs, 0, secondImporting,
+                    capturedDefinition, capturedInvocation, firstReceipt,
+                    retention, {scopeCid: cid('3'),
+                      effectiveDataPolicyCid: cid('d'),
+                      authorityScopeCid: cid('a')}, publicationLimits),
+                {code: 'MoonBitHostFailure'});
+                assert.ok(control.issueSourceFreeLocalEffectResultArtifact(
+                  prepared, inputs, 0, secondImporting,
+                  capturedDefinition, capturedInvocation, secondReceipt,
+                  retention, {scopeCid: cid('3'),
+                    effectiveDataPolicyCid: cid('d'),
+                    authorityScopeCid: cid('a')}, publicationLimits));
+              },
+            });
+          },
+        });
         const sourceArtifact = sourcePayload.summary.artifact;
         assert.equal(JSON.parse(sourceArtifact.wire).source_result, 'rows');
         assert.equal(JSON.parse(sourcePayload.localResultDefinition.wire)
@@ -934,6 +985,24 @@ test('admitted source-free Effect Run computes through the installed Host',
           sourcePayload.summary.schemaCid);
         assert.equal(localArtifact.actual_row_count,
           sourcePayload.summary.rowCount);
+        const localIdentity = control.issueSourceFreeLocalEffectIdentity(
+          prepared, inputs, 0, sourcePayload.localResultArtifact,
+          {maxWork: 100, maxWireBytes: 4096, maxNodes: 100,
+            maxDepth: 10});
+        const localIdentityBody = JSON.parse(localIdentity.wire);
+        assert.equal(localIdentityBody.self_cid, localIdentity.identity);
+        assert.equal(localIdentityBody.result_artifact_cid,
+          sourcePayload.localResultArtifact.identity);
+        assert.equal(localIdentityBody.local_invocation_cid,
+          sourcePayload.localInvocation.identity);
+        assert.throws(() => control.issueSourceFreeLocalEffectIdentity(
+          foreignPrepared, inputs, 0, sourcePayload.localResultArtifact,
+          {maxWork: 100, maxWireBytes: 4096, maxNodes: 100,
+            maxDepth: 10}), {code: 'MoonBitHostFailure'});
+        assert.throws(() => control.issueSourceFreeLocalEffectIdentity(
+          prepared, inputs, 0, {...sourcePayload.localResultArtifact},
+          {maxWork: 100, maxWireBytes: 4096, maxNodes: 100,
+            maxDepth: 10}), {name: 'TypeError'});
         const localDerivation = JSON.parse(
           sourcePayload.localResultArtifact.derivationWire);
         const localOrdering = JSON.parse(
@@ -2582,7 +2651,7 @@ test(`two-member captured Effect Run ${
       const productMembers = siteRun ? siteRequests.map((requests, index) => ({
         stageIndex: 0, effectId: memberIds[index], requests,
         observations: previewTargetObservations?.[index],
-        effectIdentityCid: cid(String(index + 1)),
+        localResultArtifact: sourcePayload.localResultArtifact,
         sourceArtifact: sourcePayload.summary.artifact,
         capabilityEvidenceCid: cid('d'),
         authorityScopeCid: cid('e'), requiredPermissions: ['write'],
@@ -2590,7 +2659,7 @@ test(`two-member captured Effect Run ${
       })) : undefined;
       const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared,
+          moon, salesforceMoon, control, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
             storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
@@ -2601,7 +2670,12 @@ test(`two-member captured Effect Run ${
           planLimits: previewPlanLimits,
         }) : previewDraft;
       if (siteRun) {
-        const forgedFootprint = JSON.parse(previewDraft.wire);
+        const issuedMembers = JSON.parse(preview.wire).effects;
+        assert.notEqual(issuedMembers[0].effect_identity_cid,
+          issuedMembers[1].effect_identity_cid);
+        assert.notEqual(issuedMembers[0].effect_identity_cid,
+          JSON.parse(previewDraft.wire).effects[0].effect_identity_cid);
+        const forgedFootprint = JSON.parse(preview.wire);
         forgedFootprint.effects[0].write_footprint = {
           kind: 'opaque', provider_boundary_cid: cid('9'),
           provider_namespace: 'foreign', provider_object_identity_cids: [],
@@ -2647,7 +2721,7 @@ test(`two-member captured Effect Run ${
         )), {code: 'MoonBitHostFailure'});
         siteRequests = siteRequests.map((requests, memberIndex) =>
           preview.requestOrder[memberIndex].map(index => requests[index]));
-        const fabricated = JSON.parse(previewDraft.wire);
+        const fabricated = JSON.parse(preview.wire);
         fabricated.effects[0].changes[0].after =
           {state: 'present', value: {Name: 'fabricated'}};
         fabricated.effects[0].changes[0].target_guard =
@@ -2708,7 +2782,7 @@ test(`two-member captured Effect Run ${
       }
       if (physical === 'salesforce') {
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared,
+          moon, salesforceMoon, control, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3], storeAuthorityCid: cid('9'),
             modelDerived: false},
@@ -2719,7 +2793,7 @@ test(`two-member captured Effect Run ${
           planLimits: previewPlanLimits,
         }), {code: 'MoonBitHostFailure'});
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared,
+          moon, salesforceMoon, control, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
             storeAuthorityCid: store.storeAuthorityCid,
@@ -2733,7 +2807,7 @@ test(`two-member captured Effect Run ${
           planLimits: previewPlanLimits,
         }), {code: 'ForeignSalesforceEffectPreviewAuthority'});
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared,
+          moon, salesforceMoon, control, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
             storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
@@ -2747,7 +2821,7 @@ test(`two-member captured Effect Run ${
           planLimits: previewPlanLimits,
         }), {code: 'MoonBitHostFailure'});
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared,
+          moon, salesforceMoon, control, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
             storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
@@ -2759,7 +2833,7 @@ test(`two-member captured Effect Run ${
           maxKeyNodes: 8, maxKeyDepth: 3,
           planLimits: previewPlanLimits,
         }), {message: 'Foreign publication contract'});
-        const alteredTemplate = JSON.parse(previewDraft.wire);
+        const alteredTemplate = JSON.parse(preview.wire);
         alteredTemplate.effects[0].changes[0].before =
           {state: 'present', value: {Name: 'fabricated-before'}};
         alteredTemplate.effects[0].changes[0].after =

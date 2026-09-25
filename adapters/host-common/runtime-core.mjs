@@ -1649,6 +1649,7 @@ function publicationControl(moon) {
   const admissionTokens = new WeakMap();
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
+  const localEffectArtifactTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
@@ -1957,13 +1958,34 @@ function publicationControl(moon) {
           receipt, token(retention), context.scopeCid,
           context.effectiveDataPolicyCid, context.authorityScopeCid,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return Object.freeze({
+      const value = Object.freeze({
         identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
         wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
         derivationWire:
           moon.clientProgramLocalEffectResultDerivationJson(issued),
         orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
       });
+      localEffectArtifactTokens.set(value, issued);
+      return value;
+    },
+    issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,
+      limits) {
+      issuanceLimits(limits, 'local Effect identity');
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          !Number.isSafeInteger(limits.maxWork) || limits.maxWork < 1) {
+        throw new TypeError('Invalid local Effect identity owner');
+      }
+      const issued = checked(
+        moon.clientProgramIssueSourceFreeLocalEffectIdentity(
+          owner, inputs, memberIndex, ownedArtifact, limits.maxWork,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        identity: moon.clientProgramLocalEffectIdentityCid(issued),
+        wire: moon.clientProgramLocalEffectIdentityJson(issued),
+      });
+      return value;
     },
     effectSourceArtifactPreviewBinding(artifact, invocationCid, sourceResult,
       storeAuthorityCid) {

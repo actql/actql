@@ -47,11 +47,13 @@ can obtain this owner and tests distinguish it from the Run-bound Invocation.
 The checked member-to-Mapping lookup also lives in that common owner; the Node
 bridge only forwards the request. A repeated check can reproduce the local
 Invocation CID, but cannot reuse the first check's opaque owner.
-It is not yet an `effect_identity_cid`: the normal Preview still receives
-example Effect identity CIDs. The next shared connection must retain and
-admit the issued local Result Artifact in the exact Effect-source inventory,
-then issue each member identity from the local Invocation, authored Effect
-semantics, that Artifact, and the resolved Mapping or Command. The current
+The checked owner now issues a source-free local Effect identity from the
+local Invocation, authored Effect semantics, exact local Result Artifact,
+and resolved Mapping. The ordinary Salesforce Preview author obtains that
+identity from the opaque Artifact owner rather than a caller-supplied CID.
+The next shared connection must retain and admit the issued local Result
+Artifact in the exact Effect-source inventory and verify the identity at
+Preview/apply admission. The current
 private Effect-source Artifact is Run-bound custody evidence and cannot be
 silently substituted for the local semantic Result Artifact. Foreign member,
 source, or Invocation evidence must fail before the first write. Units with
@@ -63,8 +65,13 @@ independent CID vectors, and checked-owner issuer. The captured Effect input
 export issues it from the exact live source pin before physical I/O. For a
 source-free Unit, the same export now issues a local Result Artifact and exact
 derivation/ordering witnesses from its checked local Invocation and completed
-export receipt. MoonBit checks that the receipt belongs to this exact export
-preparation; an equal-value foreign receipt or released receipt is rejected.
+export receipt. The common MoonBit issuer now checks the exact captured
+Result, managed generation, bridge-completed output, export preparation,
+and live receipt before reading its logical CID, schema, or row count. The
+Node bridge no longer supplies the only export-ownership check. Direct
+execution-package tests reject a different named Result or equal-value
+occurrence, and the Host test rejects a different live export and a released
+receipt without another row scan or hash.
 The private Effect-source Artifact remains separate Run-bound custody evidence.
 The local Artifact and its witnesses are not yet retained in a durable exact
 Effect-source inventory or admitted to the completed local Manifest, and
@@ -130,8 +137,9 @@ derives the member footprint and count from those requests, so a forged
 template boundary cannot change whole-set conflict admission, and mixed-org
 requests within one member are rejected. The ordinary Host success path now
 builds the surrounding draft from typed Run contracts and checked member
-facts; test fixtures still supply example Effect identity and authority
-evidence values. For update/upsert, the selected
+facts; the product author now issues local Effect identities, while test
+fixtures still supply example capability and authority evidence values. For
+update/upsert, the selected
 checked Mapping now projects each canonical row of the same bounded Result
 export used to seal the private Effect-source Artifact. A shared export may
 feed another member only when MoonBit confirms the same live producer and
