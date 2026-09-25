@@ -1,6 +1,8 @@
 // Coordinator-owned orchestration for explicit in-process Site Transfer. The
 // concrete copier is an adopted representation provider; common completion and
 // physical accounting remain in the existing runtime Core.
+import {ExecutionAuthorizationError, missingAuthorizationGate} from
+  './authorization-gate.mjs';
 import {executionSiteDescription, executionSiteTransferProvider,
   executionSiteTransferOperationAvailable,
   releaseExecutionSiteCleanup,
@@ -342,8 +344,42 @@ const transferFailure = async (reason, state) => {
 };
 
 export function createManagedSiteTransferCoordinator(
-  setup, core, installation,
+  setup, core, installation, {
+    authorization = missingAuthorizationGate(),
+    subjectCid,
+  } = {},
 ) {
+  if (authorization === null || typeof authorization !== 'object' ||
+      typeof authorization.authorize !== 'function' ||
+      typeof authorization.cover !== 'function' ||
+      typeof authorization.isProtectedSite !== 'function') {
+    throw fail('InvalidAuthorizationGate');
+  }
+  // Transfer boundary: the recipient Site, the source Site and the scope are
+  // authorized before any copy, reservation or Site transfer operation. An
+  // in-process transfer between unprotected Sites carries already captured
+  // data inside the Host and is covered without evaluation.
+  const authorizeTransfer = async (destination, source, signal) => {
+    const destinationKey = executionSiteDescription(destination).key;
+    const sourceKey = executionSiteDescription(source).key;
+    const scope = Object.freeze({
+      connection: destinationKey,
+      resource: sourceKey,
+      operation: 'transfer',
+    });
+    if (!authorization.isProtectedSite(destinationKey) &&
+        !authorization.isProtectedSite(sourceKey)) {
+      authorization.cover('transfer', scope);
+      return;
+    }
+    const decision = await authorization.authorize('transfer', scope, {
+      subjectCid,
+      signal,
+    });
+    if (decision.action !== 'dispatch') {
+      throw new ExecutionAuthorizationError(decision);
+    }
+  };
   const provider = executionSiteTransferProvider(installation);
   const contract = provider?.contract;
   const bySource = new WeakMap();
@@ -598,6 +634,18 @@ export function createManagedSiteTransferCoordinator(
       }
       const physical = [];
       const records = [];
+      // Authorize every transfer this activation needs before the first
+      // copy, so a later refusal cannot follow a partially started transfer.
+      for (let index = 0; index < inputs.length; index++) {
+        const occurrence = candidate.inputs[index];
+        if (occurrence.site === candidate.site &&
+            !candidate.transfers.some(value => value.input === occurrence)) {
+          continue;
+        }
+        const reusable = cached(occurrence, candidate.site);
+        if (reusable && !reusable.closed) continue;
+        await authorizeTransfer(candidate.site, occurrence.site, signal);
+      }
       for (let index = 0; index < inputs.length; index++) {
         const occurrence = candidate.inputs[index];
         if (occurrence.site === candidate.site &&
