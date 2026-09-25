@@ -5,6 +5,8 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
   ForeignDefinition
   ForeignInvocation
   ForeignExport
+  ForeignRun
+  Context(@publication.RunLocalResultEvidenceIssue)
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
 } derive(Eq, Debug)
@@ -24,8 +26,9 @@ struct ClientEffectLocalResultArtifact {
 
 ///|
 /// Issue only from the checked source-free Unit and its live Effect input pin.
-/// The physical adapter supplies admitted scope and retention contracts, as
-/// on Run-bound publication; the surrounding chain must resolve those refs.
+/// Scope, policy, and capture authority come from the exact admitted Run,
+/// not from caller-authored CID strings. Current mutation authority remains
+/// a separate apply-time obligation.
 pub fn issue_source_free_client_effect_local_result_artifact(
   owner : PreparedClientEffectComputation,
   inputs : @strategy.CapturedEffectInputs,
@@ -38,9 +41,10 @@ pub fn issue_source_free_client_effect_local_result_artifact(
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
   retention : @publication.PublicationContract,
-  scope_cid : String,
-  effective_data_policy_cid : String,
-  authority_scope_cid : String,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -65,6 +69,25 @@ pub fn issue_source_free_client_effect_local_result_artifact(
   }
   if !client_effect_local_invocation_matches(invocation, owner, unit) {
     return Err(ForeignInvocation)
+  }
+  if @strategy.captured_effect_inputs_run_definition_cid(inputs) !=
+    Some(@publication.publication_contract_identity(run_definition)) ||
+    @publication.check_run_publication_program_binding(
+      admission,
+      run_definition,
+      prepared_client_effect_computation_definition_cid(owner),
+      prepared_client_effect_computation_semantics_cid(owner),
+      prepared_client_effect_computation_environment_cid(owner),
+    )
+    is Err(_) {
+    return Err(ForeignRun)
+  }
+  let (scope_cid, effective_data_policy_cid, authority_scope_cid) = match
+    @publication.resolve_run_local_result_evidence_refs(
+      admission, run_definition, run_invocation, observation, retention,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Context(issue))
   }
   if !physical_equal(importing_input, input) ||
     !@strategy.captured_effect_input_matches_managed(input, importing_output) ||

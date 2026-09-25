@@ -129,8 +129,8 @@ export async function preparePinnedEffectSourcePayload({
       typeof control?.issueSourceFreeLocalEffectResultArtifact !== 'function' ||
       typeof control?.issueLocalEffectResultManifest !== 'function' ||
       typeof sourceBindingCid !== 'string' ||
-      !['scopeCid', 'effectiveDataPolicyCid', 'authorityScopeCid'].every(
-        key => /^sha256:[0-9a-f]{64}$/u.test(localEvidenceContext?.[key])) ||
+      !['admission', 'runDefinition', 'runInvocation', 'observation'].every(
+        key => localEvidenceContext?.[key] !== undefined) ||
       (proposalMemberIndexes !== undefined &&
         (onProposalRow === undefined ||
           !Array.isArray(proposalMemberIndexes) ||
@@ -186,9 +186,10 @@ export async function preparePinnedEffectSourcePayload({
       localInvocationToken),
   });
   const localContext = Object.freeze({
-    scopeCid: localEvidenceContext.scopeCid,
-    effectiveDataPolicyCid: localEvidenceContext.effectiveDataPolicyCid,
-    authorityScopeCid: localEvidenceContext.authorityScopeCid,
+    admission: localEvidenceContext.admission,
+    runDefinition: localEvidenceContext.runDefinition,
+    runInvocation: localEvidenceContext.runInvocation,
+    observation: localEvidenceContext.observation,
   });
   const proposalPlans = [];
   try {

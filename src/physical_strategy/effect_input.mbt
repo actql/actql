@@ -533,6 +533,22 @@ pub fn captured_effect_inputs_match_computation(
 }
 
 ///|
+/// Keep the exact admitted Run with a live source pin. A matching checked
+/// Program alone cannot transfer this captured input to another Run.
+pub fn captured_effect_inputs_run_definition_cid(
+  value : CapturedEffectInputs,
+) -> String? {
+  if !value.live {
+    return None
+  }
+  Some(
+    @publication.publication_contract_identity(
+      @checked.effect_program_run_definition(value.run.checked.run),
+    ),
+  )
+}
+
+///|
 /// Revoke the ordinary output port only while this checked Effect consumer
 /// already owns its pin. The caller cannot close a producer merely by naming
 /// a task or member before custody has been acquired.

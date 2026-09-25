@@ -247,7 +247,7 @@ pub fn client_program_issue_source_free_local_effect_identity(@run_publication_h
 
 pub fn client_program_issue_source_free_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
-pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 

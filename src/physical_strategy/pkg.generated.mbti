@@ -118,6 +118,8 @@ pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
 pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, CheckedEffectComputationDAG) -> Bool
 
+pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
+
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool

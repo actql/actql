@@ -1958,15 +1958,17 @@ function publicationControl(moon) {
       limits) {
       issuanceLimits(limits, 'local Effect Result Artifact');
       if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
-          !['scopeCid', 'effectiveDataPolicyCid', 'authorityScopeCid']
-            .every(key => typeof context?.[key] === 'string')) {
+          context === null || typeof context !== 'object' ||
+          !['admission', 'runDefinition', 'runInvocation', 'observation']
+            .every(key => context[key] !== undefined)) {
         throw new TypeError('Invalid local Effect Result Artifact');
       }
       const issued = checked(
         moon.clientProgramIssueSourceFreeLocalEffectResultArtifact(
           owner, inputs, memberIndex, importing, definition, localInvocation,
-          receipt, token(retention), context.scopeCid,
-          context.effectiveDataPolicyCid, context.authorityScopeCid,
+          receipt, token(retention), admissionToken(context.admission),
+          token(context.runDefinition), token(context.runInvocation),
+          evidenceToken(context.observation),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       const value = Object.freeze({
         identity: moon.clientProgramLocalEffectResultArtifactCid(issued),

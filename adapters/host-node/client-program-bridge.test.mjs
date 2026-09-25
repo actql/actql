@@ -729,6 +729,8 @@ test('admitted source-free Effect Run computes through the installed Host',
       moon.strategyPublicationContractJson(definition), publicationLimits);
     const invocationContract = control.admit('run_invocation',
       moon.strategyPublicationContractJson(invocation), publicationLimits);
+    const localEvidenceContext = admittedLocalEffectEvidenceContext(
+      control, prepared, evidence, definition, invocation, observation);
     const store = await openLocalPublicationStore({
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -823,8 +825,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           store, maxBytes: 1, control, invocation: invocationContract,
           retention, sourceBindingCid: cid('c'),
           contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
         }), {message: 'EffectSourceByteLimit'});
         assert.equal(store.status().reservedBytes,
           beforeSource.reservedBytes);
@@ -842,8 +843,7 @@ test('admitted source-free Effect Run computes through the installed Host',
             control.issueLocalEffectResultManifest},
           invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
         }), {message: 'SourceArtifactRejected'});
         assert.equal(store.status().reservedBytes,
           beforeSource.reservedBytes);
@@ -861,8 +861,7 @@ test('admitted source-free Effect Run computes through the installed Host',
             }},
           invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
         }), {code: 'MoonBitHostFailure'});
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
@@ -881,8 +880,7 @@ test('admitted source-free Effect Run computes through the installed Host',
             }},
           invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
         }), {code: 'MoonBitHostFailure'});
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
@@ -893,8 +891,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           store, maxBytes: outputLimits.maxWireBytes,
           control, invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
           proposalLimits: {maxFields: 10, maxWork: 100,
             maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxUtf16Units: 20000},
@@ -928,8 +925,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           store: sourceStore, maxBytes: outputLimits.maxWireBytes,
           control, invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
-          localEvidenceContext: {scopeCid: cid('3'),
-            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+          localEvidenceContext,
         });
         const exportLimits = moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits));
@@ -951,24 +947,18 @@ test('admitted source-free Effect Run computes through the installed Host',
                   .issueSourceFreeLocalEffectResultArtifact(
                     prepared, inputs, 0, secondImporting,
                     capturedDefinition, capturedInvocation, firstReceipt,
-                    retention, {scopeCid: cid('3'),
-                      effectiveDataPolicyCid: cid('d'),
-                      authorityScopeCid: cid('a')}, publicationLimits),
+                    retention, localEvidenceContext, publicationLimits),
                 {code: 'MoonBitHostFailure'});
                 assert.throws(() => control
                   .issueSourceFreeLocalEffectResultArtifact(
                     foreignPrepared, inputs, 0, secondImporting,
                     capturedDefinition, capturedInvocation, secondReceipt,
-                    retention, {scopeCid: cid('3'),
-                      effectiveDataPolicyCid: cid('d'),
-                      authorityScopeCid: cid('a')}, publicationLimits),
+                    retention, localEvidenceContext, publicationLimits),
                 {code: 'MoonBitHostFailure'});
                 assert.ok(control.issueSourceFreeLocalEffectResultArtifact(
                   prepared, inputs, 0, secondImporting,
                   capturedDefinition, capturedInvocation, secondReceipt,
-                  retention, {scopeCid: cid('3'),
-                    effectiveDataPolicyCid: cid('d'),
-                    authorityScopeCid: cid('a')}, publicationLimits));
+                  retention, localEvidenceContext, publicationLimits));
               },
             });
           },
@@ -1567,6 +1557,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
     const directory = await mkdtemp(join(scratch.pathname, 'update-plan-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const control = runtimeCore(moon).publicationControl;
+    const localEvidenceContext = admittedLocalEffectEvidenceContext(
+      control, prepared, evidence, definition, invocation, observation);
     const store = await openLocalPublicationStore({
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -1619,8 +1611,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         invocation: invocationContract, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
-        localEvidenceContext: {scopeCid: cid('3'),
-          effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+        localEvidenceContext,
       }));
       assert.notEqual(sourcePayloads[0].summary.artifact.identity,
         storedResults.artifacts[0].identity);
@@ -2538,6 +2529,8 @@ test(`two-member captured Effect Run ${
       const runInvocation = control.admit('run_invocation',
         moon.strategyPublicationContractJson(invocation),
         publicationLimits);
+      const localEvidenceContext = admittedLocalEffectEvidenceContext(
+        control, prepared, evidence, definition, invocation, observation);
       const retention = control.seal('result_retention_policy',
         JSON.stringify({
           version: 'actql-result-retention-policy/0.1',
@@ -2571,8 +2564,7 @@ test(`two-member captured Effect Run ${
         invocation: runInvocation, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
-        localEvidenceContext: {scopeCid: cid('3'),
-          effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+        localEvidenceContext,
         ...(siteRun ? {
           proposalMemberIndexes: [0, 1],
           proposalLimits: {maxFields: 10, maxWork: 100,
@@ -4130,6 +4122,27 @@ function publicationEvidence(program, parameters, semantics,
     decision: 'allowed',
   });
   return [template, prepared, authorization, plan];
+}
+
+function admittedLocalEffectEvidenceContext(control, prepared, evidence,
+  definition, invocation, observation) {
+  const [template, preparedEvidence, authorization] = evidence
+    .slice(0, 3).map((value, index) => control.admitRunEvidence(
+      ['bound_invocation_template', 'prepared_invocation',
+        'run_authorization'][index],
+      moon.strategyRunEvidenceJson(value), publicationLimits));
+  const plan = control.admit('compiled_plan',
+    moon.strategyPublicationContractJson(evidence[3]), publicationLimits);
+  return Object.freeze({
+    admission: control.admitCheckedClientEffectRunPublication(
+      prepared, template, preparedEvidence, authorization, plan),
+    runDefinition: control.admit('run_definition',
+      moon.strategyPublicationContractJson(definition), publicationLimits),
+    runInvocation: control.admit('run_invocation',
+      moon.strategyPublicationContractJson(invocation), publicationLimits),
+    observation: control.admitRunEvidence('observation_set',
+      moon.strategyRunEvidenceJson(observation), publicationLimits),
+  });
 }
 
 // This fixture provides missing compiler/Host policy evidence. Its checked

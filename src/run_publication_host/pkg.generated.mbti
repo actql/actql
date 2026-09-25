@@ -204,7 +204,7 @@ pub fn issue_source_free_client_effect_local_identity(PreparedClientEffectComput
 
 pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
-pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedResultRelationExportPreparation, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedResultRelationExportPreparation, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
@@ -350,6 +350,8 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
   ForeignDefinition
   ForeignInvocation
   ForeignExport
+  ForeignRun
+  Context(@run_publication.RunLocalResultEvidenceIssue)
   Evidence(@run_publication.ResultEvidenceIssuanceIssue)
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
 } derive(Eq, @debug.Debug)

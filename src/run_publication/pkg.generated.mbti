@@ -379,6 +379,8 @@ pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) ->
 
 pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
+pub fn resolve_run_local_result_evidence_refs(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, PublicationContract) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
+
 pub fn result_access_progress_action(ResultAccessProgress) -> ResultAccessProgressAction
 
 pub fn result_access_progress_action_code(ResultAccessProgress) -> Int
@@ -1159,6 +1161,14 @@ pub(all) enum RunEvidenceValueIssue {
   RunEvidenceEncoding
   RunEvidenceReferenceMismatch(String)
   RunEvidenceContract(PublicationContractIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RunLocalResultEvidenceIssue {
+  ForeignRun
+  ForeignInvocation
+  ForeignObservation
+  ForeignRetention
+  MissingScope
 } derive(Eq, @debug.Debug)
 
 pub(all) enum RunNextAction {

@@ -383,6 +383,22 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     prepared, 0, 4096, 32, 8,
   ).unwrap()
   let policy = native_publication_cid("effect-data-policy")
+  let observation = native_publication_evidence(
+    "observation_set",
+    "{\"version\":\"actql-observation-set/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    @publication.run_evidence_value_identity(template) +
+    "\",\"source_evidence_cids\":[],\"captured_input_artifact_cids\":[]," +
+    "\"consistency\":\"no_external_sources\",\"capture_started_at\":null," +
+    "\"capture_completed_at\":null,\"replayability\":{" +
+    "\"materialized\":false,\"availability_evidence_cids\":[]}," +
+    "\"data_policy_cid\":\"" +
+    policy +
+    "\"}",
+  )
+  let run_invocation = @publication.issue_run_invocation(
+    template, observation, 65536, 4096, 32,
+  ).unwrap()
   let retention = native_publication_contract(
     "result_retention_policy",
     "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"" +
@@ -401,26 +417,31 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     receipt : @execution.CompletedRelationExportReceipt,
   ) => {
     @publication_host.issue_source_free_client_effect_local_result_artifact(
-      owner,
-      inputs,
-      0,
-      out,
-      completed,
-      bridge,
-      preparation,
-      local_definition,
-      local_invocation,
-      receipt,
-      retention,
-      native_publication_cid("effect-scope"),
-      policy,
-      native_publication_cid("effect-authority"),
-      65536,
-      4096,
-      32,
+      owner, inputs, 0, out, completed, bridge, preparation, local_definition, local_invocation,
+      receipt, retention, admission, run_definition, run_invocation, observation,
+      65536, 4096, 32,
     )
   }
   assert_true(issue(prepared, out_preparation, out_receipt) is Ok(_))
+  let foreign_run_definition = @publication.issue_run_definition(
+    admission,
+    "scope",
+    "another-local-effect-export",
+    native_publication_cid("effect-inputs"),
+    "2026-09-25T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    @publication_host.issue_source_free_client_effect_local_result_artifact(
+      prepared, inputs, 0, out, completed, bridge, out_preparation, local_definition,
+      local_invocation, out_receipt, retention, admission, foreign_run_definition,
+      run_invocation, observation, 65536, 4096, 32,
+    )
+    is Err(@publication_host.ForeignRun),
+  )
   assert_true(
     issue(prepared, out_preparation, other_receipt)
     is Err(@publication_host.ForeignExport),
