@@ -59,6 +59,12 @@ const hashWithoutSelf = (value, selfKey) => {
   return `sha256:${createHash('sha256').update(JSON.stringify(body))
     .digest('hex')}`;
 };
+const canonicalHashWithoutSelf = (value, selfKey) => {
+  const body = {...value};
+  delete body[selfKey];
+  return `sha256:${createHash('sha256').update(canonicalJson(body))
+    .digest('hex')}`;
+};
 const evidenceCid =
   'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904';
 const programCid =
@@ -123,6 +129,10 @@ async function effectFixture({splitSource = false,
     nullable: false,
     type: 'object',
   };
+  if (writeKind === 'create' && sourceIds) {
+    targetSchema.fields.External_Key__c = {nullable: false,
+      type: 'string'};
+  }
   const mapping = {
     connector_manifest_cid: cid('a'),
     conversions: [],
@@ -131,24 +141,32 @@ async function effectFixture({splitSource = false,
     minimum_approval: 'none',
     permission_rules: [{
       effect_kind: writeKind, permissions: ['scope:' + writeKind],
-      selector_class: writeKind === 'create' ? 'none' : 'id',
-      write_fields: ['Name'],
+      selector_class: writeKind === 'create' ? 'none' :
+        writeKind === 'upsert' ? 'key' : 'id',
+      write_fields: writeKind === 'create' && sourceIds ?
+        ['Name', 'External_Key__c'] : ['Name'],
     }],
     primary_identity: 'Id',
-    required_fields: [],
+    required_fields: writeKind === 'create' && sourceIds ?
+      ['External_Key__c'] : [],
     required_permissions: [],
     resource_identity_cid: cid('b'),
-    row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
+    row_mapping: writeKind === 'create' && sourceIds ? {
+      Name: {field: 'id', null_behavior: 'reject'},
+      External_Key__c: {field: 'id', null_behavior: 'reject'},
+    } : {Name: {field: 'id', null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1',
     target_ref: target,
     target_schema: targetSchema,
     target_schema_identity: `sha256:${createHash('sha256')
-      .update(JSON.stringify(targetSchema)).digest('hex')}`,
+      .update(canonicalJson(targetSchema)).digest('hex')}`,
     version: 'salesforce-v1',
-    writable_fields: ['Name'],
+    writable_fields: writeKind === 'create' && sourceIds ?
+      ['Name', 'External_Key__c'] : ['Name'],
   };
-  mapping.mapping_contract_cid = hashWithoutSelf(mapping,
-    'mapping_contract_cid');
+  mapping.mapping_contract_cid = writeKind === 'create' && sourceIds
+    ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
+    : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
   environmentDocument.mapping_contracts = [mapping];
   if (splitSource) {
@@ -160,10 +178,14 @@ async function effectFixture({splitSource = false,
         max_graph_construction_nodes: 1000,
       }));
   }
-  environmentDocument.evidence_bundle_cid = hashWithoutSelf(
-    environmentDocument, 'evidence_bundle_cid');
+  environmentDocument.evidence_bundle_cid = writeKind === 'create' &&
+    sourceIds ? canonicalHashWithoutSelf(environmentDocument,
+      'evidence_bundle_cid') : hashWithoutSelf(
+      environmentDocument, 'evidence_bundle_cid');
   const environment = moon.clientProgramCheckEnvironment(
-    JSON.stringify(environmentDocument),
+    writeKind === 'create' && sourceIds ?
+      canonicalJson(environmentDocument) :
+      JSON.stringify(environmentDocument),
     environmentDocument.evidence_bundle_cid,
     false, false, true, splitSource, false, false, false,
   );
@@ -177,7 +199,8 @@ async function effectFixture({splitSource = false,
     ? {target, mapping: mapping.mapping_ref,
       from: {result: 'rows'}}
     : {target, mapping: mapping.mapping_ref,
-      from: {result: 'rows'}, id: 'id',
+      from: {result: 'rows'},
+      [writeKind === 'upsert' ? 'key' : 'id']: 'id',
       set: {Name: {field: 'id'}}};
   const effects = Object.fromEntries(memberIds.map(id =>
     [id, {[writeKind]: continueMembers.includes(id)
@@ -274,11 +297,13 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         target_guard: writeKind === 'create'
           ? {state: 'not_applicable'}
           : {state: 'version', version_cid: cid('6')},
-        intended_changes: {state: 'present', value: {Name: value}},
+        intended_changes: {state: 'present', value: writeKind === 'create'
+          ? {Name: value, External_Key__c: value} : {Name: value}},
         before: writeKind === 'create' ? {state: 'absent'}
           : {state: 'present', value: {Name: typeof value === 'string'
             ? 'before' : 0}},
-        after: {state: 'present', value: {Name: value}},
+        after: {state: 'present', value: writeKind === 'create'
+          ? {Name: value, External_Key__c: value} : {Name: value}},
         row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
       })),
       row_order: [],
@@ -2046,6 +2071,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
+  'salesforce-upsert', 'salesforce-create',
   'salesforce-unknown', 'salesforce-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-unknown-continue']) {
@@ -2069,6 +2095,8 @@ test(`two-member captured Effect Run ${
     const collectionPartial = physical === 'salesforce-collection-partial';
     const collectionRecovered = physical === 'salesforce-collection-recovered';
     const collectionMode = collectionPartial || collectionRecovered;
+    const writeKind = physical === 'salesforce-upsert' ? 'upsert' :
+      physical === 'salesforce-create' ? 'create' : 'update';
     const continueMembers = continueAfterUnknown || collectionMode
       ? ['save'] : [];
     const sourceIds = siteRun
@@ -2078,7 +2106,7 @@ test(`two-member captured Effect Run ${
     const mappingRef = siteRun ? 'mapping:salesforce.test-record.v1'
       : 'mapping:crm.account.v1';
     const {document, environment, mappingCid} = await effectFixture({
-      writeKind: 'update', memberIds, target, mappingRef, sourceIds,
+      writeKind, memberIds, target, mappingRef, sourceIds,
       continueMembers,
     });
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
@@ -2201,6 +2229,7 @@ test(`two-member captured Effect Run ${
             : '00D000000000002EAA',
           losePatchReplyOnce: loseHttpReply && index === 0,
           collectionPartial: collectionPartial && index === 0,
+          writeOperation: writeKind,
         }))) : undefined;
       const siteProjections = sites?.map(site => {
         const binding = site.write.scope;
@@ -2212,42 +2241,52 @@ test(`two-member captured Effect Run ${
           binding.connectorRegistration, binding.connectorRevision,
           binding.resourceOrigin, binding.runInvocationCid,
           binding.dispatchRequestCid, 'catalog-sync-a',
-          'Test_Record__c', 1, '', ['Name'], 2));
+          'Test_Record__c', writeKind === 'upsert' ? 2 :
+            writeKind === 'create' ? 0 : 1,
+          writeKind === 'upsert' ? 'External_Key__c' : '',
+          writeKind === 'create' ? ['Name', 'External_Key__c'] :
+            ['Name'], 2));
       });
       const siteBodies = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map(value => checked(
           salesforceMoon.salesforcePrepareWriteBody(
           siteProjections[memberIndex],
-          Buffer.from(JSON.stringify({Name: value})),
+          Buffer.from(JSON.stringify(writeKind === 'create' ?
+            {Name: value, External_Key__c: value} : {Name: value})),
           1024, 32, 5)))) : undefined;
       const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map((value, rowIndex) => {
         return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
-          siteBodies[memberIndex][rowIndex], 'v62.0', 1, value, 0,
+          siteBodies[memberIndex][rowIndex], 'v62.0',
+          writeKind === 'upsert' ? 2 :
+            writeKind === 'create' ? 0 : 1,
+          writeKind === 'create' ? '' : value, 0,
           256, 128, 1024));
       })) : undefined;
       const siteBoundaries = siteRun ? sites.map((_, memberIndex) => checked(
         salesforceMoon.salesforceSingleWriteRequestBoundaryCid(
           siteRequests[memberIndex][0], 4096))) : undefined;
       const siteFootprints = siteRun ? sites.map((_, memberIndex) => {
-        const targets = siteRequests[memberIndex].map(request => checked(
+        const targets = siteRequests[memberIndex].map(request =>
           salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
-            request, 4096)));
-        return {kind: 'exact_targets',
-          resource_identity_scheme_cid:
-            salesforceMoon.salesforceWriteTargetSchemeCid(targets[0]),
+            request, 4096));
+        return {kind: writeKind === 'create' ? 'collection' : 'exact_targets',
+          resource_identity_scheme_cid: writeKind === 'create' ? cid('f') :
+            salesforceMoon.salesforceWriteTargetSchemeCid(
+              checked(targets[0])),
           provider_namespace: 'salesforce',
           provider_boundary_cid: siteBoundaries[memberIndex],
           resource_kind: 'Test_Record__c',
-          provider_object_identity_cids: targets.map(target =>
-            salesforceMoon.salesforceWriteTargetObjectCid(target))};
+          provider_object_identity_cids: writeKind === 'create' ? [] :
+            targets.map(target => salesforceMoon.salesforceWriteTargetObjectCid(
+              checked(target)))};
       }) : undefined;
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
       const preview = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
-        'update',
+        writeKind,
         siteRun ? sourceIds : [1, 2], siteRun ? sourceIds
           : [1, 2], memberIds,
         siteRun ? siteBoundaries : [cid('0'), cid('1')],
@@ -2282,7 +2321,8 @@ test(`two-member captured Effect Run ${
         maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
         maxUtf16Units: 20000};
       const plans = [];
-      for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
+      for (let memberIndex = 0; memberIndex < (writeKind === 'create' ? 0 : 2);
+        memberIndex++) {
         const chunks = [];
         const plan = await verifyPinnedEffectPlan({
           moon, execution, previewInputs, previewIndex: memberIndex,
@@ -2390,8 +2430,8 @@ test(`two-member captured Effect Run ${
         callerRequestId: 'complete-two-effects-request',
         maxEntryBytes: 4096});
       ledger = openLedger();
-      const observedRows = body.effects.flatMap(member =>
-        member.row_order);
+      const observedRows = writeKind === 'create' ? [] :
+        body.effects.flatMap(member => member.row_order);
       const route = checked(
         moon.clientProgramEffectApplyCapabilityFromCodes(
           cid('d'), 0, 0, 0, true, true, 2, 1));
@@ -2402,7 +2442,8 @@ test(`two-member captured Effect Run ${
         contracts: [mappingCid, mappingCid],
         capabilities: [cid('d'), cid('d')],
         authorities: [cid('e'), cid('e')],
-        observedRows, guardVersions: observedRows.map(() => cid('6')),
+        observedRows, guardVersions: writeKind === 'create' ? [] :
+          observedRows.map(() => cid('6')),
         routes: [route, route], risk,
         reviewProjectionCid: cid('a'),
         authorityScopeCid: cid('e'), policyCid: cid('a'),
@@ -2413,7 +2454,7 @@ test(`two-member captured Effect Run ${
       };
       const applyOptions = {moon, capturedInputs: previewInputs,
         preflight, ledger, members, maxFrontierWork: 64};
-      if (siteRun) {
+      if (siteRun && writeKind !== 'create') {
         const usesBefore = sites.map(site => site.journal.recover().length);
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions,
@@ -2718,8 +2759,9 @@ test(`two-member captured Effect Run ${
         return;
       }
       if (siteRun) {
+        const writeMethod = writeKind === 'create' ? 'POST' : 'PATCH';
         assert.deepEqual(sites.map(site => site.seen
-          .filter(item => item.method === 'PATCH').length),
+          .filter(item => item.method === writeMethod).length),
         collectionRecovered ? [1, 2] : [2, 2]);
         assert.deepEqual(sites.map(site => site.journal.recover().length),
         collectionRecovered ? [3, 4] : [4, 4]);
@@ -2730,9 +2772,29 @@ test(`two-member captured Effect Run ${
             sourceIds);
         } else {
           assert.deepEqual(sites.map(site => site.seen
-            .filter(item => item.method === 'PATCH')
+            .filter(item => item.method === writeMethod)
             .map(item => JSON.parse(item.body).Name)),
           [sourceIds, sourceIds]);
+        }
+        if (writeKind === 'create') {
+          for (const site of sites) {
+            assert.equal(site.write.scope.operation,
+              'salesforce:record:create');
+            assert.deepEqual(site.seen.filter(item =>
+              item.method === 'POST').map(item => item.path),
+            sourceIds.map(() =>
+              '/services/data/v62.0/sobjects/Test_Record__c/'));
+          }
+        }
+        if (writeKind === 'upsert') {
+          for (const site of sites) {
+            assert.equal(site.write.scope.operation,
+              'salesforce:record:upsert');
+            assert.deepEqual(site.seen.filter(item =>
+              item.method === 'PATCH').map(item => item.path),
+            sourceIds.map(id => `/services/data/v62.0/sobjects/` +
+              `Test_Record__c/External_Key__c/${id}`));
+          }
         }
       }
       for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
@@ -2791,7 +2853,8 @@ test(`two-member captured Effect Run ${
       assert.equal(sent.length, collectionRecovered ? 3 : 4);
       if (siteRun) {
         assert.equal(sites.flatMap(site => site.seen)
-          .filter(item => item.method === 'PATCH').length,
+          .filter(item => item.method === (writeKind === 'create' ?
+            'POST' : 'PATCH')).length,
         collectionRecovered ? 3 : 4);
       }
       await releaseCompletedRunPreparedPayloads(storedResults, control);

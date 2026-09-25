@@ -20,6 +20,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   orgId = '00D000000000001EAA',
   losePatchReplyOnce = false,
   collectionPartial = true,
+  writeOperation = 'update',
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -66,7 +67,28 @@ export async function openSalesforceEffectSiteFixture(t, {
           {name: 'Id', type: 'id', nillable: false},
           {name: 'Name', type: 'string', nillable: false,
             defaultedOnCreate: false, createable: true, updateable: true},
+          {name: 'External_Key__c', type: 'string', externalId: true,
+            unique: true, caseSensitive: true, nillable: false,
+            defaultedOnCreate: false, createable: true,
+            updateable: true},
         ]}));
+      return;
+    }
+    if (request.method === 'POST' && request.url ===
+        `${prefix}sobjects/Test_Record__c/`) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.on('end', () => {
+        observed.body = Buffer.concat(chunks).toString('utf8');
+        assert.deepEqual(JSON.parse(observed.body), {
+          External_Key__c: JSON.parse(observed.body).Name,
+          Name: JSON.parse(observed.body).Name,
+        });
+        const sequence = seen.filter(item => item.method === 'POST').length;
+        response.writeHead(201, {'content-type': 'application/json'});
+        response.end(JSON.stringify({id: `a0012345678901${sequence}`,
+          success: true, errors: []}));
+      });
       return;
     }
     if (request.method === 'PATCH' && request.url?.startsWith(
@@ -81,7 +103,14 @@ export async function openSalesforceEffectSiteFixture(t, {
           request.socket.destroy();
           return;
         }
-        response.writeHead(204).end();
+        if (writeOperation === 'upsert') {
+          const sequence = seen.filter(item => item.method === 'PATCH').length;
+          response.writeHead(200, {'content-type': 'application/json'});
+          response.end(JSON.stringify({id: `a0012345678901${sequence}`,
+            success: true, errors: [], created: false}));
+        } else {
+          response.writeHead(204).end();
+        }
       });
       return;
     }
@@ -142,7 +171,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   };
   const list = authorize('salesforce:catalog:list');
   const describe = authorize('salesforce:catalog:describe');
-  const write = authorize('salesforce:record:update');
+  const write = authorize(`salesforce:record:${writeOperation}`);
   const credential = {orgId, control, journal,
     resolveSecret: async () => 'test-only-secret', ca,
     now: () => 1_999_999_999_999};
