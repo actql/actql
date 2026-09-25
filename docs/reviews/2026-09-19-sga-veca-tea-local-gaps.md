@@ -137,8 +137,11 @@ eligible checked shapes without losing those bindings.
 The count-group provider also admits keyed `COUNT(*)` and `COUNT(field)`:
 canonical NULL/compound key order, empty input, two consumers, exact and
 one-short work/workspace limits, and in-flight cancellation are checked on
-that route. Other aggregate members and providerless whole-sequence group
-execution remain open.
+that route. The selected chain now also runs keyed count, filter and select
+within one task, with two downstream Computes and delivered cancellation.
+This does not establish the chain's own exact work/workspace boundary.
+Other aggregate members and providerless whole-sequence group execution
+remain open.
 The `components` route has an independent one-node self-loop boundary:
 weak and strong execution require 16 and 19 charged steps respectively,
 and both require

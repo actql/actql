@@ -569,17 +569,19 @@ test "ordinary Local filters resume within quantum" {
 
 ///|
 test "ordinary captured Relation chains feed two bounded consumers" {
-  for variant in ["filter", "count", "window", "unpivot"] {
+  for variant in ["filter", "count", "keyed_count", "window", "unpivot"] {
     let expected = match variant {
       "count" => ["{\"id\":2}"]
+      "keyed_count" => ["{\"id\":2}", "{\"id\":3}"]
       "window" => ["{\"id\":3}", "{\"id\":2}"]
       "unpivot" => ["{\"value\":3}"]
       _ => ["{\"id\":3}"]
     }
     let (run, issuer) = captured_graph_fixture(
       dag_two_consumers_of_compute_a=true,
-      count=variant == "count",
-      count_filter_chain=variant == "count",
+      count=variant == "count" || variant == "keyed_count",
+      count_filter_chain=variant == "count" || variant == "keyed_count",
+      keyed_count_filter_chain=variant == "keyed_count",
       window_filter_chain=variant == "window",
       unpivot_filter_chain=variant == "unpivot",
     )
@@ -712,8 +714,13 @@ test "ordinary captured Relation chains feed two bounded consumers" {
 }
 
 ///|
-fn run_ordinary_captured_relation_chain_cancel(unpivot : Bool) -> Unit raise {
-  let (run, issuer) = captured_graph_fixture(unpivot_filter_chain=unpivot)
+fn run_ordinary_captured_relation_chain_cancel(kind : String) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    unpivot_filter_chain=kind == "unpivot",
+    count=kind == "keyed_count",
+    count_filter_chain=kind == "keyed_count",
+    keyed_count_filter_chain=kind == "keyed_count",
+  )
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -774,8 +781,9 @@ fn run_ordinary_captured_relation_chain_cancel(unpivot : Bool) -> Unit raise {
 
 ///|
 test "ordinary captured Relation chain cancels after bounded work" {
-  run_ordinary_captured_relation_chain_cancel(false)
-  run_ordinary_captured_relation_chain_cancel(true)
+  for kind in ["filter", "unpivot", "keyed_count"] {
+    run_ordinary_captured_relation_chain_cancel(kind)
+  }
 }
 
 ///|

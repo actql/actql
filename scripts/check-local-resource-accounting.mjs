@@ -795,6 +795,8 @@ for (const [index, route] of routeEntries.entries()) {
       'global_count_same_stage_two_consumers',
       'global_count_same_stage_timer',
       'keyed_count_host_timer',
+      'keyed_count_same_stage_two_consumers',
+      'keyed_count_same_stage_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

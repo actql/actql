@@ -6,6 +6,7 @@ fn query_checked_program_fixture(
   dag_two_consumers_of_compute_a? : Bool = false,
   dag_count? : Bool = false,
   dag_count_filter_chain? : Bool = false,
+  dag_keyed_count_filter_chain? : Bool = false,
   dag_window_filter_chain? : Bool = false,
   dag_unpivot_filter_chain? : Bool = false,
   dag_collections? : Bool = false,
@@ -492,7 +493,11 @@ fn query_checked_program_fixture(
   let text = if dag_count_filter_chain {
     text.replace(
       old="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"out\"}",
-      new="{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"counted\"},{\"from\":\"counted\",\"filter\":\"id > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}",
+      new=if dag_keyed_count_filter_chain {
+        "{\"group\":{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}},\"as\":\"counted\"},{\"from\":\"counted\",\"filter\":\"n > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}"
+      } else {
+        "{\"group\":{\"by\":[],\"aggregates\":{\"id\":{\"fn\":\"count\"}}},\"as\":\"counted\"},{\"from\":\"counted\",\"filter\":\"id > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}"
+      },
     )
   } else {
     text

@@ -5044,6 +5044,15 @@ async function exerciseStrategyGraph(
     consumer.steps[0].select = ['n'];
     consumer.results.r.fields = ['n'];
   }
+  const capturedKeyedCountChainProgram = structuredClone(capturedRelationChainProgram);
+  const capturedKeyedCountStage = capturedKeyedCountChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedKeyedCountStage.steps = [
+    {from: 'x', group: {by: ['id'], aggregates: {n: {fn: 'count'}}}, as: 'counted'},
+    {from: 'counted', filter: 'n > 0', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
   const capturedUnpivotChainProgram = structuredClone(capturedRelationChainProgram);
   const capturedUnpivotStage = capturedUnpivotChainProgram.stages.find(
     stage => stage.id === 'values_a',
@@ -6180,6 +6189,8 @@ async function exerciseStrategyGraph(
       [1, 2, 3]],
     ['captured Relation count/filter chain', capturedCountChainProgram,
       [1, 2, 3]],
+    ['captured Relation keyed count/filter chain', capturedKeyedCountChainProgram,
+      [1, 2, 3]],
     ['captured Relation unpivot/filter chain', capturedUnpivotChainProgram,
       [1, 2, 3]],
     ['captured Relation window/filter chain', capturedWindowChainProgram,
@@ -6306,6 +6317,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [1, 1, 1],
           'an intermediate count feeds two actual bounded computations',
+        );
+      }
+      if (name === 'captured Relation keyed count/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          'a keyed intermediate count feeds two bounded computations',
         );
       }
       if (name === 'captured Relation unpivot/filter chain') {
@@ -7021,6 +7039,8 @@ async function exerciseStrategyGraph(
       program: capturedRelationChainProgram, cancelAtStart: 1},
     {name: 'captured-count-chain-in-flight',
       program: capturedCountChainProgram, cancelAtStart: 1},
+    {name: 'captured-keyed-count-chain-in-flight',
+      program: capturedKeyedCountChainProgram, cancelAtStart: 1},
     {name: 'captured-window-chain-in-flight',
       program: capturedWindowChainProgram, cancelAtStart: 1},
     {name: 'captured-unpivot-chain-in-flight',
@@ -7081,6 +7101,7 @@ async function exerciseStrategyGraph(
     const capturedRelationChainCancellation = cancellationName ===
       'captured-relation-chain-in-flight' || cancellationName ===
       'captured-count-chain-in-flight' || cancellationName ===
+      'captured-keyed-count-chain-in-flight' || cancellationName ===
       'captured-window-chain-in-flight' || cancellationName ===
       'captured-unpivot-chain-in-flight';
     const nestUnwrapCancellation = cancellationName ===
