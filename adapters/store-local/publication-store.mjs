@@ -27,6 +27,15 @@ import {
 import {resolve} from 'node:path';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
+// Physical holdings: Transfer material, encrypted publication evidence and
+// the Local Host's encrypted continuation evidence.
+const physicalHoldingNamespaces = Object.freeze([
+  'remote-transfer', 'publication-private', 'local-continuation-private',
+]);
+const localContinuationEvidenceNames = Object.freeze([
+  'captured_input', 'invocation_request', 'prepared_invocation',
+  'review_projection', 'continuation_record',
+]);
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
@@ -540,7 +549,7 @@ export async function openLocalPublicationStore(
       'version', 'namespace', 'holding_cid', 'manifest_cid', 'objects',
     ]) ||
         value.version !== 'actql-local-physical-holding/0.1' ||
-        !['remote-transfer', 'publication-private'].includes(value.namespace) ||
+        !physicalHoldingNamespaces.includes(value.namespace) ||
         !cidPattern.test(value.holding_cid) ||
         !cidPattern.test(value.manifest_cid) ||
         !Array.isArray(value.objects) ||
@@ -1910,6 +1919,11 @@ export async function openLocalPublicationStore(
   // Private evidence uses the prepared-object and physical-holding custody
   // already used by Transfer. A semantic alias before a durable owner would
   // strand ciphertext on a crash, so this path never creates one.
+  // The Local continuation namespace holds only Local continuation evidence.
+  const privateEvidenceHolding = (holding, name) =>
+    holding?.namespace === 'publication-private' ||
+    (holding?.namespace === 'local-continuation-private' &&
+      localContinuationEvidenceNames.includes(name));
   const privateEvidenceAad = (name, semanticCid) => Buffer.from(
     `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`,
     'utf8',
@@ -1943,7 +1957,7 @@ export async function openLocalPublicationStore(
     const key = Buffer.from(privateEvidenceKey());
     try {
       const holding = await inspectPhysicalHolding(holdingCid);
-      if (holding?.namespace !== 'publication-private' ||
+      if (!privateEvidenceHolding(holding, name) ||
           holding.manifest_cid !== semanticCid ||
           holding.objects.length !== 1) {
         fail('PublicationPrivateEvidenceUnavailable');
