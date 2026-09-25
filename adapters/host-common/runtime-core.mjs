@@ -1942,6 +1942,29 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth,
       )));
     },
+    issueSourceFreeLocalEffectResultArtifact(owner, inputs, memberIndex,
+      importing, definition, localInvocation, receipt, retention, context,
+      limits) {
+      issuanceLimits(limits, 'local Effect Result Artifact');
+      if (!Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          !['scopeCid', 'effectiveDataPolicyCid', 'authorityScopeCid']
+            .every(key => typeof context?.[key] === 'string')) {
+        throw new TypeError('Invalid local Effect Result Artifact');
+      }
+      const issued = checked(
+        moon.clientProgramIssueSourceFreeLocalEffectResultArtifact(
+          owner, inputs, memberIndex, importing, definition, localInvocation,
+          receipt, token(retention), context.scopeCid,
+          context.effectiveDataPolicyCid, context.authorityScopeCid,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({
+        identity: moon.clientProgramLocalEffectResultArtifactCid(issued),
+        wire: moon.clientProgramLocalEffectResultArtifactJson(issued),
+        derivationWire:
+          moon.clientProgramLocalEffectResultDerivationJson(issued),
+        orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
+      });
+    },
     effectSourceArtifactPreviewBinding(artifact, invocationCid, sourceResult,
       storeAuthorityCid) {
       return checked(moon.clientProgramEffectSourceArtifactPreviewBinding(

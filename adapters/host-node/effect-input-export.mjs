@@ -83,7 +83,7 @@ export async function exportPinnedEffectInput({
     receipt = finished._0;
     await onChunk(finished._1);
     const artifact = onReceipt === undefined
-      ? undefined : await onReceipt(input, receipt);
+      ? undefined : await onReceipt(input, receipt, importing);
     return Object.freeze({
       fields: moon.clientProgramEffectInputExportFields(receipt),
       logicalCid: moon.clientProgramEffectInputExportLogicalCid(receipt),
@@ -112,18 +112,24 @@ export async function exportPinnedEffectInput({
 export async function preparePinnedEffectSourcePayload({
   moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
+  localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits,
 }) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
         'function' ||
+      typeof moon?.clientProgramIssueCapturedEffectInputLocalInvocation !==
+        'function' ||
       checkedOwner === undefined ||
       !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
         Number.isSafeInteger(contractLimits?.[key]) &&
         contractLimits[key] > 0) ||
       typeof control?.issueEffectSourceArtifactFromExport !== 'function' ||
+      typeof control?.issueSourceFreeLocalEffectResultArtifact !== 'function' ||
       typeof sourceBindingCid !== 'string' ||
+      !['scopeCid', 'effectiveDataPolicyCid', 'authorityScopeCid'].every(
+        key => /^sha256:[0-9a-f]{64}$/u.test(localEvidenceContext?.[key])) ||
       (proposalMemberIndexes !== undefined &&
         (onProposalRow === undefined ||
           !Array.isArray(proposalMemberIndexes) ||
@@ -167,6 +173,22 @@ export async function preparePinnedEffectSourcePayload({
       localDefinition),
     wire: moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
   });
+  const localInvocationToken = checked(
+    moon.clientProgramIssueCapturedEffectInputLocalInvocation(
+      checkedOwner, inputs, memberIndex,
+      contractLimits.maxWireBytes, contractLimits.maxNodes,
+      contractLimits.maxDepth));
+  const localInvocation = Object.freeze({
+    identity: moon.clientProgramLocalEffectInvocationCid(
+      localInvocationToken),
+    wire: moon.clientProgramLocalEffectInvocationJson(
+      localInvocationToken),
+  });
+  const localContext = Object.freeze({
+    scopeCid: localEvidenceContext.scopeCid,
+    effectiveDataPolicyCid: localEvidenceContext.effectiveDataPolicyCid,
+    authorityScopeCid: localEvidenceContext.authorityScopeCid,
+  });
   const proposalPlans = [];
   try {
     for (const index of proposalMembers ?? []) {
@@ -189,6 +211,7 @@ export async function preparePinnedEffectSourcePayload({
     throw error;
   }
   let sealed;
+  let localResultArtifact;
   let byteCount = 0;
   const digest = createHash('sha256');
   try {
@@ -212,10 +235,15 @@ export async function preparePinnedEffectSourcePayload({
           }
         },
       }),
-      onReceipt: (input, receipt) =>
-        control.issueEffectSourceArtifactFromExport(
+      onReceipt: (input, receipt, importing) => {
+        localResultArtifact = control.issueSourceFreeLocalEffectResultArtifact(
+          checkedOwner, inputs, memberIndex, importing, localDefinition,
+          localInvocationToken, receipt, retention, localContext,
+          contractLimits);
+        return control.issueEffectSourceArtifactFromExport(
           input, receipt, invocation, retention, sourceBindingCid,
-          store.storeAuthorityCid, contractLimits),
+          store.storeAuthorityCid, contractLimits);
+      },
       async onChunk(chunk) {
         if (typeof chunk !== 'string') {
           throw new TypeError('InvalidEffectSourceChunk');
@@ -241,6 +269,8 @@ export async function preparePinnedEffectSourcePayload({
     const payload = Object.freeze({
       summary,
       localResultDefinition,
+      localInvocation,
+      localResultArtifact,
       physical: Object.freeze({cid: sealed.cid, bytes: sealed.bytes}),
       prepared: sealed.prepared,
     });

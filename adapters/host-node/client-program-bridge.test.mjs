@@ -823,6 +823,8 @@ test('admitted source-free Effect Run computes through the installed Host',
           store, maxBytes: 1, control, invocation: invocationContract,
           retention, sourceBindingCid: cid('c'),
           contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
         }), {message: 'EffectSourceByteLimit'});
         assert.equal(store.status().reservedBytes,
           beforeSource.reservedBytes);
@@ -834,11 +836,35 @@ test('admitted source-free Effect Run computes through the installed Host',
           store, maxBytes: outputLimits.maxWireBytes,
           control: {issueEffectSourceArtifactFromExport() {
             throw new Error('SourceArtifactRejected');
-          }}, invocation: invocationContract, retention,
+          }, issueSourceFreeLocalEffectResultArtifact:
+            control.issueSourceFreeLocalEffectResultArtifact},
+          invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
         }), {message: 'SourceArtifactRejected'});
         assert.equal(store.status().reservedBytes,
           beforeSource.reservedBytes);
+        assert.equal(store.status().storedBytes,
+          beforeSource.storedBytes);
+        const foreignLocalDefinition = checked(
+          moon.clientProgramIssueLocalEffectResultDefinition(
+            foreignPrepared, 0, 'rows', 4096, 16, 4));
+        await assert.rejects(preparePinnedEffectSourcePayload({
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: outputLimits.maxWireBytes,
+          control: {...control,
+            issueSourceFreeLocalEffectResultArtifact(...args) {
+              args[4] = foreignLocalDefinition;
+              return control.issueSourceFreeLocalEffectResultArtifact(...args);
+            }},
+          invocation: invocationContract, retention,
+          sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
+        }), {code: 'MoonBitHostFailure'});
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
         await assert.rejects(preparePinnedEffectSourcePayload({
@@ -848,6 +874,8 @@ test('admitted source-free Effect Run computes through the installed Host',
           store, maxBytes: outputLimits.maxWireBytes,
           control, invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
           proposalLimits: {maxFields: 10, maxWork: 100,
             maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxUtf16Units: 20000},
@@ -881,6 +909,8 @@ test('admitted source-free Effect Run computes through the installed Host',
           store: sourceStore, maxBytes: outputLimits.maxWireBytes,
           control, invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          localEvidenceContext: {scopeCid: cid('3'),
+            effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
         });
         const sourceArtifact = sourcePayload.summary.artifact;
         assert.equal(JSON.parse(sourceArtifact.wire).source_result, 'rows');
@@ -890,6 +920,32 @@ test('admitted source-free Effect Run computes through the installed Host',
           .self_cid, sourcePayload.localResultDefinition.identity);
         assert.equal(JSON.parse(sourcePayload.localResultDefinition.wire)
           .version, 'actql-local-result-definition/0.1');
+        const localArtifact = JSON.parse(sourcePayload.localResultArtifact.wire);
+        assert.equal(localArtifact.version, 'actql-result-artifact/0.1');
+        assert.equal(localArtifact.result_definition_cid,
+          sourcePayload.localResultDefinition.identity);
+        assert.equal(localArtifact.invocation_cid,
+          sourcePayload.localInvocation.identity);
+        assert.notEqual(localArtifact.invocation_cid,
+          invocationContract.identity);
+        assert.equal(localArtifact.logical_result_cid,
+          sourcePayload.summary.logicalCid);
+        assert.equal(localArtifact.result_schema_cid,
+          sourcePayload.summary.schemaCid);
+        assert.equal(localArtifact.actual_row_count,
+          sourcePayload.summary.rowCount);
+        const localDerivation = JSON.parse(
+          sourcePayload.localResultArtifact.derivationWire);
+        const localOrdering = JSON.parse(
+          sourcePayload.localResultArtifact.orderingWire);
+        assert.equal(localDerivation.producer_contract_cid,
+          sourcePayload.localResultDefinition.identity);
+        assert.equal(localOrdering.producer_contract_cid,
+          sourcePayload.localResultDefinition.identity);
+        assert.equal(localArtifact.ordering_evidence_cid,
+          localOrdering.self_cid);
+        assert.deepEqual(localArtifact.provenance_evidence_cids,
+          [localDerivation.self_cid]);
         assert.equal(JSON.parse(storedResults.artifacts[0].wire)
           .result_definition_cid, storedResults.definitions[0].identity);
         assert.equal(storedResults.results[0].occurrence.name, 'answer');
@@ -1440,6 +1496,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
         invocation: invocationContract, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
+        localEvidenceContext: {scopeCid: cid('3'),
+          effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
       }));
       assert.notEqual(sourcePayloads[0].summary.artifact.identity,
         storedResults.artifacts[0].identity);
@@ -2388,6 +2446,8 @@ test(`two-member captured Effect Run ${
         invocation: runInvocation, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
+        localEvidenceContext: {scopeCid: cid('3'),
+          effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')},
         ...(siteRun ? {
           proposalMemberIndexes: [0, 1],
           proposalLimits: {maxFields: 10, maxWork: 100,
