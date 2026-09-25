@@ -340,6 +340,34 @@ export function issueUnpublishedRunStateWire(prepared, compilation,
   return wire;
 }
 
+export function issueSucceededRunStateWire(prepared, compilation,
+  admission, definition, observedAt, observations) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof observedAt !== 'string' || !Array.isArray(observations) ||
+      !observations.every(value => value !== null &&
+        typeof value === 'object' &&
+        ['name', 'state', 'reason', 'observedAt'].every(key =>
+          typeof value[key] === 'string'))) {
+    throw new TypeError('InvalidRunHostStateObservation');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const wire = owner.clientValuesHostIssueSucceededRunStateWire(
+    requireHandle(definitions, definition), compiled.value, observedAt,
+    observations.map(value => value.name),
+    observations.map(value => value.state),
+    observations.map(value => value.reason),
+    observations.map(value => value.observedAt));
+  if (typeof wire !== 'string') {
+    throw Object.assign(new Error('RunHostStateProjectionRejected'),
+      {code: 'RunHostStateProjectionRejected'});
+  }
+  return wire;
+}
+
 export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),

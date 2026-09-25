@@ -185,6 +185,16 @@ export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
   definition: RunDefinition, observedAt: string,
   dispatchReserved: boolean,
   preDispatchFailureConfirmed: boolean): string;
+/** Project a committed Run with current physical availability observations. */
+export function issueSucceededRunStateWire(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, observedAt: string,
+  observations: readonly Readonly<{name: string;
+    state: 'available' | 'unavailable' | 'unknown';
+    reason: 'confirmed_present' | 'retention_expired' | 'deleted' |
+      'policy_unavailable' | 'integrity_failed' | 'not_published' |
+      'store_query_failed' | 'clock_uncertain' | 'verification_pending';
+    observedAt: string}>[]): string;
 export function admitRunDefinition(wire: string): RunDefinition;
 /** Re-admit the same checked source-free Run without changing its input set. */
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,

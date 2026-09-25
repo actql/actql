@@ -29,7 +29,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   executionShape,
   resultDefinitions, resultSchema,
   issueSourceFreeInvocation,
-  issueUnpublishedRunStateWire,
+  issueUnpublishedRunStateWire, issueSucceededRunStateWire,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
@@ -791,6 +791,16 @@ test('accepted unpublished Run state uses the common owner', () => {
   assert.throws(() => issueUnpublishedRunStateWire(prepared, compilation,
     admission, {}, at, false, false),
   {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  const succeeded = JSON.parse(issueSucceededRunStateWire(prepared,
+    compilation, admission, definition, at, [{name: 'answer',
+      state: 'unknown', reason: 'verification_pending', observedAt: at}]));
+  assert(validRunState(succeeded));
+  assert.equal(succeeded.status, 'succeeded');
+  assert.equal(succeeded.result_availability.answer.state, 'unknown');
+  assert.throws(() => issueSucceededRunStateWire(prepared, compilation,
+    admission, definition, at, [{name: 'other', state: 'available',
+      reason: 'confirmed_present', observedAt: at}]),
+  {code: 'RunHostStateProjectionRejected'});
 });
 
 test('unresolved starting input cannot use the empty captured set', () => {

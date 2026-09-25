@@ -948,6 +948,33 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
 }
 
 ///|
+/// Project a committed Run and current per-Result Store observations through
+/// the common state validator. The caller must first prove the index commit.
+#export_name("clientValuesHostIssueSucceededRunStateWire")
+pub fn client_values_host_issue_succeeded_run_state_wire(
+  definition : @publication.PublicationContract,
+  compilation : @host.ClientValuesCompilation,
+  observed_at : String,
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  result_observed_at : Array[String],
+) -> String? {
+  let run_id = match @publication.run_definition_run_id(definition) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  match
+    @publication.issue_succeeded_run_state_wire(
+      run_id, observed_at, @host.client_values_compilation_result_names(compilation),
+      names, states, reasons, result_observed_at, 100000, 10000, 64,
+    ) {
+    Ok(wire) => Some(wire)
+    Err(_) => None
+  }
+}
+
+///|
 pub(all) enum ClientValuesHostDispatchIssue {
   Binding(@host.ClientValuesRunBindingIssue)
   Dispatch(@host.ClientValuesDispatchIssue)
