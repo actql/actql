@@ -340,18 +340,36 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   let admission = @publication_host.admit_prepared_client_run_publication(
     prepared, template, prepared_invocation, authorization, plan,
   ).unwrap()
+  // An external Cloud acceptance driver may supply its accepted Run
+  // identity. The standalone native fixture keeps its fixed Run.
+  let external_run = @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_RUN_ID")
+  let run_id = external_run.unwrap_or("native-values-run")
+  let created_at = if external_run is Some(_) {
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_CREATED_AT").unwrap()
+  } else {
+    "2026-09-25T00:00:00.000Z"
+  }
+  let valid_until = if external_run is Some(_) {
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_VALID_UNTIL").unwrap()
+  } else {
+    "2027-01-01T00:00:00.000Z"
+  }
   let definition = @publication.issue_run_definition(
     admission,
     "native-values-scope",
-    "native-values-run",
+    run_id,
     @publication.empty_initial_input_artifact_set_cid(),
-    "2026-09-25T00:00:00.000Z",
-    "2027-01-01T00:00:00.000Z",
+    created_at,
+    valid_until,
     100000,
     10000,
     100,
   ).unwrap()
   let definition_cid = @publication.publication_contract_identity(definition)
+  if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_RUN_DEFINITION_CID")
+    is Some(expected_definition_cid) {
+    assert_eq(definition_cid, expected_definition_cid)
+  }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     native_publication_cid("native-values-coordinator"),
@@ -487,14 +505,25 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   assert_true(
     @remote.remote_input_binding_matches_dispatch(input_binding, dispatch),
   )
-  assert_native_remote_standard_output(
-    runtime, journal, dispatch, input_binding, "[{\"id\":1},{\"id\":2}]",
-  )
+  if external_run is None {
+    assert_native_remote_standard_output(
+      runtime, journal, dispatch, input_binding, "[{\"id\":1},{\"id\":2}]",
+    )
+  }
+  let external_dispatch_id = if external_run is Some(_) {
+    @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_DISPATCH_ID").unwrap()
+  } else {
+    "native-values-dispatch-2"
+  }
   let second = @publication_host.prepare_source_free_client_values_dispatch(
     run_binding,
     request,
-    2,
-    "native-values-dispatch-2",
+    if external_run is Some(_) {
+      1
+    } else {
+      2
+    },
+    external_dispatch_id,
     {
       site_key: "native-values-site",
       site_generation: 1,
@@ -546,6 +575,10 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   ).unwrap()
   let body = @remote.remote_poll_dispatch_json(second, input_binding).unwrap()
   let second_cid = @remote.dispatch_request_identity(second)
+  if @env.get_env_var("ACTQL_TEST_NATIVE_VALUES_DISPATCH_CID")
+    is Some(expected_dispatch_cid) {
+    assert_eq(second_cid, expected_dispatch_cid)
+  }
   assert_true(
     endpoint.output_plan_json(output_poll, second_cid)
     is Err(
