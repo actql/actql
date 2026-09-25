@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation now has an independent durable payload holding and encrypted recovery inventory; a Store reopen with a new publication control can re-admit that chain and publish without recomputing. A killed Host process and restored apply owner are not yet covered. Bind current-use authority checks to apply and restart. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, process restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process can now recover all recorded row claims from the exact Preview and SQLite heads and issue the same Set Receipt without recomputing or resending. The parent Host then publishes; fresh-process publication is not yet proved. Unrecorded rows still require a durable apply intent and re-admitted current authority; this read-only recovery is not a restored send owner. Bind current-use authority checks to apply and restart. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, process restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
 | Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
 
@@ -111,6 +111,14 @@ durable but before final Receipt issuance. It re-admits the captured chain,
 derives member and Set Receipts from the reopened Ledger, and publishes
 without dispatching another write. A future fresh-process test must prove
 that ordinary ingress selects this recovery path after a real process exit.
+An additional fresh-process probe now opens the actual encrypted Store and
+SQLite Ledger after all four rows were recorded. MoonBit reconstructs the
+exact claim bindings from the admitted Preview and immutable Ledger heads;
+the child issues the same two-member Set Receipt CID without opening a write
+Site. Missing or foreign heads fail, and a frontier with sendable rows is not
+returned as read-only recovery. This closes process isolation for recorded
+row evidence, not the public ingress or the interrupted apply owner when a
+row had no durable head.
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
 input owner and the Run-bound source's logical CID, schema, row count,

@@ -3764,6 +3764,7 @@ test(`two-member captured Effect Run ${
         dispatchRow: () => assert.fail('terminal row resent'),
       });
       assert.equal(replay.dispatched, 0);
+      let freshProcessSetCid;
       if (restartBeforeFinal) {
         for (const result of storedResults.results) {
           if (result.prepared.status().pending) {
@@ -3774,6 +3775,24 @@ test(`two-member captured Effect Run ${
           await sourcePayload.prepared.release();
         }
         await store.close();
+        const child = spawnSync(process.execPath, [fileURLToPath(new URL(
+          './fixtures/recover-effect-outcomes.mjs', import.meta.url,
+        ))], {
+          input: JSON.stringify({
+            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            capacityBytes: configuration.capacityBytes,
+            maxObjectBytes: configuration.maxObjectBytes,
+            maxObjects: configuration.maxObjects,
+            maxContractNodes: configuration.maxContractNodes,
+            maxContractDepth: configuration.maxContractDepth,
+            runDefinitionWire: runDefinition.wire,
+            ledgerRoot, authorityScopeCid: cid('e'),
+            callerRequestId: 'complete-two-effects-request',
+            programId: 'program-1', nodeId: 'node-1',
+            maxRows: 4, maxWork: 100, limits: publicationLimits,
+          }),
+          encoding: 'utf8', timeout: 20_000,
+        });
         control = runtimeCore(moon).publicationControl;
         physicalStore = await openLocalPublicationStore(configuration, control);
         store = Object.freeze({...physicalStore,
@@ -3786,6 +3805,12 @@ test(`two-member captured Effect Run ${
             return result;
           },
         });
+        assert.equal(child.status, 0, child.stderr);
+        const fresh = JSON.parse(child.stdout);
+        assert.equal(fresh.capturedRunCid, computation.capturedRun.identity);
+        assert.equal(fresh.setStatus, 'applied');
+        assert.deepEqual(fresh.rowCounts, [2, 2]);
+        freshProcessSetCid = fresh.setReceiptCid;
         const recovered = await recoverCompletedEffectfulComputation({
           store, control, runDefinition, contractLimits: publicationLimits,
         });
@@ -3813,6 +3838,9 @@ test(`two-member captured Effect Run ${
       });
       assert.equal(issuedSet.members.length, 2);
       assert.equal(JSON.parse(issuedSet.set.wire).status, 'applied');
+      if (freshProcessSetCid !== undefined) {
+        assert.equal(issuedSet.set.identity, freshProcessSetCid);
+      }
       const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
