@@ -517,6 +517,7 @@ for (const [index, route] of routeEntries.entries()) {
     }
     for (const role of [
       'json_pick_selected_work_workspace_exact_one_short',
+      'json_pick_completed_work_workspace_exact_one_short',
       'json_pick_selected_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {

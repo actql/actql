@@ -45,6 +45,120 @@ fn bounded_json_pick_fixture(
 }
 
 ///|
+fn bounded_json_pick_completed_fixture(
+  max_work : Int,
+  max_entries : Int,
+) -> (BoundedBindingRowsExecution, CompletedOutput) raise {
+  let source_owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"payload\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"leaf\":{\"type\":\"number\",\"nullable\":false}}}},\"rows\":[{\"payload\":{\"leaf\":3}}]},\"as\":\"seed\"}]",
+  )
+  let source_generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(source_owner),
+    [],
+    ["values_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let source = completed_output(
+    execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
+    @pipeline.Step(0),
+  ).unwrap()
+  let producer = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(source_owner)),
+    @pipeline.Step(0),
+  ).unwrap()
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"seed\",\"json_pick\":{\"column\":\"payload\",\"path\":[\"leaf\"],\"output\":\"picked\"}}]",
+    ),
+    [("seed", @pipeline.ProducedInput(producer))],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 100000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let receiver = @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 100000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let node = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(receiver),
+    [],
+    [@lower.node_id(node)],
+    100000,
+    10000,
+  ).unwrap()
+  let read = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, source_owner, source).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  let active = start_bounded_binding_rows(
+    @bounded.control(),
+    generated,
+    read,
+    1,
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+    { max_nodes: 100, max_text_bytes: 100, max_depth: 10, max_work: 200, },
+    max_work,
+    100,
+    max_entries,
+    1000,
+  ).unwrap()
+  (active, source)
+}
+
+///|
+test "bounded json pick completed input admits exact work and workspace" {
+  // One checked input row, field lookup, and output name emission use the
+  // same bounded implementation as the supplied-input path.
+  let exact_work = 2 + 5 + 7 + 6
+  let exact_workspace = 9 + 2 + 2
+  for
+    (work, space, success) in [
+      (exact_work, exact_workspace, true),
+      (exact_work - 1, exact_workspace, false),
+      (exact_work, exact_workspace - 1, false),
+    ] {
+    let (active, source) = bounded_json_pick_completed_fixture(work, space)
+    let mut completed = false
+    for _ in 0..<1000 {
+      match advance_bounded_binding_rows(active, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_true(completed_cell(output, 0, 1) is Some(Number(3.0)))
+          completed = true
+          break
+        }
+        BoundedBindingRowsFailed(_, ..) => break
+        BoundedBindingRowsStopped(_, ..) =>
+          fail("completed-input json pick stopped unexpectedly")
+      }
+    }
+    assert_eq(completed, success)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
 test "bounded json pick admits exact work and workspace" {
   // Row admission and opening cost two units. The leaf probe costs one
   // field visit plus four UTF-8 bytes; output names cost seven and six.

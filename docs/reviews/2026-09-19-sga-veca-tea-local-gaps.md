@@ -92,15 +92,15 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 24 |
 | Full route work/workspace assurance | 24 |
-| Path-scoped work/workspace assurance | 58 |
-| Selected-only assurance | 5 |
+| Path-scoped work/workspace assurance | 59 |
+| Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Remaining path triage after the bounded global count slice
 
-The 47 unresolved path obligations below are paths, not 47 missing
-operations. They consist of 44 whole-operation entrypoints and three
-additional selected or same-Stage paths. The categories identify the next
+The 46 unresolved path obligations below are paths, not 46 missing
+operations. They consist of 44 whole-operation entrypoints and two
+additional same-Stage paths. The categories identify the next
 engineering action; they do not turn a registered route into proof of every
 formal variant.
 
@@ -108,10 +108,10 @@ formal variant.
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 18 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, both VecA row expressions, selected `json_pick`, and same-Stage `append` and `cross_join` need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Bounded product connection exists, route evidence is incomplete | 17 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, both VecA row expressions, and same-Stage `append` and `cross_join` need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 The general providerless managed fallback is a cross-cutting synchronous
-hazard represented by the first two rows, not a 49th independent path. Its
+hazard represented by the first two rows, not a separate path. Its
 reachability must be removed or bounded for every admitted long-running
 sequence before the strict gate can pass.
 
@@ -119,7 +119,7 @@ The category counts follow the registered production routes. A separate
 cross-cutting audit remains: `bounded_binding_rows` calls synchronous nested
 value revalidation for one output cell during `CheckOutputRow`. Its maximum
 single-resume work for admitted nested values is not established by the row
-quantum alone. This does not add another operation to the 47 paths, but an
+quantum alone. This does not add another operation to the 46 paths, but an
 affected route must move from connection or evidence work to bounded-kernel
 work if its accepted value limit permits an excessive noninterruptible step.
 
@@ -225,6 +225,14 @@ The `json_pick` route also binds an independently counted one-row object
 fixture: 26 control-work units and a twelve-slot workspace peak for a
 single leaf. Exact limits succeed and either one-short limit fails. This
 does not establish in-flight cancellation or every path and value variant.
+The selected `json_pick` route now has a separate completed-producer fixture
+using `start_bounded_binding_rows`, the production evaluator reached by the
+registered selected provider. Its one-row leaf probe has a fixed 20-unit work
+ceiling and thirteen-slot peak; exact limits complete, while either one-short
+limit rejects without publication. The existing standard Host timer fixture
+delivers in-flight cancellation, and the bounded cleanup test exercises the
+same state machine. This closes selected-route evidence only. The ordinary
+whole-sequence fallback remains in the connection category.
 The `dedupe_rows` route binds a separately derived empty keyed-input fixture
 with 29 control-work units and a twelve-slot peak. Exact limits succeed and
 one-short limits fail. This does not prove nonempty grouping, representative

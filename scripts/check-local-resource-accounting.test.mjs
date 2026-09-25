@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 58 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 59 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Graph equality route requires exact limits and delivered cancellation', () => {
@@ -337,6 +337,7 @@ test('json pick selected route loses evidence when a fixture is removed', () => 
   }), /RelA json_pick: bounded selected json pick entrypoint is missing/u);
   for (const role of [
     'json_pick_selected_work_workspace_exact_one_short',
+    'json_pick_completed_work_workspace_exact_one_short',
     'json_pick_selected_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
@@ -358,6 +359,11 @@ test('json pick selected route loses evidence when a fixture is removed', () => 
         item.role !== role);
     }), new RegExp(`RelA json_pick: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'json_pick');
+    delete route.resource_assurance.selected_entrypoint;
+  }), /RelA:json_pick:selected_entrypoint: assured production claim lacks its exact route proofs/u);
 });
 
 test('dedupe loses its independent resource boundary with its fixture', () => {
@@ -648,7 +654,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 58 |',
+    '| Path-scoped work/workspace assurance | 59 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);

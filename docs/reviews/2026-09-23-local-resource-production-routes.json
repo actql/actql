@@ -1834,6 +1834,13 @@
           "fixture": "bounded json pick admits exact work and workspace"
         },
         {
+          "role": "json_pick_completed_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_json_pick_wbtest.mbt",
+          "fixture": "bounded json pick completed input admits exact work and workspace"
+        },
+        {
           "role": "json_pick_selected_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1880,7 +1887,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-json-pick-in-flight"
         }
-      ]
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+          "one_short_limit": "json_pick_completed_work_workspace_exact_one_short",
+          "in_flight_cancel": "json_pick_in_flight_host_timer",
+          "cleanup": "json_pick_selected_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+            "one_short_limit": "json_pick_completed_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "json_pick_completed_work_workspace_exact_one_short",
+            "one_short_limit": "json_pick_completed_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",
