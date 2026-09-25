@@ -87,7 +87,7 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
-pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
+pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
@@ -613,6 +613,8 @@ pub fn strategy_host_configure_managed_identity(@connectors_builtin.ConfiguredCo
 
 pub fn strategy_host_count(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
+pub fn strategy_host_cover_activation(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
 pub fn strategy_host_explain(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
@@ -758,6 +760,8 @@ pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @conne
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
 
 pub fn strategy_host_releasable_managed_producers(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn strategy_host_require_activation(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
 pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
 

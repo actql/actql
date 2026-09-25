@@ -1301,17 +1301,6 @@
       }
     },
     {
-      "requirement_id": "actql.execution/checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation",
-      "statement_sha256": "676a7b4c361874fd2c9841080fe525c47d213031ff4a8d0a36f7354026da0871",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "checkpoints",
-        "kind": "prose"
-      }
-    },
-    {
       "requirement_id": "actql.execution/checkpoints.every-resumed-protected-dispatch-must-pass-the-resume-admission-whatever-the-account-outcome",
       "statement_sha256": "a1ad3337d5dabbdac4311ee29bd4239d8ee5572a72de759870e6c61cc10cb4a0",
       "status": "pending",
@@ -1336,6 +1325,17 @@
     {
       "requirement_id": "actql.execution/checkpoints.a-configuration-changed-while-waiting-must-not-admit-a-resumed-dispatch",
       "statement_sha256": "42769005bb36913195e273353a8bff3dc260bcc503feb223f6b1479c75c41dd2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation",
+      "statement_sha256": "676a7b4c361874fd2c9841080fe525c47d213031ff4a8d0a36f7354026da0871",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -1501,6 +1501,28 @@
     {
       "requirement_id": "actql.execution/effect-application.preview-must",
       "statement_sha256": "7955b07d4a1b4bd108977d68a7c2dc3946a23b4daff52fa523f7bd01f98f10f0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body",
+      "statement_sha256": "1863284846223e517a5c5fa645bfd2f5230c739cbff4d553d682fea62f263eef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings",
+      "statement_sha256": "ed21d3760688e1731ad1e15878e92797eb839a3fdf7bab8453b7a72a5eb21f82",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -2138,6 +2138,36 @@ pub fn strategy_host_finished(
 }
 
 ///|
+/// Seal the per-task activation requirement on this Run before any installed
+/// implementation can start a task. It cannot be removed.
+#export_name("strategyHostRequireActivation")
+pub fn strategy_host_require_activation(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Unit {
+  @strategy.require_captured_task_activation(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+  )
+}
+
+///|
+/// Explicit no-protected-scope coverage for exactly the next ready task. The
+/// Host states it only after its local coverage check (in-process Site, pure
+/// compute over captured inputs); protected placements need an evaluated
+/// dispatch authorization instead.
+#export_name("strategyHostCoverActivation")
+pub fn strategy_host_cover_activation(
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  task : Int,
+) -> Bool {
+  @strategy.authorize_captured_task_activation(
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(host)),
+    task,
+    @strategy.task_activation_covered(),
+  )
+  is Ok(_)
+}
+
+///|
 #export_name("strategyHostStop")
 pub fn strategy_host_stop(
   host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
