@@ -5788,6 +5788,12 @@ async function exerciseStrategyGraph(
     stage.id.startsWith('unpivot_consumer_'))) {
     stage.inputs.x.result.stage = 'unpivot_values';
   }
+  const unpivotFilterProgram = structuredClone(unpivotProgram);
+  const unpivotFilterStage = unpivotFilterProgram.stages.find(stage =>
+    stage.id === 'unpivoted');
+  unpivotFilterStage.steps[0].as = 'expanded';
+  unpivotFilterStage.steps.push({from: 'expanded', filter: 'id > 1',
+    as: 'out'});
   const pivotProgram = structuredClone(zeroInputProgram);
   const pivotFields = ['id', 'open', 'won'];
   pivotProgram.stages.splice(1, 3, {
@@ -5894,6 +5900,12 @@ async function exerciseStrategyGraph(
     stage.id.startsWith('unnest_consumer_'))) {
     stage.inputs.x.result.stage = 'unnest_values';
   }
+  const unnestFilterProgram = structuredClone(unnestProgram);
+  const unnestFilterStage = unnestFilterProgram.stages.find(stage =>
+    stage.id === 'unnested');
+  unnestFilterStage.steps[0].as = 'expanded';
+  unnestFilterStage.steps.push({from: 'expanded', filter: 'id > 1',
+    as: 'out'});
   const jsonPickProgram = structuredClone(zeroInputProgram);
   const jsonPickFields = ['id', 'payload', 'picked'];
   jsonPickProgram.stages.splice(1, 3, {
@@ -6164,9 +6176,11 @@ async function exerciseStrategyGraph(
     ['parameter lag', lagProgram, [1, 2, 3, 4, 5]],
     ['analytic', analyticProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
+    ['unpivot/filter chain', unpivotFilterProgram, [1, 2, 3, 4, 5]],
     ['same-stage unpivot', sameStageUnpivotProgram, [1, 2, 3, 4]],
     ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
+    ['unnest/filter chain', unnestFilterProgram, [1, 2, 3, 4, 5]],
     ['same-stage unnest', sameStageUnnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['same-stage json pick', sameStageJsonPickProgram, [1, 2, 3, 4]],
@@ -6356,6 +6370,13 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
+      if (name === 'unpivot/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 6, 3, 3, 3],
+          'bounded unpivot and filter feed two actual computations',
+        );
+      }
       if (name === 'pivot') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
@@ -6368,6 +6389,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
           `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'unnest/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 4, 2, 2, 2],
+          'bounded unnest and filter feed two actual computations',
         );
       }
       if (name === 'nest') {
@@ -6894,8 +6922,12 @@ async function exerciseStrategyGraph(
       program: prefixWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-unpivot-in-flight',
       program: unpivotProgram, cancelAtStart: 2},
+    {name: 'unpivot-filter-chain-in-flight',
+      program: unpivotFilterProgram, cancelAtStart: 3},
     {name: 'split-values-unnest-in-flight',
       program: unnestProgram, cancelAtStart: 2},
+    {name: 'unnest-filter-chain-in-flight',
+      program: unnestFilterProgram, cancelAtStart: 3},
     {name: 'split-values-json-pick-in-flight',
       program: jsonPickProgram, cancelAtStart: 2},
     {name: 'same-stage-json-pick-filter-in-flight',
@@ -6932,9 +6964,11 @@ async function exerciseStrategyGraph(
       cancellationName === 'split-values-prefix-watermark-in-flight';
     const lagCancellation = cancellationName === 'same-stage-lag-in-flight';
     const unpivotCancellation = cancellationName ===
-      'split-values-unpivot-in-flight';
+      'split-values-unpivot-in-flight' ||
+      cancellationName === 'unpivot-filter-chain-in-flight';
     const unnestCancellation = cancellationName ===
-      'split-values-unnest-in-flight';
+      'split-values-unnest-in-flight' ||
+      cancellationName === 'unnest-filter-chain-in-flight';
     const jsonPickCancellation = cancellationName ===
       'split-values-json-pick-in-flight';
     const sameStageJsonFilterCancellation = cancellationName ===
@@ -6952,8 +6986,11 @@ async function exerciseStrategyGraph(
               ? 'json_pick_values' : 'values_a'),
     );
     if (!capturedRelationChainCancellation) {
+      const reshapeFilterChain = cancellationName ===
+        'unpivot-filter-chain-in-flight' ||
+        cancellationName === 'unnest-filter-chain-in-flight';
       valuesStage.steps[0].values.rows = Array.from(
-      {length: 80}, (_, index) => rowWindowCancellation
+      {length: reshapeFilterChain ? 24 : 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
         : lagCancellation
           ? {amount: index, group: index % 2 ? 'a' : null, id: index}

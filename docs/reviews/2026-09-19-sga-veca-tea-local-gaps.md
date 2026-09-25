@@ -142,6 +142,14 @@ fixture checks quantum-one work and ledger reclamation; the Node case checks
 the standard asynchronous cancellation delivery. Neither fixture proves a
 bounded retained-file import or all unary operation variants.
 
+Ordinary `values` → `unpivot`/`unnest` → `filter` Programs form five exact
+tasks through the existing typed task splitter. The standard Node Host now
+checks both resulting row counts, two real consumers, and timer cancellation
+while the later filter task is active. This is evidence for those ordinary
+source shapes, not for an unsplit captured or retained Relation predecessor;
+the `unpivot` and `unnest` whole-route obligations remain in the connection
+category until those paths and their exact resource boundaries are proved.
+
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,
 work, and workspace parameters exercised by independent exact/one-short kernel
