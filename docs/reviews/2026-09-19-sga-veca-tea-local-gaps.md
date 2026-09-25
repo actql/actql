@@ -71,6 +71,13 @@ overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
 are retained as controls, not substituted for in-flight or limit evidence.
+The selected keyed `take` now resumes while charging a long unselected
+sorted-row value; quantum-one cancellation and independently calculated
+exact/one-short value limits cover that phase on three targets. This does
+not yet close the entire route: output admission and retention of a long
+selected value still include synchronous whole-value checks. The normal
+Host sort/take composition remains a control, not proof that every internal
+value pass is interruptible.
 The strict gate now recognizes the existing direct and external cross-join
 Host timer cases: both request cancellation after positive pair progress,
 observe stop, and reclaim their owners. This removes a stale evidence-name

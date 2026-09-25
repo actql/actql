@@ -346,6 +346,7 @@ priv struct BoundedBindingRowsState {
   mut sort_row : Int
   mut sort_column : Int
   mut sort_charge_open : Bool
+  mut sort_measure : SteppedValueMeasure?
   mut unique_key : Int
   mut unique_row : Int
   mut unique_pair : Int
@@ -497,6 +498,10 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.charge_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.charge_measure = None
+  }
+  if state.sort_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.sort_measure = None
   }
   state.workspace.live = 0
   if !state.accepted.val {
@@ -1123,23 +1128,39 @@ fn bounded_binding_rows_step(
           state.sort_charge_open = true
           used += 1
         } else if state.sort_column < state.input_names.length() {
-          guard bounded_binding_input_cell(
-              state.input,
-              indices[state.sort_row],
-              state.sort_column,
-            )
-            is Some(value) else {
-            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          if state.sort_measure is None {
+            guard bounded_binding_input_cell(
+                state.input,
+                indices[state.sort_row],
+                state.sort_column,
+              )
+              is Some(value) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            if !spend_control(state.control, 1) ||
+              !charge_text(
+                state.output_values,
+                state.input_names[state.sort_column],
+              ) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.sort_measure = Some(cursor)
           }
-          if !spend_control(state.control, 1) ||
-            !charge_text(
-              state.output_values,
-              state.input_names[state.sort_column],
-            ) ||
-            !measure_result(value, state.output_values) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          let cursor = state.sort_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.output_values) {
+            SteppedMeasureLimit | SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.sort_measure = None
+              state.sort_column += 1
+            }
           }
-          state.sort_column += 1
           used += 1
         } else {
           state.sort_row += 1
@@ -2300,6 +2321,7 @@ fn start_bounded_binding_rows_with_input(
     sort_row: 0,
     sort_column: 0,
     sort_charge_open: false,
+    sort_measure: None,
     unique_key: 0,
     unique_row: -1,
     unique_pair: 1,
