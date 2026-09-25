@@ -7,7 +7,7 @@ fn local_fixed_task_target(
 ) -> @pipeline.Target? {
   let prepared = @lower.bound_preparation(owner)
   let selected_count = @execution.generated_sequence_step_count(sequence)
-  if selected_count < @pipeline.step_count(@lower.pipeline(prepared)) {
+  if selected_count < @lower.node_count(prepared) {
     return @execution.generated_sequence_step_index_at(
       sequence,
       selected_count - 1,
