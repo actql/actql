@@ -2107,7 +2107,7 @@ pub fn client_program_author_effect_preview(
     Err(issue) => return Err(Preview(issue))
   }
   let count = @publication.effect_preview_member_count(identity)
-  if max_members < 1 || max_rows < 1 || count > max_members {
+  if max_members < 1 || max_rows < 0 || count > max_members {
     return Err(CapacityExceeded)
   }
   let preview_cid = @publication.effect_preview_semantic_identity(identity)
