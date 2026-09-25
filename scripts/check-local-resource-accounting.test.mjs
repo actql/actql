@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 59 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 61 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Graph equality route requires exact limits and delivered cancellation', () => {
@@ -654,7 +654,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 59 |',
+    '| Path-scoped work/workspace assurance | 61 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -1343,6 +1343,16 @@ test('same-stage append needs its bounded provider and delivered timer', () => {
     append.environment_tests = append.environment_tests.filter(item =>
       item.role !== 'append_same_stage_node_timer_cancel_cleanup');
   }), /RelA append: same-stage append timer evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    delete append.resource_assurance.same_stage_entrypoint;
+  }), /RelA:append:same_stage_entrypoint: assured production claim lacks its exact route proofs/u);
+  assert.match(run(undefined, routes => {
+    const append = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'append');
+    append.shared_proof_reuse = [];
+  }), /RelA append: append_external_work_workspace_exact_one_short is reused across production paths/u);
 });
 
 test('same-stage cross join needs its provider and two consumers', () => {
@@ -1357,6 +1367,16 @@ test('same-stage cross join needs its provider and two consumers', () => {
     cross.boundary_tests = cross.boundary_tests.filter(item =>
       item.role !== 'direct_product_host_two_consumers');
   }), /RelA cross_join: bounded same-stage cross join evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const cross = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    delete cross.resource_assurance.same_stage_entrypoint;
+  }), /RelA:cross_join:same_stage_entrypoint: assured production claim lacks its exact route proofs/u);
+  assert.match(run(undefined, routes => {
+    const cross = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'cross_join');
+    cross.shared_proof_reuse = [];
+  }), /RelA cross_join: external_product_work_exact_one_short is reused across production paths/u);
 });
 
 test('binary receivers need their input admission fixtures', () => {

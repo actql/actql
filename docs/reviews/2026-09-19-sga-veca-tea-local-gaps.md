@@ -92,15 +92,14 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 24 |
 | Full route work/workspace assurance | 24 |
-| Path-scoped work/workspace assurance | 59 |
+| Path-scoped work/workspace assurance | 61 |
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Remaining path triage after the bounded global count slice
 
-The 46 unresolved path obligations below are paths, not 46 missing
-operations. They consist of 44 whole-operation entrypoints and two
-additional same-Stage paths. The categories identify the next
+The 44 unresolved path obligations below are paths, not 44 missing
+operations. They are whole-operation entrypoints. The categories identify the next
 engineering action; they do not turn a registered route into proof of every
 formal variant.
 
@@ -108,7 +107,7 @@ formal variant.
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 17 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, both VecA row expressions, and same-Stage `append` and `cross_join` need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Bounded product connection exists, route evidence is incomplete | 15 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, and both VecA row expressions need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 The general providerless managed fallback is a cross-cutting synchronous
 hazard represented by the first two rows, not a separate path. Its
@@ -119,7 +118,7 @@ The category counts follow the registered production routes. A separate
 cross-cutting audit remains: `bounded_binding_rows` calls synchronous nested
 value revalidation for one output cell during `CheckOutputRow`. Its maximum
 single-resume work for admitted nested values is not established by the row
-quantum alone. This does not add another operation to the 46 paths, but an
+quantum alone. This does not add another operation to the 44 paths, but an
 affected route must move from connection or evidence work to bounded-kernel
 work if its accepted value limit permits an excessive noninterruptible step.
 
@@ -963,9 +962,13 @@ standard Host fixtures run both downstream Computes, overlapping retention,
 independent release, and final reclamation. Node timers cancel after binary
 work starts and check stop, nonpublication, and cleanup. These are specific
 checked forms; `values → distinct → cross_join` now uses selected bounded
-tasks. The new same-Stage paths have connection and
-cancel evidence, but not independent exact combined-path work/workspace
-assurance in the resource audit.
+tasks. Both same-Stage paths use the same registered single-step bounded
+providers and exact `ProducerRead` inputs as the already bounded external
+paths. The external-input fixtures independently fix exact/one-short work and
+workspace for each shared kernel. The same-Stage standard Host fixtures prove
+provider selection, two consumers, timer-delivered cancellation, and final
+reclamation; the resource audit records the precise shared-proof grant for
+each path. This does not assure either whole-sequence synchronous fallback.
 Other multi-step sequences beginning with `values` and unmatched Relation
 sequences can still reach the providerless lane. A Node standard
 Host timer now cancels the external-input provider after pair work has begun;
