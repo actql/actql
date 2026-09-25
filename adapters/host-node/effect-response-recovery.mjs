@@ -205,3 +205,32 @@ export async function issueAuthorizedEffectMemberReceipt({
     preview, memberIndex, rowOwners: ownedOwners,
   });
 }
+
+// Set issuance reuses the physical evidence path of every member. The replay
+// flags are explicit Host observations; neither row state nor a new Receipt
+// proves whether an earlier terminal result was replayed without dispatch.
+export async function issueAuthorizedEffectSetReceipt({
+  ledger, members, preview, commonMoon, authorizeEvidenceRead,
+  providerBinding = {}, limits,
+}) {
+  if (!Array.isArray(members) || members.length === 0 ||
+      members.some(member => !Array.isArray(member?.rowOwners) ||
+        typeof member.replayed !== 'boolean') ||
+      !limits || !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+        Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
+    fail('InvalidEffectSetReceiptEvidence');
+  }
+  const issuedMembers = [];
+  for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
+    issuedMembers.push(await issueAuthorizedEffectMemberReceipt({
+      ledger, rowOwners: members[memberIndex].rowOwners, preview,
+      memberIndex, commonMoon, authorizeEvidenceRead, providerBinding,
+    }));
+  }
+  const set = runtimeCore(commonMoon).effectApplicationControl
+    .issueSetReceiptFromMembers(
+      preview, issuedMembers.map(member => member.wire),
+      members.map(member => member.replayed), limits.maxWireBytes,
+      limits.maxNodes, limits.maxDepth);
+  return Object.freeze({set, members: Object.freeze(issuedMembers)});
+}
