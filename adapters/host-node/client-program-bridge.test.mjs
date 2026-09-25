@@ -26,12 +26,15 @@ import {canonicalJson} from
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication,
+  publishCompletedEffectfulRun,
   releaseCompletedRunPreparedPayloads,
   storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {retainIssuedEffectSetReceipt} from
+  '../host-common/effect-receipt-custody.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 
@@ -607,8 +610,9 @@ test('admitted source-free Effect Run computes through the installed Host',
       maxObjectBytes: outputLimits.maxWireBytes,
       maxObjects: 100, maxContractNodes: 10000,
       maxContractDepth: 64,
+      privateEvidenceKey: Buffer.alloc(32, 4),
     }, control);
-    let storedResults;
+    let storedResults, committedPublicationKey;
     try {
       assert.equal(execution.status, 'host-tasks-completed');
       assert.equal(execution.completed.length, 1);
@@ -969,8 +973,65 @@ test('admitted source-free Effect Run computes through the installed Host',
           chunk => storedChunks.push(Buffer.from(chunk)));
         assert.equal(Buffer.concat(storedChunks).toString('utf8'),
           chunks.join(''));
+        // This empty fixture Receipt tests Compute-to-Store provenance only;
+        // the physical multi-row apply path has separate acceptance gates.
+        const previewBody = JSON.parse(preview.wire);
+        const memberReceipt = control.seal('effect_apply_receipt',
+          JSON.stringify({
+            version: 'actql-effect-apply-receipt/0.1',
+            run_identity_cid: previewBody.run_identity_cid,
+            effect_preview_cid: previewBody.effect_preview_cid,
+            effect_member_preview_cid:
+              previewBody.effects[0].effect_member_preview_cid,
+            rows: [], status: 'applied',
+          }), publicationLimits);
+        const setReceipt = control.issueEffectSetApplyReceiptFromMembers(
+          admittedPreview, [memberReceipt], [false], publicationLimits,
+        );
+        const fixtureLedger = Object.freeze({});
+        const issuedSet = retainIssuedEffectSetReceipt({
+          set: setReceipt, members: [memberReceipt],
+          ledger: fixtureLedger, preview: admittedPreview,
+        });
+        const publicationOptions = {
+          execution, store, storedResults, control, computation,
+          preview: admittedPreview, ledger: fixtureLedger, issuedSet,
+          request: {
+            tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+            publicationPolicyCid: cid('e'),
+            publicationTargetCid: cid('f'),
+            requestedAt: '2026-09-24T00:00:01.000Z',
+          },
+          attempt: {attemptId: 'effect-compute-attempt',
+            fenceCid: cid('0'), externalIdempotencyKey: undefined,
+            startedAt: '2026-09-24T00:00:02.000Z'},
+          contractLimits: publicationLimits,
+          now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
+        };
+        const published = await publishCompletedEffectfulRun(
+          publicationOptions);
+        assert.equal(published.publication.committed, true);
+        assert.equal(published.publication.state, 'succeeded');
+        committedPublicationKey = {
+          tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          runDefinitionCid: runDefinitionContract.identity,
+        };
+        assert.notEqual(await store.inspectCommittedIndex(
+          committedPublicationKey), undefined);
+        const replay = await publishCompletedEffectfulRun(
+          publicationOptions);
+        assert.equal(replay.publication.idempotent, true);
       } finally {
-        if (sourceHoldingCid !== undefined) {
+        if (committedPublicationKey !== undefined) {
+          assert.equal((await store.retireCommittedResult(
+            committedPublicationKey,
+            storedResults.definitions[0].identity,
+          )).cleanup.status().pending, false);
+          const retired = await store.retireCommittedPublicationMetadata(
+            committedPublicationKey, '2026-09-24T00:00:04.000Z',
+          );
+          assert.equal(retired.deleted, true);
+        } else if (sourceHoldingCid !== undefined) {
           assert.equal((await store.retirePhysicalHolding(
             sourceHoldingCid)).deleted, true);
         }
@@ -992,8 +1053,10 @@ test('admitted source-free Effect Run computes through the installed Host',
     } finally {
       if (storedResults !== undefined) {
         await releaseCompletedRunPreparedPayloads(storedResults, control);
-        assert.equal(store.status().storedBytes, 0);
-        assert.equal(store.status().objectCount, 0);
+        if (committedPublicationKey !== undefined) {
+          assert.equal(store.status().storedBytes, 0);
+          assert.equal(store.status().objectCount, 0);
+        }
       }
       await store.close();
       await execution.close();
