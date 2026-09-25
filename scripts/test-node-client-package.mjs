@@ -105,6 +105,8 @@ const document = readFileSync('values.json', 'utf8');
 async function runApplication(options, requestId) {
   const client = await connect(options);
   const execution = await client.aql(document, {format: 'json', requestId});
+  const settled = await execution.wait();
+  assert.equal(settled.status, 'succeeded');
   const rows = await execution.result('answer').all();
   return {client, execution, rows};
 }
@@ -132,6 +134,7 @@ nullable.stages[0].steps[0].values.schema.id.nullable = true;
 nullable.stages[0].steps[0].values.rows = [{id: null}, {id: 3}];
 const nullableRun = await installedLocal.aql(JSON.stringify(nullable),
   {format: 'json', requestId: 'packed-nullable-values'});
+assert.equal((await nullableRun.wait()).status, 'succeeded');
 assert.deepEqual(await nullableRun.result('answer').all(),
   [{id: null}, {id: 3}]);
 const empty = JSON.parse(document);
@@ -139,6 +142,7 @@ empty.id = 'client-empty-values';
 empty.stages[0].steps[0].values.rows = [];
 const emptyRun = await installedLocal.aql(JSON.stringify(empty),
   {format: 'json', requestId: 'packed-empty-values'});
+assert.equal((await emptyRun.wait()).status, 'succeeded');
 assert.deepEqual(await emptyRun.result('answer').all(), []);
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
@@ -148,10 +152,37 @@ await assert.rejects(installedLocal.aql(document.replace('"id": 2',
 installedLocal.close();
 assert.equal(calls.length, connected.length);
 globalThis.fetch = originalFetch;
-const {client: installedRemote, execution: remoteExecution,
-  rows: remoteRows} = await runApplication({mode: 'remote',
+const remoteOptions = {mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT, token: 'packed-test-token',
-  durability: 'durable'}, 'packed-remote-values');
+  durability: 'durable'};
+const timingClient = await connect(remoteOptions);
+let acceptanceTimer;
+const timingRun = await Promise.race([
+  timingClient.aql(document, {format: 'json',
+    requestId: 'packed-acceptance-before-dispatch'}),
+  new Promise((_, reject) => {
+    acceptanceTimer = setTimeout(() => reject(
+      new Error('SubmitWaitedForPhysicalDispatch')), 5000);
+  }),
+]).finally(() => clearTimeout(acceptanceTimer));
+const pendingState = await timingRun.status();
+assert.equal(pendingState.status, 'running');
+assert.equal(pendingState.result_availability.answer.reason,
+  'not_published');
+const abortedWait = new AbortController();
+const waitAttempt = timingRun.wait({signal: abortedWait.signal});
+abortedWait.abort();
+await assert.rejects(waitAttempt);
+assert.equal((await timingRun.status()).status, 'running');
+const release = await originalFetch(new URL('/__test/release-dispatch',
+  remoteOptions.endpoint), {method: 'POST'});
+assert.equal(release.status, 200);
+assert.equal((await timingRun.wait()).status, 'succeeded');
+assert.deepEqual(await timingRun.result('answer').all(), rows);
+timingClient.close();
+const {client: installedRemote, execution: remoteExecution,
+  rows: remoteRows} = await runApplication(remoteOptions,
+  'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
 assert.equal((await remoteExecution.status()).status, 'succeeded');
 assert.deepEqual((await installedRemote.attach(remoteExecution.ref)).ref,
@@ -183,6 +214,7 @@ assert.equal(recoveredRemote.kind, 'found');
 const resumedRemote = await installedRemote.aql(document, {format: 'json',
   requestId: 'packed-remote-lost-ack'});
 assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
+assert.equal((await resumedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await resumedRemote.result('answer').all(), rows);
 installedRemote.close();
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
@@ -207,15 +239,27 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
   'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
 const {openInstalledRemoteHttpHost} = await import(remoteModule);
+let releaseDispatch;
+const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 const remoteHost = await openInstalledRemoteHttpHost({
   directory: join(root, 'remote-state'),
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
+  beforeDispatch: () => heldDispatch,
 });
 const remoteServer = createServer({
   key: await readFile(join(root, 'remote.key')),
   cert: await readFile(join(root, 'remote.crt')),
-}, remoteHost.handler);
+}, (request, response) => {
+  if (request.method === 'POST' &&
+      request.url === '/__test/release-dispatch') {
+    releaseDispatch();
+    response.writeHead(200);
+    response.end();
+    return;
+  }
+  return remoteHost.handler(request, response);
+});
 await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
 try {
   const endpoint = `https://127.0.0.1:${remoteServer.address().port}/`;
@@ -224,6 +268,7 @@ try {
     NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
   });
 } finally {
+  releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
 }
 await writeFile(join(root, 'restart.mjs'), `

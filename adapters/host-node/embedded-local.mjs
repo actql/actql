@@ -6,7 +6,6 @@ import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
-import {ClientError} from '../../packages/sdk/index.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -43,7 +42,7 @@ function localStateRoot() {
   return resolve(supplied ?? join(homedir(), '.local', 'share', 'actql'));
 }
 
-async function openInstalledHost(root, mode = 'local') {
+async function openInstalledHost(root, mode = 'local', beforeDispatch) {
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
@@ -82,17 +81,19 @@ async function openInstalledHost(root, mode = 'local') {
     journal.close();
     throw error;
   }
-  const hostConnection = ({connection, ref}) =>
+  const hostConnection = ({principalId: actual, connection, ref}) =>
+    actual === principalId &&
     connection.mode === mode && connection.owner === mode &&
     (ref === undefined || ref.tenantId === tenantId &&
       ref.authorityScopeCid === authorityScopeCid);
-  const authorizedScope = () => ({tenantId, authorityScopeCid});
+  const authorizedScope = ({principalId: actual}) =>
+    actual === principalId ? {tenantId, authorityScopeCid} : undefined;
   const lookupRequest = installNodeClientRequestLookup({journal,
     control: moon, authorizedScope});
   const startRun = installNodeClientRunStart({journal,
     requestControl: moon, publicationControl: control,
-    authorizeRunStart: ({connection, ref}) =>
-      hostConnection({connection, ref})});
+    authorizeRunStart: ({principalId: actual, connection, ref}) =>
+      hostConnection({principalId: actual, connection, ref})});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: ({principalId: actual}) =>
       actual === principalId,
@@ -125,9 +126,55 @@ async function openInstalledHost(root, mode = 'local') {
       ref.authorityScopeCid === authorityScopeCid});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment});
+  const activeDispatches = new Map();
+  const observeRun = async ({ref, principalId: actual}) => {
+    if (actual !== principalId || ref.tenantId !== tenantId ||
+        ref.authorityScopeCid !== authorityScopeCid) {
+      throw new Error('RunStateAccessDenied');
+    }
+    const retained = journal.lookupRunDefinition(ref, moon, control);
+    if (retained === undefined) throw new Error('RunStateAccessDenied');
+    if (await store.confirmCommittedIndex(ref) !== undefined) {
+      return inspectAuthorizedRunState(stateService, {
+        indexKey: ref, principalId: actual, purpose: 'inspect',
+      });
+    }
+    if (!Array.isArray(retained.resultNames)) {
+      throw new Error('RunStateInventoryUnknown');
+    }
+    const wire = moon.clientProgramIssueUnpublishedRunState(
+      control.runDefinitionRunId(retained.runDefinition), now(),
+      retained.resultNames, retained.dispatchReserved,
+      activeDispatches.has(ref.runDefinitionCid));
+    if (wire === undefined) throw new Error('InvalidRunStateProjection');
+    return JSON.parse(wire);
+  };
+  const wait = async ({ref, principalId: actual, until, signal}) => {
+    if (until !== null && until !== 'terminal') {
+      throw new Error('InvalidWaitCondition');
+    }
+    const current = await observeRun({ref, principalId: actual});
+    if (['succeeded', 'failed', 'cancelled'].includes(current.status)) {
+      return current;
+    }
+    const active = activeDispatches.get(ref.runDefinitionCid);
+    if (active === undefined) return current;
+    if (signal?.aborted) throw new Error('WaitAborted');
+    let abort;
+    const interrupted = new Promise((_, reject) => {
+      abort = () => reject(new Error('WaitAborted'));
+      signal?.addEventListener('abort', abort, {once: true});
+    });
+    try {
+      await Promise.race([active.promise, interrupted]);
+    } finally {
+      signal?.removeEventListener('abort', abort);
+    }
+    return observeRun({ref, principalId: actual});
+  };
   const submit = async ({preparedProgram, requestId, principalId: actual,
     connection, kind, input, parameters}) => {
-    if (actual !== principalId || !hostConnection({connection})) {
+    if (!hostConnection({principalId: actual, connection})) {
       throw new Error('ClientConnectionDenied');
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
@@ -136,9 +183,17 @@ async function openInstalledHost(root, mode = 'local') {
     if (requested === undefined) {
       throw new Error('ClientProgramNeedsInputs');
     }
+    const resultNames = [];
+    for (let index = 0;
+      index < moon.clientProgramResultCount(preparedProgram); index++) {
+      const name = moon.clientProgramResultName(preparedProgram, index);
+      if (name === undefined) throw new Error('ClientProgramResultMissing');
+      resultNames.push(name);
+    }
     let plan;
     const accepted = await journal.admitOrLookupDefinition(requested, {
       tenantId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+      resultNames,
       issueDefinition: () => {
         plan = sourceFreeValuesPlan({moon, control, preparedProgram,
           document: kind === 'aql' ? input.text : JSON.stringify(input),
@@ -148,15 +203,15 @@ async function openInstalledHost(root, mode = 'local') {
         return plan.runDefinition;
       },
     }, moon, control);
-    let start;
-    try {
-      start = await startRun({identity: requested, tenantId,
-        principalId: actual, connection});
-    } catch (cause) {
-      throw new ClientError('SubmissionUnknown', {cause});
-    }
-    if (start.kind === 'reserved') {
-      try {
+    if (!activeDispatches.has(accepted.ref.runDefinitionCid) &&
+        accepted.dispatchReserved !== true) {
+      const active = {promise: undefined};
+      activeDispatches.set(accepted.ref.runDefinitionCid, active);
+      active.promise = Promise.resolve().then(async () => {
+        const start = await startRun({identity: requested, tenantId,
+          principalId: actual, connection});
+        if (start.kind !== 'reserved') return;
+        if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
         if (plan === undefined) {
           plan = sourceFreeValuesPlan({moon, control, preparedProgram,
             document: kind === 'aql' ? input.text : JSON.stringify(input),
@@ -172,13 +227,14 @@ async function openInstalledHost(root, mode = 'local') {
           {store, plan});
         await published.close();
         await published.cleanup();
-      } catch (cause) {
+      }).catch(async cause => {
         if (cause?.execution) {
           try { await cause.execution.close(); } catch {}
           try { await cause.execution.cleanup(); } catch {}
         }
-        throw new ClientError('SubmissionUnknown', {cause});
-      }
+      }).finally(() => {
+        activeDispatches.delete(accepted.ref.runDefinitionCid);
+      });
     }
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
@@ -196,7 +252,7 @@ async function openInstalledHost(root, mode = 'local') {
   const hostOperations = {
     authorizeConnection: hostConnection,
     negotiate, prepareSubmit, submit, attach, lookupRequest,
-    stateService, resultService,
+    stateService, resultService, observeRun, wait,
   };
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
@@ -208,12 +264,14 @@ async function openInstalledHost(root, mode = 'local') {
 // This HTTP ingress uses the installed Host's common owner and physical
 // services. Embedded Local continues to use the in-process port above.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate}) {
+  authenticate, beforeDispatch}) {
   if (typeof directory !== 'string' || !directory ||
-      typeof authenticate !== 'function') {
+      typeof authenticate !== 'function' ||
+      beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
-  const host = await openInstalledHost(resolve(directory), 'remote');
+  const host = await openInstalledHost(resolve(directory), 'remote',
+    beforeDispatch);
   return Object.freeze({
     handler: createClientHttpHandler({
       ...host.hostOperations, authenticate, maxRequestBytes: 65536,
