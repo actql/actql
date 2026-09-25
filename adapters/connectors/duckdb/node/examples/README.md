@@ -301,6 +301,48 @@ as confirmed release or durable recovery. Cancelling the imported API accepts
 an `AbortSignal`. Completed-input sharing is process-local; task streaming,
 automatic failed-query retry and remote replay are not provided.
 
+## Delegated decisions on the Local Host
+
+`local-host-cli.mjs` is a minimal noninteractive Local Host for this example,
+not a full `actql` CLI. It adds a persistent SQLite Checkpoint journal,
+Host-trusted Ed25519 reviewer keys and a Host attestation key to the same
+application. With an account entry whose outcome is `delegate` and no
+application decision function, `run` persists a `prepare_attempt` Checkpoint
+and exits 0 with `waiting_checkpoint`; no source is read. A later process
+answers it and another resumes the same continuation.
+
+```sh
+cli=adapters/connectors/duckdb/node/examples/local-host-cli.mjs
+node $cli init --directory host --account-config account-config.json --reviewer alice
+node $cli run --config host/host.json --database /absolute/path/to/trusted.duckdb \
+  --environment check-environment.json --environment-cid sha256:YOUR_ENVIRONMENT_CID \
+  --program adapters/connectors/duckdb/node/examples/program.json \
+  --parameters adapters/connectors/duckdb/node/examples/parameters.json
+node $cli list --config host/host.json
+node $cli inspect <checkpoint> --config host/host.json
+node $cli approve <checkpoint> [<checkpoint> ...] --config host/host.json \
+  --signer host/alice.signer.json [--decided-at <time>]
+node $cli reject <checkpoint> [<checkpoint> ...] --config host/host.json --signer host/alice.signer.json
+node $cli resume <checkpoint|prepare-attempt> --config host/host.json [--claimant <id>] [--lease-ms <n>]
+node $cli status <run|prepare-attempt|checkpoint> --config host/host.json
+node $cli cancel <checkpoint|prepare-attempt> --config host/host.json
+```
+
+Output is JSON. The CLI never prompts or reads stdin, so a TTY, EOF or a
+timeout cannot approve, reject or dispatch. `list` and `inspect` return safe
+Checkpoint metadata only, never the review projection or captured inputs.
+Before the Checkpoint is persisted the Host captures the Program, Environment
+and Parameter files as private content-addressed artifacts; `resume` reads
+those bytes, not the original paths. Each `approve`/`reject` item is signed
+and admitted as the answer to its own Checkpoint, and the command reports a
+per-item result (`committed`, `duplicate`, `conflicting`, `expired`,
+`cancelled` or `invalid`); an invalid item does not affect the others.
+`resume` claims the fenced resume intent, revalidates the bound account
+configuration and environment (any change fails with
+`ACTQL_E_RESUME_REVALIDATION_FAILED` and dispatches nothing), then creates the
+Run in `running` and executes it once. An approved run-scope Checkpoint also
+answers the acquisition of the same prepared invocation's declared source.
+
 ## Resident candidates
 
 To run the join/count variant, use the same command with
