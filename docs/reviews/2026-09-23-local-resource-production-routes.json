@@ -1661,6 +1661,13 @@
           "fixture": "bounded distinct cancels during index work without output"
         },
         {
+          "role": "distinct_adjacent_long_key_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded distinct yields and stops during adjacent long-key comparison"
+        },
+        {
           "role": "same_stage_distinct_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -1957,6 +1964,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected unique assertion reclaims a failed child sort"
+        },
+        {
+          "role": "assert_unique_adjacent_long_key_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded unique assertion yields and stops during long text equality"
         }
       ],
       "environment_tests": [

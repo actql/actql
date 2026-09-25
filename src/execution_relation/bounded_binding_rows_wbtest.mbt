@@ -58,6 +58,7 @@ fn bounded_binding_rows_receiver(
   filter? : Bool = false,
   assert_all? : Bool = false,
   assert_unique? : Bool = false,
+  unique_text? : Bool = false,
   select? : Bool = false,
   rename? : Bool = false,
   drop? : Bool = false,
@@ -99,7 +100,9 @@ fn bounded_binding_rows_receiver(
       } else if assert_all {
         "{\"assert_rows\":{\"where\":\"id > 0\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if assert_unique {
-        "{\"assert_rows\":{\"unique_by\":[\"id\"]},\"from\":\"rows\",\"as\":\"derived\"}"
+        "{\"assert_rows\":{\"unique_by\":[\"" +
+        (if unique_text { "tag" } else { "id" }) +
+        "\"]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
         "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if rename {
@@ -153,6 +156,7 @@ fn bounded_binding_rows_fixture(
   filter? : Bool = false,
   assert_all? : Bool = false,
   assert_unique? : Bool = false,
+  unique_text? : Bool = false,
   select? : Bool = false,
   rename? : Bool = false,
   drop? : Bool = false,
@@ -173,7 +177,7 @@ fn bounded_binding_rows_fixture(
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
     id_nullable~,
-    distinct=distinct || distinct_keyed,
+    distinct=distinct || distinct_keyed || unique_text,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
   )
@@ -184,6 +188,7 @@ fn bounded_binding_rows_fixture(
     filter~,
     assert_all~,
     assert_unique~,
+    unique_text~,
     select~,
     rename~,
     drop~,
@@ -1575,6 +1580,124 @@ test "bounded selected unique assertion rejects duplicates before output" {
   assert_true(bounded_binding_rows_cleanup_pending(execution))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded distinct yields and stops during adjacent long-key comparison" {
+  let key = "x".repeat(256)
+  let rows = "[{\"id\":1,\"tag\":\"" +
+    key +
+    "\"},{\"id\":1,\"tag\":\"" +
+    key +
+    "\"}]"
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    distinct=true,
+  )
+  let mut comparing = false
+  for _ in 0..<3000 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+    let (phase, comparison, term) = bounded_binding_rows_comparison_state(
+      execution,
+    )
+    if phase is MarkDistinct && comparison >= 1 && term == 1 {
+      comparing = true
+      break
+    }
+  }
+  assert_true(comparing)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, completed, completed_input) = bounded_binding_rows_fixture(
+    rows,
+    distinct=true,
+  )
+  let mut output : CompletedOutput? = None
+  for _ in 0..<4000 {
+    if output is Some(_) {
+      break
+    }
+    match advance_bounded_binding_rows(completed, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(value, ..) => output = Some(value)
+      _ => fail("long-key distinct failed")
+    }
+  }
+  guard output is Some(value) else { fail("long-key distinct did not finish") }
+  assert_eq(completed_row_count(value), 1)
+  assert_true(cleanup_bounded_binding_rows(completed).unwrap())
+  assert_true(producer_read_available(completed_input))
+}
+
+///|
+test "bounded unique assertion yields and stops during long text equality" {
+  let key = "x".repeat(256)
+  let rows = "[{\"id\":1,\"tag\":\"" +
+    key +
+    "\"},{\"id\":2,\"tag\":\"" +
+    key +
+    "\"}]"
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+    unique_text=true,
+  )
+  let mut comparing = false
+  for _ in 0..<3000 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+    let (phase, comparison, _) = bounded_binding_rows_comparison_state(
+      execution,
+    )
+    if phase is CheckUniquePairs && comparison >= 1 {
+      comparing = true
+      break
+    }
+  }
+  assert_true(comparing)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+
+  let (_, rejected, rejected_input) = bounded_binding_rows_fixture(
+    rows,
+    assert_unique=true,
+    unique_text=true,
+  )
+  let mut failed = false
+  for _ in 0..<4000 {
+    if failed {
+      break
+    }
+    match advance_bounded_binding_rows(rejected, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(AssertionDuplicate(0, 1)), ..) =>
+        failed = true
+      BoundedBindingRowsComplete(_, ..) =>
+        fail("duplicate long key published output")
+      _ => fail("long-key unique assertion failed differently")
+    }
+  }
+  assert_true(failed)
+  assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  assert_true(producer_read_available(rejected_input))
 }
 
 ///|

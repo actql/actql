@@ -114,12 +114,6 @@ impl RowValues for BoundedBindingRow with fn value_at(self, column) {
 }
 
 ///|
-priv struct BoundedBindingIndexedRows {
-  input : BoundedBindingInput
-  width : Int
-}
-
-///|
 /// One comparison cursor is reused by the merge and partition-boundary
 /// phases. Text charging and comparison each advance by one UTF-16 scalar or
 /// code unit, so an equal long prefix never occupies a whole resume step.
@@ -270,30 +264,6 @@ fn bounded_row_comparison_step(
 }
 
 ///|
-impl IndexedRows for BoundedBindingIndexedRows with fn row_count(self) {
-  bounded_binding_input_row_count(self.input)
-}
-
-///|
-impl IndexedRows for BoundedBindingIndexedRows with fn column_count(self) {
-  self.width
-}
-
-///|
-impl IndexedRows for BoundedBindingIndexedRows with fn row_width(self, _row) {
-  self.width
-}
-
-///|
-impl IndexedRows for BoundedBindingIndexedRows with fn read_cell(
-  self,
-  row,
-  column,
-) {
-  bounded_binding_input_cell(self.input, row, column).unwrap()
-}
-
-///|
 priv struct BoundedBindingRowsState {
   input : BoundedBindingInput
   available : () -> Bool
@@ -372,6 +342,7 @@ pub(all) enum BoundedBindingRowsIssue {
 
 ///|
 struct BoundedBindingRowsExecution {
+  state : BoundedBindingRowsState
   session : @bounded.Session[
     BoundedBindingRowsState,
     CompletedOutput,
@@ -379,6 +350,13 @@ struct BoundedBindingRowsExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+fn bounded_binding_rows_comparison_state(
+  value : BoundedBindingRowsExecution,
+) -> (BoundedBindingRowsPhase, Int, Int) {
+  (value.state.phase, value.state.comparison.phase, value.state.comparison.term)
 }
 
 ///|
@@ -548,25 +526,24 @@ fn bounded_binding_rows_step(
         guard state.sorted_indices is Some(indices) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) {
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         let first = if state.distinct_cursor == 0 {
           true
         } else {
-          let rows : BoundedBindingIndexedRows = {
-            input: state.input,
-            width: state.input_names.length(),
-          }
           match
-            compare_row_indices(
-              rows,
+            bounded_row_comparison_step(
+              state,
               indices[state.distinct_cursor - 1],
               indices[state.distinct_cursor],
-              state.sort_orders,
-              state.control,
+              state.sort_orders.length(),
             ) {
-            Ok(comparison) => comparison != 0
+            Ok(Some(comparison)) => comparison != 0
+            Ok(None) => {
+              used += 1
+              continue
+            }
             Err(issue) =>
               return fail_bounded_binding_rows(
                 Rows(ordering_row_issue(issue)),
@@ -644,30 +621,29 @@ fn bounded_binding_rows_step(
         guard state.sorted_indices is Some(indices) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) {
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-        }
-        let rows : BoundedBindingIndexedRows = {
-          input: state.input,
-          width: state.input_names.length(),
         }
         let left = indices[state.unique_pair - 1]
         let right = indices[state.unique_pair]
         match
-          compare_row_indices(
-            rows,
+          bounded_row_comparison_step(
+            state,
             left,
             right,
-            state.sort_orders,
-            state.control,
+            state.sort_orders.length(),
           ) {
-          Ok(0) =>
+          Ok(None) => {
+            used += 1
+            continue
+          }
+          Ok(Some(0)) =>
             return fail_bounded_binding_rows(
               Rows(AssertionDuplicate(left, right)),
               progress,
               used + 1,
             )
-          Ok(_) => ()
+          Ok(Some(_)) => ()
           Err(issue) =>
             return fail_bounded_binding_rows(
               Rows(ordering_row_issue(issue)),
@@ -1863,7 +1839,7 @@ fn start_bounded_binding_rows_with_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

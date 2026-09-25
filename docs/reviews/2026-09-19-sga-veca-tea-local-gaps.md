@@ -45,6 +45,13 @@ and three-target task-identity tests cover these boundaries. Ordinary remote
 Relation chains still use their existing whole-Stage realization, and the
 fixed synchronous adapter still drains a bounded evaluator synchronously.
 Neither path establishes in-flight cancellation for every Relation variant.
+The bounded Relation evaluator now resumes the adjacent-row comparisons in
+`distinct` and `assert_rows.unique_by` through its existing typed comparison
+cursor. Long text prefixes can be stopped during duplicate marking or unique
+pair validation, not only during index sorting. Portable quantum-one fixtures
+pin the exact phase, stop without publishing partial rows, and retain the
+borrowed input through cleanup. This closes those two comparison intervals;
+the whole-sequence synchronous entrypoint remains unassured.
 The supplied select read also has a fixed one-row boundary: one input and
 one output opening plus two output-name bytes cost four control units; the
 view, name, ordinal, and row slots peak at fourteen. Exact limits succeed,

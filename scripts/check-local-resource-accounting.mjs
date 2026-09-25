@@ -1151,6 +1151,7 @@ for (const [index, route] of routeEntries.entries()) {
       'assert_unique_cancel_cleanup',
       'assert_unique_sort_cancel_cleanup',
       'assert_unique_sort_failure_cleanup',
+      'assert_unique_adjacent_long_key_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: reviewed ${role} fixture is missing`);
@@ -1220,6 +1221,7 @@ for (const [index, route] of routeEntries.entries()) {
       'selected_distinct_keyed_projection',
       'distinct_unkeyed_workspace_exact_one_short',
       'selected_distinct_kernel_cancel_cleanup',
+      'distinct_adjacent_long_key_cancel_cleanup',
       'same_stage_distinct_two_consumers',
       'same_stage_values_distinct_two_consumers',
       'same_stage_values_distinct_dag_selection',

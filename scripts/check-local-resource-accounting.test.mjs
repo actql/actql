@@ -1109,6 +1109,22 @@ test('distinct resource evidence covers full-row and keyed forms', () => {
   }
 });
 
+test('adjacent row comparisons retain bounded cancellation evidence', () => {
+  for (const [operation, role] of [
+    ['distinct', 'distinct_adjacent_long_key_cancel_cleanup'],
+    ['assert_rows', 'assert_unique_adjacent_long_key_cancel_cleanup'],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry =>
+        entry.family === 'RelA' && entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(
+      `RelA ${operation}: (?:selected |reviewed )?${role} fixture is missing`,
+    ));
+  }
+});
+
 test('zero-input values bind their bounded production provider', () => {
   assert.match(run(undefined, routes => {
     const values = routes.routes.find(entry => entry.family === 'RelA' &&
