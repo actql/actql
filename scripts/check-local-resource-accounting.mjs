@@ -386,6 +386,34 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: production entrypoint symbol is missing`);
     }
   }
+  if (route.family === 'SGA' &&
+    ['match_nodes', 'match_edges'].includes(route.operation) &&
+    route.path_assurance?.entrypoint !== undefined) {
+    const provider = fs.readFileSync(path.join(root, dispatch.path), 'utf8');
+    const call = provider.indexOf(dispatch.marker);
+    let depth = 0;
+    let end = call;
+    if (call >= 0) {
+      for (let cursor = call + dispatch.marker.length - 1;
+        cursor < provider.length; cursor += 1) {
+        if (provider[cursor] === '(') depth += 1;
+        if (provider[cursor] === ')') depth -= 1;
+        if (depth === 0) {
+          end = cursor + 1;
+          break;
+        }
+      }
+    }
+    const binding = call < 0 ? '' : provider.slice(call, end);
+    if (dispatch.marker !== `@sga.start_${route.operation}(` ||
+      entrypoint.symbol !== `start_${route.operation}` ||
+      !binding.includes('value.control,') ||
+      !binding.includes('value.limits.max_workspace_slots,') ||
+      !binding.includes('max_work: value.limits.max_work,') ||
+      !binding.includes('control_work_limit=Some(value.limits.max_work)')) {
+      fail(`${label}: assured matcher provider loses execution limits`);
+    }
+  }
   const boundaryTests = route.boundary_tests ?? [];
   const boundaryRoles = new Set();
   for (const item of boundaryTests) {

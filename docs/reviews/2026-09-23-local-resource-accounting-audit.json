@@ -44,6 +44,8 @@
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},
     {"family": "SGA", "operation": "graphs_equal", "path": "entrypoint"},
+    {"family": "SGA", "operation": "match_nodes", "path": "entrypoint"},
+    {"family": "SGA", "operation": "match_edges", "path": "entrypoint"},
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},

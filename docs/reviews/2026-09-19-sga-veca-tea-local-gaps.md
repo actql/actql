@@ -44,7 +44,7 @@ implementation while retaining separate input bindings and route evidence.
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 27 full-route and 64 path-scoped counts describe evidence, not
+list. Its 29 full-route and 66 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -90,15 +90,15 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 27 |
-| Full route work/workspace assurance | 27 |
-| Path-scoped work/workspace assurance | 64 |
+| Four-role lifecycle assurance | 29 |
+| Full route work/workspace assurance | 29 |
+| Path-scoped work/workspace assurance | 66 |
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Remaining path triage after the bounded global count slice
 
-The 41 unresolved path obligations below are paths, not 41 missing
+The 39 unresolved path obligations below are paths, not 39 missing
 operations. They are whole-operation entrypoints. The categories identify the next
 engineering action; they do not turn a registered route into proof of every
 formal variant.
@@ -107,7 +107,16 @@ formal variant.
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 12 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Bounded product connection exists, route evidence is incomplete | 10 | Ten SGA entrypoints (`traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+
+`match_nodes` and `match_edges` now have full entrypoint assurance. Their
+registered provider invokes the exact bounded matcher with the control,
+work, and workspace parameters exercised by independent exact/one-short kernel
+fixtures. Standard Host fixtures reach that provider, deliver in-flight
+cancellation, and exercise two consumers; kernel fixtures check cleanup of
+partial scratch. The resource gate checks the exact provider call and rejects
+missing route proofs. This closes these two route evidence gaps, not every
+possible formal variant or the remaining synchronous Relation fallback.
 
 The general providerless managed fallback is a cross-cutting synchronous
 hazard represented by the first two rows, not a separate path. Its
@@ -118,7 +127,7 @@ The category counts follow the registered production routes. A separate
 cross-cutting audit remains: `bounded_binding_rows` calls synchronous nested
 value revalidation for one output cell during `CheckOutputRow`. Its maximum
 single-resume work for admitted nested values is not established by the row
-quantum alone. This does not add another operation to the 41 paths, but an
+quantum alone. This does not add another operation to the 39 paths, but an
 affected route must move from connection or evidence work to bounded-kernel
 work if its accepted value limit permits an excessive noninterruptible step.
 
