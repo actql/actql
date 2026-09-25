@@ -2988,10 +2988,10 @@ export async function openLocalPublicationStore(
     }
     const existingCommit = await confirmCommittedIndex(key);
     if (existingCommit !== undefined) {
-      if (existingCommit.invocation_cid !== entry.invocation_cid ||
-          existingCommit.result_manifest_cid !== entry.result_manifest_cid ||
-          existingCommit.publication_request_cid !==
-            entry.publication_request_cid) {
+      if (contractControl.publicIndexSameCommittedContent(
+        (await readContract(existingCommit.public_index_entry_cid,
+          'public_index_entry')).contract, admitted,
+      ) !== true) {
         fail('PublicationCommitConflict');
       }
       const inventory = await readMetadataInventory(
@@ -3072,9 +3072,16 @@ export async function openLocalPublicationStore(
         await custody.resolveConfirmed(undefined);
         throw error;
       }
-      if (existing.invocation_cid !== entry.invocation_cid ||
-          existing.result_manifest_cid !== entry.result_manifest_cid ||
-          existing.publication_request_cid !== entry.publication_request_cid) {
+      let sameContent;
+      try {
+        sameContent = contractControl.publicIndexSameCommittedContent(
+          (await readContract(existing.public_index_entry_cid,
+            'public_index_entry')).contract, admitted,
+        );
+      } catch (reconciliation) {
+        throw commitCustodyFailure(error, custody, reconciliation);
+      }
+      if (sameContent !== true) {
         await custody.resolveConfirmed(existing);
         fail('PublicationCommitConflict');
       }
