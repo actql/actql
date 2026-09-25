@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runBroadQuery } from '../broad-query.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 100, maxTransportBytes: 10000,
@@ -75,7 +76,7 @@ test('real broad transport gates synchronous capture and keeps failed consumers 
     const connection = await db.connect();
     try { await connection.run('CREATE TABLE records(id DOUBLE); INSERT INTO records VALUES (3)'); }
     finally { connection.closeSync(); db.closeSync(); }
-    const grant = await authorizeLocalDatabase(path);
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const events = [];
     let transferred = 0;
     const captured = await runBroadQuery(grant, bridgeFactory(events), limits, undefined, {

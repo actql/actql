@@ -55,6 +55,7 @@ import {
   installResultAccessAuthority,
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -482,7 +483,7 @@ test('standard native and broad Node Hosts own verification through real capture
           ? "INSERT INTO records VALUES (3,30),(1,'Infinity'::DOUBLE)"
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
-      const grant = await authorizeLocalDatabase(path);
+      const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       for (const strategy of ['native', 'broad']) {
         const native = strategy === 'native';
         const create = count => native ? fixture.issuedNativeCreate(...args, count, () => true)

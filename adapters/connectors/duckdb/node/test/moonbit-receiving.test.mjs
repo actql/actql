@@ -12,6 +12,7 @@ import { runNativeAcquisition } from '../native-acquisition.mjs';
 import { runBroadAcquisition } from '../broad-acquisition.mjs';
 import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -110,7 +111,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
       try { await connection.run(schema); if (insert) await connection.run(insert); }
       finally { connection.closeSync(); db.closeSync(); }
       const broad = broadPortFor(moon);
-      const broadGrant = await authorizeLocalDatabase(path);
+      const broadGrant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       const broadRun = runBroadAcquisition(broadGrant, broad.port, limits);
       assert.equal(matchesSourceAcquisition(broadRun, broadGrant, broad.port, undefined), false);
       if (succeeds) {
@@ -133,9 +134,9 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         await assert.rejects(broadRun, /MoonBit rejected broad/);
         assert.equal(moon.broadIdentity(broad.state), 'null');
       }
-      await assert.rejects(runBroadAcquisition(await authorizeLocalDatabase(path), broad.port, limits), /AttemptAlreadyStarted/);
+      await assert.rejects(runBroadAcquisition(await authorizeLocalDatabase(path, fixtureSourceAccess), broad.port, limits), /AttemptAlreadyStarted/);
       const received = portFor(moon);
-      const run = runNativeAcquisition(await authorizeLocalDatabase(path), received.port, limits);
+      const run = runNativeAcquisition(await authorizeLocalDatabase(path, fixtureSourceAccess), received.port, limits);
       if (succeeds) {
         await run;
         assert.equal(moon.ready(received.state), true, name);
@@ -163,7 +164,7 @@ test('real Node callbacks use MoonBit admission before native filtering, includi
         assert.equal(moon.receiptIdentities(received.state), 'null');
       }
     }
-    const validGrant = await authorizeLocalDatabase(join(directory, 'valid.duckdb'));
+    const validGrant = await authorizeLocalDatabase(join(directory, 'valid.duckdb'), fixtureSourceAccess);
     const exhausted = broadPortFor(moon, 8);
     await assert.rejects(runBroadAcquisition(validGrant, exhausted.port, limits), /MoonBit rejected broad/);
     assert.equal(moon.broadIdentity(exhausted.state), 'null');

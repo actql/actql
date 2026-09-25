@@ -60,13 +60,19 @@ fn exchange(
 }
 
 ///|
-/// Persist the exact Coordinator intent before the first physical send.
+/// Persist the exact Coordinator intent before the first physical send. The
+/// Run owner's evaluated authorization is checked first: a deny, pending
+/// Checkpoint or decision failure records no intent and sends nothing.
 pub fn dispatch(
   journal : @journal.CoordinatorJournal,
   client : @http.Client,
   url : String,
   request : @remote.DispatchRequest,
+  authorization : @authorization.RuntimeAction,
 ) -> Result[@remote.RemoteDispatchResponse, NativeRemoteClientIssue] {
+  if !remote_dispatch_authorized(authorization, request) {
+    return Err(NotAuthorized)
+  }
   let record = match journal.accept(request) {
     Ok((_, value)) => value
     Err(issue) => return Err(Journal(issue))

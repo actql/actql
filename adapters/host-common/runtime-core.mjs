@@ -2760,6 +2760,9 @@ export function runtimeCore(moon) {
     completed: moon.strategyHostTaskCompleted,
     finished: moon.strategyHostFinished,
     stop: moon.strategyHostStop,
+    requireActivation: moon.strategyHostRequireActivation,
+    coverActivation: moon.strategyHostCoverActivation,
+    authorizeActivation: moon.strategyHostAuthorizeActivation,
     closeOutputs: moon.strategyHostCloseOutputs,
     output: moon.strategyHostOutput,
     transferBegin: (value, source, transfer, retained, execution) => checked(

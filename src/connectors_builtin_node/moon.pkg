@@ -27,4 +27,6 @@ import {
   "actql/actql/connectors/reference_compute/driver" @binding20,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
+  "actql/actql/execution_authorization" @authorization,
+  "moonbitlang/core/debug",
 }

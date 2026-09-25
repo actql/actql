@@ -10,6 +10,15 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteCoordinatorDispatchJournal} from
   './sqlite-coordinator-journal.mjs';
 import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
+import {
+  FIXTURE_CONTEXT,
+  accountEntry,
+  allowAllAuthorization,
+  fixtureAuthorization,
+  sqliteDeferral,
+} from './authorization-fixture.mjs';
+
+const authorization = await allowAllAuthorization();
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
@@ -148,6 +157,7 @@ test('Coordinator makes exact intent durable before transport starts',
     const dispatch = request('dispatch-a');
     const calls = [];
     const coordinator = createRemoteSiteCoordinator({
+      authorization,
       control,
       journal: control.createCoordinatorJournal('coordinator-a'),
       store,
@@ -194,6 +204,7 @@ test('Coordinator makes exact intent durable before transport starts',
     });
     t.after(() => reopenedStore.close());
     const reopened = createRemoteSiteCoordinator({
+      authorization,
       control,
       journal: control.createCoordinatorJournal('coordinator-a'),
       store: reopenedStore,
@@ -221,6 +232,7 @@ test('Coordinator never queries an intent absent from its durable journal',
     t.after(() => store.close());
     let called = false;
     const coordinator = createRemoteSiteCoordinator({
+      authorization,
       control,
       journal: control.createCoordinatorJournal('coordinator-a'),
       store,
@@ -245,6 +257,7 @@ test('Site status cannot replace evidence or rewrite one Site revision',
     t.after(() => store.close());
     const dispatch = request('dispatch-status');
     const coordinator = createRemoteSiteCoordinator({
+      authorization,
       control,
       journal: control.createCoordinatorJournal('coordinator-a'),
       store,
@@ -285,6 +298,7 @@ test('Coordinator retries one durable unknown output after restart', async t => 
     coordinatorAuthority: 'coordinator-a',
   });
   const first = createRemoteSiteCoordinator({
+    authorization,
     control,
     transferControl,
     journal: control.createCoordinatorJournal('coordinator-a'),
@@ -312,6 +326,7 @@ test('Coordinator retries one durable unknown output after restart', async t => 
   t.after(() => reopenedStore.close());
   let retries = 0;
   const reopened = createRemoteSiteCoordinator({
+    authorization,
     control,
     transferControl,
     journal: control.createCoordinatorJournal('coordinator-a'),
@@ -348,6 +363,7 @@ test('output planning failure creates no durable output operation', async t => {
   t.after(() => store.close());
   let physicalOutputStarted = false;
   const coordinator = createRemoteSiteCoordinator({
+    authorization,
     control,
     transferControl,
     journal: control.createCoordinatorJournal('coordinator-a'),
@@ -393,6 +409,7 @@ test('Store output waits for exact destination commit', async t => {
   t.after(() => store.close());
   const calls = [];
   const coordinator = createRemoteSiteCoordinator({
+    authorization,
     control,
     transferControl,
     journal: control.createCoordinatorJournal('coordinator-a'),
@@ -460,6 +477,7 @@ test('Store output requires the exact committed destination record',
         subtest.after(() => store.close());
         const journal = control.createCoordinatorJournal('coordinator-a');
         const coordinator = createRemoteSiteCoordinator({
+          authorization,
           control,
           transferControl,
           journal,
@@ -512,6 +530,7 @@ test('output owner retains a continuing sibling and prevents duplicate I/O',
       settleDestination = resolve;
     });
     const coordinator = createRemoteSiteCoordinator({
+      authorization,
       control,
       transferControl,
       journal: control.createCoordinatorJournal('coordinator-a'),
@@ -575,6 +594,7 @@ test('destination failure retains a synchronously started source', async t => {
   let settleSource;
   const sourcePending = new Promise(resolve => { settleSource = resolve; });
   const coordinator = createRemoteSiteCoordinator({
+    authorization,
     control,
     transferControl,
     journal: control.createCoordinatorJournal('coordinator-a'),
@@ -635,6 +655,7 @@ test('output cleanup owner retries child cleanup without new physical I/O',
       },
     });
     const coordinator = createRemoteSiteCoordinator({
+      authorization,
       control,
       transferControl,
       journal: control.createCoordinatorJournal('coordinator-a'),
@@ -666,4 +687,200 @@ test('output cleanup owner retries child cleanup without new physical I/O',
     assert.equal(sourceCalls, 1);
     assert.equal((await failure.cleanupHandle.retry()).pending, false);
     assert.equal(retries, 3);
+  });
+
+// Remote dispatch boundary: the Run owner's gate decides before the durable
+// intent and before any send. The Site keeps its own mTLS/authority checks.
+async function dispatchUnderAuthorization(t, gate, dispatchId, signal) {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-authorization-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const store = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => store.close());
+  let sends = 0;
+  const coordinator = createRemoteSiteCoordinator({
+    authorization: gate,
+    control,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store,
+    send: async () => {
+      sends++;
+      return Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]});
+    },
+  });
+  const dispatch = request(dispatchId);
+  let error;
+  try { await coordinator.dispatch({dispatch, signal}); }
+  catch (reason) { error = reason; }
+  return {sends, error, recorded: store.contains(dispatch, control)};
+}
+
+const remoteEntries = outcome => [accountEntry('remote-site-a', outcome, {
+  connection: 'site-a', operation: 'dispatch',
+})];
+const remotePermit = view => ({decision: 'permit', subject: view.subject,
+  authority: 'reviewer'});
+
+test('remote dispatch: allow and permit send; refusals record and send nothing',
+  async t => {
+    let hostCalls = 0;
+    const counting = decide => decide === undefined ? undefined
+      : view => { hostCalls++; return decide(view); };
+    const allow = await fixtureAuthorization(remoteEntries('allow'), {
+      decide: counting(remotePermit), answeringAuthorities: ['reviewer'],
+    });
+    const allowed = await dispatchUnderAuthorization(t, allow, 'auth-allow');
+    assert.equal(allowed.error, undefined);
+    assert.equal(allowed.sends, 1);
+    assert.equal(allowed.recorded, true);
+    assert.equal(hostCalls, 0);
+    assert.equal(allow.counters().checkpointsPersisted, 0);
+    const [decision] = [await allow.authorize('activation', {
+      connection: 'site-a', resource: 'local', operation: 'dispatch',
+    }, {subjectCid: cid('0')})];
+    assert.equal(decision.action, 'dispatch');
+
+    const cases = [
+      ['permit', remoteEntries('delegate'), remotePermit, undefined, 1],
+      ['explicit deny', remoteEntries('deny'), undefined,
+        'ExecutionAuthorizationDenied', 0],
+      ['no-match deny', [accountEntry('other-site', 'allow', {
+        connection: 'site-b',
+      })], undefined, 'ExecutionAuthorizationDenied', 0],
+      ['reject', remoteEntries('delegate'), view => ({decision: 'reject',
+        subject: view.subject, authority: 'reviewer'}),
+      'ExecutionAuthorizationDenied', 0],
+      ['throw', remoteEntries('delegate'), () => {
+        throw new Error('DecisionServiceDown');
+      }, 'ExecutionAuthorizationDecisionFailed', 0],
+      ['timeout', remoteEntries('delegate'), () => new Promise(() => {}),
+        'ExecutionAuthorizationDecisionFailed', 0],
+      ['malformed', remoteEntries('delegate'), () => 'permit',
+        'ExecutionAuthorizationDecisionFailed', 0],
+      ['defer without journal', remoteEntries('delegate'), view => ({
+        decision: 'defer', subject: view.subject,
+      }), 'ExecutionAuthorizationDeferralUnsupported', 0],
+    ];
+    for (const [label, entries, decide, code, sends] of cases) {
+      const before = hostCalls;
+      const gate = await fixtureAuthorization(entries, {
+        decide: counting(decide), answeringAuthorities: ['reviewer'],
+        decisionTimeoutMs: 20,
+      });
+      const result = await dispatchUnderAuthorization(t, gate,
+        `auth-${label.replaceAll(' ', '-')}`);
+      assert.equal(result.error?.code, code, label);
+      assert.equal(result.sends, sends, label);
+      assert.equal(result.recorded, sends === 1, label);
+      assert.equal(hostCalls - before, decide === undefined ? 0 : 1, label);
+    }
+  });
+
+test('deferred remote dispatch persists its Checkpoint before waiting',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-remote-deferral-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const deferral = await sqliteDeferral(root);
+    t.after(() => deferral.journal.close());
+    const gate = await fixtureAuthorization(remoteEntries('delegate'), {
+      decide: view => ({decision: 'defer', subject: view.subject}),
+      answeringAuthorities: ['reviewer'],
+      deferral,
+    });
+    const waiting = await dispatchUnderAuthorization(t, gate, 'auth-defer');
+    assert.equal(waiting.error?.code, 'ExecutionAuthorizationWaiting');
+    assert.equal(waiting.sends, 0);
+    assert.equal(waiting.recorded, false);
+    const checkpoint = waiting.error.authorization.checkpoint;
+    assert.equal(deferral.journal.getRunState(checkpoint.runId).status,
+      'waiting_checkpoint');
+    assert.equal(gate.counters().checkpointsPersisted, 1);
+  });
+
+test('a remote retry under a changed context is decided again', async t => {
+  const answers = ['permit', 'reject'];
+  let calls = 0;
+  const gate = await fixtureAuthorization(remoteEntries('delegate'), {
+    decide: view => ({decision: answers[calls++], subject: view.subject,
+      authority: 'reviewer'}),
+    answeringAuthorities: ['reviewer'],
+  });
+  const first = await dispatchUnderAuthorization(t, gate, 'auth-retry-a');
+  assert.equal(first.sends, 1);
+  // Same Run, Site and registration: the exact permit is reused.
+  const second = await dispatchUnderAuthorization(t, gate, 'auth-retry-b');
+  assert.equal(second.sends, 1);
+  assert.equal(calls, 1);
+  const changed = gate.withContext({
+    principal: FIXTURE_CONTEXT.principal,
+    contextCid: cid('9'),
+  });
+  const retried = await dispatchUnderAuthorization(t, changed, 'auth-retry-c');
+  assert.equal(calls, 2);
+  assert.equal(retried.error?.code, 'ExecutionAuthorizationDenied');
+  assert.equal(retried.sends, 0);
+  assert.equal(retried.recorded, false);
+});
+
+test('remote output egress is authorized before durable output and I/O',
+  async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'coordinator-output-authorization-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const dispatch = request('dispatch-output-authorization');
+    const fixture = outputFixture(dispatch);
+    const store = openSqliteCoordinatorDispatchJournal(root, {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    t.after(() => store.close());
+    // Dispatch to site-a is allowed; egress to site-b is not configured.
+    const gate = await fixtureAuthorization(remoteEntries('allow'));
+    let outputs = 0;
+    const coordinator = createRemoteSiteCoordinator({
+      authorization: gate,
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      send: async () => Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]}),
+      output: async () => {
+        outputs++;
+        return Object.freeze({result: fixture.result});
+      },
+    });
+    await coordinator.dispatch({dispatch});
+    await assert.rejects(
+      coordinator.output({dispatch, ...fixture}),
+      error => error.code === 'ExecutionAuthorizationDenied' &&
+        error.authorization.boundary === 'transfer' &&
+        error.authorization.tuple.connection === 'site-b',
+    );
+    assert.equal(outputs, 0);
+
+    const egress = await fixtureAuthorization([
+      ...remoteEntries('allow'),
+      accountEntry('egress-site-b', 'allow', {
+        connection: 'site-b', operation: 'transfer',
+      }),
+    ]);
+    const permitted = createRemoteSiteCoordinator({
+      authorization: egress,
+      control,
+      transferControl,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      store,
+      output: async () => {
+        outputs++;
+        return Object.freeze({result: fixture.result});
+      },
+    });
+    // The refused egress left no durable output operation to recover.
+    assert.equal(permitted.recoveredOutputs.length, 0);
+    const completed = await permitted.output({dispatch, ...fixture});
+    assert.equal(completed.resultCid,
+      control.outputResultIdentity(fixture.result));
+    assert.equal(outputs, 1);
+    assert.equal(egress.counters().hostDecisionCalls, 0);
   });

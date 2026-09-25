@@ -12,6 +12,7 @@ fn run_local_managed_test_task(
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
+  grant? : @strategy.TaskActivationGrant,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -56,6 +57,9 @@ fn run_local_managed_test_task(
     Err(ManagedRetention(_)) => fail("Local managed retention setup failed")
     Err(ManagedCompletion(_)) => fail("Local managed completion setup failed")
   }
+  if grant is Some(value) {
+    @strategy.authorize_captured_task_activation(run, task, value).unwrap()
+  }
   let operations = match
     @local_driver.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
@@ -78,6 +82,8 @@ fn run_local_managed_test_task(
     Err(Execution(Implementation(_))) =>
       fail("Local managed start implementation failed")
     Err(Execution(Physical(_))) => fail("Local managed start physical failed")
+    Err(Execution(ActivationNotAuthorized)) =>
+      fail("Local managed start was not authorized")
     Err(Search(_)) => fail("Local managed start search failed")
     Err(ManagedValues(_)) => fail("Local managed start value setup failed")
     Err(ManagedCopy(_)) => fail("Local managed start copy setup failed")
@@ -356,16 +362,46 @@ fn run_local_managed_carrier_test_task(
 }
 
 ///|
+fn local_managed_start_refused(
+  installed : @local_driver.LocalDispatchModule,
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Bool raise {
+  let owner = @strategy.graph_task_owner(
+    @strategy.captured_dag_graph(run),
+    task,
+  ).unwrap()
+  guard @local_driver.prepare_local_managed_dispatch(
+      installed,
+      [],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    is Ok(Some(setup)) else {
+    fail("Local managed candidate was not prepared")
+  }
+  @local_driver.start_local_managed_dispatch_node(setup)
+  is Err(Execution(ActivationNotAuthorized))
+}
+
+///|
 fn run_local_managed_group_case(
   variant : String,
   input_expected : Array[String],
   group_expected : Array[String],
   second_expected : Array[String],
+  activation? : Bool = false,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
     local_values_group_variant=variant,
   )
+  let grant = if activation {
+    @strategy.require_captured_task_activation(run)
+    Some(@strategy.task_activation_covered())
+  } else {
+    None
+  }
   if variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup" {
@@ -491,6 +527,24 @@ fn run_local_managed_group_case(
     None,
   ).unwrap()
 
+  if activation {
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_true(local_managed_start_refused(installed, run, 1))
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+      usage,
+    )
+    assert_false(@strategy.captured_task_completed(run, 1))
+    // A grant is exact to the next ready task and is single-use.
+    assert_true(
+      @strategy.authorize_captured_task_activation(
+        run,
+        2,
+        @strategy.task_activation_covered(),
+      )
+      is Err(NotReady),
+    )
+  }
   let value_live = Ref(true)
   let (value_ops, values) = run_local_managed_test_task(
     installed,
@@ -500,6 +554,7 @@ fn run_local_managed_group_case(
     [],
     1,
     value_live,
+    grant?,
   )
   let value_rows = local_managed_test_rows(value_ops)
   assert_eq(value_rows, input_expected)
@@ -513,6 +568,7 @@ fn run_local_managed_group_case(
     [value_rows],
     2,
     group_live,
+    grant?,
   )
   let group_rows = local_managed_test_rows(group_ops)
   assert_eq(group_rows, group_expected)
@@ -526,6 +582,7 @@ fn run_local_managed_group_case(
     [group_rows],
     3,
     first_live,
+    grant?,
   )
   assert_eq(local_managed_test_rows(first_ops), group_rows)
 
@@ -538,6 +595,7 @@ fn run_local_managed_group_case(
     [group_rows],
     4,
     second_live,
+    grant?,
   )
   assert_eq(local_managed_test_rows(second_ops), second_expected)
   assert_true(@execution.managed_completed_output_available(first))
@@ -580,6 +638,17 @@ test "Local managed group count orders nullable keys for two consumers" {
     ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
     ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
     ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+  )
+}
+
+///|
+test "Local managed start refuses a required activation without a grant" {
+  run_local_managed_group_case(
+    "keyed",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"id\":null,\"n\":1}", "{\"id\":1,\"n\":2}"],
+    ["{\"n\":1,\"id\":null}", "{\"n\":2,\"id\":1}"],
+    activation=true,
   )
 }
 

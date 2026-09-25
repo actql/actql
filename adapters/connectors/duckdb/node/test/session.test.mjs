@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { fork } from 'node:child_process';
 import { DuckDBInstance, DuckDBPreparedStatement } from '@duckdb/node-api';
 import { authorizeLocalDatabase, withSourceDatabase, withComputeDatabase, DuckDBTransportError } from '../session.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const limits = Object.freeze({
   maxRows: 10000, maxCells: 100000, maxTransportBytes: 2000000,
@@ -183,7 +184,7 @@ test('single-table filtering and projection preserve duplicate relative order ac
       await connection.run('CREATE TABLE records(id INTEGER, amount INTEGER)');
       await connection.run(`INSERT INTO records VALUES ${expected.map(([id, amount]) => `(${id},${amount ?? 'NULL'})`).join(',')}`);
     } finally { connection.closeSync(); db.closeSync(); }
-    const result = await withSourceDatabase(await authorizeLocalDatabase(path), limits, async session => {
+    const result = await withSourceDatabase(await authorizeLocalDatabase(path, fixtureSourceAccess), limits, async session => {
       let scanChunks = 0;
       let nativeChunks = 0;
       const scan = [];
@@ -275,7 +276,7 @@ test('source grants are opaque; existing file is read-only and isolated from Com
     await conn.run('INSERT INTO input VALUES (3, 1.25), (1, NULL), (3, 2.50)');
     conn.closeSync(); conn = undefined;
     db.closeSync(); db = undefined;
-    const grant = await authorizeLocalDatabase(path);
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     await assert.rejects(withSourceDatabase({ ...grant }, limits, discard), hasCode('UnauthorizedSource'));
     const read = await withSourceDatabase(grant, limits, session => rows(session, 'SELECT id FROM input WHERE id > 1'));
     assert.deepEqual(read.value, [['3'], ['3']]);
@@ -497,7 +498,7 @@ test('another process holding the source lock fails without capture and releases
     const connection = await instance.connect();
     try { await connection.run('CREATE TABLE input AS SELECT 7 AS id'); }
     finally { connection.closeSync(); instance.closeSync(); }
-    const grant = await authorizeLocalDatabase(path);
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     child = fork(fileURLToPath(new URL('./fixtures/hold-writer.mjs', import.meta.url)), [path], {
       stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     });

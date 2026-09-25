@@ -4,6 +4,10 @@ import {
   releaseRemoteDispatch,
   sendRemoteDispatch,
 } from './remote-site-client.mjs';
+import {
+  ExecutionAuthorizationError,
+  missingAuthorizationGate,
+} from '../host-common/authorization-gate.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -55,6 +59,7 @@ export function createRemoteSiteCoordinator({
   output: executeOutput,
   receiveStoreOutput,
   transferControl,
+  authorization = missingAuthorizationGate(),
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.prepareCoordinatorIntent !== 'function' ||
@@ -71,6 +76,10 @@ export function createRemoteSiteCoordinator({
       typeof send !== 'function' || typeof query !== 'function' ||
       typeof cancel !== 'function' || typeof release !== 'function') {
     fail('InvalidRemoteSiteCoordinator');
+  }
+  if (authorization === null || typeof authorization !== 'object' ||
+      typeof authorization.authorize !== 'function') {
+    fail('InvalidRemoteSiteCoordinatorAuthorization');
   }
   if (planOutput !== undefined && typeof planOutput !== 'function') {
     fail('InvalidRemoteSiteCoordinatorOutputPlan');
@@ -364,11 +373,40 @@ export function createRemoteSiteCoordinator({
     outputOwners.set(key, owner);
     return owner.promise;
   };
+  // The Run owner decides. Dispatch is the remote Site's activation of the
+  // selected registration for this checked Run; the Site keeps its own mTLS
+  // and authority checks. A decision is reused only for this exact scope.
+  const dispatchFacts = dispatch => {
+    const body = JSON.parse(control.requestJson(dispatch));
+    return Object.freeze({
+      site: body.site_key,
+      registration: body.connector_registration,
+      runDefinitionCid: body.run_definition_cid,
+    });
+  };
+  const requireDispatch = async (boundary, scope, subjectCid, signal) => {
+    const decision = await authorization.authorize(boundary, scope, {
+      subjectCid,
+      signal,
+    });
+    if (decision.action !== 'dispatch') {
+      throw new ExecutionAuthorizationError(decision);
+    }
+    return decision;
+  };
   return Object.freeze({
     recovered,
     recoveredOutputs,
     async dispatch(value) {
       const request = options(value);
+      // Before the durable intent and before any send: a deny, failure,
+      // unsupported defer or persisted wait records nothing and sends nothing.
+      const facts = dispatchFacts(request.dispatch);
+      await requireDispatch('activation', {
+        connection: facts.site,
+        resource: facts.registration,
+        operation: 'dispatch',
+      }, facts.runDefinitionCid, request.signal);
       const admission = control.prepareCoordinatorIntent(
         journal,
         request.dispatch,
@@ -423,6 +461,21 @@ export function createRemoteSiteCoordinator({
         transferRequest = planned.transferRequest;
       }
       let record = currentOutput?.record;
+      // An already committed output is a recorded fact: replay needs no new
+      // decision and performs no I/O.
+      if (record !== undefined &&
+          store.inspectOutput(record, control)?.progress === 2) {
+        return projectOutputRecord(record);
+      }
+      // Egress boundary: the recipient Site and scope are authorized before
+      // durable output admission and before any physical output or receive.
+      // A recovered unknown output is re-authorized before it is retried.
+      const transferFacts = transferControl.requestProjection(transferRequest);
+      await requireDispatch('transfer', {
+        connection: transferFacts[4],
+        resource: transferFacts[2],
+        operation: 'transfer',
+      }, dispatchFacts(request.dispatch).runDefinitionCid, request.signal);
       if (record === undefined) {
         const admission = control.prepareCoordinatorOutput(
           journal,

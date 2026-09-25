@@ -15,6 +15,11 @@ import {openSqliteCoordinatorDispatchJournal} from
   './sqlite-coordinator-journal.mjs';
 import {startHttpsOutboundSiteGateway} from './outbound-site-gateway.mjs';
 import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
+import {allowAllAuthorization} from './authorization-fixture.mjs';
+
+// Run-owner account for these transport tests: dispatch and egress are
+// explicitly allowed; authorization outcomes are covered elsewhere.
+const remoteAuthorization = await allowAllAuthorization();
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const physicalCid = value =>
@@ -479,6 +484,7 @@ test('outbound gateway durably dispatches without an inbound Site listener',
     );
     t.after(() => coordinatorStore.close());
     const coordinator = createRemoteSiteCoordinator({
+      authorization: remoteAuthorization,
       control,
       journal: control.createCoordinatorJournal('coordinator-a'),
       store: coordinatorStore,
@@ -495,6 +501,10 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       dispatch: request,
       inputBindingBody: '{}',
     });
+    // The Run owner's authorization decision precedes the durable intent.
+    for (let turn = 0; turn < 100 && gateway.pending() === 0; turn++) {
+      await new Promise(resolve => setImmediate(resolve));
+    }
     assert.equal(gateway.pending(), 1);
     const path = '/v1/sites/site-a/generations/1/outbound';
     const siteMaterial = {
@@ -771,6 +781,7 @@ test('Coordinator restores a committed output without repeating transport',
     const request = dispatch({dispatchId: 'dispatch-output-journal'});
     const fixture = retainedOutputFixture(request, 'journal');
     const coordinator = createRemoteSiteCoordinator({
+      authorization: remoteAuthorization,
       control,
       transferControl,
       journal: control.createCoordinatorJournal('coordinator-a'),
@@ -825,6 +836,7 @@ test('Coordinator restores a committed output without repeating transport',
     t.after(() => reopenedStore.close());
     let repeated = false;
     const reopened = createRemoteSiteCoordinator({
+      authorization: remoteAuthorization,
       control,
       transferControl,
       journal: control.createCoordinatorJournal('coordinator-a'),

@@ -25,6 +25,11 @@ import {createRemoteSiteCoordinator} from
 import {openSqliteCoordinatorDispatchJournal} from
   '../host-node/sqlite-coordinator-journal.mjs';
 import {signRemoteRuntimeBundle} from './remote-bundle-signature.mjs';
+import {allowAllAuthorization} from '../host-node/authorization-fixture.mjs';
+
+// Run-owner account for these transport tests: dispatch and egress are
+// explicitly allowed; authorization outcomes are covered elsewhere.
+const remoteAuthorization = await allowAllAuthorization();
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtime = runtimeCore(moon);
@@ -311,6 +316,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     );
     t.after(() => coordinatorStore.close());
     const coordinator = createRemoteSiteCoordinator({
+      authorization: remoteAuthorization,
       control: runtime.remoteSiteControl,
       journal: runtime.remoteSiteControl.createCoordinatorJournal(
         'coordinator-a',
@@ -407,6 +413,7 @@ test('mTLS subprocess durably reconciles exact dispatch retransmission',
     );
     t.after(() => reopenedStore.close());
     const reopened = createRemoteSiteCoordinator({
+      authorization: remoteAuthorization,
       control: runtime.remoteSiteControl,
       journal: runtime.remoteSiteControl.createCoordinatorJournal(
         'coordinator-a',

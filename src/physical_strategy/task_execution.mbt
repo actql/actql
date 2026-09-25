@@ -173,6 +173,9 @@ pub fn[I, T] start_captured_managed_execution(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
+  if !consume_task_activation(run, task) {
+    return Err(ActivationNotAuthorized)
+  }
   let candidate = @connector.prepared_managed_execution_candidate(prepared)
   let request = @connector.managed_fixed_compute_candidate_request(candidate)
   if !strategy_managed_candidate_matches(run, task, candidate) ||
@@ -299,6 +302,9 @@ fn[T] start_task_execution(
   }
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
+  }
+  if !consume_task_activation(run, task) {
+    return Err(ActivationNotAuthorized)
   }
   let candidate = @connector.prepared_execution_candidate(prepared)
   if !strategy_candidate_matches(run, task, candidate) ||

@@ -141,6 +141,11 @@ pub fn open_native_standard_strategy_run(
   if retained_profile is Some(profile) && profile.max_file_bytes <= 0L {
     return Err(InvalidSelection)
   }
+  // Every realization this Host selects (Local, DuckDB, native) starts only
+  // under a per-task activation grant held by the captured Run.
+  @strategy.require_captured_task_activation(
+    @duckdb_standard_host.dispatch_run(dispatch),
+  )
   Ok({
     dispatch,
     library,
@@ -202,6 +207,20 @@ pub fn execute_next_native_standard_strategy_task(
   }
   let task_index = @duckdb_standard_host.dispatch_task(task)
   guard @duckdb_standard_host.dispatch_registration(task) is Some(selected) else {
+    run.accepting = false
+    run.stop_dispatch()
+    return Err(InvalidSelection)
+  }
+  // In-process native compute over already captured inputs has no protected
+  // scope: its data was admitted at Acquisition. This is the explicit,
+  // evaluation-free coverage grant; remote dispatch and transfer stay gated at
+  // their own boundaries.
+  if @strategy.authorize_captured_task_activation(
+      @duckdb_standard_host.dispatch_run(run.dispatch),
+      task_index,
+      @strategy.task_activation_covered(),
+    )
+    is Err(_) {
     run.accepting = false
     run.stop_dispatch()
     return Err(InvalidSelection)

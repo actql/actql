@@ -44,6 +44,8 @@ import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
   './run-publication-preflight.mjs';
+import {ExecutionAuthorizationError, missingAuthorizationGate} from
+  './authorization-gate.mjs';
 
 export class StrategyHostError extends Error {
   constructor(code) { super(code); this.code = code; }
@@ -287,12 +289,22 @@ export async function runInstalledStrategy(
   observeCompletion,
   sitePolicy,
   beforeCompute,
+  authorization = missingAuthorizationGate(),
 ) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
   }
+  if (authorization === null || typeof authorization !== 'object' ||
+      typeof authorization.authorize !== 'function' ||
+      typeof authorization.cover !== 'function' ||
+      typeof authorization.isProtectedSite !== 'function') {
+    throw new StrategyHostError('InvalidAuthorizationGate');
+  }
   if (active.has(setup)) throw new StrategyHostError('StrategyAlreadyRunning');
   core = Object.freeze({ ...core });
+  // Seal the per-task activation requirement before any implementation can
+  // start a task. Every start below consumes an exact grant for its task.
+  core.requireActivation?.(setup);
   if (beforeCompute !== undefined && typeof beforeCompute !== 'function') {
     throw new StrategyHostError('InvalidBeforeComputeAdmission');
   }
@@ -381,8 +393,46 @@ export async function runInstalledStrategy(
     core.siteControl,
   );
   const transfers = createManagedSiteTransferCoordinator(
-    setup, core, siteInstallation,
+    setup, core, siteInstallation, {
+      authorization,
+      subjectCid: programDefinitionCid,
+    },
   );
+  // Every activation is proven inside the admitted envelope by a cheap local
+  // check: an unprotected in-process Site running pure compute over captured
+  // inputs is covered without evaluation; a Host-declared protected Site needs
+  // an evaluated dispatch decision for its exact scope (reused per Run, never
+  // widened). No per-row callback, bulk pass or extra hashing.
+  const authorizeActivation = async (site, entry, index) => {
+    const siteKey = executionSiteDescription(site).key;
+    const scope = Object.freeze({
+      connection: siteKey,
+      resource: entry.managedSelectionKey ?? 'installed-strategy',
+      operation: 'activate',
+    });
+    if (!authorization.isProtectedSite(siteKey)) {
+      authorization.cover('activation', scope);
+      if (typeof core.coverActivation === 'function' &&
+          core.coverActivation(setup, index) !== true) {
+        throw new StrategyHostError('ActivationGrantRejected');
+      }
+      return;
+    }
+    const decision = await authorization.authorize('activation', scope, {
+      subjectCid: programDefinitionCid,
+      signal,
+    });
+    if (decision.action !== 'dispatch') {
+      throw new ExecutionAuthorizationError(decision);
+    }
+    signal?.throwIfAborted();
+    if (typeof core.requireActivation === 'function' &&
+        (typeof core.authorizeActivation !== 'function' ||
+          core.authorizeActivation(setup, index, decision.runtimeDecision) !==
+            true)) {
+      throw new StrategyHostError('ActivationGrantRejected');
+    }
+  };
   const coreSiteOutputs = coreOutputSiteOwner(core, setup, siteInstallation);
   // A contribution that explicitly reports unconfirmed cleanup without a
   // usable status authority cannot release its Site operation. There is no
@@ -682,6 +732,11 @@ export async function runInstalledStrategy(
             [...legacyExclusions].sort()[0] ?? 'ExecutionSiteUnavailable',
         );
       }
+      // Protected boundary: nothing below (Site operation, input transfer,
+      // implementation start) happens unless this exact activation is
+      // authorized. A deny, failure, unsupported defer or persisted wait
+      // stops the Run through the existing stop path.
+      await authorizeActivation(siteCandidate.site, entry, index);
       const siteBinding = bindExecutionSiteCandidate(siteCandidate);
       const siteOperation = startExecutionSiteOperation(siteBinding);
       let siteInputsResolved = siteCandidate.transfers.length === 0;

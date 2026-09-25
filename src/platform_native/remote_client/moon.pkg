@@ -4,6 +4,7 @@ import {
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/execution_authorization" @authorization,
   "moonbitlang/core/encoding/utf8",
 }
 

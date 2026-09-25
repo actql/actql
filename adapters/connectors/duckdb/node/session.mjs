@@ -11,19 +11,55 @@ import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
 import {assertBoundedVectorRuntime, boundedVectorItem} from './bounded-vector.mjs';
 import environmentContract from '../environment-contract.json' with {type: 'json'};
 export { DuckDBTransportError, validateLimits } from './configuration.mjs';
+import {ExecutionAuthorizationError, missingAuthorizationGate} from
+  '../../../host-common/authorization-gate.mjs';
 
 const files = new WeakMap();
 
 
 // Call only from explicit Host setup, never from Program/source wire decoding.
 // The returned grant cannot be reconstructed by serializing its properties.
-export async function authorizeLocalDatabase(path) {
+// `access` binds the Host's execution-authorization gate and the Host-declared
+// connection/resource names of this source. The file grant is a technical
+// admission only: every acquisition still needs a dispatch decision for this
+// exact scope before any provider session opens. Without a gate the Host has
+// no account configuration and acquisition is denied (configuration_missing).
+export async function authorizeLocalDatabase(path, access = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) throw new DuckDBTransportError('InvalidSourcePath');
+  if (access === null || typeof access !== 'object') throw new DuckDBTransportError('InvalidSourceAccess');
+  const authorization = access.authorization ?? missingAuthorizationGate();
+  if (typeof authorization?.authorize !== 'function' ||
+      (access.connection !== undefined && typeof access.connection !== 'string') ||
+      (access.resource !== undefined && typeof access.resource !== 'string') ||
+      (access.subjectCid !== undefined && typeof access.subjectCid !== 'string')) {
+    throw new DuckDBTransportError('InvalidSourceAccess');
+  }
   const resolved = await realpath(path);
   if (!(await stat(resolved)).isFile()) throw new DuckDBTransportError('SourceNotFile');
   const grant = Object.freeze({});
-  files.set(grant, resolved);
+  files.set(grant, Object.freeze({
+    path: resolved,
+    authorization,
+    scope: Object.freeze({
+      connection: access.connection ?? 'local-database',
+      resource: access.resource ?? resolved,
+      operation: 'read',
+    }),
+    subjectCid: access.subjectCid,
+  }));
   return grant;
+}
+
+// Acquisition boundary shared by every source read (native and broad,
+// metadata/catalog SQL included): no provider session opens without a
+// dispatch decision for this exact scope.
+async function authorizeSourceAccess(source, signal) {
+  const decision = await source.authorization.authorize(
+    'acquisition', source.scope, {subjectCid: source.subjectCid, signal},
+  );
+  if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
+  signal?.throwIfAborted();
+  return decision;
 }
 
 // A caller's cancellation deadline is not native settlement. Keep observing the
@@ -666,9 +702,10 @@ export async function provisionComputeDatabase(suppliedLimits, accounting) {
 }
 
 export async function withSourceDatabase(grant, limits, body, signal, accounting) {
-  const path = files.get(grant);
-  if (!path) throw new DuckDBTransportError('UnauthorizedSource');
-  return cancellationBoundary(fixedLimits => usingSession(path, true, fixedLimits, body, signal, accounting), limits, signal, accounting);
+  const source = files.get(grant);
+  if (!source) throw new DuckDBTransportError('UnauthorizedSource');
+  await authorizeSourceAccess(source, signal);
+  return cancellationBoundary(fixedLimits => usingSession(source.path, true, fixedLimits, body, signal, accounting), limits, signal, accounting);
 }
 
 export async function withComputeDatabase(limits, body, signal, accounting, suppliedFiles = []) {

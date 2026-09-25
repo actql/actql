@@ -92,6 +92,8 @@ pub fn strategy_host_configure_managed_identity(@connectors_workers_async.Config
 
 pub fn strategy_host_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
 
+pub fn strategy_host_cover_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int) -> Bool
+
 pub fn strategy_host_explain(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> String raise NodeHostFailure
 
 pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
@@ -235,6 +237,8 @@ pub fn strategy_host_registration(@physical_host.PreparedTaskDispatch) -> @conne
 pub fn strategy_host_registration_selection_key(@connector_sdk.CapabilityRegistration) -> String
 
 pub fn strategy_host_releasable_managed_producers(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Array[Int]
+
+pub fn strategy_host_require_activation(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Unit
 
 pub fn strategy_host_resident(@physical_host.PreparedTaskDispatch) -> Bool
 
