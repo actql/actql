@@ -47,7 +47,7 @@ pub fn admit_effect_saved_response_evidence(
     seen.push(entry)
   }
   Ok({
-    dispatch_entry_cids,
+    dispatch_entry_cids: dispatch_entry_cids.copy(),
     credential_use_cid,
     physical_sha256: @sha.hex(response_bytes),
     byte_count: response_bytes.length(),
