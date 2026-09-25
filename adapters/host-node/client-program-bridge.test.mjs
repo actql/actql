@@ -2046,10 +2046,12 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
-  'salesforce-unknown', 'salesforce-collection-partial',
+  'salesforce-unknown', 'salesforce-lost-http-reply',
+  'salesforce-collection-partial',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
-  physical.startsWith('salesforce-unknown')
+  physical.startsWith('salesforce-unknown') ||
+    physical === 'salesforce-lost-http-reply'
     ? 'retains uncertain outcomes' :
     physical === 'salesforce-collection-partial'
       ? 'retains partial failure outcomes' :
@@ -2060,7 +2062,9 @@ test(`two-member captured Effect Run ${
     const siteRun = physical !== 'simulated';
     const recoverAfterResponse = physical === 'salesforce-recovered';
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
-    const unknownAfterClaim = physical.startsWith('salesforce-unknown');
+    const loseHttpReply = physical === 'salesforce-lost-http-reply';
+    const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
+      loseHttpReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
     const collectionPartial = physical === 'salesforce-collection-partial';
     const continueMembers = continueAfterUnknown || collectionPartial
@@ -2193,6 +2197,7 @@ test(`two-member captured Effect Run ${
           dispatchRequestCid: cid('c'),
           orgId: index === 0 ? '00D000000000001EAA'
             : '00D000000000002EAA',
+          losePatchReplyOnce: loseHttpReply && index === 0,
         }))) : undefined;
       const siteProjections = sites?.map(site => {
         const binding = site.write.scope;
@@ -2420,7 +2425,7 @@ test(`two-member captured Effect Run ${
       }
       let responseFaultPending = recoverAfterResponse;
       let terminalFaultPending = restartAfterTerminal;
-      let unknownFaultPending = unknownAfterClaim;
+      let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
       const dispatchRow = async ({memberIndex, rowIndex, claim}) => {
           sent.push([memberIndex, rowIndex]);
           if (siteRun) {
@@ -2563,14 +2568,24 @@ test(`two-member captured Effect Run ${
           firstHolding.holdingCid)).deleted, true);
         assert.equal((await store.retirePhysicalHolding(
           secondHolding.holdingCid)).deleted, true);
+        for (const holdingCid of [privateHoldingCid,
+          firstHolding.holdingCid, secondHolding.holdingCid]) {
+          assert.equal(await store.inspectPhysicalHolding(holdingCid),
+            undefined);
+        }
         if (sourcePayload.prepared.status().pending) {
           await sourcePayload.prepared.release();
         }
       };
       if (unknownAfterClaim) {
-        await assert.rejects(applyCapturedEffectSet({
-          ...applyOptions, dispatchRow,
-        }), {message: 'LostAfterSalesforceDispatchClaim'});
+        const initial = applyCapturedEffectSet({...applyOptions,
+          dispatchRow});
+        if (loseHttpReply) {
+          await assert.rejects(initial);
+        } else {
+          await assert.rejects(initial,
+            {message: 'LostAfterSalesforceDispatchClaim'});
+        }
         assert.deepEqual(sent, [[0, 0]]);
         ledger.close();
         ledger = openLedger();
@@ -2591,7 +2606,15 @@ test(`two-member captured Effect Run ${
         assert.equal(noReplay.dispatched, 0);
         assert.deepEqual(sites.map(site => site.seen
           .filter(item => item.method === 'PATCH').length),
-        [continueAfterUnknown ? 1 : 0, 2]);
+        [continueAfterUnknown || loseHttpReply ? 1 : 0, 2]);
+        if (loseHttpReply) {
+          const request = sites[0].seen.find(item =>
+            item.method === 'PATCH');
+          assert.deepEqual(JSON.parse(request.body),
+            {Name: sourceIds[0]});
+          assert.deepEqual(sites.map(site => site.journal.recover().length),
+            [3, 4]);
+        }
         const uncertainSet = await issueAuthorizedEffectSetReceipt({
           ledger, preview: applyPreview, commonMoon: moon,
           authorizeEvidenceRead: async () => true,

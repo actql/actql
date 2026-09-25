@@ -18,6 +18,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
   orgId = '00D000000000001EAA',
+  losePatchReplyOnce = false,
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -39,6 +40,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
+  let loseReply = losePatchReplyOnce;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -73,6 +75,11 @@ export async function openSalesforceEffectSiteFixture(t, {
       request.on('end', () => {
         observed.body = Buffer.concat(chunks).toString('utf8');
         assert.deepEqual(Object.keys(JSON.parse(observed.body)), ['Name']);
+        if (loseReply) {
+          loseReply = false;
+          request.socket.destroy();
+          return;
+        }
         response.writeHead(204).end();
       });
       return;
