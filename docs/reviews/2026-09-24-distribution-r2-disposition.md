@@ -7,7 +7,7 @@ the review SHA is historical evidence, not the implementation base.
 
 | Review item | Current disposition | Product evidence |
 | --- | --- | --- |
-| DIST-R2-1, isolated Connector assembly omits Client wire | The isolated assembly defect is fixed after the reviewed SHA. It copies `packages/client-wire`, checks its generated closure, includes it in source cleanliness and before/after digests, and runs the standard Node Host in the isolated tree. A standalone packed standard Host artifact is still absent, so the review's packed-only installation check remains open. | `scripts/check-connector-addition.mjs`, `scripts/connector-addition-wire-dependency.mjs`, `scripts/connector-addition-wire-dependency.test.mjs`, `check:connector-addition` |
+| DIST-R2-1, isolated Connector assembly omits Client wire | Closed. The isolated assembly includes the generated Client wire and runs the standard Node Host. The packed standard Host installation is also exercised from installed package archives; it is no longer a missing acceptance gate. This does not establish Linux CI at the final SHA. | `scripts/check-connector-addition.mjs`, `scripts/connector-addition-wire-dependency.test.mjs`, `scripts/test-node-client-package.mjs`, `check:distribution-client` |
 | DIST-R2-V1, request and Run Definition mutual binding | Covered in the normal Node issuance path before journal admission. Independently valid changed Program, changed Parameters, and changed context Definitions are rejected; the physical journal stays empty on the foreign-Definition case. | `adapters/host-node/client-program-bridge.test.mjs`, `src/run_publication_host/client_values_run_binding.mbt` |
 | DIST-R2-G1, reserved dispatch through terminal state | Open. One-time reservation and reconciliation after restart prevent an unsupported second Compute. The failure matrix from reserved-but-unstarted through publication and cleanup is not yet a complete product recovery proof. | `adapters/host-node/client-request-journal.test.mjs`; shared Run and output owner work remains |
 
@@ -24,8 +24,15 @@ report and logs under `.artifacts/connector-addition-bLW52D/`.
 The same gate passed again at `41bf983820adc740fda2248ce1128f21228a1b85`.
 Its report is `.artifacts/connector-addition-P53uZY/connector-addition.json`:
 both isolated all-target assemblies, the independent third Connector on
-JS/Wasm/native, and the isolated standard Node Host passed. This run does not
-replace the missing packed-only standard Host installation test or Linux CI.
+JS/Wasm/native, and the isolated standard Node Host passed. At that SHA, this
+gate did not by itself prove a packed installation or Linux CI. The current
+`scripts/test-node-client-package.mjs` separately packs and installs the
+Client wire, SDK, Run Host core, Local Host, and Node client archives outside
+the source tree. Its standard Values path checks submit, status, Result read,
+request replay, attach, and restart from the installed packages; it also
+exercises the installed remote HTTP Host. The separate
+`scripts/test-packed-run-host-core.mjs` checks portable Host admission from
+its archive. These local gates do not replace final-SHA Linux CI.
 
 At `78e6877ad4ee9c6a591d0f925fbe59586b115706`, the checked Values Site
 endpoint can open the retained output through the same manifest-preserving
