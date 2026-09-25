@@ -1,4 +1,6 @@
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {retainIssuedEffectSetReceipt} from
+  '../host-common/effect-receipt-custody.mjs';
 import {snapshotEffectDispatchClaim,
   snapshotEffectDispatchClaims} from './effect-physical-dispatch.mjs';
 
@@ -232,5 +234,6 @@ export async function issueAuthorizedEffectSetReceipt({
       preview, issuedMembers.map(member => member.wire),
       members.map(member => member.replayed), limits.maxWireBytes,
       limits.maxNodes, limits.maxDepth);
-  return Object.freeze({set, members: Object.freeze(issuedMembers)});
+  return retainIssuedEffectSetReceipt({set, members: issuedMembers,
+    ledger, preview});
 }
