@@ -43,7 +43,7 @@ separate input bindings and route-specific evidence.
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 52 path-scoped counts describe evidence, not
+list. Its 23 full-route and 53 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -91,8 +91,8 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 52 |
-| Selected-only assurance | 1 |
+| Path-scoped work/workspace assurance | 53 |
+| Selected-only assurance | 2 |
 <!-- local-resource-accounting-summary:end -->
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
@@ -105,10 +105,10 @@ fallback remains reachable; this is selected-only evidence, not completion
 of `watermark_rows` or of the delivery unit.
 The `lag` step in a `values -> assert_unique -> lag` Stage now reaches the
 selected bounded row provider. Quantum-one tests cover partition ordering,
-workspace exact/one-short, cancellation and cleanup; the standard Host runs
-both downstream consumers and delivers an in-flight timer cancellation.
-Its selected work boundary and the independent whole-sequence entrypoint
-remain unassured, so this does not close the strict resource gate.
+work and workspace exact/one-short, cancellation and cleanup; the standard
+Host runs both downstream consumers and delivers an in-flight timer
+cancellation. The independent whole-sequence entrypoint remains unassured,
+so this selected-only proof does not close the strict resource gate.
 The review of `0e8e0ada` found a binary input scan cleanup gap. The shared
 scan cleanup, Append/CrossJoin wiring, retained-frame assertions, borrowed
 input checks, and standard Host input-admission cancellation were already

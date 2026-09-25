@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 52 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 53 with path-scoped work\/workspace evidence, 2 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -309,6 +309,28 @@ test('lag loses its schema workspace boundary when the fixture is removed', () =
   }), /RelA lag: lag schema workspace evidence is missing/u);
 });
 
+test('selected lag assurance requires its route-specific evidence', () => {
+  for (const role of [
+    'lag_selected_work_exact_one_short',
+    'lag_selected_workspace_exact_one_short',
+    'lag_selected_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'lag');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), /RelA lag: selected_entrypoint .* lacks an executable fixture/u,
+    role);
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'lag');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'lag_selected_in_flight_host_timer');
+  }), /RelA lag: selected_entrypoint in_flight_cancel lacks an executable fixture/u);
+});
+
 test('window and set routes lose schema workspace evidence without fixtures', () => {
   for (const operation of ['row_window', 'except', 'intersect']) {
     assert.match(run(undefined, routes => {
@@ -518,8 +540,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
+    '| Path-scoped work/workspace assurance | 53 |',
     '| Path-scoped work/workspace assurance | 52 |',
-    '| Path-scoped work/workspace assurance | 51 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(

@@ -1485,6 +1485,13 @@
           "fixture": "bounded lag admits its exact structural workspace peak"
         },
         {
+          "role": "lag_selected_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_lag_wbtest.mbt",
+          "fixture": "bounded singleton lag admits exact and one-short control work"
+        },
+        {
           "role": "lag_selected_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1508,7 +1515,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-lag-in-flight"
         }
-      ]
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "lag_selected_workspace_exact_one_short",
+          "one_short_limit": "lag_selected_work_exact_one_short",
+          "in_flight_cancel": "lag_selected_in_flight_host_timer",
+          "cleanup": "lag_selected_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "lag_selected_work_exact_one_short",
+            "one_short_limit": "lag_selected_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "lag_selected_workspace_exact_one_short",
+            "one_short_limit": "lag_selected_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",

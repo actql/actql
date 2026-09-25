@@ -2,9 +2,10 @@
 fn bounded_lag_fixture(
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
+  singleton? : Bool = false,
 ) -> (@bounded.Control, BoundedBindingRowsExecution) raise {
   let owner = lag_input_owner("1")
-  let rows = lag_rows()
+  let rows = if singleton { [lag_rows()[0]] } else { lag_rows() }
   let captured = capture_input(
     owner,
     0,
@@ -108,5 +109,29 @@ test "bounded lag admits its exact structural workspace peak" {
     }
     assert_eq(finished, accepted)
     assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  }
+}
+
+///|
+test "bounded singleton lag admits exact and one-short control work" {
+  // A single row has no pair comparison. Fix the work frontier across input
+  // admission, two authored partition terms, sorting, lag construction,
+  // output-field copying, and finalization rather than reading a live meter.
+  for (budget, accepted) in [(66, true), (65, false)] {
+    let (_, active) = bounded_lag_fixture(max_work=budget, singleton=true)
+    let mut finished = false
+    for _ in 0..<10000 {
+      match advance_bounded_binding_rows(active, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(_, ..) => {
+          finished = true
+          break
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => break
+        _ => fail("bounded singleton lag work failed unexpectedly")
+      }
+    }
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_eq(finished, accepted)
   }
 }
