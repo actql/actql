@@ -13,6 +13,7 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
+import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {runPublishedCapturedStrategy} from './entry.mjs';
 import {installNodeResultAccessService,
@@ -42,7 +43,7 @@ function localStateRoot() {
   return resolve(supplied ?? join(homedir(), '.local', 'share', 'actql'));
 }
 
-async function openInstalledHost(root) {
+async function openInstalledHost(root, mode = 'local') {
   await mkdir(root, {recursive: true, mode: 0o700});
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
@@ -81,8 +82,8 @@ async function openInstalledHost(root) {
     journal.close();
     throw error;
   }
-  const localConnection = ({connection, ref}) =>
-    connection.mode === 'local' && connection.owner === 'local' &&
+  const hostConnection = ({connection, ref}) =>
+    connection.mode === mode && connection.owner === mode &&
     (ref === undefined || ref.tenantId === tenantId &&
       ref.authorityScopeCid === authorityScopeCid);
   const authorizedScope = () => ({tenantId, authorityScopeCid});
@@ -91,7 +92,7 @@ async function openInstalledHost(root) {
   const startRun = installNodeClientRunStart({journal,
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({connection, ref}) =>
-      localConnection({connection, ref})});
+      hostConnection({connection, ref})});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: ({principalId: actual}) =>
       actual === principalId,
@@ -126,7 +127,7 @@ async function openInstalledHost(root) {
     environment});
   const submit = async ({preparedProgram, requestId, principalId: actual,
     connection, kind, input, parameters}) => {
-    if (actual !== principalId || !localConnection({connection})) {
+    if (actual !== principalId || !hostConnection({connection})) {
       throw new Error('ClientConnectionDenied');
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
@@ -182,23 +183,42 @@ async function openInstalledHost(root) {
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
+  const negotiate = () => ({version: 'actql-client-host/0.1',
+    mode, owner: mode, durability: 'durable', scopeRef: principalId,
+    capabilities: ['result-jsonl'], limits: {
+      maxReadWireBytes: 10 * 1024 * 1024,
+      maxRowWireBytes: 1024 * 1024,
+      maxRowRetainedValueBytes: 1024 * 1024,
+      maxRetainedValueBytes: 10 * 1024 * 1024,
+      maxRows: 10000, maxBatchRows: 1000,
+      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
+    }});
+  const hostOperations = {
+    authorizeConnection: hostConnection,
+    negotiate, prepareSubmit, submit, attach, lookupRequest,
+    stateService, resultService,
+  };
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
-    authorizeConnection: localConnection,
-    negotiate: () => ({version: 'actql-client-host/0.1', mode: 'local',
-      owner: 'local', durability: 'durable', scopeRef: principalId,
-      capabilities: ['result-jsonl'], limits: {
-        maxReadWireBytes: 10 * 1024 * 1024,
-        maxRowWireBytes: 1024 * 1024,
-        maxRowRetainedValueBytes: 1024 * 1024,
-        maxRetainedValueBytes: 10 * 1024 * 1024,
-        maxRows: 10000, maxBatchRows: 1000,
-        maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-      }}),
-    prepareSubmit, submit, attach, lookupRequest,
-    stateService, resultService, maxRowBytes: 1024 * 1024,
+    ...hostOperations, maxRowBytes: 1024 * 1024,
   });
-  return {port, store, journal};
+  return {port, store, journal, hostOperations};
+}
+
+// This HTTP ingress uses the installed Host's common owner and physical
+// services. Embedded Local continues to use the in-process port above.
+export async function openInstalledRemoteHttpHost({directory,
+  authenticate}) {
+  if (typeof directory !== 'string' || !directory ||
+      typeof authenticate !== 'function') {
+    throw new TypeError('InvalidInstalledRemoteHost');
+  }
+  const host = await openInstalledHost(resolve(directory), 'remote');
+  return Object.freeze({
+    handler: createClientHttpHandler({
+      ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+    }),
+  });
 }
 
 export async function connectEmbeddedLocal(options) {
