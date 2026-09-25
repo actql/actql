@@ -108,7 +108,11 @@ The valid combinations are exactly:
 
 A `prepare_attempt` subject contains `prepare_attempt_id` and
 `continuation: start_run`. A `run_unit` subject contains `run_id`, `unit_id`,
-and `continuation: resume_unit`. Non-Effect Checkpoints require exactly
+and `continuation: resume_unit`. Only a `run_unit` Checkpoint carries the
+top-level `run_id`, equal to its subject's, and `run_definition_cid`; a
+`prepare_attempt` Checkpoint carries neither. Its Resolution likewise carries
+`run_id` and `run_definition_cid` for a Run-unit Checkpoint, or only
+`prepare_attempt_id` for a preparation Checkpoint. Non-Effect Checkpoints require exactly
 `[invocation_scope_approved]`. An Effect Commit Checkpoint requires
 `[effect_scope_approved]` or
 `[effect_scope_approved, partial_application_accepted]`. The latter records
@@ -453,9 +457,9 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_scope_approval sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_authorization sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_definition sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:c0dc4575988d74a799ea739c0eeef7ae17d94618649c3eebfa671e28bdb77e41
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993

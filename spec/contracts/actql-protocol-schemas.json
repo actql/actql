@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:3b18fb5d4a429c64142201de2e33d1965f3f03221ccd2170b0e015e383a67732",
+  "artifact_registry_cid": "sha256:98e04d1fe9f0311383c5944221b31290b88bd9010a9a27696ab5c787c37fa750",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10684,9 +10684,9 @@
     "run_scope_approval": "sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de",
     "run_authorization": "sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9",
     "run_definition": "sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045",
-    "execution_checkpoint": "sha256:c0dc4575988d74a799ea739c0eeef7ae17d94618649c3eebfa671e28bdb77e41",
-    "checkpoint_resolution": "sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355",
-    "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
+    "execution_checkpoint": "sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b",
+    "checkpoint_resolution": "sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5",
+    "verified_checkpoint_resolution": "sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
@@ -39229,8 +39229,6 @@
       "required": [
         "version",
         "checkpoint_id",
-        "run_id",
-        "run_definition_cid",
         "continuation_state_cid",
         "subject",
         "phase",
@@ -39743,6 +39741,68 @@
             }
           }
         }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "kind": {
+                    "const": "run_unit"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "subject"
+            ]
+          },
+          "then": {
+            "required": [
+              "run_id",
+              "run_definition_cid"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "kind": {
+                    "const": "prepare_attempt"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "subject"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "run_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "run_definition_cid"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "checkpoint_resolution": {
@@ -39755,8 +39815,6 @@
         "resolution_id",
         "checkpoint_id",
         "checkpoint_cid",
-        "run_id",
-        "run_definition_cid",
         "decision",
         "actor",
         "decided_at",
@@ -39788,6 +39846,10 @@
         "run_definition_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prepare_attempt_id": {
+          "type": "string",
+          "minLength": 1
         },
         "decision": {
           "enum": [
@@ -39865,6 +39927,42 @@
             ]
           }
         }
+      ],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "run_id",
+                "run_definition_cid"
+              ],
+              "not": {
+                "required": [
+                  "prepare_attempt_id"
+                ]
+              }
+            },
+            {
+              "required": [
+                "prepare_attempt_id"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "run_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "run_definition_cid"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     "verified_checkpoint_resolution": {
@@ -39897,8 +39995,6 @@
             "resolution_id",
             "checkpoint_id",
             "checkpoint_cid",
-            "run_id",
-            "run_definition_cid",
             "decision",
             "actor",
             "decided_at",
@@ -39930,6 +40026,10 @@
             "run_definition_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "prepare_attempt_id": {
+              "type": "string",
+              "minLength": 1
             },
             "decision": {
               "enum": [
@@ -40006,6 +40106,42 @@
                   "approval_evidence_cid"
                 ]
               }
+            }
+          ],
+          "allOf": [
+            {
+              "oneOf": [
+                {
+                  "required": [
+                    "run_id",
+                    "run_definition_cid"
+                  ],
+                  "not": {
+                    "required": [
+                      "prepare_attempt_id"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "prepare_attempt_id"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "run_id"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "run_definition_cid"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           ]
         },
