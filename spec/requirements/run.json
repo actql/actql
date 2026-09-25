@@ -69,6 +69,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/resolution-admission.an-immediate-delegated-answer-must-bind-the-exact-decision-subject",
+      "statement_sha256": "e7c90e053bd081e41a39bfda81f543fa417ed1e8d367edd73ee6737c9c50bfe1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resolution-admission.admitting-an-immediate-answer-must-not-persist-a-checkpoint-or-create-a-resume-intent",
+      "statement_sha256": "2af2e4af6decc0418e856afc16e94ae5bd7587256d6227f32c4413e519ad6cda",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resolution-admission.a-delegated-answer-must-not-be-admitted-without-a-delegate-outcome-for-its-subject",
+      "statement_sha256": "7701402aba71211c70f23422648dee06a94ffd148499d73ef42b2ff8999eb7d8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/resolution-admission.its-decision-time-must-be-no-earlier-than-checkpoint-creation",
       "statement_sha256": "05ec502685d6747986df4bc1a2c15bddaa4162ee72c89b0fc5b7c229a5c3f877",
       "status": "pending",
@@ -126,6 +159,28 @@
     {
       "requirement_id": "actql.protocol.run/resolution-admission.every-field-in-a-host-verified-resolution-wrapper-must-identify-the",
       "statement_sha256": "e8eaefa1d34fd2799ffe576727aae6fdd270319b9aa571f1f20cbe0c1800ff11",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resolution-admission.a-resolution-proof-must-sign-the-unsigned-resolution-cid",
+      "statement_sha256": "138f8b8088998f306e07a3c5ebc6adb85087b8ea1d7c7765db5d6f6b4ec1f0f4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resolution-admission.a-host-attestation-must-sign-the-unsigned-verified-wrapper-cid",
+      "statement_sha256": "0c03f309277edeaf9be073a71f649ae2e5a7d68aaa2b5f7b9646269e44f2766b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -212,8 +267,8 @@
       }
     },
     {
-      "requirement_id": "actql.protocol.run/policy-risk-acceptance.product-7a26116de02b",
-      "statement_sha256": "7a26116de02b6dddfdceede10c321abcf01876d1b0fede96aea75f2533c92f2a",
+      "requirement_id": "actql.protocol.run/policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope",
+      "statement_sha256": "115839ddd5b724d1efa05b375ef3b79bb6b8c3125fa5b92e3d18d113a8e0eba1",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -267,6 +322,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/account-config.a-configuration-must-use-one-canonical-spelling",
+      "statement_sha256": "1ef135585e23d049402e5d16fb4c4f00023c1990ec12d30e4885d2c47be463a3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "account-config",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/account-config.identifiers-must-match-by-exact-equality",
+      "statement_sha256": "8be2bfb2aa3eb32cd500ae04c9be8986b32f05c128323a5ed7c302e4c781d7d2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "account-config",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/account-config.admission-must-decide-overlap-by-this-exact-rule",
+      "statement_sha256": "4743dad58c12234d76f042e7847f8a42ccf6a4b5dd86bb8e354877b41a5b69bf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "account-config",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/machine-contracts.product-29677c2581a3",
       "statement_sha256": "29677c2581a3b63d9c5859073201b3196398308975d62397e2fca23c0bc4df5f",
       "status": "pending",
@@ -279,7 +367,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "9012915693ef83b3c49660c15903dd01470064323cb03128776d2709ed5ae9b3",
+      "statement_sha256": "1bf45cb9ad75b4dab36a29d682621658c0daa18a12ea47eaa05d68b7cf366037",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
