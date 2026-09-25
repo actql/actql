@@ -12,7 +12,7 @@ fn activation_account_action(
           principal: All,
           connection: All,
           resource: All,
-          operation: AnyOf(["activate"]),
+          operation: AnyOf(["write"]),
         },
         exclusions: [],
       },
@@ -24,7 +24,7 @@ fn activation_account_action(
       principal: "local-user",
       connection: "site-a",
       resource: "synchronous-test",
-      operation: "activate",
+      operation: "write",
     }),
   ).unwrap()
 }

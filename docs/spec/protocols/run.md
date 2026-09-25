@@ -397,6 +397,16 @@ Cartesian tuple set. The optional `bootstrap` member records the provenance of
 a materialized Local bootstrap profile: profile ID, version and exact content
 CID. Routing semantics are owned by [Account authorization routing](../execution.md#policy-routing).
 
+<!-- requirement-block: account-config.the-run-owner-must-present-a-basic-operation-class -->
+The trusted Run owner MUST present the operation identifier of a protected
+boundary as `read`, `write` or `effect`, derived from that boundary's existing
+operation contract: `read` for preparation input capture, acquisition and
+catalog, metadata or inference reads; `write` for dispatching work to, or
+transferring or egressing data to, another Site, recipient or Store; and
+`effect` for an Effect commit. Covered pure computation is not a protected
+operation. The boundary kind belongs to the decision subject, never to the
+operation identifier.
+
 <!-- requirement-block: account-config.a-configuration-must-use-one-canonical-spelling account-config.identifiers-must-match-by-exact-equality account-config.admission-must-decide-overlap-by-this-exact-rule -->
 A configuration MUST use one canonical spelling: entries in strictly
 ascending `entry_id` order, each `any_of` array in strictly ascending order, and

@@ -12521,6 +12521,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/account-config.the-run-owner-must-present-a-basic-operation-class",
+      "statement_sha256": "bd9dbacf9ae051e7de398c6533ee1bb1b921d46eb003217cd7216dc45045b4bc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "account-config",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/account-config.a-configuration-must-use-one-canonical-spelling",
       "statement_sha256": "d9fb796d06ab117129e57384db9d0675e4cace2a6b6f90e46d47e1e007266c06",
       "status": "pending",

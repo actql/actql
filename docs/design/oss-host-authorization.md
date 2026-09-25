@@ -200,10 +200,8 @@ new normative Core dimension; another Host chooses its own connection and
 resource identifiers. Core sees only the principal × connection × resource ×
 operation tuple of [Account authorization routing](../spec/execution.md#policy-routing).
 The operation dimension carries only the basic Read/Write/Effect
-classification drawn from existing operation contracts: `read` for source
-reads, `write` for writing captured data to another Site or recipient, and the
-Effect Preview's `effect_kind` (`create`, `update`, `upsert`, `delete`,
-`command` or `store`) for an Effect commit. The kind of boundary stays in the
+classification the [Run protocol](../spec/protocols/run.md#account-config)
+requires: `read`, `write` or `effect`. The kind of boundary stays in the
 decision subject and the Checkpoint kind; it is never encoded as an operation
 name. Advanced governance such as data inspection, model egress, query cost,
 business risk, approver selection or batched approval remains the Host's
@@ -216,7 +214,7 @@ delegated-decision policy.
 | Task activation on a Host-declared protected Site | Site key | Realization key | `write` | `activation` | `cost_scope` (`run_unit`) |
 | Managed or remote transfer and output egress | Recipient Site key | Source Site key or output scope | `write` | `transfer` | `data_egress` (`run_unit`) |
 | Remote Site dispatch | Remote Site | Site registration | `write` | `activation` | `cost_scope` (`run_unit`) |
-| Effect Set commit | Effect target connection | Effect target resource | Effect kind | `effect_commit`; Effect Set Preview CID | `effect_set` (`run_unit`) |
+| Effect Set commit | Effect target connection | Effect target resource | `effect` | `effect_commit`; Effect Set Preview CID | `effect_set` (`run_unit`) |
 
 The principal is always the trusted Host context principal. Pure computation
 over captured inputs on an unprotected in-process Site is covered without an
@@ -224,6 +222,18 @@ evaluation or a Host call. The Local Host binds its resume revalidation to the
 principal, authorization context and admitted configuration CID, and to the
 invocation environment; a changed configuration therefore fails resume
 revalidation rather than reinterpreting an earlier approval.
+
+A deferred preparation or acquisition decision becomes a `prepare_attempt`
+Checkpoint. Before persisting it the Local Host captures the operator-supplied
+Program, Environment and Parameter files as private content-addressed
+artifacts and records the prepared invocation and continuation; no source is
+read before the Checkpoint, so there are no source observations to reuse. The
+resumed continuation reads only the captured bytes, reuses the permits and
+approvals already admitted for the same attempt, and creates its Run directly
+in `running` once capture completes. As its own delegated-decision policy, an
+approved run-scope Checkpoint of prepared invocation X also answers the
+acquisition of X's declared source in the same attempt under the same entry,
+configuration, context and tuple; it answers nothing else.
 
 ## Delegated-decision adapter
 
