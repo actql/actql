@@ -918,7 +918,7 @@ async function transferUnderAuthorization(authorization) {
 
 const transferSubjectCid = `sha256:${'5'.repeat(64)}`;
 const transferEntries = outcome => [accountEntry('recipient', outcome, {
-  connection: 'destination', operation: 'write',
+  connection: 'destination', operation: 'transfer',
 })];
 
 test('transfer to a protected recipient needs a dispatch decision first',

@@ -718,7 +718,7 @@ async function dispatchUnderAuthorization(t, gate, dispatchId, signal) {
 }
 
 const remoteEntries = outcome => [accountEntry('remote-site-a', outcome, {
-  connection: 'site-a', operation: 'write',
+  connection: 'site-a', operation: 'dispatch',
 })];
 const remotePermit = view => ({decision: 'permit', subject: view.subject,
   authority: 'reviewer'});
@@ -738,7 +738,7 @@ test('remote dispatch: allow and permit send; refusals record and send nothing',
     assert.equal(hostCalls, 0);
     assert.equal(allow.counters().checkpointsPersisted, 0);
     const [decision] = [await allow.authorize('activation', {
-      connection: 'site-a', resource: 'local', operation: 'write',
+      connection: 'site-a', resource: 'local', operation: 'dispatch',
     }, {subjectCid: cid('0')})];
     assert.equal(decision.action, 'dispatch');
 
@@ -859,12 +859,11 @@ test('remote output egress is authorized before durable output and I/O',
     );
     assert.equal(outputs, 0);
 
-    // Canonical configuration spelling: entries in ascending entry_id order.
     const egress = await fixtureAuthorization([
-      accountEntry('egress-site-b', 'allow', {
-        connection: 'site-b', operation: 'write',
-      }),
       ...remoteEntries('allow'),
+      accountEntry('egress-site-b', 'allow', {
+        connection: 'site-b', operation: 'transfer',
+      }),
     ]);
     const permitted = createRemoteSiteCoordinator({
       authorization: egress,
