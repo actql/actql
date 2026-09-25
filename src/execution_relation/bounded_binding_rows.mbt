@@ -24,6 +24,7 @@ priv enum BoundedBindingRowsPhase {
   EvaluatePredicate
   BuildOutputRow
   CheckOutputRow
+  ChargeOutputRow
   CommitOutputRow
   FinishOutput
   Terminal
@@ -380,6 +381,10 @@ priv struct BoundedBindingRowsState {
   mut slot_roots : Array[ExpressionRootLease]
   mut output_row : Array[Value]
   mut checked_row : Array[@admitted.CheckedValue]
+  mut output_charge_open : Bool
+  mut output_charge_column : Int
+  mut output_charge_measure : SteppedValueMeasure?
+  mut output_requires_steps : Bool
 }
 
 ///|
@@ -448,6 +453,59 @@ fn checked_ordered_output_value(
 }
 
 ///|
+// Keep the existing one-step charge only for a statically small row. Larger
+// or recursive values use the resumable measurement path below.
+fn bounded_small_admitted_leaf(value : @admitted.Value) -> Bool {
+  match value {
+    @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => true
+    @admitted.Text(text) | @admitted.Date(text) | @admitted.Timestamp(text) =>
+      text.length() <= 64
+    @admitted.Decimal(decimal) => decimal.coefficient.length() <= 64
+    @admitted.Vector(items) => @admitted.element_count(items) <= 8
+    _ => false
+  }
+}
+
+///|
+fn bounded_small_output_value(value : Value) -> Bool {
+  match value {
+    Null | Boolean(_) | Number(_) => true
+    Text(text) => text.length() <= 64
+    Captured(captured) =>
+      match captured {
+        @admitted.Array(items) => {
+          let count = @admitted.element_count(items)
+          if count > 8 {
+            return false
+          }
+          for index in 0..<count {
+            guard @admitted.element_at(items, index) is Some(item) &&
+              bounded_small_admitted_leaf(item) else {
+              return false
+            }
+          }
+          true
+        }
+        @admitted.Object(items) => {
+          let count = @admitted.element_count(items)
+          if count > 8 {
+            return false
+          }
+          for index in 0..<count {
+            guard @admitted.element_at(items, index) is Some((name, item)) &&
+              name.length() <= 64 &&
+              bounded_small_admitted_leaf(item) else {
+              return false
+            }
+          }
+          true
+        }
+        _ => bounded_small_admitted_leaf(captured)
+      }
+  }
+}
+
+///|
 fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.sort_execution is Some(execution) {
     // The parent may already be stopped while its child sort still owns two
@@ -502,6 +560,10 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.sort_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.sort_measure = None
+  }
+  if state.output_charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.output_charge_measure = None
   }
   state.workspace.live = 0
   if !state.accepted.val {
@@ -1307,6 +1369,7 @@ fn bounded_binding_rows_step(
         state.snapshot = Map([])
         state.output_row = []
         state.checked_row = []
+        state.output_requires_steps = state.output_names.length() > 8
         state.column = 0
         state.phase = if state.json_path is Some(_) {
           PickJson
@@ -1653,7 +1716,11 @@ fn bounded_binding_rows_step(
       }
       CheckOutputRow => {
         if state.column == state.output_names.length() {
-          state.phase = CommitOutputRow
+          state.phase = if state.output_requires_steps {
+            ChargeOutputRow
+          } else {
+            CommitOutputRow
+          }
           continue
         }
         guard @schema.field_at(state.output_schema, state.column) is Some(field) &&
@@ -1668,16 +1735,52 @@ fn bounded_binding_rows_step(
         if !reserve_slots(state.workspace, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
+        if state.output_names[state.column].length() > 64 ||
+          !bounded_small_output_value(state.output_row[state.column]) {
+          state.output_requires_steps = true
+        }
         state.checked_row.push(value)
         state.column += 1
         used += 1
       }
+      ChargeOutputRow =>
+        if !state.output_charge_open {
+          if !charge_node(state.output_values, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.output_charge_open = true
+          used += 1
+        } else if state.output_charge_column < state.output_names.length() {
+          let column = state.output_charge_column
+          if state.output_charge_measure is None {
+            if !charge_text(state.output_values, state.output_names[column]) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            guard state.output_row.get(column) is Some(value) &&
+              start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.output_charge_measure = Some(cursor)
+          }
+          let cursor = state.output_charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.output_values) {
+            SteppedMeasureLimit | SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.output_charge_measure = None
+              state.output_charge_column += 1
+            }
+          }
+          used += 1
+        } else {
+          state.phase = CommitOutputRow
+        }
       CommitOutputRow => {
-        if !retain_row(
-            state.output_row,
-            state.output_names,
-            state.output_values,
-          ) {
+        if !state.output_requires_steps &&
+          !retain_row(state.output_row, state.output_names, state.output_values) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         if state.scope is Some(scope) {
@@ -1717,6 +1820,8 @@ fn bounded_binding_rows_step(
         state.slot_roots = []
         state.output_row = []
         state.checked_row = []
+        state.output_charge_open = false
+        state.output_charge_column = 0
         state.json_current = None
         state.json_picked = None
         state.json_segment = -1
@@ -2365,6 +2470,10 @@ fn start_bounded_binding_rows_with_input(
     slot_roots: [],
     output_row: [],
     checked_row: [],
+    output_charge_open: false,
+    output_charge_column: 0,
+    output_charge_measure: None,
+    output_requires_steps: false,
   }
   let (session, token) = @bounded.start(
     engine,

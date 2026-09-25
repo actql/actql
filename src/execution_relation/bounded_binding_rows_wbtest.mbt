@@ -1132,6 +1132,7 @@ fn bounded_binding_rows_keyed_take_fixture(
   max_work : Int,
   max_entries? : Int = 10000,
   long_text? : Bool = false,
+  long_text_selected? : Bool = false,
   output_limits? : ValueLimits? = None,
 ) -> (BoundedBindingRowsExecution, ProducerRead) raise {
   let source_owner = take_key_owner("[{\"sort\":[]}]")
@@ -1157,7 +1158,15 @@ fn bounded_binding_rows_keyed_take_fixture(
         }) +
         "\"}",
       ),
-      input_cursor("{\"n\":1,\"s\":\"first\"}"),
+      input_cursor(
+        "{\"n\":1,\"s\":\"" +
+        (if long_text_selected {
+          Array::make(256, "aaaaaaaaaaaaaaaa").join("")
+        } else {
+          "first"
+        }) +
+        "\"}",
+      ),
       input_cursor("{\"n\":2,\"s\":\"second\"}"),
     ],
     max_rows=3,
@@ -2744,6 +2753,117 @@ test "keyed take preserves exact charges for a long unselected value" {
             terminal = true
           }
           _ => fail("long keyed take ended with another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "keyed take stops inside selected output retention" {
+  let (execution, input) = bounded_binding_rows_keyed_take_fixture(
+    100000,
+    long_text_selected=true,
+  )
+  let mut measuring = false
+  let mut previous_work = 0L
+  for _ in 0..<1000 {
+    if !measuring {
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(work~, ..) => {
+          assert_true(work - previous_work <= 1L)
+          previous_work = work
+        }
+        _ => fail("keyed take finished before selected retention")
+      }
+      measuring = execution.state.phase is ChargeOutputRow &&
+        execution.state.output_charge_measure is Some(_)
+    }
+  }
+  assert_true(measuring)
+  assert_true(@bounded.request_cancel(execution.state.engine))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "keyed take retains the selected long value at exact limits" {
+  // Three sorted rows use nine nodes and 4,113 text bytes. Retaining the
+  // selected long row adds three nodes and 4,098 text bytes.
+  for
+    (nodes, text_bytes, work, accepted) in [
+      (12, 8211, 8223, true),
+      (11, 8211, 8223, false),
+      (12, 8210, 8223, false),
+      (12, 8211, 8222, false),
+    ] {
+    let output_limits : ValueLimits = {
+      ..run_limits().output_values,
+      max_nodes: nodes,
+      max_text_bytes: text_bytes,
+      max_work: work,
+    }
+    let (execution, input) = bounded_binding_rows_keyed_take_fixture(
+      100000,
+      long_text_selected=true,
+      output_limits=Some(output_limits),
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_binding_rows(execution, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("selected long value ended with another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
+}
+
+///|
+test "keyed take reserves one live cursor slot for long output retention" {
+  // Nine metadata slots, three retained sort ordinals, two output cells,
+  // two checked cells and one measurement cursor overlap at the peak.
+  for (slots, accepted) in [(17, true), (16, false)] {
+    let (execution, input) = bounded_binding_rows_keyed_take_fixture(
+      100000,
+      max_entries=slots,
+      long_text_selected=true,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_binding_rows(execution, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("long output workspace ended with another outcome")
         }
       }
     }
