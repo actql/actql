@@ -243,6 +243,21 @@ continuation reuses approvals the attempt answered earlier, each approval's own
 permission is checked at the Host trusted time, not only the approval of the
 Checkpoint being resumed.
 
+An immediate Host permit the attempt received before it deferred is the Host's
+own answer, not a reviewer approval. At resume it is reused only for the same
+exact subject (entry, configuration, context, tuple, boundary and subject CID)
+and only when the resuming Host supplies no decision function; when one is
+supplied it answers that subject again, so a current reject or defer holds and
+no provider session starts. It never extends to another attempt, another
+subject or new protected work.
+
+A resumed tuple the account now allows asks no approval, but the continuation
+still resumes only through the common ownership admission (live claim, current
+generation and lease, committed approval still valid, unchanged configuration,
+single protected start per claim generation). The gate takes the configuration
+CID from the admitted configuration itself and records it next to every
+Checkpoint; a Host-supplied CID that differs fails installation.
+
 Known limitations of the Local Host profile. The captured inputs and Host
 records are held as encrypted private evidence, but the plaintext holding and
 ledger records next to them name each private item by its content CID. A
