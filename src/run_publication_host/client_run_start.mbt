@@ -47,3 +47,28 @@ pub fn prepare_client_run_start(
     Ok(ReserveDispatch)
   }
 }
+
+///|
+/// A retained reservation may be resumed only when the Host durably proves
+/// that no physical start claim was made. A missing or legacy observation
+/// cannot authorize another Compute. The ordinary start decision still binds
+/// exact request intent, Run Definition and current authorization.
+pub fn prepare_client_run_physical_start(
+  requested : ClientRequestIdentity,
+  retained : ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  physically_unstarted : Bool,
+  current_authorization : Bool,
+) -> Result[Bool, ClientRunStartIssue] {
+  match
+    prepare_client_run_start(
+      requested, retained, run_definition, retained_run_definition_cid, dispatch_reserved,
+      current_authorization,
+    ) {
+    Ok(ReconcileReservedDispatch) => Ok(physically_unstarted)
+    Ok(ReserveDispatch) => Ok(false)
+    Err(issue) => Err(issue)
+  }
+}

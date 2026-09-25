@@ -216,6 +216,8 @@ pub fn client_request_relation(@run_publication_host.ClientRequestIdentity, @run
 
 pub fn client_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_run_physical_start_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool) -> Int
+
 pub fn client_run_start_action(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Int
 
 pub fn duckdb_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], @physical_host.PreparedTaskDispatch) -> @actql/actql/connectors/duckdb/driver.StrategyComputeHostConfiguration raise NodeHostFailure

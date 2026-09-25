@@ -118,3 +118,30 @@ pub fn client_run_start_action(
     Err(AuthorizationDenied) => 5
   }
 }
+
+///|
+/// Return 1 only when the shared owner permits a durable physical-start
+/// claim for this exact request. Code 0 keeps an uncertain Run in reconcile.
+#export_name("clientRunPhysicalStartAction")
+pub fn client_run_physical_start_action(
+  requested : @publication_host.ClientRequestIdentity,
+  retained : @publication_host.ClientRequestIdentity,
+  run_definition : @publication.PublicationContract,
+  retained_run_definition_cid : String,
+  dispatch_reserved : Bool,
+  physically_unstarted : Bool,
+  current_authorization : Bool,
+) -> Int {
+  match
+    @publication_host.prepare_client_run_physical_start(
+      requested, retained, run_definition, retained_run_definition_cid, dispatch_reserved,
+      physically_unstarted, current_authorization,
+    ) {
+    Ok(true) => 1
+    Ok(false) => 0
+    Err(DifferentRequest) => 2
+    Err(ChangedIntent) => 3
+    Err(ForeignRunDefinition) => 4
+    Err(AuthorizationDenied) => 5
+  }
+}

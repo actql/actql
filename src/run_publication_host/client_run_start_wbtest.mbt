@@ -97,3 +97,54 @@ test "Client Run start reserves once and never repeats an uncertain dispatch" {
     Err(ForeignRunDefinition),
   )
 }
+
+///|
+test "Client Run physical start requires exact retained and unstarted evidence" {
+  let request : ClientRequestIdentity = {
+    authority_scope_cid: start_test_cid("a"),
+    caller_request_id: "request-a",
+    logical_request_scope_cid: start_test_cid("b"),
+    intent_fingerprint_cid: start_test_cid("c"),
+    program_definition_cid: start_test_cid("d"),
+    parameter_values_cid: start_test_cid("e"),
+    caller_input_intent_cid: start_test_cid("f"),
+  }
+  let definition = start_test_definition()
+  let run_cid = @publication.publication_contract_identity(definition)
+  assert_eq(
+    prepare_client_run_physical_start(
+      request, request, definition, run_cid, true, true, true,
+    ),
+    Ok(true),
+  )
+  assert_eq(
+    prepare_client_run_physical_start(
+      request, request, definition, run_cid, true, false, true,
+    ),
+    Ok(false),
+  )
+  assert_eq(
+    prepare_client_run_physical_start(
+      request, request, definition, run_cid, false, true, true,
+    ),
+    Ok(false),
+  )
+  assert_eq(
+    prepare_client_run_physical_start(
+      request, request, definition, run_cid, true, true, false,
+    ),
+    Err(AuthorizationDenied),
+  )
+  assert_eq(
+    prepare_client_run_physical_start(
+      request,
+      { ..request, caller_input_intent_cid: start_test_cid("0"), },
+      definition,
+      run_cid,
+      true,
+      true,
+      true,
+    ),
+    Err(ChangedIntent),
+  )
+}
