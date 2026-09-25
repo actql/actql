@@ -7,8 +7,8 @@ requires an ordinary checked, multi-member, multi-row Program to carry its
 exact Effect inputs through authorized apply, restart reconciliation,
 publication, delivery, and cleanup. The shared publication coordinator now
 accepts an issued set Receipt tied to its exact Ledger and Preview. This
-component connection does not satisfy SF-G1: the current publication fixture
-still assembles a synthetic set and does not execute physical writes.
+component connection does not satisfy SF-G1: the publication fixture has
+only one member and does not execute Salesforce HTTP writes.
 The completed computation now retains its exact Result export owner,
 retention inventory, and Effect-source Artifact contracts. Its final-chain
 preparation rejects a copied computation or foreign Preview. This closes a
@@ -16,8 +16,14 @@ provenance seam but still stops before apply and publication.
 The installed Host fixture now carries a real checked Compute and its distinct
 private `rows` source and public `answer` Result through encrypted Preview
 holding, Effectful Store commit, replay, Result retirement, and metadata
-retirement. Its set Receipt is deliberately synthetic and has no physical
-write rows; this tests the Compute-to-publication seam, not SF-G1 apply.
+retirement. Its publication test now saves two row responses and terminal
+receipts in the real Effect Ledger, reopens that Ledger, rejects physical
+resend, issues the member and set receipts from saved rows, and commits the
+final publication. MoonBit rejects a foreign publication Preview at the
+Ledger-to-publication seam. The physical responses in this fixture are
+simulated, and it covers only one Effect member. It does not establish
+whole-set apply admission, real Salesforce I/O, the multi-member fault
+matrix, or the public Client submit/delivery path required by SF-G1.
 The Effectful commit test also reconciles a lost Store acknowledgement without
 reissuing the set, while private holding tests retain one prepared ciphertext
 across failed commit retry. A real multi-row Ledger issuer remains required.
