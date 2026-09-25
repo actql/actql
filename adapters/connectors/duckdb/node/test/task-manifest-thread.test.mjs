@@ -5,8 +5,8 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {Worker} from 'node:worker_threads';
-import {prepareExampleTaskManifestInThread, snapshotTaskManifestInput} from
-  '../examples/task-manifest.mjs';
+import {prepareExampleTaskManifestInThread, snapshotManagedExampleInput,
+  snapshotTaskManifestInput} from '../examples/task-manifest.mjs';
 
 const documents = Object.freeze({
   programText: '{}', environmentText: '{}', environmentCid: 'sha256:0', parameterText: '{}',
@@ -95,4 +95,72 @@ test('racing outcomes settle and stop once, and a stop failure is not dropped', 
     error.errors[0].message === 'ControllerTaskManifestFailed' &&
     error.errors[0].cause === original && error.errors[1].message === 'stop failed');
   assert.equal(terminations, 1);
+});
+
+function fakeThread(terminate) {
+  const fake = new EventEmitter();
+  fake.terminations = 0;
+  fake.terminate = async () => { fake.terminations++; return terminate(fake); };
+  return fake;
+}
+
+test('a failed stop without exit keeps thread ownership in a pending cleanup handle', async () => {
+  for (const failure of [new Error('stop failed'), undefined]) {
+    let failing = true;
+    const fake = fakeThread(thread => {
+      if (failing) return Promise.reject(failure);
+      queueMicrotask(() => thread.emit('exit', 1));
+    });
+    const pending = prepareExampleTaskManifestInThread(documents, undefined, {spawn: () => fake});
+    // Even a successful response is not returned while the thread is unstopped.
+    fake.emit('message', {ok: true, tasks: [{task: 1}]});
+    const error = await pending.then(() => assert.fail('resolved with an unstopped thread'),
+      value => value);
+    assert(error instanceof AggregateError);
+    assert.equal(error.message, 'ControllerTaskManifestThreadStopFailed');
+    assert.equal(error.errors.length, 1);
+    assert.equal(error.errors[0], failure);
+    assert.equal(error.cleanupHandle.status().pending, true);
+    failing = false;
+    assert.deepEqual(await error.cleanupHandle.retry(), {pending: false});
+    assert.equal(error.cleanupHandle.status().pending, false);
+    assert.equal(fake.terminations, 2);
+  }
+});
+
+test('a late exit after a failed stop releases the pending cleanup without another stop', async () => {
+  const fake = fakeThread(() => Promise.reject(new Error('stop failed')));
+  const pending = prepareExampleTaskManifestInThread(documents, undefined, {spawn: () => fake});
+  const original = new Error('checker failed');
+  fake.emit('message', {ok: false, error: original});
+  const error = await pending.then(() => assert.fail('resolved'), value => value);
+  assert.equal(error.errors[0].cause, original);
+  assert.equal(error.cleanupHandle.status().pending, true);
+  fake.emit('exit', 0);
+  assert.equal(error.cleanupHandle.status().pending, false);
+  assert.deepEqual(await error.cleanupHandle.retry(), {pending: false});
+  assert.equal(fake.terminations, 1);
+});
+
+test('managed input reads each supplied document once and gives parent and child the same text', () => {
+  let reads = 0;
+  const supplied = {environmentText: '{}', environmentCid: 'sha256:0', parameterText: '{}',
+    nativeMilliseconds: '1', retainedOutput: {parentDirectory: '/tmp'}};
+  Object.defineProperty(supplied, 'programText', {enumerable: true,
+    get: () => (++reads === 1 ? '{}' : 'x'.repeat(1000001))});
+  const {manifestInput, input} = snapshotManagedExampleInput(supplied);
+  assert.equal(reads, 1);
+  assert.equal(manifestInput.programText, '{}');
+  assert.equal(input.programText, manifestInput.programText);
+  assert.equal(input.nativeMilliseconds, '1');
+  assert.deepEqual(input.retainedOutput, {parentDirectory: '/tmp'});
+  assert.notEqual(input.retainedOutput, supplied.retainedOutput);
+  assert.equal('dataProfile' in input, false);
+  let oversizedReads = 0;
+  const oversized = {...supplied};
+  Object.defineProperty(oversized, 'programText', {enumerable: true,
+    get: () => { oversizedReads++; return 'x'.repeat(1000001); }});
+  assert.throws(() => snapshotManagedExampleInput(oversized),
+    {message: 'InvalidTaskManifestDocument'});
+  assert.equal(oversizedReads, 1);
 });
