@@ -2439,6 +2439,7 @@ fn match_nodes_predicate_output(
   predicate : String,
   workspace? : Int = 8,
   check_workspace_boundary? : Bool = false,
+  check_work_boundary? : Bool = false,
 ) -> @execution.CompletedOutput raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_match_body_owner(
@@ -2465,6 +2466,62 @@ fn match_nodes_predicate_output(
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  if check_work_boundary {
+    let start = fn(work) raise {
+      @local_sga.start_match_nodes(
+        @bounded.control(),
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        2,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 10000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      ).unwrap()
+    }
+    // Two scratch cells, four predicate bindings, twelve predicate steps,
+    // two output fields, one row commit, and one completion cost 22 units.
+    let exact = start(22)
+    let mut done = false
+    for _ in 0..<23 {
+      if !done {
+        match @local_sga.advance_match_nodes(exact, 1).unwrap() {
+          @local_sga.MatchNodesComplete(_, work~, ..) => {
+            assert_eq(work, 22L)
+            done = true
+          }
+          @local_sga.MatchNodesContinue(..) => ()
+          _ => fail("exact predicate node work failed")
+        }
+      }
+    }
+    assert_true(done)
+    assert_eq(@local_sga.cleanup_match_nodes(exact), Ok(true))
+    let short = start(21)
+    let mut failed = false
+    for _ in 0..<23 {
+      if !failed {
+        match @local_sga.advance_match_nodes(short, 1).unwrap() {
+          @local_sga.MatchNodesContinue(..) => ()
+          @local_sga.MatchNodesFailed(@local_sga.MatchNodesWorkLimit, ..) =>
+            failed = true
+          _ => fail("one-short predicate node work accepted")
+        }
+      }
+    }
+    assert_true(failed)
+    assert_true(@local_sga.match_nodes_cleanup_pending(short))
+    assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+  }
   if check_workspace_boundary {
     let short = @local_sga.start_match_nodes(
       @bounded.control(),
@@ -2526,6 +2583,7 @@ test "bounded node match evaluates a checked property predicate" {
     "node_name = 'second'",
     workspace=9,
     check_workspace_boundary=true,
+    check_work_boundary=true,
   )
   assert_eq(@execution.completed_row_count(selected), 1)
   assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(2.0)))
@@ -3053,7 +3111,7 @@ test "bounded edge match evaluates a checked property predicate" {
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
-  let start = fn(workspace) raise {
+  let start = fn(workspace, work) raise {
     @local_sga.start_match_edges(
       @bounded.control(),
       task_test_completion(owner),
@@ -3066,17 +3124,49 @@ test "bounded edge match evaluates a checked property predicate" {
       1000,
       1000,
       [external],
+      control_work_limit=Some(work),
     )
   }
-  let insufficient = start(15).unwrap()
+  let insufficient = start(15, 100).unwrap()
   assert_true(
     finish_match_edges(insufficient)
     is Err(@local_sga.MatchEdgesPredicate(@execution.WorkspaceLimit)),
   )
   assert_eq(@local_sga.cleanup_match_edges(insufficient), Ok(true))
-  let execution = start(16).unwrap()
-  let output = finish_match_edges(execution).unwrap()
+  // One type entry, two scratch cells, two edge probes, eight bindings,
+  // predicate evaluation, four fields, a row commit, and finalization
+  // have a fixed 33-unit control-work envelope for this two-edge input.
+  let execution = start(16, 33).unwrap()
+  let mut completed : @execution.CompletedOutput? = None
+  for _ in 0..<34 {
+    if completed is None {
+      match @local_sga.advance_match_edges(execution, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesComplete(output, work~, ..) => {
+          assert_eq(work, 33L)
+          completed = Some(output)
+        }
+        _ => fail("exact predicate edge work failed")
+      }
+    }
+  }
+  let output = completed.unwrap()
   assert_eq(@local_sga.cleanup_match_edges(execution), Ok(true))
+  let short = start(16, 32).unwrap()
+  let mut failed = false
+  for _ in 0..<34 {
+    if !failed {
+      match @local_sga.advance_match_edges(short, 1).unwrap() {
+        @local_sga.MatchEdgesContinue(..) => ()
+        @local_sga.MatchEdgesFailed(@local_sga.MatchEdgesWorkLimit, ..) =>
+          failed = true
+        _ => fail("one-short predicate edge work accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(@local_sga.match_edges_cleanup_pending(short))
+  assert_eq(@local_sga.cleanup_match_edges(short), Ok(true))
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
   assert_true(@execution.completed_cell(output, 0, 1) is Some(Text("owns")))

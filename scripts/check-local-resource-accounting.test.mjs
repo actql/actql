@@ -529,6 +529,12 @@ test('graph matcher variants require product and predicate boundary evidence', (
       route.boundary_tests = route.boundary_tests.filter(item =>
         item.role !== `${operation}_predicate_workspace_exact_one_short`);
     }), new RegExp(`SGA ${operation}: predicate workspace evidence is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_predicate_work_exact_one_short`);
+    }), new RegExp(`SGA ${operation}: predicate work evidence is missing`, 'u'));
     for (const role of [
       `${operation}_literal_host_two_consumers`,
       `${operation}_predicate_host_two_consumers`,

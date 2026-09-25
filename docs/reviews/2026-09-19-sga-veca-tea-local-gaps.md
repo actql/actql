@@ -369,8 +369,11 @@ workspace fixtures: nine versus eight slots for node matching and sixteen
 versus fifteen for edge matching. Distinct standard Host fixtures execute
 literal and predicate forms with two real consumers; timer fixtures deliver
 in-flight cancellation in predicate matching and both edge paths. Predicate
-control-work ceilings, value-width interactions, and the full route resource
-proof remain open, so neither matching entrypoint is marked assured.
+control-work now has fixed exact/one-short fixtures for the property-predicate
+shape: 22/21 steps for nodes and 33/32 for edges. The route gate requires
+those fixtures separately from literal matching. Value-width interactions
+and the full route resource proof remain open, so neither matching
+entrypoint is marked assured.
 
 The edge matcher now builds its authored type filter over charged bounded
 steps, one occurrence per quantum-one advance, then uses a typed string index

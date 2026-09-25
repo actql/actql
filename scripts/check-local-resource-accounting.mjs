@@ -1568,6 +1568,10 @@ for (const [index, route] of routeEntries.entries()) {
       `${route.operation}_predicate_workspace_exact_one_short`)) {
       fail(`${label}: predicate workspace evidence is missing`);
     }
+    if (!boundaryRoles.has(
+      `${route.operation}_predicate_work_exact_one_short`)) {
+      fail(`${label}: predicate work evidence is missing`);
+    }
     for (const role of [
       `${route.operation}_literal_host_two_consumers`,
       `${route.operation}_predicate_host_two_consumers`,

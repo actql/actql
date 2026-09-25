@@ -3463,6 +3463,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "bounded node match evaluates a checked property predicate"
+        },
+        {
+          "role": "match_nodes_predicate_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded node match evaluates a checked property predicate"
         }
       ],
       "environment_tests": [
@@ -3540,6 +3547,13 @@
         },
         {
           "role": "match_edges_predicate_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded edge match evaluates a checked property predicate"
+        },
+        {
+          "role": "match_edges_predicate_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
