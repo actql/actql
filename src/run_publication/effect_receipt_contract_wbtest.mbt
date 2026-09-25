@@ -324,6 +324,10 @@ fn effect_receipt_test_two_member_wire(
       new="\"effect_id\":\"WriteTwo\"",
     )
     .replace_all(
+      old="\"effect_identity_cid\":\"" + effect_receipt_test_cid("a") + "\"",
+      new="\"effect_identity_cid\":\"" + effect_receipt_test_cid("c") + "\"",
+    )
+    .replace_all(
       old="\"effect_member_preview_cid\":\"" + first_cid + "\"",
       new="\"effect_member_preview_cid\":\"" + second_cid + "\"",
     )
@@ -394,6 +398,55 @@ fn effect_receipt_test_two_member_preview() -> EffectPreviewIdentity {
     512,
     16,
   ).unwrap()
+}
+
+///|
+test "distinct Effect members cannot reuse one semantic identity" {
+  let run = effect_receipt_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let placeholder = effect_receipt_test_cid("a")
+  let second_placeholder = effect_receipt_test_cid("d")
+  let original = effect_receipt_test_two_member_wire(
+    run, authoring, placeholder, second_placeholder, placeholder,
+  )
+  let changed = original.replace_all(
+    old="\"effect_identity_cid\":\"" + effect_receipt_test_cid("c") + "\"",
+    new="\"effect_identity_cid\":\"" + effect_receipt_test_cid("a") + "\"",
+  )
+  let original_rows = derive_effect_preview_row_identities(
+    original, 16384, 512, 16,
+  ).unwrap()
+  let changed_rows = derive_effect_preview_row_identities(
+    changed, 16384, 512, 16,
+  ).unwrap()
+  let duplicate_rows = changed.replace_all(
+    old=original_rows[1][0],
+    new=changed_rows[1][0],
+  )
+  let parsed = parse_effect_preview_shape(duplicate_rows, 16384, 512, 16).unwrap()
+  let effects = match @json.object_field(parsed, "effects") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => abort("Expected two Effect members")
+  }
+  let first_member = effect_member_semantic_cid(effects[0], 16384, 512, 16).unwrap()
+  let second_member = effect_member_semantic_cid(effects[1], 16384, 512, 16).unwrap()
+  let duplicate = duplicate_rows
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + first_member + "\"",
+    )
+    .replace_all(
+      old="\"effect_member_preview_cid\":\"" + second_placeholder + "\"",
+      new="\"effect_member_preview_cid\":\"" + second_member + "\"",
+    )
+  assert_true(
+    derive_effect_preview_identities(duplicate, 16384, 512, 16)
+    is Err(InvalidMember),
+  )
+  assert_true(
+    admit_effect_preview_identity(duplicate, run, authoring, 16384, 512, 16)
+    is Err(InvalidMember),
+  )
 }
 
 ///|
