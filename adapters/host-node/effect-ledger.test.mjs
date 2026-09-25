@@ -13,6 +13,7 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {checkAuthorizedEffectMemberReceiptRowPartition,
+  issueAuthorizedEffectMemberReceipt,
   readAuthorizedEffectTerminalOutcome} from
   './effect-response-recovery.mjs';
 
@@ -308,6 +309,14 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
       },
     }), true);
     assert.equal(inspected.length, 2);
+    await assert.rejects(issueAuthorizedEffectMemberReceipt({
+      ...memberRead, authorizeEvidenceRead: async () => false,
+    }), {code: 'EffectEvidenceAccessDenied'});
+    const issuedMember = await issueAuthorizedEffectMemberReceipt({
+      ...memberRead, authorizeEvidenceRead: async () => true,
+    });
+    assert.equal(issuedMember.identity, memberReceipt.identity);
+    assert.equal(issuedMember.wire, memberReceipt.wire);
     const mutableClaim = {...claim};
     const mutableOwners = [{claim: mutableClaim}, {claim: other}];
     assert.equal(await checkAuthorizedEffectMemberReceiptRowPartition({
@@ -644,6 +653,21 @@ test('admitted Preview fixes halt policy and rejects foreign row bindings',
       'unknown', '', 4096, 64, 4);
     ledger.append(effect.ledgerEntryWire(unknown));
     assert.deepEqual(ready(), [[1, 0]]);
+    const issued = await issueAuthorizedEffectMemberReceipt({
+      ledger, preview: admitted, memberIndex: 0,
+      rowOwners: claims[0].map(claim => ({claim})), commonMoon: moon,
+      authorizeEvidenceRead: async () => true,
+    });
+    const rows = JSON.parse(issued.wire).rows;
+    assert.deepEqual(rows.map(row => row.state), ['unknown', 'unattempted']);
+    assert.equal(rows[0].ledger_head_cid, effect.ledgerEntryCid(unknown));
+    assert.equal(rows[0].dispatch_entry_cid,
+      effect.ledgerEntryCid(ownership.dispatching));
+    assert.equal(ledger.checkMemberReceiptRowPartitionEvidence({
+      preview: admitted, memberIndex: 0,
+      rowOwners: claims[0].map(claim => ({claim})),
+      memberReceiptWire: issued.wire,
+    }), true);
     const foreign = admittedProgressFixture('continue');
     assert.throws(() => ledger.frontierFromDurableHeads(
       foreign.admitted, members, 48), {code: 'MoonBitHostFailure'});
