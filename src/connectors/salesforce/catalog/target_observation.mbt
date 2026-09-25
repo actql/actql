@@ -40,8 +40,10 @@ pub fn prepare_target_observation(
   bytes : Bytes,
   limits : TargetObservationLimits,
 ) -> Result[TargetObservation, TargetObservationIssue] {
-  if limits.max_bytes < 1 || limits.max_nodes < 1 ||
-    limits.max_depth < 1 || limits.max_identity_bytes < 1 {
+  if limits.max_bytes < 1 ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    limits.max_identity_bytes < 1 {
     return Err(InvalidLimits)
   }
   if bytes.length() > limits.max_bytes {
