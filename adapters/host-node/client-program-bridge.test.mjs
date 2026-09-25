@@ -2073,11 +2073,12 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
   'salesforce-unknown', 'salesforce-lost-http-reply',
+  'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
-    physical === 'salesforce-lost-http-reply'
+    physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
     physical === 'salesforce-collection-partial'
       ? 'retains partial failure outcomes' :
@@ -2088,7 +2089,7 @@ test(`two-member captured Effect Run ${
     const siteRun = physical !== 'simulated';
     const recoverAfterResponse = physical === 'salesforce-recovered';
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
-    const loseHttpReply = physical === 'salesforce-lost-http-reply';
+    const loseHttpReply = physical.endsWith('lost-http-reply');
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
       loseHttpReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
@@ -2096,7 +2097,7 @@ test(`two-member captured Effect Run ${
     const collectionRecovered = physical === 'salesforce-collection-recovered';
     const collectionMode = collectionPartial || collectionRecovered;
     const writeKind = physical === 'salesforce-upsert' ? 'upsert' :
-      physical === 'salesforce-create' ? 'create' : 'update';
+      physical.startsWith('salesforce-create') ? 'create' : 'update';
     const continueMembers = continueAfterUnknown || collectionMode
       ? ['save'] : [];
     const sourceIds = siteRun
@@ -2227,7 +2228,7 @@ test(`two-member captured Effect Run ${
           dispatchRequestCid: cid('c'),
           orgId: index === 0 ? '00D000000000001EAA'
             : '00D000000000002EAA',
-          losePatchReplyOnce: loseHttpReply && index === 0,
+          loseWriteReplyOnce: loseHttpReply && index === 0,
           collectionPartial: collectionPartial && index === 0,
           writeOperation: writeKind,
         }))) : undefined;
@@ -2687,13 +2688,15 @@ test(`two-member captured Effect Run ${
         });
         assert.equal(noReplay.dispatched, 0);
         assert.deepEqual(sites.map(site => site.seen
-          .filter(item => item.method === 'PATCH').length),
+          .filter(item => item.method === (writeKind === 'create' ?
+            'POST' : 'PATCH')).length),
         [continueAfterUnknown || loseHttpReply ? 1 : 0, 2]);
         if (loseHttpReply) {
           const request = sites[0].seen.find(item =>
-            item.method === 'PATCH');
-          assert.deepEqual(JSON.parse(request.body),
-            {Name: sourceIds[0]});
+            item.method === (writeKind === 'create' ? 'POST' : 'PATCH'));
+          assert.deepEqual(JSON.parse(request.body), writeKind === 'create'
+            ? {Name: sourceIds[0], External_Key__c: sourceIds[0]}
+            : {Name: sourceIds[0]});
           assert.deepEqual(sites.map(site => site.journal.recover().length),
             [3, 4]);
         }

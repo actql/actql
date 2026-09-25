@@ -18,7 +18,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
   orgId = '00D000000000001EAA',
-  losePatchReplyOnce = false,
+  loseWriteReplyOnce = false,
   collectionPartial = true,
   writeOperation = 'update',
 }) {
@@ -42,7 +42,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     readFile(join(root, 'resource.key')),
   ]);
   const seen = [];
-  let loseReply = losePatchReplyOnce;
+  let loseReply = loseWriteReplyOnce;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -84,6 +84,11 @@ export async function openSalesforceEffectSiteFixture(t, {
           External_Key__c: JSON.parse(observed.body).Name,
           Name: JSON.parse(observed.body).Name,
         });
+        if (loseReply) {
+          loseReply = false;
+          request.socket.destroy();
+          return;
+        }
         const sequence = seen.filter(item => item.method === 'POST').length;
         response.writeHead(201, {'content-type': 'application/json'});
         response.end(JSON.stringify({id: `a0012345678901${sequence}`,
