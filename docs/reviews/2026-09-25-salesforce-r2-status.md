@@ -1,5 +1,17 @@
 # Salesforce Effect review R2 status
 
+## OSS main integration baseline
+
+The pre-update branch head is retained at
+`backup/connector-salesforce-pre-main-rebase-20260925`
+(`78e40448bbf315bb2a615c2406a47e353a50448f`). The integrated OSS main
+baseline is `ac3fbce57947a05db99289f52294fd6bd6017799` from
+`origin/main`; local `main` was older and was not moved. That baseline was
+already an ancestor of the pre-update branch, so the requested update did not
+replay commits or cherry-pick the performance work. The branch then retained
+its WIP and continued Salesforce work. Neither `main` nor the other owners'
+worktrees were changed, and no push or merge was performed.
+
 ## Fixed completion unit at current HEAD
 
 This branch's current unit is an ordinary Program with at least two Salesforce
