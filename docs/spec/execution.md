@@ -1630,6 +1630,15 @@ Effect ID, canonical Effect semantics, the exact Result Artifact
 CID when a Result is consumed, and the resolved Mapping or Command Contract
 CID. Distinct Effect IDs in one Preview therefore require distinct Effect
 identities; admission rejects a repeated `effect_identity_cid` across members.
+For a source-free local Result-consuming Effect, the 0.1 identity preimage is
+the canonical object `{version: "actql-local-effect-identity/0.1", effect_id,
+effect_semantics, local_invocation_cid, resolved_contract_cid,
+result_artifact_cid, unit_definition_cid}`. `effect_semantics` contains the
+annotation-free authored body, failure policy, kind, and source Result name.
+The published identity body also carries `self_cid`, which is excluded from
+its own preimage. Issuance requires the exact checked member, captured Result
+view, local Invocation, and live local Result Artifact owner. A matching CID
+string without those owners is not an apply permit.
 Physical Run identity is excluded. Recovery across workers or physical
 attempts reuses logical request scope and the original ledger Preview/key.
 Create/store rows use only `{content_cid, occurrence}` as row identity;

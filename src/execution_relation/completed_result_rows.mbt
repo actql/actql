@@ -34,6 +34,7 @@ priv struct CompletedExportRows {
 /// No completed view escapes until every mapping and stable-sort step finishes.
 priv struct CompletedResultRowsPreparation {
   source : CompletedOutput
+  occurrence : ManagedResultOccurrence
   table : CompletedTable
   schema : @schema.Schema
   port : @results.ResultPort
@@ -198,6 +199,7 @@ fn start_completed_result_rows(
   }
   Ok({
     source,
+    occurrence,
     table,
     schema,
     port,

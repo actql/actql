@@ -533,17 +533,27 @@ pub fn client_program_issue_source_free_local_effect_result_artifact(
   @publication_host.ClientEffectLocalResultArtifact,
   ClientEffectLocalArtifactBridgeIssue,
 ] {
-  guard importing.preparation is Some(preparation) &&
-    @execution.completed_result_export_preparation_matches_receipt(
-      preparation, receipt,
-    ) &&
-    @strategy.captured_effect_input_at(inputs, member_index) is Some(input) &&
-    physical_equal(importing.input, input) else {
+  guard importing.preparation is Some(preparation) else {
     return Err(ForeignExport)
   }
   @publication_host.issue_source_free_client_effect_local_result_artifact(
-    owner, inputs, member_index, definition, invocation, receipt, retention, scope_cid,
-    effective_data_policy_cid, authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
+    owner,
+    inputs,
+    member_index,
+    importing.input,
+    importing.output,
+    importing.bridge,
+    preparation,
+    definition,
+    invocation,
+    receipt,
+    retention,
+    scope_cid,
+    effective_data_policy_cid,
+    authority_scope_cid,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   ).map_err(issue => Issuance(issue))
 }
 
@@ -577,6 +587,42 @@ pub fn client_program_local_effect_result_ordering_json(
   value : @publication_host.ClientEffectLocalResultArtifact,
 ) -> String {
   @publication_host.client_effect_local_result_ordering_json(value)
+}
+
+///|
+#export_name("clientProgramIssueSourceFreeLocalEffectIdentity")
+pub fn client_program_issue_source_free_local_effect_identity(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  max_work : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalIdentity,
+  @publication_host.ClientEffectLocalIdentityIssue,
+] {
+  @publication_host.issue_source_free_client_effect_local_identity(
+    owner, inputs, member_index, artifact, max_work, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectIdentityCid")
+pub fn client_program_local_effect_identity_cid(
+  value : @publication_host.ClientEffectLocalIdentity,
+) -> String {
+  @publication_host.client_effect_local_identity_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectIdentityJson")
+pub fn client_program_local_effect_identity_json(
+  value : @publication_host.ClientEffectLocalIdentity,
+) -> String {
+  @publication_host.client_effect_local_identity_json(value)
 }
 
 ///|

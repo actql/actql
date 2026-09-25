@@ -290,6 +290,8 @@ pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
 
+pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
+
 pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
 
 pub fn completed_row_count(CompletedOutput) -> Int
@@ -580,6 +582,8 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
+
 pub fn[T] managed_relation_input_binding(ManagedProducerRead[T]) -> ManagedInputBinding
 
 pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
@@ -587,6 +591,8 @@ pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
 pub fn managed_result_occurrence_owner(ManagedResultOccurrence) -> @lowering_relation.BoundPrepared
 
 pub fn managed_result_occurrence_port(ManagedResultOccurrence) -> @relation_results.ResultPort
+
+pub fn managed_result_occurrence_same(ManagedResultOccurrence, ManagedResultOccurrence) -> Bool
 
 pub fn[T] managed_retained_output_matches(ManagedRetainedOutput[T], ManagedOutputValueReceipt) -> Bool
 

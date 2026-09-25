@@ -87,6 +87,28 @@ fn emit_without_annotations(
 }
 
 ///|
+/// Canonical authored semantics for one checked Effect declaration. The
+/// resolved Mapping or Command identity is bound separately by its owner.
+pub fn emit_effect_header_semantics(
+  header : EffectHeader,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  @encode.key(out, "body")
+  emit_without_annotations(header.body, header.body, Map([]), out)
+  @encode.key(out, "failure_policy")
+  @encode.string_value(out, header.failure_policy)
+  @encode.key(out, "kind")
+  @encode.string_value(out, header.kind)
+  @encode.key(out, "source_result")
+  match header.source_result {
+    Some(name) => @encode.string_value(out, name)
+    None => @encode.null_value(out)
+  }
+  @encode.end_object(out)
+}
+
+///|
 /// Emit the accepted AQL document without its grammar-owned authoring
 /// annotations. This is private Plan material, not a checked execution grant.
 pub fn emit_metadata_stripped_program(

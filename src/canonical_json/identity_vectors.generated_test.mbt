@@ -197,6 +197,26 @@ test "local Result Definition different Unit" {
 }
 
 ///|
+test "local Effect identity checked source" {
+  let input = @json.parse([
+    "{\"effect_id\":\"save\",\"effect_semantics\":{\"body\":{\"create\":{\"from\":{\"result\":\"rows\"},\"mapping\":\"mapping:crm.account.v1\",\"target\":\"connector://crm/account\"}},\"failure_policy\":\"halt\",\"kind\":\"create\",\"source_result\":\"rows\"},\"local_invocation_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"resolved_contract_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222\",\"result_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"unit_definition_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-local-effect-identity/0.1\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 17, 5, 644)
+  assert_eq(@canonical_json.cid_value(value, 644, 17, 5), "sha256:1560a6d64fccc3ee4af8628fd09799f9053016b9757010527c7fa8930b24a593")
+  assert_eq(@canonical_json.measure_value(value, 644, 17, 5), 644)
+}
+
+///|
+test "local Effect identity different Effect occurrence" {
+  let input = @json.parse([
+    "{\"effect_id\":\"save_again\",\"effect_semantics\":{\"body\":{\"create\":{\"from\":{\"result\":\"rows\"},\"mapping\":\"mapping:crm.account.v1\",\"target\":\"connector://crm/account\"}},\"failure_policy\":\"halt\",\"kind\":\"create\",\"source_result\":\"rows\"},\"local_invocation_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"resolved_contract_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222\",\"result_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"unit_definition_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-local-effect-identity/0.1\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 17, 5, 650)
+  assert_eq(@canonical_json.cid_value(value, 650, 17, 5), "sha256:3b63cb78a3125d9b4efbc58a340f72c3eac861c1de140280e44f7e91d10a3c62")
+  assert_eq(@canonical_json.measure_value(value, 650, 17, 5), 650)
+}
+
+///|
 test "local contract set empty" {
   let input = @json.parse([
     "{\"version\":\"actql-local-contracts/0.1\",\"contracts\":[]}",

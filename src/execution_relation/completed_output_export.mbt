@@ -279,6 +279,19 @@ pub fn completed_result_export_preparation_matches_receipt(
 }
 
 ///|
+/// The prepared view must belong to this exact named Result occurrence and
+/// the completed generation returned by its managed import bridge.
+pub fn completed_result_export_preparation_matches_owner(
+  value : CompletedResultRelationExportPreparation,
+  occurrence : ManagedResultOccurrence,
+  completed : CompletedOutput,
+) -> Bool {
+  managed_result_occurrence_same(value.rows.occurrence, occurrence) &&
+  physical_equal(value.rows.source, completed) &&
+  completed_output_available(completed)
+}
+
+///|
 fn prepare_completed_export(
   source : CompletedOutput,
   result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,

@@ -60,6 +60,12 @@ pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifa
 
 pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
 
+pub fn client_effect_local_identity_cid(ClientEffectLocalIdentity) -> String
+
+pub fn client_effect_local_identity_json(ClientEffectLocalIdentity) -> String
+
+pub fn client_effect_local_identity_matches(ClientEffectLocalIdentity, PreparedClientEffectComputation, Int, ClientEffectLocalResultArtifact) -> Bool
+
 pub fn client_effect_local_invocation_cid(ClientEffectLocalInvocation) -> String
 
 pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> String
@@ -180,9 +186,11 @@ pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @l
 
 pub fn issue_source_free_captured_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
+pub fn issue_source_free_client_effect_local_identity(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue]
+
 pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
-pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @physical_strategy.CapturedEffectInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedResultRelationExportPreparation, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
@@ -286,6 +294,17 @@ pub(all) struct ClientEffectComputationLimits {
   effects : @stage_results.EffectStaticCandidateLimits
 }
 
+type ClientEffectLocalIdentity
+
+pub(all) enum ClientEffectLocalIdentityIssue {
+  ForeignInput
+  MissingMember
+  ForeignArtifact
+  MissingMapping
+  WorkLimit
+  Encoding
+} derive(Eq, @debug.Debug)
+
 type ClientEffectLocalInvocation
 
 pub(all) enum ClientEffectLocalInvocationIssue {
@@ -303,6 +322,7 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
   MissingInput
   ForeignDefinition
   ForeignInvocation
+  ForeignExport
   Evidence(@run_publication.ResultEvidenceIssuanceIssue)
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
 } derive(Eq, @debug.Debug)

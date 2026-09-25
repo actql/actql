@@ -4,6 +4,7 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
   MissingInput
   ForeignDefinition
   ForeignInvocation
+  ForeignExport
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
 } derive(Eq, Debug)
@@ -12,6 +13,8 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
 /// Local semantic Artifact and its exact witnesses. Store custody and the
 /// current right to consume the captured Result remain separate obligations.
 struct ClientEffectLocalResultArtifact {
+  inputs : @strategy.CapturedEffectInputs
+  member_index : Int
   definition : ClientEffectLocalResultDefinition
   invocation : ClientEffectLocalInvocation
   evidence : @publication.ResultOrderingEvidence
@@ -26,6 +29,10 @@ pub fn issue_source_free_client_effect_local_result_artifact(
   owner : PreparedClientEffectComputation,
   inputs : @strategy.CapturedEffectInputs,
   member_index : Int,
+  importing_input : @strategy.CapturedEffectInput,
+  importing_output : @execution.ManagedCompletedOutput[Int],
+  importing_bridge : @execution.ManagedPublicationBridge[Int],
+  preparation : @execution.CompletedResultRelationExportPreparation,
   definition : ClientEffectLocalResultDefinition,
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
@@ -57,6 +64,19 @@ pub fn issue_source_free_client_effect_local_result_artifact(
   }
   if !client_effect_local_invocation_matches(invocation, owner, unit) {
     return Err(ForeignInvocation)
+  }
+  if !physical_equal(importing_input, input) ||
+    !@strategy.captured_effect_input_matches_managed(input, importing_output) ||
+    !@execution.managed_publication_bridge_matches_result_export(
+      importing_bridge,
+      importing_output,
+      preparation,
+      @strategy.captured_effect_input_occurrence(input),
+    ) ||
+    !@execution.completed_result_export_preparation_matches_receipt(
+      preparation, receipt,
+    ) {
+    return Err(ForeignExport)
   }
   let evidence = match
     @publication.issue_local_result_occurrence_evidence(
@@ -94,7 +114,7 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Artifact(issue))
   }
-  Ok({ definition, invocation, evidence, artifact, })
+  Ok({ inputs, member_index, definition, invocation, evidence, artifact, })
 }
 
 ///|

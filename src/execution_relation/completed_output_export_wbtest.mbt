@@ -413,6 +413,34 @@ test "Named Result view preparation advances and cancels in bounded steps" {
   assert_true(
     completed_result_export_preparation_matches_receipt(preparation, receipt),
   )
+  assert_true(
+    completed_result_export_preparation_matches_owner(
+      preparation, occurrence, source,
+    ),
+  )
+  let same_value_occurrence = result_export_occurrence(
+    owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation, same_value_occurrence, source,
+    ),
+  )
+  let other_result = result_export_occurrence(
+    owner, "other", "{\"other\":{\"from\":\"selected\",\"fields\":[\"s\"],\"order_by\":[{\"n\":\"desc\"}]}}",
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation, other_result, source,
+    ),
+  )
+  assert_false(
+    completed_result_export_preparation_matches_owner(
+      preparation,
+      occurrence,
+      export_fixture(owner),
+    ),
+  )
   let other = start_completed_result_relation_export(
     source,
     occurrence,
