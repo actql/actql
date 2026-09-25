@@ -106,7 +106,8 @@ function admittedProgressFixture(firstPolicy = 'continue') {
   const effects = rowSpecs.map(({id, rows, rowCids, policy, target}) => ({
     effect_id: id, effect_kind: 'update', target: 'Object',
     mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('a'),
-    effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+    effect_identity_cid: cid(id === 'WriteOne' ? 'a' : 'b'),
+    preview_strength: 'full_diff',
     source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
     authority_scope_cid: cid('a'),
     write_footprint: {kind: 'exact_targets',
