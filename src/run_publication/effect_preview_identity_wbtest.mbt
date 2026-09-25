@@ -528,6 +528,43 @@ test "Effect row Outcome Receipt binds Preview, dispatch and saved bytes" {
     12,
   ).unwrap()
   let response = Bytes::from_array([0x7B, 0x7D])
+  let dispatch_entries = [preview_identity_test_cid("5")]
+  let saved_response = admit_effect_saved_response_evidence(
+    dispatch_entries,
+    preview_identity_test_cid("6"),
+    response,
+    201,
+    8192,
+  ).unwrap()
+  dispatch_entries[0] = preview_identity_test_cid("7")
+  assert_true(
+    issue_effect_row_outcome_receipt_from_response(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      saved_response,
+      "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+      8192,
+      256,
+      12,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    issue_effect_row_outcome_receipt_from_response(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("7"),
+      saved_response,
+      "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidDispatch),
+  )
   let first = issue_effect_row_outcome_receipt(
     preview,
     0,
