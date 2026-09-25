@@ -5,6 +5,8 @@ fn bounded_global_count_fixture(
   unused_payload? : Bool = false,
   unused_text? : Bool = false,
   text_key? : Bool = false,
+  admitted_source? : Bool = false,
+  noncanonical_raw_text? : Bool = false,
   input_values? : ValueLimits = run_limits().input_values,
   output_values? : ValueLimits = run_limits().output_values,
   max_work? : Int = 100,
@@ -33,10 +35,44 @@ fn bounded_global_count_fixture(
     100000,
     10000,
   ).unwrap()
-  let source = completed_output(
-    execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
-    @pipeline.Step(0),
-  ).unwrap()
+  let source = if admitted_source {
+    let active = start_bounded_values(
+      @bounded.control(),
+      source_generated,
+      1,
+      run_limits().input_values,
+      run_limits().output_values,
+      100000,
+      0,
+      100,
+      10000,
+    ).unwrap()
+    let mut completed : CompletedOutput? = None
+    for _ in 0..<10000 {
+      if completed is None {
+        match advance_bounded_values(active, 1).unwrap() {
+          BoundedValuesContinue(..) => ()
+          BoundedValuesComplete(output, ..) => completed = Some(output)
+          _ => fail("bounded source Values did not complete")
+        }
+      }
+    }
+    assert_true(cleanup_bounded_values(active).unwrap())
+    let output = completed.unwrap()
+    assert_true(output.table is Some(AdmittedTable(_)))
+    output
+  } else {
+    completed_output(
+      execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
+      @pipeline.Step(0),
+    ).unwrap()
+  }
+  if noncanonical_raw_text {
+    guard source.table is Some(RowTable(table)) else {
+      fail("expected raw RowTable source")
+    }
+    table.rows[0][0] = Text("e\u{0301}")
+  }
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
@@ -478,6 +514,7 @@ test "bounded count charges a long output key in resumed steps" {
       long_count_key_rows(length),
       keyed=true,
       text_key=true,
+      admitted_source=true,
       output_values~,
       max_work=1000,
     )
@@ -518,6 +555,7 @@ test "bounded count charges a long output key in resumed steps" {
       long_count_key_rows(256),
       keyed=true,
       text_key=true,
+      admitted_source=true,
       output_values=one_short,
       max_work=1000,
     )
@@ -541,6 +579,7 @@ test "bounded count charges a long output key in resumed steps" {
       long_count_key_rows(256),
       keyed=true,
       text_key=true,
+      admitted_source=true,
       output_values~,
       max_work=1000,
       max_entries=entries,
@@ -574,6 +613,7 @@ test "bounded count stops inside long output key measurement" {
     long_count_key_rows(256),
     keyed=true,
     text_key=true,
+    admitted_source=true,
     max_work=1000,
   )
   let mut reached_output = false
@@ -592,6 +632,29 @@ test "bounded count stops inside long output key measurement" {
     advance_bounded_global_count(execution, 1).unwrap()
     is BoundedGlobalCountStopped(_, ..),
   )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "raw row table text still requires canonical admission" {
+  let (_, execution, source) = bounded_global_count_fixture(
+    long_count_key_rows(1),
+    keyed=true,
+    text_key=true,
+    noncanonical_raw_text=true,
+  )
+  let mut failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_global_count(execution, 1).unwrap() {
+        BoundedGlobalCountContinue(..) => ()
+        BoundedGlobalCountFailed(Rows(InvalidRows), ..) => failed = true
+        _ => fail("noncanonical raw text escaped output admission")
+      }
+    }
+  }
+  assert_true(failed)
   assert_true(cleanup_bounded_global_count(execution).unwrap())
   assert_true(completed_output_available(source))
 }

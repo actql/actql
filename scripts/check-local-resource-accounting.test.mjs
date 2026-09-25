@@ -76,6 +76,7 @@ test('global count assurance requires its bounded product path and proofs', () =
     'keyed_count_long_output_cancel_cleanup',
     'keyed_count_long_output_two_consumers',
     'keyed_count_long_output_host_cancel_cleanup',
+    'keyed_count_raw_rowtable_recheck',
   ]) {
     assert.match(run(undefined, routes => {
       const group = routes.routes.find(entry => entry.family === 'RelA' &&

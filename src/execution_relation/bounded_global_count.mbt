@@ -57,6 +57,20 @@ fn global_count_input_cell(
 }
 
 ///|
+fn global_count_input_admitted_cell(
+  input : BoundedGlobalCountInput,
+  row : Int,
+  column : Int,
+) -> @admitted.Value? {
+  match input {
+    CompletedGlobalCountInput(read) =>
+      producer_read_admitted_cell(read, row, column)
+    SuppliedGlobalCountInput(read) =>
+      supplied_relation_read_cell(read, row, column)
+  }
+}
+
+///|
 fn global_count_trusted_input(
   input : BoundedGlobalCountInput,
 ) -> TrustedOutputInput {
@@ -618,6 +632,24 @@ fn bounded_global_count_step(
             return global_count_failure(Capture(CaptureLimit), progress, used)
           }
           let (aggregate, index) = state.output_columns[state.field]
+          let admitted_source = if aggregate {
+            None
+          } else {
+            // Only exact source contracts and admitted storage carry
+            // canonical-value evidence. RowTable values need rechecking.
+            @schema.field_at(global_count_input_schema(state.input), index).bind(source_field => {
+                if physical_equal(source_field.contract, field.contract) {
+                  global_count_input_admitted_cell(
+                    state.input,
+                    state.representative,
+                    index,
+                  )
+                } else {
+                  None
+                }
+              },
+            )
+          }
           let value = if aggregate {
             Number(state.counts[index].to_double())
           } else {
@@ -628,21 +660,31 @@ fn bounded_global_count_step(
             }
             value
           }
-          let admitted = match value {
-            Captured(captured) => Some(captured)
-            Null => Some(@admitted.null_value())
-            Boolean(boolean) => Some(@admitted.boolean_value(boolean))
-            Number(number) => @admitted.number_value(number)
-            Text(text) =>
-              @admitted.text_value(text, state.admitted_limits.max_text_bytes)
+          let admitted = match admitted_source {
+            Some(source) => Some(source)
+            None =>
+              match value {
+                Captured(captured) => Some(captured)
+                Null => Some(@admitted.null_value())
+                Boolean(boolean) => Some(@admitted.boolean_value(boolean))
+                Number(number) => @admitted.number_value(number)
+                Text(text) =>
+                  @admitted.text_value(
+                    text,
+                    state.admitted_limits.max_text_bytes,
+                  )
+              }
           }
           guard admitted is Some(admitted) &&
-            @admitted.recheck_runtime_value(
-              admitted,
-              field.contract,
-              state.admitted_limits,
-            )
-            is Some(_) else {
+            (
+              admitted_source is Some(_) ||
+              @admitted.recheck_runtime_value(
+                admitted,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(_)
+            ) else {
             return global_count_failure(Rows(InvalidRows), progress, used)
           }
           if admitted

@@ -475,6 +475,7 @@ for (const [index, route] of routeEntries.entries()) {
       'keyed_count_long_output_cancel_cleanup',
       'keyed_count_long_output_two_consumers',
       'keyed_count_long_output_host_cancel_cleanup',
+      'keyed_count_raw_rowtable_recheck',
       'keyed_count_same_stage_workspace_exact_one_short',
       'count_nested_input_host_cancel_cleanup',
       'count_nested_input_host_two_consumers',
