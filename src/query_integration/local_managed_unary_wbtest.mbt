@@ -401,6 +401,8 @@ fn run_local_managed_unary_case(
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable" ||
+    kind == "unnest" ||
+    kind == "unnest_inner" ||
     kind == "unpivot" ||
     kind == "unpivot_empty"
   let bounded_advances = Ref(0)

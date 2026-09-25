@@ -191,6 +191,10 @@ pub fn local_module_managed_provider(
   if managed_provider_accepts(unpivot, sequence) {
     return Some(unpivot)
   }
+  let unnest = unnest_provider(installed.execution, installed.measurement)
+  if managed_provider_accepts(unnest, sequence) {
+    return Some(unnest)
+  }
   let cross_join = cross_join_provider(
     installed.execution,
     installed.measurement,

@@ -5776,6 +5776,24 @@ async function exerciseStrategyGraph(
         : [...unnestFields].reverse(),
     }},
   })));
+  const sameStageUnnestProgram = structuredClone(unnestProgram);
+  const sameStageUnnestValues = sameStageUnnestProgram.stages.find(stage =>
+    stage.id === 'unnest_values');
+  const sameStageUnnestIndex = sameStageUnnestProgram.stages.findIndex(
+    stage => stage.id === 'unnested');
+  const sameStageUnnestStep = structuredClone(
+    sameStageUnnestProgram.stages[sameStageUnnestIndex].steps[0]);
+  sameStageUnnestValues.steps.push({
+    from: 'out', ...sameStageUnnestStep, as: 'expanded',
+  });
+  sameStageUnnestValues.results.r = {
+    from: 'expanded', fields: unnestFields,
+  };
+  sameStageUnnestProgram.stages.splice(sameStageUnnestIndex, 1);
+  for (const stage of sameStageUnnestProgram.stages.filter(stage =>
+    stage.id.startsWith('unnest_consumer_'))) {
+    stage.inputs.x.result.stage = 'unnest_values';
+  }
   const jsonPickProgram = structuredClone(zeroInputProgram);
   const jsonPickFields = ['id', 'payload', 'picked'];
   jsonPickProgram.stages.splice(1, 3, {
@@ -6015,6 +6033,7 @@ async function exerciseStrategyGraph(
     ['same-stage unpivot', sameStageUnpivotProgram, [1, 2, 3, 4]],
     ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
+    ['same-stage unnest', sameStageUnnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram,
@@ -6173,7 +6192,7 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'unnest') {
+      if (name === 'unnest' || name === 'same-stage unnest') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 4, 4],
@@ -6683,6 +6702,8 @@ async function exerciseStrategyGraph(
       program: fixedRowWindowProgram, cancelAtStart: 2},
     {name: 'split-values-unpivot-in-flight',
       program: unpivotProgram, cancelAtStart: 2},
+    {name: 'split-values-unnest-in-flight',
+      program: unnestProgram, cancelAtStart: 2},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6702,16 +6723,21 @@ async function exerciseStrategyGraph(
       'split-values-row-window-in-flight';
     const unpivotCancellation = cancellationName ===
       'split-values-unpivot-in-flight';
+    const unnestCancellation = cancellationName ===
+      'split-values-unnest-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (rowWindowCancellation
         ? 'window_values' : unpivotCancellation
-          ? 'unpivot_values' : 'values_a'),
+          ? 'unpivot_values' : unnestCancellation
+            ? 'unnest_values' : 'values_a'),
     );
     valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
         : unpivotCancellation
           ? {a: index, b: index + 1, id: index}
+          : unnestCancellation
+            ? {id: index, items: [index, index + 1]}
         : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
@@ -6765,7 +6791,8 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
-                      rowWindowCancellation || unpivotCancellation)
+                      rowWindowCancellation || unpivotCancellation ||
+                      unnestCancellation)
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
