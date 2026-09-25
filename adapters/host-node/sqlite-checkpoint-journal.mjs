@@ -196,7 +196,7 @@ export function openSqliteCheckpointJournal(root, {
         authorities_json TEXT NOT NULL,
         binding_json TEXT NOT NULL,
         closure TEXT NOT NULL
-          CHECK (closure IN ('open', 'resolved', 'expired')),
+          CHECK (closure IN ('open', 'resolved', 'expired', 'cancelled')),
         resolution_cid TEXT NOT NULL DEFAULT '',
         persisted_at TEXT NOT NULL,
         closed_at TEXT NOT NULL DEFAULT '',
@@ -561,6 +561,116 @@ export function openSqliteCheckpointJournal(root, {
       return waitingAfterCommit(sealed);
     },
 
+    // Record a Run the Host created directly (for example an allowed
+    // invocation). A Run created by a resumed preparation continuation uses
+    // completeResume instead.
+    createRun({runId, status = 'running', declaredResults}) {
+      alive();
+      if (!text(runId)) fail('InvalidRunId');
+      if (status !== 'preparing' && status !== 'running') {
+        fail('RunTransitionRejected');
+      }
+      const declared = declaredJson(declaredResults);
+      const at = iso(now());
+      transaction(database, () => {
+        if (statements.run.get(runId) !== undefined) fail('RunAlreadyTracked');
+        statements.insertRun.run(runId, status, at, declared, '');
+        fault('createRun');
+      });
+      return projectRunState(runId);
+    },
+
+    // Exit of a Run that is not resuming (a resumed continuation exits
+    // through completeResume). Compare-and-swap on the current status. A
+    // `succeeded` exit without a continuation-issued state records that no
+    // declared Result was published; any issued state is admitted by the core.
+    finishRun(runId, {status, from = 'running', runStateWire}) {
+      alive();
+      if (!text(runId)) fail('InvalidRunId');
+      if (!['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
+        .includes(status) || from === 'resuming') {
+        fail('RunTransitionRejected');
+      }
+      transitionAllowed(from, status);
+      const at = iso(now());
+      transaction(database, () => {
+        const run = statements.run.get(runId);
+        if (run === undefined) fail('RunNotFound');
+        if (run.status !== from) fail('RunStateConflict');
+        let wire = '';
+        if (text(runStateWire) || status === 'succeeded' ||
+            status === 'needs_reconciliation') {
+          let issued = runStateWire;
+          if (!text(issued)) {
+            if (status !== 'succeeded') fail('InvalidRunState');
+            const running = JSON.parse(core(runtime.checkpointLifecycleState(
+              runId, 'running', at, run.declared_results_json,
+            ), 'InvalidRunState').run_state_wire);
+            issued = JSON.stringify({...running, status});
+          }
+          const view = core(runtime.runStateAdmit(issued), 'InvalidRunState');
+          if (view.run_id !== runId || view.status !== status ||
+              view.checkpoint_cid !== null) {
+            fail('InvalidRunState');
+          }
+          wire = view.run_state_wire;
+        }
+        changed(statements.moveRun.run(status, at, '', wire, runId,
+          run.version, from), 'RunStateConflict');
+        fault('finishRun');
+      });
+      return projectRunState(runId);
+    },
+
+    // Cancel a waiting Checkpoint without dispatching its continuation: the
+    // Checkpoint closes as cancelled, a waiting preparation ends without a
+    // Run and a waiting Run moves to `cancelled`. No resume intent exists or
+    // is created. Repeating the cancel is idempotent; an answered or expired
+    // Checkpoint is not cancelled.
+    cancelCheckpoint(reference) {
+      alive();
+      const at = iso(now());
+      return transaction(database, () => {
+        const row = rowFor(reference);
+        if (row === undefined) fail('CheckpointNotFound');
+        if (row.closure === 'cancelled') {
+          return Object.freeze({outcome: 'duplicate', checkpointCid:
+            row.checkpoint_cid});
+        }
+        if (row.closure !== 'open') {
+          return Object.freeze({outcome: 'not_open', closure: row.closure,
+            checkpointCid: row.checkpoint_cid});
+        }
+        changed(statements.closeCheckpoint.run('cancelled', '', at,
+          row.checkpoint_cid), 'CheckpointAlreadyClosed');
+        if (row.prepare_attempt_id !== null) {
+          const preparation = statements.preparation.get(row.prepare_attempt_id);
+          if (preparation?.status !== 'waiting_checkpoint' ||
+              preparation.checkpoint_cid !== row.checkpoint_cid) {
+            fail('PreparationStateConflict');
+          }
+          changed(statements.movePreparation.run('ended', at, '', '',
+            'cancelled', '', preparation.prepare_attempt_id,
+            preparation.version, 'waiting_checkpoint'),
+          'PreparationStateConflict');
+        } else {
+          const run = statements.run.get(row.run_id);
+          if (run?.status !== 'waiting_checkpoint' ||
+              run.checkpoint_cid !== row.checkpoint_cid) {
+            fail('RunStateConflict');
+          }
+          transitionAllowed('waiting_checkpoint', 'cancelled');
+          changed(statements.moveRun.run('cancelled', at, '', '', run.run_id,
+            run.version, 'waiting_checkpoint'), 'RunStateConflict');
+        }
+        fault('cancelCheckpoint');
+        return Object.freeze({outcome: 'cancelled',
+          checkpointCid: row.checkpoint_cid,
+          ...(row.run_id !== null ? {runId: row.run_id} :
+            {prepareAttemptId: row.prepare_attempt_id})});
+      });
+    },
+
     listPending() {
       alive();
       return statements.pending.all().map(row => {
@@ -572,13 +682,7 @@ export function openSqliteCheckpointJournal(root, {
 
     inspect(reference) {
       alive();
-      if (!text(reference)) fail('InvalidCheckpointReference');
-      let row = statements.checkpoint.get(reference);
-      if (row === undefined) {
-        const rows = statements.checkpointById.all(reference);
-        if (rows.length > 1) fail('AmbiguousCheckpointReference');
-        row = rows[0];
-      }
+      const row = rowFor(reference);
       if (row === undefined) return undefined;
       core(runtime.checkpointAdmit(row.checkpoint_wire),
         'CheckpointJournalCorrupt');
@@ -621,6 +725,8 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       const outcome = transaction(database, () => {
         const current = statements.checkpoint.get(checkpointCid);
+        // A cancelled Checkpoint admits no Resolution and no resume intent.
+        if (current.closure === 'cancelled') return {kind: 'cancelled'};
         const decided = core(runtime.resolutionDecide(
           current.checkpoint_wire, resolutionWire, approvalEvidenceWire,
           authJson, current.authorities_json, verifiedAt,
@@ -679,6 +785,7 @@ export function openSqliteCheckpointJournal(root, {
         return {kind: 'committed', decided};
       });
       if (outcome.kind === 'conflict') fail('CheckpointResolutionConflict');
+      if (outcome.kind === 'cancelled') fail('CheckpointCancelled');
       if (outcome.kind === 'expired') fail('CheckpointExpired');
       const stored = statements.resolution.get(checkpointCid);
       const intent = statements.intentByCheckpoint.get(checkpointCid);
@@ -693,6 +800,48 @@ export function openSqliteCheckpointJournal(root, {
           {runState: projectRunState(row.run_id)} :
           {preparation: projectPreparation(row.prepare_attempt_id)}),
       });
+    },
+
+    // Answer several pending Checkpoints in one Host operation. Each item is
+    // admitted independently as the answer to its own exact Checkpoint: its
+    // own Resolution, authentication, attestation and one atomic commit of
+    // Resolution, closure, transition and resume intent. An item never
+    // covers another Checkpoint, and an invalid item neither blocks nor alters
+    // the others. Results are per item, in input order.
+    async submitResolutions(items) {
+      alive();
+      if (!Array.isArray(items) || items.length === 0) {
+        fail('InvalidResolutionSubmission');
+      }
+      const results = [];
+      for (const item of items) {
+        const checkpointCid = item?.checkpointCid;
+        try {
+          const committed = await this.submitResolution(item);
+          results.push(Object.freeze({
+            checkpointCid,
+            status: committed.outcome === 'duplicate' ? 'duplicate' : 'committed',
+            decision: committed.decision,
+            resolutionCid: committed.resolutionCid,
+            resumeIntentId: committed.resumeIntentId,
+          }));
+        } catch (error) {
+          if (error?.code === 'CheckpointJournalClosed') throw error;
+          const status = {
+            CheckpointResolutionConflict: 'conflicting',
+            CheckpointExpired: 'expired',
+            CheckpointCancelled: 'cancelled',
+          }[error?.code] ?? 'invalid';
+          results.push(Object.freeze({
+            checkpointCid,
+            status,
+            reason: String(error?.code ?? 'InvalidResolutionSubmission'),
+            ...(error?.cause !== undefined ?
+              {detail: String(error.cause?.message ?? error.cause)} : {}),
+          }));
+        }
+      }
+      return Object.freeze(results);
     },
 
     // Admit an immediate delegated permit or reject against the exact
@@ -964,6 +1113,17 @@ export function openSqliteCheckpointJournal(root, {
       database.close();
     },
   });
+
+  function rowFor(reference) {
+    if (!text(reference)) fail('InvalidCheckpointReference');
+    let row = statements.checkpoint.get(reference);
+    if (row === undefined) {
+      const rows = statements.checkpointById.all(reference);
+      if (rows.length > 1) fail('AmbiguousCheckpointReference');
+      row = rows[0];
+    }
+    return row;
+  }
 
   // Only the current, unexpired claimant may complete an intent.
   function fenced(claim, at) {

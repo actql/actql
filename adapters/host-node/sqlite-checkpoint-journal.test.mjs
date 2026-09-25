@@ -922,3 +922,129 @@ test('failed revalidation with unknown Effect outcomes needs reconciliation',
     assert.equal(state.runState.terminal_error.code,
       'ACTQL_E_RESUME_REVALIDATION_FAILED');
   });
+
+test('a batch answers each Checkpoint independently and never widens',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = ['attempt-a', 'attempt-b', 'attempt-c'].map(attemptId =>
+      persistPreparation(journal, prepareBody({attemptId,
+        checkpointId: `cp-${attemptId}`})));
+    const [a, b, c] = waiting.map(item =>
+      storedWire(journal, item.checkpointCid));
+    const before = counts(journal.path);
+    // Two valid approvals and one answer signed for Checkpoint a but
+    // submitted for c: one authentication cannot cover another subject.
+    const batch = await journal.submitResolutions([
+      {checkpointCid: a.checkpoint_cid, ...resolvePreparation(a, 'approved')},
+      {checkpointCid: c.checkpoint_cid, ...resolvePreparation(a, 'approved')},
+      {checkpointCid: b.checkpoint_cid,
+        ...resolvePreparation(b, 'approved', {reviewer: 'bob'})},
+    ]);
+    assert.deepEqual(batch.map(item => item.status),
+      ['committed', 'invalid', 'committed']);
+    assert.equal(batch[1].reason, 'InvalidResolution');
+    assert.match(batch[1].detail, /Mismatch/);
+    assert.notEqual(batch[0].resumeIntentId, batch[2].resumeIntentId);
+    // The invalid item left its Checkpoint and preparation untouched.
+    assert.equal(journal.getPreparation('attempt-c').status,
+      'waiting_checkpoint');
+    assert.equal(journal.inspect(c.checkpoint_cid).closure, 'open');
+    assert.deepEqual(counts(journal.path), {...before, resolutions: 2,
+      intents: 2});
+
+    // Resubmitting an answered item is idempotent for that item only; a
+    // conflicting answer to another answered item is refused.
+    const again = await journal.submitResolutions([
+      {checkpointCid: a.checkpoint_cid, ...resolvePreparation(a, 'approved')},
+      {checkpointCid: b.checkpoint_cid, ...resolvePreparation(b, 'rejected',
+        {reviewer: 'alice'})},
+      {checkpointCid: c.checkpoint_cid, ...resolvePreparation(c, 'rejected')},
+    ]);
+    assert.deepEqual(again.map(item => item.status),
+      ['duplicate', 'conflicting', 'committed']);
+    assert.equal(again[0].resumeIntentId, batch[0].resumeIntentId);
+    assert.equal(journal.getPreparation('attempt-c').endReason, 'rejected');
+    assert.deepEqual(counts(journal.path), {...before, resolutions: 3,
+      intents: 2});
+
+    // Each approved continuation starts exactly once.
+    let starts = 0;
+    for (const attemptId of ['attempt-a', 'attempt-b']) {
+      for (const claimant of ['worker-1', 'worker-2']) {
+        const claimed = journal.claimPreparationResume(attemptId,
+          {claimant, leaseMs: 60_000, binding});
+        if (claimed.action === 'claimed') starts++;
+        else assert.equal(claimed.action, 'busy');
+      }
+    }
+    assert.equal(starts, 2);
+  });
+
+test('cancel closes a waiting Checkpoint without a Run or resume intent',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persistPreparation(journal);
+    const checkpoint = stored(journal);
+    const cancelled = journal.cancelCheckpoint(waiting.checkpointCid);
+    assert.equal(cancelled.outcome, 'cancelled');
+    assert.equal(cancelled.prepareAttemptId, 'attempt-1');
+    assert.deepEqual(journal.cancelCheckpoint('cp-prep'),
+      {outcome: 'duplicate', checkpointCid: waiting.checkpointCid});
+    const preparation = journal.getPreparation('attempt-1');
+    assert.equal(preparation.status, 'ended');
+    assert.equal(preparation.endReason, 'cancelled');
+    assert.equal(journal.inspect(waiting.checkpointCid).closure, 'cancelled');
+    assert.equal(journal.listPending().length, 0);
+    await assert.rejects(journal.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(checkpoint, 'approved'),
+    }), {code: 'CheckpointCancelled'});
+    assert.throws(() => journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding}),
+    {code: 'ResumeIntentNotFound'});
+    assert.deepEqual(counts(journal.path), {runs: 0, checkpoints: 1,
+      resolutions: 0, intents: 0, preparations: 1});
+
+    // A waiting Run-unit Checkpoint cancels its Run.
+    const unit = persist(journal);
+    journal.cancelCheckpoint(unit.checkpointCid);
+    assert.equal(journal.getRunState('run-1').status, 'cancelled');
+    // An answered Checkpoint is not cancelled.
+    const other = persistPreparation(journal, prepareBody({
+      attemptId: 'attempt-2', checkpointId: 'cp-2'}));
+    await journal.submitResolution({checkpointCid: other.checkpointCid,
+      ...resolvePreparation(storedWire(journal, other.checkpointCid),
+        'rejected')});
+    assert.equal(journal.cancelCheckpoint(other.checkpointCid).outcome,
+      'not_open');
+  });
+
+test('a directly created Run exits through a checked transition', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  const created = journal.createRun({runId: 'run-allow',
+    declaredResults: ['tickets']});
+  assert.equal(created.status, 'running');
+  assert.throws(() => journal.createRun({runId: 'run-allow',
+    declaredResults: ['tickets']}), {code: 'RunAlreadyTracked'});
+  assert.throws(() => journal.finishRun('run-allow', {status: 'succeeded',
+    from: 'preparing'}), {code: 'RunStateConflict'});
+  const finished = journal.finishRun('run-allow', {status: 'succeeded'});
+  assert.equal(finished.status, 'succeeded');
+  assert.equal(finished.runState.status, 'succeeded');
+  assert.throws(() => journal.finishRun('run-allow', {status: 'failed'}),
+    {code: 'RunStateConflict'});
+});
+
+function storedWire(journal, checkpointCid) {
+  const database = new DatabaseSync(journal.path, {readOnly: true});
+  try {
+    return JSON.parse(database.prepare(
+      'SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?',
+    ).get(checkpointCid).checkpoint_wire);
+  } finally {
+    database.close();
+  }
+}
