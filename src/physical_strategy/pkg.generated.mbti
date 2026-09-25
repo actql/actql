@@ -56,6 +56,8 @@ pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relati
 
 pub fn[T] borrow_captured_managed_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.ManagedCompletedOutput[T], Int) -> Result[CapturedResidentResultBorrow, RunIssue]
 
+pub fn borrow_captured_result_completion(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
+
 pub fn borrow_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
