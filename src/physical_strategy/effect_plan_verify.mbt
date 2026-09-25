@@ -21,6 +21,176 @@ struct CapturedEffectPlanProof {
 }
 
 ///|
+/// One checked Mapping selected before the private Preview is authored.
+/// This owner advances with the exact bounded Result export but does not
+/// retain row payloads or authorize a physical Effect dispatch.
+struct CapturedEffectProposalPlan {
+  inputs : CapturedEffectInputs
+  member_index : Int
+  input : CapturedEffectInput
+  terminal : @results.EffectPlanTerminal
+  literals : @results.EffectMappingLiterals
+  mut next_row : Int
+  mut live : Bool
+}
+
+///|
+pub(all) enum CapturedEffectProposalIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  MissingPlan
+  RowOrder
+  RowCountMismatch
+  Plan(@results.EffectPlanBindingIssue)
+  Row(@results.EffectPlanRowIssue)
+  Changes(@results.EffectPlanChangeIssue)
+  SelectorEncoding
+} derive(Debug)
+
+///|
+/// Select the checked Plan once for a live captured source before the private
+/// Preview exists. The Host must advance this owner using the same canonical
+/// Result export that seals the source Artifact.
+pub fn prepare_captured_effect_proposal_plan(
+  inputs : CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue] {
+  guard captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return Err(InvalidMember)
+  }
+  if !inputs.live || !captured_any_result_borrow_available(input.borrow) {
+    return Err(NotReady)
+  }
+  let static_candidate = @checked.effect_program_run_static_candidate(
+    inputs.run.checked.run,
+  )
+  let effects = @checked.effect_program_static_effects(static_candidate)
+  let rules = @results.effect_static_candidate_mapping_rules(effects)
+  let terminal = match
+    @results.effect_plan_terminal_for_member(
+      rules, member_index, max_fields, max_work,
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(MissingPlan)
+    Err(issue) => return Err(Plan(issue))
+  }
+  if input.source.member_index != member_index ||
+    @results.effect_plan_terminal_source_result(terminal) !=
+    @execution.managed_result_occurrence_name(input.source.occurrence) {
+    return Err(ForeignBinding)
+  }
+  Ok({
+    inputs,
+    member_index,
+    input,
+    terminal,
+    literals: @results.effect_static_candidate_mapping_literals(effects),
+    next_row: 0,
+    live: true,
+  })
+}
+
+///|
+/// Project one checked Result row. This proposal is not a payload proof or
+/// apply permit; the later Preview binding verifies the same captured input.
+pub fn project_captured_effect_proposal_row(
+  value : CapturedEffectProposalPlan,
+  source_row : @identity.CanonicalValue,
+  source_row_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, String), CapturedEffectProposalIssue] {
+  if !value.live ||
+    captured_effect_input_at(value.inputs, value.member_index).map(input => {
+      physical_equal(input, value.input)
+    }) !=
+    Some(true) {
+    value.live = false
+    return Err(NotReady)
+  }
+  if source_row_index != value.next_row {
+    value.live = false
+    return Err(RowOrder)
+  }
+  let row = match
+    @results.project_effect_plan_row(
+      value.terminal,
+      source_row,
+      source_row_index,
+      max_fields,
+      max_work,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      value.live = false
+      return Err(Row(issue))
+    }
+  }
+  let changes = match
+    @results.effect_plan_row_intended_changes_wire(
+      row,
+      value.literals,
+      max_fields,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      value.live = false
+      return Err(Changes(issue))
+    }
+  }
+  let selector = @identity.stringify_value(
+    @results.effect_plan_row_selector(row),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  ) catch {
+    _ => {
+      value.live = false
+      return Err(SelectorEncoding)
+    }
+  }
+  value.next_row += 1
+  Ok((selector, changes))
+}
+
+///|
+pub fn finish_captured_effect_proposal_plan(
+  value : CapturedEffectProposalPlan,
+  row_count : Int,
+) -> Result[Unit, CapturedEffectProposalIssue] {
+  if !value.live ||
+    captured_effect_input_at(value.inputs, value.member_index).map(input => {
+      physical_equal(input, value.input)
+    }) !=
+    Some(true) {
+    value.live = false
+    return Err(NotReady)
+  }
+  value.live = false
+  if row_count != value.next_row {
+    return Err(RowCountMismatch)
+  }
+  Ok(())
+}
+
+///|
+pub fn cancel_captured_effect_proposal_plan(
+  value : CapturedEffectProposalPlan,
+) -> Unit {
+  value.live = false
+}
+
+///|
 pub(all) enum CapturedEffectPlanInventoryIssue {
   InvalidLimits
   CapacityExceeded

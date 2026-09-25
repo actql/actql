@@ -2,6 +2,7 @@
 package "actql/actql/connectors_builtin_node"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/connector_sdk",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
@@ -125,6 +126,8 @@ pub fn client_program_effect_input_export_logical_cid(@execution_relation.Comple
 
 pub fn client_program_effect_input_export_next(@execution_relation.CompletedOutputExport) -> Result[String?, @execution_relation.CompletedExportIssue]
 
+pub fn client_program_effect_input_export_next_canonical_row(@execution_relation.CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, @execution_relation.CompletedExportIssue]
+
 pub fn client_program_effect_input_export_ready(@execution_relation.CompletedResultRelationExportPreparation) -> Result[@execution_relation.CompletedOutputExport, @execution_relation.CompletedExportIssue]
 
 pub fn client_program_effect_input_export_release_receipt(@execution_relation.CompletedRelationExportReceipt) -> Unit
@@ -136,6 +139,8 @@ pub fn client_program_effect_input_export_schema_cid(@execution_relation.Complet
 pub fn client_program_effect_input_export_start(@physical_strategy.CapturedEffectInput, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) -> Int
+
+pub fn client_program_effect_inputs_share_view(@physical_strategy.CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn client_program_effect_managed_input_append(ClientEffectManagedInputImport, String) -> Result[Unit, ClientEffectManagedInputIssue]
 
@@ -182,6 +187,14 @@ pub fn client_program_effect_preview_input_limits(Int, Int, Int, Int, Int, Int, 
 pub fn client_program_effect_preview_ledger_identity(@physical_strategy.CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
 
 pub fn client_program_effect_preview_plan_terminal(@physical_strategy.CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, @physical_strategy.CapturedEffectPlanIssue]
+
+pub fn client_program_effect_proposal_begin(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectProposalPlan, @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_proposal_cancel(@physical_strategy.CapturedEffectProposalPlan) -> Unit
+
+pub fn client_program_effect_proposal_finish(@physical_strategy.CapturedEffectProposalPlan, Int) -> Result[Unit, @physical_strategy.CapturedEffectProposalIssue]
+
+pub fn client_program_effect_proposal_row(@physical_strategy.CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), @physical_strategy.CapturedEffectProposalIssue]
 
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 

@@ -1704,6 +1704,18 @@ pub fn client_program_effect_input_at(
 }
 
 ///|
+/// Permit one checked export to feed multiple member proposals only for the
+/// same live producer and Result occurrence, not an equal serialized view.
+#export_name("clientProgramEffectInputsShareView")
+pub fn client_program_effect_inputs_share_view(
+  value : @strategy.CapturedEffectInputs,
+  first_index : Int,
+  second_index : Int,
+) -> Bool {
+  @strategy.captured_effect_inputs_share_view(value, first_index, second_index)
+}
+
+///|
 /// Physical source selection is fixed by the captured graph, not by JS.
 #export_name("clientProgramEffectInputTask")
 pub fn client_program_effect_input_task(
@@ -2516,6 +2528,78 @@ pub fn client_program_effect_input_export_next(
   value : @execution.CompletedOutputExport,
 ) -> Result[String?, @execution.CompletedExportIssue] {
   @execution.next_completed_output_export(value)
+}
+
+///|
+/// Return one canonical checked Result row alongside the export's original
+/// bytes. The physical adapter must not reconstruct a separate row view.
+#export_name("clientProgramEffectInputExportNextCanonicalRow")
+pub fn client_program_effect_input_export_next_canonical_row(
+  value : @execution.CompletedOutputExport,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> Result[
+  (Int, String, @identity.CanonicalValue)?,
+  @execution.CompletedExportIssue,
+] {
+  @execution.next_completed_output_export_canonical_row(
+    value, max_nodes, max_depth, max_utf16_units,
+  )
+}
+
+///|
+/// Select one checked member Plan before authoring a private Preview. The
+/// caller must feed its canonical rows from the same bounded Result export.
+#export_name("clientProgramEffectProposalBegin")
+pub fn client_program_effect_proposal_begin(
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_fields : Int,
+  max_work : Int,
+) -> Result[
+  @strategy.CapturedEffectProposalPlan,
+  @strategy.CapturedEffectProposalIssue,
+] {
+  @strategy.prepare_captured_effect_proposal_plan(
+    inputs, member_index, max_fields, max_work,
+  )
+}
+
+///|
+/// The returned selector and changes are proposals, not a payload proof or
+/// Effect send permit; Preview binding later verifies the captured input.
+#export_name("clientProgramEffectProposalRow")
+pub fn client_program_effect_proposal_row(
+  value : @strategy.CapturedEffectProposalPlan,
+  row : @identity.CanonicalValue,
+  row_index : Int,
+  max_fields : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, String), @strategy.CapturedEffectProposalIssue] {
+  @strategy.project_captured_effect_proposal_row(
+    value, row, row_index, max_fields, max_work, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramEffectProposalFinish")
+pub fn client_program_effect_proposal_finish(
+  value : @strategy.CapturedEffectProposalPlan,
+  row_count : Int,
+) -> Result[Unit, @strategy.CapturedEffectProposalIssue] {
+  @strategy.finish_captured_effect_proposal_plan(value, row_count)
+}
+
+///|
+#export_name("clientProgramEffectProposalCancel")
+pub fn client_program_effect_proposal_cancel(
+  value : @strategy.CapturedEffectProposalPlan,
+) -> Unit {
+  @strategy.cancel_captured_effect_proposal_plan(value)
 }
 
 ///|

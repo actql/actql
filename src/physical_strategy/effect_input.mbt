@@ -562,6 +562,35 @@ pub fn captured_effect_input_at(
 }
 
 ///|
+/// Two members may consume one canonical row stream only when their checked
+/// Result port, owner, name, and physical producer are the same. Their
+/// publication occurrences remain distinct even when this view is shared;
+/// equal names or CIDs alone cannot substitute for the owner comparison.
+pub fn captured_effect_inputs_share_view(
+  value : CapturedEffectInputs,
+  first_index : Int,
+  second_index : Int,
+) -> Bool {
+  guard captured_effect_input_at(value, first_index) is Some(first) &&
+    captured_effect_input_at(value, second_index) is Some(second) else {
+    return false
+  }
+  let first_occurrence = first.source.occurrence
+  let second_occurrence = second.source.occurrence
+  first.source.task == second.source.task &&
+  @execution.managed_result_occurrence_name(first_occurrence) ==
+  @execution.managed_result_occurrence_name(second_occurrence) &&
+  physical_equal(
+    @execution.managed_result_occurrence_owner(first_occurrence),
+    @execution.managed_result_occurrence_owner(second_occurrence),
+  ) &&
+  physical_equal(
+    @execution.managed_result_occurrence_port(first_occurrence),
+    @execution.managed_result_occurrence_port(second_occurrence),
+  )
+}
+
+///|
 /// Revoke every consumer alias. Already returned input aliases share the
 /// underlying pins and become unavailable after this release.
 pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {

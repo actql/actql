@@ -61,6 +61,8 @@ pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (Residen
 
 pub fn cancel_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Unit
 
+pub fn cancel_captured_effect_proposal_plan(CapturedEffectProposalPlan) -> Unit
+
 pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -108,6 +110,8 @@ pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.
 pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
 
@@ -315,6 +319,8 @@ pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, 
 
 pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue]
 
+pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
+
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 
 pub fn graph_control_count(CheckedDAG) -> Int
@@ -405,6 +411,8 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 
 pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
 
+pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
+
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedEffectComputationDAG, GraphIssue]
@@ -444,6 +452,8 @@ pub fn prepare_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.Ca
 pub fn prepare_strategy_policy_request(StrategyChoiceSet, String, String, String, Int64, Int64) -> Result[PolicyRequest, SearchIssue]
 
 pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, Int, Array[@physical_cost.SerialEstimateLine], PhysicalEnvelope, Int) -> Result[TaskOffer, SearchIssue]
+
+pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
 
@@ -728,6 +738,21 @@ pub(all) enum CapturedEffectPlanVerifyIssue {
 }
 
 type CapturedEffectPreviewInputs
+
+pub(all) enum CapturedEffectProposalIssue {
+  InvalidMember
+  NotReady
+  ForeignBinding
+  MissingPlan
+  RowOrder
+  RowCountMismatch
+  Plan(@stage_results.EffectPlanBindingIssue)
+  Row(@stage_results.EffectPlanRowIssue)
+  Changes(@stage_results.EffectPlanChangeIssue)
+  SelectorEncoding
+} derive(@debug.Debug)
+
+type CapturedEffectProposalPlan
 
 pub(all) enum CapturedEffectRiskIssue {
   NotReady
