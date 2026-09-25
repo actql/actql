@@ -90,17 +90,18 @@ JavaScript. It is a static identity accessor, not input capture or an apply
 permit. Product connection and the review's fault-injection matrix remain
 open. Same-SHA Linux CI and live Salesforce are not yet verified.
 
-The remaining apply gate is not a missing call to one existing validator.
-The captured-input MoonBit owner currently exposes separate checks for Plan
-proofs, current source/Contract/capability/authority bindings, target guards,
-selected routes, risk-acceptance binding, derived keys, and whole-set
-footprints. Each explicitly disclaims send authority. The Salesforce Site
-writers accept an admitted Preview and exact row claims but do not receive a
-single whole-set apply owner. The ordinary Host must authenticate current
-external facts, run every obligation against the same captured owner before
-any mutation, and carry a non-forgeable admitted owner into common dispatch.
-Calling those checks independently from a provider-specific writer would
-leave a bypass and would not close R2-G1.
+The captured-input MoonBit owner now provides one semantic preflight over
+complete Plan proofs, current source/Contract/capability/authority bindings,
+target guards, selected routes, risk acceptance, derived keys, and whole-set
+footprints. Both Node bridge profiles expose the same check. The real Host
+fixture accepts a two-member Preview and rejects missing proofs, foreign
+bindings, missing guards, a foreign route, insufficient risk claims, wrong
+keys, and released input pins. Its members use distinct Effect identities so
+their guarded row CIDs identify distinct rows. This is not a send permit:
+the ordinary Host must authenticate current external facts, retain the
+captured owner, and carry a non-forgeable admitted authority through common
+durable dispatch. Salesforce Site writers still do not receive that owner,
+so R2-G1 remains open.
 Plan proof issuance and complete-member inventory admission now live in the
 shared `physical_strategy` owner. Both the full and RelA-only Node bridges
 call that same MoonBit implementation; their duplicate proof types and
