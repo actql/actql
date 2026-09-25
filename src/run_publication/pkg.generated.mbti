@@ -27,6 +27,8 @@ pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[Publi
 
 pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition, ResultDefinitionIssue]
 
+pub fn admit_result_material_holds(String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
+
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
@@ -34,6 +36,8 @@ pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValu
 pub fn begin_result_access_progress() -> ResultAccessProgress
 
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
+
+pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
@@ -239,6 +243,8 @@ pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, Res
 
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
 
+pub fn prepare_result_material_holds_step(ResultMaterialHolds, String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
+
 pub fn prepare_superseded_publication_finalization(PublicationContract?) -> PublicationFinalizationAction
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
@@ -312,6 +318,16 @@ pub fn result_definition_json(ResultDefinition) -> Result[String, ResultDefiniti
 pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
+
+pub fn result_material_holds_binding(ResultMaterialHolds) -> String
+
+pub fn result_material_holds_generation(ResultMaterialHolds) -> String
+
+pub fn result_material_holds_reclaimable(ResultMaterialHolds) -> Bool
+
+pub fn result_material_holds_revision(ResultMaterialHolds) -> Int
+
+pub fn result_material_holds_wire(ResultMaterialHolds) -> Result[String, ResultMaterialHoldIssue]
 
 pub fn result_metadata_retention_state(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
 
@@ -972,6 +988,15 @@ pub(all) enum ResultManifestIssuanceIssue {
   ManifestIssuanceContract(PublicationContractIssue)
   ManifestIssuanceChain(RunPublicationChainIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ResultMaterialHoldIssue {
+  InvalidMaterialHold
+  MaterialHoldConflict
+  MaterialHoldLimit
+  MaterialHoldEncoding
+} derive(Eq, @debug.Debug)
+
+type ResultMaterialHolds
 
 type ResultOrderingEvidence
 

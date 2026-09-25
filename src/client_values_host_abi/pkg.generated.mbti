@@ -17,6 +17,8 @@ pub fn client_values_host_admit_publication_contract(String, String, Int, Int, I
 
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_admit_result_material_holds(String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
+
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
 
 pub fn client_values_host_admit_run_definition(String) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
@@ -33,6 +35,14 @@ pub fn client_values_host_allowed_run_authorization_wire(ClientValuesHostAllowed
 
 pub fn client_values_host_allowed_run_prepared_wire(ClientValuesHostAllowedRun) -> String
 
+pub fn client_values_host_begin_result_access_progress() -> @run_publication.ResultAccessProgress
+
+pub fn client_values_host_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_begin_result_material_holds(String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
+
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
@@ -41,13 +51,35 @@ pub fn client_values_host_compiled_plan_cid(@run_publication_host.ClientValuesCo
 
 pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
+pub fn client_values_host_delivery_failure_terminal_action(Bool) -> Int
+
+pub fn client_values_host_delivery_grant_usage_claim_is_new(@run_publication.DeliveryGrantUsageClaim) -> Bool
+
+pub fn client_values_host_delivery_grant_usage_claim_wire(@run_publication.DeliveryGrantUsageClaim) -> String
+
+pub fn client_values_host_delivery_record_retry_action(Int, Int) -> Int
+
+pub fn client_values_host_delivery_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract) -> Bool
+
+pub fn client_values_host_delivery_result_definition_cid(@run_publication.PublicationContract, @run_publication.PublicationContract) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
+
 pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
+pub fn client_values_host_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
+
 pub fn client_values_host_fact_manifest_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_feed_durable_result_row_frames(@run_publication.DurableResultRowFrames, Bytes) -> Array[String] raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_finish_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Array[Int] raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[Array[String], @run_publication.CapturedRunIssuanceIssue]
 
@@ -56,6 +88,10 @@ pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClient
 pub fn client_values_host_issue_checked_values_result_occurrence_evidence(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.PublicationContract, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, ClientValuesHostCheckedOccurrenceIssue]
 
 pub fn client_values_host_issue_complete_result_artifact(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.ResultOrderingEvidence, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultArtifactIssuanceIssue]
+
+pub fn client_values_host_issue_delivery_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_issue_delivery_record(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, Int, String, Int?, String?, @run_publication.PublicationContract?, String?, String, Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
 
@@ -69,9 +105,13 @@ pub fn client_values_host_issue_publication_record(@run_publication.PublicationC
 
 pub fn client_values_host_issue_publication_request(@run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
 
+pub fn client_values_host_issue_result_delivery_receipt(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
+
 pub fn client_values_host_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultManifestIssuanceIssue]
 
 pub fn client_values_host_issue_result_occurrence_evidence(@run_publication.PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, @run_publication.ResultEvidenceIssuanceIssue]
+
+pub fn client_values_host_issue_result_read_grant(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[String], Array[String], String, String, String, Int, Int, String, String, String, Int, Int, Int) -> @run_publication.PublicationContract raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
 
@@ -81,7 +121,11 @@ pub fn client_values_host_issue_source_free_invocation(@run_publication_host.Cli
 
 pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
+pub fn client_values_host_issue_succeeded_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Array[String], Array[String], Array[String], Array[String]) -> String?
+
 pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool) -> String?
+
+pub fn client_values_host_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -91,17 +135,41 @@ pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilatio
 
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
 
+pub fn client_values_host_prepare_delivery_grant_usage_claim(@run_publication.PublicationContract, String?, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.DeliveryGrantUsageClaim raise ClientValuesHostDeliveryIssue
+
 pub fn client_values_host_prepare_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesHostDispatchIssue]
 
+pub fn client_values_host_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_prepare_result_material_holds_step(@run_publication.ResultMaterialHolds, String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
+
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
+
+pub fn client_values_host_project_committed_result_read_wire(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract]) -> String?
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
 pub fn client_values_host_publication_contract_identity(@run_publication.PublicationContract) -> String
 
+pub fn client_values_host_publication_contract_identity_field(@run_publication.PublicationContract) -> String
+
+pub fn client_values_host_publication_contract_name(@run_publication.PublicationContract) -> String
+
 pub fn client_values_host_publication_contract_wire(@run_publication.PublicationContract) -> String
 
 pub fn client_values_host_publication_index_scope_key(String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationCommitIssuanceIssue]
+
+pub fn client_values_host_record_result_access_grant(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_record_result_access_initial_availability(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_record_result_access_read_admission(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_record_result_access_request_authorization(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
 
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
@@ -121,13 +189,39 @@ pub fn client_values_host_request_relation(@run_publication_host.ClientRequestId
 
 pub fn client_values_host_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
+pub fn client_values_host_result_access_progress_action(@run_publication.ResultAccessProgress) -> Int
+
 pub fn client_values_host_result_definitions(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]
+
+pub fn client_values_host_result_material_holds_binding(@run_publication.ResultMaterialHolds) -> String
+
+pub fn client_values_host_result_material_holds_generation(@run_publication.ResultMaterialHolds) -> String
+
+pub fn client_values_host_result_material_holds_reclaimable(@run_publication.ResultMaterialHolds) -> Bool
+
+pub fn client_values_host_result_material_holds_revision(@run_publication.ResultMaterialHolds) -> Int
+
+pub fn client_values_host_result_material_holds_wire(@run_publication.ResultMaterialHolds) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_result_names(@run_publication_host.ClientValuesCompilation) -> Array[String]
 
 pub fn client_values_host_result_occurrence_derivation(@run_publication.ResultOrderingEvidence) -> @run_publication.PublicationContract
 
 pub fn client_values_host_result_occurrence_ordering(@run_publication.ResultOrderingEvidence) -> @run_publication.PublicationContract
+
+pub fn client_values_host_result_read_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, String) -> Result[String, @run_publication.DeliveryIssuanceIssue]
+
+pub fn client_values_host_result_read_definition_cid(@run_publication.PublicationContract, String) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_result_read_extended_availability(@run_publication.PublicationContract, String, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_result_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
+
+pub fn client_values_host_result_read_grant_valid_at(@run_publication.PublicationContract, String) -> Bool
+
+pub fn client_values_host_result_read_retention_policy_cid(@run_publication.PublicationContract, String) -> String raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_result_retention_clock_contract_cid(@run_publication.PublicationContract) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_result_schema(@run_publication_host.PreparedClientProgram) -> Result[Array[String], @run_publication_host.ClientValuesOutputSchemaIssue]
 
@@ -139,15 +233,24 @@ pub fn client_values_host_run_evidence_value_identity(@run_publication.RunEviden
 
 pub fn client_values_host_run_evidence_value_wire(@run_publication.RunEvidenceValue) -> String
 
+pub fn client_values_host_seal_run_evidence_value(String, String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
+
+pub fn client_values_host_trusted_clock_not_before(String?, String) -> Bool
+
+pub fn client_values_host_validate_effect_free_publication_commit(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.PublicationCommitIssue]
 
 pub fn client_values_host_validate_publication_chain(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunPublicationChainIssue]
 
 pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
 
 // Errors
+pub(all) suberror ClientValuesHostDeliveryIssue {
+  Rejected
+}
 
 // Types and methods
 pub struct ClientValuesHostAllowedRun {
