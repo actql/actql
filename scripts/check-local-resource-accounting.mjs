@@ -730,6 +730,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'json_pick_host_two_consumers',
       'json_pick_same_stage_host_two_consumers',
+      'json_pick_same_stage_filter_host_two_consumers',
+      'json_pick_same_stage_filter_in_flight_host_timer',
       'json_pick_in_flight_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {

@@ -5859,6 +5859,13 @@ async function exerciseStrategyGraph(
     stage.id.startsWith('json_pick_consumer_'))) {
     stage.inputs.x.result.stage = 'json_pick_values';
   }
+  const sameStageJsonFilterProgram = structuredClone(sameStageJsonPickProgram);
+  const sameStageJsonFilterValues = sameStageJsonFilterProgram.stages.find(
+    stage => stage.id === 'json_pick_values');
+  sameStageJsonFilterValues.steps.push({
+    from: 'picked_rows', filter: 'picked > 1', as: 'filtered',
+  });
+  sameStageJsonFilterValues.results.r.from = 'filtered';
   const joinProgram = structuredClone(zeroInputProgram);
   const joinFields = ['id', 'l', 'r'];
   joinProgram.stages.splice(1, 3, {
@@ -6054,6 +6061,8 @@ async function exerciseStrategyGraph(
     ['same-stage unnest', sameStageUnnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
     ['same-stage json pick', sameStageJsonPickProgram, [1, 2, 3, 4]],
+    ['same-stage json pick/filter', sameStageJsonFilterProgram,
+      [1, 2, 3, 4, 5]],
     ['full join', joinProgram, [1, 2, 3]],
     ['unrestricted cross join', unrestrictedCrossJoinProgram,
       [1, 2, 3, 4, 5, 6, 7]],
@@ -6230,6 +6239,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'same-stage json pick/filter') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 1, 1, 1],
+          `${name} filters picked rows before both consumers run`,
         );
       }
       if (name === 'full join') {
@@ -6725,6 +6741,8 @@ async function exerciseStrategyGraph(
       program: unnestProgram, cancelAtStart: 2},
     {name: 'split-values-json-pick-in-flight',
       program: jsonPickProgram, cancelAtStart: 2},
+    {name: 'same-stage-json-pick-filter-in-flight',
+      program: sameStageJsonFilterProgram, cancelAtStart: 3},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6748,11 +6766,14 @@ async function exerciseStrategyGraph(
       'split-values-unnest-in-flight';
     const jsonPickCancellation = cancellationName ===
       'split-values-json-pick-in-flight';
+    const sameStageJsonFilterCancellation = cancellationName ===
+      'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (rowWindowCancellation
         ? 'window_values' : unpivotCancellation
           ? 'unpivot_values' : unnestCancellation
-            ? 'unnest_values' : jsonPickCancellation
+            ? 'unnest_values' : jsonPickCancellation ||
+              sameStageJsonFilterCancellation
               ? 'json_pick_values' : 'values_a'),
     );
     valuesStage.steps[0].values.rows = Array.from(
@@ -6762,7 +6783,7 @@ async function exerciseStrategyGraph(
           ? {a: index, b: index + 1, id: index}
           : unnestCancellation
             ? {id: index, items: [index, index + 1]}
-          : jsonPickCancellation
+          : jsonPickCancellation || sameStageJsonFilterCancellation
             ? {id: index, payload: {inner: {leaf: index}}}
         : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
@@ -6818,7 +6839,8 @@ async function exerciseStrategyGraph(
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || unpivotCancellation ||
-                      unnestCancellation || jsonPickCancellation)
+                      unnestCancellation || jsonPickCancellation ||
+                      sameStageJsonFilterCancellation)
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
