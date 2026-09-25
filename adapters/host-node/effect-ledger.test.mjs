@@ -421,6 +421,65 @@ test('durable row heads determine multi-member progress after restart',
     ], 48), {code: 'MoonBitHostFailure'});
   });
 
+test('recorded claims recover from exact Preview and durable heads',
+  async t => {
+    const root = await fixture(t);
+    const first = open(root);
+    const {admitted, claims} = admittedProgressFixture();
+    const scope = claims[0][0].scope;
+    assert.throws(() => first.recoverRecordedClaims({preview: admitted,
+      scope, programId: 'program-1', nodeId: 'node-1', maxRows: 3,
+      maxWork: 100}), {code: 'MoonBitHostFailure'});
+    for (const row of claims.flat()) {
+      const ownership = first.claimDispatch(row);
+      assert.equal(ownership.claimed, true);
+      first.append(effect.ledgerEntryWire(effect.issueNextLedgerEntry(
+        ownership.dispatching, 'unknown', '', 4096, 64, 4)));
+    }
+    first.close();
+    const reopened = open(root);
+    t.after(() => reopened.close());
+    const recovered = reopened.recoverRecordedClaims({preview: admitted,
+      scope, programId: 'program-1', nodeId: 'node-1', maxRows: 3,
+      maxWork: 100});
+    assert.equal(effect.setFrontierReadyCount(recovered.frontier), 0);
+    assert.equal(effect.setFrontierOutcome(recovered.frontier), 3);
+    assert.deepEqual(recovered.members.map(member => member.claims.map(
+      claim => effect.logicalItemLocatorCid(claim.locator))),
+    claims.map(rows => rows.map(claim =>
+      effect.logicalItemLocatorCid(claim.locator))));
+    assert.deepEqual(recovered.members.map(member => member.claims.map(
+      claim => claim.canonicalRequestCid)),
+    claims.map(rows => rows.map(claim => claim.canonicalRequestCid)));
+    const bindings = effect.recoveryBindings(admitted, scope, 'program-1',
+      'node-1', 3, 100);
+    const heads = claims.map(rows => rows.map(claim =>
+      reopened.currentAdmitted(effect.logicalItemLocatorCid(
+        claim.locator))));
+    assert.throws(() => effect.recoverClaimsFromHeads(bindings,
+      [[heads[0][1], heads[0][0]], heads[1]], 3),
+    {code: 'MoonBitHostFailure'});
+    assert.throws(() => effect.recoverClaimsFromHeads(bindings,
+      [[undefined, heads[0][1]], heads[1]], 3),
+    {code: 'MoonBitHostFailure'});
+    assert.throws(() => reopened.recoverRecordedClaims({preview: admitted,
+      scope, programId: 'foreign', nodeId: 'node-1', maxRows: 3,
+      maxWork: 100}), {code: 'MoonBitHostFailure'});
+    assert.throws(() => reopened.recoverRecordedClaims({preview: admitted,
+      scope, programId: 'program-1', nodeId: 'node-1', maxRows: 2,
+      maxWork: 100}), {code: 'MoonBitHostFailure'});
+    const issued = await issueAuthorizedEffectSetReceipt({
+      ledger: reopened, preview: admitted, commonMoon: moon,
+      authorizeEvidenceRead: async () => true,
+      members: recovered.members.map(member => ({
+        rowOwners: member.claims.map(claim => ({claim})), replayed: true,
+      })),
+      limits: {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16},
+    });
+    assert.equal(JSON.parse(issued.set.wire).status,
+      'unknown_outcome');
+  });
+
 test('one Collections claim remains possible dispatch after restart',
   async t => {
     const root = await fixture(t);

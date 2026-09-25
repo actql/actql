@@ -75,6 +75,20 @@ function effectApplicationControl(moon) {
     ),
     previewMemberKind: moon.strategyEffectPreviewMemberKind,
     previewOrderedRowCid: moon.strategyEffectPreviewOrderedRowCid,
+    recoveryBindings: (...args) => checked(
+      moon.strategyEffectRecoveryBindings(...args)),
+    recoveryBindingLocatorCid:
+      moon.strategyEffectRecoveryBindingLocatorCid,
+    recoverClaimsFromHeads: (...args) => checked(
+      moon.strategyEffectRecoverClaimsFromHeads(...args)),
+    recoveredClaimScope: moon.strategyEffectRecoveredClaimScope,
+    recoveredClaimLocator: moon.strategyEffectRecoveredClaimLocator,
+    recoveredClaimKey: moon.strategyEffectRecoveredClaimKey,
+    recoveredClaimBasis: moon.strategyEffectRecoveredClaimBasis,
+    recoveredClaimIntentFingerprintCid:
+      moon.strategyEffectRecoveredClaimIntentFingerprintCid,
+    recoveredClaimCanonicalRequestCid:
+      moon.strategyEffectRecoveredClaimCanonicalRequestCid,
     issueRowOutcomeReceipt: (...args) => {
       const value = checked(moon.strategyIssueEffectRowOutcomeReceipt(...args));
       return Object.freeze({
@@ -2159,6 +2173,13 @@ function publicationControl(moon) {
       computationPreviewTokens.set(owned, preview);
       computationPreviewWires.set(owned, wire);
       return owned;
+    },
+    effectComputationPreviewLedgerIdentity(preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return admitted;
     },
     effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
       const ownedPreview = computationPreviewTokens.get(preview);

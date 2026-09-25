@@ -533,6 +533,24 @@ pub fn strategy_effect_preview_semantic_cid(@run_publication.EffectPreviewIdenti
 
 pub fn strategy_effect_preview_target_guards_check(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int) -> Bool raise NodeHostFailure
 
+pub fn strategy_effect_recover_claims_from_heads(Array[Array[@effect_application.EffectRecoveryBinding]], Array[Array[@effect_application.EffectLedgerEntry?]], Int) -> Array[Array[@effect_application.EffectRecoveredClaim]] raise NodeHostFailure
+
+pub fn strategy_effect_recovered_claim_basis(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectLedgerBasis
+
+pub fn strategy_effect_recovered_claim_canonical_request_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_intent_fingerprint_cid(@effect_application.EffectRecoveredClaim) -> String
+
+pub fn strategy_effect_recovered_claim_key(@effect_application.EffectRecoveredClaim) -> @effect_application.EffectDispatchKey
+
+pub fn strategy_effect_recovered_claim_locator(@effect_application.EffectRecoveredClaim) -> @effect_application.LogicalItemLocator
+
+pub fn strategy_effect_recovered_claim_scope(@effect_application.EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
+
+pub fn strategy_effect_recovery_binding_locator_cid(@effect_application.EffectRecoveryBinding) -> String
+
+pub fn strategy_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Array[Array[@effect_application.EffectRecoveryBinding]] raise NodeHostFailure
+
 pub fn strategy_effect_row_outcome_receipt_terminal_state(@run_publication.PublicationContract) -> String?
 
 pub fn strategy_effect_row_recovery_action(@effect_application.LogicalItemLocator, String, @effect_application.EffectDispatchKey, String, String, String, String, String, Int, Bool) -> Int

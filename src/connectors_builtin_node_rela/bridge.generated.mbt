@@ -7682,6 +7682,96 @@ pub fn strategy_effect_preview_ordered_row_cid(
 }
 
 ///|
+/// Rebuild read-only locator bindings from the admitted Preview. This does
+/// not recover an apply permit or authorize another physical send.
+#export_name("strategyEffectRecoveryBindings")
+pub fn strategy_effect_recovery_bindings(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  max_rows : Int,
+  max_work : Int,
+) -> Array[Array[@effect.EffectRecoveryBinding]] raise NodeHostFailure {
+  match
+    @effect.prepare_effect_recovery_bindings(
+      preview, scope, program_id, node_id, max_rows, max_work,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRecoveryBindingLocatorCid")
+pub fn strategy_effect_recovery_binding_locator_cid(
+  binding : @effect.EffectRecoveryBinding,
+) -> String {
+  @effect.effect_recovery_binding_locator_cid(binding)
+}
+
+///|
+#export_name("strategyEffectRecoverClaimsFromHeads")
+pub fn strategy_effect_recover_claims_from_heads(
+  bindings : Array[Array[@effect.EffectRecoveryBinding]],
+  heads : Array[Array[@effect.EffectLedgerEntry?]],
+  max_rows : Int,
+) -> Array[Array[@effect.EffectRecoveredClaim]] raise NodeHostFailure {
+  match @effect.recover_effect_claims_from_heads(bindings, heads, max_rows) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimScope")
+pub fn strategy_effect_recovered_claim_scope(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalRequestScope {
+  @effect.effect_recovered_claim_scope(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimLocator")
+pub fn strategy_effect_recovered_claim_locator(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.LogicalItemLocator {
+  @effect.effect_recovered_claim_locator(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimKey")
+pub fn strategy_effect_recovered_claim_key(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectDispatchKey {
+  @effect.effect_recovered_claim_key(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimBasis")
+pub fn strategy_effect_recovered_claim_basis(
+  claim : @effect.EffectRecoveredClaim,
+) -> @effect.EffectLedgerBasis {
+  @effect.effect_recovered_claim_basis(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimIntentFingerprintCid")
+pub fn strategy_effect_recovered_claim_intent_fingerprint_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_intent_fingerprint_cid(claim)
+}
+
+///|
+#export_name("strategyEffectRecoveredClaimCanonicalRequestCid")
+pub fn strategy_effect_recovered_claim_canonical_request_cid(
+  claim : @effect.EffectRecoveredClaim,
+) -> String {
+  @effect.effect_recovered_claim_canonical_request_cid(claim)
+}
+
+///|
 #export_name("strategyIssueEffectRowOutcomeReceipt")
 pub fn strategy_issue_effect_row_outcome_receipt(
   preview : @publication.EffectPreviewIdentity,

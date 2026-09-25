@@ -66,6 +66,20 @@ pub fn effect_ledger_entry_state_code(EffectLedgerEntry) -> Int
 
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
 
+pub fn effect_recovered_claim_basis(EffectRecoveredClaim) -> EffectLedgerBasis
+
+pub fn effect_recovered_claim_canonical_request_cid(EffectRecoveredClaim) -> String
+
+pub fn effect_recovered_claim_intent_fingerprint_cid(EffectRecoveredClaim) -> String
+
+pub fn effect_recovered_claim_key(EffectRecoveredClaim) -> EffectDispatchKey
+
+pub fn effect_recovered_claim_locator(EffectRecoveredClaim) -> LogicalItemLocator
+
+pub fn effect_recovered_claim_scope(EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
+
+pub fn effect_recovery_binding_locator_cid(EffectRecoveryBinding) -> String
+
 pub fn effect_risk_acceptance_unsigned_payload_cid(EffectRiskAcceptanceBody) -> String
 
 pub fn effect_row_action_code(EffectRowAction) -> Int
@@ -116,9 +130,13 @@ pub fn prepare_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, S
 
 pub fn prepare_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
 
+pub fn prepare_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
+
 pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 
 pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_request_scope.LogicalRequestScope, EffectIdentityIssue]
+
+pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Array[Array[EffectLedgerEntry?]], Int) -> Result[Array[Array[EffectRecoveredClaim]], EffectRecoveredClaimIssue]
 
 // Errors
 
@@ -338,6 +356,26 @@ pub(all) enum EffectPreviewTargetGuardIssue {
   StalePreview(Int, Int)
   ForeignObservation
 } derive(Eq, @debug.Debug)
+
+pub struct EffectRecoveredClaim {
+  binding : EffectRecoveryBinding
+  basis : EffectLedgerBasis
+  intent_fingerprint_cid : String
+  canonical_request_cid : String
+}
+
+pub(all) enum EffectRecoveredClaimIssue {
+  InvalidLimits
+  ForeignPreviewRow(Int, Int)
+  MissingHead(Int, Int)
+  ForeignHead(Int, Int)
+} derive(Eq, @debug.Debug)
+
+pub struct EffectRecoveryBinding {
+  scope : @logical_request_scope.LogicalRequestScope
+  locator : LogicalItemLocator
+  key : EffectDispatchKey
+}
 
 pub struct EffectRiskAcceptanceBody {
   cid : String

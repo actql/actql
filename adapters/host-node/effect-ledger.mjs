@@ -344,6 +344,54 @@ export function openEffectLedger({
         moon.clientProgramEffectPreviewLedgerIdentity(captured),
         members, maxWork);
     },
+    // Reconstruct only already-recorded claims after process loss. MoonBit
+    // binds every locator, key and immutable basis to the admitted Preview;
+    // SQLite supplies one atomic head snapshot. This is evidence read, not
+    // send admission. Unrecorded rows need a separate durable apply intent.
+    recoverRecordedClaims({preview, scope, programId, nodeId, maxRows,
+      maxWork}) {
+      if (!preview || !scope || typeof programId !== 'string' ||
+          typeof nodeId !== 'string' ||
+          !Number.isSafeInteger(maxRows) || maxRows < 1 ||
+          maxRows > maxEntries ||
+          !Number.isSafeInteger(maxWork) || maxWork < 1 ||
+          maxWork > 100_000_000 ||
+          control.logicalRequestScopeCid(scope) !== scopeCid) {
+        fail('InvalidEffectRecordedClaimRecovery');
+      }
+      const bindings = control.recoveryBindings(preview, scope, programId,
+        nodeId, maxRows, maxWork);
+      const locatorCids = bindings.flatMap(rows => rows.map(binding =>
+        control.recoveryBindingLocatorCid(binding)));
+      if (locatorCids.length === 0 || locatorCids.length > maxRows ||
+          new Set(locatorCids).size !== locatorCids.length) {
+        fail('InvalidEffectRecordedClaimRecovery');
+      }
+      const snapshot = physical.currentSnapshot(locatorCids);
+      let position = 0;
+      const heads = bindings.map(rows => rows.map(() =>
+        validateStored(snapshot[position++])?.entry));
+      const recovered = control.recoverClaimsFromHeads(bindings, heads,
+        maxRows);
+      const members = Object.freeze(recovered.map(rows => Object.freeze({
+        claims: Object.freeze(rows.map(value => Object.freeze({
+          scope: control.recoveredClaimScope(value),
+          locator: control.recoveredClaimLocator(value),
+          key: control.recoveredClaimKey(value),
+          basis: control.recoveredClaimBasis(value),
+          intentFingerprintCid:
+            control.recoveredClaimIntentFingerprintCid(value),
+          canonicalRequestCid:
+            control.recoveredClaimCanonicalRequestCid(value),
+        }))),
+      })));
+      const frontier = ledger.frontierFromDurableHeads(preview, members,
+        maxWork);
+      if (control.setFrontierReadyCount(frontier) !== 0) {
+        fail('EffectRecoveryHasSendableRows');
+      }
+      return Object.freeze({members, frontier});
+    },
     // The caller must have won the durable send claim. This observation ends
     // when the physical call settles, independently of response persistence.
     beginPhysicalFlight(dispatching, claims) {
