@@ -208,16 +208,22 @@ export async function issueAuthorizedEffectMemberReceipt({
   });
 }
 
-// Set issuance reuses the physical evidence path of every member. The replay
-// flags are explicit Host observations; neither row state nor a new Receipt
-// proves whether an earlier terminal result was replayed without dispatch.
+// Set issuance reuses the physical evidence path of every member. For final
+// publication, MoonBit rechecks those rows against the separately owned
+// publication Preview before the exact Ledger/Preview pair is retained.
+// Replay flags remain explicit Host observations, not inferred row facts.
 export async function issueAuthorizedEffectSetReceipt({
   ledger, members, preview, commonMoon, authorizeEvidenceRead,
-  providerBinding = {}, limits,
+  providerBinding = {}, limits, publicationPreview, publicationControl,
 }) {
   if (!Array.isArray(members) || members.length === 0 ||
       members.some(member => !Array.isArray(member?.rowOwners) ||
         typeof member.replayed !== 'boolean') ||
+      (publicationPreview === undefined) !==
+        (publicationControl === undefined) ||
+      (publicationControl !== undefined &&
+        typeof publicationControl?.issueEffectSetApplyReceiptFromMembers !==
+          'function') ||
       !limits || !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
         Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
     fail('InvalidEffectSetReceiptEvidence');
@@ -229,11 +235,15 @@ export async function issueAuthorizedEffectSetReceipt({
       memberIndex, commonMoon, authorizeEvidenceRead, providerBinding,
     }));
   }
-  const set = runtimeCore(commonMoon).effectApplicationControl
-    .issueSetReceiptFromMembers(
-      preview, issuedMembers.map(member => member.wire),
-      members.map(member => member.replayed), limits.maxWireBytes,
-      limits.maxNodes, limits.maxDepth);
+  const set = publicationPreview === undefined
+    ? runtimeCore(commonMoon).effectApplicationControl
+      .issueSetReceiptFromMembers(
+        preview, issuedMembers.map(member => member.wire),
+        members.map(member => member.replayed), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)
+    : publicationControl.issueEffectSetApplyReceiptFromMembers(
+      publicationPreview, issuedMembers,
+      members.map(member => member.replayed), limits);
   return retainIssuedEffectSetReceipt({set, members: issuedMembers,
-    ledger, preview});
+    ledger, preview: publicationPreview ?? preview});
 }
