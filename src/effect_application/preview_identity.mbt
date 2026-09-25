@@ -77,6 +77,80 @@ pub fn check_admitted_effect_preview_apply_keys(
 }
 
 ///|
+pub(all) enum EffectPreviewRecoveryKeysIssue {
+  InvalidLimits
+  CapacityExceeded
+  MissingRow(Int, Int)
+  Dispatch(Int, Int, EffectIdentityIssue)
+  Mismatch(EffectPreviewApplyIdentityIssue)
+} derive(Debug)
+
+///|
+/// Recover opaque row keys from the admitted Preview and exact request scope.
+/// No transported key or prior process owner is accepted as authority.
+pub fn recover_effect_preview_apply_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue] {
+  if max_members < 1 ||
+    max_members > 1000 ||
+    max_rows < 1 ||
+    max_rows > 100000 ||
+    max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  let count = @publication.effect_preview_member_count(preview)
+  if count < 1 || count > max_members || count > max_work {
+    return Err(CapacityExceeded)
+  }
+  let preview_cid = @publication.effect_preview_semantic_identity(preview)
+  let keys : Array[Array[EffectDispatchKey]] = []
+  let mut remaining_rows = max_rows
+  let mut remaining_work = max_work - count
+  for member_index in 0..<count {
+    let row_count = match
+      @publication.effect_preview_row_count(preview, member_index) {
+      Some(value) => value
+      None => return Err(MissingRow(member_index, 0))
+    }
+    if row_count > remaining_rows || row_count > remaining_work {
+      return Err(CapacityExceeded)
+    }
+    remaining_rows -= row_count
+    remaining_work -= row_count
+    let member_keys : Array[EffectDispatchKey] = []
+    for row_index in 0..<row_count {
+      let correlation = match
+        @publication.effect_preview_row_correlation_wire(
+          preview, member_index, row_index,
+        ) {
+        Some(value) => value
+        None => return Err(MissingRow(member_index, row_index))
+      }
+      let key = match
+        prepare_effect_dispatch_key(
+          scope, preview_cid, correlation, max_key_bytes, max_key_nodes, max_key_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Dispatch(member_index, row_index, issue))
+      }
+      member_keys.push(key)
+    }
+    keys.push(member_keys)
+  }
+  match check_admitted_effect_preview_apply_keys(preview, scope, keys) {
+    Ok(_) => Ok(keys)
+    Err(issue) => Err(Mismatch(issue))
+  }
+}
+
+///|
 pub(all) enum EffectCollectionBatchIssue {
   InvalidLimits
   InvalidMember

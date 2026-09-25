@@ -129,7 +129,7 @@ export async function applyCapturedEffectSet({
 export async function applyRecoveredEffectSet({
   moon, store, publicationControl, computation, preview, ledger,
   requestScope, programId, nodeId, maxRows, maxFrontierWork,
-  maxRecoveryWork,
+  maxRecoveryWork, keyLimits,
   refreshPreflight, dispatchRow, signal,
 }) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
@@ -140,6 +140,12 @@ export async function applyRecoveredEffectSet({
       !Number.isSafeInteger(maxRows) || maxRows < 1 ||
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1 ||
       !Number.isSafeInteger(maxRecoveryWork) || maxRecoveryWork < 1 ||
+      !Number.isSafeInteger(keyLimits?.maxBytes) ||
+      !Number.isSafeInteger(keyLimits.maxNodes) ||
+      !Number.isSafeInteger(keyLimits.maxDepth) ||
+      !Number.isSafeInteger(keyLimits.maxWork) ||
+      keyLimits.maxBytes < 1 || keyLimits.maxNodes < 1 ||
+      keyLimits.maxDepth < 1 || keyLimits.maxWork < 1 ||
       typeof refreshPreflight !== 'function' ||
       typeof dispatchRow !== 'function') {
     fail('InvalidRecoveredEffectApply');
@@ -157,7 +163,12 @@ export async function applyRecoveredEffectSet({
   if (control.setFrontierReadyCount(initial) === 0) {
     return Object.freeze({dispatched: 0, frontier: initial});
   }
-  const preflight = ownPreflight(await refreshPreflight({signal}), false);
+  const current = await refreshPreflight({signal});
+  const keys = control.recoveredPreviewKeys(
+    admittedPreview, requestScope, current?.maxMembers,
+    current?.maxRows, keyLimits.maxWork, keyLimits.maxBytes,
+    keyLimits.maxNodes, keyLimits.maxDepth);
+  const preflight = ownPreflight({...current, keys}, false);
   // A fresh authorization cannot silently change the logical request that
   // owns the already prepared intents.
   if (control.logicalRequestScopeCid(preflight.requestScope) !==

@@ -14,6 +14,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect.EffectFootprintIssue)
   EffectPreviewFootprint(@effect.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect.EffectCollectionBatchIssue)
   EffectLedger(@effect.EffectLedgerIssue)
@@ -7248,6 +7249,30 @@ pub fn strategy_effect_dispatch_key_cid(
   key : @effect.EffectDispatchKey,
 ) -> String {
   @effect.effect_dispatch_key_cid(key)
+}
+
+///|
+/// Reconstruct the opaque key inventory from an admitted private Preview.
+/// This is not a write permit; current apply authority remains separate.
+#export_name("strategyEffectRecoveredPreviewKeys")
+pub fn strategy_effect_recovered_preview_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Array[Array[@effect.EffectDispatchKey]] raise NodeHostFailure {
+  match
+    @effect.recover_effect_preview_apply_keys(
+      preview, scope, max_members, max_rows, max_work, max_key_bytes, max_key_nodes,
+      max_key_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise EffectPreviewRecoveryKeys(issue)
+  }
 }
 
 ///|

@@ -3430,6 +3430,9 @@ test(`two-member captured Effect Run ${
         assert.deepEqual(fresh.requestCids,
           members.map(member => member.claims.map(
             claim => claim.canonicalRequestCid)));
+        assert.deepEqual(fresh.recoveredKeyCids,
+          preview.keys.map(member => member.map(key =>
+            effect.dispatchKeyCid(key))));
         assert.deepEqual(fresh.recoveredCatalogCids,
           sites.map(site => site.catalog.observationCid));
         assert.equal(fresh.setReceiptCid, null);
@@ -3588,10 +3591,13 @@ test(`two-member captured Effect Run ${
           preview: admittedPreview, ledger, requestScope,
           programId: 'program-1', nodeId: 'node-1', maxRows: 4,
           maxFrontierWork: 64, maxRecoveryWork: 100,
+          keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
+            maxWork: 100},
           refreshPreflight: async ({signal}) => {
             const current = {...preflight,
               ...(await applyOptions.refreshGuardObservations({signal}))};
             delete current.proofs;
+            delete current.keys;
             return current;
           },
         };

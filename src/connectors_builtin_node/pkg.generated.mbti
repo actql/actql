@@ -269,6 +269,8 @@ pub fn strategy_effect_recovered_claim_locator(@effect_application.EffectRecover
 
 pub fn strategy_effect_recovered_claim_scope(@effect_application.EffectRecoveredClaim) -> @logical_request_scope.LogicalRequestScope
 
+pub fn strategy_effect_recovered_preview_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Array[Array[@effect_application.EffectDispatchKey]] raise NodeHostFailure
+
 pub fn strategy_effect_recovery_binding_locator_cid(@effect_application.EffectRecoveryBinding) -> String
 
 pub fn strategy_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Array[Array[@effect_application.EffectRecoveryBinding]] raise NodeHostFailure
@@ -1383,6 +1385,7 @@ pub(all) suberror NodeHostFailure {
   EffectFootprint(@effect_application.EffectFootprintIssue)
   EffectPreviewFootprint(@effect_application.EffectPreviewFootprintIssue)
   EffectPreviewIdentity(@effect_application.EffectPreviewApplyIdentityIssue)
+  EffectPreviewRecoveryKeys(@effect_application.EffectPreviewRecoveryKeysIssue)
   EffectPreviewTargetGuard(@effect_application.EffectPreviewTargetGuardIssue)
   EffectCollectionBatch(@effect_application.EffectCollectionBatchIssue)
   EffectLedger(@effect_application.EffectLedgerIssue)

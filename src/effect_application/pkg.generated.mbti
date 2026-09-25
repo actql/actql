@@ -138,6 +138,8 @@ pub fn prepare_logical_request_scope(String, String, Int) -> Result[@logical_req
 
 pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Array[Array[EffectLedgerEntry?]], Int) -> Result[Array[Array[EffectRecoveredClaim]], EffectRecoveredClaimIssue]
 
+pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue]
+
 // Errors
 
 // Types and methods
@@ -345,6 +347,14 @@ pub(all) enum EffectPreviewFootprintIssue {
   FailurePolicyMismatch
   EffectIdentityMismatch
   Conflict(EffectFootprintIssue)
+} derive(@debug.Debug)
+
+pub(all) enum EffectPreviewRecoveryKeysIssue {
+  InvalidLimits
+  CapacityExceeded
+  MissingRow(Int, Int)
+  Dispatch(Int, Int, EffectIdentityIssue)
+  Mismatch(EffectPreviewApplyIdentityIssue)
 } derive(@debug.Debug)
 
 pub(all) enum EffectPreviewTargetGuardIssue {

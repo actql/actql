@@ -57,6 +57,11 @@ try {
   const previewWire = control.effectComputationPreviewWire(
     recovered.preview);
   const previewBody = JSON.parse(previewWire);
+  const recoveredKeys = input.prepared === true
+    ? core.effectApplicationControl.recoveredPreviewKeys(
+      admittedPreview, scope, recorded.members.length, input.maxRows,
+      input.maxWork, 128, 8, 3)
+    : undefined;
   const recoveredSalesforce = input.prepared === true &&
     input.salesforceRecovery !== undefined
     ? recoverCapturedSalesforceSingleRequests({
@@ -107,6 +112,8 @@ try {
     ]),
     requestCids: recorded.members.map(member => member.claims.map(
       claim => claim.canonicalRequestCid)),
+    recoveredKeyCids: recoveredKeys?.map(member => member.map(key =>
+      core.effectApplicationControl.dispatchKeyCid(key))) ?? null,
     recoveredCatalogCids: recoveredSalesforce?.catalogs.map(catalog =>
       salesforceMoon.salesforceCatalogObservationCid(catalog)) ?? null,
     setReceiptCid: issued?.set.identity ?? null,
