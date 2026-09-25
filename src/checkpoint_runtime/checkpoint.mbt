@@ -82,10 +82,10 @@ pub fn checkpoint_combination_valid(
   kind : CheckpointKind,
 ) -> Bool {
   match (subject, phase, kind) {
-    (PrepareAttempt(_), Preflight, RunScope) => true
+    (PrepareAttempt(..), Preflight, RunScope) => true
     (_, Preflight, ReadAccess) => true
-    (RunUnit(_, _), Preflight, DataEgress | CostScope) => true
-    (RunUnit(_, _), Commit, EffectSet) => true
+    (RunUnit(..), Preflight, DataEgress | CostScope) => true
+    (RunUnit(..), Commit, EffectSet) => true
     _ => false
   }
 }
@@ -113,29 +113,23 @@ fn validate_request(request : CheckpointRequest) -> CheckpointIssue? {
   if !canonical_text(request.checkpoint_id) {
     return Some(InvalidField("checkpoint_id"))
   }
-  if !canonical_text(request.run_id) {
-    return Some(InvalidField("run_id"))
-  }
-  if !valid_cid(request.run_definition_cid) {
-    return Some(InvalidField("run_definition_cid"))
-  }
   if !valid_cid(request.continuation_state_cid) {
     return Some(InvalidField("continuation_state_cid"))
   }
   match request.subject {
-    PrepareAttempt(attempt) =>
-      if !canonical_text(attempt) {
+    PrepareAttempt(prepare_attempt_id~) =>
+      if !canonical_text(prepare_attempt_id) {
         return Some(InvalidField("subject.prepare_attempt_id"))
       }
-    RunUnit(run_id, unit_id) => {
+    RunUnit(run_id~, unit_id~, run_definition_cid~) => {
       if !canonical_text(run_id) {
-        return Some(InvalidField("subject.run_id"))
-      }
-      if run_id != request.run_id {
         return Some(InvalidField("subject.run_id"))
       }
       if !canonical_text(unit_id) {
         return Some(InvalidField("subject.unit_id"))
+      }
+      if !valid_cid(run_definition_cid) {
+        return Some(InvalidField("run_definition_cid"))
       }
     }
   }
@@ -172,13 +166,13 @@ fn validate_request(request : CheckpointRequest) -> CheckpointIssue? {
 ///|
 fn subject_json(subject : CheckpointSubject) -> Json {
   match subject {
-    PrepareAttempt(attempt) =>
+    PrepareAttempt(prepare_attempt_id~) =>
       Json::object({
         "kind": Json::string("prepare_attempt"),
-        "prepare_attempt_id": Json::string(attempt),
+        "prepare_attempt_id": Json::string(prepare_attempt_id),
         "continuation": Json::string("start_run"),
       })
-    RunUnit(run_id, unit_id) =>
+    RunUnit(run_id~, unit_id~, ..) =>
       Json::object({
         "kind": Json::string("run_unit"),
         "run_id": Json::string(run_id),
@@ -190,11 +184,9 @@ fn subject_json(subject : CheckpointSubject) -> Json {
 
 ///|
 fn request_body_json(request : CheckpointRequest) -> Json {
-  Json::object({
+  let fields : Map[String, Json] = {
     "version": Json::string(CHECKPOINT_VERSION),
     "checkpoint_id": Json::string(request.checkpoint_id),
-    "run_id": Json::string(request.run_id),
-    "run_definition_cid": Json::string(request.run_definition_cid),
     "continuation_state_cid": Json::string(request.continuation_state_cid),
     "subject": subject_json(request.subject),
     "phase": Json::string(phase_token(request.phase)),
@@ -211,7 +203,46 @@ fn request_body_json(request : CheckpointRequest) -> Json {
     "human_summary": Json::string(request.human_summary),
     "created_at": Json::string(request.created_at),
     "expires_at": Json::string(request.expires_at),
-  })
+  }
+  // Only a Run-unit Checkpoint carries the Run identity at top level.
+  if request.subject is RunUnit(run_id~, run_definition_cid~, ..) {
+    fields["run_id"] = Json::string(run_id)
+    fields["run_definition_cid"] = Json::string(run_definition_cid)
+  }
+  Json::object(fields)
+}
+
+///|
+/// Run identity bound by a Run-unit Checkpoint; `None` for a preparation
+/// Checkpoint, which precedes the Run.
+pub fn CheckpointRequest::run_id(self : CheckpointRequest) -> String? {
+  match self.subject {
+    RunUnit(run_id~, ..) => Some(run_id)
+    PrepareAttempt(..) => None
+  }
+}
+
+///|
+/// Run Definition CID bound by a Run-unit Checkpoint; `None` for a
+/// preparation Checkpoint.
+pub fn CheckpointRequest::run_definition_cid(
+  self : CheckpointRequest,
+) -> String? {
+  match self.subject {
+    RunUnit(run_definition_cid~, ..) => Some(run_definition_cid)
+    PrepareAttempt(..) => None
+  }
+}
+
+///|
+/// Preparation attempt bound by a preparation Checkpoint.
+pub fn CheckpointRequest::prepare_attempt_id(
+  self : CheckpointRequest,
+) -> String? {
+  match self.subject {
+    PrepareAttempt(prepare_attempt_id~) => Some(prepare_attempt_id)
+    RunUnit(..) => None
+  }
 }
 
 ///|
@@ -296,9 +327,13 @@ fn required_object(
 }
 
 ///|
+/// Decode the subject together with the top-level Run identity: required for
+/// a `run_unit` subject, where `run_id` must equal the subject's, and
+/// forbidden for a `prepare_attempt` subject.
 fn decode_subject(
-  value : @json.CanonicalValue,
+  checkpoint : @json.CanonicalValue,
 ) -> CheckpointSubject raise CheckpointFailure {
+  let value = required_object(checkpoint, "subject")
   match string_field(value, "kind") {
     Some("prepare_attempt") => {
       require_shape(
@@ -309,7 +344,14 @@ fn decode_subject(
       if string_field(value, "continuation") != Some("start_run") {
         raise CheckpointFailed(InvalidField("subject.continuation"))
       }
-      PrepareAttempt(required_text(value, "prepare_attempt_id"))
+      for field in ["run_id", "run_definition_cid"] {
+        if @json.object_field(checkpoint, field) is Some(_) {
+          raise CheckpointFailed(UnknownField(field))
+        }
+      }
+      PrepareAttempt(
+        prepare_attempt_id=required_text(value, "prepare_attempt_id"),
+      )
     }
     Some("run_unit") => {
       require_shape(
@@ -320,7 +362,20 @@ fn decode_subject(
       if string_field(value, "continuation") != Some("resume_unit") {
         raise CheckpointFailed(InvalidField("subject.continuation"))
       }
-      RunUnit(required_text(value, "run_id"), required_text(value, "unit_id"))
+      for field in ["run_id", "run_definition_cid"] {
+        if @json.object_field(checkpoint, field) is None {
+          raise CheckpointFailed(MissingField(field))
+        }
+      }
+      let run_id = required_text(value, "run_id")
+      if required_text(checkpoint, "run_id") != run_id {
+        raise CheckpointFailed(InvalidField("subject.run_id"))
+      }
+      RunUnit(
+        run_id~,
+        unit_id=required_text(value, "unit_id"),
+        run_definition_cid=required_text(checkpoint, "run_definition_cid"),
+      )
     }
     _ => raise CheckpointFailed(InvalidField("subject.kind"))
   }
@@ -329,9 +384,9 @@ fn decode_subject(
 ///|
 fn checkpoint_fields(with_identity : Bool) -> Array[String] {
   let fields = [
-    "version", "checkpoint_id", "run_id", "run_definition_cid", "continuation_state_cid",
-    "subject", "phase", "kind", "required_artifact", "review_projection_cid", "requirements",
-    "reason_code", "human_summary", "created_at", "expires_at",
+    "version", "checkpoint_id", "continuation_state_cid", "subject", "phase", "kind",
+    "required_artifact", "review_projection_cid", "requirements", "reason_code",
+    "human_summary", "created_at", "expires_at",
   ]
   if with_identity {
     fields.push("checkpoint_cid")
@@ -344,11 +399,16 @@ fn decode_checkpoint(
   value : @json.CanonicalValue,
   with_identity : Bool,
 ) -> (CheckpointRequest, String) raise CheckpointFailure {
-  require_shape(value, checkpoint_fields(with_identity), "")
+  if closed_shape(value, checkpoint_fields(with_identity), [
+      "run_id", "run_definition_cid",
+    ])
+    is Some(issue) {
+    raise CheckpointFailed(shape_issue(issue, ""))
+  }
   if string_field(value, "version") != Some(CHECKPOINT_VERSION) {
     raise CheckpointFailed(InvalidField("version"))
   }
-  let subject = decode_subject(required_object(value, "subject"))
+  let subject = decode_subject(value)
   let phase = match parse_phase(required_text(value, "phase")) {
     Some(phase) => phase
     None => raise CheckpointFailed(InvalidField("phase"))
@@ -381,8 +441,6 @@ fn decode_checkpoint(
   }
   let request : CheckpointRequest = {
     checkpoint_id: required_text(value, "checkpoint_id"),
-    run_id: required_text(value, "run_id"),
-    run_definition_cid: required_text(value, "run_definition_cid"),
     continuation_state_cid: required_text(value, "continuation_state_cid"),
     subject,
     phase,

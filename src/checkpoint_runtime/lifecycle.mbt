@@ -163,3 +163,40 @@ pub fn decide_resume_fence(
 pub fn resume_completion_allowed(to : @publication.RunOutcomeStatus) -> Bool {
   to != Resuming && run_transition_allowed(Resuming, to)
 }
+
+///|
+/// What committing a verified Resolution does to its Checkpoint's subject. A
+/// Run-unit Checkpoint moves its waiting Run (`resuming` on approval,
+/// `cancelled` on rejection). A preparation Checkpoint has no Run: approval
+/// continues the same preparation attempt through the resume intent, and
+/// rejection ends it without creating a Run.
+pub fn resolution_effect(
+  checkpoint : SealedCheckpoint,
+  decision : ResolutionDecision,
+) -> ResolutionEffect {
+  match (checkpoint.checkpoint.subject, decision) {
+    (RunUnit(..), _) => MoveRun(resolution_run_status(decision))
+    (PrepareAttempt(..), Approved) => ContinuePreparation
+    (PrepareAttempt(..), Rejected) => EndPreparation
+  }
+}
+
+///|
+/// `terminal_error.code` of a continuation whose bound authorization-context
+/// or environment-binding CID no longer revalidates (runtime error phase
+/// `admission`).
+pub const RESUME_REVALIDATION_FAILED_CODE : String = "ACTQL_E_RESUME_REVALIDATION_FAILED"
+
+///|
+/// Exit of a Run-unit continuation whose resume revalidation failed: nothing
+/// is dispatched and `resuming` ends `failed`, or `needs_reconciliation` when
+/// earlier Effect outcomes remain unknown.
+pub fn revalidation_failure_status(
+  unknown_effects : Array[String],
+) -> @publication.RunOutcomeStatus {
+  if unknown_effects.is_empty() {
+    Failed
+  } else {
+    NeedsReconciliation
+  }
+}

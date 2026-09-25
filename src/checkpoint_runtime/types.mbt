@@ -8,11 +8,14 @@ pub(all) struct WireLimits {
 
 ///|
 /// Sealed decision subject of `actql-execution-checkpoint/0.1`.
-/// `PrepareAttempt` always continues with `start_run`; `RunUnit` always
-/// continues with `resume_unit`.
+/// `PrepareAttempt` always continues with `start_run` and binds no Run: there
+/// is no Run or Run Definition before the preparation continues.
+/// `RunUnit` always continues with `resume_unit` and binds the Run, its unit
+/// and the immutable Run Definition CID (the top-level `run_id` and
+/// `run_definition_cid` members of the wire).
 pub(all) enum CheckpointSubject {
-  PrepareAttempt(String)
-  RunUnit(String, String)
+  PrepareAttempt(prepare_attempt_id~ : String)
+  RunUnit(run_id~ : String, unit_id~ : String, run_definition_cid~ : String)
 } derive(Eq, Debug)
 
 ///|
@@ -44,8 +47,6 @@ pub(all) enum CheckpointRequirement {
 /// Body of an execution Checkpoint before its self CID is computed.
 pub(all) struct CheckpointRequest {
   checkpoint_id : String
-  run_id : String
-  run_definition_cid : String
   continuation_state_cid : String
   subject : CheckpointSubject
   phase : CheckpointPhase
@@ -102,11 +103,17 @@ pub(all) enum ResolutionDecision {
 /// Resolution proof and reviewer authority with Host-trusted keys; this
 /// package checks that the reported identities agree with the Resolution and
 /// with the authority set the Host bound to the Checkpoint.
+///
+/// `proof_preimage` is the exact text whose `proof.signature` the port
+/// verified. It must be the unsigned Resolution CID text
+/// (`resolution_proof_preimage`), so a port that verified any other bytes is
+/// rejected.
 pub(all) struct HostAuthentication {
   key_id : String
   reviewer_id : String
   authority_context_cid : String
   policy_cid : String
+  proof_preimage : String
 } derive(Eq, Debug)
 
 ///|
@@ -118,6 +125,9 @@ pub(all) struct ReviewerAuthority {
 
 ///|
 /// Admitted Resolution before the Host attests the verified wrapper.
+/// `attestation_preimage` is the unsigned verified-wrapper CID text: the CID
+/// of the wrapper without `host_attestation` and `verified_resolution_cid`.
+/// The Host signs its UTF-8 bytes with Ed25519.
 pub struct AdmittedResolution {
   checkpoint_cid : String
   resolution_id : String
@@ -138,6 +148,44 @@ pub struct VerifiedResolution {
   verified_at : String
   wire : String
   resume_intent_id : String?
+} derive(Eq, Debug)
+
+///|
+/// An immediate delegated answer admitted against the Checkpoint body the Host
+/// would persist if it deferred. It is not bound to a persisted Checkpoint:
+/// no function accepts it as a Checkpoint, a waiting state or a commit
+/// candidate, and it never yields a resume intent.
+pub struct ImmediateAdmittedResolution {
+  priv admitted : AdmittedResolution
+}
+
+///|
+/// Host-verified immediate permit or reject. It is the retained decision
+/// evidence of the permitted or rejected unit: the Checkpoint body was not
+/// persisted, the Run does not enter `waiting_checkpoint`, and there is no
+/// resume intent. Its type is distinct from `VerifiedResolution`, so it
+/// cannot be committed by `decide_resolution_commit`.
+pub struct ImmediateResolution {
+  checkpoint_cid : String
+  resolution_id : String
+  resolution_cid : String
+  decision : ResolutionDecision
+  verified_resolution_cid : String
+  verified_at : String
+  wire : String
+} derive(Eq, Debug)
+
+///|
+/// What committing a verified Resolution does to the Checkpoint's subject.
+pub(all) enum ResolutionEffect {
+  /// A Run-unit Checkpoint: `waiting_checkpoint` moves to this status.
+  MoveRun(@publication.RunOutcomeStatus)
+  /// An approved preparation Checkpoint: the same preparation attempt
+  /// continues through its resume intent; no Run exists yet.
+  ContinuePreparation
+  /// A rejected preparation Checkpoint: the attempt ends and no Run is
+  /// created.
+  EndPreparation
 } derive(Eq, Debug)
 
 ///|

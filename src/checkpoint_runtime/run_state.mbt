@@ -18,6 +18,8 @@ fn lifecycle_run_state_body(
   declared_results : Array[String],
   checkpoint : SealedCheckpoint?,
   limits : WireLimits,
+  terminal_error? : (String, String),
+  reconcile_effects? : Array[String] = [],
 ) -> Result[String, RunStateWireIssue] {
   if !canonical_text(run_id) {
     return Err(RunStateInvalidField("run_id"))
@@ -39,8 +41,15 @@ fn lifecycle_run_state_body(
   })
   let action : @publication.RunNextAction = if checkpoint is Some(_) {
     ResolveCheckpoint
+  } else if !reconcile_effects.is_empty() {
+    Reconcile
   } else {
     NoAction
+  }
+  for index, effect in reconcile_effects {
+    if !canonical_text(effect) || reconcile_effects[:index].contains(effect) {
+      return Err(RunStateInvalidField("next_action.effects"))
+    }
   }
   match
     @publication.validate_run_state(
@@ -70,6 +79,18 @@ fn lifecycle_run_state_body(
     "next_action": Json::object({ "kind": Json::string("none") }),
     "result_available": Json::boolean(false),
     "result_availability": Json::object(availability),
+  }
+  if !reconcile_effects.is_empty() {
+    fields["next_action"] = Json::object({
+      "kind": Json::string("reconcile"),
+      "effects": string_array_json(reconcile_effects),
+    })
+  }
+  if terminal_error is Some((code, message)) {
+    fields["terminal_error"] = Json::object({
+      "code": Json::string(code),
+      "message": Json::string(message),
+    })
   }
   if checkpoint is Some(artifact) {
     fields["checkpoint"] = Json::object({
@@ -102,8 +123,13 @@ pub fn issue_waiting_run_state(
   limits : WireLimits,
 ) -> Result[String, RunStateWireIssue] {
   let artifact = checkpoint.artifact
+  // A preparation Checkpoint precedes its Run, so it has no Run state.
+  let run_id = match artifact.checkpoint.run_id() {
+    Some(run_id) => run_id
+    None => return Err(RunStateInvalidField("checkpoint.subject"))
+  }
   lifecycle_run_state_body(
-    artifact.checkpoint.run_id,
+    run_id,
     WaitingCheckpoint,
     updated_at,
     declared_results,
@@ -373,4 +399,31 @@ pub fn admit_run_state_wire(
   Ok(decode_run_state(value, limits)) catch {
     RunStateFailed(issue) => Err(issue)
   }
+}
+
+///|
+/// Run state of a Run-unit continuation that failed resume revalidation. The
+/// status is `failed`, or `needs_reconciliation` with a `reconcile` action
+/// over `unknown_effects` when earlier Effect outcomes remain unknown; either
+/// carries `terminal_error.code` `ACTQL_E_RESUME_REVALIDATION_FAILED`.
+pub fn issue_revalidation_failed_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  unknown_effects : Array[String],
+  limits : WireLimits,
+) -> Result[String, RunStateWireIssue] {
+  lifecycle_run_state_body(
+    run_id,
+    revalidation_failure_status(unknown_effects),
+    updated_at,
+    declared_results,
+    None,
+    limits,
+    terminal_error=(
+      RESUME_REVALIDATION_FAILED_CODE,
+      "Resume revalidation failed; the continuation was not dispatched.",
+    ),
+    reconcile_effects=unknown_effects,
+  )
 }

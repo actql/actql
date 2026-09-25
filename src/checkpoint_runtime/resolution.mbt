@@ -141,12 +141,127 @@ fn self_cid(
 }
 
 ///|
+/// Ed25519 signature preimage of a signed artifact: the UTF-8 text of the CID
+/// of the artifact without both its self CID and its signature member. The
+/// signed CID binds the artifact `version`, so a signature cannot be replayed
+/// as another artifact kind.
+fn unsigned_cid(
+  value : @json.CanonicalValue,
+  self_field : String,
+  signature_field : String,
+  limits : WireLimits,
+) -> String raise ResolutionFailure {
+  let without_self = match @json.object_without_field(value, self_field) {
+    Some(body) => body
+    None => raise ResolutionFailed(ResolutionInvalidObject)
+  }
+  let unsigned = match
+    @json.object_without_field(without_self, signature_field) {
+    Some(body) => body
+    None => raise ResolutionFailed(ResolutionInvalidObject)
+  }
+  match cid_of(unsigned, limits) {
+    Some(cid) => cid
+    None => raise ResolutionFailed(ResolutionEncoding)
+  }
+}
+
+///|
+fn signature_preimage_of(
+  wire : String,
+  version : String,
+  self_field : String,
+  signature_field : String,
+  limits : WireLimits,
+) -> Result[String, ResolutionIssue] {
+  if !valid_limits(limits) {
+    return Err(ResolutionInvalidLimits)
+  }
+  let value = match parse_wire(wire, limits) {
+    Some(value) => value
+    None => return Err(ResolutionInvalidWire)
+  }
+  if string_field(value, "version") != Some(version) {
+    return Err(ResolutionInvalidField("version"))
+  }
+  for field in [self_field, signature_field] {
+    if @json.object_field(value, field) is None {
+      return Err(ResolutionMissingField(field))
+    }
+  }
+  Ok(unsigned_cid(value, self_field, signature_field, limits)) catch {
+    ResolutionFailed(issue) => Err(issue)
+  }
+}
+
+///|
+/// The text whose UTF-8 bytes `proof.signature` signs: the CID of the
+/// `actql-checkpoint-resolution/0.1` without `resolution_cid` and `proof`.
+/// The Host authorization port verifies the Ed25519 signature over it and
+/// reports it as `HostAuthentication::proof_preimage`.
+pub fn resolution_proof_preimage(
+  resolution_wire : String,
+  limits : WireLimits,
+) -> Result[String, ResolutionIssue] {
+  signature_preimage_of(
+    resolution_wire,
+    RESOLUTION_VERSION,
+    "resolution_cid",
+    "proof",
+    limits,
+  )
+}
+
+///|
+/// The text whose UTF-8 bytes `host_attestation.signature` signs: the CID of
+/// the `actql-verified-checkpoint-resolution/0.1` wrapper without
+/// `verified_resolution_cid` and `host_attestation`.
+pub fn verified_resolution_attestation_preimage(
+  verified_wire : String,
+  limits : WireLimits,
+) -> Result[String, ResolutionIssue] {
+  signature_preimage_of(
+    verified_wire,
+    VERIFIED_VERSION,
+    "verified_resolution_cid",
+    "host_attestation",
+    limits,
+  )
+}
+
+///|
 fn resolution_fields() -> Array[String] {
   [
-    "version", "resolution_id", "checkpoint_id", "checkpoint_cid", "run_id", "run_definition_cid",
-    "decision", "actor", "decided_at", "required_artifact_cid", "review_projection_cid",
-    "proof", "resolution_cid",
+    "version", "resolution_id", "checkpoint_id", "checkpoint_cid", "decision", "actor",
+    "decided_at", "required_artifact_cid", "review_projection_cid", "proof", "resolution_cid",
   ]
+}
+
+///|
+/// A Resolution carries `run_id` and `run_definition_cid` for a Run-unit
+/// Checkpoint, or only `prepare_attempt_id` for a preparation Checkpoint.
+fn resolution_optional_fields() -> Array[String] {
+  [
+    "approval_evidence_cid", "run_id", "run_definition_cid", "prepare_attempt_id",
+  ]
+}
+
+///|
+fn subject_bindings(
+  checkpoint : SealedCheckpoint,
+) -> (Array[(String, String)], Array[String]) {
+  match checkpoint.checkpoint.subject {
+    RunUnit(run_id~, run_definition_cid~, ..) =>
+      (
+        [("run_id", run_id), ("run_definition_cid", run_definition_cid)],
+        ["prepare_attempt_id"],
+      )
+    PrepareAttempt(prepare_attempt_id~) =>
+      (
+        [("prepare_attempt_id", prepare_attempt_id)],
+        ["run_id", "run_definition_cid"],
+      )
+  }
 }
 
 ///|
@@ -159,6 +274,7 @@ priv struct DecodedResolution {
   decided_at : String
   key_id : String
   approval_evidence_cid : String?
+  proof_preimage : String
 }
 
 ///|
@@ -167,7 +283,7 @@ fn decode_resolution(
   checkpoint : SealedCheckpoint,
   limits : WireLimits,
 ) -> DecodedResolution raise ResolutionFailure {
-  resolution_shape(value, resolution_fields(), ["approval_evidence_cid"], "")
+  resolution_shape(value, resolution_fields(), resolution_optional_fields(), "")
   if string_field(value, "version") != Some(RESOLUTION_VERSION) {
     raise ResolutionFailed(ResolutionInvalidField("version"))
   }
@@ -189,14 +305,25 @@ fn decode_resolution(
   let actor = text_of(value, "actor", "")
   let decided_at = time_field(value, "decided_at", "")
   let key_id = proof_key(object_of(value, "proof", ""), "key_id", "proof.")
+  let (identity, forbidden) = subject_bindings(checkpoint)
+  for field in forbidden {
+    if @json.object_field(value, field) is Some(_) {
+      raise ResolutionFailed(CheckpointBindingMismatch(field))
+    }
+  }
+  for binding in identity {
+    let (field, _) = binding
+    if @json.object_field(value, field) is None {
+      raise ResolutionFailed(ResolutionMissingField(field))
+    }
+  }
   let bindings = [
     ("checkpoint_id", checkpoint.checkpoint.checkpoint_id),
     ("checkpoint_cid", checkpoint.checkpoint_cid),
-    ("run_id", checkpoint.checkpoint.run_id),
-    ("run_definition_cid", checkpoint.checkpoint.run_definition_cid),
     ("required_artifact_cid", checkpoint.checkpoint.required_artifact_cid),
     ("review_projection_cid", checkpoint.checkpoint.review_projection_cid),
   ]
+  bindings.push_iter(identity.iter())
   for binding in bindings {
     let (field, expected) = binding
     if field.has_suffix("_cid") {
@@ -218,6 +345,7 @@ fn decode_resolution(
     decided_at,
     key_id,
     approval_evidence_cid: evidence_cid,
+    proof_preimage: unsigned_cid(value, "resolution_cid", "proof", limits),
   }
 }
 
@@ -401,6 +529,9 @@ fn admit_resolution_body(
   if resolution.decided_at > verified_at {
     raise ResolutionFailed(DecisionAfterVerification)
   }
+  if authentication.proof_preimage != resolution.proof_preimage {
+    raise ResolutionFailed(AuthenticationMismatch("proof_preimage"))
+  }
   if authentication.key_id != resolution.key_id {
     raise ResolutionFailed(AuthenticationMismatch("key_id"))
   }
@@ -465,8 +596,10 @@ fn admit_resolution_body(
     Some(body) => body
     None => raise ResolutionFailed(ResolutionEncoding)
   }
-  let preimage = match wire_of(body, limits) {
-    Some(wire) => wire
+  // The wrapper without `host_attestation` and `verified_resolution_cid` is
+  // exactly this body, so its CID text is the attestation preimage.
+  let preimage = match cid_of(body, limits) {
+    Some(cid) => cid
     None => raise ResolutionFailed(ResolutionEncoding)
   }
   {
@@ -485,9 +618,9 @@ fn admit_resolution_body(
 ///
 /// `authentication` is the Host port's verified result; `authorities` is the
 /// reviewer authority set the Host bound to this Checkpoint. The returned
-/// `attestation_preimage` is the canonical verified wrapper without
-/// `host_attestation` and `verified_resolution_cid`; the Host signs it and
-/// calls `seal_verified_resolution`.
+/// `attestation_preimage` is the unsigned verified-wrapper CID text (the CID
+/// of the wrapper without `host_attestation` and `verified_resolution_cid`);
+/// the Host signs its UTF-8 bytes and calls `seal_verified_resolution`.
 pub fn admit_checkpoint_resolution(
   checkpoint : SealedCheckpoint,
   resolution_wire : String,
@@ -508,13 +641,19 @@ pub fn admit_checkpoint_resolution(
 }
 
 ///|
-/// Attach the Host attestation and compute the verified wrapper self CID.
-pub fn seal_verified_resolution(
+priv struct AttestedWrapper {
+  verified_resolution_cid : String
+  verified_at : String
+  wire : String
+}
+
+///|
+fn attach_attestation(
   admitted : AdmittedResolution,
   host_key_id : String,
   signature : String,
   limits : WireLimits,
-) -> Result[VerifiedResolution, ResolutionIssue] {
+) -> Result[AttestedWrapper, ResolutionIssue] {
   if !valid_limits(limits) {
     return Err(ResolutionInvalidLimits)
   }
@@ -556,6 +695,22 @@ pub fn seal_verified_resolution(
     Some(text) => text
     None => return Err(ResolutionEncoding)
   }
+  Ok({ verified_resolution_cid: cid, verified_at, wire, })
+}
+
+///|
+/// Attach the Host attestation and compute the verified wrapper self CID.
+pub fn seal_verified_resolution(
+  admitted : AdmittedResolution,
+  host_key_id : String,
+  signature : String,
+  limits : WireLimits,
+) -> Result[VerifiedResolution, ResolutionIssue] {
+  let attested = match
+    attach_attestation(admitted, host_key_id, signature, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let intent = match admitted.decision {
     Approved =>
       match
@@ -574,9 +729,100 @@ pub fn seal_verified_resolution(
     resolution_id: admitted.resolution_id,
     resolution_cid: admitted.resolution_cid,
     decision: admitted.decision,
-    verified_resolution_cid: cid,
-    verified_at,
-    wire,
+    verified_resolution_cid: attested.verified_resolution_cid,
+    verified_at: attested.verified_at,
+    wire: attested.wire,
     resume_intent_id: intent,
   })
+}
+
+///|
+/// Admit an immediate delegated permit or reject. `checkpoint` is the exact
+/// `actql-execution-checkpoint/0.1` body the Host would persist if it
+/// deferred; its `checkpoint_cid` is the decision subject CID. The Resolution
+/// is validated exactly like a deferred one (subject and preparation or Run
+/// identity, required artifact, review projection, decision window, approval
+/// Evidence, proof preimage and reviewer authority), but nothing here seals a
+/// persistable Checkpoint: the result cannot be committed, projected as
+/// waiting, or turned into a resume intent.
+pub fn admit_immediate_resolution(
+  checkpoint : CheckpointRequest,
+  resolution_wire : String,
+  approval_evidence_wire : String?,
+  authentication : HostAuthentication,
+  authorities : Array[ReviewerAuthority],
+  verified_at : String,
+  limits : WireLimits,
+) -> Result[ImmediateAdmittedResolution, ResolutionIssue] {
+  if !valid_limits(limits) {
+    return Err(ResolutionInvalidLimits)
+  }
+  let subject = match seal_checkpoint(checkpoint, limits) {
+    Ok(subject) => subject
+    Err(_) => return Err(ResolutionInvalidField("checkpoint"))
+  }
+  match
+    admit_checkpoint_resolution(
+      subject, resolution_wire, approval_evidence_wire, authentication, authorities,
+      verified_at, limits,
+    ) {
+    Ok(admitted) => Ok({ admitted, })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Decision subject CID: the `checkpoint_cid` of the body the Host did not
+/// persist.
+pub fn ImmediateAdmittedResolution::checkpoint_cid(
+  self : ImmediateAdmittedResolution,
+) -> String {
+  self.admitted.checkpoint_cid
+}
+
+///|
+pub fn ImmediateAdmittedResolution::resolution_cid(
+  self : ImmediateAdmittedResolution,
+) -> String {
+  self.admitted.resolution_cid
+}
+
+///|
+pub fn ImmediateAdmittedResolution::decision(
+  self : ImmediateAdmittedResolution,
+) -> ResolutionDecision {
+  self.admitted.decision
+}
+
+///|
+/// Unsigned verified-wrapper CID text the Host attests.
+pub fn ImmediateAdmittedResolution::attestation_preimage(
+  self : ImmediateAdmittedResolution,
+) -> String {
+  self.admitted.attestation_preimage
+}
+
+///|
+/// Attach the Host attestation to an immediate answer. The result is decision
+/// evidence only; it has no resume intent.
+pub fn seal_immediate_resolution(
+  admitted : ImmediateAdmittedResolution,
+  host_key_id : String,
+  signature : String,
+  limits : WireLimits,
+) -> Result[ImmediateResolution, ResolutionIssue] {
+  let inner = admitted.admitted
+  match attach_attestation(inner, host_key_id, signature, limits) {
+    Ok(attested) =>
+      Ok({
+        checkpoint_cid: inner.checkpoint_cid,
+        resolution_id: inner.resolution_id,
+        resolution_cid: inner.resolution_cid,
+        decision: inner.decision,
+        verified_resolution_cid: attested.verified_resolution_cid,
+        verified_at: attested.verified_at,
+        wire: attested.wire,
+      })
+    Err(issue) => Err(issue)
+  }
 }

@@ -14,7 +14,13 @@ pub fn checkpoint_waiting_state(String, String, String, String) -> String
 
 pub fn resolution_admit(String, String, String, String, String, String) -> String
 
+pub fn resolution_admit_immediate(String, String, String, String, String, String) -> String
+
 pub fn resolution_decide(String, String, String, String, String, String, String, String, String, String) -> String
+
+pub fn resolution_proof_preimage(String) -> String
+
+pub fn resolution_seal_immediate(String, String, String, String, String, String, String, String) -> String
 
 pub fn resume_claim_decide(String, String, Double, Double, String, String) -> String
 
@@ -22,9 +28,15 @@ pub fn resume_completion_allowed(String) -> Bool
 
 pub fn resume_fence_decide(String, String, Double, Double) -> String
 
+pub fn resume_revalidation_failed_code() -> String
+
+pub fn revalidation_failed_state(String, String, String, String) -> String
+
 pub fn run_state_admit(String) -> String
 
 pub fn run_transition_allowed(String, String) -> Bool
+
+pub fn verified_attestation_preimage(String) -> String
 
 // Errors
 

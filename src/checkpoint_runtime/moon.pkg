@@ -6,3 +6,5 @@ import {
   "actql/actql/run_publication" @publication,
   "actql/actql/source_value" @source,
 }
+
+formatter(ignore: [ "signature_vectors.generated_test.mbt" ])

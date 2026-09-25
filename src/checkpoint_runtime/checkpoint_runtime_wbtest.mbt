@@ -12,10 +12,12 @@ fn cid(digit : String) -> String {
 fn effect_request() -> CheckpointRequest {
   {
     checkpoint_id: "cp-1",
-    run_id: "run-1",
-    run_definition_cid: cid("1"),
     continuation_state_cid: cid("2"),
-    subject: RunUnit("run-1", "unit-7"),
+    subject: RunUnit(
+      run_id="run-1",
+      unit_id="unit-7",
+      run_definition_cid=cid("1"),
+    ),
     phase: Commit,
     kind: EffectSet,
     required_artifact_cid: cid("3"),
@@ -33,7 +35,7 @@ fn run_scope_request() -> CheckpointRequest {
   {
     ..effect_request(),
     checkpoint_id: "cp-prep",
-    subject: PrepareAttempt("attempt-1"),
+    subject: PrepareAttempt(prepare_attempt_id="attempt-1"),
     phase: Preflight,
     kind: RunScope,
     requirements: [InvocationScopeApproved],
@@ -166,8 +168,6 @@ fn resolution_fields_for(
     "resolution_id": Json::string("res-" + decision),
     "checkpoint_id": Json::string(checkpoint.checkpoint.checkpoint_id),
     "checkpoint_cid": Json::string(checkpoint.checkpoint_cid),
-    "run_id": Json::string(checkpoint.checkpoint.run_id),
-    "run_definition_cid": Json::string(checkpoint.checkpoint.run_definition_cid),
     "decision": Json::string(decision),
     "actor": Json::string("alice"),
     "decided_at": Json::string("2026-09-25T12:00:00.000Z"),
@@ -182,16 +182,27 @@ fn resolution_fields_for(
   if evidence_cid is Some(value) {
     fields["approval_evidence_cid"] = Json::string(value)
   }
+  match checkpoint.checkpoint.subject {
+    RunUnit(run_id~, run_definition_cid~, ..) => {
+      fields["run_id"] = Json::string(run_id)
+      fields["run_definition_cid"] = Json::string(run_definition_cid)
+    }
+    PrepareAttempt(prepare_attempt_id~) =>
+      fields["prepare_attempt_id"] = Json::string(prepare_attempt_id)
+  }
   fields
 }
 
 ///|
-fn authentication() -> HostAuthentication {
+/// What a Host authorization port reports after verifying `proof.signature`
+/// over the unsigned Resolution CID text.
+fn authentication(resolution : String) -> HostAuthentication {
   {
     key_id: "reviewer-key",
     reviewer_id: "alice",
     authority_context_cid: cid("6"),
     policy_cid: cid("7"),
+    proof_preimage: resolution_proof_preimage(resolution, limits()).unwrap(),
   }
 }
 
@@ -210,7 +221,7 @@ fn admit(
     checkpoint,
     resolution,
     evidence,
-    authentication(),
+    authentication(resolution),
     authorities(),
     "2026-09-25T12:00:01.000Z",
     limits(),
@@ -282,8 +293,8 @@ test "checkpoint seal is canonical, self-identified and re-admitted" {
 ///|
 test "checkpoint combinations are the closed protocol table" {
   let base = effect_request()
-  let prep = PrepareAttempt("attempt-1")
-  let unit = RunUnit("run-1", "u")
+  let prep = PrepareAttempt(prepare_attempt_id="attempt-1")
+  let unit = RunUnit(run_id="run-1", unit_id="u", run_definition_cid=cid("1"))
   let cases : Array[(CheckpointSubject, CheckpointPhase, CheckpointKind, Bool)] = [
     (prep, Preflight, RunScope, true),
     (prep, Preflight, ReadAccess, true),
@@ -362,11 +373,25 @@ test "checkpoint fields, identities and time window are validated" {
       InvalidField("created_at"),
     ),
     (
-      { ..base, run_definition_cid: "sha256:AB", },
+      {
+        ..base,
+        subject: RunUnit(
+          run_id="run-1",
+          unit_id="unit-7",
+          run_definition_cid="sha256:AB",
+        ),
+      },
       InvalidField("run_definition_cid"),
     ),
     (
-      { ..base, subject: RunUnit("other-run", "unit-7"), },
+      {
+        ..base,
+        subject: RunUnit(
+          run_id="",
+          unit_id="unit-7",
+          run_definition_cid=cid("1"),
+        ),
+      },
       InvalidField("subject.run_id"),
     ),
     ({ ..base, human_summary: "Cafe\u{0301}", }, InvalidField("human_summary")),
@@ -474,11 +499,8 @@ test "approved effect resolution produces the verified wrapper and intent" {
     Some(admitted.resolution_cid),
     string_field(parse_wire(resolution, limits()).unwrap(), "resolution_cid"),
   )
-  assert_true(!admitted.attestation_preimage.contains("host_attestation"))
-  assert_true(
-    !admitted.attestation_preimage.contains("verified_resolution_cid"),
-  )
-  assert_true(admitted.attestation_preimage.contains("\"approval_evidence\":"))
+  // The Host signs the unsigned wrapper CID text, not the canonical bytes.
+  assert_true(valid_cid(admitted.attestation_preimage))
   let verified = seal_verified_resolution(
     admitted,
     "host-key",
@@ -490,8 +512,13 @@ test "approved effect resolution produces the verified wrapper and intent" {
   assert_eq(cid_of(body, limits()), Some(verified.verified_resolution_cid))
   let without_attestation = @json.object_without_field(body, "host_attestation").unwrap()
   assert_eq(
-    wire_of(without_attestation, limits()),
+    cid_of(without_attestation, limits()),
     Some(admitted.attestation_preimage),
+  )
+  assert_true(verified.wire.contains("\"approval_evidence\":"))
+  assert_eq(
+    verified_resolution_attestation_preimage(verified.wire, limits()),
+    Ok(admitted.attestation_preimage),
   )
   assert_eq(
     verified.resume_intent_id,
@@ -697,6 +724,7 @@ test "host authentication must agree with the resolution and authority set" {
     resolution_fields_for(checkpoint, "rejected", None),
     "resolution_cid",
   )
+  let authentication = fn() { authentication(resolution) }
   let check = fn(
     auth : HostAuthentication,
     allowed : Array[ReviewerAuthority],
@@ -731,6 +759,16 @@ test "host authentication must agree with the resolution and authority set" {
     Some(AuthorityNotPermitted),
   )
   assert_eq(check(authentication(), authorities()), None)
+  // The port must have verified the signature over the unsigned Resolution
+  // CID text, not over the self CID or the canonical body.
+  let self_cid_text = string_field(
+    parse_wire(resolution, limits()).unwrap(),
+    "resolution_cid",
+  ).unwrap()
+  assert_eq(
+    check({ ..authentication(), proof_preimage: self_cid_text, }, authorities()),
+    Some(AuthenticationMismatch("proof_preimage")),
+  )
 }
 
 ///|
@@ -793,7 +831,7 @@ test "resolution commit is idempotent, conflicting, or expired" {
       checkpoint,
       resolution,
       Some(evidence),
-      authentication(),
+      authentication(resolution),
       authorities(),
       "2026-09-26T10:00:00.000Z",
       limits(),
@@ -982,5 +1020,303 @@ test "a checkpoint body wire seals to the same artifact" {
   assert_eq(
     seal_checkpoint_body(wrong_artifact, limits()).map(_ => ()),
     Err(UnsupportedCombination),
+  )
+}
+
+///|
+test "only a run-unit checkpoint carries the run identity" {
+  let prep = sealed_of(run_scope_request())
+  assert_true(!prep.wire.contains("\"run_id\""))
+  assert_true(!prep.wire.contains("\"run_definition_cid\""))
+  assert_eq(prep.checkpoint.run_id(), None)
+  assert_eq(prep.checkpoint.run_definition_cid(), None)
+  assert_eq(prep.checkpoint.prepare_attempt_id(), Some("attempt-1"))
+  let unit = sealed_of(effect_request())
+  assert_true(unit.wire.contains("\"run_definition_cid\":\"" + cid("1") + "\""))
+  assert_true(unit.wire.contains("\"run_id\":\"run-1\""))
+  assert_eq(unit.checkpoint.run_id(), Some("run-1"))
+  let body = fn(artifact : SealedCheckpoint) -> Map[String, Json] {
+    let map : Map[String, Json] = Map([])
+    for
+      field in @json.object_fields(
+        @json.object_without_field(
+          parse_wire(artifact.wire, limits()).unwrap(),
+          "checkpoint_cid",
+        ).unwrap(),
+      ).unwrap() {
+      map[field.0] = to_json(field.1)
+    }
+    map
+  }
+  let with_run = body(prep)
+  with_run["run_id"] = Json::string("run-1")
+  assert_eq(
+    seal_checkpoint_body(Json::object(with_run).stringify(), limits()).map(_ => {
+      ()
+    }),
+    Err(UnknownField("run_id")),
+  )
+  let with_definition = body(prep)
+  with_definition["run_definition_cid"] = Json::string(cid("1"))
+  assert_eq(
+    seal_checkpoint_body(Json::object(with_definition).stringify(), limits()).map(_ => {
+        ()
+      },
+    ),
+    Err(UnknownField("run_definition_cid")),
+  )
+  let missing = body(unit)
+  missing.remove("run_definition_cid")
+  assert_eq(
+    seal_checkpoint_body(Json::object(missing).stringify(), limits()).map(_ => {
+      ()
+    }),
+    Err(MissingField("run_definition_cid")),
+  )
+  let foreign = body(unit)
+  foreign["run_id"] = Json::string("run-2")
+  assert_eq(
+    seal_checkpoint_body(Json::object(foreign).stringify(), limits()).map(_ => {
+      ()
+    }),
+    Err(InvalidField("subject.run_id")),
+  )
+  // A preparation Checkpoint precedes its Run: there is no waiting Run state.
+  let persisted = confirm_checkpoint_persisted(prep, prep.wire).unwrap()
+  assert_eq(
+    issue_waiting_run_state(
+      persisted,
+      "2026-09-25T10:00:00.000Z",
+      ["tickets"],
+      limits(),
+    ),
+    Err(RunStateInvalidField("checkpoint.subject")),
+  )
+}
+
+///|
+test "a resolution binds preparation or run identity by subject" {
+  let prep = sealed_of(run_scope_request())
+  let evidence = run_scope_evidence(prep)
+  let evidence_cid = Some(canonical_cid(evidence))
+  let good = resolution_fields_for(prep, "approved", evidence_cid)
+  assert_true(!good.contains("run_id"))
+  assert_true(
+    admit(prep, with_self_cid(good, "resolution_cid"), Some(evidence)) is Ok(_),
+  )
+  for field in ["run_id", "run_definition_cid"] {
+    let fields = resolution_fields_for(prep, "approved", evidence_cid)
+    fields[field] = Json::string(
+      if field == "run_id" {
+        "run-1"
+      } else {
+        cid("1")
+      },
+    )
+    assert_eq(
+      issue_of(
+        admit(prep, with_self_cid(fields, "resolution_cid"), Some(evidence)),
+      ),
+      Some(CheckpointBindingMismatch(field)),
+    )
+  }
+  let missing = resolution_fields_for(prep, "approved", evidence_cid)
+  missing.remove("prepare_attempt_id")
+  assert_eq(
+    issue_of(
+      admit(prep, with_self_cid(missing, "resolution_cid"), Some(evidence)),
+    ),
+    Some(ResolutionMissingField("prepare_attempt_id")),
+  )
+  let other = resolution_fields_for(prep, "approved", evidence_cid)
+  other["prepare_attempt_id"] = Json::string("attempt-2")
+  assert_eq(
+    issue_of(
+      admit(prep, with_self_cid(other, "resolution_cid"), Some(evidence)),
+    ),
+    Some(CheckpointBindingMismatch("prepare_attempt_id")),
+  )
+  let unit = sealed_of(effect_request())
+  let unit_fields = resolution_fields_for(unit, "rejected", None)
+  unit_fields["prepare_attempt_id"] = Json::string("attempt-1")
+  assert_eq(
+    issue_of(admit(unit, with_self_cid(unit_fields, "resolution_cid"), None)),
+    Some(CheckpointBindingMismatch("prepare_attempt_id")),
+  )
+  let unit_missing = resolution_fields_for(unit, "rejected", None)
+  unit_missing.remove("run_definition_cid")
+  assert_eq(
+    issue_of(admit(unit, with_self_cid(unit_missing, "resolution_cid"), None)),
+    Some(ResolutionMissingField("run_definition_cid")),
+  )
+}
+
+///|
+test "resolution proof preimage is the unsigned resolution cid text" {
+  let checkpoint = sealed_of(effect_request())
+  let resolution = with_self_cid(
+    resolution_fields_for(checkpoint, "rejected", None),
+    "resolution_cid",
+  )
+  let value = parse_wire(resolution, limits()).unwrap()
+  let unsigned = @json.object_without_field(
+    @json.object_without_field(value, "resolution_cid").unwrap(),
+    "proof",
+  ).unwrap()
+  assert_eq(
+    resolution_proof_preimage(resolution, limits()),
+    Ok(cid_of(unsigned, limits()).unwrap()),
+  )
+  assert_eq(
+    resolution_proof_preimage(checkpoint.wire, limits()),
+    Err(ResolutionInvalidField("version")),
+  )
+  assert_eq(
+    resolution_proof_preimage(
+      Json::object(resolution_fields_for(checkpoint, "rejected", None)).stringify(),
+      limits(),
+    ),
+    Err(ResolutionMissingField("resolution_cid")),
+  )
+}
+
+///|
+test "resolution effect depends on the checkpoint subject" {
+  let prep = sealed_of(run_scope_request())
+  let unit = sealed_of(effect_request())
+  assert_eq(resolution_effect(unit, Approved), MoveRun(Resuming))
+  assert_eq(resolution_effect(unit, Rejected), MoveRun(Cancelled))
+  assert_eq(resolution_effect(prep, Approved), ContinuePreparation)
+  assert_eq(resolution_effect(prep, Rejected), EndPreparation)
+}
+
+///|
+test "an immediate answer is validated like a deferred one but is never persistable" {
+  let request = effect_request()
+  let subject = sealed_of(request)
+  let evidence = effect_evidence(
+    subject,
+    ["effect_scope_approved", "partial_application_accepted"],
+    "alice",
+  )
+  let resolution = with_self_cid(
+    resolution_fields_for(subject, "approved", Some(canonical_cid(evidence))),
+    "resolution_cid",
+  )
+  let immediate = admit_immediate_resolution(
+    request,
+    resolution,
+    Some(evidence),
+    authentication(resolution),
+    authorities(),
+    "2026-09-25T12:00:01.000Z",
+    limits(),
+  ).unwrap()
+  assert_eq(immediate.checkpoint_cid(), subject.checkpoint_cid)
+  assert_eq(immediate.decision(), Approved)
+  let deferred = admit(subject, resolution, Some(evidence)).unwrap()
+  assert_eq(immediate.resolution_cid(), deferred.resolution_cid)
+  assert_eq(immediate.attestation_preimage(), deferred.attestation_preimage)
+  let answered = seal_immediate_resolution(
+    immediate,
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  let verified = seal_verified_resolution(
+    deferred,
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  // Same decision evidence as the deferred path, without a resume intent.
+  assert_eq(answered.wire, verified.wire)
+  assert_eq(answered.verified_resolution_cid, verified.verified_resolution_cid)
+  assert_eq(answered.checkpoint_cid, subject.checkpoint_cid)
+  // A different would-be body is a different subject.
+  let other = { ..request, review_projection_cid: cid("9"), }
+  assert_eq(
+    admit_immediate_resolution(
+      other,
+      resolution,
+      Some(evidence),
+      authentication(resolution),
+      authorities(),
+      "2026-09-25T12:00:01.000Z",
+      limits(),
+    ).map(_ => ()),
+    Err(CheckpointBindingMismatch("checkpoint_cid")),
+  )
+  let invalid = { ..request, requirements: [], }
+  assert_eq(
+    admit_immediate_resolution(
+      invalid,
+      resolution,
+      Some(evidence),
+      authentication(resolution),
+      authorities(),
+      "2026-09-25T12:00:01.000Z",
+      limits(),
+    ).map(_ => ()),
+    Err(ResolutionInvalidField("checkpoint")),
+  )
+  let early = admit_immediate_resolution(
+    request,
+    resolution,
+    Some(evidence),
+    authentication(resolution),
+    authorities(),
+    "2026-09-25T11:59:59.000Z",
+    limits(),
+  )
+  assert_eq(early.map(_ => ()), Err(DecisionAfterVerification))
+}
+
+///|
+test "failed resume revalidation ends the run with its terminal error" {
+  let failed = issue_revalidation_failed_run_state(
+    "run-1",
+    "2026-09-25T13:00:00.000Z",
+    ["tickets"],
+    [],
+    limits(),
+  ).unwrap()
+  assert_true(
+    failed.contains(
+      "\"terminal_error\":{\"code\":\"ACTQL_E_RESUME_REVALIDATION_FAILED\"",
+    ),
+  )
+  let view = admit_run_state_wire(failed, limits()).unwrap()
+  assert_eq(view.status, Failed)
+  let unknown = issue_revalidation_failed_run_state(
+    "run-1",
+    "2026-09-25T13:00:00.000Z",
+    ["tickets"],
+    ["effect-2", "effect-1"],
+    limits(),
+  ).unwrap()
+  assert_true(
+    unknown.contains(
+      "\"next_action\":{\"effects\":[\"effect-2\",\"effect-1\"],\"kind\":\"reconcile\"}",
+    ),
+  )
+  assert_eq(
+    admit_run_state_wire(unknown, limits()).unwrap().status,
+    NeedsReconciliation,
+  )
+  assert_eq(
+    issue_revalidation_failed_run_state(
+      "run-1",
+      "2026-09-25T13:00:00.000Z",
+      ["tickets"],
+      ["effect-1", "effect-1"],
+      limits(),
+    ),
+    Err(RunStateInvalidField("next_action.effects")),
+  )
+  assert_eq(revalidation_failure_status([]), Failed)
+  assert_true(run_transition_allowed(Resuming, revalidation_failure_status([])))
+  assert_true(
+    run_transition_allowed(Resuming, revalidation_failure_status(["e"])),
   )
 }

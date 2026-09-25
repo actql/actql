@@ -7,9 +7,13 @@ import {
 }
 
 // Values
+pub const RESUME_REVALIDATION_FAILED_CODE : String = "ACTQL_E_RESUME_REVALIDATION_FAILED"
+
 pub fn admit_checkpoint_resolution(SealedCheckpoint, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits) -> Result[AdmittedResolution, ResolutionIssue]
 
 pub fn admit_checkpoint_wire(String, WireLimits) -> Result[SealedCheckpoint, CheckpointIssue]
+
+pub fn admit_immediate_resolution(CheckpointRequest, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits) -> Result[ImmediateAdmittedResolution, ResolutionIssue]
 
 pub fn admit_run_state_wire(String, WireLimits) -> Result[RunStateView, RunStateWireIssue]
 
@@ -35,6 +39,8 @@ pub fn decide_resume_fence(ResumeIntentView, ResumeClaim, Int64) -> ResumeFenceA
 
 pub fn issue_lifecycle_run_state(String, @run_publication.RunOutcomeStatus, String, Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
+pub fn issue_revalidation_failed_run_state(String, String, Array[String], Array[String], WireLimits) -> Result[String, RunStateWireIssue]
+
 pub fn issue_waiting_run_state(PersistedCheckpoint, String, Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
 pub fn parse_checkpoint_kind(String) -> CheckpointKind?
@@ -43,11 +49,17 @@ pub fn parse_checkpoint_requirement(String) -> CheckpointRequirement?
 
 pub fn parse_run_status(String) -> @run_publication.RunOutcomeStatus?
 
+pub fn resolution_effect(SealedCheckpoint, ResolutionDecision) -> ResolutionEffect
+
+pub fn resolution_proof_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
+
 pub fn resolution_run_status(ResolutionDecision) -> @run_publication.RunOutcomeStatus
 
 pub fn resume_completion_allowed(@run_publication.RunOutcomeStatus) -> Bool
 
 pub fn resume_intent_id(String, String, WireLimits) -> String?
+
+pub fn revalidation_failure_status(Array[String]) -> @run_publication.RunOutcomeStatus
 
 pub fn run_status_token(@run_publication.RunOutcomeStatus) -> String
 
@@ -57,7 +69,11 @@ pub fn seal_checkpoint(CheckpointRequest, WireLimits) -> Result[SealedCheckpoint
 
 pub fn seal_checkpoint_body(String, WireLimits) -> Result[SealedCheckpoint, CheckpointIssue]
 
+pub fn seal_immediate_resolution(ImmediateAdmittedResolution, String, String, WireLimits) -> Result[ImmediateResolution, ResolutionIssue]
+
 pub fn seal_verified_resolution(AdmittedResolution, String, String, WireLimits) -> Result[VerifiedResolution, ResolutionIssue]
+
+pub fn verified_resolution_attestation_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
 
 // Errors
 
@@ -107,8 +123,6 @@ pub(all) enum CheckpointPhase {
 
 pub(all) struct CheckpointRequest {
   checkpoint_id : String
-  run_id : String
-  run_definition_cid : String
   continuation_state_cid : String
   subject : CheckpointSubject
   phase : CheckpointPhase
@@ -121,6 +135,9 @@ pub(all) struct CheckpointRequest {
   created_at : String
   expires_at : String
 } derive(Eq, @debug.Debug)
+pub fn CheckpointRequest::prepare_attempt_id(Self) -> String?
+pub fn CheckpointRequest::run_definition_cid(Self) -> String?
+pub fn CheckpointRequest::run_id(Self) -> String?
 
 pub(all) enum CheckpointRequirement {
   EffectScopeApproved
@@ -129,8 +146,8 @@ pub(all) enum CheckpointRequirement {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CheckpointSubject {
-  PrepareAttempt(String)
-  RunUnit(String, String)
+  PrepareAttempt(prepare_attempt_id~ : String)
+  RunUnit(run_id~ : String, unit_id~ : String, run_definition_cid~ : String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct HostAuthentication {
@@ -138,6 +155,25 @@ pub(all) struct HostAuthentication {
   reviewer_id : String
   authority_context_cid : String
   policy_cid : String
+  proof_preimage : String
+} derive(Eq, @debug.Debug)
+
+pub struct ImmediateAdmittedResolution {
+  // private fields
+}
+pub fn ImmediateAdmittedResolution::attestation_preimage(Self) -> String
+pub fn ImmediateAdmittedResolution::checkpoint_cid(Self) -> String
+pub fn ImmediateAdmittedResolution::decision(Self) -> ResolutionDecision
+pub fn ImmediateAdmittedResolution::resolution_cid(Self) -> String
+
+pub struct ImmediateResolution {
+  checkpoint_cid : String
+  resolution_id : String
+  resolution_cid : String
+  decision : ResolutionDecision
+  verified_resolution_cid : String
+  verified_at : String
+  wire : String
 } derive(Eq, @debug.Debug)
 
 pub struct PersistedCheckpoint {
@@ -154,6 +190,12 @@ pub(all) enum ResolutionCommitAction {
 pub(all) enum ResolutionDecision {
   Approved
   Rejected
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ResolutionEffect {
+  MoveRun(@run_publication.RunOutcomeStatus)
+  ContinuePreparation
+  EndPreparation
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResolutionIssue {

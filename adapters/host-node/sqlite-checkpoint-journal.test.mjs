@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
+import {createHash, createPublicKey, generateKeyPairSync, sign, verify}
+  from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -27,6 +29,15 @@ const cidOf = value =>
   `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 const without = (value, ...keys) => Object.fromEntries(
   Object.entries(value).filter(([key]) => !keys.includes(key)));
+// Run#resolution-admission: Ed25519 over the UTF-8 text of the unsigned CID
+// (the CID of the artifact without its self CID and its signature member).
+const unsignedCid = (artifact, selfField, signatureField) =>
+  cidOf(without(artifact, selfField, signatureField));
+const core = result => {
+  const value = JSON.parse(result);
+  assert.equal(value.ok, true, value.issue);
+  return value;
+};
 
 const reviewers = {
   alice: {keyId: 'alice-key', ...generateKeyPairSync('ed25519')},
@@ -43,15 +54,17 @@ const authorities = [
   {keyId: 'bob-key', reviewerId: 'bob'},
 ];
 
-// Host authorization port: authenticates the reviewer signature with
-// Host-trusted keys only (never with a key named by the submitted evidence).
-function authorizeResolution({resolutionWire}) {
+// Host authorization port: authenticates the reviewer signature over the
+// core-computed unsigned Resolution CID with Host-trusted keys only (never
+// with a key named by the submitted evidence).
+let lastProofPreimage;
+function authorizeResolution({resolutionWire, proofPreimage}) {
   const resolution = JSON.parse(resolutionWire);
+  lastProofPreimage = proofPreimage;
   const trusted = Object.entries(reviewers)
     .find(([, reviewer]) => reviewer.keyId === resolution.proof.key_id);
   if (trusted === undefined) throw new Error('UntrustedKey');
-  const preimage = canonical(without(resolution, 'proof', 'resolution_cid'));
-  if (!verify(null, Buffer.from(preimage), trusted[1].publicKey,
+  if (!verify(null, Buffer.from(proofPreimage, 'utf8'), trusted[1].publicKey,
     Buffer.from(resolution.proof.signature, 'base64'))) {
     throw new Error('BadSignature');
   }
@@ -60,6 +73,7 @@ function authorizeResolution({resolutionWire}) {
     reviewerId: trusted[0],
     authorityContextCid: cid('c'),
     policyCid: cid('d'),
+    verifiedPreimage: proofPreimage,
   };
 }
 
@@ -68,9 +82,28 @@ function attestResolution(preimage) {
   attestations += 1;
   return {
     hostKeyId: host.keyId,
-    signature: sign(null, Buffer.from(preimage), host.privateKey)
+    signature: sign(null, Buffer.from(preimage, 'utf8'), host.privateKey)
       .toString('base64'),
   };
+}
+
+function signResolution(body, reviewer) {
+  const key = reviewers[reviewer];
+  body.proof = {
+    scheme: 'ed25519-v1',
+    key_id: key.keyId,
+    signature: sign(null, Buffer.from(cidOf(body), 'utf8'), key.privateKey)
+      .toString('base64'),
+  };
+  body.resolution_cid = cidOf(body);
+  return body;
+}
+
+function hostAttestationVerifies(verified) {
+  return verify(null,
+    Buffer.from(unsignedCid(verified, 'verified_resolution_cid',
+      'host_attestation'), 'utf8'),
+    host.publicKey, Buffer.from(verified.host_attestation.signature, 'base64'));
 }
 
 function effectBody({
@@ -126,13 +159,15 @@ function resolve(checkpoint, decision, {
 } = {}) {
   const evidence = decision === 'approved' ?
     effectEvidence(checkpoint, reviewer) : undefined;
+  const identity = checkpoint.subject.kind === 'run_unit' ?
+    {run_id: checkpoint.run_id, run_definition_cid: checkpoint.run_definition_cid} :
+    {prepare_attempt_id: checkpoint.subject.prepare_attempt_id};
   const body = {
     version: 'actql-checkpoint-resolution/0.1',
     resolution_id: resolutionId ?? `res-${reviewer}-${decision}`,
     checkpoint_id: checkpoint.checkpoint_id,
     checkpoint_cid: checkpoint.checkpoint_cid,
-    run_id: checkpoint.run_id,
-    run_definition_cid: checkpoint.run_definition_cid,
+    ...identity,
     decision,
     actor: reviewer,
     decided_at: decidedAt,
@@ -140,14 +175,7 @@ function resolve(checkpoint, decision, {
     review_projection_cid: checkpoint.review_projection_cid,
     ...(evidence ? {approval_evidence_cid: cidOf(evidence)} : {}),
   };
-  const key = reviewers[reviewer];
-  body.proof = {
-    scheme: 'ed25519-v1',
-    key_id: key.keyId,
-    signature: sign(null, Buffer.from(canonical(body)), key.privateKey)
-      .toString('base64'),
-  };
-  body.resolution_cid = cidOf(body);
+  signResolution(body, reviewer);
   return {
     resolutionWire: JSON.stringify(body),
     approvalEvidenceWire: evidence ? JSON.stringify(evidence) : '',
@@ -200,6 +228,8 @@ function counts(path) {
     return {
       runs: count('runs'), checkpoints: count('checkpoints'),
       resolutions: count('resolutions'), intents: count('resume_intents'),
+      ...(count('preparations') > 0 ?
+        {preparations: count('preparations')} : {}),
     };
   } finally {
     database.close();
@@ -258,11 +288,13 @@ test('persist, restart, approve, restart, claim, crash mid-claim, re-claim and c
     assert.equal(verified.host_attestation.host_key_id, 'host-key');
     assert.equal(verified.verified_resolution_cid,
       cidOf(without(verified, 'verified_resolution_cid')));
-    assert.equal(verify(null,
-      Buffer.from(canonical(without(verified, 'host_attestation',
-        'verified_resolution_cid'))),
-      host.publicKey, Buffer.from(verified.host_attestation.signature, 'base64')),
-    true);
+    // Both signatures cover the unsigned CID text computed by the core.
+    assert.equal(hostAttestationVerifies(verified), true);
+    assert.equal(core(runtime.verifiedAttestationPreimage(
+      approved.verifiedResolutionWire)).preimage,
+    unsignedCid(verified, 'verified_resolution_cid', 'host_attestation'));
+    assert.equal(lastProofPreimage,
+      unsignedCid(verified.resolution, 'resolution_cid', 'proof'));
     assert.equal(journal.listPending().length, 0);
     journal.close();
 
@@ -533,8 +565,13 @@ test('changed binding fails the resumed Run before dispatch', async t => {
     ...resolve(stored(journal), 'approved')});
   const result = journal.claimResume('run-1', {claimant: 'worker-a',
     leaseMs: 1000, binding: {...binding, environmentBindingCid: cid('e')}});
-  assert.deepEqual(result, {action: 'invalidated', runStatus: 'failed'});
-  assert.equal(journal.getRunState('run-1').status, 'failed');
+  assert.deepEqual(result, {action: 'invalidated', runStatus: 'failed',
+    terminalErrorCode: 'ACTQL_E_RESUME_REVALIDATION_FAILED'});
+  const state = journal.getRunState('run-1');
+  assert.equal(state.status, 'failed');
+  assert.equal(state.runState.terminal_error.code,
+    'ACTQL_E_RESUME_REVALIDATION_FAILED');
+  assert.deepEqual(state.runState.next_action, {kind: 'none'});
   assert.deepEqual(journal.claimResume('run-1',
     {claimant: 'worker-a', leaseMs: 1000, binding}), {action: 'completed'});
 });
@@ -578,10 +615,7 @@ test('a resumed Run may pause again at its next Checkpoint', async t => {
   };
   delete body.proof;
   delete body.resolution_cid;
-  body.proof = {scheme: 'ed25519-v1', key_id: 'alice-key',
-    signature: sign(null, Buffer.from(canonical(body)),
-      reviewers.alice.privateKey).toString('base64')};
-  body.resolution_cid = cidOf(body);
+  signResolution(body, 'alice');
   clock.ms = T0 + 2 * HOUR;
   await journal.submitResolution({checkpointCid: read.checkpointCid,
     resolutionWire: JSON.stringify(body),
@@ -599,3 +633,292 @@ test('a resumed Run may pause again at its next Checkpoint', async t => {
   assert.deepEqual(pending.map(item => item.checkpointId), ['cp-effect']);
   assert.equal(journal.inspect(read.checkpointCid).closure, 'resolved');
 });
+
+// Fixed vectors computed independently of product code
+// (portability/corpus/checkpoint-resolution-signatures.json).
+test('core signature preimages match the pinned Resolution vectors', () => {
+  const corpus = JSON.parse(readFileSync(new URL(
+    '../../portability/corpus/checkpoint-resolution-signatures.json',
+    import.meta.url), 'utf8'));
+  const spki = raw => createPublicKey({
+    key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'),
+      Buffer.from(raw, 'base64')]),
+    format: 'der', type: 'spki',
+  });
+  assert.equal(corpus.cases.length, 3);
+  for (const c of corpus.cases) {
+    const wire = JSON.stringify(c.artifact);
+    const {preimage} = core(c.kind === 'checkpoint_resolution' ?
+      runtime.resolutionProofPreimage(wire) :
+      runtime.verifiedAttestationPreimage(wire));
+    assert.equal(preimage, c.expected_unsigned_cid, c.id);
+    // The Host port verifies Ed25519 over exactly that text.
+    const signature = Buffer.from(c.artifact[c.signature_field].signature,
+      'base64');
+    const key = spki(corpus.public_keys[c.key]);
+    assert.equal(verify(null, Buffer.from(preimage, 'utf8'), key, signature),
+      true, c.id);
+    assert.equal(verify(null, Buffer.from(c.expected_self_cid, 'utf8'), key,
+      signature), false, c.id);
+    // A Resolution preimage is not accepted as a wrapper preimage.
+    const other = JSON.parse(c.kind === 'checkpoint_resolution' ?
+      runtime.verifiedAttestationPreimage(wire) :
+      runtime.resolutionProofPreimage(wire));
+    assert.equal(other.ok, false, c.id);
+  }
+});
+
+function prepareBody({
+  attemptId = 'attempt-1', checkpointId = 'cp-prep',
+  expiresAt = '2026-09-26T10:00:00.000Z',
+} = {}) {
+  return {
+    version: 'actql-execution-checkpoint/0.1',
+    checkpoint_id: checkpointId,
+    continuation_state_cid: cid('2'),
+    subject: {kind: 'prepare_attempt', prepare_attempt_id: attemptId,
+      continuation: 'start_run'},
+    phase: 'preflight',
+    kind: 'run_scope',
+    required_artifact: {artifact_type: 'prepared_invocation',
+      artifact_cid: cid('8')},
+    review_projection_cid: cid('4'),
+    requirements: ['invocation_scope_approved'],
+    reason_code: 'run_scope_review_required',
+    human_summary: 'Start the ticket sync',
+    created_at: '2026-09-25T10:00:00.000Z',
+    expires_at: expiresAt,
+  };
+}
+
+function resolvePreparation(checkpoint, decision, {reviewer = 'alice'} = {}) {
+  let evidence;
+  if (decision === 'approved') {
+    const approval = {
+      version: 'actql-run-scope-approval/0.1',
+      prepared_invocation_cid: checkpoint.required_artifact.artifact_cid,
+      review_projection_cid: checkpoint.review_projection_cid,
+      claim: 'invocation_scope_approved',
+      approver: reviewer,
+      approved_at: '2026-09-25T11:00:00.000Z',
+      expires_at: '2026-09-26T10:00:00.000Z',
+      proof: {scheme: 'ed25519-v1', key_id: `${reviewer}-key`,
+        signature: 'c2lnbmF0dXJl'},
+    };
+    approval.run_scope_approval_cid = cidOf(approval);
+    evidence = {
+      version: 'actql-checkpoint-approval-evidence/0.1',
+      kind: 'run_scope',
+      checkpoint_cid: checkpoint.checkpoint_cid,
+      review_projection_cid: checkpoint.review_projection_cid,
+      compatibility_approval: approval,
+    };
+  }
+  const body = signResolution({
+    version: 'actql-checkpoint-resolution/0.1',
+    resolution_id: `res-${reviewer}-${decision}`,
+    checkpoint_id: checkpoint.checkpoint_id,
+    checkpoint_cid: checkpoint.checkpoint_cid,
+    prepare_attempt_id: checkpoint.subject.prepare_attempt_id,
+    decision,
+    actor: reviewer,
+    decided_at: '2026-09-25T10:00:00.000Z',
+    required_artifact_cid: checkpoint.required_artifact.artifact_cid,
+    review_projection_cid: checkpoint.review_projection_cid,
+    ...(evidence ? {approval_evidence_cid: cidOf(evidence)} : {}),
+  }, reviewer);
+  return {
+    resolutionWire: JSON.stringify(body),
+    approvalEvidenceWire: evidence ? JSON.stringify(evidence) : '',
+  };
+}
+
+const persistPreparation = (journal, body = prepareBody()) =>
+  journal.persistCheckpoint({
+    body, declaredResults: ['tickets'], authorities, binding,
+  });
+
+test('a preparation Checkpoint is persisted without a Run until the Run is created',
+  async t => {
+    const {clock, open} = await workspace(t);
+    let journal = open();
+    const waiting = persistPreparation(journal);
+    assert.equal(waiting.runId, null);
+    assert.equal(waiting.prepareAttemptId, 'attempt-1');
+    assert.equal('runState' in waiting, false);
+    assert.equal(waiting.preparation.status, 'waiting_checkpoint');
+    const checkpoint = stored(journal);
+    assert.equal('run_id' in checkpoint, false);
+    assert.equal('run_definition_cid' in checkpoint, false);
+    assert.deepEqual(counts(journal.path), {runs: 0, checkpoints: 1,
+      resolutions: 0, intents: 0, preparations: 1});
+    const [pending] = journal.listPending();
+    assert.equal(pending.checkpointCid, waiting.checkpointCid);
+    assert.equal(pending.runId, null);
+    assert.equal(pending.prepareAttemptId, 'attempt-1');
+    // A preparation Checkpoint never names a prior Run status.
+    assert.throws(() => journal.persistCheckpoint({
+      body: prepareBody({attemptId: 'attempt-2'}), priorStatus: 'preparing',
+      declaredResults: ['tickets'], authorities, binding,
+    }), {code: 'RunTransitionRejected'});
+    // A Resolution that names a Run is not bound to this subject.
+    const wrong = JSON.parse(resolvePreparation(checkpoint, 'rejected')
+      .resolutionWire);
+    delete wrong.proof;
+    delete wrong.resolution_cid;
+    wrong.run_id = 'run-1';
+    signResolution(wrong, 'alice');
+    await assert.rejects(journal.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      resolutionWire: JSON.stringify(wrong),
+    }), {code: 'InvalidResolution',
+      cause: 'CheckpointBindingMismatch("run_id")'});
+    journal.close();
+
+    journal = open();
+    clock.ms = T0 + HOUR;
+    const approved = await journal.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(checkpoint, 'approved'),
+    });
+    assert.equal(approved.decision, 'approved');
+    assert.equal('runState' in approved, false);
+    assert.equal(approved.preparation.status, 'resuming');
+    assert.equal(typeof approved.resumeIntentId, 'string');
+    assert.equal(counts(journal.path).runs, 0);
+    assert.equal(JSON.parse(approved.verifiedResolutionWire).resolution
+      .prepare_attempt_id, 'attempt-1');
+    assert.equal(hostAttestationVerifies(
+      JSON.parse(approved.verifiedResolutionWire)), true);
+    journal.close();
+
+    journal = open();
+    const claimed = journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-a', leaseMs: 60_000, binding});
+    assert.equal(claimed.action, 'claimed');
+    assert.equal(claimed.claim.prepareAttemptId, 'attempt-1');
+    assert.equal(claimed.continuationStateCid, cid('2'));
+    assert.equal(counts(journal.path).runs, 0);
+    // The resumed preparation continuation creates the Run.
+    const created = journal.completeResume(claimed.claim,
+      {run: {runId: 'run-1', status: 'running'}});
+    assert.equal(created.preparation.status, 'run_created');
+    assert.equal(created.preparation.runId, 'run-1');
+    assert.equal(created.runState.status, 'running');
+    assert.deepEqual(Object.keys(created.runState.runState.result_availability),
+      ['tickets']);
+    assert.deepEqual(counts(journal.path), {runs: 1, checkpoints: 1,
+      resolutions: 1, intents: 1, preparations: 1});
+    assert.deepEqual(journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-b', leaseMs: 1000, binding}), {action: 'completed'});
+
+    // The created Run can pause at its own Run-unit Checkpoint.
+    const unit = journal.persistCheckpoint({
+      body: effectBody({checkpointId: 'cp-effect'}), priorStatus: 'running',
+      declaredResults: ['tickets'], authorities, binding,
+    });
+    assert.equal(unit.runState.status, 'waiting_checkpoint');
+    assert.equal(journal.getRunState('run-1').version, 2);
+  });
+
+test('failed revalidation of a preparation continuation creates no Run',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persistPreparation(journal);
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(stored(journal), 'approved')});
+    const result = journal.claimPreparationResume('attempt-1', {
+      claimant: 'worker-a', leaseMs: 1000,
+      binding: {...binding, authorizationContextCid: cid('e')},
+    });
+    assert.deepEqual(result, {action: 'invalidated', runCreated: false,
+      terminalErrorCode: 'ACTQL_E_RESUME_REVALIDATION_FAILED'});
+    const preparation = journal.getPreparation('attempt-1');
+    assert.equal(preparation.status, 'ended');
+    assert.equal(preparation.endReason, 'revalidation_failed');
+    assert.equal(preparation.terminalErrorCode,
+      'ACTQL_E_RESUME_REVALIDATION_FAILED');
+    assert.deepEqual(journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding}), {action: 'completed'});
+    assert.equal(counts(journal.path).runs, 0);
+  });
+
+test('a rejected or expired preparation Checkpoint ends without a Run',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const waiting = persistPreparation(journal);
+    const rejected = await journal.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(stored(journal), 'rejected'),
+    });
+    assert.equal(rejected.resumeIntentId, null);
+    assert.equal(rejected.preparation.status, 'ended');
+    assert.equal(rejected.preparation.endReason, 'rejected');
+    assert.throws(() => journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding}),
+    {code: 'ResumeIntentNotFound'});
+
+    const late = persistPreparation(journal, prepareBody({
+      attemptId: 'attempt-2', expiresAt: '2026-09-25T11:00:00.000Z'}));
+    clock.ms = T0 + HOUR;
+    assert.deepEqual(journal.expire(), [late.checkpointCid]);
+    assert.equal(journal.getPreparation('attempt-2').endReason, 'expired');
+    assert.equal(journal.listPending().length, 0);
+    assert.equal(counts(journal.path).runs, 0);
+  });
+
+test('an immediate answer persists no Checkpoint, waiting state or intent',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const body = effectBody();
+    const subject = core(runtime.checkpointSealBody(JSON.stringify(body)));
+    const checkpoint = JSON.parse(subject.checkpoint_wire);
+    const permitted = await journal.admitImmediateResolution({
+      body, authorities, ...resolve(checkpoint, 'approved'),
+    });
+    assert.equal(permitted.decision, 'approved');
+    assert.equal(permitted.checkpointCid, subject.checkpoint_cid);
+    const verified = JSON.parse(permitted.verifiedResolutionWire);
+    assert.equal(verified.resolution.checkpoint_cid, subject.checkpoint_cid);
+    assert.equal(hostAttestationVerifies(verified), true);
+    assert.equal('resumeIntentId' in permitted, false);
+    const rejected = await journal.admitImmediateResolution({
+      body, authorities, ...resolve(checkpoint, 'rejected', {reviewer: 'bob'}),
+    });
+    assert.equal(rejected.decision, 'rejected');
+    assert.deepEqual(counts(journal.path),
+      {runs: 0, checkpoints: 0, resolutions: 0, intents: 0});
+    assert.equal(journal.getRunState('run-1'), undefined);
+    // Bound to the exact would-be body: another body is another subject.
+    await assert.rejects(journal.admitImmediateResolution({
+      body: {...body, review_projection_cid: cid('9')}, authorities,
+      ...resolve(checkpoint, 'rejected'),
+    }), {code: 'InvalidResolution'});
+    await assert.rejects(journal.admitImmediateResolution({
+      body, authorities: [{keyId: 'bob-key', reviewerId: 'bob'}],
+      ...resolve(checkpoint, 'rejected'),
+    }), {code: 'InvalidResolution', cause: 'AuthorityNotPermitted'});
+  });
+
+test('failed revalidation with unknown Effect outcomes needs reconciliation',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persist(journal);
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolve(stored(journal), 'approved')});
+    const result = journal.claimResume('run-1', {
+      claimant: 'worker-a', leaseMs: 1000, unknownEffects: ['effect-1'],
+      binding: {...binding, environmentBindingCid: cid('e')},
+    });
+    assert.equal(result.runStatus, 'needs_reconciliation');
+    const state = journal.getRunState('run-1');
+    assert.equal(state.status, 'needs_reconciliation');
+    assert.deepEqual(state.runState.next_action,
+      {kind: 'reconcile', effects: ['effect-1']});
+    assert.equal(state.runState.terminal_error.code,
+      'ACTQL_E_RESUME_REVALIDATION_FAILED');
+  });

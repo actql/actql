@@ -88,18 +88,18 @@ fn checkpoint_fields(
   checkpoint : @checkpoint.SealedCheckpoint,
 ) -> Map[String, Json] {
   let request = checkpoint.checkpoint
-  let (subject_kind, attempt, unit) = match request.subject {
-    PrepareAttempt(attempt) => ("prepare_attempt", Some(attempt), None)
-    RunUnit(_, unit) => ("run_unit", None, Some(unit))
+  let (subject_kind, unit) = match request.subject {
+    PrepareAttempt(..) => ("prepare_attempt", None)
+    RunUnit(unit_id~, ..) => ("run_unit", Some(unit_id))
   }
   {
     "checkpoint_cid": Json::string(checkpoint.checkpoint_cid),
     "checkpoint_wire": Json::string(checkpoint.wire),
     "checkpoint_id": Json::string(request.checkpoint_id),
-    "run_id": Json::string(request.run_id),
+    "run_id": optional_text(request.run_id()),
     "kind": Json::string(@checkpoint.checkpoint_kind_token(request.kind)),
     "subject_kind": Json::string(subject_kind),
-    "prepare_attempt_id": optional_text(attempt),
+    "prepare_attempt_id": optional_text(request.prepare_attempt_id()),
     "unit_id": optional_text(unit),
     "created_at": Json::string(request.created_at),
     "expires_at": Json::string(request.expires_at),
@@ -247,13 +247,22 @@ fn authentication(text : String) -> @checkpoint.HostAuthentication? {
       text_member(value, "reviewer_id"),
       text_member(value, "authority_context_cid"),
       text_member(value, "policy_cid"),
+      text_member(value, "proof_preimage"),
     ) {
     (
       Some(key_id),
       Some(reviewer_id),
       Some(authority_context_cid),
       Some(policy_cid),
-    ) => Some({ key_id, reviewer_id, authority_context_cid, policy_cid, })
+      Some(proof_preimage),
+    ) =>
+      Some({
+        key_id,
+        reviewer_id,
+        authority_context_cid,
+        policy_cid,
+        proof_preimage,
+      })
     _ => None
   }
 }
@@ -417,14 +426,18 @@ pub fn resolution_decide(
   let action = @checkpoint.decide_resolution_commit(
     checkpoint, current, verified,
   )
+  let (effect, run_status) = match
+    @checkpoint.resolution_effect(checkpoint, verified.decision) {
+    MoveRun(status) =>
+      ("move_run", Json::string(@checkpoint.run_status_token(status)))
+    ContinuePreparation => ("continue_preparation", Json::null())
+    EndPreparation => ("end_preparation", Json::null())
+  }
   ok({
     "action": Json::string(commit_action(action)),
     "decision": Json::string(decision_token(verified.decision)),
-    "run_status": Json::string(
-      @checkpoint.run_status_token(
-        @checkpoint.resolution_run_status(verified.decision),
-      ),
-    ),
+    "effect": Json::string(effect),
+    "run_status": run_status,
     "resolution_id": Json::string(verified.resolution_id),
     "resolution_cid": Json::string(verified.resolution_cid),
     "verified_resolution_cid": Json::string(verified.verified_resolution_cid),
@@ -548,4 +561,187 @@ pub fn resume_fence_decide(
     FenceCurrent => ok({ "action": Json::string("current") })
     FenceStale => ok({ "action": Json::string("stale") })
   }
+}
+
+///|
+/// Unsigned Resolution CID text: the exact UTF-8 text whose Ed25519
+/// `proof.signature` the Host authorization port verifies.
+#export_name("resolutionProofPreimage")
+pub fn resolution_proof_preimage(resolution_wire : String) -> String {
+  match @checkpoint.resolution_proof_preimage(resolution_wire, limits()) {
+    Ok(preimage) => ok({ "preimage": Json::string(preimage) })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
+/// Unsigned verified-wrapper CID text: the exact UTF-8 text whose Ed25519
+/// `host_attestation.signature` the Host produces and verifiers check.
+#export_name("verifiedAttestationPreimage")
+pub fn verified_attestation_preimage(verified_wire : String) -> String {
+  match
+    @checkpoint.verified_resolution_attestation_preimage(
+      verified_wire,
+      limits(),
+    ) {
+    Ok(preimage) => ok({ "preimage": Json::string(preimage) })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
+fn admit_immediate(
+  body_wire : String,
+  resolution_wire : String,
+  evidence_wire : String,
+  authentication_json : String,
+  authorities_json : String,
+  verified_at : String,
+) -> Result[@checkpoint.ImmediateAdmittedResolution, String] {
+  let subject = match @checkpoint.seal_checkpoint_body(body_wire, limits()) {
+    Ok(value) => value
+    Err(issue) => return Err(@debug.to_string(issue))
+  }
+  let auth = match authentication(authentication_json) {
+    Some(value) => value
+    None => return Err("InvalidAuthentication")
+  }
+  let allowed = match authorities(authorities_json) {
+    Some(value) => value
+    None => return Err("InvalidAuthorities")
+  }
+  let evidence = if evidence_wire == "" { None } else { Some(evidence_wire) }
+  match
+    @checkpoint.admit_immediate_resolution(
+      subject.checkpoint,
+      resolution_wire,
+      evidence,
+      auth,
+      allowed,
+      verified_at,
+      limits(),
+    ) {
+    Ok(admitted) => Ok(admitted)
+    Err(issue) => Err(@debug.to_string(issue))
+  }
+}
+
+///|
+/// Admit an immediate delegated answer against the Checkpoint body the Host
+/// would persist if it deferred. Nothing is persisted.
+#export_name("resolutionAdmitImmediate")
+pub fn resolution_admit_immediate(
+  body_wire : String,
+  resolution_wire : String,
+  evidence_wire : String,
+  authentication_json : String,
+  authorities_json : String,
+  verified_at : String,
+) -> String {
+  match
+    admit_immediate(
+      body_wire, resolution_wire, evidence_wire, authentication_json, authorities_json,
+      verified_at,
+    ) {
+    Ok(admitted) =>
+      ok({
+        "checkpoint_cid": Json::string(admitted.checkpoint_cid()),
+        "resolution_cid": Json::string(admitted.resolution_cid()),
+        "decision": Json::string(decision_token(admitted.decision())),
+        "attestation_preimage": Json::string(admitted.attestation_preimage()),
+      })
+    Err(issue) => fail(issue)
+  }
+}
+
+///|
+/// Re-admit deterministically and attach the Host attestation. The result is
+/// the retained decision evidence; it has no resume intent.
+#export_name("resolutionSealImmediate")
+pub fn resolution_seal_immediate(
+  body_wire : String,
+  resolution_wire : String,
+  evidence_wire : String,
+  authentication_json : String,
+  authorities_json : String,
+  verified_at : String,
+  host_key_id : String,
+  signature : String,
+) -> String {
+  let admitted = match
+    admit_immediate(
+      body_wire, resolution_wire, evidence_wire, authentication_json, authorities_json,
+      verified_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return fail(issue)
+  }
+  match
+    @checkpoint.seal_immediate_resolution(
+      admitted,
+      host_key_id,
+      signature,
+      limits(),
+    ) {
+    Ok(immediate) =>
+      ok({
+        "checkpoint_cid": Json::string(immediate.checkpoint_cid),
+        "decision": Json::string(decision_token(immediate.decision)),
+        "resolution_cid": Json::string(immediate.resolution_cid),
+        "verified_resolution_cid": Json::string(
+          immediate.verified_resolution_cid,
+        ),
+        "verified_resolution_wire": Json::string(immediate.wire),
+      })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
+/// Run state of a Run-unit continuation that failed resume revalidation:
+/// `failed`, or `needs_reconciliation` over the unknown Effects, with
+/// `terminal_error.code` `ACTQL_E_RESUME_REVALIDATION_FAILED`.
+#export_name("revalidationFailedState")
+pub fn revalidation_failed_state(
+  run_id : String,
+  updated_at : String,
+  declared_results_json : String,
+  unknown_effects_json : String,
+) -> String {
+  let declared = match text_list(declared_results_json) {
+    Some(values) => values
+    None => return fail("InvalidDeclaredResults")
+  }
+  let unknown = match text_list(unknown_effects_json) {
+    Some(values) => values
+    None => return fail("InvalidUnknownEffects")
+  }
+  match
+    @checkpoint.issue_revalidation_failed_run_state(
+      run_id,
+      updated_at,
+      declared,
+      unknown,
+      limits(),
+    ) {
+    Ok(wire) =>
+      ok({
+        "run_status": Json::string(
+          @checkpoint.run_status_token(
+            @checkpoint.revalidation_failure_status(unknown),
+          ),
+        ),
+        "terminal_error_code": Json::string(
+          @checkpoint.RESUME_REVALIDATION_FAILED_CODE,
+        ),
+        "run_state_wire": Json::string(wire),
+      })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
+#export_name("resumeRevalidationFailedCode")
+pub fn resume_revalidation_failed_code() -> String {
+  @checkpoint.RESUME_REVALIDATION_FAILED_CODE
 }
