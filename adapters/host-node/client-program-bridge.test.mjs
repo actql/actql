@@ -4293,6 +4293,52 @@ test(`two-member captured Effect Run ${
         };
       }
       if (physical === 'salesforce') {
+        const foreignAuthored = checked(
+          moon.clientProgramAuthorEffectPreview(
+            previewDraft.wire, body.run_identity_cid,
+            previewDraft.authoringCid, requestScope,
+            20000, 1000, 20, 2, 4, 128, 8, 3));
+        const foreignReceiptPreview = effect.admitPreviewIdentity(
+          foreignAuthored._0, body.run_identity_cid,
+          previewDraft.authoringCid, requestScope, foreignAuthored._1,
+          20000, 1000, 20);
+        assert.notEqual(moon.strategyEffectPreviewSemanticCid(
+          foreignReceiptPreview), body.effect_preview_cid);
+        const writesBefore = sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length;
+        await assert.rejects(completeCapturedEffectRun({
+          apply: {...applyOptions, ledger,
+            dispatchRow: () => assert.fail('foreign Set sent a row')},
+          receipt: {ledger, preview: foreignReceiptPreview,
+            commonMoon: moon, publicationPreview: admittedPreview,
+            authorizeEvidenceRead: async () => true,
+            members: members.map(member => ({
+              rowOwners: member.claims.map(claim => ({claim})),
+              replayed: false,
+            }))},
+          publication: {ledger, preview: admittedPreview, control},
+        }), {code: 'InvalidCapturedEffectRunCompletion'});
+        const foreignInputs = checked(
+          moon.clientProgramBindEffectPreviewInputs(
+            owned, inputs, invocation, 0, foreignAuthored._0,
+            previewDraft.authoringCid,
+            moon.clientProgramEffectPreviewInputLimits(
+              20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+              2, 4, 100, 100)));
+        await assert.rejects(completeCapturedEffectRun({
+          apply: {...applyOptions, ledger, capturedInputs: foreignInputs,
+            dispatchRow: () => assert.fail('foreign apply sent a row')},
+          receipt: {ledger, preview: applyPreview,
+            commonMoon: moon, publicationPreview: admittedPreview,
+            authorizeEvidenceRead: async () => true,
+            members: members.map(member => ({
+              rowOwners: member.claims.map(claim => ({claim})),
+              replayed: false,
+            }))},
+          publication: {ledger, preview: admittedPreview, control},
+        }), {code: 'InvalidCapturedEffectRunCompletion'});
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length, writesBefore);
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, refreshPreflight: undefined,
           dispatchRow: () => assert.fail('missing refresh sent a row'),

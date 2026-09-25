@@ -28,6 +28,15 @@ async function complete({apply, receipt, publication, signal}, recovered) {
         apply.publicationControl !== publication.control ||
         apply.computation !== publication.computation ||
         apply.preview !== publication.preview))) fail();
+  const subjectCid = recovered
+    ? publication.control.effectComputationPreviewSemanticCid(apply.preview)
+    : apply.moon.clientProgramEffectApplySubjectCid(apply.capturedInputs);
+  const publicationCid = publication.control
+    .effectComputationPreviewSemanticCid(publication.preview);
+  const receiptCid = apply.moon.strategyEffectPreviewSemanticCid(
+    receipt.preview);
+  if (typeof subjectCid !== 'string' || subjectCid !== publicationCid ||
+      receiptCid !== publicationCid) fail();
   const progress = recovered
     ? await applyRecoveredEffectSet({...apply, signal})
     : await applyCapturedEffectSet({...apply, signal});
