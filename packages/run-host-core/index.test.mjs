@@ -16,6 +16,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueDurableResultBinding,
   issuePublicationRequest, issuePublicationAttempt,
   issuePublicIndexEntry, issuePublicationRecord,
+  validateEffectFreePublicationCommit,
   issueEffectFreeRunReceipt, admitCapturedResultSnapshot,
   issueSourceFreeCapturedRun,
   projectPublicationSnapshot,
@@ -354,6 +355,12 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
       artifact, artifact, [binding], request, attempt,
       '2026-09-18T00:03:00.000Z', limits),
     {code: 'RunHostPublicIndexEntryRejected'});
+    assert.throws(() => validateEffectFreePublicationCommit({
+      runDefinition: run, invocation, definitions: [definition],
+      artifacts: [artifact], manifest, receipt: artifact,
+      capturedRun: artifact,
+    }, request, attempt, manifest, limits),
+    {code: 'RunHostPublicationCommitRejected'});
   });
 
 test('portable Host package compiles the ordinary Values Program', () => {

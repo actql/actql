@@ -1400,6 +1400,32 @@ pub fn client_values_host_issue_public_index_entry(
 }
 
 ///|
+/// Before a Store installs the public index, validate the entire captured
+/// Effect-free chain and its exact publication request and attempt.
+#export_name("clientValuesHostValidateEffectFreePublicationCommit")
+pub fn client_values_host_validate_effect_free_publication_commit(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication.PublicationCommitIssue] {
+  @publication.validate_effect_free_publication_commit(
+    run_definition, invocation, definitions, artifacts, manifest, receipt,
+    captured_run, request, attempt, index_entry, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Sequence and predecessor are derived by the portable publication owner.
 #export_name("clientValuesHostIssuePublicationRecord")
 pub fn client_values_host_issue_publication_record(

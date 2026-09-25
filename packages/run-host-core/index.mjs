@@ -766,6 +766,27 @@ export function issuePublicIndexEntry(runDefinition, invocation, manifest,
     maxWireBytes, maxNodes, maxDepth), 'RunHostPublicIndexEntryRejected'));
 }
 
+export function validateEffectFreePublicationCommit(evidence, request,
+  attempt, indexEntry, limits) {
+  if (evidence === null || typeof evidence !== 'object' ||
+      !Array.isArray(evidence.definitions) ||
+      !Array.isArray(evidence.artifacts)) {
+    throw new TypeError('InvalidRunHostPublicationCommit');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  checked(owner.clientValuesHostValidateEffectFreePublicationCommit(
+    publicationToken(evidence.runDefinition),
+    publicationToken(evidence.invocation),
+    publicationItems(evidence.definitions),
+    publicationItems(evidence.artifacts),
+    publicationToken(evidence.manifest),
+    publicationToken(evidence.receipt),
+    publicationToken(evidence.capturedRun),
+    publicationToken(request), publicationToken(attempt),
+    publicationToken(indexEntry), maxWireBytes, maxNodes, maxDepth),
+  'RunHostPublicationCommitRejected');
+}
+
 export function issuePublicationRecord(attempt, previous, facts, limits) {
   if (facts === null || typeof facts !== 'object' ||
       typeof facts.state !== 'string' ||

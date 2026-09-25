@@ -316,6 +316,17 @@ export function issuePublicIndexEntry(runDefinition: PublicationContract,
   durableBindings: readonly PublicationContract[],
   request: PublicationContract, attempt: PublicationContract,
   committedAt: string, limits: PublicationLimits): PublicationContract;
+/** Validate full captured evidence and index binding before Store commit. */
+export function validateEffectFreePublicationCommit(evidence: Readonly<{
+  runDefinition: PublicationContract;
+  invocation: PublicationContract;
+  definitions: readonly PublicationContract[];
+  artifacts: readonly PublicationContract[];
+  manifest: PublicationContract;
+  receipt: PublicationContract;
+  capturedRun: PublicationContract;
+}>, request: PublicationContract, attempt: PublicationContract,
+  indexEntry: PublicationContract, limits: PublicationLimits): void;
 /** Sequence and predecessor come from the shared publication owner. */
 export function issuePublicationRecord(attempt: PublicationContract,
   previous: PublicationContract | undefined, facts: Readonly<{
