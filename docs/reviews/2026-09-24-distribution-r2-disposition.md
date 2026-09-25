@@ -1,5 +1,47 @@
 # Distribution R2 review disposition
 
+## Current completion unit: packed Local and Remote AQL
+
+At the current Distribution branch, `@actql/node` includes an installed
+embedded Local Host, and the packed source-free Values route reaches a named
+Result without Cloud login or a user-assembled provider. The lightweight
+`@actql/sdk` still contains no kernel or DuckDB dependency. This is a working
+baseline, not completion of the acquired-input unit.
+
+1. **What the user can do when this unit is complete.** Install the standard
+   packed Node package in a clean directory and run the same AQL Program from
+   the same application function against embedded Local and an actual Remote
+   Host by changing only `connect()` options. The Program acquires real input,
+   performs checked downstream computation, and exposes a named Result. Local
+   needs no Cloud connection or login; Remote does not silently upload a
+   local path. Result reading, attach, request uncertainty, cancellation,
+   limits and cleanup retain the agreed Client semantics.
+2. **Remaining implementation and acceptance.** The embedded Host currently
+   stops at its empty source catalog and source-free Run preparation. Connect
+   an installed source's authorized acquisition, checked input identity,
+   captured Run, downstream compute and publication to normal `aql()` and
+   `start()`. Extend the actual Remote Host through the same common Run seam.
+   Pack both real implementations and run one independent acquired-input
+   fixture through Local and HTTP Remote, checking exact values/order,
+   attach, unknown reply reconciliation, read limits, cancellation and
+   release. The existing packed Values smoke is insufficient for this test.
+3. **Dependencies and owners.** Distribution owns Client composition, the
+   shared acquired-input Run/publication bridge and the packed acceptance.
+   The Local owner supplies the installed bounded acquisition/compute
+   capability; the Connector owner supplies source Catalog and Acquisition
+   semantics. Cloud owns the physical Remote Host adapter but must consume
+   the one shared OSS Run boundary rather than duplicate its decisions.
+   The exact missing connections are recorded in
+   [the acquired-input handoff](2026-09-26-acquired-input-client-gap.md).
+4. **Existing plan outside this unit.** The two Hybrid ownership forms,
+   Effectful submit, SQL, Python embedding, expanded native CLI and optional
+   tools remain in the distribution plan. Closing this Node AQL unit does not
+   complete those milestones or Cloud deployment.
+
+The source-free packed distribution gate passed locally at
+`c9ed2cc2221489c40372e2e3718d67462e74fd42` using the pinned MoonBit
+toolchain. Linux CI and the acquired-input acceptance remain unverified.
+
 Review input: `/Users/t14i/Downloads/03-distribution-client-cloud.md`,
 written against `92dd4410ea9eadf278b312ec6020564883f0ec9a`.
 This disposition compares that snapshot with the current distribution branch;
