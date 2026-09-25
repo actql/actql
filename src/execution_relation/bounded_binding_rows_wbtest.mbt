@@ -72,6 +72,7 @@ fn bounded_binding_rows_receiver(
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
+  dedupe? : Bool = false,
   distinct_keyed? : Bool = false,
   derive_scalar? : Bool = false,
 ) -> @lower.BoundPrepared {
@@ -82,7 +83,9 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if distinct_keyed {
+      (if dedupe {
+        "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"tag\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if distinct_keyed {
         "{\"distinct\":[\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
       } else if distinct {
         "{\"distinct\":true,\"from\":\"rows\",\"as\":\"derived\"}"
@@ -170,6 +173,7 @@ fn bounded_binding_rows_fixture(
   sort? : Bool = false,
   sort_empty? : Bool = false,
   distinct? : Bool = false,
+  dedupe? : Bool = false,
   distinct_keyed? : Bool = false,
   unused_payload? : Bool = false,
   derive_scalar? : Bool = false,
@@ -181,7 +185,7 @@ fn bounded_binding_rows_fixture(
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
     id_nullable~,
-    distinct=distinct || distinct_keyed || unique_text,
+    distinct=distinct || distinct_keyed || dedupe || unique_text,
     unused_payload~,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
@@ -204,6 +208,7 @@ fn bounded_binding_rows_fixture(
     sort~,
     sort_empty~,
     distinct~,
+    dedupe~,
     distinct_keyed~,
     derive_scalar~,
   )
@@ -223,6 +228,7 @@ fn bounded_binding_rows_fixture(
       sort ||
       sort_empty ||
       distinct ||
+      dedupe ||
       distinct_keyed {
       []
     } else {
@@ -283,6 +289,144 @@ test "bounded distinct preserves first occurrence and null equality" {
   assert_true(completed_cell(output, 2, 0) is Some(Null))
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+}
+
+///|
+test "bounded dedupe selects authored winners in typed key order" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"tag\":\"a\"},{\"id\":1,\"tag\":\"b\"},{\"id\":2,\"tag\":\"c\"},{\"id\":null,\"tag\":\"d\"},{\"id\":null,\"tag\":\"e\"}]",
+    dedupe=true,
+    id_nullable=true,
+  )
+  let mut completed : CompletedOutput? = None
+  let mut advances = 0
+  while completed is None && advances < 2000 {
+    advances += 1
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => completed = Some(output)
+      _ => fail("bounded dedupe failed")
+    }
+  }
+  guard completed is Some(output) else { fail("bounded dedupe did not finish") }
+  assert_true(advances > 5)
+  assert_eq(completed_row_count(output), 3)
+  assert_true(completed_cell(output, 0, 0) is Some(Null))
+  assert_true(completed_cell(output, 0, 1) is Some(Text("e")))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 1, 1) is Some(Text("b")))
+  assert_true(completed_cell(output, 2, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 2, 1) is Some(Text("c")))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded dedupe rejects an unresolved authored top tie" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"tag\":\"b\"},{\"id\":1,\"tag\":\"b\"}]",
+    dedupe=true,
+  )
+  let mut failed = false
+  for _ in 0..<1000 {
+    if failed {
+      break
+    }
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(Rows(DedupeTopTie(0, 1)), ..) => failed = true
+      _ => fail("bounded dedupe tie had another outcome")
+    }
+  }
+  assert_true(failed)
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded dedupe cancels after progress without publishing output" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":2,\"tag\":\"a\"},{\"id\":1,\"tag\":\"b\"},{\"id\":2,\"tag\":\"c\"}]",
+    dedupe=true,
+  )
+  for _ in 0..<12 {
+    assert_true(
+      advance_bounded_binding_rows(execution, 1)
+      is Ok(BoundedBindingRowsContinue(..)),
+    )
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Ok(BoundedBindingRowsStopped(@bounded.Cancelled, ..)),
+  )
+  assert_true(bounded_binding_rows_cleanup_pending(execution))
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded dedupe admits exact and one-short resource budgets" {
+  let rows = "[{\"id\":2,\"tag\":\"a\"},{\"id\":1,\"tag\":\"b\"}]"
+  // The two typed terms, their retained order view, two merge indices, and
+  // two output rows peak at 16 live structural slots. Input admission,
+  // term preparation, merge, representative marking, and output use 36
+  // control units for these two scalar rows, including the first mark.
+  for workspace in [16, 15] {
+    let (_, execution, _) = bounded_binding_rows_fixture(
+      rows,
+      dedupe=true,
+      max_entries=workspace,
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_eq(workspace, 16)
+          assert_eq(completed_row_count(output), 2)
+          done = true
+          break
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_eq(workspace, 15)
+          done = true
+          break
+        }
+        _ => fail("dedupe workspace had another outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
+  for work in [36, 35] {
+    let (_, execution, _) = bounded_binding_rows_fixture(
+      rows,
+      dedupe=true,
+      max_work=work,
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        BoundedBindingRowsComplete(output, ..) => {
+          assert_eq(work, 36)
+          assert_eq(completed_row_count(output), 2)
+          done = true
+          break
+        }
+        BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+          assert_eq(work, 35)
+          done = true
+          break
+        }
+        _ => fail("dedupe work had another outcome")
+      }
+    }
+    assert_true(done)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  }
 }
 
 ///|

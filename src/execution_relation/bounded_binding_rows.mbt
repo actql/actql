@@ -1,8 +1,10 @@
 ///|
 priv enum BoundedBindingRowsPhase {
   PrepareDistinctTerms
+  PrepareDedupeTerms
   InitializeDistinctKeep
   MarkDistinct
+  MarkDedupe
   CheckUniqueKeys
   CheckUniquePairs
   ChargeInput
@@ -334,6 +336,13 @@ priv struct BoundedBindingRowsState {
   assertion : Bool
   unique_keys : Array[@schema.FieldName]?
   distinct : Bool
+  dedupe : Bool
+  dedupe_kernel : @lower.PreparedKernel?
+  dedupe_key_terms : Int
+  dedupe_order_terms : Int
+  mut dedupe_orders : Array[ColumnOrder]
+  mut dedupe_leader : Int
+  mut dedupe_compare_order : Bool
   mut distinct_keep : Array[Bool]
   mut distinct_cursor : Int
   input_names : Array[String]
@@ -569,6 +578,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     state.sort_execution = None
   }
   state.sort_orders = []
+  state.dedupe_orders = []
   state.sorted_indices = None
   state.lag_values = []
   state.distinct_keep = []
@@ -679,10 +689,53 @@ fn bounded_binding_rows_step(
         state.column += 1
         used += 1
       }
+      PrepareDedupeTerms => {
+        guard state.dedupe_kernel is Some(kernel) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        let total = state.dedupe_key_terms + state.dedupe_order_terms
+        if state.column == total {
+          state.column = 0
+          state.phase = ChargeInput
+          continue
+        }
+        let key = state.column < state.dedupe_key_terms
+        let (field, descending, nulls_first) = if key {
+          guard @lower.kernel_dedupe_key_at(kernel, state.column) is Some(field) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          (field, false, true)
+        } else {
+          guard @lower.kernel_dedupe_order_at(
+              kernel,
+              state.column - state.dedupe_key_terms,
+            )
+            is Some(order) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          order
+        }
+        let name = @schema.reference_name(field)
+        guard state.input_ordinals.get(name) is Some(column) else {
+          return fail_bounded_binding_rows(Rows(InvalidRows), progress, used)
+        }
+        if !reserve_slots(state.workspace, if key { 1 } else { 2 }) ||
+          !spend_control(state.control, 1) ||
+          !spend_control_text(state.control, name) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        let order = { column, descending, nulls_first, }
+        state.sort_orders.push(order)
+        if !key {
+          state.dedupe_orders.push(order)
+        }
+        state.column += 1
+        used += 1
+      }
       InitializeDistinctKeep => {
         if state.distinct_keep.length() == count {
           state.distinct_cursor = 0
-          state.phase = MarkDistinct
+          state.phase = if state.dedupe { MarkDedupe } else { MarkDistinct }
           continue
         }
         if !spend_control(state.control, 1) {
@@ -733,6 +786,95 @@ fn bounded_binding_rows_step(
           state.distinct_keep[indices[state.distinct_cursor]] = true
         }
         state.distinct_cursor += 1
+        used += 1
+      }
+      MarkDedupe => {
+        if state.distinct_cursor == count {
+          release_slots(
+            state.workspace,
+            state.sort_orders.length() + state.dedupe_orders.length(),
+          )
+          state.sort_orders = []
+          state.dedupe_orders = []
+          state.row = 0
+          state.phase = BeginRow
+          continue
+        }
+        guard state.sorted_indices is Some(indices) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        let candidate = indices[state.distinct_cursor]
+        if state.distinct_cursor == 0 {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.distinct_keep[candidate] = true
+          state.dedupe_leader = candidate
+          state.distinct_cursor += 1
+          used += 1
+          continue
+        }
+        if !state.dedupe_compare_order && state.dedupe_key_terms > 0 {
+          if state.comparison.phase == -1 && !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          match
+            bounded_row_comparison_step(
+              state,
+              state.dedupe_leader,
+              candidate,
+              state.dedupe_key_terms,
+            ) {
+            Ok(None) => ()
+            Ok(Some(0)) => state.dedupe_compare_order = true
+            Ok(Some(_)) => {
+              state.distinct_keep[candidate] = true
+              state.dedupe_leader = candidate
+              state.distinct_cursor += 1
+            }
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Rows(ordering_row_issue(issue)),
+                progress,
+                used + 1,
+              )
+          }
+          used += 1
+          continue
+        }
+        if state.comparison.phase == -1 && !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        match
+          bounded_row_comparison_step_with(
+            state.comparison,
+            state.dedupe_orders,
+            state.control,
+            (row, column) => {
+              bounded_binding_input_cell(state.input, row, column)
+            },
+            state.dedupe_leader,
+            candidate,
+            state.dedupe_order_terms,
+          ) {
+          Ok(None) => ()
+          Ok(Some(0)) =>
+            return fail_bounded_binding_rows(
+              Rows(DedupeTopTie(state.dedupe_leader, candidate)),
+              progress,
+              used + 1,
+            )
+          Ok(Some(_)) => {
+            state.dedupe_compare_order = false
+            state.distinct_cursor += 1
+          }
+          Err(issue) =>
+            return fail_bounded_binding_rows(
+              Rows(ordering_row_issue(issue)),
+              progress,
+              used + 1,
+            )
+        }
         used += 1
       }
       CheckUniqueKeys => {
@@ -1393,7 +1535,15 @@ fn bounded_binding_rows_step(
           if !spend_control(state.control, 1) {
             return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
           }
-          if !state.distinct_keep[state.row] {
+          let selected = if state.dedupe {
+            guard state.sorted_indices is Some(indices) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            indices[state.row]
+          } else {
+            state.row
+          }
+          if !state.distinct_keep[selected] {
             state.row += 1
             used += 1
             continue
@@ -2225,6 +2375,7 @@ fn start_bounded_binding_rows_with_input(
     @lower.Lag(_, _) => ([], false, None, false, None, Some(kernel))
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.DistinctRows => ([], false, None, false, None, None)
+    @lower.DedupeRows => ([], false, None, false, None, None)
     @lower.StableSort(_) =>
       (
         [],
@@ -2303,7 +2454,21 @@ fn start_bounded_binding_rows_with_input(
   } else {
     0
   }
-  let distinct = body is @lower.DistinctRows
+  let dedupe = body is @lower.DedupeRows
+  let distinct = body is @lower.DistinctRows || dedupe
+  let dedupe_key_terms = if dedupe {
+    @lower.kernel_dedupe_key_count(kernel)
+  } else {
+    0
+  }
+  let dedupe_order_terms = if dedupe {
+    @lower.kernel_dedupe_order_count(kernel)
+  } else {
+    0
+  }
+  if dedupe && dedupe_order_terms == 0 {
+    return Err(InvalidExecution)
+  }
   let assertion = body is @lower.AssertAll(_)
   let unique_keys = match body {
     @lower.AssertUnique(keys) => Some(keys)
@@ -2470,6 +2635,7 @@ fn start_bounded_binding_rows_with_input(
     | @lower.TopK(_, _)
     | @lower.PartitionedTopK(_, _)
     | @lower.Limit(_, _, _)
+    | @lower.DedupeRows
     | @lower.AssertUnique(_) => {
       let projection : Map[String, Int] = Map([])
       for name in output_names {
@@ -2581,6 +2747,17 @@ fn start_bounded_binding_rows_with_input(
     assertion,
     unique_keys,
     distinct,
+    dedupe,
+    dedupe_kernel: if dedupe {
+      Some(kernel)
+    } else {
+      None
+    },
+    dedupe_key_terms,
+    dedupe_order_terms,
+    dedupe_orders: [],
+    dedupe_leader: -1,
+    dedupe_compare_order: false,
     distinct_keep: [],
     distinct_cursor: 0,
     input_names,
@@ -2666,7 +2843,9 @@ fn start_bounded_binding_rows_with_input(
     live,
     accepted,
     port,
-    phase: if distinct {
+    phase: if dedupe {
+      PrepareDedupeTerms
+    } else if distinct {
       PrepareDistinctTerms
     } else if unique_keys is Some(_) {
       CheckUniqueKeys

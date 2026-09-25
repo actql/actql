@@ -6884,6 +6884,7 @@ async function exerciseStrategyGraph(
     {name: 'ordinary-assert-unique-in-flight', kind: 'assert-unique'},
     {name: 'ordinary-sort-in-flight', kind: 'sort'},
     {name: 'ordinary-distinct-in-flight', kind: 'distinct'},
+    {name: 'ordinary-dedupe-in-flight', kind: 'dedupe'},
     {name: 'ordinary-global-top-k-in-flight', kind: 'top-k'},
     {name: 'ordinary-partitioned-top-k-in-flight', kind: 'top-k-by'},
     {name: 'ordinary-take-in-flight', kind: 'take'},
@@ -6917,6 +6918,9 @@ async function exerciseStrategyGraph(
         'assert-unique': {assert_rows: {unique_by: ['id']}, as: 'out'},
         sort: {sort: [{id: 'desc'}], as: 'out'},
         distinct: {distinct: true, as: 'out'},
+        dedupe: {dedupe_rows: {
+          by: ['id'], order_by: [{amount: 'desc'}],
+        }, as: 'out'},
         'top-k': {top_k: {k: 60, by: [{id: 'desc'}]}, as: 'out'},
         'top-k-by': {top_k_by: {
           partition_by: ['group'], k: 30, by: [{id: 'desc'}],

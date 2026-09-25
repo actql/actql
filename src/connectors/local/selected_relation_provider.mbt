@@ -13,6 +13,7 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
     | @lower.Watermark(_, _, _, _)
     | @lower.Lag(_, _)
     | @lower.DistinctRows
+    | @lower.DedupeRows
     | @lower.StableSort(_)
     | @lower.TopK(_, _)
     | @lower.PartitionedTopK(_, _)
