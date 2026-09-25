@@ -31,6 +31,15 @@ configured custom object, scoped secret-manager reference, and explicit write
 permission from the user. None has been supplied, so live validation remains
 unverified; local product-path and fault-injection work can proceed.
 
+The concrete Distribution seam is the existing `prepareSubmit`/`submit`
+installation: accept the same checked Effect Program and captured Run owner
+used by `runCapturedEffectComputation`, then delegate authorized apply to the
+Host's MoonBit-preflight/frontier and Site writer path. The public
+attach/status/reconcile and Result reader must report that Run's durable
+known and unknown facts without creating another Client-side Effect scheduler.
+This branch will supply the completed Host/Site operation and its tests; the
+Distribution owner supplies public ingress and package-facing state access.
+
 Outside this completion unit, but still part of the original broader plan,
 are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
 other distribution modes and frontends, and the separately managed performance
@@ -81,6 +90,13 @@ as a successful Run; the Preview and both source holdings remain available for
 reconciliation until explicitly retired. This closes an inventory and
 holding connection, not the ordinary apply caller, successful multi-member
 publication, or credentialed Salesforce request path.
+The Host now has one captured-Effect apply driver that runs the existing
+MoonBit whole-set preflight before the first durable claim and takes each
+next row from the MoonBit frontier over real Ledger heads. Its two-member
+regression rejects stale bindings with zero claims, rejects a Site callback
+that makes no durable progress, and resumes the independent member after an
+unknown first member. The Site callback still uses a local HTTP fixture, and
+the public Client has not yet installed this driver or the Salesforce writer.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
