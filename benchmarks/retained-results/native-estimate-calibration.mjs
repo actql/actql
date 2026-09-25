@@ -97,7 +97,11 @@ try {
       : ['duckdb'];
     for (const candidate of candidates) {
       const observation = await runProbe(training, candidate, round,
-        [`--native-ms=${candidate === 'local' ? '2147483647' : '1'}`]);
+        // Forcing Local must exclude every DuckDB offer, including the
+        // product's resident one; forced DuckDB keeps the product default.
+        candidate === 'local'
+          ? ['--native-ms=2147483647', '--resident-policy=false']
+          : ['--native-ms=1']);
       observations.push(observation);
       await writeFile(destination, JSON.stringify({status: 'training', revision,
         trainingCaseId: training.id, targetCaseId: target.id, observations}, null, 2));
