@@ -106,6 +106,20 @@ assert.deepEqual((await installedLocal.lookupRequest(
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
 writeFileSync('run-ref.json', JSON.stringify(execution.ref));
+const nullable = JSON.parse(document);
+nullable.id = 'client-nullable-values';
+nullable.stages[0].steps[0].values.schema.id.nullable = true;
+nullable.stages[0].steps[0].values.rows = [{id: null}, {id: 3}];
+const nullableRun = await installedLocal.aql(JSON.stringify(nullable),
+  {format: 'json', requestId: 'packed-nullable-values'});
+assert.deepEqual(await nullableRun.result('answer').all(),
+  [{id: null}, {id: 3}]);
+const empty = JSON.parse(document);
+empty.id = 'client-empty-values';
+empty.stages[0].steps[0].values.rows = [];
+const emptyRun = await installedLocal.aql(JSON.stringify(empty),
+  {format: 'json', requestId: 'packed-empty-values'});
+assert.deepEqual(await emptyRun.result('answer').all(), []);
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
 await assert.rejects(installedLocal.aql(document.replace('"id": 2',
