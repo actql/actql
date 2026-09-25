@@ -332,6 +332,10 @@ export function validateEffectFreePublicationCommit(evidence: Readonly<{
   invocation: PublicationContract;
   definitions: readonly PublicationContract[];
   artifacts: readonly PublicationContract[];
+  derivations: readonly PublicationContract[];
+  orderings: readonly PublicationContract[];
+  retentions: readonly PublicationContract[];
+  durableBindings: readonly PublicationContract[];
   manifest: PublicationContract;
   receipt: PublicationContract;
   capturedRun: PublicationContract;

@@ -1435,6 +1435,10 @@ pub fn client_values_host_validate_effect_free_publication_commit(
   invocation : @publication.PublicationContract,
   definitions : Array[@publication.PublicationContract],
   artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
   manifest : @publication.PublicationContract,
   receipt : @publication.PublicationContract,
   captured_run : @publication.PublicationContract,
@@ -1445,10 +1449,10 @@ pub fn client_values_host_validate_effect_free_publication_commit(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, @publication.PublicationCommitIssue] {
-  @publication.validate_effect_free_publication_commit(
-    run_definition, invocation, definitions, artifacts, manifest, receipt,
-    captured_run, request, attempt, index_entry, max_wire_bytes, max_nodes,
-    max_depth,
+  @publication.validate_effect_free_publication_commit_with_result_evidence(
+    run_definition, invocation, definitions, artifacts, derivations,
+    orderings, retentions, bindings, manifest, receipt, captured_run, request,
+    attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
   )
 }
 

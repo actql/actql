@@ -357,7 +357,9 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     {code: 'RunHostPublicIndexEntryRejected'});
     assert.throws(() => validateEffectFreePublicationCommit({
       runDefinition: run, invocation, definitions: [definition],
-      artifacts: [artifact], manifest, receipt: artifact,
+      artifacts: [artifact], derivations: [occurrence.derivation],
+      orderings: [occurrence.ordering], retentions: [retention],
+      durableBindings: [binding], manifest, receipt: artifact,
       capturedRun: artifact,
     }, request, attempt, manifest, limits),
     {code: 'RunHostPublicationCommitRejected'});

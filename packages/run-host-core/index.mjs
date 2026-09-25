@@ -798,7 +798,11 @@ export function validateEffectFreePublicationCommit(evidence, request,
   attempt, indexEntry, limits) {
   if (evidence === null || typeof evidence !== 'object' ||
       !Array.isArray(evidence.definitions) ||
-      !Array.isArray(evidence.artifacts)) {
+      !Array.isArray(evidence.artifacts) ||
+      !Array.isArray(evidence.derivations) ||
+      !Array.isArray(evidence.orderings) ||
+      !Array.isArray(evidence.retentions) ||
+      !Array.isArray(evidence.durableBindings)) {
     throw new TypeError('InvalidRunHostPublicationCommit');
   }
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
@@ -807,6 +811,10 @@ export function validateEffectFreePublicationCommit(evidence, request,
     publicationToken(evidence.invocation),
     publicationItems(evidence.definitions),
     publicationItems(evidence.artifacts),
+    publicationItems(evidence.derivations),
+    publicationItems(evidence.orderings),
+    publicationItems(evidence.retentions),
+    publicationItems(evidence.durableBindings),
     publicationToken(evidence.manifest),
     publicationToken(evidence.receipt),
     publicationToken(evidence.capturedRun),
