@@ -401,9 +401,10 @@ export function openEffectLedger({
     },
     // Reconstruct only already-recorded claims after process loss. MoonBit
     // binds every locator, key and immutable basis to the admitted Preview;
-    // SQLite supplies one atomic head snapshot. This is evidence read, not
-    // send admission. Unrecorded rows need a separate durable apply intent.
-    recoverRecordedClaims({preview, scope, programId, nodeId, maxRows,
+    // SQLite supplies one atomic head snapshot. Prepared rows remain only
+    // recorded intents: current whole-set admission and the exact physical
+    // request must be checked again before any dispatch.
+    recoverClaimFacts({preview, scope, programId, nodeId, maxRows,
       maxWork}) {
       if (!preview || !scope || typeof programId !== 'string' ||
           typeof nodeId !== 'string' ||
@@ -442,10 +443,16 @@ export function openEffectLedger({
       })));
       const frontier = ledger.frontierFromDurableHeads(preview, members,
         maxWork);
-      if (control.setFrontierReadyCount(frontier) !== 0) {
+      return Object.freeze({members, frontier});
+    },
+    // Terminal evidence recovery must not silently turn a Prepared row into
+    // a new physical call. The apply owner uses recoverClaimFacts instead.
+    recoverRecordedClaims(options) {
+      const recovered = ledger.recoverClaimFacts(options);
+      if (control.setFrontierReadyCount(recovered.frontier) !== 0) {
         fail('EffectRecoveryHasSendableRows');
       }
-      return Object.freeze({members, frontier});
+      return recovered;
     },
     // The caller must have won the durable send claim. This observation ends
     // when the physical call settles, independently of response persistence.

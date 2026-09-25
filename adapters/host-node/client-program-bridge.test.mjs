@@ -2402,6 +2402,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
+  'salesforce-prepared-intent-restart',
   'salesforce-terminal-store-restart',
   'salesforce-terminal-process-publication',
   'salesforce-unknown-continue']) {
@@ -2428,6 +2429,8 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
+    const restartPreparedIntent =
+      physical === 'salesforce-prepared-intent-restart';
     const processPublication =
       physical === 'salesforce-terminal-process-publication';
     const restartBeforeFinal =
@@ -3333,6 +3336,31 @@ test(`two-member captured Effect Run ${
               (await observeCurrentTargets({signal})).flatMap(member =>
                 member.map(observed => observed.versionCid))};
         };
+      }
+      if (restartPreparedIntent) {
+        assert.equal(ledger.prepareCapturedSetIntents(
+          previewInputs, members, 64), 4);
+        ledger.close();
+        ledger = openLedger();
+        const recovered = ledger.recoverClaimFacts({
+          preview: applyPreview, scope: requestScope,
+          programId: 'program-1', nodeId: 'node-1',
+          maxRows: 4, maxWork: 100,
+        });
+        assert.equal(effect.setFrontierReadyCount(recovered.frontier), 2);
+        assert.deepEqual(recovered.members.map(member => member.claims.map(
+          claim => claim.canonicalRequestCid)),
+        members.map(member => member.claims.map(
+          claim => claim.canonicalRequestCid)));
+        applyOptions.ledger = ledger;
+        applyOptions.members = recovered.members;
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions,
+          preflight: {...preflight, sources: [cid('9'), cid('c')]},
+          dispatchRow: () => assert.fail('foreign recovery sent a row'),
+        }), {code: 'MoonBitHostFailure'});
+        assert.equal(sites.flatMap(site => site.seen).filter(item =>
+          item.method === 'PATCH').length, 0);
       }
       if (physical === 'salesforce-stale-target' ||
           physical === 'salesforce-schema-drift') {

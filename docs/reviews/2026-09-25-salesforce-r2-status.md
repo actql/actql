@@ -134,8 +134,13 @@ Capacity or CAS failure leaves no partial intent batch and sends no write;
 stale target or Catalog rejection still precedes this persistence. Prepared
 rows are unattempted, not evidence that a provider request was sent. This
 removes the missing-head ambiguity for an admitted set whose preparation
-committed, but does not reconstruct a send owner after process loss. A fresh
-process must still re-admit current authority and the exact physical request
+committed. The Ledger can now reconstruct those exact claim facts after reopen
+without treating them as send authority. The ordinary Host apply path consumes
+the reconstructed claims, repeats whole-set admission and current target
+checks, and sends only still-ready rows. A possible-dispatch head remains
+unknown and cannot be claimed again. This is a Ledger-reopen test within one
+Host process, not a fresh-process send-owner recovery. A fresh process must
+still re-admit current authority and reconstruct the exact physical request
 before claiming any prepared row.
 
 Before acquiring a physical Effect-source holding, the standard Host now

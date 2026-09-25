@@ -210,6 +210,25 @@ test('whole-set intents are durable and atomic before any dispatch',
     const restarted = open(root);
     t.after(() => restarted.close());
     assert.equal(restarted.prepareSetIntents(admitted, members, 100), 0);
+    assert.throws(() => restarted.recoverRecordedClaims({
+      preview: admitted, scope: claims[0][0].scope,
+      programId: 'program-1', nodeId: 'node-1',
+      maxRows: 3, maxWork: 100,
+    }), {code: 'EffectRecoveryHasSendableRows'});
+    const recovered = restarted.recoverClaimFacts({
+      preview: admitted, scope: claims[0][0].scope,
+      programId: 'program-1', nodeId: 'node-1',
+      maxRows: 3, maxWork: 100,
+    });
+    assert.deepEqual(recovered.members.map(member => member.claims.map(
+      claim => claim.canonicalRequestCid)),
+    claims.map(rows => rows.map(claim => claim.canonicalRequestCid)));
+    assert.equal(effect.setFrontierReadyCount(recovered.frontier), 2);
+    assert.throws(() => restarted.recoverClaimFacts({
+      preview: admitted, scope: claims[0][0].scope,
+      programId: 'another-program', nodeId: 'node-1',
+      maxRows: 3, maxWork: 100,
+    }), {code: 'MoonBitHostFailure'});
     const foreign = members.map((member, index) => index === 1
       ? {claims: [{...member.claims[0], canonicalRequestCid: cid('e')}]}
       : member);
@@ -220,6 +239,34 @@ test('whole-set intents are durable and atomic before any dispatch',
         effect.logicalItemLocatorCid(claim.locator))), 0);
     }
   });
+
+test('recovered possible dispatch never becomes a second send', async t => {
+  const root = await fixture(t);
+  const {admitted, members, claims} = admittedProgressFixture();
+  const first = open(root);
+  assert.equal(first.prepareSetIntents(admitted, members, 100), 3);
+  const dispatched = first.claimDispatch(claims[0][0]);
+  assert.equal(dispatched.claimed, true);
+  first.close();
+  const restarted = open(root);
+  t.after(() => restarted.close());
+  const recovered = restarted.recoverClaimFacts({
+    preview: admitted, scope: claims[0][0].scope,
+    programId: 'program-1', nodeId: 'node-1',
+    maxRows: 3, maxWork: 100,
+  });
+  const ready = Array.from({
+    length: effect.setFrontierReadyCount(recovered.frontier),
+  }, (_, index) => [
+    effect.setFrontierReadyMember(recovered.frontier, index),
+    effect.setFrontierReadyRow(recovered.frontier, index),
+  ]);
+  assert.deepEqual(ready, [[0, 1], [1, 0]]);
+  assert.equal(restarted.claimDispatch(recovered.members[0].claims[0])
+    .claimed, false);
+  assert.equal(restarted.claimDispatch(recovered.members[0].claims[1])
+    .claimed, true);
+});
 
 test('saved response issues one exact terminal row Receipt before Ledger head',
   async t => {
