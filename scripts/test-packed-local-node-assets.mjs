@@ -9,7 +9,7 @@ const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'packed-local-assets-'));
 const environment = {...process.env,
-  npm_config_cache: join(root, 'npm-cache')};
+  npm_config_cache: join(build, 'npm-cache')};
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, env: environment,
@@ -21,15 +21,17 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-const packed = run('npm', ['pack', '--pack-destination', root, '--json'],
-  join(repository, 'packages/local-node'));
-const metadata = JSON.parse(packed);
-const artifact = join(root, metadata[0]?.filename ??
-  metadata['@actql/local-node']?.filename);
+const artifacts = [];
+for (const name of ['client-wire', 'sdk', 'local-node']) {
+  const packed = run('npm', ['pack', '--pack-destination', root, '--json'],
+    join(repository, 'packages', name));
+  const metadata = JSON.parse(packed);
+  artifacts.push(join(root, metadata[0]?.filename ??
+    metadata[`@actql/${name}`]?.filename));
+}
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--offline', '--ignore-scripts', '--no-save', artifact],
-  root);
+run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts], root);
 const moduleRoot = join(root, 'node_modules/@actql/local-node');
 for (const name of [
   'connectors_builtin_node/connectors_builtin_node.js',
@@ -45,6 +47,12 @@ import assert from 'node:assert/strict';
 const owner = await import('@actql/local-node/runtime');
 assert.equal(typeof owner.clientProgramPrepareEffectFree, 'function');
 assert.equal(typeof owner.clientProgramOpenSourceFreeLocalHost, 'function');
+const host = await import('./node_modules/@actql/local-node/adapters/' +
+  'host-node/entry.mjs');
+assert.equal(typeof host.runPublishedCapturedStrategy, 'function');
+const ingress = await import('./node_modules/@actql/local-node/adapters/' +
+  'host-node/in-process-client.mjs');
+assert.equal(typeof ingress.createNodeInProcessClientHost, 'function');
 `);
 run(process.execPath, ['smoke.mjs'], root);
 console.log('packed Local runtime assets passed');

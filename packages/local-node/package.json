@@ -4,8 +4,16 @@
   "private": true,
   "type": "module",
   "engines": {"node": ">=22"},
+  "scripts": {
+    "prepack": "node ../../scripts/build-local-node-adapters.mjs && node ../../scripts/build-local-node-assets.mjs --check"
+  },
+  "dependencies": {
+    "@actql/client-wire": "0.0.0-development",
+    "@actql/sdk": "0.0.0-development",
+    "@duckdb/node-api": "1.5.5-r.4"
+  },
   "exports": {
     "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
   },
-  "files": ["_build/js/release/build", "README.md"]
+  "files": ["_build/js/release/build", "adapters", "README.md"]
 }

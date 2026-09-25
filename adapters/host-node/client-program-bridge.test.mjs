@@ -1294,54 +1294,76 @@ test('public Values submit computes and reads its real Local Result',
       });
       let issues = 0;
       let computes = 0;
+      const negotiate = () => ({
+        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'principal-before-restart',
+        capabilities: ['result-jsonl'],
+        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024,
+          maxRetainedValueBytes: 4096, maxRows: 100,
+          maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+      });
+      const prepareSubmit = installNodeClientProgramPreparation({
+        moon, environment});
+      const submit = async ({preparedProgram, requestId, principalId,
+        connection}) => {
+        const requested = moon.clientProgramRequestIdentity(
+          preparedProgram, cid('a'), requestId, cid('b'));
+        const accepted = await journal.admitOrLookupDefinition(requested, {
+          tenantId: 'tenant-a',
+          lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+          issueDefinition: () => {
+            issues++;
+            plan = checkedValuesPublicationPlan(preparedProgram, control);
+            return plan.runDefinition;
+          },
+        }, moon, control);
+        const start = await startRun({identity: requested,
+          tenantId: 'tenant-a', principalId, connection});
+        assert.deepEqual(start.ref, accepted.ref);
+        if (start.kind === 'reserved') {
+          const setup = moon.clientProgramOpenSourceFreeLocalHost(
+            preparedProgram, registry, values, 1n, 0n, 0n, 0n);
+          assert.ok(setup);
+          computes++;
+          published = await runPublishedCapturedStrategy(setup,
+            {store, plan});
+        }
+        return {ref: start.ref, durability: start.durability,
+          revision: start.revision};
+      };
       const submitServer = createServer(createClientHttpHandler({
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
           facts.connection.owner === 'local',
-        negotiate: () => ({
-          version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-          durability: 'durable', scopeRef: 'principal-before-restart',
-          capabilities: ['result-jsonl'],
-          limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
-            maxRowRetainedValueBytes: 1024,
-            maxRetainedValueBytes: 4096, maxRows: 100,
-            maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
-        }),
-        prepareSubmit: installNodeClientProgramPreparation({
-          moon, environment}),
-        lookupRequest,
-        submit: async ({preparedProgram, requestId, principalId,
-          connection}) => {
-          const requested = moon.clientProgramRequestIdentity(
-            preparedProgram, cid('a'), requestId, cid('b'));
-          const accepted = await journal.admitOrLookupDefinition(requested, {
-            tenantId: 'tenant-a',
-            lookupExpiresAt: '2099-01-01T00:00:00.000Z',
-            issueDefinition: () => {
-              issues++;
-              plan = checkedValuesPublicationPlan(preparedProgram, control);
-              return plan.runDefinition;
-            },
-          }, moon, control);
-          const start = await startRun({identity: requested,
-            tenantId: 'tenant-a', principalId, connection});
-          assert.deepEqual(start.ref, accepted.ref);
-          if (start.kind === 'reserved') {
-            const setup = moon.clientProgramOpenSourceFreeLocalHost(
-              preparedProgram, registry, values, 1n, 0n, 0n, 0n);
-            assert.ok(setup);
-            computes++;
-            published = await runPublishedCapturedStrategy(setup,
-              {store, plan});
-          }
-          return {ref: start.ref, durability: start.durability,
-            revision: start.revision};
-        },
+        negotiate, prepareSubmit, lookupRequest, submit,
       }));
       await new Promise(resolve => submitServer.listen(0, '127.0.0.1',
         resolve));
       try {
+        const local = await connectInProcess({mode: 'local',
+          owner: 'local', durability: 'durable'},
+        createNodeInProcessClientHost({
+          authenticate: () => 'principal-before-restart',
+          authorizeConnection: facts => facts.connection.mode === 'local' &&
+            facts.connection.owner === 'local',
+          negotiate, prepareSubmit, lookupRequest, submit,
+          maxRowBytes: 1024,
+        }));
+        try {
+          const transport = globalThis.fetch;
+          globalThis.fetch = () => {
+            throw new Error('NetworkOnEmbeddedLocalSubmit');
+          };
+          try {
+            const accepted = await local.aql(document, {format: 'json',
+              requestId: 'published-values-request'});
+            assert.equal(accepted.profile.durability, 'durable');
+            assert.equal(issues, 1);
+            assert.equal(computes, 1);
+          } finally { globalThis.fetch = transport; }
+        } finally { local.close(); }
         const client = await connectClient({
           mode: 'local', owner: 'local',
           endpoint: `http://127.0.0.1:${submitServer.address().port}/`,
