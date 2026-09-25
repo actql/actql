@@ -21,7 +21,7 @@ for (const arg of extra) {
     options.set('training', true);
     continue;
   }
-  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database)=(.+)$/.exec(arg);
+  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy)=(.+)$/.exec(arg);
   if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
   options.set(match[1], match[2]);
 }
@@ -46,6 +46,11 @@ const rates = name => {
 };
 if (!/^(0|[1-9][0-9]*)$/.test(nativeMs) ||
     BigInt(nativeMs) > 2147483647n) throw new TypeError('InvalidNativeProbeEstimate');
+const residentText = options.get('resident-policy') ?? 'false';
+if (!['true', 'false'].includes(residentText)) {
+  throw new TypeError('InvalidNativeResidentPolicy');
+}
+const residentPolicy = residentText === 'true';
 const localRates = rates('local-task-ms');
 const nativeRates = rates('native-task-ms');
 const localEligible = registeredLocalEligibility(fixture).eligible;
@@ -72,7 +77,7 @@ try {
     ], {cwd: root, timeout: fixture.limits.timeoutMs});
   }
   const invocation = await prepareNativeDirectProduct({root, fixture,
-    database, directory, nativeMs, localRates, nativeRates});
+    database, directory, nativeMs, localRates, nativeRates, residentPolicy});
   assert.equal(invocation.finalTask, expectedTasks);
   assert.equal(invocation.localEligible, localEligible);
   const execution = await executeNativeDirectProduct(invocation,
@@ -88,10 +93,12 @@ try {
     taskUsages: admitted.taskUsages,
     taskHoldings: admitted.taskHoldings,
     selections: admitted.selections,
+    taskResidents: execution.taskResidents,
     result: admitted.record,
     acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
     sourceMode: options.has('source-database') ? 'existing' : 'generated',
-    selectionInput: {nativeMs, localEligible, localRates, nativeRates},
+    selectionInput: {nativeMs, localEligible, localRates, nativeRates,
+      residentPolicy},
   }));
 } catch (error) {
   const output = String(error.stdout ?? '').trim().split('\n');

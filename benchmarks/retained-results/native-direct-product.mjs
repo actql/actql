@@ -14,9 +14,13 @@ import {productAcquisitionMetadata} from
 // The caller prepares a registered source before the process-cold interval.
 // The binary performs application admission, planning, execution, retention,
 // downstream reads, and confirmed release inside that interval.
+// residentPolicy installs the resident DuckDB profile as a strategy candidate
+// for every case alike; the portable strategy still selects where it is used.
 export async function prepareNativeDirectProduct({root, fixture, database,
-  directory, nativeMs = '1000', localRates, nativeRates}) {
+  directory, nativeMs = '1000', localRates, nativeRates,
+  residentPolicy = false}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
+  assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
   const text = path => readFile(join(root, path), 'utf8');
   const contracts = {
     adoptedText: await text('adapters/connectors/duckdb/node/contracts/adopted-relation.json'),
@@ -67,6 +71,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
       '--expected-tasks', String(finalTask),
       '--native-ms', nativeMs,
       '--local-eligible', String(localEligible),
+      '--resident-policy', String(residentPolicy),
       '--local-task-ms', localRates?.join(',') ?? '-',
       '--native-task-ms', nativeRates?.join(',') ?? '-',
       '--source-rows', String(data.source_rows),
@@ -110,6 +115,7 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),
     taskUsages: stdout.split('\n').filter(line => line.startsWith('task-usage:')),
     taskHoldings: stdout.split('\n').filter(line => line.startsWith('task-holding:')),
+    taskResidents: stdout.split('\n').filter(line => line.startsWith('task-resident:')),
     processCycleMs, stderr});
 }
 

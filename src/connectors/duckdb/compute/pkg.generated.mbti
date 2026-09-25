@@ -79,6 +79,8 @@ pub fn duckdb_resident_output_query(DuckDBResidentOutput) -> @adapter.ResidentQu
 
 pub fn duckdb_resident_read_bytes(DuckDBResidentRead, Int) -> Int?
 
+pub fn duckdb_resident_read_drop_sql(DuckDBResidentRead, Int) -> Result[String, @adapter.NativeQueryIssue]
+
 pub fn duckdb_resident_read_matches(DuckDBResidentRead, @adapter.ResidentImport, @execution_relation.ProducerRead) -> Bool
 
 pub fn duckdb_resident_read_sql(DuckDBResidentRead) -> String

@@ -128,6 +128,7 @@ fn native_strategy_issue_name(
             @host.RetainedFile(_) => "physical-retained-file"
             @host.RowFrames(_) => "physical-row-frames"
             @host.RetainedImport(_) => "physical-retained-import"
+            @host.ResidentImport(_) => "physical-resident-import"
           }
         @host.Strategy(_) => "strategy"
         @host.Settlement(_) => "settlement"
@@ -189,6 +190,27 @@ fn execute_timed_native_strategy_run(
           ":" +
           holding.bytes.to_string(),
         )
+        // Observed after the timed interval: resident imports so far and the
+        // shared database's objects visible to the next task.
+        let resident = @host.native_standard_strategy_run_resident_observation(
+          run,
+        )
+        if resident.environments > 0 {
+          println(
+            "task-resident:" +
+            completion.task.to_string() +
+            ":imports=" +
+            resident.imports.to_string() +
+            ":imported-rows=" +
+            resident.imported_rows.to_string() +
+            ":borrowed=" +
+            resident.borrowed_inputs.to_string() +
+            ":temporary-views=" +
+            resident.temporary_views.to_string() +
+            ":tables=" +
+            resident.tables.to_string(),
+          )
+        }
       }
       Ok(None) => return Ok(())
       Err(issue) => return Err(issue)
@@ -210,6 +232,7 @@ fn main {
     @argparse.OptionArg("expected-tasks", required=true),
     @argparse.OptionArg("native-ms", default_values=["1000"]),
     @argparse.OptionArg("local-eligible", default_values=["true"]),
+    @argparse.OptionArg("resident-policy", default_values=["false"]),
     @argparse.OptionArg("local-task-ms", default_values=["-"]),
     @argparse.OptionArg("native-task-ms", default_values=["-"]),
     @argparse.OptionArg("source-rows", required=true),
@@ -238,6 +261,13 @@ fn main {
     "true" => true
     "false" => false
     _ => abort("invalid local eligibility")
+  }
+  // Installs the resident DuckDB profile as an additional strategy candidate.
+  // Whether and where it is used remains the portable strategy's selection.
+  let resident_policy = match required(matches, "resident-policy") {
+    "true" => true
+    "false" => false
+    _ => abort("invalid resident policy")
   }
   let local_task_ms = task_rates_option(
     matches, "local-task-ms", expected_tasks,
@@ -433,7 +463,7 @@ fn main {
     1L,
     1L,
     1L,
-    false,
+    resident_policy,
     local_task_ms~,
     native_task_ms~,
     local_eligible~,

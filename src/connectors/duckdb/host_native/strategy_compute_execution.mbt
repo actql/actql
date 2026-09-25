@@ -60,18 +60,31 @@ struct NativeStrategyComputeRuntime {
   mut physical_active : Bool
   mut database_closed : Bool
   mut task_disposed : Bool
+  resident : NativeResidentTaskBinding?
 }
 
 ///|
+/// A task-owned database stops with its close. A borrowed resident database
+/// belongs to the Run's environment: this task is stopped only by its own
+/// confirmed transaction end or by the environment's destruction.
 fn close_native_strategy_database(
   runtime : NativeStrategyComputeRuntime,
 ) -> Unit {
   if runtime.database_closed {
     return
   }
-  runtime.database.close()
-  runtime.database_closed = true
-  runtime.physical_active = false
+  match runtime.resident {
+    Some(binding) =>
+      if binding.environment.database_closed {
+        runtime.database_closed = true
+        runtime.physical_active = false
+      }
+    None => {
+      runtime.database.close()
+      runtime.database_closed = true
+      runtime.physical_active = false
+    }
+  }
 }
 
 ///|
@@ -106,22 +119,57 @@ pub fn start_native_strategy_compute_runtime(
   execution_bytes : Int64,
   retained_profile? : NativeStrategyRetainedOutputProfile,
 ) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue] {
+  start_native_strategy_runtime(
+    setup,
+    database,
+    import_limits,
+    transfer_bytes,
+    execution_bytes,
+    retained_profile?,
+  )
+}
+
+///|
+/// A resident start borrows the environment database and the exact committed
+/// input tables selected by the portable strategy. Failure before common
+/// admission returns those borrowers and never closes the shared database.
+fn start_native_strategy_runtime(
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  database : @native_duckdb.Database,
+  import_limits : NativeComputeImportLimits,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  retained_profile? : NativeStrategyRetainedOutputProfile,
+  resident? : NativeResidentTaskBinding,
+) -> Result[NativeStrategyComputeRuntime, NativeStrategyComputeIssue] {
+  let abandon = fn() {
+    match resident {
+      Some(binding) =>
+        @duckdb_driver.cancel_resident_inputs(binding.inputs) |> ignore
+      None => database.close()
+    }
+  }
   let compute = @duckdb_driver.configured_strategy_compute_configuration(setup)
   let transport = @duckdb_driver.configured_compute_transport(compute)
   let compute_limits = @duckdb_driver.configured_compute_limits(compute)
   let plan = match @duckdb_driver.configured_compute_plan(compute) {
     Some(value) => value
     None => {
-      database.close()
+      abandon()
       return Err(Physical(RuntimeState))
     }
   }
-  let imports = match
-    native_compute_import_plans(plan, transport, import_limits) {
-    Ok(value) => value
-    Err(issue) => {
-      database.close()
-      return Err(Physical(issue))
+  // Resident inputs are committed tables of the environment; no per-task
+  // import is compiled or executed for them.
+  let imports = if resident is Some(_) {
+    []
+  } else {
+    match native_compute_import_plans(plan, transport, import_limits) {
+      Ok(value) => value
+      Err(issue) => {
+        abandon()
+        return Err(Physical(issue))
+      }
     }
   }
   let retained_bytes = @duckdb_driver.configured_strategy_output_file_bytes(
@@ -138,7 +186,7 @@ pub fn start_native_strategy_compute_runtime(
       profile.max_chunk_rows <= transport.max_rows => ()
     (None, None) | (Some(0L), None) => ()
     _ => {
-      database.close()
+      abandon()
       return Err(Physical(InvalidLimits))
     }
   }
@@ -169,12 +217,13 @@ pub fn start_native_strategy_compute_runtime(
       },
       transfer_bytes,
       execution_bytes,
+      resident?=resident.map(binding => binding.inputs),
       retained_storage?,
     ) {
     Ok(value) => value
     Err(issue) => {
       authority.live = false
-      database.close()
+      abandon()
       return Err(Strategy(issue))
     }
   }
@@ -199,6 +248,7 @@ pub fn start_native_strategy_compute_runtime(
     physical_active: false,
     database_closed: false,
     task_disposed: false,
+    resident,
   })
 }
 
@@ -246,6 +296,11 @@ pub fn execute_native_strategy_compute_runtime(
       })
     }
     _ => None
+  }
+  if runtime.resident is Some(binding) {
+    return execute_native_resident_transaction(
+      runtime, binding, retained, retained_source,
+    )
   }
   runtime.physical_active = true
   match runtime.database.begin_transaction() {
@@ -372,6 +427,19 @@ pub fn close_native_strategy_compute_runtime(
   }
   close_native_strategy_database(runtime)
   let execution = @duckdb_driver.captured_duckdb_execution(runtime.task)
+  if runtime.physical_active {
+    // A resident transaction whose end was not confirmed keeps its common
+    // reservation until the shared database itself is destroyed.
+    match @strategy.settle_task_execution(runtime.graph, execution, false) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(_) => ()
+    }
+    if !runtime.task_disposed {
+      @strategy.close_task_execution(runtime.graph, execution)
+      runtime.task_disposed = true
+    }
+    return Ok(false)
+  }
   match @strategy.settle_task_execution(runtime.graph, execution, true) {
     Err(issue) => return Err(Ledger(issue))
     Ok(_) => ()

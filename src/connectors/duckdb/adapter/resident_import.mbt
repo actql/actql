@@ -331,3 +331,25 @@ pub fn resident_import_receiver_sql(
     BadIdentifier => Err(InvalidIdentifier)
   }
 }
+
+///|
+/// Remove one connection-local receiver view inside the task transaction that
+/// created it. A Host whose connection outlives the task must not expose that
+/// view to a later task sharing the same resident environment.
+pub fn resident_import_receiver_drop_sql(
+  view : String,
+  max_sql_bytes : Int,
+) -> Result[String, NativeQueryIssue] {
+  if max_sql_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  let sql = { builder: StringBuilder(), remaining: max_sql_bytes, }
+  try {
+    sql_text(sql, "DROP VIEW temp.main.")
+    sql_identifier(sql, view)
+    Ok(sql.builder.to_string())
+  } catch {
+    TextLimit => Err(Limit)
+    BadIdentifier => Err(InvalidIdentifier)
+  }
+}

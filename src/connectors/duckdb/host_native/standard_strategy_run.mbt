@@ -14,10 +14,24 @@ struct NativeStandardStrategyRun {
   database_memory_bytes : Int64
   database_path : String
   retained_profile : NativeStrategyRetainedOutputProfile?
+  resident_environments : Array[NativeResidentEnvironment]
   mut accepting : Bool
   mut complete : Bool
   mut dispatch_stopped : Bool
 }
+
+///|
+/// Physical observation of the Run's resident DuckDB environments. Counts are
+/// product diagnostics; `temporary_views` and `tables` are read from each
+/// still-open environment database between tasks (-1 when unavailable).
+pub(all) struct NativeStandardResidentObservation {
+  environments : Int
+  imports : Int
+  imported_rows : Int
+  borrowed_inputs : Int
+  temporary_views : Int64
+  tables : Int64
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum NativeStandardStrategyRunIssue {
@@ -128,6 +142,7 @@ pub fn open_native_standard_strategy_run(
     database_memory_bytes: execution_bytes,
     database_path,
     retained_profile,
+    resident_environments: [],
     accepting: true,
     complete: false,
     dispatch_stopped: false,
@@ -281,12 +296,82 @@ pub fn execute_next_native_standard_strategy_task(
     run.stop_dispatch()
     return Err(InvalidSelection)
   }
+  // Residency is the portable strategy's selection for this exact task. The
+  // environment and every missing input table are established before the
+  // selected dispatch is taken, as on the Node Host.
+  let resident = match @duckdb_standard_host.dispatch_resource_binding(task) {
+    None => None
+    Some(binding) =>
+      match prepare_native_resident_environment(run, task_index, binding) {
+        Ok(env) =>
+          match import_native_resident_inputs(run, env, task_index) {
+            Ok(_) => Some(env)
+            Err(issue) => {
+              run.accepting = false
+              run.stop_dispatch()
+              return Err(issue)
+            }
+          }
+        Err(issue) => {
+          run.accepting = false
+          run.stop_dispatch()
+          return Err(issue)
+        }
+      }
+  }
   let setup = match @duckdb_standard_host.take_native_dispatch(task) {
     Ok(value) => value
     Err(issue) => {
       run.accepting = false
       run.stop_dispatch()
       return Err(Dispatch(issue))
+    }
+  }
+  let additional_retained_source = fn(input) {
+    for owner in run.local_owners {
+      if native_strategy_local_input_source(owner, input) is Some(source) {
+        return Some(source)
+      }
+    }
+    None
+  }
+  if resident is Some(env) {
+    let executed = match
+      borrow_native_resident_inputs(run, env, setup, task_index) {
+      Err(issue) => Err(issue)
+      Ok(binding) =>
+        execute_native_strategy_task(
+          run.runtimes,
+          setup,
+          env.database.unwrap(),
+          run.import_limits,
+          run.transfer_bytes,
+          native_resident_scratch_bytes(
+            run.import_limits,
+            @duckdb_driver.configured_strategy_compute_transport(setup).max_bytes,
+          ),
+          retained_profile?=run.retained_profile,
+          additional_retained_source~,
+          resident=binding,
+        ).map_err(issue => DuckDB(issue))
+    }
+    return match executed {
+      Ok(output) =>
+        Ok(
+          Some({
+            task: task_index,
+            output,
+            usage: native_strategy_compute_task_usage(run.runtimes, task_index).map(
+              native_standard_task_usage,
+            ),
+            holding: native_standard_task_holding(run, output),
+          }),
+        )
+      Err(issue) => {
+        run.accepting = false
+        run.stop_dispatch()
+        Err(issue)
+      }
     }
   }
   guard run.library is Some(library) else {
@@ -322,14 +407,7 @@ pub fn execute_next_native_standard_strategy_task(
       run.transfer_bytes,
       run.database_memory_bytes,
       retained_profile?=run.retained_profile,
-      additional_retained_source=input => {
-        for owner in run.local_owners {
-          if native_strategy_local_input_source(owner, input) is Some(source) {
-            return Some(source)
-          }
-        }
-        None
-      },
+      additional_retained_source~,
     ) {
     Ok(output) =>
       Ok(
@@ -508,6 +586,12 @@ pub fn close_native_standard_strategy_run(
   run.stop_dispatch()
   let mut pending = false
   let mut first : NativeStrategyComputeCleanupIssue? = None
+  // The Run's end is the only point at which a resident database stops.
+  // Destroying it first confirms the stop of any task or import whose own
+  // transaction end could not be observed.
+  for env in run.resident_environments {
+    close_native_resident_database(env)
+  }
   for owner in run.unfiled_local_owners {
     match close_native_strategy_unfiled_local_owner(owner) {
       Ok(_) => ()
@@ -542,8 +626,233 @@ pub fn close_native_standard_strategy_run(
       }
     }
   }
+  // Borrowers returned at task settlement; only now can the shared capacity
+  // and its remaining table allocations settle.
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  for env in run.resident_environments {
+    match release_native_resident_environment(graph, env) {
+      Ok(true) => ()
+      Ok(false) => pending = true
+      Err(issue) => {
+        pending = true
+        if first is None {
+          first = Some(Ledger(issue))
+        }
+      }
+    }
+  }
   match first {
     Some(issue) => Err(issue)
     None => Ok(!pending)
+  }
+}
+
+///|
+/// Reuse the Run's environment for the selected resource binding or provision
+/// it once: the common reservation is taken first, the native database is
+/// opened with exactly the reserved engine bytes, and only that confirmation
+/// makes it usable. A failed provision keeps its release owner in the Run.
+fn prepare_native_resident_environment(
+  run : NativeStandardStrategyRun,
+  task : Int,
+  binding : @connector.ResourceBinding,
+) -> Result[NativeResidentEnvironment, NativeStandardStrategyRunIssue] {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  for env in run.resident_environments {
+    if !env.released &&
+      native_resident_environment_binding_matches(env, binding) {
+      if env.database_closed || env.database is None {
+        return Err(InvalidSelection)
+      }
+      return Ok(env)
+    }
+  }
+  guard run.library is Some(library) else { return Err(DuckDBUnavailable) }
+  let environment = match
+    @strategy.begin_resident_environment(graph, task, run.database_memory_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(DuckDB(Start(Strategy(issue))))
+  }
+  let env : NativeResidentEnvironment = {
+    store: @duckdb_driver.prepare_resident_store(environment),
+    database: None,
+    database_closed: false,
+    released: false,
+    unsettled_transfers: [],
+    imports: 0,
+    imported_rows: 0,
+    borrowed_inputs: 0,
+  }
+  run.resident_environments.push(env)
+  // An in-memory database: resident tables are run-private and are never
+  // written into a source or caller-supplied database file.
+  match
+    library.open_database({
+      memory_bytes: run.database_memory_bytes,
+      threads: 1,
+      external_access: false,
+      read_only: false,
+    }) {
+    Ok(database) => env.database = Some(database)
+    Err(issue) => {
+      release_native_resident_environment(graph, env) |> ignore
+      return Err(Database(issue))
+    }
+  }
+  match
+    @strategy.confirm_resident_environment(
+      graph,
+      environment,
+      run.database_memory_bytes,
+    ) {
+    Ok(_) => Ok(env)
+    Err(issue) => {
+      release_native_resident_environment(graph, env) |> ignore
+      Err(DuckDB(Start(Strategy(issue))))
+    }
+  }
+}
+
+///|
+/// Import only producers that are not already committed tables of this exact
+/// environment generation. A committed resident table is reused as is.
+fn import_native_resident_inputs(
+  run : NativeStandardStrategyRun,
+  env : NativeResidentEnvironment,
+  task : Int,
+) -> Result[Unit, NativeStandardStrategyRunIssue] {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  guard @duckdb_standard_host.dispatch_resident_inputs(run.dispatch, task)
+    is Some(inputs) else {
+    return Err(InvalidSelection)
+  }
+  let environment = @duckdb_driver.resident_store_environment(env.store)
+  let frame_bytes = match run.retained_profile {
+    Some(profile) => profile.max_batch_bytes
+    None => 1
+  }
+  for input in inputs {
+    let (producer, bytes, entries, names) = input
+    if @strategy.resident_table_at(graph, environment, producer) is Some(_) {
+      env.borrowed_inputs += 1
+      continue
+    }
+    match
+      import_native_resident_table(
+        graph,
+        env,
+        producer,
+        bytes,
+        entries,
+        names,
+        run.import_limits,
+        run.transfer_bytes,
+        frame_bytes,
+        storage => native_standard_retained_storage(run, producer, storage),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(DuckDB(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
+fn borrow_native_resident_inputs(
+  run : NativeStandardStrategyRun,
+  env : NativeResidentEnvironment,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  task : Int,
+) -> Result[NativeResidentTaskBinding, NativeStandardStrategyRunIssue] {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  guard @duckdb_standard_host.dispatch_resident_inputs(run.dispatch, task)
+    is Some(inputs) &&
+    inputs.length() > 0 else {
+    return Err(InvalidSelection)
+  }
+  let environment = @duckdb_driver.resident_store_environment(env.store)
+  let tables = []
+  for input in inputs {
+    guard @strategy.resident_table_at(graph, environment, input.0)
+      is Some(table) else {
+      return Err(InvalidSelection)
+    }
+    tables.push(table)
+  }
+  let (_, _, entries, names) = inputs[inputs.length() - 1]
+  match
+    @duckdb_driver.borrow_configured_resident_inputs(
+      setup,
+      env.store,
+      tables,
+      entries,
+      names,
+      run.import_limits.max_sql_bytes,
+    ) {
+    Ok(borrowed) =>
+      Ok({
+        environment: env,
+        inputs: borrowed,
+        max_sql_bytes: run.import_limits.max_sql_bytes,
+      })
+    Err(issue) => Err(DuckDB(Start(Strategy(issue))))
+  }
+}
+
+///|
+/// The exact retained holding of a completed producer whose storage is being
+/// copied into the environment. Selection is by producer occurrence, never by
+/// content identity or path.
+fn native_standard_retained_storage(
+  run : NativeStandardStrategyRun,
+  producer : Int,
+  storage : @execution.ProducerStorage,
+) -> NativeComputeRetainedInput? {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  guard @strategy.captured_task_target(graph, producer) is Some(target) &&
+    @strategy.captured_task_output(graph, producer, target) is Some(output) &&
+    @execution.producer_storage_matches_output(storage, output) else {
+    return None
+  }
+  native_standard_retained_result(run, output)
+}
+
+///|
+pub fn native_standard_strategy_run_resident_observation(
+  run : NativeStandardStrategyRun,
+) -> NativeStandardResidentObservation {
+  let mut imports = 0
+  let mut imported_rows = 0
+  let mut borrowed_inputs = 0
+  let mut temporary_views = 0L
+  let mut tables = 0L
+  for env in run.resident_environments {
+    imports += env.imports
+    imported_rows += env.imported_rows
+    borrowed_inputs += env.borrowed_inputs
+    if env.database is Some(database) && !env.database_closed {
+      match
+        database.query_i64(
+          "SELECT count(*) FROM duckdb_views() WHERE temporary AND NOT internal",
+        ) {
+        Ok(count) if temporary_views >= 0L => temporary_views += count
+        _ => temporary_views = -1L
+      }
+      match
+        database.query_i64(
+          "SELECT count(*) FROM duckdb_tables() WHERE NOT internal",
+        ) {
+        Ok(count) if tables >= 0L => tables += count
+        _ => tables = -1L
+      }
+    }
+  }
+  {
+    environments: run.resident_environments.length(),
+    imports,
+    imported_rows,
+    borrowed_inputs,
+    temporary_views,
+    tables,
   }
 }

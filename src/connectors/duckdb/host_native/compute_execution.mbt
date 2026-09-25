@@ -28,6 +28,7 @@ pub(all) enum NativeComputeExecutionIssue {
   RetainedFile(@retained_file.NativeRetainedTaskFileIssue)
   RowFrames(@publication.DurableResultRowFrameIssue)
   RetainedImport(@execution.CompletedImportIssue)
+  ResidentImport(@duckdb.FixedImportStreamIssue)
 }
 
 ///|
@@ -305,6 +306,89 @@ fn execute_native_compute_import(
 }
 
 ///|
+/// Frame each row of one exact retained holding through a fresh bounded
+/// reader. The reader verifies physical bytes before success; every decoded
+/// row stays provisional until the caller's portable verifier finishes.
+/// `reader_open` remains true only when a failed reader close left the
+/// descriptor with the producer holding's cleanup owner.
+fn read_native_retained_rows(
+  source : NativeComputeRetainedInput,
+  expected_rows : Int,
+  reader_open : Ref[Bool],
+  on_bytes : (Int) -> Result[Unit, NativeComputeExecutionIssue],
+  on_row : (String) -> Result[Unit, NativeComputeExecutionIssue],
+) -> Result[Unit, NativeComputeExecutionIssue] {
+  if source.max_batch_bytes <= 0 ||
+    source.file.stored_bytes() is None ||
+    source.max_batch_bytes > source.wire.max_bytes {
+    return Err(RuntimeState)
+  }
+  let frame_bytes = Int::min(65536, source.max_batch_bytes)
+  let frames = match
+    @publication.prepare_durable_result_row_frames(
+      source.wire.max_bytes,
+      expected_rows,
+      Int::min(16777216, source.max_batch_bytes),
+      source.wire.max_depth,
+      frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(RowFrames(issue))
+  }
+  let reader = match source.file.open_reader() {
+    Ok(value) => value
+    Err(issue) => return Err(RetainedFile(issue))
+  }
+  reader_open.val = true
+  let fail = fn(issue : NativeComputeExecutionIssue) {
+    if reader.close() is Ok(_) {
+      reader_open.val = false
+    }
+    Err(issue)
+  }
+  let mut rows = 0
+  let mut eof = false
+  while !eof {
+    let chunk = match reader.next(frame_bytes) {
+      Ok(value) => value
+      Err(issue) => return fail(RetainedFile(issue))
+    }
+    match on_bytes(chunk.bytes.length()) {
+      Ok(_) => ()
+      Err(issue) => return fail(issue)
+    }
+    let decoded = match
+      @publication.feed_durable_result_row_frames(frames, chunk.bytes) {
+      Ok(value) => value
+      Err(issue) => return fail(RowFrames(issue))
+    }
+    for row in decoded {
+      if rows >= expected_rows {
+        return fail(ImportRows)
+      }
+      match on_row(row) {
+        Ok(_) => rows += 1
+        Err(issue) => return fail(issue)
+      }
+    }
+    eof = chunk.eof
+  }
+  let summary = match @publication.finish_durable_result_row_frames(frames) {
+    Ok(value) => value
+    Err(issue) => return fail(RowFrames(issue))
+  }
+  if summary.rows != expected_rows || rows != expected_rows {
+    return fail(ImportRows)
+  }
+  match reader.finish() {
+    Ok(_) => ()
+    Err(issue) => return fail(RetainedFile(issue))
+  }
+  reader_open.val = false
+  Ok(())
+}
+
+///|
 /// A fresh bounded reader verifies physical bytes and the portable input
 /// stream verifies exact content, demand, and logical work before query use.
 /// Imported rows remain inside the uncommitted native transaction until both
@@ -321,18 +405,6 @@ fn execute_native_compute_retained_import(
     source.max_batch_bytes > source.wire.max_bytes {
     return Err(RuntimeState)
   }
-  let frame_bytes = Int::min(65536, source.max_batch_bytes)
-  let frames = match
-    @publication.prepare_durable_result_row_frames(
-      source.wire.max_bytes,
-      plan.rows,
-      Int::min(16777216, source.max_batch_bytes),
-      source.wire.max_depth,
-      frame_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(RowFrames(issue))
-  }
   match
     @duckdb_compute.begin_duckdb_compute_input_stream(
       attempt,
@@ -343,35 +415,10 @@ fn execute_native_compute_retained_import(
     Ok(_) => ()
     Err(issue) => return Err(Compute(issue))
   }
-  let reader = match source.file.open_reader() {
-    Ok(value) => value
-    Err(issue) => return Err(RetainedFile(issue))
-  }
   let mut parameters : Array[@duckdb.PhysicalParameter] = []
   let mut batch_rows = 0
-  let mut rows = 0
-  let mut eof = false
-  while !eof {
-    let chunk = match reader.next(frame_bytes) {
-      Ok(value) => value
-      Err(issue) => {
-        reader.close() |> ignore
-        return Err(RetainedFile(issue))
-      }
-    }
-    let decoded = match
-      @publication.feed_durable_result_row_frames(frames, chunk.bytes) {
-      Ok(value) => value
-      Err(issue) => {
-        reader.close() |> ignore
-        return Err(RowFrames(issue))
-      }
-    }
-    for row in decoded {
-      if rows >= plan.rows {
-        reader.close() |> ignore
-        return Err(ImportRows)
-      }
+  match
+    read_native_retained_rows(source, plan.rows, Ref(false), _ => Ok(()), row => {
       let values = match
         @duckdb_compute.append_duckdb_compute_input_stream(
           attempt,
@@ -385,19 +432,14 @@ fn execute_native_compute_retained_import(
           },
         ) {
         Ok(value) => value
-        Err(issue) => {
-          reader.close() |> ignore
-          return Err(Compute(issue))
-        }
+        Err(issue) => return Err(Compute(issue))
       }
       if values.length() != plan.columns {
-        reader.close() |> ignore
         return Err(ParameterCount)
       }
       for value in values {
         parameters.push(value)
       }
-      rows += 1
       batch_rows += 1
       if batch_rows == plan.batch_rows {
         match
@@ -408,34 +450,15 @@ fn execute_native_compute_retained_import(
             max_bytes,
           ) {
           Ok(_) => ()
-          Err(issue) => {
-            reader.close() |> ignore
-            return Err(issue)
-          }
+          Err(issue) => return Err(issue)
         }
         parameters = []
         batch_rows = 0
       }
-    }
-    eof = chunk.eof
-  }
-  let summary = match @publication.finish_durable_result_row_frames(frames) {
-    Ok(value) => value
-    Err(issue) => {
-      reader.close() |> ignore
-      return Err(RowFrames(issue))
-    }
-  }
-  if summary.rows != plan.rows || rows != plan.rows {
-    reader.close() |> ignore
-    return Err(ImportRows)
-  }
-  match reader.finish() {
+      Ok(())
+    }) {
     Ok(_) => ()
-    Err(issue) => {
-      reader.close() |> ignore
-      return Err(RetainedFile(issue))
-    }
+    Err(issue) => return Err(issue)
   }
   if batch_rows > 0 {
     match
@@ -563,12 +586,16 @@ fn convert_native_retained_result_for_publication(
 }
 
 ///|
+/// `resident_read` replaces the fixed query with the connector-compiled read
+/// of the already materialized resident result table. That read carries no
+/// parameters; the same receiver, guards and holding admit its rows.
 fn execute_native_compute_query(
   attempt : @duckdb_compute.DuckDBComputeAttempt,
   database : @native_duckdb.Database,
   transport : @duckdb.TransportColumnLimits,
   compute_limits : @duckdb_compute.DuckDBComputeLimits,
   retained? : NativeComputeRetainedOutput,
+  resident_read? : String,
 ) -> Result[
   @execution.RetainedOutputHandle[@retained_file.NativeRetainedTaskFile]?,
   NativeComputeExecutionIssue,
@@ -580,7 +607,7 @@ fn execute_native_compute_query(
   let fixed = @duckdb.fixed_compute_query(compute)
   let query = match
     database.prepare_stream_query(
-      @duckdb.fixed_query_sql(fixed),
+      resident_read.unwrap_or(@duckdb.fixed_query_sql(fixed)),
       transport.max_columns,
       compute_limits.physical.max_rows.to_int64(),
       transport.max_rows,
@@ -589,7 +616,11 @@ fn execute_native_compute_query(
     Ok(value) => value
     Err(issue) => return Err(Runtime(issue))
   }
-  let parameter_count = @duckdb.fixed_query_parameter_count(fixed)
+  let parameter_count = if resident_read is Some(_) {
+    0
+  } else {
+    @duckdb.fixed_query_parameter_count(fixed)
+  }
   if query.parameter_count() != parameter_count {
     query.close() |> ignore
     return Err(ParameterCount)

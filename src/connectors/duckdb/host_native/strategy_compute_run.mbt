@@ -84,18 +84,49 @@ pub fn execute_native_strategy_compute_task(
   retained_profile? : NativeStrategyRetainedOutputProfile,
   additional_retained_source? : (@execution.ProducerRead) -> NativeComputeRetainedInput?,
 ) -> Result[@execution.CompletedOutput, NativeStrategyComputeRunIssue] {
+  execute_native_strategy_task(
+    run,
+    setup,
+    database,
+    import_limits,
+    transfer_bytes,
+    execution_bytes,
+    retained_profile?,
+    additional_retained_source?,
+  )
+}
+
+///|
+/// The same retained task owner for fresh and resident execution. A resident
+/// task borrows the environment database, which this owner never closes.
+fn execute_native_strategy_task(
+  run : NativeStrategyComputeRun,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  database : @native_duckdb.Database,
+  import_limits : NativeComputeImportLimits,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  retained_profile? : NativeStrategyRetainedOutputProfile,
+  additional_retained_source? : (@execution.ProducerRead) -> NativeComputeRetainedInput?,
+  resident? : NativeResidentTaskBinding,
+) -> Result[@execution.CompletedOutput, NativeStrategyComputeRunIssue] {
   if !run.accepting {
-    database.close()
+    match resident {
+      Some(binding) =>
+        @duckdb_driver.cancel_resident_inputs(binding.inputs) |> ignore
+      None => database.close()
+    }
     return Err(Closed)
   }
   let runtime = match
-    start_native_strategy_compute_runtime(
+    start_native_strategy_runtime(
       setup,
       database,
       import_limits,
       transfer_bytes,
       execution_bytes,
       retained_profile?,
+      resident?,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Start(issue))

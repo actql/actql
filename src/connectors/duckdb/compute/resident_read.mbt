@@ -3,6 +3,7 @@
 /// or discharge the common driver checks on exact input ownership and liveness.
 struct DuckDBResidentRead {
   sql : String
+  view : String
   imported : @duckdb.ResidentImport
   input : @execution.ProducerRead
 }
@@ -17,7 +18,7 @@ pub fn prepare_duckdb_resident_read(
 ) -> Result[DuckDBResidentRead, @duckdb.NativeQueryIssue] {
   @duckdb.resident_import_receiver_sql(
     imported, input, view_name, max_entries, max_sql_bytes,
-  ).map(sql => { sql, imported, input, })
+  ).map(sql => { sql, view: view_name, imported, input, })
 }
 
 ///|
@@ -48,6 +49,16 @@ pub fn duckdb_resident_read_bytes(
 /// Only concrete transport wiring needs the SQL representation.
 pub fn duckdb_resident_read_sql(read : DuckDBResidentRead) -> String {
   read.sql
+}
+
+///|
+/// Removal of this receiver view for a Host whose connection outlives the
+/// borrowing task. It grants no table release; common cleanup owns that.
+pub fn duckdb_resident_read_drop_sql(
+  read : DuckDBResidentRead,
+  max_bytes : Int,
+) -> Result[String, @duckdb.NativeQueryIssue] {
+  @duckdb.resident_import_receiver_drop_sql(read.view, max_bytes)
 }
 
 ///|

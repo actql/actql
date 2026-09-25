@@ -54,6 +54,8 @@ pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_
 
 pub fn native_standard_strategy_run_complete(NativeStandardStrategyRun) -> Bool
 
+pub fn native_standard_strategy_run_resident_observation(NativeStandardStrategyRun) -> NativeStandardResidentObservation
+
 pub fn native_standard_strategy_run_task_count(NativeStandardStrategyRun) -> Int
 
 pub fn native_strategy_compute_run_task_count(NativeStrategyComputeRun) -> Int
@@ -113,6 +115,7 @@ pub(all) enum NativeComputeExecutionIssue {
   RetainedFile(@retained_task_file.NativeRetainedTaskFileIssue)
   RowFrames(@actql/actql/run_publication.DurableResultRowFrameIssue)
   RetainedImport(@execution_relation.CompletedImportIssue)
+  ResidentImport(@adapter.FixedImportStreamIssue)
 }
 
 pub(all) struct NativeComputeFailure {
@@ -162,6 +165,15 @@ pub(all) enum NativeStandardPolicyIssue {
   Transport(@http_client.NativeHttpIssue)
   Wire(@physical_strategy.SearchIssue)
 }
+
+pub(all) struct NativeStandardResidentObservation {
+  environments : Int
+  imports : Int
+  imported_rows : Int
+  borrowed_inputs : Int
+  temporary_views : Int64
+  tables : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum NativeStandardRunPublicationIssue {
   Strategy(NativeStandardStrategyRunIssue)

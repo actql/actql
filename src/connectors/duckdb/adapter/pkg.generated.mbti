@@ -455,6 +455,8 @@ pub fn resident_import_matches_storage(ResidentImport, @execution_relation.Produ
 
 pub fn resident_import_parameter(ResidentImport, Int, Int) -> Result[PhysicalParameter, ValueIssue]
 
+pub fn resident_import_receiver_drop_sql(String, Int) -> Result[String, NativeQueryIssue]
+
 pub fn resident_import_receiver_sql(ResidentImport, @execution_relation.ProducerRead, String, Int, Int) -> Result[String, NativeQueryIssue]
 
 pub fn resident_import_row_count(ResidentImport) -> Int

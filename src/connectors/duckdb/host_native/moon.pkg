@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/duckdb/adapter" @duckdb,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/compute" @duckdb_compute,
