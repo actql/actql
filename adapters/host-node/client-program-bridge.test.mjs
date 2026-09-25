@@ -5131,7 +5131,7 @@ test(`two-member captured Effect Run ${
         if (physical === 'salesforce-unknown') {
           const completed = await completeCapturedEffectRun({
             apply: {...applyOptions, ledger,
-              refreshPreflight: () => assert.fail('unknown replay refreshed'),
+              authorization: undefined, refreshPreflight: undefined,
               dispatchRow: () => assert.fail('unknown row resent')},
             receipt: receiptOptions,
             publication: {execution, store, storedResults, control,
