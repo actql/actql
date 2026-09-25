@@ -49,13 +49,24 @@ export function updateDocumentMetadata(write = false) {
       const value = ref.pointer.split('/').slice(1).reduce((v, key) => v?.[key.replace(/~1/g, '/').replace(/~0/g, '~')], object);
       assert.notEqual(value, undefined, `Missing pinned body ${ref.path}#${ref.pointer}`);
       const cid = machineCid(value);
-      if (ref.cid !== cid) {
-        const prefix = `${relative(dirname(d.path), ref.path)}#${ref.pointer} `;
-        assert.ok(source.includes(prefix + ref.cid), `Missing pin declaration ${prefix}`);
-        source = source.replaceAll(prefix + ref.cid, prefix + cid);
-        changes.push({ path: ref.path, pointer: ref.pointer, before: ref.cid, after: cid });
-        ref.cid = cid;
-      }
+      const prefix = `${relative(dirname(d.path), ref.path)}#${ref.pointer} `;
+      let found = false;
+      source = source.split('\n').map(line => {
+        const at = line.indexOf(prefix);
+        if (at < 0) return line;
+        const before = line.slice(at + prefix.length);
+        const claimed = /^sha256:[0-9a-f]{64}/u.exec(before)?.[0];
+        assert.ok(claimed, `Invalid pin declaration ${prefix}`);
+        found = true;
+        if (claimed !== cid) {
+          changes.push({path: ref.path, pointer: ref.pointer,
+            before: claimed, after: cid});
+        }
+        return line.slice(0, at + prefix.length) + cid +
+          before.slice(claimed.length);
+      }).join('\n');
+      assert.ok(found, `Missing pin declaration ${prefix}`);
+      ref.cid = cid;
       // Version changes require a separate explicit edit, never an inferred upgrade.
       if (ref.version !== undefined) assert.equal(ref.version, object.version, `Review version change: ${ref.path}`);
     }

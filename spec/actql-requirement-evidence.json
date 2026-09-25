@@ -9562,6 +9562,28 @@
       }
     },
     {
+      "requirement_id": "actql.execution/effect-application.effect-member-preview-cid-uses-the-noncyclic-canonical-member-body",
+      "statement_sha256": "1863284846223e517a5c5fa645bfd2f5230c739cbff4d553d682fea62f263eef",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/effect-application.effect-preview-cid-excludes-only-the-listed-derived-bindings",
+      "statement_sha256": "ed21d3760688e1731ad1e15878e92797eb839a3fdf7bab8453b7a72a5eb21f82",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effect-application",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/effect-application.when-a-delegated-decision-is-deferred-the-runtime-must-pause-at-one",
       "statement_sha256": "751702d2f85b8e37d48c9257990c26c9c70692a3d86ee0aaa25cd74a2823a129",
       "status": "pending",
@@ -11873,7 +11895,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "a7629baa87cdf605f38877fcb6e6938854572ebd9283eaca1eaed5a98df72c51",
+      "statement_sha256": "0e07f67413fabd03d90e0bd341762677e073121df4daf4ae86a666c1cb21f4e0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -12874,7 +12896,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "1bf45cb9ad75b4dab36a29d682621658c0daa18a12ea47eaa05d68b7cf366037",
+      "statement_sha256": "72f1151a0a69dea41038140fc9b5905fcfb37d76ab5bab2ec0954d0c395eeced",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
