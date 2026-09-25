@@ -179,6 +179,8 @@ pub fn salesforce_recheck_single_write_request(@catalog.SingleWriteRequest, @cat
 
 pub fn salesforce_recheck_write_projection(@catalog.WriteProjection, @catalog.CatalogObservation) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_single_write_member_footprint(Array[@catalog.SingleWriteRequest], Int, Int) -> (String, String, String, String, String, Array[String]) raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_single_write_request_body(@catalog.SingleWriteRequest) -> String
 
 pub fn salesforce_single_write_request_boundary_cid(@catalog.SingleWriteRequest, Int) -> String raise SalesforceCatalogBridgeIssue

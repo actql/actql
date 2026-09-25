@@ -138,6 +138,8 @@ pub fn require_upsert_fields(ResourceMetadata, String, Array[String]) -> Result[
 
 pub fn select_described_resource(ResourceListing, String, ResourceMetadata?) -> Result[ResourceMetadata, ResourceSelectionIssue]
 
+pub fn single_write_member_footprint(Array[SingleWriteRequest], Int, Int) -> Result[(String, String, String, String, String, Array[String]), WriteCollectionRequestIssue]
+
 pub fn single_write_request_body(SingleWriteRequest) -> String
 
 pub fn single_write_request_boundary_cid(SingleWriteRequest, Int) -> Result[String, WriteCollectionRequestIssue]

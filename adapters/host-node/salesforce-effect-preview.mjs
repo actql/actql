@@ -104,6 +104,17 @@ export function authorObservedSalesforceEffectPreview({
         rowCount + member.requests.length > maxRows) {
       fail('InvalidSalesforceEffectPreviewAuthoring');
     }
+    const footprint = checked(salesforceMoon.salesforceSingleWriteMemberFootprint(
+      member.requests, maxRows - rowCount, maxIdentityBytes));
+    proposal.write_footprint = {
+      kind: footprint._0,
+      provider_boundary_cid: footprint._2,
+      provider_namespace: footprint._1,
+      provider_object_identity_cids: footprint._5,
+      resource_identity_scheme_cid: footprint._3,
+      resource_kind: footprint._4,
+    };
+    proposal.count = member.requests.length;
     rowCount += member.requests.length;
     if (proposal.effect_kind === 'create') {
       const afterWires = [];
