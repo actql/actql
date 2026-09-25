@@ -2714,6 +2714,20 @@ test('same intent is idempotent while conflicting commit is rejected',
     assert.deepEqual(idempotent.entry, entry);
     assert.equal(retry.prepared.status().pending, false);
 
+    const otherReceiptCid = digest('different final receipt');
+    await store.putSemantic('different final receipt', otherReceiptCid);
+    const changedReceipt = indexEntry(request, retryAttempt,
+      invocationValue, {
+        durable_result_binding_cids: [retry.binding.identity],
+        run_receipt_cid: otherReceiptCid,
+      });
+    await assert.rejects(store.commitIndex(
+      wire(changedReceipt), [...retry.required, otherReceiptCid],
+      retry.evidence,
+    ), code('PublicationCommitConflict'));
+    assert.deepEqual(await store.confirmCommittedIndex(indexKeyFor(request)),
+      entry);
+
     const conflictingRequest = publicationRequest(
       resultDefinition('other'), invocationValue.invocation_cid,
     );
