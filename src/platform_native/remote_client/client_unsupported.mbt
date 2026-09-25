@@ -3,9 +3,13 @@ pub fn dispatch(
   _journal : @journal.CoordinatorJournal,
   _client : @http.Client,
   _url : String,
-  _request : @remote.DispatchRequest,
+  request : @remote.DispatchRequest,
+  authorization : @authorization.RuntimeAction,
 ) -> Result[@remote.RemoteDispatchResponse, NativeRemoteClientIssue] {
   ignore(@utf8.encode(""))
+  if !remote_dispatch_authorized(authorization, request) {
+    return Err(NotAuthorized)
+  }
   Err(UnsupportedTarget)
 }
 

@@ -76,7 +76,13 @@ test "native Coordinator persists intent and admitted HTTPS observations" {
     @remote.create_coordinator_dispatch_journal("native-coordinator").unwrap(),
   ).unwrap()
   let request = native_remote_request()
-  let accepted = dispatch(journal, client, origin + "/remote/dispatch", request).unwrap()
+  let accepted = dispatch(
+    journal,
+    client,
+    origin + "/remote/dispatch",
+    request,
+    remote_dispatch_allow_action(request),
+  ).unwrap()
   assert_eq(@remote.remote_dispatch_response_revision(accepted), 0)
   let status = query(journal, client, origin + "/remote/query", request).unwrap()
   assert_eq(@remote.remote_dispatch_response_kind(status), @remote.StatusReply)
