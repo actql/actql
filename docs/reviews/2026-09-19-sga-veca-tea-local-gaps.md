@@ -33,6 +33,17 @@ fixtures execute both downstream consumers, preserve independent release,
 and stop after positive work without publishing partial output. This removes
 one providerless multi-step case. Other formal RelA bodies and unmatched
 whole-sequence paths still use the synchronous fallback and remain open.
+An attempted extension to every completed Relation edge exposed a second
+boundary: the shared physical DAG is also consumed through the fixed
+synchronous API. That API requests the original Stage's final output target,
+while a split task owns its exact intermediate Step target. Selecting that
+Step in the fixed execution path is not sufficient: the legacy selected-row
+evaluator rejects a completed upstream table with a different checked owner.
+The existing bounded selected-row provider already handles such producer
+reads, so the general split must connect that provider through the common
+task execution contract. Merely broadening the splitter or replaying the
+legacy evaluator synchronously would not close cancellation assurance. The
+fixed-API regression was restored and the trial splitter change was dropped.
 The supplied select read also has a fixed one-row boundary: one input and
 one output opening plus two output-name bytes cost four control units; the
 view, name, ordinal, and row slots peak at fourteen. Exact limits succeed,
