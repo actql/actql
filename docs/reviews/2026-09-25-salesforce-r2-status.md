@@ -29,7 +29,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The product Salesforce Host operation now fills update/upsert Preview row facts from exact typed requests and target observations, and MoonBit seals the row, member, set and dispatch-key chain. The installed Host fixture reobserves every target before the common whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. Update/upsert selector and change values now come from the checked Mapping applied during the same captured Result export that creates the private source Artifact. The surrounding semantic Preview template is still fixture-assembled; create's mapped values still follow a fixture path, so there is not yet one general Host authoring operation. | Derive the complete template and create values from the captured input and checked Program through a production Host caller, then bind the exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
+| The product Salesforce Host operation now fills update/upsert Preview row facts from exact typed requests and target observations, and MoonBit seals the row, member, set and dispatch-key chain. The installed Host fixture reobserves every target before the common whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. Update/upsert selectors and changes, and result-backed create changes, now come from the checked Mapping applied during the same captured Result export that creates the private source Artifact. The surrounding semantic Preview template is still fixture-assembled, so there is not yet one general Host authoring operation. | Derive the complete template from the captured input and checked Program through a production Host caller, then bind exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -55,7 +55,11 @@ checked Mapping now projects each canonical row of the same bounded Result
 export used to seal the private Effect-source Artifact. A shared export may
 feed another member only when MoonBit confirms the same live producer and
 checked Result view; the separate member identities and later Plan proofs
-remain intact. Create mapping is not yet connected to this proposal path.
+remain intact. Result-backed create now projects checked row-mapping values,
+including explicit null behavior, from that same export. Its Site request body
+uses the projection, while the surrounding semantic Preview template and row
+occurrence identities in the Host fixture still require a product authoring
+operation.
 Row-to-set
 identity and dispatch-key sealing uses one MoonBit product operation; complete
 semantic body assembly is not yet a general Host authoring operation.
