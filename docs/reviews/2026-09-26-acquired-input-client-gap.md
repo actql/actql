@@ -8,7 +8,7 @@ exist; the listed product connections do not.
 | Product connection | Existing owner | Missing connection and owner |
 | --- | --- | --- |
 | Installed source view and current read authority | `program_check` and the DuckDB acquisition Host | `embedded-local.mjs` loads a check environment with no source views. Distribution must install a real catalog and grant from the chosen Local source; Program text must not authorize a local file read. |
-| Logical request identity | `prepare_client_request_identity` in `run_publication_host` | `embedded-local.mjs` always supplies the fixed source-free input intent. Distribution must bind the checked source selection and preserve the same request ID across lookup, restart, and retry. |
+| Logical request identity | `prepare_client_request_identity` binds the checked Program Definition, Parameter Values, caller input intent, scope, and request ID. | A Program can acquire an external source while the caller selects no captured Run-start input. In that case the fixed `selection: "none"` caller intent is valid; the checked source declaration is already in the Program identity, while the actual acquisition belongs in the later Observation Set. Distribution must preserve the same request ID and intent across lookup, restart, and retry. |
 | Checked compilation and Run evidence | `run_publication_host`, `run_publication` | `issue_prepared_client_values_compilation` and `sourceFreeValuesPlan` issue only the direct Values plan, empty initial input set, and no-source ObservationSet. Distribution owns a shared acquired-input issuer built from the checked Program and actual capture evidence, with independent Run/Result binding tests. |
 | Physical capture and downstream computation | The installed DuckDB Host's `runStrategyNativeHostQuery` returns an `openDAG` operation backed by `nativeHostOpenDAG`. It binds the verified native observation and the captured source to the checked DAG on the same physical ledger. | `embedded-local.mjs` still opens only `clientProgramOpenSourceFreeLocalHost`; Distribution must select the installed acquisition from the checked source and pass its captured DAG to the existing `runPublishedCapturedStrategy`. A second generic capture owner is unnecessary. |
 | Remote mode of the same Program | Cloud-owned Run Host, common Run owner, native Site | Cloud submit currently calls `compileValues`; the native Site smoke also installs a fixed Values executor. Cloud must accept the same checked source and capture contract after the OSS shared issuer is available, without a TypeScript Run state machine. |
@@ -27,6 +27,9 @@ cannot issue that evidence: it fixes an empty input set and a direct Values
 Plan. The existing DuckDB `openDAG` closes the physical handoff after this
 admission and plan material are available; it is not itself a substitute for
 them. The public `@actql/sdk` transport needs no new acquisition API.
+An empty initial Artifact set remains valid only when the checked Program
+requires no captured input at Run start; it does not claim that later source
+acquisition or intermediate Artifacts are absent.
 
 At `aee02f6b42a159357f57c41d7d143c3a50c8ff3c`,
 `check:distribution-client` passed using the repository's pinned MoonBit
