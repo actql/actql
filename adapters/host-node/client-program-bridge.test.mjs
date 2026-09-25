@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -10,8 +11,10 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet} from './effect-run-apply.mjs';
-import {accountEntry, fixtureAuthorization} from
+import {accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from
   './authorization-fixture.mjs';
+import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
+  './sqlite-checkpoint-journal.mjs';
 import {captureSalesforceCollectionEffectWrite,
   captureSalesforceSingleEffectWrite} from
   './salesforce-effect-write.mjs';
@@ -2210,7 +2213,767 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   }
 }
 
-for (const physical of ['simulated', 'salesforce',
+// Effect commit authorization over the real two-member captured Effect Run.
+// Offline: the provider is a local HTTP mock that counts PATCH requests per
+// row path, the Effect ledger and the Checkpoint journal are real SQLite
+// stores reopened to model process restarts, and reviewer/Host signatures are
+// test Ed25519 keys behind the journal's Host ports.
+const commitReviewer = generateKeyPairSync('ed25519');
+const commitHost = generateKeyPairSync('ed25519');
+const commitCid = value =>
+  `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
+const commitIso = ms => new Date(ms).toISOString();
+const commitBinding = Object.freeze({
+  authorizationContextCid: FIXTURE_CONTEXT.contextCid,
+  environmentBindingCid: cid('e'),
+});
+const commitRunDefinitionCid = cid('1');
+
+async function openCommitJournal(root, clock) {
+  return openSqliteCheckpointJournal(root, {
+    runtime: await loadCheckpointRuntime(),
+    authorizeResolution({resolutionWire, proofPreimage}) {
+      const resolution = JSON.parse(resolutionWire);
+      if (resolution.proof.key_id !== 'reviewer-key' ||
+          !verify(null, Buffer.from(proofPreimage, 'utf8'),
+            commitReviewer.publicKey,
+            Buffer.from(resolution.proof.signature, 'base64'))) {
+        throw new Error('UntrustedResolution');
+      }
+      return {keyId: 'reviewer-key', reviewerId: 'reviewer',
+        authorityContextCid: cid('c'), policyCid: cid('d'),
+        verifiedPreimage: proofPreimage};
+    },
+    attestResolution: preimage => ({hostKeyId: 'host-key',
+      signature: sign(null, Buffer.from(preimage, 'utf8'),
+        commitHost.privateKey).toString('base64')}),
+    now: () => clock.ms,
+  });
+}
+
+// Host deferral: persist one Effect Commit Checkpoint that seals the exact
+// Effect Set Preview (the gate supplies the subject CID). A Host policy that
+// requires the risk claim adds it to the Checkpoint requirements.
+function commitDeferral(journal, clock, runId, requirements) {
+  return {
+    journal,
+    authorities: [{keyId: 'reviewer-key', reviewerId: 'reviewer'}],
+    binding: commitBinding,
+    describe: view => ({
+      priorStatus: 'running',
+      declaredResults: ['answer'],
+      body: {
+        checkpoint_id: `${runId}-commit`,
+        run_id: runId,
+        run_definition_cid: commitRunDefinitionCid,
+        continuation_state_cid: cid('2'),
+        subject: {kind: 'run_unit', run_id: runId, unit_id: 'effect-commit',
+          continuation: 'resume_unit'},
+        ...(requirements === undefined ? {} : {requirements}),
+        required_artifact: {artifact_cid: view.subject.subject_cid},
+        review_projection_cid: cid('4'),
+        human_summary: 'Apply the two-member Effect Set',
+        created_at: commitIso(clock.ms),
+        expires_at: commitIso(clock.ms + 86_400_000),
+      },
+    }),
+  };
+}
+
+async function answerCommitCheckpoint(journal, checkpointCid, decision,
+  clock, {unknownEffects} = {}) {
+  const view = journal.inspect(checkpointCid);
+  let evidence;
+  if (decision === 'approved') {
+    const attestation = {
+      version: 'actql-approval-attestation/0.1',
+      effect_preview_cid: view.requiredArtifact.cid,
+      review_projection_cid: view.reviewProjectionCid,
+      approver: 'reviewer', approved_at: commitIso(clock.ms),
+      authority_scope_cid: cid('5'), claims: [...view.requirements],
+      proof: {scheme: 'ed25519-v1', key_id: 'reviewer-key',
+        signature: 'c2lnbmF0dXJl'},
+    };
+    attestation.attestation_cid = commitCid(attestation);
+    evidence = {
+      version: 'actql-checkpoint-approval-evidence/0.1', kind: 'effect_set',
+      checkpoint_cid: view.checkpointCid,
+      review_projection_cid: view.reviewProjectionCid,
+      compatibility_approval: attestation,
+    };
+  }
+  const body = {
+    version: 'actql-checkpoint-resolution/0.1',
+    resolution_id: `resolution-${decision}`,
+    checkpoint_id: view.checkpointId, checkpoint_cid: view.checkpointCid,
+    run_id: view.runId, run_definition_cid: commitRunDefinitionCid,
+    decision, actor: 'reviewer', decided_at: commitIso(clock.ms),
+    required_artifact_cid: view.requiredArtifact.cid,
+    review_projection_cid: view.reviewProjectionCid,
+    ...(evidence ? {approval_evidence_cid: commitCid(evidence)} : {}),
+  };
+  body.proof = {scheme: 'ed25519-v1', key_id: 'reviewer-key',
+    signature: sign(null, Buffer.from(commitCid(body), 'utf8'),
+      commitReviewer.privateKey).toString('base64')};
+  body.resolution_cid = commitCid(body);
+  const answer = {checkpointCid, resolutionWire: JSON.stringify(body),
+    approvalEvidenceWire: evidence ? JSON.stringify(evidence) : '',
+    ...(unknownEffects === undefined ? {} : {unknownEffects})};
+  // The committed result carries the verified Resolution the Host presents
+  // on resume; after a restart the same answer is resubmitted and the
+  // journal returns the stored Resolution as a duplicate.
+  return {...await journal.submitResolution(answer), answer};
+}
+
+async function openCountingProvider(t) {
+  const requests = [];
+  const loseReply = new Set();
+  const server = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    requests.push({method: request.method, path: request.url});
+    // The provider applied the write; only its reply is lost.
+    if (loseReply.delete(request.url)) {
+      request.socket.destroy();
+      return;
+    }
+    response.writeHead(200, {'content-type': 'application/json'});
+    response.end(canonicalJson({ok: true}));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => {
+    server.closeAllConnections();
+    server.close(resolve);
+  }));
+  return Object.freeze({
+    requests, loseReply,
+    origin: `http://127.0.0.1:${server.address().port}`,
+    // PATCH writes observed by the provider since `since`, optionally for
+    // one row path.
+    mark: () => requests.length,
+    writes: (since = 0, path) => requests.slice(since).filter(item =>
+      item.method === 'PATCH' &&
+      (path === undefined || item.path === path)).length,
+  });
+}
+
+function ledgerEntryCount(root) {
+  const database = new DatabaseSync(join(root, 'effect-ledger.sqlite3'),
+    {readOnly: true});
+  try {
+    return database.prepare(
+      'SELECT count(*) AS n FROM effect_ledger_entries').get().n;
+  } finally {
+    database.close();
+  }
+}
+
+async function verifyEffectCommitAuthorization(t, {
+  moon, previewInputs, members, preflight, applyPreview, body, directory,
+  memberIds,
+}) {
+  const provider = await openCountingProvider(t);
+  const rowPaths = members.flatMap(member =>
+    member.claims.map(claim => claim.path));
+  const totalRows = rowPaths.length;
+  const subjectCid = moon.clientProgramEffectApplySubjectCid(previewInputs);
+  // The decision subject is the sealed Set Preview semantic identity.
+  assert.equal(subjectCid, body.effect_preview_cid);
+  assert.equal(moon.clientProgramEffectApplyMemberCount(previewInputs),
+    memberIds.length);
+  const scopes = memberIds.map(() => ({connection: 'crm',
+    resource: 'Account'}));
+  // Operation dimension: the Effect class of the Read/Write/Effect
+  // operation classification.
+  const allowAccount = [accountEntry('crm-effect', 'allow',
+    {connection: 'crm', resource: 'Account', operation: 'effect'})];
+  const delegateAccount = [accountEntry('crm-effect', 'delegate',
+    {connection: 'crm', resource: 'Account', operation: 'effect'})];
+  // The reviewer answering a deferred decision is one of the Host's
+  // answering authorities; its committed approval is admitted as the permit.
+  const hostOptions = (answer, extra = {}) => ({
+    answeringAuthorities: ['host-policy', 'reviewer'],
+    decide: view => answer === 'defer'
+      ? {decision: 'defer', subject: view.subject}
+      : {decision: answer, subject: view.subject, authority: 'host-policy',
+        claims: []},
+    ...extra,
+  });
+  let rootSequence = 0;
+  const workspace = async () => {
+    const root = join(directory, `commit-authorization-${++rootSequence}`);
+    await mkdir(root);
+    return {ledgerRoot: join(root, 'ledger'),
+      journalRoot: join(root, 'journal')};
+  };
+  const openScenarioLedger = root => openEffectLedger({moon, root,
+    authorityScopeCid: cid('e'),
+    callerRequestId: 'complete-two-effects-request', maxEntryBytes: 4096});
+  // Mock provider dispatch through the durable ledger claim.
+  const dispatcher = (ledger, calls, {loseReplyAt} = {}) =>
+    async ({memberIndex, rowIndex, claim}) => {
+      calls.push([memberIndex, rowIndex]);
+      if (loseReplyAt?.(calls.length)) provider.loseReply.add(claim.path);
+      const response = await captureClaimedEffectResponse({
+        ledger, claim, requestCid: claim.canonicalRequestCid,
+        execute: async () => {
+          const reply = await fetch(provider.origin + claim.path,
+            {method: 'PATCH', body: claim.path});
+          return {observation: {useCid: cid('4'), statusCode: reply.status,
+            body: Buffer.from(await reply.arrayBuffer())}};
+        },
+      });
+      assert.equal(response.claimed, true);
+      ledger.recordAdmittedRowOutcome({
+        claim, preview: applyPreview, memberIndex, previewRowIndex: rowIndex,
+        outcomeWire: canonicalJson({state: 'applied',
+          result: {record_id: `member-${memberIndex}-row-${rowIndex}`}}),
+      });
+      ledger.commitAdmittedRowOutcome({claim, preview: applyPreview,
+        memberIndex, previewRowIndex: rowIndex});
+    };
+  const apply = (ledger, gate, dispatchRow, extra = {}) =>
+    applyCapturedEffectSet({moon, capturedInputs: previewInputs,
+      preflight: {...preflight, ...extra.preflight}, ledger, members,
+      maxFrontierWork: 64, dispatchRow, signal: undefined,
+      authorization: {gate, scopes, resume: extra.resume}});
+  const refused = (gate, code, check = () => true) => async () => {
+    const {ledgerRoot} = await workspace();
+    const ledger = openScenarioLedger(ledgerRoot);
+    const writesBefore = provider.mark();
+    const calls = [];
+    try {
+      await assert.rejects(apply(ledger, gate, dispatcher(ledger, calls)),
+        error => error.code === code && check(error));
+      return {calls: calls.length, writes: provider.writes(writesBefore),
+        entries: ledgerEntryCount(ledgerRoot)};
+    } finally {
+      ledger.close();
+    }
+  };
+  const counts = {};
+
+  // (a) D2.multi-allow: account allow, no delegated call, no Checkpoint and
+  // no risk claim; every row is dispatched once.
+  {
+    const {ledgerRoot} = await workspace();
+    const ledger = openScenarioLedger(ledgerRoot);
+    const gate = await fixtureAuthorization(allowAccount);
+    const calls = [];
+    const writesBefore = provider.mark();
+    try {
+      const applied = await apply(ledger, gate, dispatcher(ledger, calls));
+      assert.equal(applied.status, 'applied');
+      assert.equal(applied.dispatched, totalRows);
+      assert.equal(applied.subjectCid, subjectCid);
+      assert.equal(applied.authorization[0].basis, 'account_allow');
+      assert.equal(preflight.risk, undefined);
+      const counters = gate.counters();
+      assert.equal(counters.hostDecisionCalls, 0);
+      assert.equal(counters.checkpointsPersisted, 0);
+      counts.a = {dispatched: applied.dispatched,
+        writes: provider.writes(writesBefore),
+        entries: ledgerEntryCount(ledgerRoot)};
+      assert.equal(counts.a.writes, totalRows);
+    } finally {
+      ledger.close();
+    }
+  }
+
+  // (b) D2.account-deny: explicit deny and no-match dispatch nothing.
+  counts.b = await refused(await fixtureAuthorization([accountEntry(
+    'crm-effect', 'deny', {connection: 'crm', resource: 'Account',
+      operation: 'effect'})], hostOptions('permit')),
+  'ExecutionAuthorizationDenied',
+  error => error.authorization.boundary === 'effect_commit' &&
+    error.authorization.basis === 'account' &&
+    error.authorization.reason === 'explicit')();
+  counts.bNoMatch = await refused(await fixtureAuthorization([accountEntry(
+    'crm-read', 'allow', {operation: 'read'})]),
+  'ExecutionAuthorizationDenied',
+  error => error.authorization.reason === 'no_match')();
+
+  // (c) D2.multi-delegate-immediate: immediate permit, no claim required.
+  {
+    const {ledgerRoot} = await workspace();
+    const ledger = openScenarioLedger(ledgerRoot);
+    const gate = await fixtureAuthorization(delegateAccount,
+      hostOptions('permit'));
+    const calls = [];
+    const writesBefore = provider.mark();
+    try {
+      const applied = await apply(ledger, gate, dispatcher(ledger, calls));
+      assert.equal(applied.dispatched, totalRows);
+      assert.equal(applied.authorization[0].basis, 'host_permit');
+      assert.equal(gate.counters().hostDecisionCalls, 1);
+      assert.equal(gate.counters().checkpointsPersisted, 0);
+      counts.c = {dispatched: applied.dispatched,
+        writes: provider.writes(writesBefore),
+        entries: ledgerEntryCount(ledgerRoot)};
+    } finally {
+      ledger.close();
+    }
+  }
+
+  // (d) Immediate reject: a recorded Host rejection, nothing dispatched.
+  counts.d = await refused(await fixtureAuthorization(delegateAccount,
+    hostOptions('reject')), 'ExecutionAuthorizationDenied',
+  error => error.authorization.basis === 'rejected_by_host')();
+
+  // (e) D2.host-required-claim: the Host policy requires
+  // partial_application_accepted; a permit without it is not an accepted
+  // delegation, and preflight alone also refuses a missing required claim.
+  counts.e = await refused(await fixtureAuthorization(delegateAccount,
+    hostOptions('permit',
+      {requiredClaims: ['partial_application_accepted']})),
+  'ExecutionAuthorizationDecisionFailed',
+  error => /MissingRequiredClaim/.test(error.authorization.detail))();
+  {
+    const {ledgerRoot} = await workspace();
+    const ledger = openScenarioLedger(ledgerRoot);
+    try {
+      await assert.rejects(apply(ledger,
+        await fixtureAuthorization(allowAccount),
+        () => assert.fail('required claim missing but dispatched'),
+        {preflight: {requirePartialApplication: true}}),
+      {code: 'MoonBitHostFailure'});
+      counts.ePreflight = {entries: ledgerEntryCount(ledgerRoot)};
+      assert.equal(counts.ePreflight.entries, 0);
+    } finally {
+      ledger.close();
+    }
+  }
+
+  // D2.decision-failure: an unavailable Host answer is not a rejection.
+  counts.failure = await refused(await fixtureAuthorization(delegateAccount,
+    {answeringAuthorities: ['host-policy'],
+      decide: () => ({decision: 'unavailable'})}),
+  'ExecutionAuthorizationDecisionFailed')();
+  // Defer without a durable journal is unsupported, never a permit.
+  counts.unsupported = await refused(await fixtureAuthorization(
+    delegateAccount, hostOptions('defer')),
+  'ExecutionAuthorizationDeferralUnsupported')();
+  for (const name of ['b', 'bNoMatch', 'd', 'e', 'failure',
+    'unsupported']) {
+    assert.deepEqual(counts[name], {calls: 0, writes: 0, entries: 0}, name);
+  }
+
+  // Deferred commit: persist one Checkpoint for the complete Set Preview,
+  // restart, answer, restart, then resume through the journal claim.
+  const deferred = async ({runId, requirements, loseReplyAt,
+    requiredClaims = []}) => {
+    const deferGate = journal => fixtureAuthorization(delegateAccount,
+      hostOptions('defer', {requiredClaims,
+        deferral: commitDeferral(journal, clock, runId, requirements)}));
+    const clock = {ms: Date.parse('2026-09-24T00:00:00.000Z')};
+    const {ledgerRoot, journalRoot} = await workspace();
+    let journal = await openCommitJournal(journalRoot, clock);
+    let ledger = openScenarioLedger(ledgerRoot);
+    const calls = [];
+    const writesBefore = provider.mark();
+    const gate = await deferGate(journal);
+    const waiting = await apply(ledger, gate, dispatcher(ledger, calls));
+    // (i) Waiting holds no provider flight, no ledger entry and no claim.
+    assert.equal(waiting.status, 'waiting');
+    assert.equal(waiting.dispatched, 0);
+    assert.equal(calls.length, 0);
+    assert.equal(provider.writes(writesBefore), 0);
+    assert.equal(ledgerEntryCount(ledgerRoot), 0);
+    assert.equal(gate.counters().checkpointsPersisted, 1);
+    assert.equal(gate.counters().protectedDispatches, 0);
+    assert.equal(journal.getRunState(runId).status, 'waiting_checkpoint');
+    const [pending] = journal.listPending();
+    assert.equal(pending.checkpointCid, waiting.checkpoint.checkpointCid);
+    assert.equal(pending.kind, 'effect_set');
+    assert.equal(pending.phase, 'commit');
+    assert.equal(waiting.authorization[0].subjectCid, subjectCid);
+    // The Checkpoint's required artifact is the sealed Set Preview itself;
+    // the decision-subject digest is kept as a separate exact binding.
+    assert.equal(waiting.checkpoint.requiredArtifactCid, subjectCid);
+    assert.match(waiting.checkpoint.decisionSubjectCid,
+      /^sha256:[0-9a-f]{64}$/);
+    assert.notEqual(waiting.checkpoint.decisionSubjectCid, subjectCid);
+    assert.deepEqual(pending.requiredArtifact,
+      {type: 'effect_set_preview', cid: subjectCid});
+    assert.equal(pending.decisionSubjectCid,
+      waiting.checkpoint.decisionSubjectCid);
+    // The gate asks for partial_application_accepted only when the Host
+    // requires it.
+    assert.deepEqual(pending.requirements, requirements ??
+      (requiredClaims.includes('partial_application_accepted')
+        ? ['effect_scope_approved', 'partial_application_accepted']
+        : ['effect_scope_approved']));
+    // A second attempt while waiting re-derives the same sealed Checkpoint,
+    // persists nothing new and sends nothing.
+    const again = await apply(ledger, gate, dispatcher(ledger, calls));
+    assert.equal(again.status, 'waiting');
+    assert.equal(again.checkpoint.checkpointCid,
+      waiting.checkpoint.checkpointCid);
+    assert.equal(journal.listPending().length, 1);
+    assert.equal(calls.length, 0);
+    assert.equal(ledgerEntryCount(ledgerRoot), 0);
+    // Process restart while waiting.
+    journal.close();
+    ledger.close();
+    journal = await openCommitJournal(journalRoot, clock);
+    ledger = openScenarioLedger(ledgerRoot);
+    return {clock, ledgerRoot, journalRoot, calls, writesBefore,
+      checkpointCid: waiting.checkpoint.checkpointCid,
+      get journal() { return journal; },
+      set journal(value) { journal = value; },
+      get ledger() { return ledger; },
+      set ledger(value) { ledger = value; },
+      runId,
+      // The Resolution is read by the gate from the journal; the caller
+      // only names or takes the claim.
+      resume: claimant => ({journal, runId, claimant, leaseMs: 60_000,
+        binding: commitBinding}),
+      claim: (claimant, leaseMs = 60_000) => journal.claimResume(runId,
+        {claimant, leaseMs, binding: commitBinding}),
+      gate: (over = journal) => deferGate(over),
+      dispatch: (options = {}) => dispatcher(ledger, calls,
+        {loseReplyAt, ...options}),
+    };
+  };
+
+  // (f) D2.multi-delegate-deferred: defer -> Checkpoint -> restart ->
+  // approve -> restart -> resume: every row exactly once.
+  {
+    const run = await deferred({runId: 'commit-run-f'});
+    try {
+      run.clock.ms += 60_000;
+      const approved = await answerCommitCheckpoint(run.journal,
+        run.checkpointCid, 'approved', run.clock);
+      assert.equal(approved.decision, 'approved');
+      assert.equal(approved.runState.status, 'resuming');
+      run.journal.close();
+      run.ledger.close();
+      run.journal = await openCommitJournal(run.journalRoot, run.clock);
+      run.ledger = openScenarioLedger(run.ledgerRoot);
+      const stored = await run.journal.submitResolution(approved.answer);
+      assert.equal(stored.outcome, 'duplicate');
+      assert.equal(stored.verifiedResolutionWire,
+        approved.verifiedResolutionWire);
+      const gate = await run.gate();
+      const applied = await apply(run.ledger, gate, run.dispatch(),
+        {resume: run.resume('worker-f')});
+      assert.equal(applied.status, 'applied');
+      // The admission was entered once, as a fresh start, before the first
+      // send, with the durable Effect Set apply identity.
+      assert.equal(applied.admission.mode, 'start');
+      assert.equal(applied.admission.dispatchIdentity, applied.identity);
+      assert.ok(applied.identity.endsWith(`:${subjectCid}`));
+      assert.equal(applied.dispatched, totalRows);
+      assert.equal(applied.authorization[0].basis, 'resumed');
+      assert.equal(applied.authorization[0].checkpointCid, run.checkpointCid);
+      assert.equal(gate.counters().hostDecisionCalls, 0);
+      assert.ok(applied.resume.generation >= 1);
+      for (const path of rowPaths) {
+        assert.equal(provider.writes(run.writesBefore, path), 1, path);
+      }
+      const done = run.journal.completeResume(applied.resume, {
+        runStateWire: JSON.stringify({
+          version: 'actql-run-state/0.1', run_id: 'commit-run-f',
+          status: 'succeeded', updated_at: commitIso(run.clock.ms),
+          next_action: {kind: 'read_result', results: ['answer']},
+          result_available: true,
+          result_availability: {answer: {state: 'available',
+            observed_at: commitIso(run.clock.ms),
+            reason: 'confirmed_present'}},
+        })});
+      assert.equal(done.status, 'succeeded');
+      // Every row is settled: a later resume has nothing to send and takes
+      // no claim; the completed intent cannot be claimed again.
+      const settled = await apply(run.ledger, gate,
+        () => assert.fail('completed resume resent a row'),
+        {resume: run.resume('worker-f2')});
+      assert.equal(settled.dispatched, 0);
+      assert.deepEqual(run.claim('worker-f3'), {action: 'completed'});
+      const replay = await apply(run.ledger,
+        await fixtureAuthorization(allowAccount),
+        () => assert.fail('terminal row resent'));
+      assert.equal(replay.dispatched, 0);
+      counts.f = {dispatched: applied.dispatched,
+        writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot),
+        calls: run.calls.length};
+      assert.equal(counts.f.writes, totalRows);
+      assert.equal(counts.f.calls, totalRows);
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+
+  // Host-required partial_application_accepted on a deferred decision:
+  // (j1) the gate asks the reviewer for it and the committed evidence
+  // establishes it: dispatch.
+  {
+    const run = await deferred({runId: 'commit-run-claim',
+      requiredClaims: ['partial_application_accepted']});
+    try {
+      run.clock.ms += 60_000;
+      const approved = await answerCommitCheckpoint(run.journal,
+        run.checkpointCid, 'approved', run.clock);
+      assert.equal(approved.decision, 'approved');
+      const applied = await apply(run.ledger, await run.gate(),
+        run.dispatch(), {resume: run.resume('worker-claim')});
+      assert.equal(applied.dispatched, totalRows);
+      assert.deepEqual(applied.authorization[0].claims,
+        ['partial_application_accepted']);
+      counts.j1 = {dispatched: applied.dispatched,
+        writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot)};
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+  // (j2) The Host requires the claim but its Checkpoint asked only for
+  // effect_scope_approved: the approval evidence does not establish it, so
+  // the resume is refused with 0 writes and 0 ledger appends.
+  {
+    const run = await deferred({runId: 'commit-run-claim-missing',
+      requiredClaims: ['partial_application_accepted'],
+      requirements: ['effect_scope_approved']});
+    try {
+      run.clock.ms += 60_000;
+      await answerCommitCheckpoint(run.journal, run.checkpointCid,
+        'approved', run.clock);
+      await assert.rejects(apply(run.ledger, await run.gate(),
+        () => assert.fail('unestablished claim dispatched'),
+        {resume: run.resume('worker-claim-missing')}),
+      error => error.code === 'ExecutionAuthorizationDecisionFailed' &&
+        error.authorization.detail === 'RequiredClaimNotEstablished');
+      counts.j2 = {writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot), calls: run.calls.length};
+      assert.deepEqual(counts.j2, {writes: 0, entries: 0, calls: 0});
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+  // (j3) A Host-required claim no Effect Set approval can establish is
+  // refused at defer: no Checkpoint, no Run state, no write.
+  {
+    const clock = {ms: Date.parse('2026-09-24T00:00:00.000Z')};
+    const {ledgerRoot, journalRoot} = await workspace();
+    const journal = await openCommitJournal(journalRoot, clock);
+    const ledger = openScenarioLedger(ledgerRoot);
+    const writesBefore = provider.mark();
+    try {
+      const gate = await fixtureAuthorization(delegateAccount,
+        hostOptions('defer', {requiredClaims: ['invocation_scope_approved'],
+          deferral: commitDeferral(journal, clock, 'commit-run-claim-bad')}));
+      await assert.rejects(apply(ledger, gate,
+        () => assert.fail('unrepresentable claim dispatched')),
+      error => error.code === 'ExecutionAuthorizationDecisionFailed' &&
+        error.authorization.detail === 'RequiredClaimUnrepresentable');
+      assert.equal(gate.counters().checkpointsPersisted, 0);
+      assert.deepEqual(journal.listPending(), []);
+      counts.j3 = {checkpoints: journal.listPending().length,
+        writes: provider.writes(writesBefore),
+        entries: ledgerEntryCount(ledgerRoot)};
+      assert.deepEqual(counts.j3, {checkpoints: 0, writes: 0, entries: 0});
+    } finally {
+      ledger.close();
+      journal.close();
+    }
+  }
+
+  // (k) Stale claimant: generation 1's lease lapses and generation 2 claims;
+  // a resume presenting generation 1 is refused before any claim or send,
+  // while generation 2 dispatches every row once.
+  {
+    const run = await deferred({runId: 'commit-run-stale'});
+    try {
+      run.clock.ms += 60_000;
+      await answerCommitCheckpoint(run.journal, run.checkpointCid,
+        'approved', run.clock);
+      const first = run.claim('worker-k1', 1_000);
+      assert.equal(first.claim.generation, 1);
+      run.clock.ms += 2_000;
+      const second = run.claim('worker-k2');
+      assert.equal(second.claim.generation, 2);
+      await assert.rejects(apply(run.ledger, await run.gate(),
+        () => assert.fail('stale claimant dispatched'),
+        {resume: {claim: first}}),
+      error => error.code === 'ExecutionAuthorizationDecisionFailed' &&
+        error.authorization.detail === 'ResumeClaimStale');
+      counts.kStale = {writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot), calls: run.calls.length};
+      assert.deepEqual(counts.kStale, {writes: 0, entries: 0, calls: 0});
+      const current = await apply(run.ledger, await run.gate(),
+        run.dispatch(), {resume: {claim: second}});
+      assert.equal(current.dispatched, totalRows);
+      assert.equal(current.admission.generation, 2);
+      counts.kCurrent = {dispatched: current.dispatched,
+        writes: provider.writes(run.writesBefore)};
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+
+  // (l) The claim lapses after gate.resume and before the first write: the
+  // synchronous admission entry at the send fences again at the Host trusted
+  // time and refuses, so nothing is claimed in the ledger or sent. (An
+  // Effect Set approval carries no expiry of its own; the claim lease is the
+  // time bound that can lapse here.)
+  {
+    const run = await deferred({runId: 'commit-run-lapsed'});
+    try {
+      run.clock.ms += 60_000;
+      await answerCommitCheckpoint(run.journal, run.checkpointCid,
+        'approved', run.clock);
+      const journal = run.journal;
+      // Time passes between the decision and the send.
+      const lapsing = Object.freeze({...journal,
+        enterResumedDispatch: (...args) => {
+          run.clock.ms += 120_000;
+          return journal.enterResumedDispatch(...args);
+        }});
+      await assert.rejects(apply(run.ledger, await run.gate(lapsing),
+        () => assert.fail('lapsed claim dispatched'),
+        {resume: {claim: run.claim('worker-l', 60_000)}}),
+      {code: 'ResumeClaimStale'});
+      counts.lLapsed = {writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot), calls: run.calls.length};
+      assert.deepEqual(counts.lLapsed, {writes: 0, entries: 0, calls: 0});
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+
+  // (g) Lost HTTP reply after the approved resume: the row is Unknown, the
+  // Run restarts and resumes again, and the Unknown row is never resent.
+  let lost;
+  {
+    const run = await deferred({runId: 'commit-run-g',
+      loseReplyAt: count => count === 1});
+    run.clock.ms += 60_000;
+    const approved = await answerCommitCheckpoint(run.journal,
+      run.checkpointCid, 'approved', run.clock);
+    const firstAttempt = apply(run.ledger, await run.gate(), run.dispatch(),
+      {resume: run.resume('worker-g1')});
+    await assert.rejects(firstAttempt);
+    const [lostMember, lostRow] = run.calls[0];
+    const lostPath = members[lostMember].claims[lostRow].path;
+    assert.equal(provider.writes(run.writesBefore, lostPath), 1);
+    // Restart; the first claimant's lease expires before re-claim.
+    run.journal.close();
+    run.ledger.close();
+    run.clock.ms += 120_000;
+    run.journal = await openCommitJournal(run.journalRoot, run.clock);
+    run.ledger = openScenarioLedger(run.ledgerRoot);
+    assert.equal((await run.journal.submitResolution(approved.answer))
+      .outcome, 'duplicate');
+    const resumed = await apply(run.ledger, await run.gate(),
+      run.dispatch({loseReplyAt: undefined}),
+      {resume: run.resume('worker-g2')});
+    assert.equal(resumed.status, 'applied');
+    assert.equal(resumed.resume.generation, 2);
+    // Generation 1 already started this set: generation 2 continues only
+    // through reconciliation of the same durable Effect Set identity.
+    assert.equal(resumed.admission.mode, 'reconcile');
+    assert.equal(resumed.admission.dispatchIdentity, resumed.identity);
+    assert.equal(resumed.admission.priorAdmission.generation, 1);
+    // Count PATCH requests per row: the Unknown row was sent exactly once.
+    assert.equal(provider.writes(run.writesBefore, lostPath), 1);
+    for (const path of rowPaths) {
+      assert.ok(provider.writes(run.writesBefore, path) <= 1, path);
+    }
+    assert.equal(run.calls.filter(([member, row]) =>
+      member === lostMember && row === lostRow).length, 1);
+    const noReplay = await apply(run.ledger,
+      await fixtureAuthorization(allowAccount),
+      () => assert.fail('unknown or terminal row resent'));
+    assert.equal(noReplay.dispatched, 0);
+    run.journal.completeResume(resumed.resume, {runStateWire: JSON.stringify({
+      version: 'actql-run-state/0.1', run_id: 'commit-run-g',
+      status: 'needs_reconciliation', updated_at: commitIso(run.clock.ms),
+      next_action: {kind: 'reconcile', effects: [memberIds[lostMember]]},
+      result_available: false,
+      result_availability: {answer: {state: 'unavailable',
+        observed_at: commitIso(run.clock.ms), reason: 'not_published'}},
+    })});
+    assert.equal(run.journal.getRunState('commit-run-g').status,
+      'needs_reconciliation');
+    counts.g = {dispatchedAfterRestart: resumed.dispatched,
+      lostRowWrites: provider.writes(run.writesBefore, lostPath),
+      writes: provider.writes(run.writesBefore),
+      calls: run.calls.length, entries: ledgerEntryCount(run.ledgerRoot)};
+    run.journal.close();
+    run.ledger.close();
+    lost = {ledgerRoot: run.ledgerRoot, lostMember};
+  }
+
+  // (h) Delayed rejection after prior effects: rows committed under an
+  // earlier allow (one applied, one with a lost reply) stay recorded; the
+  // later delegated decision is deferred and rejected with the Unknown
+  // Effect reported, so the Run needs reconciliation and nothing more is
+  // sent.
+  {
+    const clock = {ms: Date.parse('2026-09-24T00:00:00.000Z')};
+    const {ledgerRoot, journalRoot} = await workspace();
+    let ledger = openScenarioLedger(ledgerRoot);
+    const calls = [];
+    const writesBefore = provider.mark();
+    await assert.rejects(apply(ledger,
+      await fixtureAuthorization(allowAccount),
+      dispatcher(ledger, calls, {loseReplyAt: count => count === 2})));
+    assert.equal(calls.length, 2);
+    const entriesBefore = ledgerEntryCount(ledgerRoot);
+    const writesPrior = provider.writes(writesBefore);
+    ledger.close();
+    ledger = openScenarioLedger(ledgerRoot);
+    const journal = await openCommitJournal(journalRoot, clock);
+    try {
+      const waiting = await apply(ledger,
+        await fixtureAuthorization(delegateAccount, hostOptions('defer', {
+          deferral: commitDeferral(journal, clock, 'commit-run-h')})),
+        dispatcher(ledger, calls));
+      assert.equal(waiting.status, 'waiting');
+      clock.ms += 60_000;
+      const [unknownMember] = calls[1];
+      const rejected = await answerCommitCheckpoint(journal,
+        waiting.checkpoint.checkpointCid, 'rejected', clock,
+        {unknownEffects: [memberIds[unknownMember]]});
+      assert.equal(rejected.decision, 'rejected');
+      assert.equal(rejected.resumeIntentId, null);
+      assert.equal(rejected.runState.status, 'needs_reconciliation');
+      assert.deepEqual(rejected.runState.runState.next_action,
+        {kind: 'reconcile', effects: [memberIds[unknownMember]]});
+      await assert.rejects(apply(ledger,
+        await fixtureAuthorization(delegateAccount, hostOptions('defer')),
+        () => assert.fail('rejected commit sent a row'),
+        {resume: {journal, runId: 'commit-run-h', claimant: 'worker-h',
+          leaseMs: 60_000, binding: commitBinding, resolution: rejected}}),
+      {code: 'ResumeIntentNotFound'});
+      assert.equal(calls.length, 2);
+      assert.equal(provider.writes(writesBefore), writesPrior);
+      assert.equal(ledgerEntryCount(ledgerRoot), entriesBefore);
+      const [first, second] = calls.map(([member, row]) =>
+        members[member].claims[row]);
+      assert.ok(ledger.readClaimedOutcome(first));
+      assert.equal(ledger.readClaimedResponse(second), undefined);
+      assert.ok(ledger.current(runtimeCore(moon).effectApplicationControl
+        .logicalItemLocatorCid(second.locator)));
+      counts.h = {priorCalls: 2, priorWrites: writesPrior,
+        entries: entriesBefore,
+        runStatus: rejected.runState.status};
+    } finally {
+      journal.close();
+      ledger.close();
+    }
+  }
+  t.diagnostic(`effect commit authorization counts ${JSON.stringify(counts)}`);
+  return lost;
+}
+
+for (const physical of ['simulated', 'simulated-authorization',
+  'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
   'salesforce-create-duplicates',
@@ -2223,6 +2986,8 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
+  physical === 'simulated-authorization'
+    ? 'gates the Effect commit on the sealed Set Preview' :
   physical.startsWith('salesforce-unknown') ||
     physical === 'salesforce-rate-limit' ||
     physical.endsWith('lost-http-reply')
@@ -2239,7 +3004,8 @@ test(`two-member captured Effect Run ${
 } (${physical})`,
   async t => {
     const memberIds = ['save', 'save_again'];
-    const siteRun = physical !== 'simulated';
+    const siteRun = !physical.startsWith('simulated');
+    const authorizationScenarios = physical === 'simulated-authorization';
     const recoverAfterResponse = physical === 'salesforce-recovered';
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
     const restartAfterPublication =
@@ -3294,6 +4060,34 @@ test(`two-member captured Effect Run ${
         await rejectPublicationAndRetire(uncertainSet,
           'EffectfulRunNeedsReconciliation',
           'rate-limited-two-effects-attempt');
+        return;
+      }
+      if (authorizationScenarios) {
+        const lost = await verifyEffectCommitAuthorization(t, {
+          moon, previewInputs, members, preflight, applyPreview, body,
+          directory, memberIds,
+        });
+        // The lost-reply Run's durable facts make the set outcome need
+        // reconciliation; publication is refused and holdings retired.
+        ledger.close();
+        ledger = openEffectLedger({moon, root: lost.ledgerRoot,
+          authorityScopeCid: cid('e'),
+          callerRequestId: 'complete-two-effects-request',
+          maxEntryBytes: 4096});
+        const uncertainSet = await issueAuthorizedEffectSetReceipt({
+          ledger, preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
+          members: members.map(member => ({
+            rowOwners: member.claims.map(claim => ({claim})),
+            replayed: true,
+          })), limits: publicationLimits,
+        });
+        const uncertain = JSON.parse(uncertainSet.set.wire);
+        assert.equal(uncertain.status, 'unknown_outcome');
+        assert.equal(uncertain.effects[lost.lostMember].state, 'unknown');
+        await rejectPublicationAndRetire(uncertainSet,
+          'EffectfulRunNeedsReconciliation', 'authorization-unknown-attempt');
         return;
       }
       if (unknownAfterClaim) {
