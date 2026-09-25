@@ -29,7 +29,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The product Salesforce Host operation fills update/upsert Preview row facts from exact typed requests and target observations, and creates exact `before`/`after`/changes from typed create requests. MoonBit supplies checked member kind, target, Mapping identity, source Result, failure policy, logical Plan CID, and the physical write footprint from exact member requests; it seals the row, member, set and dispatch-key chain and orders create rows by content CID with distinct duplicate occurrences. The installed Host fixture reobserves every existing target before the common whole-set preflight. Update/upsert selectors and changes, and result-backed create changes, come from the checked Mapping applied during the same captured Result export that creates the private source Artifact. The remaining semantic Preview template is still fixture-assembled, so there is not yet one general Host authoring operation. | Derive the complete template from the captured input and checked Program through a production Host caller, then bind exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Keep create's explicit not-applicable guard and canonical content-row order. |
+| The Salesforce Host now assembles the Preview draft from typed Run contracts, checked member descriptors, the captured source Artifact, and exact typed write requests and target observations. MoonBit validates and canonicalizes the closed draft, derives physical footprint and create-row occurrence order, then seals row, member, set, and dispatch-key identities. The ordinary local Host success path no longer takes a fixture-authored template. Effect identity and source/capability/authority evidence CIDs are still supplied by the caller, so their product issuance and exact ownership remain open. | Connect those evidence issuers and the captured owner to this authoring call; prove foreign or stale evidence fails before a write. Reobserve existing targets before the common whole-set preflight. A 404 alone is not proof of absence. Keep create's not-applicable guard and canonical content-row order. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -55,8 +55,10 @@ before, after, and intended-change fields from one exact typed request and
 observation; it rejects an observation from another request. MoonBit now
 derives the member footprint and count from those requests, so a forged
 template boundary cannot change whole-set conflict admission, and mixed-org
-requests within one member are rejected. The fixture still
-provides the surrounding semantic template. For update/upsert, the selected
+requests within one member are rejected. The ordinary Host success path now
+builds the surrounding draft from typed Run contracts and checked member
+facts; test fixtures still supply example Effect identity and authority
+evidence values. For update/upsert, the selected
 checked Mapping now projects each canonical row of the same bounded Result
 export used to seal the private Effect-source Artifact. A shared export may
 feed another member only when MoonBit confirms the same live producer and
@@ -65,11 +67,11 @@ remain intact. Result-backed create now projects checked row-mapping values,
 including explicit null behavior, from that same export. Its Site request body
 uses the projection. The Salesforce Host author now fills create row facts from
 typed requests, while common MoonBit derives canonical content-row identities
-and duplicate occurrences. The surrounding semantic Preview template still
-requires a product authoring operation.
-Row-to-set
-identity and dispatch-key sealing uses one MoonBit product operation; complete
-semantic body assembly is not yet a general Host authoring operation.
+and duplicate occurrences. The remaining product connection is issuance and
+exact ownership of the member identity and authority evidence passed to this
+authoring operation. Row-to-set identity and dispatch-key sealing uses one
+MoonBit product operation; draft shape and canonical encoding are now exercised
+on the Host path.
 A Store restart after durable index commit leaves a commit-unknown owner
 that reconciles the exact
 index without another Effect send. The installed SDK can then attach, inspect
