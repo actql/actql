@@ -216,6 +216,19 @@ const resumedRemote = await installedRemote.aql(document, {format: 'json',
 assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
 assert.equal((await resumedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await resumedRemote.result('answer').all(), rows);
+const failDispatch = await originalFetch(new URL(
+  '/__test/fail-next-dispatch', remoteOptions.endpoint), {method: 'POST'});
+assert.equal(failDispatch.status, 200);
+const failedRemote = await installedRemote.aql(document, {format: 'json',
+  requestId: 'packed-remote-dispatch-failure'});
+const failedState = await failedRemote.wait();
+assert.equal(failedState.status, 'failed');
+assert.equal(failedState.terminal_error.code,
+  'ACTQL_E_UNPUBLISHED_RUN');
+const repeatedFailure = await installedRemote.aql(document, {format: 'json',
+  requestId: 'packed-remote-dispatch-failure'});
+assert.deepEqual(repeatedFailure.ref, failedRemote.ref);
+assert.equal((await repeatedFailure.status()).status, 'failed');
 installedRemote.close();
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
   async perform(operation) {
@@ -241,11 +254,18 @@ const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
 const {openInstalledRemoteHttpHost} = await import(remoteModule);
 let releaseDispatch;
 const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
+let failNextDispatch = false;
 const remoteHost = await openInstalledRemoteHttpHost({
   directory: join(root, 'remote-state'),
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
-  beforeDispatch: () => heldDispatch,
+  beforeDispatch: async () => {
+    if (failNextDispatch) {
+      failNextDispatch = false;
+      throw new Error('TestPhysicalDispatchFailure');
+    }
+    await heldDispatch;
+  },
 });
 const remoteServer = createServer({
   key: await readFile(join(root, 'remote.key')),
@@ -254,6 +274,13 @@ const remoteServer = createServer({
   if (request.method === 'POST' &&
       request.url === '/__test/release-dispatch') {
     releaseDispatch();
+    response.writeHead(200);
+    response.end();
+    return;
+  }
+  if (request.method === 'POST' &&
+      request.url === '/__test/fail-next-dispatch') {
+    failNextDispatch = true;
     response.writeHead(200);
     response.end();
     return;
