@@ -388,3 +388,13 @@ the existing strategy runtime, retains the captured Effect owner, and rejects
 an invalid owner. A Node/SQLite test runs checked Values-to-Effect Compute,
 reopens the exact request definition, and rejects changed intent. No public
 Effectful submit, mutation, or final publication is implied by this entry.
+
+The local Store now has a noncommitting Effectful stored-evidence check. It asks
+the common MoonBit owner to admit the final chain and exact public index,
+compares every supplied public contract with stored bytes, confirms the
+encrypted private Preview under its derived holding, and confirms every
+captured Effect-source holding and public Result binding. A real Store fixture
+rejects an Effect-free index, altered private wire, and omitted source holding.
+This check does not admit physical row outcomes, install a public index, or
+acquire final retention. The Effectful commit path and metadata deletion
+ownership remain open.

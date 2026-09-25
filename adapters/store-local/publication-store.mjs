@@ -2827,6 +2827,116 @@ export async function openLocalPublicationStore(
     return true;
   };
 
+  // This is stored-evidence inspection, not physical row-outcome admission
+  // or publication commit. The portable control admits the final reference
+  // chain; the Store confirms its public bodies and private physical holdings.
+  // A caller cannot use this result as an apply or commit permit.
+  const inspectEffectfulStoredEvidence = async ({index, chain, preview,
+    receipts, privateBinding, effectSources}) => {
+    active();
+    if (typeof contractControl.effectfulCommitValid !== 'function' ||
+        typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
+        typeof contractControl.capturedEffectSourceHoldingCid !== 'function' ||
+        typeof contractControl.capturedEffectSourceArtifactCid !== 'function' ||
+        typeof contractControl.capturedEffectSourceStoreAuthorityCid !==
+          'function' ||
+        !exactKeys(chain, [
+          'runDefinition', 'invocation', 'definitions', 'artifacts',
+          'derivations', 'orderings', 'retentions', 'durableBindings',
+          'manifest', 'computationReceipt', 'capturedRun',
+        ]) || !['definitions', 'artifacts', 'derivations', 'orderings',
+          'retentions', 'durableBindings'].every(name =>
+          Array.isArray(chain[name])) ||
+        !exactKeys(receipts, ['setWire', 'memberWires', 'finalWire']) ||
+        typeof receipts.setWire !== 'string' ||
+        typeof receipts.finalWire !== 'string' ||
+        !Array.isArray(receipts.memberWires) ||
+        receipts.memberWires.some(wire => typeof wire !== 'string') ||
+        !Array.isArray(effectSources) ||
+        !exactKeys(privateBinding, [
+          'name', 'semanticCid', 'holdingCid', 'wire',
+        ])) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const admittedIndex = admitContract('public_index_entry', index?.wire);
+    if (admittedIndex.identity !== index?.identity) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const entry = parseContract(admittedIndex);
+    const request = (await readContract(
+      entry.publication_request_cid, 'publication_request',
+    )).contract;
+    const attempt = (await readContract(
+      entry.publication_attempt_cid, 'publication_attempt',
+    )).contract;
+    const finalReceipt = admitContract('run_receipt', receipts.finalWire);
+    const setReceipt = admitContract(
+      'effect_set_apply_receipt', receipts.setWire,
+    );
+    const memberReceipts = receipts.memberWires.map(wire =>
+      admitContract('effect_apply_receipt', wire));
+    const publicContracts = [chain.runDefinition, chain.invocation,
+      ...chain.definitions, ...chain.artifacts, ...chain.derivations,
+      ...chain.orderings, ...chain.retentions, ...chain.durableBindings,
+      chain.manifest, chain.computationReceipt, chain.capturedRun,
+      finalReceipt, setReceipt, ...memberReceipts];
+    for (const contract of publicContracts) {
+      if (!exactKeys(contract, [
+        'name', 'identityField', 'identity', 'wire',
+      ]) || !cidPattern.test(contract.identity) ||
+          !(await readSemanticBytes(contract.identity)).equals(
+            Buffer.from(contract.wire, 'utf8'))) {
+        fail('EffectfulCommitEvidenceMismatch');
+      }
+    }
+    if (contractControl.effectfulCommitValid(
+      chain, preview, receipts, request, attempt, admittedIndex,
+      contractLimits,
+    ) !== true) {
+      fail('InvalidEffectfulCommitChain');
+    }
+    const expectedPrivate = contractControl.effectPrivateEvidenceBinding(
+      preview, configuration.storeAuthorityCid,
+    );
+    if (Object.keys(privateBinding).some(key =>
+      privateBinding[key] !== expectedPrivate[key]) ||
+        await confirmPrivateEvidence(privateBinding) === undefined) {
+      fail('EffectfulPrivateEvidenceUnavailable');
+    }
+    const context = parseContract(chain.capturedRun).effect_context;
+    const expectedHoldings = Object.values(
+      context?.effect_source_holding_cids ?? {},
+    );
+    if (new Set(expectedHoldings).size !== expectedHoldings.length ||
+        effectSources.length !== expectedHoldings.length) {
+      fail('InvalidEffectfulSourceInventory');
+    }
+    const seen = new Set();
+    for (const source of effectSources) {
+      const holdingCid = contractControl.capturedEffectSourceHoldingCid(source);
+      const artifactCid = contractControl.capturedEffectSourceArtifactCid(source);
+      if (seen.has(holdingCid) || !expectedHoldings.includes(holdingCid) ||
+          contractControl.capturedEffectSourceStoreAuthorityCid(source) !==
+            configuration.storeAuthorityCid) {
+        fail('InvalidEffectfulSourceInventory');
+      }
+      seen.add(holdingCid);
+      const holding = await inspectPhysicalHolding(holdingCid);
+      if (holding?.namespace !== 'effect-source' ||
+          holding.manifest_cid !== artifactCid) {
+        fail('EffectfulSourceHoldingUnavailable');
+      }
+      await readContract(artifactCid, 'effect_source_artifact');
+      await commitPhysicalHolding(holding, []);
+    }
+    for (const binding of chain.durableBindings) {
+      await verifyDurableResultBinding(binding);
+    }
+    return Object.freeze({index: admittedIndex, finalReceipt,
+      privateHoldingCid: privateBinding.holdingCid,
+      effectSourceHoldingCids: Object.freeze([...seen])});
+  };
+
   const commitIndexInternal = async (
     suppliedWire,
     requiredObjectCids,
@@ -4724,6 +4834,7 @@ export async function openLocalPublicationStore(
     appendDeliveryRecord,
     commitIndex,
     validateCommittedEvidence,
+    inspectEffectfulStoredEvidence,
     inspectCommittedIndex,
     confirmCommittedIndex,
     lookupCommittedIndex,

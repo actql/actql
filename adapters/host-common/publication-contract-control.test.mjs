@@ -951,7 +951,7 @@ test('portable control validates Receipt and Captured Run references',
     JSON.stringify({...artifactBody,
       version: 'actql-effect-source-artifact/0.1',
       source_result: 'rows', source_binding_cid: cid('9'),
-      store_authority_cid: cid('d')}), limits);
+      store_authority_cid: cid('a')}), limits);
   const previewBody = {
     version: 'actql-effect-preview/0.1', sensitivity: 'private',
     retention_class: 'authority-evidence', encryption_required: true,
@@ -1019,7 +1019,7 @@ test('portable control validates Receipt and Captured Run references',
   };
   const computationEvidence = {snapshots: [snapshot],
     effectSources: [control.admitCapturedEffectSourceArtifact(
-      preview, 0, invoked, sourceArtifact, cid('d'))],
+      preview, 0, invoked, sourceArtifact, cid('a'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
   const effectfulCaptured = control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,
@@ -1298,9 +1298,6 @@ test('portable control validates Receipt and Captured Run references',
   )).toString('utf8'), privateBinding.wire);
   assert.equal((await store.confirmPrivateEvidence(privateBinding))
     .holding_cid, privateBinding.holdingCid);
-  assert.equal((await store.retirePhysicalHolding(
-    privateBinding.holdingCid,
-  )).deleted, true);
   for (const contract of [
     run,
     invoked,
@@ -1314,6 +1311,11 @@ test('portable control validates Receipt and Captured Run references',
     receipt,
     captured,
     request,
+    sourceArtifact,
+    effectfulCaptured,
+    memberReceipt,
+    setReceipt,
+    finalReceipt,
     foreignDefinition,
   ]) {
     await store.putPublicationContract(contract.name, contract.wire);
@@ -1339,6 +1341,49 @@ test('portable control validates Receipt and Captured Run references',
   await store.appendRecord(committing.wire, {
     uncommittedConfirmed: false,
   });
+  const source = computationEvidence.effectSources[0];
+  const sourceWriter = store.createPreparedObjectWriter(payloadBytes);
+  await sourceWriter.append(Buffer.from(payloadWire, 'utf8'));
+  const sourcePrepared = await sourceWriter.seal(physicalCid);
+  const sourceHoldingCid = control.capturedEffectSourceHoldingCid(source);
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'effect-source',
+    holding_cid: sourceHoldingCid,
+    manifest_cid: sourceArtifact.identity,
+    objects: [{cid: sourcePrepared.cid, byte_count: sourcePrepared.bytes}],
+  }, [sourcePrepared.prepared]);
+  const effectfulPreparation = {
+    index: effectfulIndex,
+    chain: effectfulEvidence,
+    preview,
+    receipts: effectfulReceipts,
+    privateBinding,
+    effectSources: [source],
+  };
+  const checkedPreparation = await store.inspectEffectfulStoredEvidence(
+    effectfulPreparation);
+  assert.equal(checkedPreparation.finalReceipt.identity,
+    finalReceipt.identity);
+  assert.equal(checkedPreparation.privateHoldingCid,
+    privateBinding.holdingCid);
+  assert.deepEqual(checkedPreparation.effectSourceHoldingCids,
+    [sourceHoldingCid]);
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation, index: indexEntry,
+  }), {code: 'InvalidEffectfulCommitChain'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation,
+    privateBinding: {...privateBinding, wire: '{}'},
+  }), {code: 'EffectfulPrivateEvidenceUnavailable'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence({
+    ...effectfulPreparation, effectSources: [],
+  }), {code: 'InvalidEffectfulSourceInventory'});
+  assert.equal((await store.retirePhysicalHolding(
+    privateBinding.holdingCid,
+  )).deleted, true);
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    effectfulPreparation), {code: 'EffectfulPrivateEvidenceUnavailable'});
   const evidence = Object.freeze({
     runDefinition: run,
     invocation: invoked,
