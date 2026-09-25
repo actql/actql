@@ -637,6 +637,8 @@ fn run_local_managed_group_case(
   assert_eq(value_rows, input_expected)
 
   let group_live = Ref(true)
+  let bounded_global = variant == "empty_global" || variant == "global_counts"
+  let execution_advances = Ref(0)
   let (group_ops, groups) = run_local_managed_test_task(
     installed,
     run,
@@ -645,8 +647,14 @@ fn run_local_managed_group_case(
     [value_rows],
     2,
     group_live,
+    execution_quantum=if bounded_global { 1 } else { 0 },
+    execution_advances=Some(execution_advances),
+    require_provider=bounded_global,
     grant?,
   )
+  if bounded_global {
+    assert_true(execution_advances.val > 1)
+  }
   let group_rows = local_managed_test_rows(group_ops)
   assert_eq(group_rows, group_expected)
 
@@ -754,6 +762,91 @@ test "Local managed keyed group emits no group for empty input" {
 ///|
 test "Local managed global group emits zero for empty input" {
   run_local_managed_group_case("empty_global", [], ["{\"n\":0}"], ["{\"n\":0}"])
+}
+
+///|
+test "Local managed bounded global count distinguishes null fields" {
+  run_local_managed_group_case(
+    "global_counts",
+    ["{\"id\":null}", "{\"id\":1}", "{\"id\":1}"],
+    ["{\"n\":3,\"present\":2}"],
+    ["{\"present\":2,\"n\":3}"],
+  )
+}
+
+///|
+test "standard Host cancels global count after bounded work" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_group_chain=true,
+    local_values_group_variant="global_counts",
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 256,
+    },
+    None,
+  ).unwrap()
+  let value_live = Ref(true)
+  let (value_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    value_live,
+  )
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    2,
+    [values],
+    [local_managed_test_rows(value_ops)],
+    require_provider=true,
+  )
+  let first = (operations.advance)(1).unwrap()
+  assert_false(first.complete)
+  assert_eq(first.work, 1L)
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(2, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  assert_false(@strategy.captured_task_completed(run, 2))
+  assert_true(@execution.managed_completed_output_available(values))
+  value_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (value_ops.close)()
+  (value_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 2)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

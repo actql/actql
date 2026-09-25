@@ -48,6 +48,8 @@ pub fn advance_bounded_binding_rows(BoundedBindingRowsExecution, Int) -> Result[
 
 pub fn advance_bounded_cross_join(BoundedCrossJoinExecution, Int) -> Result[BoundedCrossJoinPoll, BoundedCrossJoinIssue]
 
+pub fn advance_bounded_global_count(BoundedGlobalCountExecution, Int) -> Result[BoundedGlobalCountPoll, BoundedGlobalCountIssue]
+
 pub fn advance_bounded_independent_row_copy(BoundedIndependentRowCopy, Int) -> Result[IndependentRowCopyPoll, ManagedIndependentOutputIssue]
 
 pub fn advance_bounded_interval_join(BoundedIntervalJoinExecution, Int) -> Result[BoundedIntervalJoinPoll, BoundedIntervalJoinIssue]
@@ -261,6 +263,8 @@ pub fn cleanup_bounded_asof_join(BoundedAsOfJoinExecution) -> Result[Bool, Bound
 pub fn cleanup_bounded_binding_rows(BoundedBindingRowsExecution) -> Result[Bool, BoundedBindingRowsIssue]
 
 pub fn cleanup_bounded_cross_join(BoundedCrossJoinExecution) -> Result[Bool, BoundedCrossJoinIssue]
+
+pub fn cleanup_bounded_global_count(BoundedGlobalCountExecution) -> Result[Bool, BoundedGlobalCountIssue]
 
 pub fn cleanup_bounded_independent_row_copy(BoundedIndependentRowCopy) -> Result[Bool, ManagedIndependentOutputIssue]
 
@@ -924,6 +928,10 @@ pub fn start_bounded_binding_rows_supplied(@bounded_execution.Control, Generated
 
 pub fn start_bounded_cross_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedCrossJoinExecution, BoundedCrossJoinIssue]
 
+pub fn start_bounded_global_count(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedGlobalCountExecution, BoundedGlobalCountIssue]
+
+pub fn start_bounded_global_count_supplied(@bounded_execution.Control, GeneratedSequence, SuppliedRelationRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedGlobalCountExecution, BoundedGlobalCountIssue]
+
 pub fn start_bounded_independent_row_copy(@bounded_execution.Control, CompletedOutput, Int, Int, Int) -> Result[BoundedIndependentRowCopy, ManagedIndependentOutputIssue]
 
 pub fn start_bounded_interval_join(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedIntervalJoinExecution, BoundedIntervalJoinIssue]
@@ -1109,6 +1117,24 @@ pub enum BoundedCrossJoinPoll {
   BoundedCrossJoinComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedCrossJoinFailed(BoundedCrossJoinIssue, progress~ : Int64, work~ : Int64)
   BoundedCrossJoinStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedGlobalCountExecution
+
+pub(all) enum BoundedGlobalCountIssue {
+  InvalidExecution
+  InputLimit
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedGlobalCountPoll {
+  BoundedGlobalCountContinue(progress~ : Int64, work~ : Int64)
+  BoundedGlobalCountComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedGlobalCountFailed(BoundedGlobalCountIssue, progress~ : Int64, work~ : Int64)
+  BoundedGlobalCountStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type BoundedIndependentRowCopy

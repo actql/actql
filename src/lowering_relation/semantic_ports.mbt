@@ -184,6 +184,7 @@ pub fn node_accepts_managed_relation_view(
     | TopK(_)
     | TopKBy(_)
     | Distinct(_)
+    | CountGroup(_)
     | RowWindow(_)
     | Watermark(_)
     | Lag(_)

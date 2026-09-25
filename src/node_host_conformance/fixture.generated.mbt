@@ -2347,6 +2347,12 @@ fn local_values_group_program(variant : String) -> String {
         "{\"id\":{\"type\":\"number\",\"nullable\":false}}", "[]", "[]", "{\"n\":{\"fn\":\"count\"}}",
         "[\"id\"]", "[\"n\"]", "[\"n\"]",
       )
+    "global_counts" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
+        "[]", "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
+        "[\"id\"]", "[\"n\",\"present\"]", "[\"present\",\"n\"]",
+      )
     "counts" =>
       (
         "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",

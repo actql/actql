@@ -5421,6 +5421,23 @@ async function exerciseStrategyGraph(
       from: 'out', fields: id === 'a' ? ['id', 'n'] : ['n', 'id'],
     }},
   })));
+  const globalCountProgram = structuredClone(groupProgram);
+  const globalCountStage = globalCountProgram.stages.find(
+    stage => stage.id === 'group_a',
+  );
+  globalCountStage.steps[0].group = {
+    by: [],
+    aggregates: {n: {fn: 'count'}, present: {fn: 'count', field: 'id'}},
+  };
+  globalCountStage.results.r.fields = ['n', 'present'];
+  for (const stage of globalCountProgram.stages.filter(
+    stage => stage.id.startsWith('group_consumer_'),
+  )) {
+    const fields = stage.id.endsWith('_a')
+      ? ['n', 'present'] : ['present', 'n'];
+    stage.steps[0].select = fields;
+    stage.results.r.fields = fields;
+  }
   const watermarkProgram = (threshold, latePolicy) => {
     const variant = structuredClone(zeroInputProgram);
     const fields = [
@@ -6047,6 +6064,7 @@ async function exerciseStrategyGraph(
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['group count', groupProgram, [1, 2, 3, 4]],
+    ['global count', globalCountProgram, [1, 2, 3, 4]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
@@ -6197,6 +6215,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 2],
           `${name} and both consumers publish complete retained outputs`,
+        );
+      }
+      if (name === 'global count') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 1, 1, 1],
+          'global count and both consumers retain one aggregate row',
         );
       }
       if (name === 'analytic') {
@@ -6735,6 +6760,8 @@ async function exerciseStrategyGraph(
       program: splitValuesTakeProgram, cancelAtStart: 3},
     {name: 'split-values-row-window-in-flight',
       program: fixedRowWindowProgram, cancelAtStart: 2},
+    {name: 'global-count-in-flight',
+      program: globalCountProgram, cancelAtStart: 2},
     {name: 'split-values-fixed-watermark-in-flight',
       program: fixedWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-prefix-watermark-in-flight',
@@ -6766,6 +6793,8 @@ async function exerciseStrategyGraph(
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
+    const globalCountCancellation = cancellationName ===
+      'global-count-in-flight';
     const watermarkCancellation = cancellationName ===
       'split-values-fixed-watermark-in-flight' ||
       cancellationName === 'split-values-prefix-watermark-in-flight';
@@ -6779,7 +6808,8 @@ async function exerciseStrategyGraph(
     const sameStageJsonFilterCancellation = cancellationName ===
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
-      stage => stage.id === (lagCancellation
+      stage => stage.id === (globalCountCancellation
+        ? 'group_values' : lagCancellation
         ? 'lagged' : rowWindowCancellation
         ? 'window_values' : watermarkCancellation
           ? 'watermark_values' : unpivotCancellation
@@ -6798,9 +6828,11 @@ async function exerciseStrategyGraph(
         : unpivotCancellation
           ? {a: index, b: index + 1, id: index}
           : unnestCancellation
-            ? {id: index, items: [index, index + 1]}
+          ? {id: index, items: [index, index + 1]}
           : jsonPickCancellation || sameStageJsonFilterCancellation
             ? {id: index, payload: {inner: {leaf: index}}}
+        : globalCountCancellation
+          ? {id: index}
         : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
@@ -6854,7 +6886,8 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
-                      rowWindowCancellation || watermarkCancellation ||
+                      rowWindowCancellation || globalCountCancellation ||
+                      watermarkCancellation ||
                       lagCancellation ||
                       unpivotCancellation ||
                       unnestCancellation || jsonPickCancellation ||
