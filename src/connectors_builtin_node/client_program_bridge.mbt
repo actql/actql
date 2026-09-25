@@ -290,20 +290,20 @@ pub fn client_program_source_free_input_intent_cid() -> String {
 
 ///|
 /// The installed Host reports an uncommitted Run through the portable
-/// validator; physical progress is observed by the adapter, not inferred
-/// from the Client request alone.
+/// validator. Only a durable confirmed failure before physical dispatch may
+/// make this projection terminal; missing worker observation cannot.
 #export_name("clientProgramIssueUnpublishedRunState")
 pub fn client_program_issue_unpublished_run_state(
   run_id : String,
   observed_at : String,
   result_names : Array[String],
   dispatch_reserved : Bool,
-  worker_active : Bool,
+  pre_dispatch_failure_confirmed : Bool,
 ) -> String? {
   match
     @publication.issue_effect_free_unpublished_run_state_wire(
-      run_id, observed_at, result_names, dispatch_reserved, worker_active, 100000,
-      10000, 64,
+      run_id, observed_at, result_names, dispatch_reserved, pre_dispatch_failure_confirmed,
+      100000, 10000, 64,
     ) {
     Ok(value) => Some(value)
     Err(_) => None

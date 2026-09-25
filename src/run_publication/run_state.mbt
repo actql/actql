@@ -458,16 +458,17 @@ pub fn issue_succeeded_run_state_wire(
 
 ///|
 /// Project a Run before its publication index is committed. The caller
-/// supplies the durable dispatch claim, physical worker liveness and checked
-/// Result inventory; this owner chooses the phase, availability and action.
-/// Effect reconciliation has a distinct state and cannot be inferred from
-/// an interrupted Effect-free Compute.
+/// supplies the durable dispatch claim, a confirmed pre-dispatch failure and
+/// the checked Result inventory; this owner chooses the phase, availability
+/// and action. Loss of worker observation after a reservation does not prove
+/// Run failure. Effect reconciliation has a distinct state and cannot be
+/// inferred from an interrupted Effect-free Compute.
 pub fn issue_effect_free_unpublished_run_state_wire(
   run_id : String,
   updated_at : String,
   declared_results : Array[String],
   dispatch_reserved : Bool,
-  worker_active : Bool,
+  pre_dispatch_failure_confirmed : Bool,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -478,12 +479,15 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   if !valid_timestamp(updated_at) {
     return Err(InvalidObservationTime("run"))
   }
+  if pre_dispatch_failure_confirmed && !dispatch_reserved {
+    return Err(ActionStatusMismatch)
+  }
   let status = if !dispatch_reserved {
     RunOutcomeStatus::Preparing
-  } else if worker_active {
-    RunOutcomeStatus::Running
-  } else {
+  } else if pre_dispatch_failure_confirmed {
     RunOutcomeStatus::Failed
+  } else {
+    RunOutcomeStatus::Running
   }
   let names = declared_results.copy()
   names.sort_by(@canonical.compare_utf16)
