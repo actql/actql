@@ -1,5 +1,41 @@
 # Salesforce Effect review R2 status
 
+## Fixed completion unit at current HEAD
+
+This branch's current unit is an ordinary Program with at least two Salesforce
+Effect members and multiple rows in each member, executed through the standard
+Host. The Run must preserve exact apply and recovery responsibility across a
+lost response or restart, publish its final result chain, permit authorized
+Result reads, and reclaim private and public holdings after their last owner.
+This is one milestone within the original Connector and distribution plan, not
+completion of that whole plan.
+
+When this unit is complete, a user can submit that Program through the normal
+Client, inspect or reconcile an uncertain Effect without causing another
+write, read its separately named published Result, and release the Run's
+retained data. The same path must report partial failure and unknown honestly.
+
+| Remaining product connection | Required acceptance evidence |
+| --- | --- |
+| The public Program/Client ingress still rejects nonempty Effects. Connect the checked Effect Program and captured input owner to whole-set Preview, current authority, target guards, overlap admission, and one apply permit before the first write. | A normal two-member Program reaches apply; stale or overlapping sets send zero local HTTPS requests and consume no write credential. |
+| The Host has durable row custody and a MoonBit frontier, but no standard multi-member caller drives its Salesforce Site operations from that admitted owner. Connect the captured rows to exact physical requests and retain each member's `halt` or `continue` progress across restart. | Both members have multiple rows; an independent member continues when the other halts, known rows are never resent, unknown remains unresolved without new evidence, and send counts and order match the durable ledger. |
+| One-member, simulated-response publication works. Connect the real multi-member row outcomes to member/set/final Receipts, formal Store commit, authorized Result delivery, and last-owner cleanup through the ordinary Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
+| Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
+
+The Distribution owner owns the public Client ingress, attach/status,
+authorized Result reader, and package-facing contract. This branch owns the
+shared Effect execution boundary and Salesforce Site connection; changes to
+the Client seam must be coordinated, not implemented as a second Client or Run
+manager. Live Salesforce validation additionally depends on an isolated org,
+configured custom object, scoped secret-manager reference, and explicit write
+permission from the user. None has been supplied, so live validation remains
+unverified; local product-path and fault-injection work can proceed.
+
+Outside this completion unit, but still part of the original broader plan,
+are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
+other distribution modes and frontends, and the separately managed performance
+branch. Moving these items outside this unit does not mark them complete.
+
 ## Latest completion gates
 
 The follow-up review at `b3aecf969` is tracked as two open gates. SF-G1
@@ -26,7 +62,16 @@ whole-set apply admission, real Salesforce I/O, the multi-member fault
 matrix, or the public Client submit/delivery path required by SF-G1.
 The Effectful commit test also reconciles a lost Store acknowledgement without
 reissuing the set, while private holding tests retain one prepared ciphertext
-across failed commit retry. A real multi-row Ledger issuer remains required.
+across failed commit retry. Provider-linked multi-member publication remains
+required.
+The checked two-member Host fixture now leaves one member's first row in
+possible-dispatch state, reopens the Ledger, and sends both rows of the other
+member through a local HTTP endpoint. MoonBit's captured frontier keeps the
+first member blocked under `halt`, permits the independent member, and issues
+an `unknown_outcome` set without resending the uncertain row. This is a
+regression of the retained owners and durable progress, not a standard apply
+caller or formal publication of that two-member Run. The endpoint is local
+HTTP, not a credentialed Salesforce Site.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
