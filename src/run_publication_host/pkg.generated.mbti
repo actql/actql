@@ -10,8 +10,10 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/program_check",
+  "actql/actql/query_planning",
   "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
+  "actql/actql/sourceview_resolution",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
 }
@@ -277,6 +279,10 @@ pub fn prepare_all_captured_result_publication_exports(@physical_strategy.Captur
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
+pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
+
+pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relation.GeneratedSequence, Int, Int, @query_planning.QueryLogicalGuards, @query_planning.QueryMaterialLimits) -> Result[@query_planning.QueryRequirement, ClientQueryRequirementIssue]
+
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
@@ -312,6 +318,12 @@ pub fn source_free_caller_input_intent_cid() -> String
 // Errors
 
 // Types and methods
+pub(all) enum ClientAcquisitionIssue {
+  MissingStage
+  MissingRequests
+  UnsupportedAcquisition(@sourceview_resolution.QueryAcquisitionIssue)
+}
+
 pub(all) enum ClientBoundTemplateIssue {
   ValuesGraph(ClientValuesPlanGraphIssue)
   UnsupportedPipeline
@@ -493,6 +505,13 @@ pub(all) enum ClientPublicationWitnessIssue {
 pub struct ClientPublicationWitnesses {
   bodies : Array[String]
   cids : Array[String]
+}
+
+pub(all) enum ClientQueryRequirementIssue {
+  Acquisition(ClientAcquisitionIssue)
+  Sequence(@execution_query.QuerySequenceIssue)
+  Material(@query_planning.QueryMaterialIssue)
+  Requirement(@query_planning.QueryRequirementIssue)
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)

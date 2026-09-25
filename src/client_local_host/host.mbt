@@ -88,66 +88,6 @@ fn open_checked_local_host(
     per_pair_ms < 0L {
     return None
   }
-  let registry_value = @identity.from_json(
-    @json.parse(registry_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let values_value = @identity.from_json(
-    @json.parse(values_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let contracts = match
-    @execution.admit_relation_registry(registry_value, values_value, {
-      max_body_bytes: 100000,
-      max_body_nodes: 10000,
-      max_body_depth: 100,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  let physical : @execution.RegistryLimits = {
-    max_body_bytes: 100000,
-    max_body_nodes: 10000,
-    max_body_depth: 100,
-  }
-  let fragment_contract = match fragment_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_fragment_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
-  }
-  let ordered_contract = match ordered_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_ordered_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
-  }
   let limits : @resources.LedgerLimits = {
     planning_work: 100000,
     attempts: 10,
@@ -168,94 +108,17 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
+  let generated = match prepare_client_local_sequences(
+    prepared, registry_body, values_body, fragment_body, ordered_body,
+  ) {
+    Some(value) => value
+    None => return reject_client_local_run(run)
+  }
   let graph = @publication_host.prepared_client_graph(prepared)
-  let generated = []
-  for task in 0..<@strategy.graph_task_count(graph) {
-    guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
-      return reject_client_local_run(run)
-    }
-    let sequence = match
-      @lower.prepare_sequence(
-        owner,
-        @publication_host.client_standard_values_sequence_limits(),
-      ) {
-      Ok(value) => value
-      Err(_) => return reject_client_local_run(run)
-    }
-    let contexts : Array[@execution.FragmentRuntimeContext] = []
-    for step in 0..<@lower.sequence_count(sequence) {
-      guard @lower.sequence_step(sequence, step) is Some(operation) else {
-        return reject_client_local_run(run)
-      }
-      match operation {
-        @lower.RowStep(kernel) => {
-          guard fragment_contract is Some(contract) else {
-            return reject_client_local_run(run)
-          }
-          let fragment = match
-            @lower.prepare_fragment_pipeline(sequence, step, {
-              max_roots: 100,
-              max_pointer_bytes: 10000,
-              max_work: 100000,
-            }) {
-            Ok(value) => value
-            Err(_) => return reject_client_local_run(run)
-          }
-          let logical : @lower.FragmentRowLimits = {
-            max_input_rows: 100L,
-            max_value_bytes: 10000L,
-            max_live_value_bytes: 100000L,
-            max_work: 100000L,
-          }
-          let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
-          let request = match
-            @lower.prepare_fragment_request(
-              fragment,
-              100L,
-              10000L,
-              row_limits=if ordered { Some(logical) } else { None },
-            ) {
-            Ok(value) => value
-            Err(_) => return reject_client_local_run(run)
-          }
-          let context = match
-            @execution.prepare_runtime_fragment(
-              request,
-              contract,
-              {
-                max_roots: 100,
-                max_nodes: 10000,
-                max_work: 100000,
-                max_text_bytes: 10000,
-                max_links: 10000,
-              },
-              physical,
-              logical,
-              ordered=if ordered { ordered_contract } else { None },
-            ) {
-            Ok(value) => value
-            Err(_) => return reject_client_local_run(run)
-          }
-          contexts.push(context)
-        }
-        _ => ()
-      }
-    }
-    let sequence = match
-      @publication_host.prepare_client_task_sequence(
-        prepared,
-        task,
-        contracts,
-        contexts,
-        @publication_host.client_standard_values_sequence_limits(),
-        100000,
-        10000,
-        prepared_sequence=Some(sequence),
-      ) {
-      Ok(value) => value
-      Err(_) => return reject_client_local_run(run)
-    }
-    generated.push(sequence)
+  let first_compute = @strategy.captured_compute_first_task(run)
+  let compute_sequences : Array[@execution.GeneratedSequence] = []
+  for task in first_compute..<generated.length() {
+    compute_sequences.push(generated[task])
   }
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -270,7 +133,7 @@ fn open_checked_local_host(
     max_work: 100000,
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
-    sequences: generated,
+    sequences: compute_sequences,
     managed_providers: [],
     managed_capacity: capacity,
     execution: {
@@ -361,7 +224,7 @@ fn open_checked_local_host(
         },
         max_batch_bytes: 64,
       },
-      None,
+      Some(0L),
     ) {
     Ok(_) => ()
     Err(_) => return reject_client_local_run(run)
@@ -384,7 +247,9 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
-  let schedules = Array::make(@strategy.graph_task_count(graph), schedule)
+  let schedules = Array::make(
+    @strategy.graph_task_count(graph) - first_compute, schedule,
+  )
   let estimate = match
     @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
     Ok(value) => value
@@ -398,7 +263,28 @@ fn open_checked_local_host(
     @builtin.open_configured_compute_host(
       modules, registry, capacity, 100, 10000, 1,
     ) {
-    Ok(value) => Some(value)
+    Ok(value) => {
+      if source is Some(_) {
+        let fractions = Array::make(
+          @strategy.graph_task_count(graph) - 1, Some(1000),
+        )
+        match @host_driver.configure_compute_host_estimates(
+          @builtin.configured_host_runtime(value),
+          fractions,
+          {
+            max_offers: 100,
+            max_strategies: 100,
+            max_work: 10000,
+            max_revisions: 10,
+          },
+          1000,
+        ) {
+          Ok(_) => ()
+          Err(_) => return reject_client_local_run(run)
+        }
+      }
+      Some(value)
+    }
     Err(_) => reject_client_local_run(run)
   }
 }

@@ -2,11 +2,13 @@
 package "actql/actql/client_local_host"
 
 import {
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_strategy",
+  "actql/actql/query_planning",
   "actql/actql/run_publication_host",
   "moonbitlang/core/ref",
 }
@@ -22,11 +24,32 @@ pub fn open_captured_local_host(@run_publication_host.PreparedClientProgram, @ex
 
 pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue]
+
+pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
+
+pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
+
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 // Errors
 
 // Types and methods
+pub(all) enum ClientDuckDBAcquisitionIssue {
+  InvalidSource
+  InvalidContracts
+  Preparation
+  Registration
+  Candidate
+  Selection
+}
+
+pub(all) enum ClientLocalQueryIssue {
+  Sequences
+  MissingStage
+  Requirement(@run_publication_host.ClientQueryRequirementIssue)
+}
+
 pub struct LocalValuesExecution {
   run : @physical_strategy.CapturedDAG
   operations : @driver.LocalManagedDispatchOperations[Int]

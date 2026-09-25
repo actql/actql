@@ -14,5 +14,8 @@ import {
   "actql/actql/physical_cost" @cost,
   "actql/actql/canonical_json" @identity,
   "actql/actql/lowering_relation" @lower,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
+  "actql/actql/connectors/duckdb/host" @duckdb_host,
   "moonbitlang/core/json",
 }
