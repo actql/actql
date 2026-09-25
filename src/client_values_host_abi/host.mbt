@@ -1155,3 +1155,95 @@ pub fn client_values_host_validate_publication_record_transition(
     previous, next, uncommitted_confirmed,
   )
 }
+
+///|
+/// The Host supplies one checked inventory and policy decision. The portable
+/// owner fixes the publication request identity and its canonical order.
+#export_name("clientValuesHostIssuePublicationRequest")
+pub fn client_values_host_issue_publication_request(
+  run_definition : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  tenant_id : String,
+  authority_scope_cid : String,
+  publication_policy_cid : String,
+  publication_target_cid : String,
+  requested_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+  @publication.issue_publication_request(
+    run_definition, definitions, tenant_id, authority_scope_cid,
+    publication_policy_cid, publication_target_cid, requested_at,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Attempt identity is immutable; outcome and physical Store CAS are separate.
+#export_name("clientValuesHostIssuePublicationAttempt")
+pub fn client_values_host_issue_publication_attempt(
+  request : @publication.PublicationContract,
+  run_definition : @publication.PublicationContract,
+  attempt_id : String,
+  fence_cid : String,
+  external_idempotency_key : String?,
+  started_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+  @publication.issue_publication_attempt(
+    request, run_definition, attempt_id, fence_cid,
+    external_idempotency_key, started_at, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// This exact entry still requires the Store to validate and commit the full
+/// chain atomically before a Host may report publication success.
+#export_name("clientValuesHostIssuePublicIndexEntry")
+pub fn client_values_host_issue_public_index_entry(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  durable_bindings : Array[@publication.PublicationContract],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  committed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+  @publication.issue_public_index_entry(
+    run_definition, invocation, manifest, receipt, captured_run,
+    durable_bindings, request, attempt, committed_at, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// Sequence and predecessor are derived by the portable publication owner.
+#export_name("clientValuesHostIssuePublicationRecord")
+pub fn client_values_host_issue_publication_record(
+  attempt : @publication.PublicationContract,
+  previous : @publication.PublicationContract?,
+  state : String,
+  observed_at : String,
+  public_index_entry : @publication.PublicationContract?,
+  failure_cid : String?,
+  cleanup_owner_cids : Array[String],
+  uncommitted_confirmed : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+  @publication.issue_publication_record(
+    attempt, previous, state, observed_at, public_index_entry,
+    failure_cid, cleanup_owner_cids, uncommitted_confirmed,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}

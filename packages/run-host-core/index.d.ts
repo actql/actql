@@ -270,3 +270,37 @@ export function validatePublicationChain(runDefinition: PublicationContract,
 export function validatePublicationRecordTransition(
   previous: PublicationContract | undefined, next: PublicationContract,
   uncommittedConfirmed: boolean): void;
+/** Immutable request for the full checked Named Result inventory. */
+export function issuePublicationRequest(runDefinition: PublicationContract,
+  definitions: readonly PublicationContract[], facts: Readonly<{
+    tenantId: string;
+    authorityScopeCid: string;
+    publicationPolicyCid: string;
+    publicationTargetCid: string;
+    requestedAt: string;
+  }>, limits: PublicationLimits): PublicationContract;
+/** One attempt identity, separate from Store effects and outcome. */
+export function issuePublicationAttempt(request: PublicationContract,
+  runDefinition: PublicationContract, facts: Readonly<{
+    attemptId: string;
+    fenceCid: string;
+    externalIdempotencyKey?: string;
+    startedAt: string;
+  }>, limits: PublicationLimits): PublicationContract;
+/** Candidate entry; the Store must atomically validate and install it. */
+export function issuePublicIndexEntry(runDefinition: PublicationContract,
+  invocation: PublicationContract, manifest: PublicationContract,
+  receipt: PublicationContract, capturedRun: PublicationContract,
+  durableBindings: readonly PublicationContract[],
+  request: PublicationContract, attempt: PublicationContract,
+  committedAt: string, limits: PublicationLimits): PublicationContract;
+/** Sequence and predecessor come from the shared publication owner. */
+export function issuePublicationRecord(attempt: PublicationContract,
+  previous: PublicationContract | undefined, facts: Readonly<{
+    state: string;
+    observedAt: string;
+    publicIndexEntry?: PublicationContract;
+    failureCid?: string;
+    cleanupOwnerCids: readonly string[];
+    uncommittedConfirmed: boolean;
+  }>, limits: PublicationLimits): PublicationContract;

@@ -640,3 +640,80 @@ export function validatePublicationRecordTransition(previous, next,
     publicationToken(next), uncommittedConfirmed),
   'RunHostPublicationTransitionRejected');
 }
+
+function publicationItems(values) {
+  if (!Array.isArray(values)) throw new TypeError('InvalidRunHostInventory');
+  return values.map(publicationToken);
+}
+
+export function issuePublicationRequest(runDefinition, definitions, facts,
+  limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      ['tenantId', 'authorityScopeCid', 'publicationPolicyCid',
+        'publicationTargetCid', 'requestedAt'].some(key =>
+        typeof facts[key] !== 'string')) {
+    throw new TypeError('InvalidRunHostPublicationRequest');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssuePublicationRequest(
+      publicationToken(runDefinition), publicationItems(definitions),
+      facts.tenantId, facts.authorityScopeCid,
+      facts.publicationPolicyCid, facts.publicationTargetCid,
+      facts.requestedAt, maxWireBytes, maxNodes, maxDepth),
+    'RunHostPublicationRequestRejected'));
+}
+
+export function issuePublicationAttempt(request, runDefinition, facts,
+  limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      ['attemptId', 'fenceCid', 'startedAt'].some(key =>
+        typeof facts[key] !== 'string') ||
+      facts.externalIdempotencyKey !== undefined &&
+        typeof facts.externalIdempotencyKey !== 'string') {
+    throw new TypeError('InvalidRunHostPublicationAttempt');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssuePublicationAttempt(
+      publicationToken(request), publicationToken(runDefinition),
+      facts.attemptId, facts.fenceCid, facts.externalIdempotencyKey,
+      facts.startedAt, maxWireBytes, maxNodes, maxDepth),
+    'RunHostPublicationAttemptRejected'));
+}
+
+export function issuePublicIndexEntry(runDefinition, invocation, manifest,
+  receipt, capturedRun, durableBindings, request, attempt, committedAt,
+  limits) {
+  if (typeof committedAt !== 'string') {
+    throw new TypeError('InvalidRunHostPublicIndexEntry');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(owner.clientValuesHostIssuePublicIndexEntry(
+    publicationToken(runDefinition), publicationToken(invocation),
+    publicationToken(manifest), publicationToken(receipt),
+    publicationToken(capturedRun), publicationItems(durableBindings),
+    publicationToken(request), publicationToken(attempt), committedAt,
+    maxWireBytes, maxNodes, maxDepth), 'RunHostPublicIndexEntryRejected'));
+}
+
+export function issuePublicationRecord(attempt, previous, facts, limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      typeof facts.state !== 'string' ||
+      typeof facts.observedAt !== 'string' ||
+      facts.failureCid !== undefined &&
+        typeof facts.failureCid !== 'string' ||
+      !Array.isArray(facts.cleanupOwnerCids) ||
+      !facts.cleanupOwnerCids.every(value => typeof value === 'string') ||
+      typeof facts.uncommittedConfirmed !== 'boolean') {
+    throw new TypeError('InvalidRunHostPublicationRecord');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(owner.clientValuesHostIssuePublicationRecord(
+    publicationToken(attempt), previous === undefined ? undefined :
+      publicationToken(previous), facts.state, facts.observedAt,
+    facts.publicIndexEntry === undefined ? undefined :
+      publicationToken(facts.publicIndexEntry), facts.failureCid,
+    facts.cleanupOwnerCids, facts.uncommittedConfirmed,
+    maxWireBytes, maxNodes, maxDepth), 'RunHostPublicationRecordRejected'));
+}

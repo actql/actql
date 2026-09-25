@@ -11,6 +11,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
   issueCheckedValuesResultOccurrenceEvidence,
   issueDurableResultBinding,
+  issuePublicationRequest, issuePublicationAttempt,
+  issuePublicIndexEntry, issuePublicationRecord,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
@@ -296,6 +298,42 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     assert.throws(() => validatePublicationChain(run, invocation,
       [definition], [artifact], definition, limits),
     {code: 'RunHostPublicationChainRejected'});
+    const request = issuePublicationRequest(run, [definition], {
+      tenantId: 'tenant-a', authorityScopeCid: fixed('d'),
+      publicationPolicyCid: fixed('8'),
+      publicationTargetCid: fixed('9'),
+      requestedAt: '2026-09-18T00:01:00.000Z',
+    }, limits);
+    const requestBody = JSON.parse(request.wire);
+    assert.deepEqual(requestBody.inventory, [{result_name: 'answer',
+      result_definition_cid: definition.cid}]);
+    assert.equal(requestBody.run_definition_cid, run.cid);
+    const attempt = issuePublicationAttempt(request, run, {
+      attemptId: 'attempt-1', fenceCid: fixed('a'),
+      startedAt: '2026-09-18T00:02:00.000Z',
+    }, limits);
+    assert.equal(JSON.parse(attempt.wire).publication_request_cid,
+      request.cid);
+    const preparing = issuePublicationRecord(attempt, undefined, {
+      state: 'preparing', observedAt: '2026-09-18T00:02:00.000Z',
+      cleanupOwnerCids: [], uncommittedConfirmed: false,
+    }, limits);
+    assert.equal(JSON.parse(preparing.wire).sequence, 0);
+    assert.equal(JSON.parse(preparing.wire).publication_attempt_cid,
+      attempt.cid);
+    assert.throws(() => issuePublicationRequest(run, [definition], {
+      tenantId: 'tenant-a', authorityScopeCid: fixed('d'),
+      publicationPolicyCid: 'invalid', publicationTargetCid: fixed('9'),
+      requestedAt: '2026-09-18T00:01:00.000Z',
+    }, limits), {code: 'RunHostPublicationRequestRejected'});
+    assert.throws(() => issuePublicationAttempt(request, definition, {
+      attemptId: 'attempt-1', fenceCid: fixed('a'),
+      startedAt: '2026-09-18T00:02:00.000Z',
+    }, limits), {code: 'RunHostPublicationAttemptRejected'});
+    assert.throws(() => issuePublicIndexEntry(run, invocation, manifest,
+      artifact, artifact, [binding], request, attempt,
+      '2026-09-18T00:03:00.000Z', limits),
+    {code: 'RunHostPublicIndexEntryRejected'});
   });
 
 test('portable Host package compiles the ordinary Values Program', () => {

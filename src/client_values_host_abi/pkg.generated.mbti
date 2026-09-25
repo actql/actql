@@ -55,6 +55,14 @@ pub fn client_values_host_issue_complete_result_artifact(@run_publication.Public
 
 pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
 
+pub fn client_values_host_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
+
+pub fn client_values_host_issue_publication_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
+
+pub fn client_values_host_issue_publication_record(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, String, @run_publication.PublicationContract?, String?, Array[String], Bool, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
+
+pub fn client_values_host_issue_publication_request(@run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
+
 pub fn client_values_host_issue_result_manifest(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultManifestIssuanceIssue]
 
 pub fn client_values_host_issue_result_occurrence_evidence(@run_publication.PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, @run_publication.ResultEvidenceIssuanceIssue]
