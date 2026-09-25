@@ -53,6 +53,8 @@ struct PublicationPayloadRecord {
   mut state : PublicationPayloadState
   mut ownership : PublicationPayloadOwnership?
   mut generation : PublicationPayloadGeneration?
+  mut opaque_ownership_cid : String?
+  mut opaque_generation_cid : String?
   mut actual_bytes : Int64
   mut physical_digest : String
 }
@@ -64,6 +66,8 @@ struct PublicationPayloadTransition {
   next_state : PublicationPayloadState
   next_ownership : PublicationPayloadOwnership?
   next_generation : PublicationPayloadGeneration?
+  next_opaque_ownership_cid : String?
+  next_opaque_generation_cid : String?
   next_actual_bytes : Int64
   next_physical_digest : String
 }
@@ -75,6 +79,8 @@ struct DurablePublicationPayloadRecord {
   state : PublicationPayloadState
   ownership : PublicationPayloadOwnership?
   generation : PublicationPayloadGeneration?
+  opaque_ownership_cid : String?
+  opaque_generation_cid : String?
   actual_bytes : Int64
   physical_digest : String
   body : String
@@ -361,6 +367,8 @@ pub fn prepare_publication_payload_record(
     state: Intent,
     ownership: None,
     generation: None,
+    opaque_ownership_cid: None,
+    opaque_generation_cid: None,
     actual_bytes: -1L,
     physical_digest: "",
   }
@@ -372,6 +380,8 @@ fn prepare_payload_transition(
   next_state : PublicationPayloadState,
   next_ownership : PublicationPayloadOwnership?,
   next_generation : PublicationPayloadGeneration?,
+  next_opaque_ownership_cid : String?,
+  next_opaque_generation_cid : String?,
   next_actual_bytes : Int64,
   next_physical_digest : String,
 ) -> PublicationPayloadTransition {
@@ -381,6 +391,8 @@ fn prepare_payload_transition(
     next_state,
     next_ownership,
     next_generation,
+    next_opaque_ownership_cid,
+    next_opaque_generation_cid,
     next_actual_bytes,
     next_physical_digest,
   }
@@ -393,7 +405,7 @@ pub fn prepare_publication_payload_reserved(
   if record.state != Intent {
     return Err(InvalidTransition)
   }
-  Ok(prepare_payload_transition(record, Reserved, None, None, -1L, ""))
+  Ok(prepare_payload_transition(record, Reserved, None, None, None, None, -1L, ""))
 }
 
 ///|
@@ -403,7 +415,7 @@ pub fn prepare_publication_payload_writing(
   if record.state != Reserved {
     return Err(InvalidTransition)
   }
-  Ok(prepare_payload_transition(record, Writing, None, None, -1L, ""))
+  Ok(prepare_payload_transition(record, Writing, None, None, None, None, -1L, ""))
 }
 
 ///|
@@ -416,12 +428,34 @@ pub fn prepare_publication_payload_owned(
 ) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
   if record.state != Writing ||
     record.ownership is Some(_) ||
-    record.generation is Some(_) {
+    record.generation is Some(_) ||
+    record.opaque_ownership_cid is Some(_) ||
+    record.opaque_generation_cid is Some(_) {
     return Err(InvalidTransition)
   }
   Ok(
-    prepare_payload_transition(record, Writing, Some(ownership), None, -1L, ""),
+    prepare_payload_transition(record, Writing, Some(ownership), None, None, None, -1L, ""),
   )
+}
+
+///|
+/// Claim one exact non-filesystem allocation after the adapter has proved
+/// exclusive ownership. The CID identifies physical custody, not Result data.
+pub fn prepare_publication_payload_opaque_owned(
+  record : PublicationPayloadRecord,
+  custody_cid : String,
+) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
+  if record.state != Writing ||
+    record.ownership is Some(_) ||
+    record.generation is Some(_) ||
+    record.opaque_ownership_cid is Some(_) ||
+    record.opaque_generation_cid is Some(_) ||
+    !valid_sha256_cid(custody_cid) {
+    return Err(InvalidTransition)
+  }
+  Ok(prepare_payload_transition(
+    record, Writing, None, None, Some(custody_cid), None, -1L, "",
+  ))
 }
 
 ///|
@@ -436,6 +470,8 @@ pub fn prepare_publication_payload_sealed(
   if record.state != Writing ||
     ownership.device != generation.device ||
     ownership.inode != generation.inode ||
+    record.opaque_ownership_cid is Some(_) ||
+    record.opaque_generation_cid is Some(_) ||
     generation.size < 0L ||
     generation.size > record.request.max_bytes ||
     !valid_sha256_cid(physical_digest) {
@@ -447,6 +483,8 @@ pub fn prepare_publication_payload_sealed(
       Sealed,
       record.ownership,
       Some(generation),
+      None,
+      None,
       generation.size,
       physical_digest,
     ),
@@ -454,11 +492,38 @@ pub fn prepare_publication_payload_sealed(
 }
 
 ///|
+/// Seal the same opaque physical generation whose ownership was recorded.
+/// The environment adapter must verify current bytes before this transition.
+pub fn prepare_publication_payload_opaque_sealed(
+  record : PublicationPayloadRecord,
+  custody_cid : String,
+  actual_bytes : Int64,
+  physical_digest : String,
+) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
+  if record.state != Writing ||
+    record.ownership is Some(_) ||
+    record.generation is Some(_) ||
+    record.opaque_ownership_cid != Some(custody_cid) ||
+    record.opaque_generation_cid is Some(_) ||
+    !valid_sha256_cid(custody_cid) ||
+    actual_bytes < 0L || actual_bytes > record.request.max_bytes ||
+    !valid_sha256_cid(physical_digest) {
+    return Err(InvalidTransition)
+  }
+  Ok(prepare_payload_transition(
+    record, Sealed, None, None, Some(custody_cid), Some(custody_cid),
+    actual_bytes, physical_digest,
+  ))
+}
+
+///|
 pub fn prepare_publication_payload_reclaiming(
   record : PublicationPayloadRecord,
   discovered_generation? : PublicationPayloadGeneration? = None,
 ) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
-  if record.state == Reclaimed || record.state == Reclaiming {
+  if record.state == Reclaimed || record.state == Reclaiming ||
+    record.opaque_ownership_cid is Some(_) ||
+    record.opaque_generation_cid is Some(_) {
     return Err(InvalidTransition)
   }
   let generation = match record.generation {
@@ -483,10 +548,34 @@ pub fn prepare_publication_payload_reclaiming(
       Reclaiming,
       record.ownership,
       generation,
+      None,
+      None,
       record.actual_bytes,
       record.physical_digest,
     ),
   )
+}
+
+///|
+/// A caller may reclaim only the exact opaque custody it recorded. An
+/// unknown or changed physical generation remains a reconciliation failure.
+pub fn prepare_publication_payload_opaque_reclaiming(
+  record : PublicationPayloadRecord,
+  discovered_custody_cid : String,
+) -> Result[PublicationPayloadTransition, PublicationPayloadIssue] {
+  if record.state == Reclaimed || record.state == Reclaiming ||
+    record.ownership is Some(_) || record.generation is Some(_) ||
+    record.opaque_ownership_cid != Some(discovered_custody_cid) ||
+    !valid_sha256_cid(discovered_custody_cid) ||
+    (record.opaque_generation_cid is Some(sealed_cid) &&
+      sealed_cid != discovered_custody_cid) {
+    return Err(StateCollision)
+  }
+  Ok(prepare_payload_transition(
+    record, Reclaiming, None, None, record.opaque_ownership_cid,
+    record.opaque_generation_cid, record.actual_bytes,
+    record.physical_digest,
+  ))
 }
 
 ///|
@@ -502,6 +591,8 @@ pub fn prepare_publication_payload_reclaimed(
       Reclaimed,
       record.ownership,
       record.generation,
+      record.opaque_ownership_cid,
+      record.opaque_generation_cid,
       record.actual_bytes,
       record.physical_digest,
     ),
@@ -524,6 +615,8 @@ pub fn commit_publication_payload_transition(
   record.state = transition.next_state
   record.ownership = transition.next_ownership
   record.generation = transition.next_generation
+  record.opaque_ownership_cid = transition.next_opaque_ownership_cid
+  record.opaque_generation_cid = transition.next_opaque_generation_cid
   record.actual_bytes = transition.next_actual_bytes
   record.physical_digest = transition.next_physical_digest
   Ok(record)
@@ -555,6 +648,13 @@ pub fn publication_payload_record_generation(
   record : PublicationPayloadRecord,
 ) -> PublicationPayloadGeneration? {
   record.generation
+}
+
+///|
+pub fn publication_payload_record_opaque_generation(
+  record : PublicationPayloadRecord,
+) -> String? {
+  record.opaque_generation_cid
 }
 
 ///|
@@ -610,11 +710,46 @@ fn emit_payload_record(
   state : PublicationPayloadState,
   ownership : PublicationPayloadOwnership?,
   generation : PublicationPayloadGeneration?,
+  opaque_ownership_cid : String?,
+  opaque_generation_cid : String?,
   actual_bytes : Int64,
   physical_digest : String,
 ) -> Result[String, PublicationPayloadIssue] {
   if revision < 0 || actual_bytes < -1L {
     return Err(InvalidRecord)
+  }
+  if opaque_ownership_cid is Some(_) || opaque_generation_cid is Some(_) {
+    if ownership is Some(_) || generation is Some(_) {
+      return Err(InvalidRecord)
+    }
+    let writer = @encode.writer(65536, 32, 2) catch {
+      _ => return Err(InvalidRecord)
+    }
+    try {
+      @encode.begin_object(writer)
+      @encode.key(writer, "actual_bytes")
+      @encode.string_value(writer, actual_bytes.to_string())
+      @encode.key(writer, "custody_generation_cid")
+      @encode.string_value(writer, opaque_generation_cid.unwrap_or(""))
+      @encode.key(writer, "custody_ownership_cid")
+      @encode.string_value(writer, opaque_ownership_cid.unwrap_or(""))
+      @encode.key(writer, "physical_digest")
+      @encode.string_value(writer, physical_digest)
+      @encode.key(writer, "request_cid")
+      @encode.string_value(writer, request.request_cid)
+      @encode.key(writer, "request_json")
+      @encode.string_value(writer, request.body)
+      @encode.key(writer, "revision")
+      @encode.string_value(writer, revision.to_string())
+      @encode.key(writer, "state")
+      @encode.string_value(writer, state_text(state))
+      @encode.key(writer, "version")
+      @encode.string_value(writer, "actql-publication-payload-record/0.3")
+      @encode.end_object(writer)
+    } catch {
+      _ => return Err(InvalidRecord)
+    }
+    return Ok(@encode.finish(writer) catch { _ => return Err(InvalidRecord) })
   }
   let writer = @encode.writer(65536, 32, 2) catch {
     _ => return Err(InvalidRecord)
@@ -684,6 +819,8 @@ pub fn publication_payload_record_durable_json(
     record.state,
     record.ownership,
     record.generation,
+    record.opaque_ownership_cid,
+    record.opaque_generation_cid,
     record.actual_bytes,
     record.physical_digest,
   )
@@ -699,6 +836,8 @@ pub fn publication_payload_transition_durable_json(
     transition.next_state,
     transition.next_ownership,
     transition.next_generation,
+    transition.next_opaque_ownership_cid,
+    transition.next_opaque_generation_cid,
     transition.next_actual_bytes,
     transition.next_physical_digest,
   )
@@ -839,13 +978,26 @@ pub fn admit_durable_publication_payload_record(
         max_total_string_bytes: 65536,
       }),
     )
-    let object = decoded(
+    let (object, is_opaque) = match
       @decode.closed_object(cursor, [
         "actual_bytes", "device", "inode", "physical_digest", "request_cid", "request_json",
         "ownership_device", "ownership_inode", "revision", "state", "version",
-      ]),
-    )
-    if text(object, "version") != "actql-publication-payload-record/0.2" {
+      ]) {
+      Ok(value) => (value, false)
+      Err(_) =>
+        (
+          decoded(@decode.closed_object(cursor, [
+            "actual_bytes", "custody_generation_cid", "custody_ownership_cid",
+            "physical_digest", "request_cid", "request_json", "revision", "state",
+            "version",
+          ])),
+          true,
+        )
+    }
+    if text(object, "version") !=
+      (if is_opaque { "actql-publication-payload-record/0.3" } else {
+        "actql-publication-payload-record/0.2"
+      }) {
       raise PayloadStop
     }
     let request = admit_request_json(text(object, "request_json"))
@@ -860,54 +1012,77 @@ pub fn admit_durable_publication_payload_record(
     let state = parse_state(text(object, "state"))
     let actual_bytes = parse_i64(text(object, "actual_bytes"))
     let physical_digest = text(object, "physical_digest")
-    let ownership_device = text(object, "ownership_device")
-    let ownership_inode = text(object, "ownership_inode")
-    let ownership = if ownership_device == "" && ownership_inode == "" {
+    let ownership = if is_opaque {
       None
-    } else if ownership_device == "" || ownership_inode == "" {
-      raise PayloadStop
     } else {
-      Some({
-        device: parse_u64(ownership_device),
-        inode: parse_u64(ownership_inode),
-      })
+      let device = text(object, "ownership_device")
+      let inode = text(object, "ownership_inode")
+      if device == "" && inode == "" {
+        None
+      } else if device == "" || inode == "" {
+        raise PayloadStop
+      } else {
+        Some({ device: parse_u64(device), inode: parse_u64(inode), })
+      }
     }
-    let device = text(object, "device")
-    let inode = text(object, "inode")
-    let generation = if device == "" && inode == "" {
+    let generation = if is_opaque {
       None
-    } else if device == "" || inode == "" || actual_bytes < 0L {
-      raise PayloadStop
     } else {
-      Some({
-        device: parse_u64(device),
-        inode: parse_u64(inode),
-        size: actual_bytes,
-      })
+      let device = text(object, "device")
+      let inode = text(object, "inode")
+      if device == "" && inode == "" {
+        None
+      } else if device == "" || inode == "" || actual_bytes < 0L {
+        raise PayloadStop
+      } else {
+        Some({
+          device: parse_u64(device), inode: parse_u64(inode),
+          size: actual_bytes,
+        })
+      }
     }
+    let opaque_ownership_cid = if is_opaque {
+      let value = text(object, "custody_ownership_cid")
+      if value == "" { None } else if valid_sha256_cid(value) {
+        Some(value)
+      } else { raise PayloadStop }
+    } else { None }
+    let opaque_generation_cid = if is_opaque {
+      let value = text(object, "custody_generation_cid")
+      if value == "" { None } else if valid_sha256_cid(value) {
+        Some(value)
+      } else { raise PayloadStop }
+    } else { None }
+    if is_opaque && opaque_ownership_cid is None {
+      raise PayloadStop
+    }
+    let native_sealed = ownership is Some(owner) &&
+      generation is Some(_) &&
+      generation.unwrap().device == owner.device &&
+      generation.unwrap().inode == owner.inode
+    let opaque_sealed = opaque_ownership_cid is Some(owner) &&
+      opaque_generation_cid == Some(owner)
     let valid = match state {
       Intent | Reserved =>
         ownership is None &&
         generation is None &&
+        opaque_ownership_cid is None &&
+        opaque_generation_cid is None &&
         actual_bytes == -1L &&
         physical_digest == ""
       Writing =>
-        generation is None && actual_bytes == -1L && physical_digest == ""
+        generation is None && opaque_generation_cid is None &&
+        actual_bytes == -1L && physical_digest == ""
       Sealed =>
-        ownership is Some(owner) &&
-        generation is Some(_) &&
-        generation.unwrap().device == owner.device &&
-        generation.unwrap().inode == owner.inode &&
+        (native_sealed || opaque_sealed) &&
         actual_bytes >= 0L &&
         actual_bytes <= request.max_bytes &&
         valid_sha256_cid(physical_digest)
       Reclaiming | Reclaimed =>
-        (generation is None && actual_bytes == -1L && physical_digest == "") ||
+        (generation is None && opaque_generation_cid is None &&
+          actual_bytes == -1L && physical_digest == "") ||
         (
-          ownership is Some(owner) &&
-          generation is Some(_) &&
-          generation.unwrap().device == owner.device &&
-          generation.unwrap().inode == owner.inode &&
+          (native_sealed || opaque_sealed) &&
           actual_bytes >= 0L &&
           actual_bytes <= request.max_bytes &&
           valid_sha256_cid(physical_digest)
@@ -919,7 +1094,8 @@ pub fn admit_durable_publication_payload_record(
     let body = @utf8.decode(bytes) catch { _ => raise PayloadStop }
     let canonical = match
       emit_payload_record(
-        request, revision, state, ownership, generation, actual_bytes, physical_digest,
+        request, revision, state, ownership, generation, opaque_ownership_cid,
+        opaque_generation_cid, actual_bytes, physical_digest,
       ) {
       Ok(value) => value
       Err(_) => raise PayloadStop
@@ -933,6 +1109,8 @@ pub fn admit_durable_publication_payload_record(
       state,
       ownership,
       generation,
+      opaque_ownership_cid,
+      opaque_generation_cid,
       actual_bytes,
       physical_digest,
       body,
@@ -951,6 +1129,8 @@ pub fn restore_durable_publication_payload_record(
   record.state = durable.state
   record.ownership = durable.ownership
   record.generation = durable.generation
+  record.opaque_ownership_cid = durable.opaque_ownership_cid
+  record.opaque_generation_cid = durable.opaque_generation_cid
   record.actual_bytes = durable.actual_bytes
   record.physical_digest = durable.physical_digest
   match publication_payload_record_durable_json(record) {

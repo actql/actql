@@ -22,6 +22,12 @@ pub fn durable_publication_payload_record_revision(DurablePublicationPayloadReco
 
 pub fn durable_publication_payload_record_state(DurablePublicationPayloadRecord) -> PublicationPayloadState
 
+pub fn prepare_publication_payload_opaque_owned(PublicationPayloadRecord, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_opaque_reclaiming(PublicationPayloadRecord, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
+pub fn prepare_publication_payload_opaque_sealed(PublicationPayloadRecord, String, Int64, String) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
+
 pub fn prepare_publication_payload_owned(PublicationPayloadRecord, PublicationPayloadOwnership) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
 
 pub fn prepare_publication_payload_reclaimed(PublicationPayloadRecord) -> Result[PublicationPayloadTransition, PublicationPayloadIssue]
@@ -49,6 +55,8 @@ pub fn publication_payload_record_digest(PublicationPayloadRecord) -> String
 pub fn publication_payload_record_durable_json(PublicationPayloadRecord) -> Result[String, PublicationPayloadIssue]
 
 pub fn publication_payload_record_generation(PublicationPayloadRecord) -> PublicationPayloadGeneration?
+
+pub fn publication_payload_record_opaque_generation(PublicationPayloadRecord) -> String?
 
 pub fn publication_payload_record_ownership(PublicationPayloadRecord) -> PublicationPayloadOwnership?
 

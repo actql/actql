@@ -207,6 +207,8 @@ pub fn durable_coordinator_dispatch_record_subject(DurableCoordinatorDispatchRec
 
 pub fn durable_coordinator_output_admit_transfer_reply_json(DurableCoordinatorOutputRecord, String) -> Result[String, DispatchIssue]
 
+pub fn durable_coordinator_output_payload_request(DurableCoordinatorOutputRecord) -> @publication_payload.PublicationPayloadRequest
+
 pub fn durable_coordinator_output_prepare_result_json(DurableCoordinatorOutputRecord, String, String) -> Result[String, DispatchIssue]
 
 pub fn durable_coordinator_output_publication_facts(DurableCoordinatorOutputRecord) -> DurableCoordinatorOutputPublicationFacts

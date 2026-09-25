@@ -43,6 +43,15 @@ pub fn durable_coordinator_output_publication_facts(
 }
 
 ///|
+/// Retain the exact admitted payload request for a separate Store owner.
+/// This in-process handle carries identity, not a physical custody grant.
+pub fn durable_coordinator_output_payload_request(
+  durable : DurableCoordinatorOutputRecord,
+) -> @payload.PublicationPayloadRequest {
+  durable.plan.payload_request
+}
+
+///|
 /// Re-admit all Site-supplied plan bodies against the durable dispatch output
 /// before allowing the Coordinator to persist an output occurrence.
 pub fn admit_coordinator_output_plan(

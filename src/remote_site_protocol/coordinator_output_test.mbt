@@ -129,6 +129,12 @@ test "Coordinator output transitions issue exact durable bodies" {
       true,
     ).unwrap().1
   let initial = prepare_durable_coordinator_output_record(output, plan).unwrap()
+  assert_eq(
+    @payload.publication_payload_request_identity(
+      durable_coordinator_output_payload_request(initial),
+    ),
+    @payload.publication_payload_request_identity(payload_request),
+  )
   let facts = durable_coordinator_output_publication_facts(initial)
   assert_eq(
     facts.store_authority_cid,

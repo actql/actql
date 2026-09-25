@@ -140,6 +140,57 @@ export const durableOutputPublicationFacts = durable => {
     logicalRelationCid, resultSchemaCid, orderingEvidenceCid,
     codecContractCid, rowCount: BigInt(rowCount), materialGenerationCid});
 };
+// In-process Store handles from the admitted Output Plan. Physical adapters
+// must verify custody and persist each transition before committing it.
+export const payloadRequestFromOutput =
+  owner.coordinatorPayloadRequestFromOutput;
+export const payloadRequestCid = owner.coordinatorPayloadRequestCid;
+export const admitPayloadRequestJson = (body, claimedCid) =>
+  checked(owner.coordinatorPayloadAdmitRequestJson(body, claimedCid));
+export const preparePayloadRecord = owner.coordinatorPayloadPrepareRecord;
+export const payloadRecordDurableJson = record =>
+  checked(owner.coordinatorPayloadRecordDurableJson(record));
+export const admitDurablePayloadJson = body =>
+  checked(owner.coordinatorPayloadAdmitDurableJson(body));
+export const durablePayloadRevision = owner.coordinatorPayloadDurableRevision;
+export const durablePayloadState = owner.coordinatorPayloadDurableState;
+export const durablePayloadRequestCid =
+  owner.coordinatorPayloadDurableRequestCid;
+export const restoreDurablePayload = durable =>
+  checked(owner.coordinatorPayloadRestoreDurable(durable));
+export const preparePayloadReserved = record =>
+  checked(owner.coordinatorPayloadPrepareReserved(record));
+export const preparePayloadWriting = record =>
+  checked(owner.coordinatorPayloadPrepareWriting(record));
+export const preparePayloadOpaqueOwned = (record, custodyCid) =>
+  checked(owner.coordinatorPayloadPrepareOpaqueOwned(record, custodyCid));
+export const preparePayloadOpaqueSealed = (record, custodyCid,
+  actualBytes, physicalDigest) => {
+  if (!(typeof actualBytes === 'bigint' && actualBytes >= 0n &&
+      actualBytes <= 9223372036854775807n ||
+      Number.isSafeInteger(actualBytes) && actualBytes >= 0)) {
+    throw new TypeError('InvalidPayloadActualBytes');
+  }
+  return checked(owner.coordinatorPayloadPrepareOpaqueSealed(
+    record, custodyCid, BigInt(actualBytes), physicalDigest));
+};
+export const preparePayloadOpaqueReclaiming = (record, custodyCid) =>
+  checked(owner.coordinatorPayloadPrepareOpaqueReclaiming(record, custodyCid));
+export const preparePayloadReclaimed = record =>
+  checked(owner.coordinatorPayloadPrepareReclaimed(record));
+export const payloadTransitionDurableJson = transition =>
+  checked(owner.coordinatorPayloadTransitionDurableJson(transition));
+export const payloadTransitionExpectedRevision =
+  owner.coordinatorPayloadTransitionExpectedRevision;
+/** Call only after the exact next payload body was durably persisted. */
+export const commitPayloadTransition = transition =>
+  checked(owner.coordinatorPayloadCommitTransition(transition));
+export const payloadRecordOpaqueGeneration = record => {
+  const value = owner.coordinatorPayloadRecordOpaqueGeneration(record);
+  if (value === undefined || typeof value === 'string') return value;
+  throw new Error('InvalidPayloadGenerationProjection');
+};
+export const payloadRecordDigest = owner.coordinatorPayloadRecordDigest;
 export const prepareOutputIntent = (journal, plan) =>
   checked(owner.coordinatorPrepareOutputIntent(journal, plan));
 export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;

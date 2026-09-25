@@ -190,3 +190,79 @@ test "publication payload cleanup requires recorded allocation ownership" {
     is Err(InvalidTransition),
   )
 }
+
+///|
+test "opaque payload custody uses the same durable transition owner" {
+  let record = prepare_publication_payload_record(payload_request())
+  let custody = payload_cid("9")
+  let digest = payload_cid("a")
+  commit_publication_payload_transition(
+    prepare_publication_payload_reserved(record).unwrap(), true,
+  )
+  |> ignore
+  commit_publication_payload_transition(
+    prepare_publication_payload_writing(record).unwrap(), true,
+  )
+  |> ignore
+  assert_true(
+    prepare_publication_payload_opaque_sealed(record, custody, 12L, digest)
+    is Err(InvalidTransition),
+  )
+  commit_publication_payload_transition(
+    prepare_publication_payload_opaque_owned(record, custody).unwrap(), true,
+  )
+  |> ignore
+  let writing = publication_payload_record_durable_json(record).unwrap()
+  assert_true(writing.contains("actql-publication-payload-record/0.3"))
+  let reopened = restore_durable_publication_payload_record(
+    admit_durable_publication_payload_record(@utf8.encode(writing)).unwrap(),
+  ).unwrap()
+  assert_true(
+    prepare_publication_payload_sealed(
+      reopened, { device: 1UL, inode: 2UL, size: 12L, }, digest,
+    )
+    is Err(InvalidTransition),
+  )
+  assert_true(
+    prepare_publication_payload_opaque_sealed(
+      reopened, payload_cid("b"), 12L, digest,
+    )
+    is Err(InvalidTransition),
+  )
+  commit_publication_payload_transition(
+    prepare_publication_payload_opaque_sealed(
+      reopened, custody, 12L, digest,
+    ).unwrap(),
+    true,
+  )
+  |> ignore
+  let sealed_body = publication_payload_record_durable_json(reopened).unwrap()
+  let restored = restore_durable_publication_payload_record(
+    admit_durable_publication_payload_record(@utf8.encode(sealed_body)).unwrap(),
+  ).unwrap()
+  assert_eq(publication_payload_record_opaque_generation(restored), Some(custody))
+  assert_eq(publication_payload_record_digest(restored), digest)
+  assert_true(
+    admit_durable_publication_payload_record(@utf8.encode(
+      sealed_body.replace(
+        old="\"custody_generation_cid\":\"" + custody + "\"",
+        new="\"custody_generation_cid\":\"" + payload_cid("b") + "\"",
+      ),
+    ))
+    is Err(InvalidRecord),
+  )
+  assert_true(
+    prepare_publication_payload_opaque_reclaiming(restored, payload_cid("b"))
+    is Err(StateCollision),
+  )
+  commit_publication_payload_transition(
+    prepare_publication_payload_opaque_reclaiming(restored, custody).unwrap(),
+    true,
+  )
+  |> ignore
+  commit_publication_payload_transition(
+    prepare_publication_payload_reclaimed(restored).unwrap(), true,
+  )
+  |> ignore
+  assert_eq(publication_payload_record_state(restored), Reclaimed)
+}

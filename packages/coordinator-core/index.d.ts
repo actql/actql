@@ -16,6 +16,12 @@ export type DurableOutputRecord = {
   readonly [ownerHandle]: 'durable-output-record'
 };
 export type OutputTransition = {readonly [ownerHandle]: 'output-transition'};
+export type PayloadRequest = {readonly [ownerHandle]: 'payload-request'};
+export type PayloadRecord = {readonly [ownerHandle]: 'payload-record'};
+export type DurablePayloadRecord = {
+  readonly [ownerHandle]: 'durable-payload-record'
+};
+export type PayloadTransition = {readonly [ownerHandle]: 'payload-transition'};
 
 export interface DispatchInput {
   coordinatorAuthority: string;
@@ -126,6 +132,44 @@ export function durableOutputPublicationFacts(durable: DurableOutputRecord):
     rowCount: bigint;
     materialGenerationCid: string;
   }>;
+/** In-process identity from an admitted Site plan, never a custody grant. */
+export function payloadRequestFromOutput(durable: DurableOutputRecord):
+  PayloadRequest;
+export function payloadRequestCid(request: PayloadRequest): string;
+export function admitPayloadRequestJson(body: string,
+  claimedCid: string): PayloadRequest;
+export function preparePayloadRecord(request: PayloadRequest): PayloadRecord;
+export function payloadRecordDurableJson(record: PayloadRecord): string;
+export function admitDurablePayloadJson(body: string): DurablePayloadRecord;
+export function durablePayloadRevision(durable: DurablePayloadRecord): number;
+export function durablePayloadState(durable: DurablePayloadRecord):
+  'intent' | 'reserved' | 'writing' | 'sealed' | 'reclaiming' | 'reclaimed';
+export function durablePayloadRequestCid(durable: DurablePayloadRecord): string;
+export function restoreDurablePayload(durable: DurablePayloadRecord):
+  PayloadRecord;
+export function preparePayloadReserved(record: PayloadRecord):
+  PayloadTransition;
+export function preparePayloadWriting(record: PayloadRecord):
+  PayloadTransition;
+export function preparePayloadOpaqueOwned(record: PayloadRecord,
+  custodyCid: string): PayloadTransition;
+export function preparePayloadOpaqueSealed(record: PayloadRecord,
+  custodyCid: string, actualBytes: number | bigint,
+  physicalDigest: string): PayloadTransition;
+export function preparePayloadOpaqueReclaiming(record: PayloadRecord,
+  custodyCid: string): PayloadTransition;
+export function preparePayloadReclaimed(record: PayloadRecord):
+  PayloadTransition;
+export function payloadTransitionDurableJson(
+  transition: PayloadTransition): string;
+export function payloadTransitionExpectedRevision(
+  transition: PayloadTransition): number;
+/** Call only after the exact transition body was durably persisted. */
+export function commitPayloadTransition(transition: PayloadTransition):
+  PayloadRecord;
+export function payloadRecordOpaqueGeneration(record: PayloadRecord):
+  string | undefined;
+export function payloadRecordDigest(record: PayloadRecord): string;
 export function prepareOutputIntent(journal: Journal,
   plan: CheckedOutputPlan): OutputIntentAdmission;
 export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;

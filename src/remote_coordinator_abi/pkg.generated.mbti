@@ -2,6 +2,7 @@
 package "actql/actql/remote_coordinator_abi"
 
 import {
+  "actql/actql/publication_payload",
   "actql/actql/remote_site_protocol",
 }
 
@@ -79,6 +80,48 @@ pub fn coordinator_output_transfer_request_cid(@remote_site_protocol.DurableCoor
 pub fn coordinator_output_transition_durable_json(@remote_site_protocol.DurableCoordinatorOutputRecord, @remote_site_protocol.CoordinatorOutputTransition) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_output_transition_expected_revision(@remote_site_protocol.CoordinatorOutputTransition) -> Int
+
+pub fn coordinator_payload_admit_durable_json(String) -> Result[@publication_payload.DurablePublicationPayloadRecord, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_admit_request_json(String, String) -> Result[@publication_payload.PublicationPayloadRequest, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_commit_transition(@publication_payload.PublicationPayloadTransition) -> Result[@publication_payload.PublicationPayloadRecord, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_durable_request_cid(@publication_payload.DurablePublicationPayloadRecord) -> String
+
+pub fn coordinator_payload_durable_revision(@publication_payload.DurablePublicationPayloadRecord) -> Int
+
+pub fn coordinator_payload_durable_state(@publication_payload.DurablePublicationPayloadRecord) -> String
+
+pub fn coordinator_payload_prepare_opaque_owned(@publication_payload.PublicationPayloadRecord, String) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_prepare_opaque_reclaiming(@publication_payload.PublicationPayloadRecord, String) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_prepare_opaque_sealed(@publication_payload.PublicationPayloadRecord, String, Int64, String) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_prepare_reclaimed(@publication_payload.PublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_prepare_record(@publication_payload.PublicationPayloadRequest) -> @publication_payload.PublicationPayloadRecord
+
+pub fn coordinator_payload_prepare_reserved(@publication_payload.PublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_prepare_writing(@publication_payload.PublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_record_digest(@publication_payload.PublicationPayloadRecord) -> String
+
+pub fn coordinator_payload_record_durable_json(@publication_payload.PublicationPayloadRecord) -> Result[String, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_record_opaque_generation(@publication_payload.PublicationPayloadRecord) -> String?
+
+pub fn coordinator_payload_request_cid(@publication_payload.PublicationPayloadRequest) -> String
+
+pub fn coordinator_payload_request_from_output(@remote_site_protocol.DurableCoordinatorOutputRecord) -> @publication_payload.PublicationPayloadRequest
+
+pub fn coordinator_payload_restore_durable(@publication_payload.DurablePublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadRecord, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_transition_durable_json(@publication_payload.PublicationPayloadTransition) -> Result[String, @publication_payload.PublicationPayloadIssue]
+
+pub fn coordinator_payload_transition_expected_revision(@publication_payload.PublicationPayloadTransition) -> Int
 
 pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
 
