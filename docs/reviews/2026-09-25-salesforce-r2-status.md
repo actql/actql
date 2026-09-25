@@ -102,6 +102,10 @@ cannot enter successful Run publication. Their private Preview and both
 Effect-source holdings remain owned until explicit retirement, which removes
 the physical bytes. These are local Site and installed Host regressions, not
 public Client submission or live Salesforce evidence.
+The same checked Run also recovers a saved two-row Collections response after
+Ledger reopen. Both rows become terminal without another batch send or
+credential use; the independent member completes, and the final chain reaches
+Store publication and Result retirement.
 The checked two-member Host fixture now leaves one member's first row in
 possible-dispatch state, reopens the Ledger, and sends both rows of the other
 member through a local HTTP endpoint. MoonBit's captured frontier keeps the
@@ -169,7 +173,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Run the same declared metadata projection against the isolated org; confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures | Connect every operation to the checked multi-member Program and prove preview freshness before any write. Real-org writes remain unauthorized and untested. |
-| Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, rollback projection, target identity and operation authority. `client-program-bridge.test.mjs` now includes a two-row Collections partial failure in the checked two-member Host Run, with Ledger reopen and no resend. | Verify Collections response-loss recovery and actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
+| Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, rollback projection, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
 | Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, four credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, Store read via test authorization callback and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains | Install the public Client ingress and independent Result authorization with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
