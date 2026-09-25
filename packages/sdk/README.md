@@ -81,3 +81,68 @@ overhead can make peak memory higher. An exceeded limit fails the delivery
 attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
+
+## Held requests and Checkpoints
+
+A Host may hold a request before any Run exists. For example, its account
+configuration can delegate Run acceptance on a protected Site, and the Host
+defers the decision to a durable Checkpoint. `aql()` and `start()` then
+reject with `RequestHeld`. That is a control result, not a failure and not an
+unknown submission. The request is stored durably, so it never needs to be
+submitted again. `error.held` carries the `prepareAttemptId` and the
+Checkpoint reference, and never a RunRef. Follow the request with
+`lookupRequest(requestId)`. It reports `held` with the state
+`waiting_checkpoint`, `resuming` or `ended` (with its reason) until the Run
+exists, and then `found` with the RunRef for `attach`, `status` and `wait`.
+
+Three operations serve reviewers. Each needs its own Host authorization:
+listing, reading the review body and answering are separate permissions.
+
+- `checkpoints({limit, after})` returns one page of waiting Checkpoints as
+  safe metadata only, never review contents. `next` continues the listing.
+- `reviewCheckpoint(checkpoint, {maxBytes, signal})` reads the exact review
+  projection the Checkpoint names. Both sides enforce the byte bound. The
+  bytes are checked against the named artifact CID, and a larger review is
+  refused, never truncated. Aborting the read never cancels the request.
+- `resolveCheckpoints(items, {signer})` answers one or more Checkpoints.
+  Each answer is its own signed Resolution, and the Host admits each one
+  separately; the batch is not atomic. `signer` is supplied by the
+  application and signs with a key the Host trusts. The SDK never holds the
+  key. A stored answer is not a resumed Run: the Host resumes approved
+  requests itself. When the reply is lost, `ResolutionUnknown` carries the
+  exact signed items. Resend them unchanged; the Host reports `duplicate`.
+
+```js
+import {createPrivateKey, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {connect, RequestHeld} from '@actql/node';
+
+const endpoint = 'https://remote-host.example/';
+const owner = await connect({mode: 'remote', endpoint, token: ownerToken});
+let execution;
+try {
+  execution = await owner.aql(documentText, {format: 'json',
+    requestId: 'nightly-1'});
+} catch (error) {
+  if (!(error instanceof RequestHeld)) throw error;
+}
+
+// Later, from any process: review and answer.
+const reviewer = await connect({mode: 'remote', endpoint,
+  token: reviewerToken});
+const {items: [checkpoint]} = await reviewer.checkpoints();
+const reader = await connect({mode: 'remote', endpoint, token: readerToken});
+const review = await reader.reviewCheckpoint(checkpoint, {maxBytes: 65536});
+const key = createPrivateKey(readFileSync('reviewer.key', 'utf8'));
+const {results} = await reviewer.resolveCheckpoints(
+  [{checkpoint, decision: 'approved'}],
+  {signer: {keyId: 'reviewer-key', reviewerId: 'reviewer',
+    sign: bytes => sign(null, bytes, key)}});
+
+// The Host resumes the request; follow it to its Run and Result.
+const lookup = await owner.lookupRequest('nightly-1');
+if (lookup.kind === 'found') {
+  execution = await owner.attach(lookup.ref);
+  const rows = await execution.result('answer').all();
+}
+```

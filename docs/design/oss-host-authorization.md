@@ -269,6 +269,63 @@ be committed, and a committed Effect Set approval stays admissible for the
 resumed commit until its intent completes. Run-scope approvals, in contrast,
 authorize new work only strictly before their own `expires_at`.
 
+## Remote Host Run acceptance and the public Client (informative)
+
+The installed Remote Host (`openInstalledRemoteHttpHost` with an
+`authorization` installation) protects Run acceptance on its own Site. For
+each request it evaluates the Host-resolved tuple (Site key,
+`source-free-values`, `write`) before any Run Definition exists.
+- `write` classifies the request to run on that Site; it is not an Effect.
+- The decision subject is the Host-resolved request: the installation scope,
+  the request identity and intent, the Site and the realization. The caller
+  supplies none of these values.
+- allow runs as before with no Checkpoint and no Host policy call.
+- deny and a missing configuration refuse with their ACTQL code and record
+  nothing.
+- Without an `authorization` installation, the Site is unprotected and pure
+  compute is covered, as for the embedded Local Host.
+
+A deferred decision is held as a `prepare_attempt` `run_scope` Checkpoint:
+- Preparation is two-phase. The account outcome and any immediate Host answer
+  are decided on the request subject. Only a deferral captures the submitted
+  document, parameters and result names as encrypted private evidence. It
+  then seals a prepared invocation bound to that capture and writes an
+  `actql-run-review-projection/0.1` review.
+- The public Client sees a typed held request (submit and `lookupRequest`),
+  never a fictitious RunRef.
+
+The Client wire adds three operations. Each one is authorized separately.
+- `checkpoints` lists a bounded page for the request owner, trusted
+  reviewers and review readers.
+- `checkpoint-review` returns the body only to the configured
+  `reviewReaders`. It returns only the exact projection the Checkpoint
+  names, and checks the stored size against the bound before loading.
+- `resolve` accepts answers only from a trusted reviewer whose configured
+  principal is the authenticated caller. Each signed answer is admitted by
+  the common journal on its own.
+
+The Host resumes approved requests when it starts, and after an answer
+unless `resumeAfterAnswer` is false. The resume path:
+1. Claims the durable intent and passes `gate.resume` with the common
+   admission (live claim, committed approval still valid, same
+   configuration, exact sealed artifact and decision subject).
+2. Enters the admission immediately before the Run Definition is admitted.
+   A later claim generation only reconciles the same request identity, which
+   the request journal deduplicates.
+3. Completes the intent with the created Run. An interrupted dispatch
+   continues under the existing request-restart contract.
+4. Releases the continuation's evidence once the Run is terminal. A later
+   Host sweep settles a Run that ended under another process.
+
+This profile has these limits:
+- A held request cannot be cancelled through the public Client; rejecting
+  its Checkpoint ends it.
+- Only Run acceptance of source-free Programs is connected. The preparation
+  source read of Programs with input and `run_unit` Checkpoints on this
+  Host are not connected here.
+- One Host process owns a state directory. A second one is refused by the
+  Store owner.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,
