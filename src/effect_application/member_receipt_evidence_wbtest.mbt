@@ -124,6 +124,61 @@ test "member receipt requires the exact durable terminal row evidence" {
     @publication.publication_contract_identity(row_receipt),
   )
   let member_wire = @publication.publication_contract_json(member_receipt)
+  let issued = issue_effect_member_receipt_from_row_partition(
+    preview,
+    0,
+    [scope],
+    [locator],
+    [key],
+    [basis],
+    [Some(terminal)],
+    [false],
+    [Some(row_receipt)],
+    1,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(issued),
+    @publication.publication_contract_identity(member_receipt),
+  )
+  assert_true(
+    issue_effect_member_receipt_from_row_partition(
+      preview,
+      0,
+      [scope],
+      [locator],
+      [key],
+      [basis],
+      [Some(terminal)],
+      [true],
+      [Some(row_receipt)],
+      1,
+      8192,
+      256,
+      12,
+    )
+    is Err(ActivePhysicalOwner(0)),
+  )
+  assert_true(
+    issue_effect_member_receipt_from_row_partition(
+      preview,
+      0,
+      [scope],
+      [locator],
+      [key],
+      [basis],
+      [Some(terminal)],
+      [false],
+      [None],
+      1,
+      8192,
+      256,
+      12,
+    )
+    is Err(MissingTerminalReceipt(0)),
+  )
   assert_true(
     check_effect_member_receipt_row_partition_evidence(
       preview,

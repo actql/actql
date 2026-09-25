@@ -120,6 +120,14 @@ function effectApplicationControl(moon) {
     checkMemberReceiptRowPartitionEvidence: (...args) => checked(
       moon.strategyCheckEffectMemberReceiptRowPartitionEvidence(...args),
     ),
+    issueMemberReceiptFromRowPartition: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectMemberReceiptFromRowPartition(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+      });
+    },
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
