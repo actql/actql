@@ -109,6 +109,87 @@ export function effectRowOutcomeReceiptSchema(outcome) {
   };
 }
 
+export function effectApplyReceiptSchema() {
+  const rowIdentity = {
+    row_index: {type: 'integer', minimum: 0, maximum: 9007199254740991},
+    row_preview_cid: clone(cid),
+  };
+  const dispatched = {
+    ...rowIdentity,
+    dispatch_entry_cid: clone(cid),
+    attempt_sequence: {type: 'integer', minimum: 1, maximum: 9007199254740991},
+  };
+  const row = (state, extra, required) => ({
+    type: 'object', additionalProperties: false,
+    required: ['row_index', 'row_preview_cid', 'state', ...required],
+    properties: {state: {const: state}, ...extra},
+  });
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://smooth.dev/schemas/actql-effect-apply-receipt-0.1.json',
+    title: 'actql-effect-apply-receipt-0.1',
+    type: 'object', additionalProperties: false,
+    required: ['version', 'run_identity_cid', 'effect_preview_cid',
+      'effect_member_preview_cid', 'rows', 'status', 'receipt_cid'],
+    properties: {
+      version: {const: 'actql-effect-apply-receipt/0.1'},
+      run_identity_cid: clone(cid),
+      effect_preview_cid: clone(cid),
+      effect_member_preview_cid: clone(cid),
+      approval_attestation_cid: clone(cid),
+      stale_error_cid: clone(cid),
+      rows: {type: 'array', items: {oneOf: [
+        row('unattempted', rowIdentity, []),
+        row('unknown', {...dispatched, ledger_head_cid: clone(cid)},
+          ['dispatch_entry_cid', 'attempt_sequence', 'ledger_head_cid']),
+        ...['applied', 'accepted', 'failed'].map(state =>
+          row(state, {...dispatched, outcome_receipt_cid: clone(cid),
+            batch_result_cid: clone(cid)},
+            ['dispatch_entry_cid', 'attempt_sequence', 'outcome_receipt_cid'])),
+        row('rolled_back', {...dispatched, outcome_receipt_cid: clone(cid),
+          batch_result_cid: clone(cid)},
+        ['dispatch_entry_cid', 'attempt_sequence', 'outcome_receipt_cid',
+          'batch_result_cid']),
+      ]}},
+      status: {enum: ['applied', 'accepted', 'unknown_outcome',
+        'partial_failure', 'failed', 'stale_preview']},
+      receipt_cid: clone(cid),
+    },
+  };
+}
+
+export function effectSetApplyReceiptSchema(previous) {
+  const schema = clone(previous);
+  const entry = schema.properties.effects.items;
+  delete entry.properties.outcome;
+  entry.properties.state.enum = [
+    'applied', 'accepted', 'failed', 'unknown', 'unattempted', 'rolled_back',
+  ];
+  return schema;
+}
+
+export function effectReconciliationReceiptSchema(previous) {
+  const schema = clone(previous);
+  for (const field of ['run_identity_cid', 'effect_preview_cid',
+    'effect_member_preview_cid', 'row_preview_cid',
+    'dispatch_entry_cid', 'dispatch_attempt_sequence',
+    'prior_ledger_head_cid']) {
+    if (!schema.required.includes(field)) schema.required.push(field);
+  }
+  for (const field of ['run_identity_cid', 'effect_preview_cid',
+    'effect_member_preview_cid', 'row_preview_cid',
+    'dispatch_entry_cid', 'prior_ledger_head_cid',
+    'outcome_receipt_cid']) {
+    schema.properties[field] = clone(cid);
+  }
+  schema.properties.dispatch_attempt_sequence = {
+    type: 'integer', minimum: 1, maximum: 9007199254740991,
+  };
+  schema.allOf[1].then.not = {required: ['outcome_receipt_cid']};
+  schema.allOf[1].else.required = ['outcome_receipt_cid'];
+  return schema;
+}
+
 export function runStateSchema(previous) {
   const availability = {
     type: 'object',
@@ -304,6 +385,12 @@ export function correctedContracts(registry, cli) {
   next.artifact_schemas.run_state = state;
   next.artifact_schemas.effect_row_outcome_receipt =
     effectRowOutcomeReceiptSchema(next.schemas.effect_outcome);
+  next.artifact_schemas.effect_apply_receipt = effectApplyReceiptSchema();
+  next.artifact_schemas.effect_set_apply_receipt =
+    effectSetApplyReceiptSchema(next.artifact_schemas.effect_set_apply_receipt);
+  next.artifact_schemas.effect_reconciliation_receipt =
+    effectReconciliationReceiptSchema(
+      next.artifact_schemas.effect_reconciliation_receipt);
   next.artifact_schemas.effect_source_artifact = effectSourceArtifact;
   const effectContext = next.artifact_schemas.captured_run
     .properties.effect_context;

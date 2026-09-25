@@ -265,16 +265,21 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
     const memberReceipt = runtimeCore(moon).publicationControl.seal(
       'effect_apply_receipt', JSON.stringify({
         version: 'actql-effect-apply-receipt/0.1',
+        run_identity_cid: cid('a'),
         effect_preview_cid: JSON.parse(recorded.receipt.wire)
           .effect_preview_cid,
         effect_member_preview_cid: JSON.parse(recorded.receipt.wire)
           .effect_member_preview_cid,
-        applied: [effect.previewOrderedRowCid(admitted, 0, 0)],
-        accepted: [], unknown: [], failed: [],
-        unattempted: [effect.previewOrderedRowCid(admitted, 0, 1)],
+        rows: [{row_index: 0,
+          row_preview_cid: effect.previewOrderedRowCid(admitted, 0, 0),
+          state: 'applied',
+          dispatch_entry_cid: saved.dispatchEntryCid,
+          attempt_sequence: 1,
+          outcome_receipt_cid: recorded.receipt.identity},
+        {row_index: 1,
+          row_preview_cid: effect.previewOrderedRowCid(admitted, 0, 1),
+          state: 'unattempted'}],
         status: 'partial_failure',
-        outcome: {state: 'failed', error: {code: 'NotStarted',
-          message: 'Later row was not dispatched'}},
       }), {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16});
     const checkMember = (heads, rowReceipts, activeOwners = [false, false]) =>
       effect.checkMemberReceiptRowPartitionEvidence(
@@ -422,6 +427,103 @@ test('one Collections claim remains possible dispatch after restart',
     restarted.append(effect.ledgerEntryWire(completed));
     assert.deepEqual(progress(restarted), {outcome: 3, ready: []});
   });
+
+test('one owned batch response fact issues distinct row Receipts', async t => {
+  const root = await fixture(t);
+  const calls = {response: 0, fromResponse: 0, admitFromResponse: 0,
+    terminalFromResponse: 0, direct: 0};
+  const countedMoon = new Proxy(moon, {get(target, name) {
+    const value = Reflect.get(target, name);
+    const counter = {
+      strategyAdmitEffectSavedResponseEvidence: 'response',
+      strategyIssueEffectRowOutcomeReceiptFromResponse: 'fromResponse',
+      strategyAdmitEffectRowOutcomeReceiptFromResponse:
+        'admitFromResponse',
+      strategyIssueEffectRowReceiptTerminalEntryFromResponse:
+        'terminalFromResponse',
+      strategyIssueEffectRowOutcomeReceipt: 'direct',
+    }[name];
+    return counter === undefined ? value : (...args) => {
+      calls[counter]++;
+      return value(...args);
+    };
+  }});
+  const ledger = openEffectLedger({moon: countedMoon, root,
+    authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+  t.after(() => ledger.close());
+  const {admitted, claims} = admittedProgressFixture();
+  const batch = claims[0];
+  const sent = await captureClaimedEffectCollectionResponse({
+    ledger, claims: batch, requestCid: batch[0].canonicalRequestCid,
+    execute: async () => ({observation: {
+      useCid: cid('4'), statusCode: 200,
+      body: Buffer.from('{"results":[{"ok":true},{"ok":false}]}'),
+    }}),
+  });
+  assert.equal(sent.claimed, true);
+  const evidence = ledger.prepareOwnedBatchResponseEvidence(batch);
+  const wires = [
+    '{"result":{"id":"a001"},"state":"applied"}',
+    '{"error":{"code":"INVALID","message":"Rejected"},"state":"failed"}',
+  ];
+  const receipts = [];
+  for (let index = 0; index < batch.length; index++) {
+    const stored = ledger.readClaimedBatchResponse(batch);
+    const expected = effect.issueRowOutcomeReceipt(
+      admitted, 0, index, stored.batchMembers[index].dispatchEntryCid,
+      stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+      wires[index], 1_000_000, 4096, 512, 16);
+    const recorded = ledger.recordAdmittedRowOutcome({
+      claims: batch, batchRowIndex: index, preview: admitted,
+      memberIndex: 0, previewRowIndex: index,
+      outcomeWire: wires[index], responseEvidence: evidence,
+    });
+    assert.equal(recorded.receipt.identity, expected.identity);
+    assert.equal(recorded.receipt.wire, expected.wire);
+    receipts.push(recorded.receipt);
+    assert.equal(ledger.commitAdmittedRowOutcome({
+      claims: batch, batchRowIndex: index, preview: admitted,
+      memberIndex: 0, previewRowIndex: index, responseEvidence: evidence,
+    }).transition.created, true);
+    assert.throws(() => ledger.recordAdmittedRowOutcome({
+      claims: [...batch], batchRowIndex: index, preview: admitted,
+      memberIndex: 0, previewRowIndex: index,
+      outcomeWire: wires[index], responseEvidence: evidence,
+    }), {code: 'EffectPhysicalResponseNotOwned'});
+  }
+  assert.deepEqual(calls, {response: 1, fromResponse: 2,
+    admitFromResponse: 2, terminalFromResponse: 2, direct: 0});
+  const first = JSON.parse(receipts[0].wire);
+  const memberReceipt = runtimeCore(moon).publicationControl.seal(
+    'effect_apply_receipt', JSON.stringify({
+      version: 'actql-effect-apply-receipt/0.1',
+      run_identity_cid: cid('a'),
+      effect_preview_cid: first.effect_preview_cid,
+      effect_member_preview_cid: first.effect_member_preview_cid,
+      rows: receipts.map((receipt, index) => ({
+        row_index: index,
+        row_preview_cid: effect.previewOrderedRowCid(admitted, 0, index),
+        state: index === 0 ? 'applied' : 'failed',
+        dispatch_entry_cid: JSON.parse(receipt.wire).dispatch_entry_cid,
+        attempt_sequence: 1,
+        outcome_receipt_cid: receipt.identity,
+      })),
+      status: 'partial_failure',
+    }), {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16});
+  const rowOwners = batch.map((_, index) => ({claims: batch,
+    batchRowIndex: index}));
+  assert.equal(ledger.checkMemberReceiptRowPartitionEvidence({
+    preview: admitted, memberIndex: 0, rowOwners,
+    memberReceiptWire: memberReceipt.wire,
+  }), true);
+  ledger.close();
+  const reopened = open(root);
+  t.after(() => reopened.close());
+  assert.equal(reopened.checkMemberReceiptRowPartitionEvidence({
+    preview: admitted, memberIndex: 0, rowOwners,
+    memberReceiptWire: memberReceipt.wire,
+  }), true);
+});
 
 test('physical flight is distinct from durable possible-dispatch', async t => {
   const root = await fixture(t);

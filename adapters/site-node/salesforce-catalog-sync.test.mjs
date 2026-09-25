@@ -1386,13 +1386,18 @@ test('Host custody binds one HTTPS Collections response to every row',
     const memberReceipt = runtimeCore(commonMoon).publicationControl.seal(
       'effect_apply_receipt', JSON.stringify({
         version: 'actql-effect-apply-receipt/0.1',
+        run_identity_cid: preview.run_identity_cid,
         effect_preview_cid: preview.effect_preview_cid,
         effect_member_preview_cid: member.effect_member_preview_cid,
-        applied: [rowCids[0]], accepted: [], unknown: [],
-        failed: [{row_preview_cid: rowCids[1], error_cid: cid('e')}],
-        unattempted: [], status: 'partial_failure',
-        outcome: {state: 'failed', error: {code: 'ProviderRowFailed',
-          message: 'The second row failed'}},
+        rows: rowCids.map((row_preview_cid, row_index) => ({
+          row_index, row_preview_cid,
+          state: row_index === 0 ? 'applied' : 'failed',
+          dispatch_entry_cid: effect.ledgerEntryCid(
+            sent.ownership.dispatching[row_index]),
+          attempt_sequence: 1,
+          outcome_receipt_cid: sent.outcomeReceipts[row_index].identity,
+        })),
+        status: 'partial_failure',
       }), {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16});
     const rowOwners = [0, 1].map(batchRowIndex =>
       ({claims, batchRowIndex}));

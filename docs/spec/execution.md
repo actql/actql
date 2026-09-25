@@ -1863,7 +1863,7 @@ target identity then canonical payload CID for command,
 and `(content_cid, occurrence)` order for create/store. `halt` and
 `continue` operate on that order. Their dispatch rules are:
 
-<!-- requirement-block: preview-strength.current-row-outcome-halt-continue -->
+<!-- requirement-block: preview-strength.current-row-outcome-halt-continue preview-strength.unknown-row-must-not-invent-terminal-receipt -->
 | Current row outcome | `halt` | `continue` |
 | --- | --- | --- |
 | `applied` or valid `accepted` | Dispatch next row | Dispatch next row |
@@ -1872,21 +1872,34 @@ and `(content_cid, occurrence)` order for create/store. `halt` and
 
 Admission/preflight failure dispatches no rows under either policy. Per-item
 continuation does not override whole-set preflight or the Effect Set's separate
-`attempt_all` member policy. Receipt partitions retain all five outcomes;
-`accepted` does not assert provider completion ([Outcomes and reconciliation](#reconciliation)).
+`attempt_all` member policy. A member receipt contains one ordered `rows`
+entry per Preview row. It binds the Run, Preview, and member identities;
+each entry binds a distinct Preview row CID and ordered index. Terminal rows
+(`applied`, `accepted`, `failed`) reference the exact dispatch, attempt, and
+durable typed Outcome Receipt. An `unknown` row references the exact durable
+Ledger head instead; it MUST NOT invent a terminal Outcome Receipt. An
+`unattempted` row has no dispatch. A `rolled_back` row references the failed
+typed Outcome Receipt and common provider-atomic batch result, never an
+independent success. Identical row content in distinct occurrences retains
+distinct row identities. `accepted` does not assert provider completion
+([Outcomes and reconciliation](#reconciliation)).
 
-<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions preview-strength.repeated-member-outcome-must-match-exact-value -->
+<!-- requirement-block: preview-strength.effect-set-receipt-must-match-member-partitions -->
 An Effect Set apply receipt MUST agree with the referenced member receipts.
 Each entry's state reflects its member's row partition: `unknown` takes
-precedence; any failed row, or unattempted rows mixed with success, yields
-`failed`; only unattempted rows yield `unattempted`; otherwise any accepted
+precedence; any failed row, or unattempted/rolled-back rows mixed with success,
+yields `failed`; only unattempted rows yield `unattempted`, and only rolled-back
+rows yield `rolled_back`; otherwise any accepted
 row yields `accepted`, and the remaining case is `applied`.
 The set status is `unknown_outcome` if any row is unknown; otherwise it is
-`partial_failure` for both successful and failed/unattempted rows, `failed`
-for only failed/unattempted rows, `accepted` if any row is accepted, and
-`applied` otherwise. An entry that repeats its member's `outcome` MUST repeat
-the exact admitted value. This consistency check does not prove the physical
-row outcomes; their evidence remains a separate Host admission obligation.
+`partial_failure` for both successful and failed/unattempted/rolled-back rows,
+`failed` for only failed/unattempted/rolled-back rows, `accepted` if any row is accepted, and
+`applied` otherwise. The set receipt references every member receipt exactly
+once; it does not duplicate all rows or carry a singleton member outcome.
+These consistency checks do not prove physical row outcomes; their evidence
+remains a separate Host admission obligation. Reconciliation targets only
+unknown rows, leaves prior receipts immutable, and never resends a known
+successful row.
 
 <!-- requirement-block: preview-strength.the-host-must-not-silently-regenerate-a-new-preview-and -->
 Apply admission revalidates the exact source binding, resolved mapping
@@ -2008,6 +2021,8 @@ Each `actql-effect-reconciliation-receipt/0.1` has these closed fields:
 | --- | --- |
 | `version` | Exactly `actql-effect-reconciliation-receipt/0.1`. |
 | `effect_id` | Member of the original Effect Set. |
+| `run_identity_cid`, `effect_preview_cid`, `effect_member_preview_cid`, `row_preview_cid` | Exact original Run, Preview, member, and one unknown row. |
+| `dispatch_entry_cid`, `dispatch_attempt_sequence`, `prior_ledger_head_cid` | Original physical dispatch occurrence and latest unresolved Ledger head. |
 | `effect_set_receipt_cid` | Exact pending Effect Set receipt. |
 | `prior_receipt_cid` | Original member apply receipt, unchanged across attempts. |
 | `attempt_sequence` | Positive attempt number, beginning at 1. |
@@ -2016,12 +2031,14 @@ Each `actql-effect-reconciliation-receipt/0.1` has these closed fields:
 | `operation_ref` | Operation correlation; mutually exclusive with command correlation. |
 | `command_id`, `idempotency_key` | Command correlation; both required when `operation_ref` is absent. |
 | `outcome` | One fully validated closed `EffectOutcome`, not just a state name. |
+| `outcome_receipt_cid` | Required for terminal row resolution; absent while outcome remains unknown. |
 | `reconciliation_receipt_cid` | Self-CID of the receipt. |
 
 <!-- requirement-block: reconciliation.the-host-must-validate-the-original-member-and-effect-set reconciliation.subsequent-receipts-must-extend-the-latest-receipt-for-the-same -->
-The Host MUST validate the original member and Effect Set bindings before
-accepting a receipt. Exactly one correlation form is required. Subsequent
-receipts MUST extend the latest receipt for the same member, with
+The Host MUST validate the original member, Effect Set, and exact unknown
+Preview row and Ledger bindings before accepting a receipt. A known terminal
+row is not eligible for reconciliation. Exactly one correlation form is
+required. Subsequent receipts MUST extend the latest receipt for the same row, with
 `attempt_sequence` incremented by one and its exact CID as
 `previous_reconciliation_receipt_cid`.
 
@@ -2029,19 +2046,20 @@ receipts MUST extend the latest receipt for the same member, with
 Only a nonterminal `unknown` outcome permits a further attempt. `applied`,
 `accepted`, and `failed` close the chain. Exact receipt redelivery is
 idempotent; a different receipt after a terminal attempt MUST fail as a
-conflict. Thus `unknown → unknown → applied` is valid, but a terminal result
-cannot be replaced by a later attempt.
+conflict. Thus `unknown → unknown → applied` is valid for one row, but a
+terminal result cannot be replaced by a later attempt. Reconciliation is an
+observation of the old dispatch, not authority to re-send it.
 
 <!-- requirement-block: reconciliation.initial-application-and-each-reconciliation-must-determine-the-run-outcome -->
 Initial application and each reconciliation MUST determine the Run outcome
-from every member of the original Effect Set, using its latest validated
-outcome. The following table is evaluated from top to bottom:
+from every row of every member of the original Effect Set, using its latest
+validated outcome. The following table is evaluated from top to bottom:
 
 <!-- requirement-block: reconciliation.effective-member-outcomes-run-state-any -->
-| Effective member outcomes | Run state |
+| Effective row outcomes across all members | Run state |
 | --- | --- |
 | Any `unknown` | `needs_reconciliation` |
-| No `unknown`, but any `failed` or `unattempted` | `failed` |
+| No `unknown`, but any `failed`, `unattempted`, or `rolled_back` | `failed` |
 | Every member `applied` or validly `accepted` | `succeeded` |
 
 <!-- requirement-block: reconciliation.an-unknown-outcome-must-not-be-converted-to-cancellation-or -->

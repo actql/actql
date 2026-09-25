@@ -357,6 +357,8 @@ export async function captureSalesforceCollectionEffectWrite({
   }
   const observed = result.claimed ? result.physical : result.recovered;
   if (observed?.kind !== 'typed-row-response') return result;
+  const responseEvidence = ledger.prepareOwnedBatchResponseEvidence(
+    ownedClaims);
   const outcomeReceipts = [];
   const terminalTransitions = [];
   for (let index = 0; index < count; index++) {
@@ -367,12 +369,14 @@ export async function captureSalesforceCollectionEffectWrite({
     const outcome = ledger.recordAdmittedRowOutcome({
       claims: ownedClaims, batchRowIndex: index, preview: admittedPreview,
       memberIndex, previewRowIndex: firstRow + index,
+      responseEvidence,
       outcomeWire: moon.salesforceWriteEffectOutcomeWire(projection),
     });
     outcomeReceipts.push(outcome.receipt);
     const terminal = ledger.commitAdmittedRowOutcome({
       claims: ownedClaims, batchRowIndex: index, preview: admittedPreview,
       memberIndex, previewRowIndex: firstRow + index,
+      responseEvidence,
     });
     terminalTransitions.push(terminal.transition);
   }

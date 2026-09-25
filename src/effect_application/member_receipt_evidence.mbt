@@ -100,9 +100,32 @@ pub fn check_effect_member_receipt_row_partition_evidence(
         }
       }
     }
-    if @publication.effect_apply_receipt_row_state(receipt, row_cid) !=
-      Some(expected_partition) {
+    let claimed = @publication.effect_apply_receipt_row_state(receipt, row_cid)
+    if claimed != Some(expected_partition) &&
+      !(claimed == Some("rolled_back") && expected_partition == "failed") {
       return Err(RowPartitionMismatch(row_index))
+    }
+    if expected_partition == "unknown" {
+      guard heads[row_index] is Some(head) else {
+        return Err(ForeignLedgerHead(row_index))
+      }
+      let dispatch_cid = if head.state == Dispatching {
+        Some(head.cid)
+      } else {
+        head.prior_entry_cid
+      }
+      if @publication.effect_apply_receipt_row_field(
+          receipt, row_cid, "ledger_head_cid",
+        ) !=
+        Some(head.cid) ||
+        @publication.effect_apply_receipt_row_field(
+          receipt, row_cid, "dispatch_entry_cid",
+        ) !=
+        dispatch_cid ||
+        @publication.effect_apply_receipt_row_attempt_sequence(receipt, row_cid) !=
+        Some(head.attempt_sequence) {
+        return Err(ForeignLedgerHead(row_index))
+      }
     }
     match expected_partition {
       "applied" | "accepted" | "failed" => {
@@ -112,6 +135,18 @@ pub fn check_effect_member_receipt_row_partition_evidence(
         }
         if head.outcome_receipt_cid !=
           Some(@publication.publication_contract_identity(row_receipt)) ||
+          @publication.effect_apply_receipt_row_field(
+            receipt, row_cid, "outcome_receipt_cid",
+          ) !=
+          Some(@publication.publication_contract_identity(row_receipt)) ||
+          @publication.effect_apply_receipt_row_field(
+            receipt, row_cid, "dispatch_entry_cid",
+          ) !=
+          @publication.effect_row_outcome_receipt_dispatch_identity(row_receipt) ||
+          @publication.effect_apply_receipt_row_attempt_sequence(
+            receipt, row_cid,
+          ) !=
+          Some(head.attempt_sequence) ||
           @publication.effect_row_outcome_receipt_row_identity(row_receipt) !=
           Some(row_cid) ||
           @publication.effect_row_outcome_receipt_terminal_state(row_receipt) !=

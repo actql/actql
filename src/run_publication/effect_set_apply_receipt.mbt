@@ -9,37 +9,47 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
   MemberStateMismatch(Int)
-  MemberOutcomeMismatch(Int)
   SetStatusMismatch
 } derive(Debug)
 
 ///|
-fn effect_receipt_rows_nonempty(
+fn effect_receipt_has_state(
   receipt : PublicationContract,
-  field : String,
+  state : String,
 ) -> Bool {
-  match @json.object_field(receipt.value, field) {
-    Some(@json.Array(rows)) => !@json.array_values(rows).is_empty()
-    _ => abort("admitted Effect receipt row array required")
+  let rows = effect_receipt_rows(receipt.value).unwrap()
+  for row in rows {
+    if @json.object_field(row, "state") is Some(@json.String(value)) &&
+      value == state {
+      return true
+    }
   }
+  false
 }
 
 ///|
 fn effect_receipt_member_state(receipt : PublicationContract) -> String {
-  if effect_receipt_rows_nonempty(receipt, "unknown") {
+  if effect_receipt_has_state(receipt, "unknown") {
     return "unknown"
   }
-  if effect_receipt_rows_nonempty(receipt, "failed") {
+  if effect_receipt_has_state(receipt, "failed") {
     return "failed"
   }
-  if effect_receipt_rows_nonempty(receipt, "unattempted") {
-    if effect_receipt_rows_nonempty(receipt, "applied") ||
-      effect_receipt_rows_nonempty(receipt, "accepted") {
+  if effect_receipt_has_state(receipt, "unattempted") {
+    if effect_receipt_has_state(receipt, "applied") ||
+      effect_receipt_has_state(receipt, "accepted") {
       return "failed"
     }
     return "unattempted"
   }
-  if effect_receipt_rows_nonempty(receipt, "accepted") {
+  if effect_receipt_has_state(receipt, "rolled_back") {
+    if effect_receipt_has_state(receipt, "applied") ||
+      effect_receipt_has_state(receipt, "accepted") {
+      return "failed"
+    }
+    return "rolled_back"
+  }
+  if effect_receipt_has_state(receipt, "accepted") {
     return "accepted"
   }
   "applied"
@@ -139,45 +149,16 @@ pub fn admit_effect_set_apply_receipt_references(
     if state != effect_receipt_member_state(receipts[index]) {
       return Err(MemberStateMismatch(position))
     }
-    match @json.object_field(item, "outcome") {
-      Some(outcome) => {
-        let outcome_state = match @json.object_field(outcome, "state") {
-          Some(@json.String(value)) => value
-          _ => return Err(MemberStateMismatch(position))
-        }
-        if outcome_state != state {
-          return Err(MemberStateMismatch(position))
-        }
-        let member_outcome = match
-          @json.object_field(receipts[index].value, "outcome") {
-          Some(value) => value
-          None => return Err(MemberOutcomeMismatch(position))
-        }
-        let set_outcome_wire = @json.stringify_value(
-          outcome, max_wire_bytes, max_nodes, max_depth,
-        ) catch {
-          _ => return Err(MemberOutcomeMismatch(position))
-        }
-        let member_outcome_wire = @json.stringify_value(
-          member_outcome, max_wire_bytes, max_nodes, max_depth,
-        ) catch {
-          _ => return Err(MemberOutcomeMismatch(position))
-        }
-        if set_outcome_wire != member_outcome_wire {
-          return Err(MemberOutcomeMismatch(position))
-        }
-      }
-      None => ()
-    }
     any_applied = any_applied ||
-      effect_receipt_rows_nonempty(receipts[index], "applied")
+      effect_receipt_has_state(receipts[index], "applied")
     any_accepted = any_accepted ||
-      effect_receipt_rows_nonempty(receipts[index], "accepted")
+      effect_receipt_has_state(receipts[index], "accepted")
     any_unknown = any_unknown ||
-      effect_receipt_rows_nonempty(receipts[index], "unknown")
+      effect_receipt_has_state(receipts[index], "unknown")
     any_failed = any_failed ||
-      effect_receipt_rows_nonempty(receipts[index], "failed") ||
-      effect_receipt_rows_nonempty(receipts[index], "unattempted")
+      effect_receipt_has_state(receipts[index], "failed") ||
+      effect_receipt_has_state(receipts[index], "unattempted") ||
+      effect_receipt_has_state(receipts[index], "rolled_back")
   }
   let expected_status = if any_unknown {
     "unknown_outcome"

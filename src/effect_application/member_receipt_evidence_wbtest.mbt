@@ -2,15 +2,31 @@
 fn member_evidence_test_receipt(
   preview : @publication.EffectPreviewIdentity,
   partition : String,
-  outcome : String,
+  dispatch_cid : String,
+  head_cid : String,
+  outcome_receipt_cid : String,
 ) -> @publication.PublicationContract {
   let row = @publication.effect_preview_ordered_row_identity(preview, 0, 0).unwrap()
-  let applied = if partition == "applied" { "[\"" + row + "\"]" } else { "[]" }
-  let unknown = if partition == "unknown" { "[\"" + row + "\"]" } else { "[]" }
-  let unattempted = if partition == "unattempted" {
-    "[\"" + row + "\"]"
+  let row_body = if partition == "unattempted" {
+    "{\"row_index\":0,\"row_preview_cid\":\"" +
+    row +
+    "\",\"state\":\"unattempted\"}"
+  } else if partition == "unknown" {
+    "{\"row_index\":0,\"row_preview_cid\":\"" +
+    row +
+    "\",\"state\":\"unknown\",\"dispatch_entry_cid\":\"" +
+    dispatch_cid +
+    "\",\"attempt_sequence\":1,\"ledger_head_cid\":\"" +
+    head_cid +
+    "\"}"
   } else {
-    "[]"
+    "{\"row_index\":0,\"row_preview_cid\":\"" +
+    row +
+    "\",\"state\":\"applied\",\"dispatch_entry_cid\":\"" +
+    dispatch_cid +
+    "\",\"attempt_sequence\":1,\"outcome_receipt_cid\":\"" +
+    outcome_receipt_cid +
+    "\"}"
   }
   let status = if partition == "unknown" {
     "unknown_outcome"
@@ -20,21 +36,18 @@ fn member_evidence_test_receipt(
     "applied"
   }
   let body = "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
+    "\"run_identity_cid\":\"" +
+    @publication.effect_preview_run_identity(preview) +
+    "\"," +
     "\"effect_preview_cid\":\"" +
     @publication.effect_preview_semantic_identity(preview) +
     "\",\"effect_member_preview_cid\":\"" +
     @publication.effect_preview_member_identity(preview, 0).unwrap() +
-    "\",\"applied\":" +
-    applied +
-    ",\"accepted\":[],\"unknown\":" +
-    unknown +
-    ",\"failed\":[],\"unattempted\":" +
-    unattempted +
-    ",\"status\":\"" +
+    "\",\"rows\":[" +
+    row_body +
+    "],\"status\":\"" +
     status +
-    "\",\"outcome\":" +
-    outcome +
-    "}"
+    "\"}"
   @publication.seal_publication_contract(
     "effect_apply_receipt", body, 8192, 256, 12,
   ).unwrap()
@@ -104,7 +117,11 @@ test "member receipt requires the exact durable terminal row evidence" {
     12,
   ).unwrap()
   let member_receipt = member_evidence_test_receipt(
-    preview, "applied", "{\"result\":{},\"state\":\"applied\"}",
+    preview,
+    "applied",
+    dispatch.cid,
+    terminal.cid,
+    @publication.publication_contract_identity(row_receipt),
   )
   let member_wire = @publication.publication_contract_json(member_receipt)
   assert_true(
@@ -236,13 +253,12 @@ test "member receipt requires the exact durable terminal row evidence" {
     )
     is Err(ForeignLedgerHead(0)),
   )
-  let unknown_outcome = "{\"command_id\":\"write-1\"," +
-    "\"idempotency_key\":\"key-1\",\"reason\":\"connection_lost\"," +
-    "\"reconciliation_contract\":{\"cid\":\"" +
-    ledger_test_cid("0") +
-    "\",\"id\":\"lookup\",\"version\":\"0.1\"},\"state\":\"unknown\"}"
   let unknown_receipt = member_evidence_test_receipt(
-    preview, "unknown", unknown_outcome,
+    preview,
+    "unknown",
+    dispatch.cid,
+    dispatch.cid,
+    ledger_test_cid("0"),
   )
   assert_true(
     check_effect_member_receipt_row_partition_evidence(
@@ -264,7 +280,11 @@ test "member receipt requires the exact durable terminal row evidence" {
     is Ok(_),
   )
   let not_started = member_evidence_test_receipt(
-    preview, "unattempted", "{\"error\":{\"code\":\"NotStarted\",\"message\":\"No send\"},\"state\":\"failed\"}",
+    preview,
+    "unattempted",
+    dispatch.cid,
+    dispatch.cid,
+    ledger_test_cid("0"),
   )
   assert_true(
     check_effect_member_receipt_row_partition_evidence(

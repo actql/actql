@@ -396,13 +396,14 @@ fn final_test_receipts(
   let member_receipt = seal_publication_contract(
     "effect_apply_receipt",
     "{\"version\":\"actql-effect-apply-receipt/0.1\"," +
+    "\"run_identity_cid\":\"" +
+    effect_preview_run_identity(preview) +
+    "\"," +
     "\"effect_preview_cid\":\"" +
     preview_cid +
     "\",\"effect_member_preview_cid\":\"" +
     member_cid +
-    "\",\"applied\":[],\"accepted\":[],\"unknown\":[]," +
-    "\"failed\":[],\"unattempted\":[],\"status\":\"applied\"," +
-    "\"outcome\":{\"state\":\"applied\",\"result\":{}}}",
+    "\",\"rows\":[],\"status\":\"applied\"}",
     65536,
     4096,
     32,

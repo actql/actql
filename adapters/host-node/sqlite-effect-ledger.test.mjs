@@ -495,13 +495,17 @@ test('batch outcome custody keeps each row owner distinct', async t => {
   const second = {...first, logicalItemLocatorCid: secondLocator,
     dispatchEntryCid: cid('4'), outcomeCid: cid('6'),
     outcomeJson: '{"row":1}'};
+  const batchEvidence = ledger.response(cid('2'));
   assert.equal(first.responsePhysicalSha256,
     ledger.response(cid('4')).responsePhysicalSha256);
-  assert.equal(ledger.recordOutcome(first).created, true);
+  assert.throws(() => ledger.recordOutcome({...first,
+    batchEvidence: {...batchEvidence}}),
+  {code: 'EffectPhysicalResponseNotOwned'});
+  assert.equal(ledger.recordOutcome({...first, batchEvidence}).created, true);
   assert.throws(() => ledger.recordOutcome({...second,
     logicalItemLocatorCid: locator}),
   {code: 'EffectPhysicalResponseNotOwned'});
-  assert.equal(ledger.recordOutcome(second).created, true);
+  assert.equal(ledger.recordOutcome({...second, batchEvidence}).created, true);
   assert.equal(ledger.outcome(cid('2')).outcomeCid, cid('5'));
   assert.equal(ledger.outcome(cid('4')).outcomeCid, cid('6'));
   assert.throws(() => ledger.recordOutcome({...second, outcomeCid: cid('5')}),
@@ -512,6 +516,37 @@ test('batch outcome custody keeps each row owner distinct', async t => {
   t.after(() => reopened.close());
   assert.equal(reopened.outcome(cid('2')).outcomeJson, '{"row":0}');
   assert.equal(reopened.outcome(cid('4')).outcomeJson, '{"row":1}');
+});
+
+test('external batch mutation invalidates a verified response fact', async t => {
+  const root = await fixture(t);
+  const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+  t.after(() => ledger.close());
+  append(ledger, 0, cid('1'), firstJson);
+  append(ledger, 1, cid('2'), secondJson);
+  ledger.recordBatchResponse({
+    logicalRequestScopeCid: scope, credentialUseCid: cid('c'),
+    statusCode: 200, responseBytes: Buffer.from('original'),
+    members: [{logicalItemLocatorCid: locator,
+      dispatchEntryCid: cid('2')}],
+  });
+  const batchEvidence = ledger.response(cid('2'));
+  const database = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  database.prepare(`
+    UPDATE effect_ledger_batch_responses SET response_bytes = ?
+    WHERE batch_owner_cid = ?
+  `).run(Buffer.from('changed'), cid('2'));
+  database.close();
+  assert.throws(() => ledger.recordOutcome({
+    logicalRequestScopeCid: scope, logicalItemLocatorCid: locator,
+    dispatchEntryCid: cid('2'),
+    responsePhysicalSha256: batchEvidence.responsePhysicalSha256,
+    outcomeCid: cid('3'), outcomeJson: '{"row":0}', batchEvidence,
+  }), {code: 'EffectLedgerIntegrityFailed'});
+  const inspect = new DatabaseSync(join(root, 'effect-ledger.sqlite3'));
+  assert.equal(inspect.prepare('SELECT COUNT(*) AS count FROM effect_ledger_outcomes')
+    .get().count, 0);
+  inspect.close();
 });
 
 test('response bytes reserve capacity before durable insertion', async t => {

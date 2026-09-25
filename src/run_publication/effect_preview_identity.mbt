@@ -1178,6 +1178,11 @@ pub fn effect_preview_ordered_row_identity(
 }
 
 ///|
+pub fn effect_preview_run_identity(value : EffectPreviewIdentity) -> String {
+  value.run_identity_cid
+}
+
+///|
 pub fn effect_preview_ordered_row_intended_value_wire(
   value : EffectPreviewIdentity,
   member_index : Int,
