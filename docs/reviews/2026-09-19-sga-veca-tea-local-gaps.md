@@ -40,7 +40,7 @@ implementation while retaining separate input bindings and route evidence.
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
 | Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
-| Ordinary keyed `group count` can still recheck and append a long text output key synchronously after its stepped input scan. | Reuse exact checked input evidence and charge the output value through bounded admission before publication. Test a long text key with quantum-one Host cancellation, exact/one-short output limits, two consumers and cleanup. Structured keys remain rejected by the formal checker. |
+| Ordinary keyed `group count` now steps output value-budget charging, but raw Text cells, including values-backed completions, still undergo synchronous canonical recheck first. | Connect raw Text keys to bounded canonical validation or exact admitted evidence without changing their contract or output charge. Keep quantum-one, exact/one-short, Host cancellation, two-consumer and cleanup proofs as controls. Structured keys remain rejected by the formal checker. |
 | Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
 | Standard SGA Graph programs still have nine registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
@@ -69,8 +69,20 @@ array and a long unused text cell, exact and one-short limits, and cursor
 cleanup. The normal managed Host also runs the nested-input count through
 two consumers and tests cancellation before publication. On this HEAD,
 the count kernel's 10 tests and managed group's 19 tests passed on each
-of JS, Wasm, and native. This does not close the separate synchronous
-long-text output-key admission or the providerless fallback listed above.
+of JS, Wasm, and native. This input-side evidence alone did not close the
+output-key admission or the providerless fallback listed above.
+
+The output continuation now charges the output row and each field to the
+existing value budget and traverses long text for that charge in bounded
+resume steps. An independent 4,096-byte fixture checks separate input and
+output charges, exact and one-short node/text/work and structural workspace
+limits, and cancellation during output measurement. A 512-byte standard-Host
+fixture reaches two downstream Computes with independent release and final
+reclamation; another Host fixture cancels after positive work. All 33
+affected tests pass on each of JS, Wasm, and native. The preceding
+`text_value` and contract recheck of a raw Text key remain synchronous;
+these tests do not prove bounded canonical admission. Keyed count and the
+strict resource gate therefore remain open.
 
 ### Dependencies and owners
 

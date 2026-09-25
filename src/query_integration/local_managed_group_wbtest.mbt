@@ -570,7 +570,8 @@ fn run_local_managed_group_case(
     variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
-  let large_payload = variant == "global_counts_payload"
+  let large_payload = variant == "global_counts_payload" ||
+    variant == "long_text_key"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -678,6 +679,7 @@ fn run_local_managed_group_case(
   let bounded_global = variant == "empty_global" ||
     variant == "global_counts" ||
     variant == "global_counts_payload" ||
+    variant == "long_text_key" ||
     variant == "keyed" ||
     variant == "compound" ||
     variant == "empty_keyed" ||
@@ -782,6 +784,17 @@ test "Local managed start refuses a required activation without a grant" {
 }
 
 ///|
+test "Local managed count carries a long text key to two consumers" {
+  let key = local_count_long_key()
+  run_local_managed_group_case(
+    "long_text_key",
+    ["{\"id\":\"" + key + "\"}"],
+    ["{\"id\":\"" + key + "\",\"n\":1}"],
+    ["{\"n\":1,\"id\":\"" + key + "\"}"],
+  )
+}
+
+///|
 test "Local managed group count preserves compound canonical order" {
   run_local_managed_group_case(
     "compound",
@@ -848,6 +861,8 @@ fn assert_standard_host_cancels_bounded_count(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
+  let large_payload = variant == "global_counts_payload" ||
+    variant == "long_text_key"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -855,36 +870,36 @@ fn assert_standard_host_cancels_bounded_count(
       values: limits.local_execution.rows.input_values,
       wire: {
         ..retained_attempt_wire_limits(),
-        max_bytes: if variant == "global_counts_payload" {
+        max_bytes: if large_payload {
           2048
         } else {
           256
         },
-        max_nodes: if variant == "global_counts_payload" {
+        max_nodes: if large_payload {
           512
         } else {
           20
         },
       },
       row: {
-        max_bytes: if variant == "global_counts_payload" {
+        max_bytes: if large_payload {
           2048
         } else {
           100
         },
-        max_nodes: if variant == "global_counts_payload" {
+        max_nodes: if large_payload {
           512
         } else {
           20
         },
         max_depth: 4,
-        max_text_bytes: if variant == "global_counts_payload" {
+        max_text_bytes: if large_payload {
           2048
         } else {
           100
         },
       },
-      max_batch_bytes: if variant == "global_counts_payload" {
+      max_batch_bytes: if large_payload {
         2048
       } else {
         256
@@ -959,6 +974,11 @@ test "standard Host cancels count inside unused nested input" {
     "global_counts_payload",
     before_cancel=80,
   )
+}
+
+///|
+test "standard Host cancels a long keyed count after positive work" {
+  assert_standard_host_cancels_bounded_count("long_text_key", before_cancel=30)
 }
 
 ///|

@@ -1439,6 +1439,11 @@ fn local_count_payload_row() -> String {
 }
 
 ///|
+fn local_count_long_key() -> String {
+  Array::make(32, "aaaaaaaaaaaaaaaa").join("")
+}
+
+///|
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
     variant {
@@ -1446,6 +1451,16 @@ fn local_values_group_program(variant : String) -> String {
       (
         "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
         "[\"id\"]", "{\"n\":{\"fn\":\"count\"}}", "[\"id\"]", "[\"id\",\"n\"]", "[\"n\",\"id\"]",
+      )
+    "long_text_key" =>
+      (
+        "{\"id\":{\"type\":\"string\",\"nullable\":false}}",
+        "[{\"id\":\"" + local_count_long_key() + "\"}]",
+        "[\"id\"]",
+        "{\"n\":{\"fn\":\"count\"}}",
+        "[\"id\"]",
+        "[\"id\",\"n\"]",
+        "[\"n\",\"id\"]",
       )
     "compound" =>
       (

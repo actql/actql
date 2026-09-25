@@ -2210,6 +2210,34 @@
           "fixture": "Local managed group count orders nullable keys for two consumers"
         },
         {
+          "role": "keyed_count_long_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count charges a long output key in resumed steps"
+        },
+        {
+          "role": "keyed_count_long_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count stops inside long output key measurement"
+        },
+        {
+          "role": "keyed_count_long_output_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed count carries a long text key to two consumers"
+        },
+        {
+          "role": "keyed_count_long_output_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels a long keyed count after positive work"
+        },
+        {
           "role": "keyed_count_same_stage_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

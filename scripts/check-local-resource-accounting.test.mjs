@@ -71,6 +71,19 @@ test('Graph equality route requires exact limits and delivered cancellation', ()
 });
 
 test('global count assurance requires its bounded product path and proofs', () => {
+  for (const role of [
+    'keyed_count_long_output_exact_one_short',
+    'keyed_count_long_output_cancel_cleanup',
+    'keyed_count_long_output_two_consumers',
+    'keyed_count_long_output_host_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const group = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'group');
+      group.boundary_tests = group.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA group: ${role} fixture is missing`, 'u'));
+  }
   assert.match(run(undefined, routes => {
     const group = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'group');

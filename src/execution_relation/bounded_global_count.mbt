@@ -124,7 +124,10 @@ priv struct BoundedGlobalCountState {
   mut boundary_checked : Bool
   mut aggregate : Int
   mut row_open : Bool
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut output_row_open : Bool
+  mut output_row : Array[@admitted.Value]
+  mut output_measure : SteppedValueMeasure?
+  mut output_pending : @admitted.Value?
 }
 
 ///|
@@ -139,6 +142,7 @@ pub(all) enum BoundedGlobalCountIssue {
 
 ///|
 struct BoundedGlobalCountExecution {
+  state : BoundedGlobalCountState
   session : @bounded.Session[
     BoundedGlobalCountState,
     CompletedOutput,
@@ -146,6 +150,16 @@ struct BoundedGlobalCountExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+// Read-only white-box probe for cancellation inside output measurement.
+#warnings("-unused_value")
+fn bounded_global_count_measuring_output(
+  execution : BoundedGlobalCountExecution,
+) -> Bool {
+  execution.state.phase is BuildOutput &&
+  execution.state.output_measure is Some(_)
 }
 
 ///|
@@ -204,7 +218,12 @@ fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
   state.aggregate_columns = []
   state.counts = []
   state.output_columns = []
-  state.checked_row = []
+  state.output_row = []
+  if state.output_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.output_measure = None
+  }
+  state.output_pending = None
   if state.charge_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.charge_measure = None
@@ -571,47 +590,115 @@ fn bounded_global_count_step(
           state.phase = CommitOutput
           continue
         }
+        guard state.output is Some(output) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        if !state.output_row_open {
+          if !output.buffer.open ||
+            output.buffer.reading ||
+            output.buffer.rows.length() >= output.buffer.max_rows ||
+            !charge_node(output.buffer.budget, 1) {
+            return global_count_failure(Capture(CaptureLimit), progress, used)
+          }
+          state.output_row_open = true
+          continue
+        }
         guard @schema.field_at(state.output_schema, state.field) is Some(field) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !spend_control(state.control, 1) {
-          return global_count_failure(Rows(RowLimit), progress, used)
-        }
-        let (aggregate, index) = state.output_columns[state.field]
-        let value = if aggregate {
-          Number(state.counts[index].to_double())
-        } else {
-          guard state.representative >= 0 &&
-            global_count_input_cell(state.input, state.representative, index)
-            is Some(value) else {
-            return global_count_failure(InvalidExecution, progress, used)
+        if state.output_measure is None {
+          if !reserve_slots(state.workspace, 1) ||
+            !spend_control(state.control, 1) {
+            return global_count_failure(Rows(RowLimit), progress, used)
           }
-          value
+          if !charge_text(
+              output.buffer.budget,
+              @schema.reference_name(field.name),
+            ) {
+            return global_count_failure(Capture(CaptureLimit), progress, used)
+          }
+          let (aggregate, index) = state.output_columns[state.field]
+          let value = if aggregate {
+            Number(state.counts[index].to_double())
+          } else {
+            guard state.representative >= 0 &&
+              global_count_input_cell(state.input, state.representative, index)
+              is Some(value) else {
+              return global_count_failure(InvalidExecution, progress, used)
+            }
+            value
+          }
+          let admitted = match value {
+            Captured(captured) => Some(captured)
+            Null => Some(@admitted.null_value())
+            Boolean(boolean) => Some(@admitted.boolean_value(boolean))
+            Number(number) => @admitted.number_value(number)
+            Text(text) =>
+              @admitted.text_value(text, state.admitted_limits.max_text_bytes)
+          }
+          guard admitted is Some(admitted) &&
+            @admitted.recheck_runtime_value(
+              admitted,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(_) else {
+            return global_count_failure(Rows(InvalidRows), progress, used)
+          }
+          if admitted
+            is (@admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)) {
+            if !measure_result(Captured(admitted), output.buffer.budget) {
+              return global_count_failure(Capture(CaptureLimit), progress, used)
+            }
+            state.output_row.push(admitted)
+            state.field += 1
+            used += 1
+            continue
+          }
+          guard start_stepped_measure_result(
+              Captured(admitted),
+              state.workspace,
+            )
+            is Some(cursor) else {
+            return global_count_failure(Rows(RowLimit), progress, used)
+          }
+          state.output_pending = Some(admitted)
+          state.output_measure = Some(cursor)
         }
-        guard checked_ordered_output_value(
-            value,
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(checked) else {
-          return global_count_failure(Rows(InvalidRows), progress, used)
+        let cursor = state.output_measure.unwrap()
+        match advance_stepped_measure_result(cursor, output.buffer.budget) {
+          SteppedMeasureLimit =>
+            return global_count_failure(Capture(CaptureLimit), progress, used)
+          SteppedMeasureWorkspaceLimit =>
+            return global_count_failure(Rows(RowLimit), progress, used)
+          SteppedMeasureContinue => ()
+          SteppedMeasureComplete => {
+            clear_stepped_measure(cursor)
+            state.output_measure = None
+            state.output_row.push(state.output_pending.unwrap())
+            state.output_pending = None
+            state.field += 1
+          }
         }
-        state.checked_row.push(checked)
-        state.field += 1
         used += 1
       }
       CommitOutput => {
         guard state.output is Some(output) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Err(issue) =>
-            return global_count_failure(Capture(issue), progress, used + 1)
-          Ok(_) => ()
+        if !output.buffer.open ||
+          output.buffer.reading ||
+          output.buffer.rows.length() >= output.buffer.max_rows ||
+          state.output_row.length() != output_width ||
+          state.output_measure is Some(_) {
+          return global_count_failure(InvalidExecution, progress, used + 1)
         }
-        release_slots(state.workspace, state.checked_row.length())
-        state.checked_row = []
+        // The row node, field names, and every value were charged above.
+        // No unchecked or partially measured cell enters the buffer.
+        output.buffer.rows.push(state.output_row)
+        release_slots(state.workspace, state.output_row.length())
+        state.output_row = []
+        state.output_row_open = false
         state.field = 0
         state.phase = if key_count == 0 { FinishOutput } else { BeginGroup }
         progress += 1
@@ -757,7 +844,10 @@ fn start_bounded_global_count_with_input(
     boundary_checked: false,
     aggregate: 0,
     row_open: false,
-    checked_row: [],
+    output_row_open: false,
+    output_row: [],
+    output_measure: None,
+    output_pending: None,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -769,7 +859,7 @@ fn start_bounded_global_count_with_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

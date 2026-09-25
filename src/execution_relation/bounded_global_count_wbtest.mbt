@@ -4,7 +4,9 @@ fn bounded_global_count_fixture(
   keyed? : Bool = false,
   unused_payload? : Bool = false,
   unused_text? : Bool = false,
+  text_key? : Bool = false,
   input_values? : ValueLimits = run_limits().input_values,
+  output_values? : ValueLimits = run_limits().output_values,
   max_work? : Int = 100,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
@@ -12,6 +14,8 @@ fn bounded_global_count_fixture(
     "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
   } else if unused_text {
     "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"string\",\"nullable\":false}}"
+  } else if text_key {
+    "{\"id\":{\"type\":\"string\",\"nullable\":false}}"
   } else {
     "{\"id\":{\"type\":\"number\",\"nullable\":true}}"
   }
@@ -92,7 +96,7 @@ fn bounded_global_count_fixture(
       1
     },
     input_values,
-    run_limits().output_values,
+    output_values,
     max_work,
     100,
     max_entries,
@@ -291,6 +295,15 @@ fn unused_count_text_rows(count : Int) -> String {
 }
 
 ///|
+fn long_count_key_rows(count : Int) -> String {
+  let mut key = ""
+  for _ in 0..<count {
+    key = key + "aaaaaaaaaaaaaaaa"
+  }
+  "[{\"id\":\"" + key + "\"}]"
+}
+
+///|
 test "bounded count stops inside an unused nested input value" {
   let (control, execution, source) = bounded_global_count_fixture(
     unused_count_payload_rows(256),
@@ -442,6 +455,138 @@ test "bounded count stops while measuring a long unused text cell" {
       _ => fail("long text input finished before cancellation")
     }
   }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded count charges a long output key in resumed steps" {
+  let output_values : ValueLimits = {
+    ..run_limits().output_values,
+    max_nodes: 4,
+    max_text_bytes: 4106,
+    max_work: 4110,
+  }
+  let mut short_work = 0L
+  for (length, expected_long) in [(1, false), (256, true)] {
+    let (_, execution, source) = bounded_global_count_fixture(
+      long_count_key_rows(length),
+      keyed=true,
+      text_key=true,
+      output_values~,
+      max_work=1000,
+    )
+    let mut complete = false
+    let mut final_work = 0L
+    for _ in 0..<400 {
+      if !complete {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(work~, ..) => final_work = work
+          BoundedGlobalCountComplete(output, work~, ..) => {
+            final_work = work
+            assert_eq(completed_row_count(output), 1)
+            complete = true
+          }
+          _ => fail("long keyed count did not complete")
+        }
+      }
+    }
+    assert_true(complete)
+    if expected_long {
+      // The extra 64 input chunks and 64 output chunks are separate work.
+      assert_eq(final_work - short_work, 128L)
+    } else {
+      short_work = final_work
+    }
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+  for
+    (nodes, bytes, work) in [(3, 4106, 4110), (4, 4105, 4110), (4, 4106, 4109)] {
+    let one_short : ValueLimits = {
+      ..output_values,
+      max_nodes: nodes,
+      max_text_bytes: bytes,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_global_count_fixture(
+      long_count_key_rows(256),
+      keyed=true,
+      text_key=true,
+      output_values=one_short,
+      max_work=1000,
+    )
+    let mut rejected = false
+    for _ in 0..<400 {
+      if !rejected {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountFailed(Capture(CaptureLimit), ..) => rejected = true
+          _ => fail("one-short output key budget accepted")
+        }
+      }
+    }
+    assert_true(rejected)
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+  // Twelve metadata slots, one retained sort index, and three output cells.
+  for (entries, should_complete) in [(16, true), (15, false)] {
+    let (_, execution, source) = bounded_global_count_fixture(
+      long_count_key_rows(256),
+      keyed=true,
+      text_key=true,
+      output_values~,
+      max_work=1000,
+      max_entries=entries,
+    )
+    let mut terminal = false
+    for _ in 0..<400 {
+      if !terminal {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountComplete(_, ..) => {
+            assert_true(should_complete)
+            terminal = true
+          }
+          BoundedGlobalCountFailed(Rows(RowLimit), ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("long output key workspace ended unexpectedly")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "bounded count stops inside long output key measurement" {
+  let (control, execution, source) = bounded_global_count_fixture(
+    long_count_key_rows(256),
+    keyed=true,
+    text_key=true,
+    max_work=1000,
+  )
+  let mut reached_output = false
+  for _ in 0..<300 {
+    if !reached_output {
+      match advance_bounded_global_count(execution, 1).unwrap() {
+        BoundedGlobalCountContinue(..) =>
+          reached_output = bounded_global_count_measuring_output(execution)
+        _ => fail("long output completed before cancellation")
+      }
+    }
+  }
+  assert_true(reached_output)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_global_count(execution, 1).unwrap()
