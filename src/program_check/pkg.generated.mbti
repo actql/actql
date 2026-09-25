@@ -99,6 +99,8 @@ pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogR
 
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
+pub fn checked_local_policy_cid(CheckedProgram) -> String
+
 pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
@@ -604,6 +606,8 @@ pub fn unit_sequence_limit_count(CheckedProgram, Int) -> Int?
 pub fn unit_traversal_limit_at(CheckedProgram, Int, Int) -> TraversalLimit?
 
 pub fn unit_traversal_limit_count(CheckedProgram, Int) -> Int?
+
+pub fn unit_used_values_cid(CheckedProgram, Int) -> String?
 
 pub fn unit_window_limit_at(CheckedProgram, Int, Int) -> WindowLimit?
 

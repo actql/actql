@@ -462,6 +462,41 @@ pub fn client_program_effect_member_descriptor(
 }
 
 ///|
+/// The local semantic Invocation comes from the checked Unit owner. Its CID
+/// is not the physical Run Invocation and does not authorize Effect apply.
+#export_name("clientProgramIssueSourceFreeLocalEffectInvocation")
+pub fn client_program_issue_source_free_local_effect_invocation(
+  value : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_source_free_client_effect_local_invocation(
+    value, unit, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectInvocationCid")
+pub fn client_program_local_effect_invocation_cid(
+  value : @publication_host.ClientEffectLocalInvocation,
+) -> String {
+  @publication_host.client_effect_local_invocation_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectInvocationJson")
+pub fn client_program_local_effect_invocation_json(
+  value : @publication_host.ClientEffectLocalInvocation,
+) -> String {
+  @publication_host.client_effect_local_invocation_json(value)
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,

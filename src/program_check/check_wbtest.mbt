@@ -67,6 +67,10 @@ test "checked Program publication consumer uses only indexed public reads" {
   )
   let program = checked[0]
   assert_eq(unit_count(program), 2)
+  let source = source_identity(program)
+  let stages = @context.program_identity_stage_count(source)
+  assert_eq(stages, unit_count(program))
+  assert_true(checked_local_policy_cid(program).has_prefix("sha256:"))
   assert_eq(unit_result_import_count(program, 0), Some(0))
   assert_eq(unit_result_import_count(program, 1), Some(2))
   for index in 0..<2 {
@@ -95,6 +99,11 @@ test "checked Program publication consumer uses only indexed public reads" {
     assert_true(unit_contract_at(program, unit, count) is None)
     assert_true(unit_definition_cid(program, unit) is Some(_))
     assert_true(unit_contracts_cid(program, unit) is Some(_))
+    let stage = @context.program_identity_stage_at(source, unit).unwrap()
+    assert_eq(
+      unit_used_values_cid(program, unit),
+      Some(@context.stage_identity_parameter_values_cid(stage)),
+    )
     assert_true(unit_pipeline(program, unit) is Some(_))
     assert_eq(unit_publication_count(program, unit), Some(1))
     let publication = unit_publication_at(program, unit, 0).unwrap()

@@ -74,6 +74,15 @@ test "ordinary entries require no evidence inventory and reuse current Parameter
     ).unwrap()
     let used = @context.stage_identity_parameter_values(stage)
     assert_eq(@parameter_refs.used_value_count(used), 1)
+    assert_eq(
+      @program_check.unit_used_values_cid(value, 0),
+      Some(@context.stage_identity_parameter_values_cid(stage)),
+    )
+    assert_true(
+      @program_check.unit_used_values_cid(
+        value, @program_check.unit_count(value),
+      ) is None,
+    )
     assert_true(
       @parameter_refs.used_value_at(used, 0).unwrap().value.value is Number(2.0),
     )

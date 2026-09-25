@@ -179,6 +179,48 @@ test "standard Client preparation retains source-free Effect closure" {
 }
 
 ///|
+test "checked source-free Effect owner issues its local Invocation" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document, Json, environment, None, [], limits,
+  ).unwrap()
+  let issued = issue_source_free_client_effect_local_invocation(
+    prepared, 0, 4096, 32, 8,
+  ).unwrap()
+  let program = @checked.effect_program_static_checked_computation(
+    prepared_client_effect_computation_candidate(prepared),
+  )
+  let preimage = "{\"local_contracts_cid\":\"" +
+    @checked.unit_contracts_cid(program, 0).unwrap() +
+    "\",\"observation_cids\":[],\"policy_cid\":\"" +
+    @checked.checked_local_policy_cid(program) +
+    "\",\"unit_definition_cid\":\"" +
+    @checked.unit_definition_cid(program, 0).unwrap() +
+    "\",\"used_values_cid\":\"" +
+    @checked.unit_used_values_cid(program, 0).unwrap() +
+    "\",\"version\":\"actql-local-computation-semantics/0.1\"}"
+  assert_eq(
+    client_effect_local_invocation_cid(issued),
+    "sha256:" + @sha.hex(@utf8.encode(preimage)),
+  )
+  assert_true(
+    client_effect_local_invocation_json(issued).contains(
+      "\"self_cid\":\"" + client_effect_local_invocation_cid(issued) + "\"",
+    ),
+  )
+  assert_true(client_effect_local_invocation_matches(issued, prepared, 0))
+  assert_true(!client_effect_local_invocation_matches(issued, prepared, 1))
+  let foreign = prepare_client_effect_computation(
+    document, Json, environment, None, [], limits,
+  ).unwrap()
+  assert_true(!client_effect_local_invocation_matches(issued, foreign, 0))
+  assert_true(
+    issue_source_free_client_effect_local_invocation(prepared, 1, 4096, 32, 8)
+    is Err(MissingUnit),
+  )
+}
+
+///|
 test "Effectful Client request uses the common checked intent and scope" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
