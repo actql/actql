@@ -40,6 +40,26 @@ retained data. The same path must report partial failure and unknown honestly.
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
+The remaining identity gap is more specific than an absent hash helper.
+`PreparedClientEffectComputation` and the captured Effect source owner expose
+checked members and Result Artifacts, but the product path does not issue the
+local `actql-local-computation-semantics/0.1` Invocation required by
+`docs/spec/execution.md` for `effect_identity_cid`. The current Host fixture
+passes example Effect identity CIDs. A shared change must issue the local
+Invocation from the checked Unit, used values, contract closure, observations,
+and policy; then issue each member identity from that Invocation, its authored
+Effect semantics, exact source Artifact, and resolved Mapping or Command.
+Foreign member, source, or Invocation evidence must fail before the first
+write. The Run-bound Invocation is not a substitute for the local one.
+
+The other shared handoff is public ingress, owned by Distribution:
+`createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
+must retain the handle from the callback installed by
+`installNodeClientEffectProgramPreparation` and connect it to the existing
+`runCapturedEffectComputation`, `applyCapturedEffectSet`, and
+`publishCompletedEffectfulRun` owners. The required integration test starts at
+the public SDK `submit`, not by calling those Host operations separately.
+
 Completed locally, not a remaining connection: given an exact private Preview
 and current guard observations, `applyCapturedEffectSet` drives the admitted
 two-member, multi-row owner through the MoonBit frontier, credentialed
@@ -54,6 +74,11 @@ total response bytes; over-limit inventories fail before credential use, and
 a 404 cannot become a version guard. A changed target is rejected by the common
 preflight before any write request or write credential use. The observation
 inventory and its typed before-value projection are product Site operations.
+The same two-member Host test now exercises a saved Salesforce-style
+`REQUEST_LIMIT_EXCEEDED` response: the first member remains unknown, the
+independent member settles, restart sends no row again, and formal publication
+rejects the unknown Set. This is local HTTP evidence, not a live-org result or
+proof that every provider-side 403 has one Effect outcome.
 In the installed local Host path, the Site refreshes every selected member's
 Catalog through scoped HTTPS operations and rechecks all typed write requests
 with the existing MoonBit write projection. The same current observations are
