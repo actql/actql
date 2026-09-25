@@ -50,7 +50,24 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 57 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 58 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('Graph equality route requires exact limits and delivered cancellation', () => {
+  const graphEqual = routes => routes.routes.find(entry =>
+    entry.family === 'SGA' && entry.operation === 'graphs_equal');
+  assert.match(run(undefined, routes => {
+    graphEqual(routes).boundary_tests = graphEqual(routes).boundary_tests
+      .filter(item =>
+        item.role !== 'graphs_equal_control_work_exact_one_short_and_cancel');
+  }), /SGA graphs_equal: entrypoint exact_limit lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    graphEqual(routes).environment_tests = graphEqual(routes).environment_tests
+      .filter(item => item.role !== 'graphs_equal_host_in_flight_cancel');
+  }), /SGA graphs_equal: entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    delete graphEqual(routes).resource_assurance.entrypoint.workspace;
+  }), /SGA graphs_equal: entrypoint operation needs work and workspace assurance/u);
 });
 
 test('global count assurance requires its bounded product path and proofs', () => {
@@ -600,7 +617,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 57 |',
+    '| Path-scoped work/workspace assurance | 58 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);

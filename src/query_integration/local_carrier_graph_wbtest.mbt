@@ -8611,7 +8611,7 @@ test "Graph equality enforces exact control work and cleans cancellation" {
   assert_eq(@local_bridge.cleanup_rows_to_graph(right_builder), Ok(true))
   let left_read = @graphs.prepare_step_read(owner, 2, 0, left).unwrap()
   let right_read = @graphs.prepare_step_read(owner, 2, 1, right).unwrap()
-  let start = fn(control, work) raise {
+  let start = fn(control, work, entries) raise {
     @local_sga.start_graphs_equal(
       control,
       task_test_completion(owner),
@@ -8621,14 +8621,33 @@ test "Graph equality enforces exact control work and cleans cancellation" {
       right_read,
       1,
       { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      1000,
+      entries,
       1000,
       [external],
       control_work_limit=Some(work),
     ).unwrap()
   }
+  // The one receiving input and one Boolean output each require one
+  // structural port entry. The same entry is reused across both checks.
+  assert_true(
+    @local_sga.start_graphs_equal(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      left_read,
+      right_read,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      0,
+      1000,
+      [external],
+      control_work_limit=Some(3),
+    )
+    is Err(@local_sga.GraphsEqualCompletion(@execution.Limit)),
+  )
   // Empty Graphs require count comparison, one output, and completion.
-  let exact = start(@bounded.control(), 3)
+  let exact = start(@bounded.control(), 3, 1)
   assert_true(
     @local_sga.advance_graphs_equal(exact, 1).unwrap()
     is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
@@ -8655,7 +8674,7 @@ test "Graph equality enforces exact control work and cleans cancellation" {
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Boolean(true)))
   assert_eq(@local_sga.cleanup_graphs_equal(exact), Ok(true))
   assert_true(@execution.completed_output_available(output))
-  let short = start(@bounded.control(), 2)
+  let short = start(@bounded.control(), 2, 1)
   assert_true(
     @local_sga.advance_graphs_equal(short, 1).unwrap()
     is @local_sga.GraphsEqualContinue(progress=0L, work=1L),
@@ -8671,7 +8690,7 @@ test "Graph equality enforces exact control work and cleans cancellation" {
   assert_true(@local_sga.graphs_equal_cleanup_pending(short))
   assert_eq(@local_sga.cleanup_graphs_equal(short), Ok(true))
   let control = @bounded.control()
-  let cancelled = start(control, 3)
+  let cancelled = start(control, 3, 1)
   assert_true(
     @local_sga.advance_graphs_equal(cancelled, 1).unwrap()
     is @local_sga.GraphsEqualContinue(progress=0L, work=1L),

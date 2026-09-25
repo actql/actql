@@ -3192,7 +3192,7 @@ async function exerciseStrategyGraph(
     }],
     fields: ['id', 'node_name'],
   }, {
-    name: 'graphs-equal',
+    name: 'graphs-equal-in-flight',
     rows: 2,
     advanceQuantum: 1,
     constructionProgress: 8,
@@ -3689,7 +3689,7 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'sequence';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
-    const unsizedGraph = cancellationCase.name === 'graphs-equal';
+    const unsizedGraph = cancellationCase.name === 'graphs-equal-in-flight';
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
       : cancellationCase.operation === 'window-sliding'
