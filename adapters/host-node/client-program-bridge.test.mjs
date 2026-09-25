@@ -25,6 +25,7 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {acquiredTaskRunAdmission} from './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {authorizeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
@@ -284,6 +285,27 @@ test('checked acquired source and downstream task emit their input ports',
       executable.execution_material.program_definition_cid);
     assert.equal(compiledPlan.executable_plan_cid,
       executable.executable_plan_cid);
+    const admissionOptions = {moon,
+      control: runtimeCore(moon).publicationControl,
+      preparedProgram: prepared, document, format: 'json',
+      parameters: JSON.parse(parameters), environmentWire: JSON.parse(catalog[1]),
+      environmentCid: catalog[2], authorityScopeCid: cid('a'),
+      tenantId: 'local', now: () => '2026-09-26T00:00:00.000Z'};
+    const admitted = acquiredTaskRunAdmission(admissionOptions);
+    const restored = acquiredTaskRunAdmission({...admissionOptions,
+      retainedDefinitionWire: admitted.runDefinition.wire});
+    assert.equal(restored.runDefinition.identity,
+      admitted.runDefinition.identity);
+    assert.equal(admitted.compiledPlan.identity,
+      compiledPlan.compiled_plan_cid);
+    const changedPrepared = moon.clientProgramPreparationReady(
+      moon.clientProgramPrepareEffectFreeWithParameters(document, 'json',
+        environment, JSON.stringify({minimum: 7})));
+    assert.ok(changedPrepared);
+    assert.throws(() => acquiredTaskRunAdmission({...admissionOptions,
+      preparedProgram: changedPrepared, parameters: {minimum: 7},
+      retainedDefinitionWire: admitted.runDefinition.wire}),
+    {code: 'RunHostTaskDefinitionRejected'});
     assert.throws(() => checked(
       moon.clientProgramTaskPipelineWire(prepared, 4)));
   });

@@ -139,3 +139,70 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     outputLimits: localOutputLimits, contractLimits: limits, now,
   });
 }
+
+// Admit the complete checked task graph, including acquired sources, to the
+// same portable Run owner used by the installed source-free profile. Physical
+// acquisition and Source Evidence must still be established before this Run
+// can be published; this admission alone never authorizes provider I/O.
+export function acquiredTaskRunAdmission({moon, control, preparedProgram,
+  document, format, parameters, environmentWire, environmentCid,
+  authorityScopeCid, tenantId, now, retainedDefinitionWire}) {
+  const at = Date.parse(now());
+  if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
+  const retained = retainedDefinitionWire === undefined ? undefined :
+    JSON.parse(retainedDefinitionWire);
+  const createdAt = retained?.created_at ?? instant(at);
+  const validUntil = retained?.valid_until ??
+    instant(at + 24 * 60 * 60 * 1000);
+  const coreEnvironment = run.admitEnvironment(environmentWire,
+    environmentCid, {rela: true});
+  const prepared = run.prepare(document, format, coreEnvironment,
+    parameters === null ? undefined : JSON.stringify(parameters));
+  const compilation = run.compileTasks(prepared);
+  const siteCompilation = checked(moon.clientProgramCompileLocalTasks(
+    preparedProgram));
+  const coreWires = run.privateTaskCompilationWires(compilation);
+  const siteWires = {
+    boundTemplate: moon.clientProgramTaskCompilationTemplateWire(
+      siteCompilation),
+    compiledPlan: moon.clientProgramTaskCompilationCompiledPlanWire(
+      siteCompilation),
+  };
+  if (JSON.parse(coreWires.boundTemplate).bound_invocation_template_cid !==
+      JSON.parse(siteWires.boundTemplate).bound_invocation_template_cid ||
+      JSON.parse(coreWires.compiledPlan).compiled_plan_cid !==
+      JSON.parse(siteWires.compiledPlan).compiled_plan_cid) {
+    throw new Error('LocalTaskCompilerOwnerMismatch');
+  }
+  const contextCid = cid({version: 'actql-installed-local-context/0.1',
+    authority_scope_cid: authorityScopeCid});
+  const issued = run.issueAllowedTaskRun(prepared, compilation, {
+    executionContextCid: contextCid,
+    hostPolicyCid: policyCid('checked-tasks'), expiresAt: validUntil,
+  });
+  const template = control.admitRunEvidence('bound_invocation_template',
+    siteWires.boundTemplate, limits);
+  const compiledPlan = control.admit('compiled_plan',
+    siteWires.compiledPlan, limits);
+  const preparedEvidence = control.admitRunEvidence('prepared_invocation',
+    issued.preparedInvocationWire, limits);
+  const authorization = control.admitRunEvidence('run_authorization',
+    issued.authorizationWire, limits);
+  const admission = control.admitCheckedClientRunPublication(preparedProgram,
+    template, preparedEvidence, authorization, compiledPlan);
+  const sourceDefinition = retainedDefinitionWire === undefined
+    ? run.issueTaskRunDefinition(prepared, compilation,
+      issued.admission, tenantId, randomUUID(), createdAt, validUntil)
+    : run.admitTaskRunDefinition(prepared, compilation,
+      issued.admission, retainedDefinitionWire);
+  const definitionWire = run.privateRunDefinition(sourceDefinition);
+  const runDefinition = control.admit('run_definition',
+    definitionWire.wire, limits);
+  if (runDefinition.identity !== definitionWire.cid) {
+    throw new Error('LocalTaskRunOwnerMismatch');
+  }
+  control.checkClientRunDefinitionBinding(preparedProgram, admission,
+    runDefinition);
+  return Object.freeze({admission, runDefinition, compiledPlan, template,
+    preparedEvidence, authorization, compilation});
+}
