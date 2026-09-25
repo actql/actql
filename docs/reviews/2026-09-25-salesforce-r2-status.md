@@ -40,17 +40,20 @@ retained data. The same path must report partial failure and unknown honestly.
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
-The remaining identity gap is more specific than an absent hash helper.
-`PreparedClientEffectComputation` and the captured Effect source owner expose
-checked members and Result Artifacts, but the product path does not issue the
-local `actql-local-computation-semantics/0.1` Invocation required by
-`docs/spec/execution.md` for `effect_identity_cid`. The current Host fixture
-passes example Effect identity CIDs. A shared change must issue the local
-Invocation from the checked Unit, used values, contract closure, observations,
-and policy; then issue each member identity from that Invocation, its authored
-Effect semantics, exact source Artifact, and resolved Mapping or Command.
-Foreign member, source, or Invocation evidence must fail before the first
-write. The Run-bound Invocation is not a substitute for the local one.
+The common checked owner now issues `actql-local-computation-semantics/0.1`
+for a source-free Unit from its Unit Definition, local used values, contract
+closure, empty observation set, and selected policy. The installed Host bridge
+can obtain this owner and tests distinguish it from the Run-bound Invocation.
+It is not yet an `effect_identity_cid`: the normal Preview still receives
+example Effect identity CIDs. The next shared connection must project the
+exact local Result Artifact from authenticated completed Stage evidence, then
+issue each member identity from the local Invocation, authored Effect
+semantics, that Artifact, and the resolved Mapping or Command. The current
+private Effect-source Artifact is Run-bound custody evidence and cannot be
+silently substituted for the local semantic Result Artifact. Foreign member,
+source, or Invocation evidence must fail before the first write. Units with
+external observations still need their own completed observation owner and
+must not use the source-free issuer.
 
 The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
