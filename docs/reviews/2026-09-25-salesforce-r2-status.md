@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process recovers recorded row claims from the exact Preview and SQLite heads, issues the same Set Receipt, and commits formal publication without recomputing or resending. The parent Host reopens the committed index and reads the Result. New apply calls persist all prepared row intents before the first send. A fresh process verifies those prepared claims. The parent Host rebuilds exact Salesforce request material from the admitted Preview and its retained Catalog projection. The recovered Host apply entry now confirms exact Store holdings and capture owner, rechecks common MoonBit whole-set semantics, and sends remaining prepared rows through the existing Effect frontier loop after Store and Ledger reopen. Its send test still runs in the parent process. A new process needs durable exact request material or re-admission of the original Catalog observation; a fresh Catalog observation must not silently replace the original request identity. Then run the sender in a fresh process with authenticated current-use evidence, connect public `submit` to this owner, and test response loss, process restart, publication-commit loss, partial outcomes, and final cleanup from that public entrypoint. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process recovers prepared row claims from the exact Preview and SQLite heads. It also reprojects bounded retained Catalog response bytes through MoonBit, checks the original observation CID, and reconstructs exact prepared Salesforce requests without another credential use or write. The recovered Host apply entry confirms exact Store holdings and capture owner, rechecks common MoonBit whole-set semantics, and sends remaining prepared rows through the existing Effect frontier loop after Store and Ledger reopen. Its send test still runs in the parent process. Next run that sender in a fresh process with authenticated current-use evidence, connect public `submit` to this owner, and test response loss, process restart, publication-commit loss, partial outcomes, and final cleanup from that public entrypoint. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
 | Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
 
@@ -140,13 +140,15 @@ the reconstructed claims, repeats whole-set admission and current target
 checks, and sends only still-ready rows. A possible-dispatch head remains
 unknown and cannot be claimed again. A separate process now opens the real
 Store and Ledger after all four intents are prepared. It re-admits the local
-Artifact inventory and Preview, verifies each durable request CID, and reports
-the two still-ready rows without sending. The parent then rebuilds provider
-request material from the recovered Preview and current Catalog, checks each
-exact durable request CID in MoonBit, repeats whole-set preflight, and sends
-only ready rows. A foreign projection or request CID is rejected. The complete
-current-use authority and physical Site owner still need restoration in one
-new process before this counts as full restart apply.
+Artifact inventory and Preview, verifies each durable request CID, reprojects
+the exact historical Catalog observation from bounded responses in the
+encrypted capture record, and rebuilds the original request material. It does
+not acquire a new credential or dispatch a write. The parent then repeats
+whole-set preflight with a fresh Catalog and current target observations and
+sends only ready rows. A foreign historical Catalog, projection, or request
+CID is rejected. The complete current-use authority and physical Site owner
+still need restoration in one new process before this counts as full restart
+apply.
 
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
