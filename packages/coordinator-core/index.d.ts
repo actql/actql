@@ -136,6 +136,7 @@ export function durableOutputPublicationFacts(durable: DurableOutputRecord):
 export function payloadRequestFromOutput(durable: DurableOutputRecord):
   PayloadRequest;
 export function payloadRequestCid(request: PayloadRequest): string;
+export function payloadRequestMaxBytes(request: PayloadRequest): bigint;
 export function admitPayloadRequestJson(body: string,
   claimedCid: string): PayloadRequest;
 export function preparePayloadRecord(request: PayloadRequest): PayloadRecord;
@@ -170,6 +171,7 @@ export function commitPayloadTransition(transition: PayloadTransition):
 export function payloadRecordOpaqueGeneration(record: PayloadRecord):
   string | undefined;
 export function payloadRecordDigest(record: PayloadRecord): string;
+export function payloadRecordActualBytes(record: PayloadRecord): bigint;
 export function prepareOutputIntent(journal: Journal,
   plan: CheckedOutputPlan): OutputIntentAdmission;
 export function outputIntentIsNew(admission: OutputIntentAdmission): boolean;

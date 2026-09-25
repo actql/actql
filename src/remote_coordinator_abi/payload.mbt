@@ -17,6 +17,14 @@ pub fn coordinator_payload_request_cid(
 }
 
 ///|
+#export_name("coordinatorPayloadRequestMaxBytes")
+pub fn coordinator_payload_request_max_bytes(
+  request : @payload.PublicationPayloadRequest,
+) -> Int64 {
+  @payload.publication_payload_request_max_bytes(request)
+}
+
+///|
 #export_name("coordinatorPayloadAdmitRequestJson")
 pub fn coordinator_payload_admit_request_json(
   body : String,
@@ -181,4 +189,12 @@ pub fn coordinator_payload_record_digest(
   record : @payload.PublicationPayloadRecord,
 ) -> String {
   @payload.publication_payload_record_digest(record)
+}
+
+///|
+#export_name("coordinatorPayloadRecordActualBytes")
+pub fn coordinator_payload_record_actual_bytes(
+  record : @payload.PublicationPayloadRecord,
+) -> Int64 {
+  @payload.publication_payload_record_actual_bytes(record)
 }

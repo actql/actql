@@ -4,7 +4,8 @@ import test from 'node:test';
 import {admitDurablePayloadJson, admitPayloadRequestJson,
   commitPayloadTransition, durablePayloadRequestCid, durablePayloadRevision,
   durablePayloadState, payloadRecordDigest, payloadRecordDurableJson,
-  payloadRecordOpaqueGeneration, payloadRequestCid,
+  payloadRecordOpaqueGeneration, payloadRecordActualBytes,
+  payloadRequestCid, payloadRequestMaxBytes,
   payloadTransitionDurableJson, payloadTransitionExpectedRevision,
   preparePayloadOpaqueOwned, preparePayloadOpaqueReclaiming,
   preparePayloadOpaqueSealed, preparePayloadReclaimed,
@@ -28,6 +29,7 @@ test('opaque Store custody uses one durable MoonBit payload owner', () => {
     {code: 'CoordinatorOwnerRejected'});
   const request = admitPayloadRequestJson(requestBody, requestCid);
   assert.equal(payloadRequestCid(request), requestCid);
+  assert.equal(payloadRequestMaxBytes(request), 32n);
   let record = preparePayloadRecord(request);
   let persisted = payloadRecordDurableJson(record);
   const advance = transition => {
@@ -62,6 +64,7 @@ test('opaque Store custody uses one durable MoonBit payload owner', () => {
   const reopened = restoreDurablePayload(admitDurablePayloadJson(persisted));
   assert.equal(payloadRecordOpaqueGeneration(reopened), cid('9'));
   assert.equal(payloadRecordDigest(reopened), cid('a'));
+  assert.equal(payloadRecordActualBytes(reopened), 12n);
   assert.throws(() => admitDurablePayloadJson(persisted.replace(
     `"custody_generation_cid":"${cid('9')}"`,
     `"custody_generation_cid":"${cid('b')}"`)),

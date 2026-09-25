@@ -145,6 +145,7 @@ export const durableOutputPublicationFacts = durable => {
 export const payloadRequestFromOutput =
   owner.coordinatorPayloadRequestFromOutput;
 export const payloadRequestCid = owner.coordinatorPayloadRequestCid;
+export const payloadRequestMaxBytes = owner.coordinatorPayloadRequestMaxBytes;
 export const admitPayloadRequestJson = (body, claimedCid) =>
   checked(owner.coordinatorPayloadAdmitRequestJson(body, claimedCid));
 export const preparePayloadRecord = owner.coordinatorPayloadPrepareRecord;
@@ -191,6 +192,8 @@ export const payloadRecordOpaqueGeneration = record => {
   throw new Error('InvalidPayloadGenerationProjection');
 };
 export const payloadRecordDigest = owner.coordinatorPayloadRecordDigest;
+export const payloadRecordActualBytes =
+  owner.coordinatorPayloadRecordActualBytes;
 export const prepareOutputIntent = (journal, plan) =>
   checked(owner.coordinatorPrepareOutputIntent(journal, plan));
 export const outputIntentIsNew = owner.coordinatorOutputIntentIsNew;

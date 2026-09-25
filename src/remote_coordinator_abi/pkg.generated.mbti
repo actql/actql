@@ -107,6 +107,8 @@ pub fn coordinator_payload_prepare_reserved(@publication_payload.PublicationPayl
 
 pub fn coordinator_payload_prepare_writing(@publication_payload.PublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadTransition, @publication_payload.PublicationPayloadIssue]
 
+pub fn coordinator_payload_record_actual_bytes(@publication_payload.PublicationPayloadRecord) -> Int64
+
 pub fn coordinator_payload_record_digest(@publication_payload.PublicationPayloadRecord) -> String
 
 pub fn coordinator_payload_record_durable_json(@publication_payload.PublicationPayloadRecord) -> Result[String, @publication_payload.PublicationPayloadIssue]
@@ -116,6 +118,8 @@ pub fn coordinator_payload_record_opaque_generation(@publication_payload.Publica
 pub fn coordinator_payload_request_cid(@publication_payload.PublicationPayloadRequest) -> String
 
 pub fn coordinator_payload_request_from_output(@remote_site_protocol.DurableCoordinatorOutputRecord) -> @publication_payload.PublicationPayloadRequest
+
+pub fn coordinator_payload_request_max_bytes(@publication_payload.PublicationPayloadRequest) -> Int64
 
 pub fn coordinator_payload_restore_durable(@publication_payload.DurablePublicationPayloadRecord) -> Result[@publication_payload.PublicationPayloadRecord, @publication_payload.PublicationPayloadIssue]
 
