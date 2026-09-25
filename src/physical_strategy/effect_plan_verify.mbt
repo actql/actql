@@ -28,7 +28,8 @@ struct CapturedEffectProposalPlan {
   inputs : CapturedEffectInputs
   member_index : Int
   input : CapturedEffectInput
-  terminal : @results.EffectPlanTerminal
+  terminal : @results.EffectPlanTerminal?
+  create_terminal : @results.EffectCreateRowTerminal?
   literals : @results.EffectMappingLiterals
   mut next_row : Int
   mut live : Bool
@@ -45,6 +46,7 @@ pub(all) enum CapturedEffectProposalIssue {
   Plan(@results.EffectPlanBindingIssue)
   Row(@results.EffectPlanRowIssue)
   Changes(@results.EffectPlanChangeIssue)
+  Create(@results.EffectCreateRowIssue)
   SelectorEncoding
 } derive(Debug)
 
@@ -73,12 +75,32 @@ pub fn prepare_captured_effect_proposal_plan(
     @results.effect_plan_terminal_for_member(
       rules, member_index, max_fields, max_work,
     ) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(MissingPlan)
+    Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
+  let create_terminal = if terminal is None {
+    match
+      @results.effect_create_row_terminal_for_member(
+        rules, member_index, max_fields, max_work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Plan(issue))
+    }
+  } else {
+    None
+  }
+  if terminal is None && create_terminal is None {
+    return Err(MissingPlan)
+  }
+  let source_result = match terminal {
+    Some(value) => @results.effect_plan_terminal_source_result(value)
+    None =>
+      @results.effect_create_row_terminal_source_result(
+        create_terminal.unwrap(),
+      )
+  }
   if input.source.member_index != member_index ||
-    @results.effect_plan_terminal_source_result(terminal) !=
+    source_result !=
     @execution.managed_result_occurrence_name(input.source.occurrence) {
     return Err(ForeignBinding)
   }
@@ -87,6 +109,7 @@ pub fn prepare_captured_effect_proposal_plan(
     member_index,
     input,
     terminal,
+    create_terminal,
     literals: @results.effect_static_candidate_mapping_literals(effects),
     next_row: 0,
     live: true,
@@ -118,45 +141,66 @@ pub fn project_captured_effect_proposal_row(
     value.live = false
     return Err(RowOrder)
   }
-  let row = match
-    @results.project_effect_plan_row(
-      value.terminal,
-      source_row,
-      source_row_index,
-      max_fields,
-      max_work,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      value.live = false
-      return Err(Row(issue))
+  let (selector, changes) = match value.terminal {
+    Some(terminal) => {
+      let row = match
+        @results.project_effect_plan_row(
+          terminal, source_row, source_row_index, max_fields, max_work,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          value.live = false
+          return Err(Row(issue))
+        }
+      }
+      let changes = match
+        @results.effect_plan_row_intended_changes_wire(
+          row,
+          value.literals,
+          max_fields,
+          max_work,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          value.live = false
+          return Err(Changes(issue))
+        }
+      }
+      let selector = @identity.stringify_value(
+        @results.effect_plan_row_selector(row),
+        max_bytes,
+        max_nodes,
+        max_depth,
+      ) catch {
+        _ => {
+          value.live = false
+          return Err(SelectorEncoding)
+        }
+      }
+      (selector, changes)
     }
-  }
-  let changes = match
-    @results.effect_plan_row_intended_changes_wire(
-      row,
-      value.literals,
-      max_fields,
-      max_work,
-      max_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => {
-      value.live = false
-      return Err(Changes(issue))
-    }
-  }
-  let selector = @identity.stringify_value(
-    @results.effect_plan_row_selector(row),
-    max_bytes,
-    max_nodes,
-    max_depth,
-  ) catch {
-    _ => {
-      value.live = false
-      return Err(SelectorEncoding)
+    None => {
+      let changes = match
+        @results.effect_create_row_intended_changes_wire(
+          value.create_terminal.unwrap(),
+          value.literals,
+          source_row,
+          max_fields,
+          max_work,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          value.live = false
+          return Err(Create(issue))
+        }
+      }
+      ("null", changes)
     }
   }
   value.next_row += 1

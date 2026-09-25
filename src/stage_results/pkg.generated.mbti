@@ -103,6 +103,12 @@ pub fn effect_command_targets_references(EffectCommandTargets) -> @check_environ
 
 pub fn effect_command_targets_work(EffectCommandTargets) -> Int
 
+pub fn effect_create_row_intended_changes_wire(EffectCreateRowTerminal, EffectMappingLiterals, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int) -> Result[String, EffectCreateRowIssue]
+
+pub fn effect_create_row_terminal_for_member(EffectMappingRules, Int, Int, Int) -> Result[EffectCreateRowTerminal?, EffectPlanBindingIssue]
+
+pub fn effect_create_row_terminal_source_result(EffectCreateRowTerminal) -> String
+
 pub fn effect_mapping_literal_at(EffectMappingLiterals, Int) -> EffectMappingLiteralBinding?
 
 pub fn effect_mapping_literal_count(EffectMappingLiterals) -> Int
@@ -403,6 +409,23 @@ pub struct EffectCommandTargets {
   references : @check_environment.CatalogReferences
   entries : Array[EffectCommandTargetBinding]
   work : Int
+}
+
+pub(all) enum EffectCreateRowIssue {
+  InvalidLimits
+  InvalidRow
+  ForeignLiterals
+  WorkLimit
+  MissingSourceField(String)
+  RejectedNull(String)
+  MissingLiteral(String)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub struct EffectCreateRowTerminal {
+  rule : EffectMappingRuleBinding
+  source_result : String
+  row_fields : @check_environment.MappingRowFields
 }
 
 pub struct EffectMappingLiteralBinding {
