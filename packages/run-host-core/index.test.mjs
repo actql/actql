@@ -19,7 +19,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueSourceFreeInvocation,
   prepareRunStart,
   prepareSourceFreeRequest,
-  privateCompilationWires,
+  privateCompilationWires, compiledPlanCid,
   privateRunDefinition, requestFields, requestRelation} from './index.mjs';
 
 const read = name => readFileSync(new URL(`../sdk/fixtures/${name}`,
@@ -279,6 +279,9 @@ test('portable Host package compiles the ordinary Values Program', () => {
     without(template, 'bound_invocation_template_cid'));
   assert.equal(compiled.compiled_plan_cid,
     without(compiled, 'compiled_plan_cid'));
+  assert.equal(compiledPlanCid(compilation), compiled.compiled_plan_cid);
+  assert.throws(() => compiledPlanCid({kind: 'values-compilation'}),
+    {name: 'TypeError', message: 'ForeignRunHostHandle'});
   assert.equal(compiled.executable_plan_cid, plan.executable_plan_cid);
   assert.equal(compiled.aoa_contract_cid,
     'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');

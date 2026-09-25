@@ -39,7 +39,8 @@ await writeFile(join(installation, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 globalThis.fetch = async () => { throw new Error('NetworkOnHostImport'); };
-const {admitEnvironment, prepare, compileValues, executionShape,
+const {admitEnvironment, prepare, compileValues, compiledPlanCid,
+  executionShape, privateCompilationWires,
   resultDefinitions, resultSchema, prepareSourceFreeRequest,
   requestFields, issueAllowedRun, issueRunDefinition,
   issueSourceFreeInvocation, inspectCanonicalResultRows} =
@@ -51,6 +52,9 @@ const environment = admitEnvironment(environmentWire,
 const prepared = prepare(readFileSync('values.json', 'utf8'), 'json',
   environment);
 const compilation = compileValues(prepared);
+assert.equal(compiledPlanCid(compilation),
+  JSON.parse(privateCompilationWires(compilation).compiledPlan)
+    .compiled_plan_cid);
 assert.deepEqual(executionShape(compilation), {
   planNodeId: 'values_0',
   outputContractCid:

@@ -90,6 +90,8 @@ export function prepare(document: string, format: 'json' | 'yaml',
 export function compileValues(prepared: PreparedProgram): ValuesCompilation;
 export function privateCompilationWires(
   compilation: ValuesCompilation): PrivateCompilationWires;
+/** Exact identity of the checked Compiled Plan, not publication authority. */
+export function compiledPlanCid(compilation: ValuesCompilation): string;
 export function executionShape(compilation: ValuesCompilation): Readonly<{
   planNodeId: string;
   outputContractCid: string;

@@ -79,6 +79,11 @@ export function privateCompilationWires(compilation) {
   });
 }
 
+export function compiledPlanCid(compilation) {
+  const {value} = requireHandle(compilations, compilation);
+  return owner.clientValuesHostCompiledPlanCid(value);
+}
+
 export function executionShape(compilation) {
   const {value} = requireHandle(compilations, compilation);
   return Object.freeze({

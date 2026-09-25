@@ -33,6 +33,8 @@ pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClient
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
+pub fn client_values_host_compiled_plan_cid(@run_publication_host.ClientValuesCompilation) -> String
+
 pub fn client_values_host_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String

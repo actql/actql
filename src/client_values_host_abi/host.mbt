@@ -175,6 +175,17 @@ pub fn client_values_host_compiled_plan_wire(
 }
 
 ///|
+/// Exact checked Compiled Plan identity for this Values compilation.
+#export_name("clientValuesHostCompiledPlanCid")
+pub fn client_values_host_compiled_plan_cid(
+  value : @host.ClientValuesCompilation,
+) -> String {
+  @publication.publication_contract_identity(
+    @host.client_values_compilation_compiled_plan(value),
+  )
+}
+
+///|
 /// In-process checked execution coordinates for the single Values node.
 /// The Site still needs an authorized candidate, grant and Run dispatch.
 #export_name("clientValuesHostPlanNodeId")
