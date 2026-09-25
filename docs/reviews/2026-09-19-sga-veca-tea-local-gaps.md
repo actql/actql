@@ -111,14 +111,30 @@ formal variant.
 
 An ordinary remote Relation predecessor is a concrete connection gap: its
 downstream multi-step Relation Stage remains one task and can enter the
-providerless synchronous evaluator. Splitting every such predecessor changes
-task identity and port mapping across existing dispatch and retention paths;
-the remaining work is to connect the eligible checked shapes without losing
-those bindings, then prove the normal Host cancellation path. The `components`
+providerless synchronous evaluator. A checked unary `filter` then `select`
+chain with a cell-readable captured predecessor now uses the selected bounded
+Relation provider without splitting the task. The normal Host exercises two
+downstream computations and timer cancellation after positive work; portable
+tests also check independent release and final ledger reclamation. This closes
+that captured-input chain shape, not either operation's whole production route:
+retained-only predecessor views still enter the existing synchronous import
+path, and other checked chains need their own reachability and boundary proof.
+Splitting every such predecessor changes task identity and port mapping across
+existing dispatch and retention paths; the remaining work is to connect the
+eligible checked shapes without losing those bindings. The `components`
 route now records an existing standard Host timer case that cancels after
 positive operation work. It remains in the evidence category until the fused
 product path has exact and one-short task-wide work/workspace proofs; the
 empty-kernel boundary alone does not establish that scope.
+
+The captured-chain evidence is `ordinary captured Relation chain feeds two
+bounded consumers` and `ordinary captured Relation chain cancels after bounded
+work` in `src/query_integration/local_managed_unary_wbtest.mbt`, plus the
+`captured Relation filter/select chain` and in-flight timer case in
+`adapters/connectors/duckdb/node/test/standard-host.test.mjs`. The portable
+fixture checks quantum-one work and ledger reclamation; the Node case checks
+the standard asynchronous cancellation delivery. Neither fixture proves a
+bounded retained-file import or all unary operation variants.
 
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,
