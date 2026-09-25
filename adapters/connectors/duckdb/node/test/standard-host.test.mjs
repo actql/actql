@@ -5670,6 +5670,24 @@ async function exerciseStrategyGraph(
         : [...unpivotFields].reverse(),
     }},
   })));
+  const sameStageUnpivotProgram = structuredClone(unpivotProgram);
+  const sameStageUnpivotValues = sameStageUnpivotProgram.stages.find(stage =>
+    stage.id === 'unpivot_values');
+  const sameStageUnpivotIndex = sameStageUnpivotProgram.stages.findIndex(
+    stage => stage.id === 'unpivoted');
+  const sameStageUnpivotStep = structuredClone(
+    sameStageUnpivotProgram.stages[sameStageUnpivotIndex].steps[0]);
+  sameStageUnpivotValues.steps.push({
+    from: 'out', ...sameStageUnpivotStep, as: 'expanded',
+  });
+  sameStageUnpivotValues.results.r = {
+    from: 'expanded', fields: unpivotFields,
+  };
+  sameStageUnpivotProgram.stages.splice(sameStageUnpivotIndex, 1);
+  for (const stage of sameStageUnpivotProgram.stages.filter(stage =>
+    stage.id.startsWith('unpivot_consumer_'))) {
+    stage.inputs.x.result.stage = 'unpivot_values';
+  }
   const pivotProgram = structuredClone(zeroInputProgram);
   const pivotFields = ['id', 'open', 'won'];
   pivotProgram.stages.splice(1, 3, {
@@ -5994,6 +6012,7 @@ async function exerciseStrategyGraph(
     ['parameter lag', lagProgram, [1, 2, 3]],
     ['analytic', analyticProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
+    ['same-stage unpivot', sameStageUnpivotProgram, [1, 2, 3, 4]],
     ['pivot', pivotProgram, [1, 2, 3, 4]],
     ['unnest', unnestProgram, [1, 2, 3, 4]],
     ['json pick', jsonPickProgram, [1, 2, 3, 4]],
@@ -6140,7 +6159,7 @@ async function exerciseStrategyGraph(
           `${name} and both consumers publish complete retained outputs`,
         );
       }
-      if (name === 'unpivot') {
+      if (name === 'unpivot' || name === 'same-stage unpivot') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 6, 6, 6],
@@ -6662,6 +6681,8 @@ async function exerciseStrategyGraph(
       program: splitValuesTakeProgram, cancelAtStart: 3},
     {name: 'split-values-row-window-in-flight',
       program: fixedRowWindowProgram, cancelAtStart: 2},
+    {name: 'split-values-unpivot-in-flight',
+      program: unpivotProgram, cancelAtStart: 2},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6679,13 +6700,18 @@ async function exerciseStrategyGraph(
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
+    const unpivotCancellation = cancellationName ===
+      'split-values-unpivot-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
       stage => stage.id === (rowWindowCancellation
-        ? 'window_values' : 'values_a'),
+        ? 'window_values' : unpivotCancellation
+          ? 'unpivot_values' : 'values_a'),
     );
     valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
+        : unpivotCancellation
+          ? {a: index, b: index + 1, id: index}
         : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
@@ -6739,7 +6765,7 @@ async function exerciseStrategyGraph(
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
-                      rowWindowCancellation)
+                      rowWindowCancellation || unpivotCancellation)
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);

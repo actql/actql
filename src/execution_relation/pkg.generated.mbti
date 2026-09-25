@@ -56,6 +56,8 @@ pub fn advance_bounded_row_window(BoundedRowWindowExecution, Int) -> Result[Boun
 
 pub fn advance_bounded_sequence_match(BoundedSequenceMatchExecution, Int) -> Result[BoundedSequenceMatchPoll, BoundedSequenceMatchIssue]
 
+pub fn advance_bounded_unpivot(BoundedUnpivotExecution, Int) -> Result[BoundedUnpivotPoll, BoundedUnpivotIssue]
+
 pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValuesPoll, BoundedValuesIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
@@ -265,6 +267,8 @@ pub fn cleanup_bounded_interval_join(BoundedIntervalJoinExecution) -> Result[Boo
 pub fn cleanup_bounded_row_window(BoundedRowWindowExecution) -> Result[Bool, BoundedRowWindowIssue]
 
 pub fn cleanup_bounded_sequence_match(BoundedSequenceMatchExecution) -> Result[Bool, BoundedSequenceMatchIssue]
+
+pub fn cleanup_bounded_unpivot(BoundedUnpivotExecution) -> Result[Bool, BoundedUnpivotIssue]
 
 pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
 
@@ -928,6 +932,10 @@ pub fn start_bounded_sequence_match(@bounded_execution.Control, GeneratedSequenc
 
 pub fn start_bounded_sequence_match_events(@bounded_execution.Control, GeneratedSequence, @managed_carrier_runtime.ProducerView, Int, ValueLimits, Int, Int, Int, Int) -> Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue]
 
+pub fn start_bounded_unpivot(@bounded_execution.Control, GeneratedSequence, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedUnpivotExecution, BoundedUnpivotIssue]
+
+pub fn start_bounded_unpivot_supplied(@bounded_execution.Control, GeneratedSequence, SuppliedRelationRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedUnpivotExecution, BoundedUnpivotIssue]
+
 pub fn start_bounded_values(@bounded_execution.Control, GeneratedSequence, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedValuesExecution, BoundedValuesIssue]
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
@@ -1148,6 +1156,24 @@ pub enum BoundedSequenceMatchPoll {
   BoundedSequenceMatchComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchFailed(BoundedSequenceMatchIssue, progress~ : Int64, work~ : Int64)
   BoundedSequenceMatchStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type BoundedUnpivotExecution
+
+pub(all) enum BoundedUnpivotIssue {
+  InvalidExecution
+  InputLimit
+  Rows(RowIssue)
+  Capture(CaptureIssue)
+  Completion(TrustedOutputIssue)
+  Execution(@bounded_execution.Issue)
+}
+
+pub enum BoundedUnpivotPoll {
+  BoundedUnpivotContinue(progress~ : Int64, work~ : Int64)
+  BoundedUnpivotComplete(CompletedOutput, progress~ : Int64, work~ : Int64)
+  BoundedUnpivotFailed(BoundedUnpivotIssue, progress~ : Int64, work~ : Int64)
+  BoundedUnpivotStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type BoundedValuesExecution

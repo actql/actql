@@ -410,13 +410,17 @@ fn run_local_managed_unary_case(
       kind == "top_k_compound" ||
       kind == "top_k_by" ||
       kind == "top_k_by_parameter" ||
-      kind == "top_k_by_nullable" {
+      kind == "top_k_by_nullable" ||
+      kind == "unpivot" ||
+      kind == "unpivot_empty" {
       1
     } else {
       0
     },
     execution_advances=Some(bounded_advances),
-    require_provider=bounded_top_k_chain,
+    require_provider=bounded_top_k_chain ||
+      kind == "unpivot" ||
+      kind == "unpivot_empty",
   )
   if kind == "select" ||
     kind == "derive_map" ||
@@ -442,7 +446,9 @@ fn run_local_managed_unary_case(
     kind == "top_k_compound" ||
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
-    kind == "top_k_by_nullable" {
+    kind == "top_k_by_nullable" ||
+    kind == "unpivot" ||
+    kind == "unpivot_empty" {
     assert_true(bounded_advances.val > 4)
   }
   let expected = local_managed_unary_expected(kind)
