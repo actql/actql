@@ -99,7 +99,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Limit(_)
     | TopK(_)
     | TopKBy(_)
-    | Distinct(_) => true
+    | Distinct(_)
+    | Dedupe(_) => true
     RowWindow(_)
     | Watermark(_)
     | Lag(_)
@@ -149,6 +150,7 @@ pub fn node_supports_bounded_managed_prefix(
     (Values(_), Where(_))
     | (Values(_), Derive(_))
     | (Values(_), Distinct(_))
+    | (Values(_), Dedupe(_))
     | (Values(_), Select(_))
     | (Values(_), Sort(_))
     | (Values(_), Limit(_))
@@ -210,6 +212,7 @@ pub fn node_accepts_managed_relation_view(
     | TopK(_)
     | TopKBy(_)
     | Distinct(_)
+    | Dedupe(_)
     | CountGroup(_)
     | RowWindow(_)
     | Watermark(_)

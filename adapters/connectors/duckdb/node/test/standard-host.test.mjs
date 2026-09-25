@@ -5464,6 +5464,15 @@ async function exerciseStrategyGraph(
         : ['bucket', 'group', 'amount', 'id'],
     }},
   })));
+  const dedupeFilterProgram = structuredClone(dedupeProgram);
+  const dedupeFilterStage = dedupeFilterProgram.stages.find(
+    stage => stage.id === 'deduped',
+  );
+  dedupeFilterStage.steps = [
+    {...dedupeFilterStage.steps[0], as: 'deduped_rows'},
+    {from: 'deduped_rows', filter: 'amount > 30', as: 'filtered'},
+    {from: 'filtered', select: ['id', 'amount', 'group', 'bucket'], as: 'out'},
+  ];
   const topKProgram = partitioned => {
     const variant = structuredClone(zeroInputProgram);
     const fields = ['id', 'amount', 'group'];
@@ -6225,6 +6234,7 @@ async function exerciseStrategyGraph(
     ['snapshot derive', snapshotDeriveProgram, [1, 2, 3, 4]],
     ['sort', sortProgram, [1, 2, 3, 4]],
     ['dedupe rows', dedupeProgram, [1, 2, 3, 4]],
+    ['dedupe/filter chain', dedupeFilterProgram, [1, 2, 3, 4, 5, 6]],
     ['global top k', globalTopKProgram, [1, 2, 3, 4, 5]],
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
@@ -6522,6 +6532,13 @@ async function exerciseStrategyGraph(
           'dedupe and both consumers publish complete retained outputs',
         );
       }
+      if (name === 'dedupe/filter chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 2, 1, 1, 1, 1],
+          'bounded dedupe and filter feed two actual computations',
+        );
+      }
       if (name === 'global top k' || name === 'partitioned top k') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
@@ -6555,6 +6572,7 @@ async function exerciseStrategyGraph(
   try {
     for (const [name, program, expectedRows] of [
       ['filter/select', capturedRelationChainProgram, [2, 2, 2]],
+      ['dedupe/filter', dedupeFilterProgram, [4, 2, 1, 1, 1, 1]],
       ['count/filter', capturedCountChainProgram, [1, 1, 1]],
       ['unpivot/filter', capturedUnpivotChainProgram, [2, 2, 2]],
     ]) {
@@ -6583,7 +6601,7 @@ async function exerciseStrategyGraph(
           `${name}: ${String(execution.failure)}`);
         assert.deepEqual(
           execution.completed.map(item => item.realization),
-          ['local-managed', 'local-managed', 'local-managed'],
+          Array(expectedRows.length).fill('local-managed'),
           `${name}: retained capture and both consumers use bounded Local`,
         );
         assert.deepEqual(
@@ -7056,6 +7074,8 @@ async function exerciseStrategyGraph(
   } of [
     {name: 'captured-relation-chain-in-flight',
       program: capturedRelationChainProgram, cancelAtStart: 1},
+    {name: 'dedupe-filter-chain-in-flight',
+      program: dedupeFilterProgram, cancelAtStart: 2},
     {name: 'captured-count-chain-in-flight',
       program: capturedCountChainProgram, cancelAtStart: 1},
     {name: 'captured-keyed-count-chain-in-flight',
@@ -7129,6 +7149,8 @@ async function exerciseStrategyGraph(
       'captured-unpivot-chain-in-flight';
     const nestUnwrapCancellation = cancellationName ===
       'nest-output-unnest-chain-in-flight';
+    const dedupeFilterCancellation = cancellationName ===
+      'dedupe-filter-chain-in-flight';
     const nestedCountCancellation = cancellationName ===
       'nested-global-count-in-flight';
     const longSelectedTakeCancellation = cancellationName ===
@@ -7169,6 +7191,7 @@ async function exerciseStrategyGraph(
               ? 'json_pick_values' : 'values_a'),
     );
     if (!capturedRelationChainCancellation && !nestUnwrapCancellation &&
+        !dedupeFilterCancellation &&
         !longSelectedTakeCancellation) {
       const reshapeFilterChain = cancellationName ===
         'unpivot-filter-chain-in-flight' ||
@@ -7247,6 +7270,7 @@ async function exerciseStrategyGraph(
                     longSelectedTakeCancellation) &&
                     start === cancelAtStart ? 1 : start === cancelAtStart &&
                     (capturedRelationChainCancellation ||
+                      dedupeFilterCancellation ||
                       cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || globalCountCancellation ||
                       watermarkCancellation ||

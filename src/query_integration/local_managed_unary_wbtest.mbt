@@ -99,10 +99,10 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"amount\":20,\"id\":2}", "{\"amount\":null,\"id\":1}", "{\"amount\":null,\"id\":3}",
       ]
-    "dedupe_rows" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
+    "dedupe_rows" => ["{\"amount\":10,\"id\":1}", "{\"amount\":30,\"id\":2}"]
     "dedupe_compound_nullable" =>
       [
-        "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}", "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}",
+        "{\"amount\":30,\"bucket\":1,\"group\":null,\"id\":2}", "{\"amount\":40,\"bucket\":2,\"group\":\"a\",\"id\":4}",
       ]
     _ => abort("unknown Local unary expectation")
   }
@@ -212,6 +212,8 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
     [
       "{\"id\":2,\"amount\":20}", "{\"id\":1,\"amount\":null}", "{\"id\":3,\"amount\":null}",
     ]
+  } else if kind == "dedupe_rows" {
+    ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":30}"]
   } else if kind == "dedupe_compound_nullable" {
     [
       "{\"id\":2,\"amount\":30,\"group\":null,\"bucket\":1}", "{\"id\":4,\"amount\":40,\"group\":\"a\",\"bucket\":2}",
@@ -436,6 +438,8 @@ fn run_local_managed_unary_case(
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable" ||
+    kind == "dedupe_rows" ||
+    kind == "dedupe_compound_nullable" ||
     kind == "unnest" ||
     kind == "unnest_inner" ||
     kind == "unpivot" ||
@@ -689,7 +693,8 @@ test "standard Host cancels a filter inside an unused nested input" {
 
 ///|
 test "ordinary captured Relation chains feed two bounded consumers" {
-  for variant in ["filter", "count", "keyed_count", "window", "unpivot"] {
+  for
+    variant in ["filter", "count", "keyed_count", "window", "unpivot", "dedupe"] {
     let expected = match variant {
       "count" => ["{\"id\":2}"]
       "keyed_count" => ["{\"id\":2}", "{\"id\":3}"]
@@ -704,6 +709,7 @@ test "ordinary captured Relation chains feed two bounded consumers" {
       keyed_count_filter_chain=variant == "keyed_count",
       window_filter_chain=variant == "window",
       unpivot_filter_chain=variant == "unpivot",
+      dedupe_filter_chain=variant == "dedupe",
     )
     let graph = @strategy.captured_dag_graph(run)
     assert_eq(@strategy.graph_task_count(graph), 4)
@@ -1056,6 +1062,7 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
 fn run_ordinary_captured_relation_chain_cancel(kind : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     unpivot_filter_chain=kind == "unpivot",
+    dedupe_filter_chain=kind == "dedupe",
     count=kind == "keyed_count",
     count_filter_chain=kind == "keyed_count",
     keyed_count_filter_chain=kind == "keyed_count",
@@ -1120,7 +1127,7 @@ fn run_ordinary_captured_relation_chain_cancel(kind : String) -> Unit raise {
 
 ///|
 test "ordinary captured Relation chain cancels after bounded work" {
-  for kind in ["filter", "unpivot", "keyed_count"] {
+  for kind in ["filter", "unpivot", "keyed_count", "dedupe"] {
     run_ordinary_captured_relation_chain_cancel(kind)
   }
 }
