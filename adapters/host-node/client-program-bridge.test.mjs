@@ -10,7 +10,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet} from './effect-run-apply.mjs';
-import {captureSalesforceSingleEffectWrite} from
+import {captureSalesforceCollectionEffectWrite,
+  captureSalesforceSingleEffectWrite} from
   './salesforce-effect-write.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
@@ -106,7 +107,8 @@ async function checkedFixture() {
 async function effectFixture({splitSource = false,
   splitEffectSource = 'consumer', writeKind = 'create',
   memberIds = ['save'], target = 'connector://crm/account',
-  mappingRef = 'mapping:crm.account.v1', sourceIds} = {}) {
+  mappingRef = 'mapping:crm.account.v1', sourceIds,
+  continueMembers = []} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -178,7 +180,8 @@ async function effectFixture({splitSource = false,
       from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}};
   const effects = Object.fromEntries(memberIds.map(id =>
-    [id, {[writeKind]: write}]));
+    [id, {[writeKind]: continueMembers.includes(id)
+      ? {...write, on_item_failure: 'continue'} : write}]));
   document.stages[0].effects = effects;
   if (splitSource) {
     delete document.stages[0].effects;
@@ -227,7 +230,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   memberBoundaries = memberIds.map((_, index) => cid(String(index))),
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
-    footprints} = {}) {
+    footprints, continueMembers = []} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -264,7 +267,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       },
       count: approvedValues.length, max_items: 2,
       required_permissions: ['write'],
-      approval: 'none', on_item_failure: 'halt',
+      approval: 'none', on_item_failure:
+        continueMembers.includes(effectId) ? 'continue' : 'halt',
       changes: approvedValues.map((value, index) => ({
         target_row_identity: targetRows[index],
         target_guard: writeKind === 'create'
@@ -2040,11 +2044,27 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   }
 }
 
-for (const physical of ['simulated', 'salesforce']) {
-test(`two-member captured Effect Run publishes after all rows settle (${physical})`,
+for (const physical of ['simulated', 'salesforce',
+  'salesforce-recovered', 'salesforce-terminal-restart',
+  'salesforce-unknown', 'salesforce-collection-partial',
+  'salesforce-unknown-continue']) {
+test(`two-member captured Effect Run ${
+  physical.startsWith('salesforce-unknown')
+    ? 'retains uncertain outcomes' :
+    physical === 'salesforce-collection-partial'
+      ? 'retains partial failure outcomes' :
+      'publishes after all rows settle'
+} (${physical})`,
   async t => {
     const memberIds = ['save', 'save_again'];
-    const siteRun = physical === 'salesforce';
+    const siteRun = physical !== 'simulated';
+    const recoverAfterResponse = physical === 'salesforce-recovered';
+    const restartAfterTerminal = physical === 'salesforce-terminal-restart';
+    const unknownAfterClaim = physical.startsWith('salesforce-unknown');
+    const continueAfterUnknown = physical === 'salesforce-unknown-continue';
+    const collectionPartial = physical === 'salesforce-collection-partial';
+    const continueMembers = continueAfterUnknown || collectionPartial
+      ? ['save'] : [];
     const sourceIds = siteRun
       ? ['001000000000001', '001000000000002'] : undefined;
     const target = siteRun ? 'connector://salesforce/Test_Record__c'
@@ -2053,6 +2073,7 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
       : 'mapping:crm.account.v1';
     const {document, environment, mappingCid} = await effectFixture({
       writeKind: 'update', memberIds, target, mappingRef, sourceIds,
+      continueMembers,
     });
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
@@ -2185,14 +2206,17 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
           binding.dispatchRequestCid, 'catalog-sync-a',
           'Test_Record__c', 1, '', ['Name'], 2));
       });
-      const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
-        sourceIds.map(value => {
-        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      const siteBodies = siteRun ? memberIds.map((_, memberIndex) =>
+        sourceIds.map(value => checked(
+          salesforceMoon.salesforcePrepareWriteBody(
           siteProjections[memberIndex],
           Buffer.from(JSON.stringify({Name: value})),
-          1024, 32, 5));
+          1024, 32, 5)))) : undefined;
+      const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
+        sourceIds.map((value, rowIndex) => {
         return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
-          body, 'v62.0', 1, value, 0, 256, 128, 1024));
+          siteBodies[memberIndex][rowIndex], 'v62.0', 1, value, 0,
+          256, 128, 1024));
       })) : undefined;
       const siteBoundaries = siteRun ? sites.map((_, memberIndex) => checked(
         salesforceMoon.salesforceSingleWriteRequestBoundaryCid(
@@ -2221,7 +2245,7 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
         siteRun ? siteBoundaries : [cid('0'), cid('1')],
         requestScope, {target, mapping: mappingRef,
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
-          footprints: siteFootprints});
+          footprints: siteFootprints, continueMembers});
       const authoringContext = control.admitRunEvidence(
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -2300,6 +2324,11 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
       assert.equal(captured.effect_context.effect_source_artifacts.save
         .source_result, 'rows');
       const body = JSON.parse(preview.wire);
+      const collectionRequest = collectionPartial ? checked(
+        salesforceMoon.salesforcePrepareContinueWriteCollection(
+          body.effects[0].row_order, siteBodies[0], [1, 1],
+          sourceIds, [0, 0], 'v62.0', 256, 128, 1024, 64, 6,
+          200)) : undefined;
       const applyPreview = effect.admitPreviewIdentity(
         preview.wire, body.run_identity_cid,
         preview.authoringCid, requestScope, preview.keys,
@@ -2329,7 +2358,10 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
           const path = `/effect/${member.effect_id}/${rowIndex}`;
           const requestWire = canonicalJson({path, row: change.row_preview_cid});
           const request = siteRequests?.[memberIndex]?.[rowIndex];
-          const canonicalRequestCid = siteRun ? checked(
+          const canonicalRequestCid = collectionPartial && memberIndex === 0
+            ? checked(salesforceMoon.salesforceCollectionWriteRequestCid(
+              collectionRequest, sites[0].origin, 4096))
+            : siteRun ? checked(
             salesforceMoon.salesforceSingleWriteRequestCid(
               request, sites[memberIndex].origin, 4096)) :
             `sha256:${createHash('sha256')
@@ -2386,14 +2418,47 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
       }
-      const applied = await applyCapturedEffectSet({
-        ...applyOptions,
-        dispatchRow: async ({memberIndex, rowIndex, claim}) => {
+      let responseFaultPending = recoverAfterResponse;
+      let terminalFaultPending = restartAfterTerminal;
+      let unknownFaultPending = unknownAfterClaim;
+      const dispatchRow = async ({memberIndex, rowIndex, claim}) => {
           sent.push([memberIndex, rowIndex]);
           if (siteRun) {
             const site = sites[memberIndex];
+            if (collectionPartial && memberIndex === 0) {
+              assert.equal(rowIndex, 0);
+              const batch = await captureSalesforceCollectionEffectWrite({
+                ledger, claims: members[0].claims,
+                admittedPreview: applyPreview, memberIndex: 0,
+                firstRow: 0, commonMoon: moon, moon: salesforceMoon,
+                request: collectionRequest,
+                currentObservation: site.catalog.observation,
+                authorization: {...site.write,
+                  useId: 'partial-collection'},
+                credential: site.credential,
+                limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+                  maxNodes: 64, maxDepth: 6, maxRows: 2},
+              });
+              assert.equal(batch.claimed, true);
+              assert.equal(batch.outcomeReceipts.length, 2);
+              return;
+            }
+            const responseFault = responseFaultPending &&
+              memberIndex === 0 && rowIndex === 0;
+            if (responseFault) responseFaultPending = false;
+            const dispatchFault = unknownFaultPending &&
+              memberIndex === 0 && rowIndex === 0;
+            if (dispatchFault) unknownFaultPending = false;
+            const physicalLedger = responseFault ? Object.freeze({
+              ...ledger,
+              recordResponse(observation) {
+                ledger.recordResponse(observation);
+                throw new Error('LostAfterSavedSalesforceResponse');
+              },
+            }) : ledger;
             const received = await captureSalesforceSingleEffectWrite({
-              ledger, commonMoon: moon, admittedPreview: applyPreview,
+              ledger: physicalLedger, commonMoon: moon,
+              admittedPreview: applyPreview,
               memberIndex, rowIndex,
               rowPreviewCid: body.effects[memberIndex]
                 .changes[rowIndex].row_preview_cid,
@@ -2405,9 +2470,16 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
               credential: site.credential,
               limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
                 maxNodes: 32, maxDepth: 5},
+              callResource: dispatchFault ? async () => {
+                throw new Error('LostAfterSalesforceDispatchClaim');
+              } : undefined,
             });
             assert.equal(received.claimed, true);
             assert.equal(received.terminal.created, true);
+            if (terminalFaultPending && memberIndex === 0 && rowIndex === 0) {
+              terminalFaultPending = false;
+              throw new Error('LostAfterSalesforceRowTerminal');
+            }
             return;
           }
           const response = await captureClaimedEffectResponse({
@@ -2426,9 +2498,160 @@ test(`two-member captured Effect Run publishes after all rows settle (${physical
             claim, preview: applyPreview, memberIndex,
             previewRowIndex: rowIndex,
           });
-        },
+      };
+      if (recoverAfterResponse) {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, dispatchRow,
+        }), {message: 'LostAfterSavedSalesforceResponse'});
+        assert.deepEqual(sent, [[0, 0]]);
+        ledger.close();
+        ledger = openLedger();
+        const savedClaim = members[0].claims[0];
+        const saved = await captureSalesforceSingleEffectWrite({
+          ledger, commonMoon: moon, admittedPreview: applyPreview,
+          memberIndex: 0, rowIndex: 0,
+          rowPreviewCid: body.effects[0].changes[0].row_preview_cid,
+          claim: savedClaim, moon: salesforceMoon,
+          request: siteRequests[0][0],
+          currentObservation: sites[0].catalog.observation,
+          authorization: {...sites[0].write, useId: 'recovery-no-send'},
+          credential: sites[0].credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 32, maxDepth: 5},
+          authorizeEvidenceRead: async () => true,
+        });
+        assert.equal(saved.claimed, false);
+        assert.equal(saved.terminal.created, true);
+        assert.equal(sites[0].seen.filter(item =>
+          item.method === 'PATCH').length, 1);
+      }
+      if (restartAfterTerminal) {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, dispatchRow,
+        }), {message: 'LostAfterSalesforceRowTerminal'});
+        assert.deepEqual(sent, [[0, 0]]);
+        ledger.close();
+        ledger = openLedger();
+        assert.ok(ledger.readClaimedOutcome(members[0].claims[0]));
+      }
+      const rejectPublicationAndRetire = async (issuedSet, code,
+        attemptId) => {
+        const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          runDefinitionCid: runDefinition.identity};
+        await assert.rejects(publishCompletedEffectfulRun({
+          execution, store, storedResults, control, computation,
+          preview: admittedPreview, ledger, issuedSet,
+          request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+            publicationPolicyCid: cid('e'),
+            publicationTargetCid: cid('f'),
+            requestedAt: '2026-09-24T00:00:01.000Z'},
+          attempt: {attemptId, fenceCid: cid('0'),
+            externalIdempotencyKey: undefined,
+            startedAt: '2026-09-24T00:00:02.000Z'},
+          contractLimits: publicationLimits,
+          now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
+        }), {code});
+        assert.equal(await store.inspectCommittedIndex(key), undefined);
+        assert.ok(await store.inspectPhysicalHolding(firstHolding.holdingCid));
+        assert.ok(await store.inspectPhysicalHolding(secondHolding.holdingCid));
+        const privateHoldingCid = control.effectPrivateEvidenceBinding(
+          admittedPreview, store.storeAuthorityCid).holdingCid;
+        assert.ok(await store.inspectPhysicalHolding(privateHoldingCid));
+        assert.equal((await store.retirePhysicalHolding(
+          privateHoldingCid)).deleted, true);
+        assert.equal((await store.retirePhysicalHolding(
+          firstHolding.holdingCid)).deleted, true);
+        assert.equal((await store.retirePhysicalHolding(
+          secondHolding.holdingCid)).deleted, true);
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+      };
+      if (unknownAfterClaim) {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, dispatchRow,
+        }), {message: 'LostAfterSalesforceDispatchClaim'});
+        assert.deepEqual(sent, [[0, 0]]);
+        ledger.close();
+        ledger = openLedger();
+        const independent = await applyCapturedEffectSet({
+          ...applyOptions, ledger, dispatchRow,
+        });
+        assert.equal(independent.dispatched,
+          continueAfterUnknown ? 3 : 2);
+        assert.deepEqual(sent, continueAfterUnknown
+          ? [[0, 0], [0, 1], [1, 0], [1, 1]]
+          : [[0, 0], [1, 0], [1, 1]]);
+        ledger.close();
+        ledger = openLedger();
+        const noReplay = await applyCapturedEffectSet({
+          ...applyOptions, ledger,
+          dispatchRow: () => assert.fail('uncertain or terminal row resent'),
+        });
+        assert.equal(noReplay.dispatched, 0);
+        assert.deepEqual(sites.map(site => site.seen
+          .filter(item => item.method === 'PATCH').length),
+        [continueAfterUnknown ? 1 : 0, 2]);
+        const uncertainSet = await issueAuthorizedEffectSetReceipt({
+          ledger, preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
+          members: members.map(member => ({
+            rowOwners: member.claims.map(claim => ({claim})),
+            replayed: true,
+          })), limits: publicationLimits,
+        });
+        assert.equal(JSON.parse(uncertainSet.set.wire).status,
+          'unknown_outcome');
+        assert.deepEqual(JSON.parse(uncertainSet.set.wire).effects.map(
+          member => member.state), ['unknown', 'applied']);
+        await rejectPublicationAndRetire(uncertainSet,
+          'EffectfulRunNeedsReconciliation',
+          'unknown-two-effects-attempt');
+        return;
+      }
+      const applied = await applyCapturedEffectSet({
+        ...applyOptions, ledger, dispatchRow,
       });
-      assert.equal(applied.dispatched, 4);
+      assert.equal(applied.dispatched,
+        recoverAfterResponse || restartAfterTerminal || collectionPartial
+          ? 3 : 4);
+      if (collectionPartial) {
+        assert.deepEqual(sent, [[0, 0], [1, 0], [1, 1]]);
+        assert.deepEqual(sites.map(site => site.seen
+          .filter(item => item.method === 'PATCH').length), [1, 2]);
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+          [3, 4]);
+        ledger.close();
+        ledger = openLedger();
+        const replay = await applyCapturedEffectSet({
+          ...applyOptions, ledger,
+          dispatchRow: () => assert.fail('known row resent'),
+        });
+        assert.equal(replay.dispatched, 0);
+        const partialSet = await issueAuthorizedEffectSetReceipt({
+          ledger, preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
+          members: members.map((member, memberIndex) => ({
+            rowOwners: member.claims.map((claim, rowIndex) =>
+              memberIndex === 0
+                ? {claims: member.claims, batchRowIndex: rowIndex}
+                : {claim}),
+            replayed: true,
+          })), limits: publicationLimits,
+        });
+        assert.equal(JSON.parse(partialSet.set.wire).status, 'partial_failure');
+        assert.deepEqual(JSON.parse(partialSet.set.wire).effects.map(
+          member => member.state), ['failed', 'applied']);
+        assert.deepEqual(JSON.parse(partialSet.members[0].wire).rows.map(
+          row => row.state), ['failed', 'applied']);
+        assert.deepEqual(JSON.parse(partialSet.members[1].wire).rows.map(
+          row => row.state), ['applied', 'applied']);
+        await rejectPublicationAndRetire(partialSet, 'EffectfulRunFailed',
+          'partial-two-effects-attempt');
+        return;
+      }
       if (siteRun) {
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length,
