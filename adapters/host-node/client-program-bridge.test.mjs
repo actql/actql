@@ -2353,7 +2353,7 @@ test(`two-member captured Effect Run ${
           commonMoon: moon, salesforceMoon,
           runInvocationCid: runInvocation.identity,
           dispatchRequestCid: cid('c'),
-          orgId: index === 0 ? '00D000000000001EAA'
+          orgId: index === 0 || overlappingMembers ? '00D000000000001EAA'
             : '00D000000000002EAA',
           loseWriteReplyOnce: loseHttpReply && index === 0,
           collectionPartial: collectionPartial && index === 0,
@@ -2415,9 +2415,6 @@ test(`two-member captured Effect Run ${
             targets.map(target => salesforceMoon.salesforceWriteTargetObjectCid(
               checked(target)))};
       }) : undefined;
-      if (overlappingMembers) {
-        siteFootprints[1] = siteFootprints[0];
-      }
       let targetRead = 0;
       const observeCurrentTargets = ({signal} = {}) =>
         observeSalesforceTargetSet({moon: salesforceMoon,
@@ -2464,6 +2461,44 @@ test(`two-member captured Effect Run ${
           maxKeyNodes: 8, maxKeyDepth: 3,
           planLimits: previewPlanLimits,
         }) : previewDraft;
+      if (siteRun) {
+        const forgedFootprint = JSON.parse(previewDraft.wire);
+        forgedFootprint.effects[0].write_footprint = {
+          kind: 'opaque', provider_boundary_cid: cid('9'),
+          provider_namespace: 'foreign', provider_object_identity_cids: [],
+          resource_identity_scheme_cid: cid('8'), resource_kind: 'Other',
+        };
+        forgedFootprint.effects[0].count = 1;
+        const restored = authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, prepared,
+          templateWire: JSON.stringify(forgedFootprint), requestScope,
+          members: siteRequests.map((requests, index) => ({
+            stageIndex: 0, effectId: memberIds[index], requests,
+            observations: previewTargetObservations?.[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        });
+        assert.equal(restored.wire, preview.wire);
+        if (!overlappingMembers) {
+          const mixedRequests = [siteRequests[0][0], siteRequests[1][1]];
+          assert.throws(() => authorObservedSalesforceEffectPreview({
+            moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
+            requestScope, members: [{stageIndex: 0,
+              effectId: memberIds[0], requests: mixedRequests,
+              observations: previewTargetObservations === undefined ? undefined
+                : [previewTargetObservations[0][0],
+                  previewTargetObservations[1][1]]},
+            {stageIndex: 0, effectId: memberIds[1],
+              requests: siteRequests[1],
+              observations: previewTargetObservations?.[1]}],
+            maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+            maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+            maxKeyNodes: 8, maxKeyDepth: 3, planLimits: previewPlanLimits,
+          }), {code: 'MoonBitHostFailure'});
+        }
+      }
       if (siteRun && writeKind === 'create') {
         assert.throws(() => checked(moon.clientProgramAuthorEffectPreview(
           previewDraft.wire,

@@ -173,6 +173,24 @@ pub fn salesforce_single_write_request_boundary_cid(
 }
 
 ///|
+/// One bounded MoonBit-owned footprint for the requests of one Effect member.
+/// This is a conflict fact, not an apply permission.
+#export_name("salesforceSingleWriteMemberFootprint")
+pub fn salesforce_single_write_member_footprint(
+  requests : Array[@catalog.SingleWriteRequest],
+  max_rows : Int,
+  max_identity_bytes : Int,
+) -> (String, String, String, String, String, Array[String]) raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.single_write_member_footprint(
+      requests, max_rows, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteCollectionRequest(issue)
+  }
+}
+
+///|
 /// Check that one admitted physical REST request is among the target facts
 /// claimed by its private Preview member. Whole-set footprint admission,
 /// source-to-payload equivalence, and current apply authority remain separate.

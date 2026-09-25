@@ -23,6 +23,91 @@ pub fn write_target_object_cid(value : WriteTargetIdentity) -> String {
 }
 
 ///|
+/// Derive one member footprint from its exact physical requests. A Preview
+/// template cannot appoint a different org, resource, or target set.
+pub fn single_write_member_footprint(
+  requests : Array[SingleWriteRequest],
+  max_rows : Int,
+  max_identity_bytes : Int,
+) -> Result[
+  (String, String, String, String, String, Array[String]),
+  WriteCollectionRequestIssue,
+] {
+  if max_rows < 1 ||
+    max_identity_bytes < 1 ||
+    requests.is_empty() ||
+    requests.length() > max_rows {
+    return Err(InvalidLimits)
+  }
+  let first = requests[0]
+  let boundary = match
+    single_write_request_boundary_cid(first, max_identity_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let resource = single_write_request_resource(first)
+  let kind = single_write_request_effect_kind(first)
+  let mut scheme = ""
+  let targets : Array[String] = []
+  for request in requests {
+    if single_write_request_effect_kind(request) != kind ||
+      single_write_request_resource(request) != resource {
+      return Err(MixedProjection)
+    }
+    let current_boundary = match
+      single_write_request_boundary_cid(request, max_identity_bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if current_boundary != boundary {
+      return Err(MixedProjection)
+    }
+    let target = match
+      single_write_request_target_identity(request, max_identity_bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    match target {
+      None if kind == "create" => ()
+      Some(value) if kind != "create" => {
+        let current_scheme = write_target_scheme_cid(value)
+        if scheme.is_empty() {
+          scheme = current_scheme
+        } else if scheme != current_scheme {
+          return Err(MixedProjection)
+        }
+        targets.push(write_target_object_cid(value))
+      }
+      _ => return Err(InvalidTarget)
+    }
+  }
+  if kind == "create" {
+    scheme = match
+      write_target_digest(
+        [("kind", "create"), ("version", "actql-salesforce-target-scheme/0.1")],
+        max_identity_bytes,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(
+    (
+      if kind == "create" {
+        "collection"
+      } else {
+        "exact_targets"
+      },
+      "salesforce",
+      boundary,
+      scheme,
+      resource,
+      targets,
+    ),
+  )
+}
+
+///|
 fn write_target_digest(
   fields : Array[(String, String)],
   max_bytes : Int,
