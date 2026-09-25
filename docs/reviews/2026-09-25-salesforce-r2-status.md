@@ -44,6 +44,9 @@ The common checked owner now issues `actql-local-computation-semantics/0.1`
 for a source-free Unit from its Unit Definition, local used values, contract
 closure, empty observation set, and selected policy. The installed Host bridge
 can obtain this owner and tests distinguish it from the Run-bound Invocation.
+The checked member-to-Mapping lookup also lives in that common owner; the Node
+bridge only forwards the request. A repeated check can reproduce the local
+Invocation CID, but cannot reuse the first check's opaque owner.
 It is not yet an `effect_identity_cid`: the normal Preview still receives
 example Effect identity CIDs. The next shared connection must project the
 exact local Result Artifact from authenticated completed Stage evidence, then
@@ -54,6 +57,13 @@ silently substituted for the local semantic Result Artifact. Foreign member,
 source, or Invocation evidence must fail before the first write. Units with
 external observations still need their own completed observation owner and
 must not use the source-free issuer.
+
+The registered local Result Artifact currently points at the external
+Result-definition role, while the only product Result Definition contract is
+Run-bound to a Program Definition. The normative local projection explicitly
+excludes that Run-bound definition. The local definition's 0.1 schema and
+typed issuance therefore need a coordinated contract decision before the
+Effect identity can use the completed Stage Result without mislabeling it.
 
 The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
