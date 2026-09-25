@@ -106,6 +106,78 @@ test "publication request and attempt are issued from admitted intent" {
 }
 
 ///|
+fn committed_content_test_index(
+  attempt_cid : String,
+  receipt_cid : String,
+  binding_cid : String,
+  committed_at : String,
+) -> PublicationContract {
+  let common = ordering_test_cid("1")
+  let body = "{\"version\":\"actql-public-index-entry/0.1\"," +
+    "\"tenant_id\":\"tenant-a\",\"authority_scope_cid\":\"" +
+    common +
+    "\",\"run_definition_cid\":\"" +
+    common +
+    "\",\"invocation_cid\":\"" +
+    common +
+    "\",\"result_manifest_cid\":\"" +
+    common +
+    "\",\"run_receipt_cid\":\"" +
+    receipt_cid +
+    "\",\"captured_run_cid\":\"" +
+    common +
+    "\",\"durable_result_binding_cids\":[\"" +
+    binding_cid +
+    "\"],\"publication_request_cid\":\"" +
+    common +
+    "\",\"publication_attempt_cid\":\"" +
+    attempt_cid +
+    "\",\"committed_at\":\"" +
+    committed_at +
+    "\"}"
+  seal_publication_contract("public_index_entry", body, 8192, 256, 12).unwrap()
+}
+
+///|
+test "commit retries cannot relabel final receipt or Result custody" {
+  let first = committed_content_test_index(
+    ordering_test_cid("2"),
+    ordering_test_cid("3"),
+    ordering_test_cid("4"),
+    "2026-09-18T00:00:00.000Z",
+  )
+  let retry = committed_content_test_index(
+    ordering_test_cid("5"),
+    ordering_test_cid("3"),
+    ordering_test_cid("4"),
+    "2026-09-18T00:01:00.000Z",
+  )
+  assert_true(public_index_same_committed_content(first, retry))
+  assert_true(
+    !public_index_same_committed_content(
+      first,
+      committed_content_test_index(
+        ordering_test_cid("5"),
+        ordering_test_cid("6"),
+        ordering_test_cid("4"),
+        "2026-09-18T00:01:00.000Z",
+      ),
+    ),
+  )
+  assert_true(
+    !public_index_same_committed_content(
+      first,
+      committed_content_test_index(
+        ordering_test_cid("5"),
+        ordering_test_cid("3"),
+        ordering_test_cid("6"),
+        "2026-09-18T00:01:00.000Z",
+      ),
+    ),
+  )
+}
+
+///|
 test "publication issuance rejects empty inventories and foreign Runs" {
   let run = manifest_test_run(ordering_test_cid("1"))
   let definition = result_definition_contract(

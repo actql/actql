@@ -1423,6 +1423,15 @@ pub fn strategy_issue_public_index_entry(
 }
 
 ///|
+#export_name("strategyPublicIndexSameCommittedContent")
+pub fn strategy_public_index_same_committed_content(
+  committed : @publication.PublicationContract,
+  candidate : @publication.PublicationContract,
+) -> Bool {
+  @publication.public_index_same_committed_content(committed, candidate)
+}
+
+///|
 #export_name("strategyIssuePublicationRecord")
 pub fn strategy_issue_publication_record(
   attempt : @publication.PublicationContract,

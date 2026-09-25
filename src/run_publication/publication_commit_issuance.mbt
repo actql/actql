@@ -409,6 +409,39 @@ pub fn issue_public_index_entry(
 }
 
 ///|
+/// A later publication attempt may observe the same committed content even
+/// though its attempt and commit time differ. Outcome, captured computation,
+/// and physical Result bindings must remain exact; a changed chain cannot be
+/// acknowledged as an idempotent commit.
+pub fn public_index_same_committed_content(
+  committed : PublicationContract,
+  candidate : PublicationContract,
+) -> Bool {
+  if committed.name != "public_index_entry" ||
+    candidate.name != "public_index_entry" {
+    return false
+  }
+  for
+    field in [
+      "tenant_id", "authority_scope_cid", "run_definition_cid", "invocation_cid",
+      "result_manifest_cid", "run_receipt_cid", "captured_run_cid", "publication_request_cid",
+    ] {
+    guard contract_string(committed, field) is Some(value) &&
+      contract_string(candidate, field) == Some(value) else {
+      return false
+    }
+  }
+  match
+    (
+      contract_string_array(committed, "durable_result_binding_cids"),
+      contract_string_array(candidate, "durable_result_binding_cids"),
+    ) {
+    (Some(left), Some(right)) => left == right
+    _ => false
+  }
+}
+
+///|
 /// Derive the Store key for the one committed Manifest allowed for an exact
 /// tenant, authority scope, and Run Definition. The key deliberately excludes
 /// Invocation and attempt identities: changing either cannot create a second

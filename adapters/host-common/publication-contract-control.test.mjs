@@ -1141,6 +1141,10 @@ test('portable control validates Receipt and Captured Run references',
     request,
     attempt,
   }, '2026-09-18T00:00:02.000Z', limits);
+  assert.equal(control.publicIndexSameCommittedContent(
+    indexEntry, indexEntry), true);
+  assert.equal(control.publicIndexSameCommittedContent(
+    indexEntry, effectfulIndex), false);
   const effectfulEvidence = {
     ...finalChain,
     derivations: [derivation],
