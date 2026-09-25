@@ -25,6 +25,39 @@ test "target observation binds the exact record before a guard exists" {
     target_observation_before_value_wire(observed),
     "{\"Optional_Value__c\":\"old\"}",
   )
+  let preview_row = prepare_observed_target_preview_row(update, observed, 1024).unwrap()
+  assert_eq(target_preview_row_target_wire(preview_row), "\"001000000000001\"")
+  assert_eq(
+    target_preview_row_guard_cid(preview_row),
+    target_observation_version_cid(observed),
+  )
+  assert_eq(
+    target_preview_row_before_wire(preview_row),
+    "{\"Optional_Value__c\":\"old\"}",
+  )
+  assert_eq(
+    target_preview_row_after_wire(preview_row),
+    "{\"Optional_Value__c\":\"value\"}",
+  )
+  assert_eq(
+    target_preview_row_changes_wire(preview_row),
+    target_preview_row_after_wire(preview_row),
+  )
+  let other_body = prepare_write_body(
+    update.projection,
+    @utf8.encode("{\"Optional_Value__c\":\"changed\"}"),
+    write_body_test_limits(),
+  ).unwrap()
+  let other_request = prepare_single_write_request(
+    other_body,
+    "v66.0",
+    RecordId("001000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_true(
+    prepare_observed_target_preview_row(other_request, observed, 1024)
+    is Err(ForeignTarget),
+  )
   let reordered = prepare_target_observation(
     update,
     200,

@@ -334,6 +334,38 @@ pub fn salesforce_target_observation_before_value_wire(
 }
 
 ///|
+/// Bind one update-side Preview row to the same request that yielded the
+/// target observation. The caller still verifies checked input and authority.
+#export_name("salesforcePrepareObservedPreviewRow")
+pub fn salesforce_prepare_observed_preview_row(
+  request : @catalog.SingleWriteRequest,
+  observation : @catalog.TargetObservation,
+  max_identity_bytes : Int,
+) -> @catalog.TargetPreviewRow raise SalesforceCatalogBridgeIssue {
+  match
+    @catalog.prepare_observed_target_preview_row(
+      request, observation, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise TargetObservation(issue)
+  }
+}
+
+///|
+#export_name("salesforceObservedPreviewRowFields")
+pub fn salesforce_observed_preview_row_fields(
+  value : @catalog.TargetPreviewRow,
+) -> Array[String] {
+  [
+    @catalog.target_preview_row_target_wire(value),
+    @catalog.target_preview_row_guard_cid(value),
+    @catalog.target_preview_row_before_wire(value),
+    @catalog.target_preview_row_after_wire(value),
+    @catalog.target_preview_row_changes_wire(value),
+  ]
+}
+
+///|
 #export_name("salesforceTargetObservationResponseSha256")
 pub fn salesforce_target_observation_response_sha256(
   value : @catalog.TargetObservation,
