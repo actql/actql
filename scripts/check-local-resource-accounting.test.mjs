@@ -207,11 +207,34 @@ test('unnest loses its bounded route when production evidence is removed', () =>
 });
 
 test('watermark loses its independent resource boundary with its fixture', () => {
+  for (const role of [
+    'watermark_fixed_work_workspace_exact_one_short',
+    'watermark_selected_work_workspace_exact_one_short',
+    'watermark_selected_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'watermark_rows');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA watermark_rows: ${role} fixture is missing`, 'u'));
+  }
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'watermark_rows');
-    route.boundary_tests = [];
-  }), /RelA watermark_rows: independent watermark resource evidence is missing/u);
+    delete route.selected_entrypoint;
+  }), /RelA watermark_rows: bounded selected watermark entrypoint is missing/u);
+  for (const role of [
+    'watermark_fixed_host_two_consumers',
+    'watermark_prefix_host_two_consumers',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'watermark_rows');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA watermark_rows: ${role} fixture is missing`, 'u'));
+  }
 });
 
 test('json pick loses its independent resource boundary with its fixture', () => {

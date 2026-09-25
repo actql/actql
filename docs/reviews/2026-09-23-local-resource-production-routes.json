@@ -1488,6 +1488,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_relation_provider"
+      },
       "boundary_tests": [
         {
           "role": "watermark_fixed_work_workspace_exact_one_short",
@@ -1495,6 +1499,38 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/watermark_scale_wbtest.mbt",
           "fixture": "watermark admits independently counted work and workspace"
+        },
+        {
+          "role": "watermark_selected_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_watermark_wbtest.mbt",
+          "fixture": "bounded watermark admits exact work and workspace limits"
+        },
+        {
+          "role": "watermark_selected_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_watermark_wbtest.mbt",
+          "fixture": "bounded watermark stops after output work without completion"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "watermark_fixed_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "fixed parameter watermark",
+          "case": "fixedWatermarkProgram"
+        },
+        {
+          "role": "watermark_prefix_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "prefix watermark",
+          "case": "prefixWatermarkProgram"
         }
       ]
     },

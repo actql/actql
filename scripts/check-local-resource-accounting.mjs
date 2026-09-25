@@ -472,9 +472,19 @@ for (const [index, route] of routeEntries.entries()) {
     !boundaryRoles.has('lag_empty_schema_workspace_exact_one_short')) {
     fail(`${label}: lag schema workspace evidence is missing`);
   }
-  if (route.family === 'RelA' && route.operation === 'watermark_rows' &&
-    !boundaryRoles.has('watermark_fixed_work_workspace_exact_one_short')) {
-    fail(`${label}: independent watermark resource evidence is missing`);
+  if (route.family === 'RelA' && route.operation === 'watermark_rows') {
+    if (route.selected_entrypoint?.symbol !== 'selected_relation_provider') {
+      fail(`${label}: bounded selected watermark entrypoint is missing`);
+    }
+    for (const role of [
+      'watermark_fixed_work_workspace_exact_one_short',
+      'watermark_selected_work_workspace_exact_one_short',
+      'watermark_selected_cancel_cleanup',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'RelA' && route.operation === 'json_pick' &&
     !boundaryRoles.has('json_pick_leaf_work_workspace_exact_one_short')) {
@@ -720,6 +730,16 @@ for (const [index, route] of routeEntries.entries()) {
       sourceText.includes(`['${item.fixture}', ${item.case},`);
     if (!namedCase && !tupleCase) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
+    }
+  }
+  if (route.family === 'RelA' && route.operation === 'watermark_rows') {
+    for (const role of [
+      'watermark_fixed_host_two_consumers',
+      'watermark_prefix_host_two_consumers',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
     }
   }
   if (route.family === 'RelA' && route.operation === 'top_k_by' &&
