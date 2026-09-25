@@ -186,6 +186,37 @@ pub fn client_values_host_compiled_plan_cid(
 }
 
 ///|
+pub(all) enum ClientValuesHostPublicationSnapshotIssue {
+  InvalidObservation
+  Projection(@publication.PublicationSnapshotIssue)
+}
+
+///|
+/// The caller must first establish the latest admitted record and perform an
+/// authoritative index query. An unknown query never means confirmed absence.
+#export_name("clientValuesHostProjectPublicationSnapshot")
+pub fn client_values_host_project_publication_snapshot(
+  record : @publication.PublicationContract?,
+  index_mode : Int,
+  index : @publication.PublicationContract?,
+) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue] {
+  let observed = match (index_mode, index) {
+    (0, None) => @publication.IndexConfirmedAbsent
+    (1, None) => @publication.IndexQueryUnknown
+    (2, Some(entry)) => @publication.IndexCommitted(entry)
+    _ => return Err(InvalidObservation)
+  }
+  let snapshot = match @publication.project_publication_snapshot(record, observed) {
+    Ok(value) => value
+    Err(issue) => return Err(Projection(issue))
+  }
+  Ok([
+    @publication.publication_snapshot_state_text(snapshot),
+    @publication.publication_snapshot_evidence_cid(snapshot).unwrap_or(""),
+  ])
+}
+
+///|
 /// In-process checked execution coordinates for the single Values node.
 /// The Site still needs an authorized candidate, grant and Run dispatch.
 #export_name("clientValuesHostPlanNodeId")

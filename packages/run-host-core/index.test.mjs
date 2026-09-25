@@ -10,6 +10,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueResultManifest,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
   issueDurableResultBinding,
+  projectPublicationSnapshot,
   inspectCanonicalResultRows,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
@@ -62,6 +63,49 @@ test('portable Host re-admits exact publication evidence', () => {
     definition.wire, {maxWireBytes: 0, maxNodes: 100, maxDepth: 10}),
   {name: 'TypeError', message: 'InvalidRunHostPublicationLimits'});
 });
+
+test('portable Host keeps publication absence and uncertainty distinct',
+  () => {
+    const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+    const fixed = value => `sha256:${value.repeat(64)}`;
+    const admit = (name, body, identityField) => {
+      const complete = {...body, [identityField]: cid(body)};
+      return admitPublicationContract(name, JSON.stringify(complete), limits);
+    };
+    assert.deepEqual(projectPublicationSnapshot(undefined, {kind: 'absent'}),
+      {state: 'not_started', evidenceCid: undefined});
+    assert.throws(() => projectPublicationSnapshot(undefined,
+      {kind: 'unknown'}), {code: 'RunHostPublicationSnapshotRejected'});
+    const record = admit('publication_record', {
+      version: 'actql-publication-record/0.1',
+      publication_attempt_cid: fixed('a'), sequence: 0,
+      state: 'publication_unknown',
+      observed_at: '2026-09-24T00:00:00.000Z', cleanup_owner_cids: [],
+    }, 'publication_record_cid');
+    assert.deepEqual(projectPublicationSnapshot(record, {kind: 'absent'}),
+      {state: 'publication_unknown', evidenceCid: record.cid});
+    assert.throws(() => projectPublicationSnapshot(record,
+      {kind: 'unknown'}), {code: 'RunHostPublicationSnapshotRejected'});
+    const index = admit('public_index_entry', {
+      version: 'actql-public-index-entry/0.1', tenant_id: 'tenant-a',
+      authority_scope_cid: fixed('b'), run_definition_cid: fixed('c'),
+      invocation_cid: fixed('d'), result_manifest_cid: fixed('e'),
+      run_receipt_cid: fixed('f'), captured_run_cid: fixed('0'),
+      durable_result_binding_cids: [fixed('1')],
+      publication_request_cid: fixed('2'),
+      publication_attempt_cid: fixed('a'),
+      committed_at: '2026-09-24T00:01:00.000Z',
+    }, 'public_index_entry_cid');
+    assert.deepEqual(projectPublicationSnapshot(record,
+      {kind: 'committed', entry: index}),
+    {state: 'succeeded', evidenceCid: index.cid});
+    assert.throws(() => projectPublicationSnapshot(undefined,
+      {kind: 'committed', entry: index}),
+    {code: 'RunHostPublicationSnapshotRejected'});
+    assert.throws(() => projectPublicationSnapshot(record,
+      {kind: 'committed', entry: record}),
+    {code: 'RunHostPublicationSnapshotRejected'});
+  });
 
 test('portable Host derives logical identity from exact ordered rows', () => {
   const limits = {maxWireBytes: 4096, maxNodes: 100, maxDepth: 16};

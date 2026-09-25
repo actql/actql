@@ -447,6 +447,28 @@ function publicationToken(contract) {
   return requireHandle(publicationContracts, contract?.token);
 }
 
+export function projectPublicationSnapshot(record, index) {
+  if (index === null || typeof index !== 'object' ||
+      Array.isArray(index) ||
+      !['absent', 'unknown', 'committed'].includes(index.kind) ||
+      Object.keys(index).sort().join('\0') !==
+        (index.kind === 'committed' ? 'entry\0kind' : 'kind')) {
+    throw new TypeError('InvalidRunHostIndexObservation');
+  }
+  const mode = index.kind === 'absent' ? 0 :
+    index.kind === 'unknown' ? 1 : 2;
+  const facts = checked(owner.clientValuesHostProjectPublicationSnapshot(
+    record === undefined ? undefined : publicationToken(record), mode,
+    mode === 2 ? publicationToken(index.entry) : undefined),
+  'RunHostPublicationSnapshotRejected');
+  if (!Array.isArray(facts) || facts.length !== 2 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostPublicationSnapshot');
+  }
+  return Object.freeze({state: facts[0],
+    evidenceCid: facts[1] || undefined});
+}
+
 function nonnegativeCount(value) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) {
     throw new TypeError('InvalidRunHostPublicationCount');

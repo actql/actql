@@ -38,6 +38,20 @@ export interface PublicationContract {
   readonly wire: string;
 }
 
+export type PublicationIndexObservation =
+  | Readonly<{kind: 'absent'}>
+  | Readonly<{kind: 'unknown'}>
+  | Readonly<{kind: 'committed'; entry: PublicationContract}>;
+
+/** Projection only; the caller proves the latest record and index query. */
+export function projectPublicationSnapshot(
+  record: PublicationContract | undefined,
+  index: PublicationIndexObservation): Readonly<{
+    state: 'not_started' | 'preparing' | 'committing' |
+      'publication_unknown' | 'succeeded' | 'failed' | 'cancelled';
+    evidenceCid: string | undefined;
+  }>;
+
 export interface RunEvidence {
   readonly token: {readonly [runEvidenceBrand]: true};
   readonly cid: string;
