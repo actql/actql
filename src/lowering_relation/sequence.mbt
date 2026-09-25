@@ -602,17 +602,17 @@ pub(all) enum SourceFreeValuesPipelineIssue {
 }
 
 ///|
-/// Emit the canonical source-free AoA pipeline for one checked REL.values
-/// step. This is compilation material, not an admitted fragment or Plan.
+/// Emit the canonical source-free AoA pipeline rooted in checked REL.values.
+/// Later steps in the same task remain part of this compilation identity.
 pub fn emit_source_free_values_pipeline(
   value : PreparedSequence,
   out : @encode.Writer,
 ) -> Result[Unit, SourceFreeValuesPipelineIssue] raise @encode.EncodeFailure {
-  if value.steps.length() != 1 {
+  if value.steps.is_empty() {
     return Err(NotSingleValues)
   }
   guard value.steps[0] is ValuesStep(_) else { return Err(NotSingleValues) }
-  let output = value.owner.prepared.nodes[0].id
+  let output = value.owner.prepared.nodes[value.steps.length() - 1].id
   @encode.begin_object(out)
   @encode.key(out, "output")
   @encode.string_value(out, output)

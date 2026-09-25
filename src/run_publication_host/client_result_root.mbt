@@ -81,7 +81,11 @@ pub fn issue_prepared_client_direct_values_result_root(
     return Err(RequiresResultTransformation)
   }
   guard @strategy.graph_task_owner(graph, task) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+    )
+    is Some(node) else {
     return Err(RequiresResultTransformation)
   }
   let task_schema = @lower.node_output_schema(node)

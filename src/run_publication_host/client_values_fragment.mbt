@@ -81,7 +81,11 @@ pub fn issue_prepared_client_values_fragment(
     Err(issue) => return Err(AoA(issue))
   }
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+    )
+    is Some(node) else {
     return Err(MissingCheckedOutput)
   }
   let node_id = @lower.node_id(node)

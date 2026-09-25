@@ -462,7 +462,11 @@ pub fn issue_prepared_client_values_output_schema(
     Err(issue) => return Err(Pipeline(issue))
   }
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) else {
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+    )
+    is Some(node) else {
     return Err(MissingCheckedOutput)
   }
   match
@@ -581,13 +585,23 @@ pub fn prepare_client_task_sequence(
   limits : @lower.SequenceLimits,
   max_work : Int,
   max_entries : Int,
+  prepared_sequence? : @lower.PreparedSequence? = None,
 ) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
   guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
-  let sequence = match @lower.prepare_sequence(owner, limits) {
-    Ok(result) => result
-    Err(issue) => return Err(Sequence(issue))
+  let sequence = match prepared_sequence {
+    Some(result) => {
+      if !physical_equal(@lower.sequence_owner(result), owner) {
+        return Err(MissingTask)
+      }
+      result
+    }
+    None =>
+      match @lower.prepare_sequence(owner, limits) {
+        Ok(result) => result
+        Err(issue) => return Err(Sequence(issue))
+      }
   }
   let count = @lower.sequence_count(sequence)
   if count == 0 {

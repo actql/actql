@@ -8,7 +8,7 @@ pub(all) enum ClientBoundTemplateIssue {
 
 ///|
 /// Issue the source-free Bound Invocation Template from one checked Program.
-/// This only covers one direct Values step without opaque bindings or required
+/// This covers one Values-rooted task without opaque bindings or required
 /// profiles.
 /// Plan issuance still needs physical contract and complete fact admission.
 pub fn issue_prepared_source_free_client_bound_template(
@@ -44,7 +44,7 @@ pub fn issue_prepared_source_free_client_bound_template(
     return Err(UnsupportedPipeline)
   }
   let steps = @canonical.array_values(steps)
-  if steps.length() != 1 {
+  if steps.is_empty() {
     return Err(UnsupportedPipeline)
   }
   guard @canonical.object_field(steps[0], "op")

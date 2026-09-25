@@ -224,7 +224,7 @@ pub fn prepare_client_request_identity(PreparedClientProgram, String, String, St
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 
-pub fn prepare_client_task_sequence(PreparedClientProgram, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
+pub fn prepare_client_task_sequence(PreparedClientProgram, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_effect_free_client_program(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
 

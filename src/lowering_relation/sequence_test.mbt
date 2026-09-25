@@ -28,12 +28,15 @@ test "source-free Values emits one complete AoA pipeline" {
     expression_pipeline(",{\"derive\":{}}"),
     sequence_limits(),
   ).unwrap()
-  let rejected_writer = @encode.writer(10000, 1000, 100)
+  let chained_writer = @encode.writer(10000, 1000, 100)
   assert_true(
     @lowering_relation.emit_source_free_values_pipeline(
-      multiple, rejected_writer,
+      multiple, chained_writer,
     )
-    is Err(@lowering_relation.NotSingleValues),
+    is Ok(_),
+  )
+  assert_true(
+    @encode.finish(chained_writer).contains("\"output\":\"derive_1\""),
   )
 }
 
