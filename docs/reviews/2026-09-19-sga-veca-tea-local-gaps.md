@@ -154,6 +154,13 @@ provider, including a same-Stage Values-to-Unpivot handoff; a Host timer
 exercises in-flight stop and cleanup. The providerless
 whole-sequence lane and long nested value checks remain unassured, so this
 route is not counted as fully bounded.
+The selected `unnest` route now expands one admitted item per bounded resume
+step while retaining inner/outer, NULL, index, and source-order semantics.
+Three-target fixtures cover quantum-one output, exact and one-short empty
+metadata and work, output ceilings, and cancellation after emitted work.
+The standard Host exercises separate-Stage and same-Stage two-consumer paths
+and a timer-delivered cancellation. Providerless compound sequences and
+deep-value checks are still outside this path assurance.
 The `lag` evaluator likewise reserves its output-name entries before copying
 the input names. An empty-input fixture derives eleven simultaneously live
 slots from the checked partition/order terms and schema widths, and rejects

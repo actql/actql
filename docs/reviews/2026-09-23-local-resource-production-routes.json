@@ -1616,6 +1616,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/unnest_provider.mbt",
+        "symbol": "unnest_provider"
+      },
       "boundary_tests": [
         {
           "role": "unnest_fixed_sequence_work_exact_one_short",
@@ -1637,6 +1641,66 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "reshape admits input-name indices before field traversal"
+        },
+        {
+          "role": "unnest_bounded_quantum_output",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest retains item order and outer indexed rows"
+        },
+        {
+          "role": "unnest_bounded_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest stops after output work without partial completion"
+        },
+        {
+          "role": "unnest_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest admits exact empty metadata and rejects one short"
+        },
+        {
+          "role": "unnest_bounded_control_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest admits exact empty work and rejects one short"
+        },
+        {
+          "role": "unnest_bounded_output_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest rejects output overflow incrementally"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "unnest_standard_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unnest",
+          "case": "unnestProgram"
+        },
+        {
+          "role": "unnest_same_stage_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage unnest",
+          "case": "sameStageUnnestProgram"
+        },
+        {
+          "role": "unnest_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-unnest-in-flight"
         }
       ]
     },

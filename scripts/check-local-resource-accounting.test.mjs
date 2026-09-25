@@ -162,6 +162,40 @@ test('unpivot loses its bounded route when production evidence is removed', () =
   }
 });
 
+test('unnest loses its bounded route when production evidence is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'unnest');
+    delete route.selected_entrypoint;
+  }), /RelA unnest: bounded selected unnest entrypoint is missing/u);
+  for (const role of [
+    'unnest_bounded_quantum_output',
+    'unnest_bounded_cancel_cleanup',
+    'unnest_bounded_workspace_exact_one_short',
+    'unnest_bounded_control_work_exact_one_short',
+    'unnest_bounded_output_limit',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'unnest');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA unnest: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'unnest_standard_host_two_consumers',
+    'unnest_same_stage_host_two_consumers',
+    'unnest_in_flight_host_timer',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'unnest');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA unnest: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('watermark loses its independent resource boundary with its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&
