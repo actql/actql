@@ -19,6 +19,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
   orgId = '00D000000000001EAA',
   loseWriteReplyOnce = false,
+  rateLimitWriteOnce = false,
   collectionPartial = true,
   writeOperation = 'update',
 }) {
@@ -43,6 +44,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   ]);
   const seen = [];
   let loseReply = loseWriteReplyOnce;
+  let rateLimitReply = rateLimitWriteOnce;
   let observedName = 'before';
   let nameUpdateable = true;
   const server = createServer({cert, key}, (request, response) => {
@@ -101,6 +103,13 @@ export async function openSalesforceEffectSiteFixture(t, {
           request.socket.destroy();
           return;
         }
+        if (rateLimitReply) {
+          rateLimitReply = false;
+          response.writeHead(403, {'content-type': 'application/json'});
+          response.end(JSON.stringify([{message: 'Request limit exceeded',
+            errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
+          return;
+        }
         const sequence = seen.filter(item => item.method === 'POST').length;
         response.writeHead(201, {'content-type': 'application/json'});
         response.end(JSON.stringify({id: `a0012345678901${sequence}`,
@@ -118,6 +127,13 @@ export async function openSalesforceEffectSiteFixture(t, {
         if (loseReply) {
           loseReply = false;
           request.socket.destroy();
+          return;
+        }
+        if (rateLimitReply) {
+          rateLimitReply = false;
+          response.writeHead(403, {'content-type': 'application/json'});
+          response.end(JSON.stringify([{message: 'Request limit exceeded',
+            errorCode: 'REQUEST_LIMIT_EXCEEDED'}]));
           return;
         }
         if (writeOperation === 'upsert') {
