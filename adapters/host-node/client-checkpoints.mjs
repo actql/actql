@@ -9,7 +9,8 @@
 // Client. No second approval state machine lives here.
 import {createHash, createPublicKey, createPrivateKey, randomUUID, sign,
   verify} from 'node:crypto';
-import {mkdir, open as openFile, readFile, rename} from 'node:fs/promises';
+import {mkdir, open as openFile, readFile, readdir, rename} from
+  'node:fs/promises';
 import {join} from 'node:path';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
@@ -76,7 +77,8 @@ export async function installRemoteCheckpoints({root, tenantId,
   }
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, checkpointTtlMs = 24 * 60 * 60 * 1000,
-    leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES} = authorization;
+    leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES,
+    resumeAfterAnswer = true} = authorization;
   const trusted = trustedReviewers(reviewers);
   const readers = principals(reviewReaders, 'InvalidReviewReaders');
   const answerers = new Set([...trusted.values()].map(item => item.principalId));
@@ -85,7 +87,8 @@ export async function installRemoteCheckpoints({root, tenantId,
   if (!Number.isSafeInteger(checkpointTtlMs) || checkpointTtlMs < 1000 ||
       !Number.isSafeInteger(leaseMs) || leaseMs < 1000 ||
       !Number.isSafeInteger(maxReviewBytes) || maxReviewBytes < 1 ||
-      maxReviewBytes > 1024 * 1024) {
+      maxReviewBytes > 1024 * 1024 ||
+      typeof resumeAfterAnswer !== 'boolean') {
     fail('InvalidRemoteHostAuthorization');
   }
   const state = join(root, 'checkpoints');
@@ -119,25 +122,30 @@ export async function installRemoteCheckpoints({root, tenantId,
   const indexPath = id => join(heldIndex, `${id}.json`);
   // The request ID of a held prepare attempt (not private: lookups are keyed
   // by it). Written durably before the Checkpoint is persisted.
-  async function recordHeld(prepareAttemptId, requestId) {
+  // After the resumed Run exists the record also names its Run id and
+  // RunRef, so a later Host can settle the journal Run and its evidence.
+  async function recordHeld(prepareAttemptId, requestId, created) {
     const temporary = `${indexPath(prepareAttemptId)}.${process.pid}.tmp`;
     const handle = await openFile(temporary, 'w', 0o600);
     try {
       await handle.writeFile(JSON.stringify({version:
         'actql-remote-held-request/0.1', prepare_attempt_id: prepareAttemptId,
-      request_id: requestId}));
+      request_id: requestId, ...(created === undefined ? {} :
+        {run_id: created.runId, ref: created.ref})}));
       await handle.sync();
     } finally { await handle.close(); }
     await rename(temporary, indexPath(prepareAttemptId));
   }
-  async function heldRequestId(prepareAttemptId) {
+  async function heldRecord(prepareAttemptId) {
     try {
       const record = JSON.parse(await readFile(indexPath(prepareAttemptId),
         'utf8'));
       return record.prepare_attempt_id === prepareAttemptId &&
-        typeof record.request_id === 'string' ? record.request_id : undefined;
+        typeof record.request_id === 'string' ? record : undefined;
     } catch { return undefined; }
   }
+  const heldRequestId = async prepareAttemptId =>
+    (await heldRecord(prepareAttemptId))?.request_id;
 
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime: await loadCheckpointRuntime(),
@@ -368,6 +376,24 @@ export async function installRemoteCheckpoints({root, tenantId,
   let retry;
   let closed = false;
   let resumeContinuation;
+  let observeRun;
+  // Settle journal Runs of resumed requests whose Run already ended (for
+  // example when the Host stopped before recording the end).
+  async function settleRuns() {
+    if (observeRun === undefined) return;
+    let names;
+    try { names = await readdir(heldIndex); } catch { return; }
+    for (const name of names.filter(item => item.endsWith('.json'))) {
+      const record = await heldRecord(name.slice(0, -'.json'.length));
+      if (record?.run_id === undefined ||
+          journal.getRunState(record.run_id)?.status !== 'running') continue;
+      let state;
+      try { state = await observeRun(record.ref); } catch { continue; }
+      if (TERMINAL_RUNS.has(state?.status)) {
+        journal.finishRun(record.run_id, {status: state.status});
+      }
+    }
+  }
   async function resumeOne(prepareAttemptId) {
     const claimant = `remote-host-${process.pid}-${randomUUID()}`;
     let claimed;
@@ -440,8 +466,13 @@ export async function installRemoteCheckpoints({root, tenantId,
             return admission.reconcile(identity);
           }
         },
-        complete(runId) {
+        // Completes the intent with the created Run (synchronously, so the
+        // caller starts its dispatch without an intervening await) and
+        // returns the durable record write of its RunRef.
+        complete(runId, ref) {
           journal.completeResume(claim, {run: {runId, status: 'running'}});
+          return recordHeld(prepareAttemptId, captured.requestId,
+            {runId, ref});
         },
         renew() { journal.renewResume(claim, leaseMs); },
       });
@@ -467,6 +498,7 @@ export async function installRemoteCheckpoints({root, tenantId,
           if (closed) break;
           if (await resumeOne(id) === 'busy') busy = true;
         }
+        await settleRuns();
         await evidence.settle();
       } finally {
         sweeping = undefined;
@@ -655,17 +687,23 @@ export async function installRemoteCheckpoints({root, tenantId,
               .map(key => [key, result[key]]));
         });
       }
-      // The answer is stored; resuming is this Host's separate work.
-      if (results.some(result => result.status === 'committed' &&
-          result.decision === 'approved')) void sweep();
+      // The answer is stored; resuming is this Host's separate work. A Host
+      // that only records answers leaves the durable intent to the next
+      // Host start (for example a separate executing Host process).
+      if (resumeAfterAnswer && results.some(result =>
+        result.status === 'committed' && result.decision === 'approved')) {
+        void sweep();
+      }
       return Object.freeze({results: results.map(item =>
         Object.freeze(item))});
     },
 
     // Install the continuation that re-enters Run acceptance for an approved
-    // held request, then sweep once (Host start).
-    start(continue_) {
+    // held request and the Run observation used to settle ended Runs, then
+    // sweep once (Host start).
+    start(continue_, observe) {
       resumeContinuation = continue_;
+      observeRun = observe;
       return sweep();
     },
     sweep,

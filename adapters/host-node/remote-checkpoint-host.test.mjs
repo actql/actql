@@ -213,7 +213,13 @@ test('a held request is reviewed, answered and resumed by the Host',
       return lookup.kind === 'found' ? lookup : undefined;
     });
     const execution = await client.attach(found.ref);
-    assert.equal((await execution.wait()).status, 'succeeded');
+    // wait() returns the current state; a Client waits again until the Run
+    // is terminal.
+    assert.equal((await waitFor(async () => {
+      const state = await execution.wait();
+      return ['succeeded', 'failed', 'cancelled'].includes(state.status)
+        ? state : undefined;
+    })).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);
     assert.equal(host.dispatches(), 1);

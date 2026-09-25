@@ -372,7 +372,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     const held = {};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
-    startDispatch(submission, requested, accepted, held);
+    // A resumed request's journal Run (if any) ends with its dispatch.
+    startDispatch(submission, requested, accepted, held,
+      checkpoints === undefined ? undefined : status =>
+        checkpoints.runFinished(runIdOf(accepted), status));
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
@@ -401,9 +404,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       throw Object.assign(error, {admitted: true});
     }
     const runId = runIdOf(accepted);
-    complete(runId);
+    const recorded = complete(runId, accepted.ref);
     startDispatch(submission, requested, accepted, held,
       status => checkpoints.runFinished(runId, status));
+    await recorded;
   };
   const negotiate = () => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable', scopeRef: principalId,
@@ -449,7 +453,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     stateService, resultService, observeRun, wait, cancel,
     ...checkpointOperations,
   };
-  if (checkpoints !== undefined) await checkpoints.start(resumeHeld);
+  if (checkpoints !== undefined) {
+    await checkpoints.start(resumeHeld, ref =>
+      observeRun({ref, principalId}));
+  }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
     ...hostOperations, maxRowBytes: 1024 * 1024,
@@ -464,7 +471,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
 // {accountConfig | accountConfiguration, reviewers: [{keyId, reviewerId,
 // principalId, publicKey}], reviewReaders: [principal], hostKey: {keyId,
 // privateKey}, siteKey?, decide?, answeringAuthorities?, checkpointTtlMs?,
-// leaseMs?, maxReviewBytes?}. Without a configuration the Missing account
+// leaseMs?, maxReviewBytes?, resumeAfterAnswer?}. Approved requests are
+// resumed at Host start and, unless `resumeAfterAnswer` is false, after an
+// answer is stored. Without a configuration the Missing account
 // denies every request; nothing defaults to allow.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization}) {
