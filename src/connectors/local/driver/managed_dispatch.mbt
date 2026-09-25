@@ -335,6 +335,18 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       }
     }
   }
+  // A retained-only captured output has no cell view for the bounded row
+  // provider. Leave it to the existing import path until that representation
+  // has an admitted bounded reader.
+  if relation_inputs.any(input => {
+      match input {
+        OrdinaryRelationInput(read) =>
+          !@execution.producer_read_has_cell_access(read)
+        ManagedRelationInput(_) | SuppliedRelationInput(_) => false
+      }
+    }) {
+    return Ok(None)
+  }
   guard @strategy.graph_task_owner(
       @strategy.captured_dag_graph(installed.run),
       task,

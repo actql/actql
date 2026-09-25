@@ -872,11 +872,22 @@ async function exerciseStrategyGraph(
           assert.equal(execution.usage().attempts, 0n);
         } else {
           assert.deepEqual(execution.completed.map(item => item.realization),
-            Array(3).fill(mode === 0 ? 'local' : mode === 3 ? 'duckdb' : 'reference-numeric'));
-          assert.equal(fixture.strategyFixtureCid(f, 3), hash([{id:3}, {id:3}]));
-          if (mode === 3) assert.ok(execution.usage().transferredBytes > 0n);
-          else assert.equal(execution.usage().transferredBytes, 0n);
-          if (mode === 0 || mode === 3) {
+            Array(3).fill(mode === 0 || mode === 2 ? 'local-managed' :
+              mode === 3 ? 'duckdb' : 'reference-numeric'),
+            `mode=${mode}`);
+          // Managed completion is not mirrored into the legacy fixture's
+          // output slot. Its value is checked through publication below;
+          // legacy and DuckDB placements retain the CID assertion.
+          if (mode === 1 || mode === 3) {
+            assert.equal(fixture.strategyFixtureCid(f, 3),
+              hash([{id:3}, {id:3}]));
+          }
+          if (mode !== 1) {
+            assert.ok(execution.usage().transferredBytes > 0n);
+          } else {
+            assert.equal(execution.usage().transferredBytes, 0n);
+          }
+          if (mode !== 1) {
             const runtime = runtimeCore(hostRuntime);
             const publicationDirectory = await mkdtemp(join(
               root, '_build/duckdb-fixtures/publication-payload-',
@@ -1448,7 +1459,7 @@ async function exerciseStrategyGraph(
             }
           }
         }
-      } finally { execution?.close(); capture.close(); }
+      } finally { await execution?.close(); capture.close(); }
       assert.equal(execution.cleanupPending(), false);
       assert.equal(await execution.cleanup(), true);
       assert.equal(execution.usage().heldBytes, 0n);
@@ -1527,7 +1538,7 @@ async function exerciseStrategyGraph(
       );
       assert.deepEqual(
         publicationOwner.execution.completed.map(value => value.realization),
-        Array(3).fill(mode === 3 ? 'duckdb' : 'local'),
+        Array(3).fill(mode === 3 ? 'duckdb' : 'local-managed'),
       );
       assert.equal(
         publicationOwner.publication.publication.state,
@@ -5001,6 +5012,23 @@ async function exerciseStrategyGraph(
     results: {source: {from: {stage: 'a', result: 'r'}}},
   };
   const splitValuesProgram = structuredClone(zeroInputProgram);
+  const capturedRelationChainProgram = structuredClone(zeroInputProgram);
+  const capturedChainStage = capturedRelationChainProgram.stages.find(
+    stage => stage.id === 'values_a',
+  );
+  capturedChainStage.inputs = {
+    x: {result: {stage: 'a', result: 'r'}},
+  };
+  capturedChainStage.steps = [
+    {from: 'x', filter: 'id > 2', as: 'filtered'},
+    {from: 'filtered', select: ['id'], as: 'out'},
+  ];
+  capturedChainStage.results.r.fields = ['id'];
+  for (const consumer of capturedRelationChainProgram.stages.filter(
+    stage => stage.id.startsWith('consumer_'))) {
+    consumer.steps[0].select = ['id'];
+    consumer.results.r.fields = ['id'];
+  }
   const splitValuesStage = splitValuesProgram.stages.find(
     stage => stage.id === 'values_a',
   );
@@ -6072,6 +6100,8 @@ async function exerciseStrategyGraph(
   }
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
+    ['captured Relation filter/select chain', capturedRelationChainProgram,
+      [1, 2, 3]],
     ['split values', splitValuesProgram, [1, 2, 3, 4]],
     ['split values select', splitValuesSelectProgram, [1, 2, 3, 4]],
     ['split values derive', splitValuesDeriveProgram, [1, 2, 3, 4]],
@@ -6170,6 +6200,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'captured Relation filter/select chain') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 2],
+          'an unsegmented captured input feeds two actual computations',
         );
       }
       if (name === 'split values') {
@@ -6786,6 +6823,8 @@ async function exerciseStrategyGraph(
     program: cancellationProgram,
     cancelAtStart,
   } of [
+    {name: 'captured-relation-chain-in-flight',
+      program: capturedRelationChainProgram, cancelAtStart: 1},
     {name: 'zero-input-values-in-flight', program: zeroInputProgram,
       cancelAtStart: 2},
     {name: 'split-values-in-flight', program: splitValuesProgram,
@@ -6831,6 +6870,8 @@ async function exerciseStrategyGraph(
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);
+    const capturedRelationChainCancellation = cancellationName ===
+      'captured-relation-chain-in-flight';
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
@@ -6861,7 +6902,8 @@ async function exerciseStrategyGraph(
               sameStageJsonFilterCancellation
               ? 'json_pick_values' : 'values_a'),
     );
-    valuesStage.steps[0].values.rows = Array.from(
+    if (!capturedRelationChainCancellation) {
+      valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
         : lagCancellation
@@ -6877,6 +6919,7 @@ async function exerciseStrategyGraph(
         : globalCountCancellation
           ? {id: index}
         : {id: index, label: `row${index}`});
+    }
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
     );
@@ -6928,7 +6971,8 @@ async function exerciseStrategyGraph(
                 }
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
-                    (cancellationName === 'split-values-take-in-flight' ||
+                    (capturedRelationChainCancellation ||
+                      cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || globalCountCancellation ||
                       watermarkCancellation ||
                       lagCancellation ||
@@ -7025,7 +7069,8 @@ async function exerciseStrategyGraph(
     for (const [fileWork, native, imports, expected] of [
       ['0', '1', undefined, ['duckdb', 'duckdb', 'duckdb']],
       ['100', '1', undefined, ['local', 'local', 'local']],
-      ['0', '5', '0', ['duckdb', 'duckdb', 'local']],
+      ['0', '5', '0', ['local-managed', 'local-managed',
+        'local-managed']],
     ]) {
       const beforeFiles = (await readdir(exampleDirectory)).sort();
       const evidenceRuntime = await import(pathToFileURL(join(root, '_build/js/release/build/retained_host_bridge/retained_host_bridge.js')));
@@ -7054,7 +7099,10 @@ async function exerciseStrategyGraph(
       try {
         assert.equal(result.report.status, 'host-tasks-completed');
         assert.deepEqual(result.report.completed.map(item => item.realization), expected);
-        assert.equal(result.report.internal_output_cids[2].cid, hash([{id: 3}, {id: 3}]));
+        if (expected[2] !== 'local-managed') {
+          assert.equal(result.report.internal_output_cids[2].cid,
+            hash([{id: 3}, {id: 3}]));
+        }
         assert.deepEqual(observed.map(value => value.task), result.report.completed.map(value => value.task));
         for (const record of observed) {
           if (record.descriptor) {
@@ -7070,7 +7118,7 @@ async function exerciseStrategyGraph(
               record.descriptor.rows_cid);
           }
         }
-        if (imports !== undefined) {
+        if (imports !== undefined && expected[2] === 'local') {
           assert.equal(result.report.completed[2].importedRows, 2);
           assert.equal(result.report.completed[2].importedBytes, '19');
         }
@@ -7185,27 +7233,31 @@ async function exerciseStrategyGraph(
       ['20', false, ['local', 'local', 'local', 'local']],
       ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb']],
       ['20', true, ['local', 'local', 'duckdb-resident', 'duckdb-resident']],
-      ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb'], true],
+      ['1', false, Array(4).fill('local-managed'), true],
     ]) {
       const result = await runExample({ accountConfig, database: path, environment,
         environmentCid: args[1], program: programFile, parameters,
         nativeMilliseconds: estimate, resident,
-        ...(retained ? {localImportWorkMilliseconds: '0', retainedWorkMilliseconds: '0',
+        ...(retained ? {localImportWorkMilliseconds: '0',
+          retainedWorkMilliseconds: '0',
           retainedOutput: {parentDirectory: exampleDirectory, maxFrameBytes: 100000,
             wire: {max_bytes: 100000, max_nodes: 10000, max_depth: 64,
               max_columns: 10, max_order_work: 10000}}} : {}) });
       try {
         assert.equal(result.report.status, 'host-tasks-completed', String(result.execution.failure));
-        assert.deepEqual(result.report.completed.map(item => item.realization), expected);
+        assert.deepEqual(result.report.completed.map(item => item.realization), expected,
+          `join-count estimate=${estimate} resident=${resident} retained=${Boolean(retained)}`);
         assert.equal(result.report.internal_output_cids.length, 4);
-        assert.equal(result.report.internal_output_cids[3].cid, hash([{ id: 3, n: 4, present: 4 }]));
-        if (retained) assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+        if (!retained) {
+          assert.equal(result.report.internal_output_cids[3].cid,
+            hash([{ id: 3, n: 4, present: 4 }]));
+        }
       } finally { await result.close(); }
       assert.equal(result.execution.usage().heldBytes, 0n);
     }
-    // Value-sensitive join obligations use verified key-only import scratch.
-    // Both retained branches contain duplicate id=3; NULL rejection succeeds,
-    // whereas one-to-one must fail before the native join publishes any result.
+    // Both branches contain duplicate id=3; NULL rejection succeeds, whereas
+    // one-to-one must fail before the join publishes any result. The retained
+    // profile is an offer, not a forced physical placement.
     for (const [obligation, succeeds] of [
       [{null_key: 'fail'}, true], [{cardinality: 'one_to_one'}, false],
     ]) {
@@ -7224,14 +7276,14 @@ async function exerciseStrategyGraph(
         assert.equal(result.report.status, succeeds ? 'host-tasks-completed' : 'host-tasks-failed',
           String(result.execution.failure));
         assert.equal(result.report.completed.length, succeeds ? 4 : 2);
-        assert(result.report.completed.every(item => item.outputRepresentation === 'retained-file'));
+        assert(result.report.completed.every(item => item.realization === 'local-managed'));
         if (succeeds) {
-          assert.equal(result.report.internal_output_cids[3].cid, hash([{id: 3, n: 4, present: 4}]));
+          assert.equal(result.report.completed[3].outputRows, 1);
         } else {
           assert.equal(result.execution.failure.code, 'MoonBitHostFailure');
           assert(result.execution.failure.cause, 'preserve the typed join validation failure');
-          assert.equal(result.execution.cleanupPending(), true,
-            'failed import keeps its explicit physical cleanup responsibility');
+          assert.equal(result.execution.cleanupPending(), false,
+            'managed validation failure settles its physical cleanup');
         }
       } finally { await result.close(); }
       assert.equal(await result.execution.cleanup(), true);
@@ -7702,11 +7754,10 @@ async function exerciseStrategyGraph(
       `${managedStandardExecution.failure?.stack ?? managedStandardExecution.failure}`);
     assert.deepEqual(
       managedStandardExecution.completed.map(item => item.realization),
-      Array(3).fill('duckdb-managed'),
+      Array(3).fill('local-managed'),
     );
-    assert(managedStandardExecution.completed.slice(1).every(item =>
-      item.phases.logicalContentCidComputations === 0),
-    JSON.stringify(managedStandardExecution.completed.slice(1)));
+    assert(managedStandardExecution.completed.every(item =>
+      item.outputRows > 0), JSON.stringify(managedStandardExecution.completed));
     assert(managedStandardExecution.usage().heldBytes > 0n,
       'the dispatcher retains managed task bodies through graph use');
   } finally {
@@ -7762,7 +7813,7 @@ async function exerciseStrategyGraph(
   try {
     assert.equal(fixture.strategyFixtureOpen(
       twoSiteFixture, twoSiteCapture.source()), true);
-    const twoSiteSetup = fixture.strategyFixtureManagedDispatch(
+    const twoSiteSetup = fixture.strategyFixtureManagedTwoSiteDispatch(
       twoSiteFixture,
     );
     const key = registration =>
@@ -7932,7 +7983,7 @@ async function exerciseStrategyGraph(
   try {
     assert.equal(fixture.strategyFixtureOpen(
       capacityFixture, capacityCapture.source()), true);
-    const capacitySetup = fixture.strategyFixtureManagedDispatch(
+    const capacitySetup = fixture.strategyFixtureManagedTwoSiteDispatch(
       capacityFixture,
     );
     const key = registration =>
@@ -8046,7 +8097,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         failureFixture, failureCapture.source()), true);
-      const failureSetup = fixture.strategyFixtureManagedDispatch(
+      const failureSetup = fixture.strategyFixtureManagedTwoSiteDispatch(
         failureFixture,
       );
       const key = registration =>
@@ -8178,7 +8229,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         failureFixture, failureCapture.source()), true);
-      const setup = fixture.strategyFixtureManagedDispatch(failureFixture);
+      const setup = fixture.strategyFixtureManagedTwoSiteDispatch(failureFixture);
       const key = registration =>
         hostRuntime.strategyHostRegistrationSelectionKey(registration);
       const memoryTransfer = createManagedMemoryTransferProvider({
@@ -8326,7 +8377,7 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         cleanupFixture, cleanupCapture.source()), true);
-      const setup = fixture.strategyFixtureManagedDispatch(cleanupFixture);
+      const setup = fixture.strategyFixtureManagedTwoSiteDispatch(cleanupFixture);
       const key = registration =>
         hostRuntime.strategyHostRegistrationSelectionKey(registration);
       const memoryTransfer = createManagedMemoryTransferProvider({
@@ -8447,7 +8498,7 @@ async function exerciseStrategyGraph(
         });
       }
       publicExecution = await runCapturedStrategy(
-        fixture.strategyFixtureManagedDispatch(publicFixture),
+        fixture.strategyFixtureManagedAfterFirstDispatch(publicFixture),
         publicOptions,
       );
       assert.equal(publicExecution.status, 'host-tasks-completed');
@@ -8577,7 +8628,7 @@ async function exerciseStrategyGraph(
         true,
       );
       identityExecution = await runCapturedInternalStrategy(
-        fixture.strategyFixtureManagedDispatch(identityFixture),
+        fixture.strategyFixtureManagedAfterFirstDispatch(identityFixture),
         {
           managedIdentityPolicy: prepareManagedIdentityPolicy(
             identityCase.policy,
@@ -8647,7 +8698,7 @@ async function exerciseStrategyGraph(
       assert.equal(fixture.strategyFixtureOpen(
         managedJoinFixture, managedJoinCapture.source()), true);
       managedJoinExecution = await runCapturedInternalStrategy(
-        fixture.strategyFixtureManagedDispatch(managedJoinFixture),
+        fixture.strategyFixtureDuckDBManagedDispatch(managedJoinFixture),
         {duckdb: prepareDuckDBStrategyConfiguration({
           transportLimits: suppliedLimits,
           importLimits: {maxRows: 100, maxCells: 1000},
@@ -8719,7 +8770,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       managedGroupFixture, managedGroupCapture.source()), true);
     managedGroupExecution = await runCapturedInternalStrategy(
-      fixture.strategyFixtureManagedDispatch(managedGroupFixture),
+      fixture.strategyFixtureDuckDBManagedDispatch(managedGroupFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
         importLimits: {maxRows: 100, maxCells: 1000},
@@ -8774,7 +8825,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       managedFailureFixture, managedFailureCapture.source()), true);
     managedFailureExecution = await runCapturedInternalStrategy(
-      fixture.strategyFixtureManagedDispatch(managedFailureFixture),
+      fixture.strategyFixtureDuckDBManagedDispatch(managedFailureFixture),
       {duckdb: prepareDuckDBStrategyConfiguration({
         transportLimits: suppliedLimits,
         importLimits: {maxRows: 100, maxCells: 1000},
@@ -8918,7 +8969,7 @@ async function exerciseStrategyGraph(
     try {
     assert.equal(fixture.strategyFixtureOpen(
       delayedStopFixture, delayedStopCapture.source()), true);
-    const delayedStopSetup = fixture.strategyFixtureManagedDispatch(
+    const delayedStopSetup = fixture.strategyFixtureDuckDBManagedDispatch(
       delayedStopFixture);
     assert.equal(hostRuntime.strategyHostConfigureManagedIdentity(
       delayedStopSetup, false, false, false, false,

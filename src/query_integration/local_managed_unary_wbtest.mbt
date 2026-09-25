@@ -568,6 +568,194 @@ test "ordinary Local filters resume within quantum" {
 }
 
 ///|
+test "ordinary captured Relation chain feeds two bounded consumers" {
+  let (run, issuer) = captured_graph_fixture(
+    dag_two_consumers_of_compute_a=true,
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 4)
+  assert_eq(@strategy.graph_task_selected_step(graph, 1), None)
+  assert_eq(@strategy.graph_data_at(graph, 1).unwrap().producer, 1)
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 256,
+    },
+    None,
+  ).unwrap()
+  let owner = @strategy.graph_task_owner(graph, 1).unwrap()
+  let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      [@local_driver.local_managed_captured_relation_input()],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  assert_eq(operations.inputs.length(), 0)
+  let mut polls = 0
+  while polls < 1000 {
+    polls += 1
+    let observation = (operations.advance)(1).unwrap()
+    assert_true(observation.work <= 1L)
+    if observation.complete {
+      break
+    }
+  }
+  assert_true(polls > 2 && polls < 1000)
+  assert_eq(local_managed_test_rows(operations), ["{\"id\":3}"])
+  let live = Ref(true)
+  (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
+    live.val
+  }).unwrap()
+  while true {
+    if (operations.advance_finalization)(1).unwrap().complete {
+      break
+    }
+  }
+  (operations.settle)().unwrap()
+  let completed = (operations.complete)(1, operations.storage_bytes, fn() {
+    live.val
+  }).unwrap()
+  assert_true(@execution.managed_completed_output_available(completed))
+  let first_live = Ref(true)
+  let first_advances = Ref(0)
+  let (first_ops, first) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [completed],
+    [["{\"id\":3}"]],
+    2,
+    first_live,
+    execution_quantum=1,
+    execution_advances=Some(first_advances),
+    require_provider=true,
+  )
+  let second_live = Ref(true)
+  let second_advances = Ref(0)
+  let (second_ops, second) = run_local_managed_test_task(
+    installed,
+    run,
+    3,
+    [completed],
+    [["{\"id\":3}"]],
+    3,
+    second_live,
+    execution_quantum=1,
+    execution_advances=Some(second_advances),
+    require_provider=true,
+  )
+  assert_true(first_advances.val > 2 && second_advances.val > 2)
+  assert_eq(local_managed_test_rows(first_ops), ["{\"id\":3}"])
+  assert_eq(local_managed_test_rows(second_ops), ["{\"id\":3}"])
+  first_live.val = false
+  @strategy.close_captured_task_output(run, 2)
+  (first_ops.close)()
+  (first_ops.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(first))
+  assert_true(@execution.managed_completed_output_available(second))
+  assert_true(@execution.managed_completed_output_available(completed))
+  second_live.val = false
+  @strategy.close_captured_task_output(run, 3)
+  (second_ops.close)()
+  (second_ops.cleanup_refresh)() |> ignore
+  live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (operations.close)()
+  (operations.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(completed))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "ordinary captured Relation chain cancels after bounded work" {
+  let (run, issuer) = captured_graph_fixture()
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 256,
+    },
+    None,
+  ).unwrap()
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      [@local_driver.local_managed_captured_relation_input()],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  let first = (operations.advance)(1).unwrap()
+  assert_false(first.complete)
+  assert_eq(first.work, 1L)
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(1, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  assert_false(@strategy.captured_task_completed(run, 1))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
 test "ordinary Local select preserves authored order within quantum" {
   run_local_managed_unary_case("select")
 }
