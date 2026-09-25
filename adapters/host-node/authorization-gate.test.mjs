@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   ExecutionAuthorizationError,
   createAuthorizationGate,
+  decisionSubjectCid,
   missingAuthorizationGate,
   requireAuthorizedDispatch,
 } from '../host-common/authorization-gate.mjs';
@@ -285,6 +286,134 @@ test('defer requires the sealed subject artifact and no substitute',
       .action, 'waiting');
   });
 
+// Two-phase preparation: the request subject is decided first; only a
+// deferred Host answer captures inputs and seals the prepared invocation.
+const requestCid = subjectCid;
+const preparedCid = `sha256:${'8'.repeat(64)}`;
+const preparationDeferral = deferral => {
+  let sequence = 0;
+  return {...deferral, describe(view) {
+    sequence += 1;
+    const created = Date.now();
+    return {
+      priorStatus: undefined,
+      declaredResults: ['result'],
+      body: {
+        checkpoint_id: `prepare-${sequence}-preparation`,
+        continuation_state_cid: `sha256:${'2'.repeat(64)}`,
+        subject: {kind: 'prepare_attempt', prepare_attempt_id: `prepare-${sequence}`,
+          continuation: 'start_run'},
+        review_projection_cid: `sha256:${'4'.repeat(64)}`,
+        human_summary: `${view.boundary} ${view.tuple.connection}`,
+        created_at: new Date(created).toISOString(),
+        expires_at: new Date(created + 86_400_000).toISOString(),
+      },
+    };
+  }};
+};
+
+test('preparation decides the request before sealing; only defer captures',
+  async t => {
+    const root = await workspace(t);
+    const deferral = preparationDeferral(await sqliteDeferral(root));
+    t.after(() => deferral.journal.close());
+    const captures = [];
+    const seal = async view => {
+      captures.push(view);
+      return preparedCid;
+    };
+    // Deny, no-match, allow, immediate permit, immediate reject, failure and
+    // an unsupported defer never call the sealer: nothing is read or captured.
+    const cases = [
+      [[accountEntry('deny-warehouse', 'deny', {connection: 'warehouse'})], {},
+        'deny'],
+      [[accountEntry('other', 'allow', {connection: 'crm'})], {}, 'deny'],
+      [[accountEntry('allow-warehouse', 'allow', {connection: 'warehouse'})], {},
+        'dispatch'],
+      [delegateEntries, {decide: permitWith(), answeringAuthorities: ['reviewer']},
+        'dispatch'],
+      [delegateEntries, {decide: view => ({decision: 'reject', subject: view.subject,
+        authority: 'reviewer'}), answeringAuthorities: ['reviewer']}, 'deny'],
+      [delegateEntries, {decide: () => ({decision: 'unavailable'}),
+        answeringAuthorities: ['reviewer']}, 'failure'],
+      [delegateEntries, {decide: view => ({decision: 'defer', subject: view.subject}),
+        answeringAuthorities: ['reviewer']}, 'unsupported'],
+    ];
+    for (const [entries, options, action] of cases) {
+      const gate = await fixtureAuthorization(entries, options);
+      const decision = await gate.authorize('preparation', scope,
+        {subjectCid: requestCid, sealDeferredSubject: seal});
+      assert.equal(decision.action, action);
+    }
+    assert.equal(captures.length, 0);
+    assert.equal(deferral.journal.listPending().length, 0);
+
+    // Defer: the inputs are captured, then the run-scope Checkpoint requires
+    // the prepared invocation while the decision subject binds the request.
+    const gate = await fixtureAuthorization(delegateEntries, {deferral});
+    const waiting = await gate.authorize('preparation', scope,
+      {subjectCid: requestCid, sealDeferredSubject: seal});
+    assert.equal(waiting.action, 'waiting');
+    assert.equal(captures.length, 1);
+    assert.equal(captures[0].subject.subject_cid, requestCid);
+    assert.equal(waiting.subjectCid, requestCid);
+    assert.equal(waiting.checkpoint.requiredArtifactCid, preparedCid);
+    const checkpoint = deferral.journal.inspect(waiting.checkpoint.checkpointCid);
+    assert.equal(checkpoint.kind, 'run_scope');
+    assert.deepEqual({...checkpoint.requiredArtifact},
+      {type: 'prepared_invocation', cid: preparedCid});
+    assert.equal(checkpoint.decisionSubjectCid,
+      await decisionSubjectCid(captures[0].subject));
+    assert.equal(checkpoint.decisionSubjectCid,
+      waiting.checkpoint.decisionSubjectCid);
+    // The approval evidence binds the prepared invocation, not the request.
+    const resolution = await deferral.answer(checkpoint.checkpointCid, 'approved');
+    assert.equal(resolution.decision, 'approved');
+    const verified = JSON.parse(resolution.verifiedResolutionWire);
+    assert.equal(verified.resolution.required_artifact_cid, preparedCid);
+    assert.equal(verified.approval_evidence.compatibility_approval
+      .prepared_invocation_cid, preparedCid);
+  });
+
+test('a sealer or describe naming another artifact fails and persists nothing',
+  async t => {
+    const root = await workspace(t);
+    const deferral = preparationDeferral(await sqliteDeferral(root));
+    t.after(() => deferral.journal.close());
+    const gate = await fixtureAuthorization(delegateEntries, {deferral});
+    for (const [seal, detail] of [
+      [() => { throw new Error('InputUnreadable'); }, 'SubjectArtifactNotSealed'],
+      [async () => 'sha256:short', 'InvalidSubjectArtifact'],
+      [async () => undefined, 'InvalidSubjectArtifact'],
+    ]) {
+      const failed = await gate.authorize('preparation', scope,
+        {subjectCid: requestCid, sealDeferredSubject: seal});
+      assert.equal(failed.action, 'failure');
+      assert.equal(failed.reason, 'adapter_error');
+      assert.equal(failed.detail, detail);
+    }
+    // `describe` must name the sealed prepared invocation or nothing.
+    for (const other of [requestCid, `sha256:${'6'.repeat(64)}`]) {
+      const substituting = await fixtureAuthorization(delegateEntries, {
+        deferral: {...deferral, describe(view) {
+          assert.equal(view.requiredArtifactCid, preparedCid);
+          const described = deferral.describe(view);
+          return {...described, body: {...described.body,
+            required_artifact: {artifact_cid: other}}};
+        }},
+      });
+      const failed = await substituting.authorize('preparation', scope,
+        {subjectCid: requestCid, sealDeferredSubject: async () => preparedCid});
+      assert.equal(failed.action, 'failure');
+      assert.equal(failed.detail, 'SubjectArtifactMismatch');
+    }
+    assert.equal(deferral.journal.listPending().length, 0);
+    assert.equal(gate.counters().checkpointsPersisted, 0);
+    await assert.rejects(gate.authorize('preparation', scope,
+      {subjectCid: requestCid, sealDeferredSubject: preparedCid}),
+    {code: 'InvalidAuthorizationSealer'});
+  });
+
 test('an immediate answer naming another artifact or subject is malformed',
   async () => {
     let seen;
@@ -382,6 +511,37 @@ test('resume dispatches only from a committed approval for the exact subject',
       {subjectCid, resumption: {claim: {action: 'busy'}, resolution}});
     assert.equal(unclaimed.action, 'failure');
     assert.equal(unclaimed.detail, 'ResumeNotClaimed');
+  });
+
+test('resume of a sealed two-phase subject requires that sealed artifact',
+  async t => {
+    const root = await workspace(t);
+    const deferral = await sqliteDeferral(root);
+    t.after(() => deferral.journal.close());
+    const gate = await fixtureAuthorization(delegateEntries, {deferral});
+    const waiting = await gate.authorize('acquisition', scope,
+      {subjectCid, sealDeferredSubject: async () => preparedCid});
+    assert.equal(waiting.action, 'waiting');
+    const resolution = await deferral.answer(
+      waiting.checkpoint.checkpointCid, 'approved');
+    const resumption = {claim: claimResume(deferral, waiting), resolution};
+    // The request subject alone, or another sealed artifact, is not it; nor
+    // is the sealed artifact used as the decision subject.
+    for (const options of [
+      {subjectCid},
+      {subjectCid, sealedSubjectCid: `sha256:${'6'.repeat(64)}`},
+      {subjectCid: preparedCid, sealedSubjectCid: preparedCid},
+    ]) {
+      const other = await gate.resume('acquisition', scope,
+        {...options, resumption});
+      assert.equal(other.action, 'failure');
+      assert.equal(other.detail, 'ResolutionSubjectMismatch');
+    }
+    const decision = await gate.resume('acquisition', scope,
+      {subjectCid, sealedSubjectCid: preparedCid, resumption});
+    assert.equal(decision.action, 'dispatch');
+    assert.equal(decision.basis, 'resumed');
+    assert.equal(decision.subjectCid, subjectCid);
   });
 
 test('a rejected Checkpoint has no resume and a later deny still denies',

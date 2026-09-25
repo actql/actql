@@ -7,10 +7,14 @@
 // delegated preparation or acquisition waits in a durable `prepare_attempt`
 // Checkpoint (the journal plus `approve`/`reject` are the later answer path).
 //
-// Before the Checkpoint is persisted the Host captures the operator-supplied
-// Program, Environment and Parameter files as immutable content-addressed
-// artifacts (caller-supplied input, not a Connector read) and records the
-// exact prepared invocation. No source (provider) I/O happens before the
+// Preparation is two-phase. The account outcome and any immediate Host answer
+// are decided on the invocation request before any path is read, so a denial
+// reads and captures nothing. Only when a delegated preparation is deferred
+// does the Host capture the operator-supplied Program, Environment and
+// Parameter files as immutable content-addressed artifacts (caller-supplied
+// input, not a Connector read), record the exact prepared invocation and seal
+// the `run_scope` Checkpoint on it; its decision-subject binding still names
+// the request. No source (provider) I/O happens before the
 // Checkpoint: both preparation and acquisition Checkpoints precede capture of
 // source data, so a resumed continuation reads the source once, after its
 // approval. Resumption claims the fenced resume intent, revalidates the bound
@@ -33,7 +37,7 @@ import {
   localAuthorizationContext,
   readAccountConfiguration,
 } from '../../../../host-node/local-account-config.mjs';
-import {ExecutionAuthorizationError} from
+import {ExecutionAuthorizationError, decisionSubjectCid} from
   '../../../../host-common/authorization-gate.mjs';
 
 const DECLARED_RESULTS = Object.freeze(['result']);
@@ -306,10 +310,36 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
     parameters_cid: bytesCid(Buffer.from(texts.parameterText, 'utf8')),
   });
 
-  // The durable deferral of one prepare attempt. `describe` captures the
-  // operator-supplied inputs (or the texts already read for this attempt),
-  // stores the prepared invocation, review projection and continuation, and
-  // returns the sealed preparation Checkpoint body. The gate persists it
+  // Store the captured input bytes, the request and the prepared invocation
+  // that binds them; returns the prepared invocation CID.
+  async function storeInvocation(request, requestCid, read) {
+    for (const text of [read.programText, read.environmentText,
+      read.parameterText]) {
+      await putBytes(Buffer.from(text, 'utf8'));
+    }
+    await putRecord(request);
+    return putRecord(invocationOf(request, requestCid, read));
+  }
+
+  // Second phase of a deferred preparation: read the operator-supplied paths
+  // once, capture them and seal the prepared invocation. Called by the gate
+  // only on the defer path, after the request subject was decided.
+  function sealerFor(request, requestCid, texts) {
+    return async () => {
+      const read = texts.current ?? {
+        programText: (await boundedBytes(request.program)).toString('utf8'),
+        environmentText: (await boundedBytes(request.environment)).toString('utf8'),
+        parameterText: (await boundedBytes(request.parameters)).toString('utf8'),
+      };
+      texts.current = read;
+      return storeInvocation(request, requestCid, read);
+    };
+  }
+
+  // The durable deferral of one prepare attempt. `describe` never reads a
+  // path: it stores the prepared invocation of the inputs already captured
+  // for this attempt, the review projection and continuation, and returns the
+  // Checkpoint body requiring that prepared invocation. The gate persists it
   // through `journal` before reporting a wait.
   function deferralFor({prepareAttemptId, request, requestCid, texts,
     approved, binding, port}) {
@@ -318,18 +348,9 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       authorities,
       binding,
       async describe(view) {
-        const read = texts.current ?? {
-          programText: (await boundedBytes(request.program)).toString('utf8'),
-          environmentText: (await boundedBytes(request.environment)).toString('utf8'),
-          parameterText: (await boundedBytes(request.parameters)).toString('utf8'),
-        };
-        for (const text of [read.programText, read.environmentText,
-          read.parameterText]) {
-          await putBytes(Buffer.from(text, 'utf8'));
-        }
-        await putRecord(request);
-        const invocationCid = await putRecord(invocationOf(request, requestCid,
-          read));
+        const read = texts.current;
+        if (read === undefined) fail('InputsNotCaptured');
+        const invocationCid = await storeInvocation(request, requestCid, read);
         const kind = view.boundary === 'preparation' ? 'run_scope' : 'read_access';
         const reviewCid = await putRecord({
           kind: 'local-example-review',
@@ -360,10 +381,12 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
             subject: {kind: 'prepare_attempt', prepare_attempt_id: prepareAttemptId,
               continuation: 'start_run'},
             kind,
-            // The gate seals the boundary's subject artifact as the required
-            // artifact: the invocation request (for preparation, decided
-            // before any path is read) or the prepared invocation (for
-            // acquisition). The exact decision subject is bound separately.
+            // Both boundaries require the captured prepared invocation: the
+            // gate sealed it on the preparation defer path, and it is the
+            // acquisition subject. The gate rejects any other artifact; the
+            // exact decision subject is bound separately.
+            required_artifact: {artifact_type: kind === 'run_scope'
+              ? 'prepared_invocation' : 'read_scope', artifact_cid: invocationCid},
             review_projection_cid: reviewCid,
             human_summary: `${view.boundary === 'preparation' ? 'Prepare' : 'Read'} ` +
               `${request.schema}.${request.table} for the example invocation`,
@@ -521,6 +544,7 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           authorization: gate,
           invocation: {
             requestCid,
+            seal: sealerFor(request, requestCid, texts),
             identify(read) {
               texts.current = read;
               return contentCid(invocationOf(request, requestCid, read));
@@ -686,6 +710,15 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
               continuation.invocation_cid) {
           fail('ArtifactIntegrityFailed');
         }
+        // The approved Checkpoint must require exactly this captured
+        // prepared invocation and bind exactly the delegated decision
+        // subject (for preparation, the request) it was deferred on.
+        const sealed = journal.inspect(claimed.checkpointCid);
+        if (sealed?.requiredArtifact.cid !== continuation.invocation_cid ||
+            sealed.decisionSubjectCid !==
+              await decisionSubjectCid(continuation.delegated_subject)) {
+          fail('ResolutionSubjectMismatch');
+        }
       } catch (error) {
         return end('failed', {code: error.code ?? 'ContinuationUnavailable'});
       }
@@ -727,6 +760,7 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           invocation: {
             requestCid,
             texts,
+            seal: sealerFor(request, requestCid, {current: texts}),
             identify: read => contentCid(invocationOf(request, requestCid, read)),
           },
           continuation: {

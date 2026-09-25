@@ -108,12 +108,13 @@ function frozenDecision(fields) {
 // keys sorted; ECMAScript string serialization is the canonical string form).
 // It is not the Checkpoint's required artifact: the required artifact is the
 // sealed review subject itself (the `subjectCid` of the boundary, for example
-// the Effect Set Preview or the prepared invocation), so approval evidence
-// binds the real artifact. The journal stores this binding next to the
+// the Effect Set Preview, or the prepared invocation a two-phase preparation
+// seals only on its defer path), so approval evidence binds the real artifact.
+// The journal stores this binding next to the
 // Checkpoint, and resume admits the approval only for the exact account
 // entry, principal, connection, resource, operation, boundary, subject and
 // context it names.
-async function decisionSubjectCid(subject) {
+export async function decisionSubjectCid(subject) {
   const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
     `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
   const digest = await globalThis.crypto.subtle.digest('SHA-256',
@@ -326,7 +327,7 @@ function gateFor(core, context) {
     }
   }
 
-  async function defer(base, view) {
+  async function defer(base, view, sealDeferredSubject) {
     const deferral = core.deferral;
     if (deferral === undefined) {
       return frozenDecision({...base, action: 'unsupported',
@@ -338,14 +339,31 @@ function gateFor(core, context) {
       return frozenDecision({...base, action: 'failure',
         reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
     }
+    // Two-phase boundary (preparation): the decision was made on the request
+    // subject before any capture; only now, on the defer path, the Host
+    // captures its inputs and seals the reviewed artifact (the prepared
+    // invocation). The decision-subject binding still names the request.
+    let artifactCid = base.subjectCid;
+    if (sealDeferredSubject !== undefined) {
+      try { artifactCid = await sealDeferredSubject(view); }
+      catch (error) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'SubjectArtifactNotSealed', error});
+      }
+      if (!cid(artifactCid)) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
+      }
+    }
+    const sealedView = Object.freeze({...view, requiredArtifactCid: artifactCid});
     let persisted;
     let bindingCid;
     try {
       bindingCid = await decisionSubjectCid(view.subject);
-      const described = await deferral.describe(view);
+      const described = await deferral.describe(sealedView);
       const supplied = described?.body?.required_artifact?.artifact_cid;
       // `describe` may not substitute another artifact for the subject.
-      if (supplied !== undefined && supplied !== base.subjectCid) {
+      if (supplied !== undefined && supplied !== artifactCid) {
         return frozenDecision({...base, action: 'failure',
           reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
       }
@@ -364,7 +382,7 @@ function gateFor(core, context) {
         required_artifact: {
           artifact_type: ARTIFACT_TYPE[kind],
           ...described.body?.required_artifact,
-          artifact_cid: base.subjectCid,
+          artifact_cid: artifactCid,
         },
       };
       // Durable commit happens before any waiting claim is made.
@@ -392,7 +410,7 @@ function gateFor(core, context) {
         prepareAttemptId: persisted.prepareAttemptId ?? null,
         runState: persisted.runState,
         preparation: persisted.preparation,
-        requiredArtifactCid: base.subjectCid,
+        requiredArtifactCid: artifactCid,
         decisionSubjectCid: bindingCid,
       })});
   }
@@ -436,7 +454,8 @@ function gateFor(core, context) {
     return {checkpoint, authority: verified.verified_reviewer_id};
   }
 
-  async function evaluateResumed(boundary, tuple, subjectCid, resumption) {
+  async function evaluateResumed(boundary, tuple, subjectCid, resumption,
+    sealedSubjectCid = subjectCid) {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -490,9 +509,10 @@ function gateFor(core, context) {
     }
     // The approval covers only the sealed artifact and the decision subject
     // bound at defer time: another artifact, Site, registration, boundary,
-    // subject, context, tuple or entry is not it.
-    if (!cid(subjectCid) ||
-        approval.checkpoint.requiredArtifact.cid !== subjectCid ||
+    // subject, context, tuple or entry is not it. A two-phase preparation
+    // names its captured prepared invocation as `sealedSubjectCid`.
+    if (!cid(subjectCid) || !cid(sealedSubjectCid) ||
+        approval.checkpoint.requiredArtifact.cid !== sealedSubjectCid ||
         approval.checkpoint.decisionSubjectCid !==
           await decisionSubjectCid(bound.subject)) {
       return frozenDecision({...withEntry, action: 'failure',
@@ -519,7 +539,8 @@ function gateFor(core, context) {
       runtimeDecision});
   }
 
-  async function evaluate(boundary, tuple, subjectCid, signal) {
+  async function evaluate(boundary, tuple, subjectCid, signal,
+    sealDeferredSubject) {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -606,7 +627,9 @@ function gateFor(core, context) {
         basis: 'rejected_by_host', reason: 'rejected',
         authority: projected.authority});
     }
-    if (projected.action === 'checkpoint') return defer(withEntry, view);
+    if (projected.action === 'checkpoint') {
+      return defer(withEntry, view, sealDeferredSubject);
+    }
     return frozenDecision({...withEntry, action: 'failure',
       reason: projected.reason ?? 'malformed_answer',
       detail: projected.detail ?? projected.issue ?? undefined,
@@ -622,13 +645,26 @@ function gateFor(core, context) {
     // Evaluate one protected boundary for the exact scope. The tuple principal
     // is the Host context principal; the caller supplies only the Host-derived
     // connection/resource/operation and the sealed subject CID.
-    async authorize(boundary, scope, {subjectCid, signal} = {}) {
+    //
+    // `sealDeferredSubject` makes the boundary two-phase: the account outcome
+    // and any immediate Host answer are decided on `subjectCid` (for
+    // preparation, the invocation request, before any path read); only on a
+    // deferred Host answer is it called with the Host view to capture inputs
+    // and return the CID of the artifact the Checkpoint requires (the
+    // prepared invocation). A throw or a non-CID result is a decision failure
+    // and nothing is persisted.
+    async authorize(boundary, scope, {subjectCid, signal,
+      sealDeferredSubject} = {}) {
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
       checkedScope(scope);
       if (subjectCid !== undefined && typeof subjectCid !== 'string') {
         fail('InvalidAuthorizationSubject');
+      }
+      if (sealDeferredSubject !== undefined &&
+          typeof sealDeferredSubject !== 'function') {
+        fail('InvalidAuthorizationSealer');
       }
       signal?.throwIfAborted();
       const tuple = Object.freeze({
@@ -646,7 +682,8 @@ function gateFor(core, context) {
         count('reusedDecisions');
         return record(cached);
       }
-      const decision = await evaluate(boundary, tuple, subjectCid, signal);
+      const decision = await evaluate(boundary, tuple, subjectCid, signal,
+        sealDeferredSubject);
       // Only final decisions are reused, and only for this exact scope.
       // Failures, unsupported defers and waits are evaluated again.
       if (decision.action === 'dispatch' || decision.action === 'deny') {
@@ -660,13 +697,18 @@ function gateFor(core, context) {
     // claimResume result and its committed submitResolution result. The
     // account is evaluated again for the current scope; the committed
     // approval then authorizes only the exact decision subject its Checkpoint
-    // bound. No Host decision is asked and nothing is cached.
-    async resume(boundary, scope, {subjectCid, signal, resumption} = {}) {
+    // bound. No Host decision is asked and nothing is cached. For a
+    // two-phase boundary `sealedSubjectCid` is the artifact the Checkpoint
+    // sealed on its defer path (default: `subjectCid`).
+    async resume(boundary, scope, {subjectCid, signal, resumption,
+      sealedSubjectCid} = {}) {
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
         fail('InvalidAuthorizationBoundary');
       }
       checkedScope(scope);
-      if (subjectCid !== undefined && typeof subjectCid !== 'string') {
+      if ((subjectCid !== undefined && typeof subjectCid !== 'string') ||
+          (sealedSubjectCid !== undefined &&
+           typeof sealedSubjectCid !== 'string')) {
         fail('InvalidAuthorizationSubject');
       }
       signal?.throwIfAborted();
@@ -677,7 +719,7 @@ function gateFor(core, context) {
         operation: scope.operation,
       });
       return record(await evaluateResumed(boundary, tuple, subjectCid,
-        resumption));
+        resumption, sealedSubjectCid ?? subjectCid));
     },
 
     // Explicit no-protected-scope coverage for pure compute over captured

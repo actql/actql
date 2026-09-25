@@ -147,8 +147,10 @@ export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
         resolution_id: `resolution-${checkpoint.checkpointId}-${decision}`,
         checkpoint_id: checkpoint.checkpointId,
         checkpoint_cid: checkpoint.checkpointCid,
-        run_id: checkpoint.runId,
-        run_definition_cid: fixtureCid('1'),
+        // A preparation Checkpoint precedes its Run.
+        ...(checkpoint.prepareAttemptId !== null
+          ? {prepare_attempt_id: checkpoint.prepareAttemptId}
+          : {run_id: checkpoint.runId, run_definition_cid: fixtureCid('1')}),
         decision,
         actor: 'reviewer',
         decided_at: at,

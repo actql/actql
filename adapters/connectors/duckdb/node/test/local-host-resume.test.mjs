@@ -7,13 +7,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { exampleAccountConfiguration } from '../examples/physical-strategy.mjs';
 import { openLocalHost } from '../examples/local-host.mjs';
+import { decisionSubjectCid } from '../../../../host-common/authorization-gate.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const cliPath = fileURLToPath(new URL('../examples/local-host-cli.mjs', import.meta.url));
@@ -95,8 +96,15 @@ async function fixture(t, { outcome = 'delegate' } = {}) {
     '--environment', files.environment, '--environment-cid', catalog[2],
     '--program', files.program, '--parameters', files.parameters];
   const journalPath = join(directory, 'host/state/journal/checkpoint-journal.sqlite3');
+  const artifacts = join(directory, 'host/state/artifacts');
   return { directory, database, files, config, signer: init.json.signer, runArgs, journalPath,
     environmentCid: catalog[2],
+    // Captured bytes in the Host artifact store, and how many are stored.
+    stored: cid => readFile(join(artifacts, cid.slice('sha256:'.length)), 'utf8'),
+    async captured() {
+      try { return (await readdir(artifacts)).length; }
+      catch (error) { if (error.code === 'ENOENT') return 0; throw error; }
+    },
     // Committed journal rows, read independently of the Host processes.
     rows() {
       const sqlite = new DatabaseSync(journalPath, { readOnly: true });
@@ -204,11 +212,22 @@ test('defer in process A, approve in B, resume in C: same result, one continuati
   assert.equal(approved.code, 0, approved.stderr);
   assert.equal(approved.json.results[0].status, 'committed');
   assert.equal(input.rows().runs, 0);
-  // Preparation is decided before any path read: its sealed subject is the
-  // invocation request that the captured prepared invocation binds.
+  // Preparation is decided on the invocation request before any path read;
+  // only its defer captured the inputs, and the run-scope Checkpoint (and so
+  // the approval evidence) requires the captured prepared invocation. The
+  // decision-subject binding still names the request.
   const sealed = await input.sealed();
+  assert.equal(sealed.checkpoint.kind, 'run_scope');
   assert.equal(sealed.checkpoint.required_artifact.artifact_type, 'prepared_invocation');
-  assert.equal(assertRealArtifact(sealed), sealed.invocation.request_cid);
+  assert.equal(assertRealArtifact(sealed), sealed.continuation.invocation_cid);
+  assert.notEqual(sealed.continuation.invocation_cid, sealed.invocation.request_cid);
+  assert.equal(sealed.continuation.delegated_subject.boundary, 'preparation');
+  assert.equal(sealed.continuation.delegated_subject.subject_cid, sealed.invocation.request_cid);
+  assert.equal(sealed.decisionSubjectCid,
+    await decisionSubjectCid(sealed.continuation.delegated_subject));
+  assert.equal(await input.stored(sealed.invocation.program_cid),
+    await readFile(input.files.program, 'utf8'));
+  assert.equal(await input.stored(sealed.invocation.parameters_cid), '{"minimum":1}');
 
   // C: the resumed continuation creates its Run in running and completes.
   const resumed = await cli(['resume', waiting.prepare_attempt_id, '--config', input.config]);
@@ -368,6 +387,10 @@ test('resume reads the inputs captured before the Checkpoint, not the changed pa
   await writeFile(input.files.parameters, '{"minimum":100}');
   await writeFile(input.files.program, '{"not":"a program"}');
   await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
+  // The approval bound the prepared invocation captured before the change.
+  const sealed = await input.sealed();
+  assert.equal(assertRealArtifact(sealed), sealed.continuation.invocation_cid);
+  assert.equal(await input.stored(sealed.invocation.parameters_cid), '{"minimum":1}');
   const resumed = await cli(['resume', waiting.checkpoint.checkpoint_id, '--config', input.config]);
   assert.equal(resumed.code, 0, resumed.stderr);
   assert.equal(resumed.json.result_cid, expected);
@@ -446,4 +469,45 @@ test('an acquisition deferral after a Host permit resumes past the crossed bound
   assert.equal(resumed.json.counters.provider_sessions, 1);
   assert.equal(resumed.json.counters.continuation_starts, 1);
   assert.equal(input.rows().checkpoints, 1);
+});
+
+test('a preparation denial reads and captures no path-backed input', async t => {
+  // Every operator-supplied input path is missing: any read would fail.
+  const inputs = input => ({ database: input.database,
+    environment: join(input.directory, 'missing-environment.json'),
+    environmentCid: input.environmentCid,
+    program: join(input.directory, 'missing-program.json'),
+    parameters: join(input.directory, 'missing-parameters.json') });
+  const cases = [
+    ['account deny', 'deny', undefined, 'ACTQL_E_ACCOUNT_DENIED'],
+    ['immediate Host reject', 'delegate', view => ({ decision: 'reject',
+      subject: view.subject, authority: 'application-policy' }),
+    'ACTQL_E_DELEGATION_REJECTED'],
+  ];
+  for (const [label, outcome, decide, code] of cases) {
+    const input = await fixture(t, { outcome });
+    const host = await openLocalHost(input.config);
+    let refused;
+    try {
+      refused = await host.run(inputs(input), { decide,
+        answeringAuthorities: decide === undefined ? undefined : ['application-policy'] });
+    } finally { host.close(); }
+    assert.equal(refused.status, 'refused', label);
+    assert.equal(refused.runtime_code, code, label);
+    assert.equal(refused.boundary, 'preparation', label);
+    assert.equal(refused.counters.provider_sessions, 0, label);
+    assert.equal(await input.captured(), 0, label);
+    assert.deepEqual([input.rows().runs, input.rows().checkpoints], [0, 0], label);
+  }
+  // The same missing inputs under a deferred decision fail at capture, after
+  // the decision and before any Checkpoint: nothing waits on an uncaptured
+  // invocation.
+  const input = await fixture(t);
+  const host = await openLocalHost(input.config);
+  let failed;
+  try { failed = await host.run(inputs(input)); } finally { host.close(); }
+  assert.equal(failed.status, 'refused');
+  assert.equal(failed.runtime_code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
+  assert.equal(failed.reason, 'adapter_error');
+  assert.deepEqual([input.rows().runs, input.rows().checkpoints], [0, 0]);
 });

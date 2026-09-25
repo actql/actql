@@ -86,13 +86,16 @@ export async function runExample({ database, environment, environmentCid, progra
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   if (typeof database !== 'string') throw new Error('Invalid example configuration');
-  // Preparation boundary: authorized before any Program/Environment path read,
-  // source capture or Run creation.
+  // Preparation boundary: decided on the invocation request before any
+  // Program/Environment path read, source capture or Run creation. Only a
+  // deferred delegated decision calls the Host's `seal`, which captures the
+  // inputs and returns the prepared invocation the Checkpoint requires.
   const gate = await exampleAuthorization({authorization, accountConfig,
     accountConfiguration});
   await requireAuthorizedDispatch(gate, 'preparation',
     {...exampleSourceScope({database, schema, table}), operation: 'read'},
-    {signal, subjectCid: invocation?.requestCid});
+    {signal, subjectCid: invocation?.requestCid,
+      sealDeferredSubject: invocation?.seal});
   // A resumed preparation continuation supplies the immutable bytes captured
   // before its Checkpoint; it never rereads the mutable operator paths.
   const captured = invocation?.texts;

@@ -224,10 +224,15 @@ invocation environment; a changed configuration therefore fails resume
 revalidation rather than reinterpreting an earlier approval.
 
 A deferred preparation or acquisition decision becomes a `prepare_attempt`
-Checkpoint. Before persisting it the Local Host captures the operator-supplied
-Program, Environment and Parameter files as private content-addressed
-artifacts and records the prepared invocation and continuation; no source is
-read before the Checkpoint, so there are no source observations to reuse. The
+Checkpoint. Preparation is two-phase: the account outcome and any immediate
+Host answer are decided on the invocation request before any path is read, so
+a denial reads and captures nothing. Only a deferred preparation then captures
+the operator-supplied Program, Environment and Parameter files as private
+content-addressed artifacts, records the prepared invocation and continuation,
+and seals the `run_scope` Checkpoint with that prepared invocation as its
+required artifact; its decision-subject binding still names the request, and
+resume requires both. No source is read before the Checkpoint, so there are
+no source observations to reuse. The
 resumed continuation reads only the captured bytes, reuses the permits and
 approvals already admitted for the same attempt, and creates its Run directly
 in `running` once capture completes. As its own delegated-decision policy, an
