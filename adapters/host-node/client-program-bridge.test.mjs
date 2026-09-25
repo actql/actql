@@ -1075,22 +1075,21 @@ test('admitted source-free Effect Run computes through the installed Host',
           preview: applyPreview, commonMoon: moon,
           authorizeEvidenceRead: async () => true,
           limits: publicationLimits,
-          publicationPreview: admittedPreview,
-        }), {code: 'InvalidEffectSetReceiptEvidence'});
+          publicationPreview: Object.freeze({}),
+        }), /Foreign Effect computation Preview/u);
         await assert.rejects(issueAuthorizedEffectSetReceipt({
           ledger: effectLedger, members: [{rowOwners, replayed: true}],
           preview: applyPreview, commonMoon: moon,
           authorizeEvidenceRead: async () => true,
           limits: publicationLimits,
           publicationPreview: foreignAdmittedPreview,
-          publicationControl: control,
         }), {code: 'MoonBitHostFailure'});
         const issuedSet = await issueAuthorizedEffectSetReceipt({
           ledger: effectLedger, members: [{rowOwners, replayed: true}],
           preview: applyPreview, commonMoon: moon,
           authorizeEvidenceRead: async () => true,
           limits: publicationLimits,
-          publicationPreview: admittedPreview, publicationControl: control,
+          publicationPreview: admittedPreview,
         });
         assert.equal(issuedSet.members.length, 1);
         const memberRows = JSON.parse(issuedSet.members[0].wire).rows;
@@ -1456,14 +1455,21 @@ test('owned update Plan matches approved rows and rejects altered intent',
             const locator = effect.logicalItemLocator(
               requestScope, 'program-1', 'node-1', member.effect_id,
               correlation, 64, 128, 8, 3);
-            const canonicalRequestCid = cid('9');
+            const requestPath = `/effect/${member.effect_id}/${rowIndex}`;
+            const requestBody = canonicalJson({
+              row_preview_cid: change.row_preview_cid,
+            });
+            const canonicalRequestCid = `sha256:${createHash('sha256')
+              .update(canonicalJson({method: 'PATCH', path: requestPath,
+                body: requestBody})).digest('hex')}`;
             const intentFingerprintCid = change.row_preview_cid;
             const basis = effect.ledgerBasis(
               requestScope, locator, key, cid('6'),
               member.effect_member_preview_cid, intentFingerprintCid,
               canonicalRequestCid, cid('0'), 'unavailable', cid('1'), cid('2'));
             return {scope: requestScope, locator, key, basis,
-              intentFingerprintCid, canonicalRequestCid};
+              intentFingerprintCid, canonicalRequestCid,
+              requestPath, requestBody};
           })}));
       const ready = ledger => {
         const frontier = ledger.frontierFromCapturedHeads(
@@ -1606,6 +1612,78 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.deepEqual(omittedChunks, []);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+      const applyPreview = effect.admitPreviewIdentity(
+        preview.wire, JSON.parse(preview.wire).run_identity_cid,
+        preview.authoringCid, requestScope, preview.keys,
+        20000, 1000, 20);
+      const seenRequests = [];
+      const endpoint = createServer(async (request, response) => {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        seenRequests.push({method: request.method, path: request.url,
+          body: Buffer.concat(chunks).toString('utf8')});
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(canonicalJson({ok: true}));
+      });
+      await new Promise(resolve => endpoint.listen(0, '127.0.0.1', resolve));
+      t.after(() => new Promise(resolve => endpoint.close(resolve)));
+      const resumedProgress = openProgress();
+      try {
+        const possible = progressMembers[0].claims[0];
+        const replay = await captureClaimedEffectResponse({
+          ledger: resumedProgress, claim: possible,
+          requestCid: possible.canonicalRequestCid,
+          execute: async () => { throw new Error('UnknownRowResent'); },
+        });
+        assert.equal(replay.claimed, false);
+        for (let rowIndex = 0; rowIndex < 2; rowIndex++) {
+          assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
+          const claim = progressMembers[1].claims[rowIndex];
+          const response = await captureClaimedEffectResponse({
+            ledger: resumedProgress, claim,
+            requestCid: claim.canonicalRequestCid,
+            execute: async () => {
+              const reply = await fetch(
+                `http://127.0.0.1:${endpoint.address().port}` +
+                  claim.requestPath,
+                {method: 'PATCH', body: claim.requestBody});
+              return {observation: {useCid: cid('4'),
+                statusCode: reply.status,
+                body: Buffer.from(await reply.arrayBuffer())}};
+            },
+          });
+          assert.equal(response.claimed, true);
+          resumedProgress.recordAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex: 1,
+            previewRowIndex: rowIndex,
+            outcomeWire: canonicalJson({state: 'applied',
+              result: {record_id: `row-${rowIndex + 1}`}}),
+          });
+          resumedProgress.commitAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex: 1,
+            previewRowIndex: rowIndex,
+          });
+        }
+        assert.deepEqual(ready(resumedProgress), []);
+        assert.deepEqual(seenRequests, progressMembers[1].claims.map(
+          claim => ({method: 'PATCH', path: claim.requestPath,
+            body: claim.requestBody})));
+        const issued = await issueAuthorizedEffectSetReceipt({
+          ledger: resumedProgress, preview: applyPreview,
+          commonMoon: moon, authorizeEvidenceRead: async () => true,
+          members: progressMembers.map(member => ({
+            rowOwners: member.claims.map(claim => ({claim})),
+            replayed: false,
+          })),
+          limits: publicationLimits,
+        });
+        assert.equal(JSON.parse(issued.set.wire).status,
+          'unknown_outcome');
+        assert.deepEqual(JSON.parse(issued.set.wire).effects.map(
+          member => member.state), ['unknown', 'applied']);
+      } finally {
+        resumedProgress.close();
+      }
       const releasedChunks = [];
       await assert.rejects(verifyPinnedEffectPlan({
         moon, execution, previewInputs, previewIndex: 0,
@@ -1621,7 +1699,9 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
       const historicalProgress = openProgress();
       try {
-        assert.deepEqual(ready(historicalProgress), [[1, 0]]);
+        assert.deepEqual(ready(historicalProgress), []);
+        assert.equal(historicalProgress.claimDispatch(
+          progressMembers[1].claims[0]).claimed, false);
       } finally {
         historicalProgress.close();
       }

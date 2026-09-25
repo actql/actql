@@ -214,20 +214,16 @@ export async function issueAuthorizedEffectMemberReceipt({
 // Replay flags remain explicit Host observations, not inferred row facts.
 export async function issueAuthorizedEffectSetReceipt({
   ledger, members, preview, commonMoon, authorizeEvidenceRead,
-  providerBinding = {}, limits, publicationPreview, publicationControl,
+  providerBinding = {}, limits, publicationPreview,
 }) {
   if (!Array.isArray(members) || members.length === 0 ||
       members.some(member => !Array.isArray(member?.rowOwners) ||
         typeof member.replayed !== 'boolean') ||
-      (publicationPreview === undefined) !==
-        (publicationControl === undefined) ||
-      (publicationControl !== undefined &&
-        typeof publicationControl?.issueEffectSetApplyReceiptFromMembers !==
-          'function') ||
       !limits || !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
         Number.isSafeInteger(limits[key]) && limits[key] > 0)) {
     fail('InvalidEffectSetReceiptEvidence');
   }
+  const core = runtimeCore(commonMoon);
   const issuedMembers = [];
   for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
     issuedMembers.push(await issueAuthorizedEffectMemberReceipt({
@@ -236,12 +232,12 @@ export async function issueAuthorizedEffectSetReceipt({
     }));
   }
   const set = publicationPreview === undefined
-    ? runtimeCore(commonMoon).effectApplicationControl
+    ? core.effectApplicationControl
       .issueSetReceiptFromMembers(
         preview, issuedMembers.map(member => member.wire),
         members.map(member => member.replayed), limits.maxWireBytes,
         limits.maxNodes, limits.maxDepth)
-    : publicationControl.issueEffectSetApplyReceiptFromMembers(
+    : core.publicationControl.issueEffectSetApplyReceiptFromMembers(
       publicationPreview, issuedMembers,
       members.map(member => member.replayed), limits);
   return retainIssuedEffectSetReceipt({set, members: issuedMembers,
