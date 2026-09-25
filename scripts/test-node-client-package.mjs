@@ -144,6 +144,17 @@ const emptyRun = await installedLocal.aql(JSON.stringify(empty),
   {format: 'json', requestId: 'packed-empty-values'});
 assert.equal((await emptyRun.wait()).status, 'succeeded');
 assert.deepEqual(await emptyRun.result('answer').all(), []);
+const computed = JSON.parse(document);
+computed.id = 'client-values-filtered';
+computed.stages[0].steps.push({filter: 'id > 1', as: 'filtered'});
+computed.stages[0].results.rows.from = 'filtered';
+const computedDocument = JSON.stringify(computed);
+const computedLocal = await installedLocal.aql(computedDocument,
+  {format: 'json', requestId: 'packed-computed-local'});
+const computedLocalState = await computedLocal.wait();
+assert.equal(computedLocalState.status, 'succeeded',
+  JSON.stringify(computedLocalState));
+assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
 assert.deepEqual((await installedLocal.aql(document, {format: 'json',
   requestId: 'packed-standard-values'})).ref, execution.ref);
 await assert.rejects(installedLocal.aql(document.replace('"id": 2',
@@ -184,6 +195,10 @@ const {client: installedRemote, execution: remoteExecution,
   rows: remoteRows} = await runApplication(remoteOptions,
   'packed-remote-values');
 assert.deepEqual(remoteRows, rows);
+const computedRemote = await installedRemote.aql(computedDocument,
+  {format: 'json', requestId: 'packed-computed-remote'});
+assert.equal((await computedRemote.wait()).status, 'succeeded');
+assert.deepEqual(await computedRemote.result('answer').all(), [{id: 2}]);
 assert.equal((await remoteExecution.status()).status, 'succeeded');
 assert.deepEqual((await installedRemote.attach(remoteExecution.ref)).ref,
   remoteExecution.ref);

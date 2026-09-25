@@ -21,6 +21,8 @@ pub fn open_source_free_local_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -55,6 +57,41 @@ pub fn open_source_free_local_host(
     Ok(value) => value
     Err(_) => return None
   }
+  let physical : @execution.RegistryLimits = {
+    max_body_bytes: 100000,
+    max_body_nodes: 10000,
+    max_body_depth: 100,
+  }
+  let fragment_contract = match fragment_body {
+    None => None
+    Some(body) => {
+      if body.length() > 100000 {
+        return None
+      }
+      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
+        _ => return None
+      }
+      match @execution.admit_fragment_contract(contracts, value, physical) {
+        Ok(contract) => Some(contract)
+        Err(_) => return None
+      }
+    }
+  }
+  let ordered_contract = match ordered_body {
+    None => None
+    Some(body) => {
+      if body.length() > 100000 {
+        return None
+      }
+      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
+        _ => return None
+      }
+      match @execution.admit_ordered_contract(contracts, value, physical) {
+        Ok(contract) => Some(contract)
+        Err(_) => return None
+      }
+    }
+  }
   let run = match
     @publication_host.open_prepared_source_free_client_run(prepared, {
       planning_work: 100000,
@@ -70,15 +107,86 @@ pub fn open_source_free_local_host(
   let graph = @publication_host.prepared_client_graph(prepared)
   let generated = []
   for task in 0..<@strategy.graph_task_count(graph) {
+    guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+      return reject_client_local_run(run)
+    }
+    let sequence = match
+      @lower.prepare_sequence(
+        owner,
+        @publication_host.client_standard_values_sequence_limits(),
+      ) {
+      Ok(value) => value
+      Err(_) => return reject_client_local_run(run)
+    }
+    let contexts : Array[@execution.FragmentRuntimeContext] = []
+    for step in 0..<@lower.sequence_count(sequence) {
+      guard @lower.sequence_step(sequence, step) is Some(operation) else {
+        return reject_client_local_run(run)
+      }
+      match operation {
+        @lower.RowStep(kernel) => {
+          guard fragment_contract is Some(contract) else {
+            return reject_client_local_run(run)
+          }
+          let fragment = match
+            @lower.prepare_fragment_pipeline(sequence, step, {
+              max_roots: 100,
+              max_pointer_bytes: 10000,
+              max_work: 100000,
+            }) {
+            Ok(value) => value
+            Err(_) => return reject_client_local_run(run)
+          }
+          let logical : @lower.FragmentRowLimits = {
+            max_input_rows: 100L,
+            max_value_bytes: 10000L,
+            max_live_value_bytes: 100000L,
+            max_work: 100000L,
+          }
+          let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+          let request = match
+            @lower.prepare_fragment_request(
+              fragment,
+              100L,
+              10000L,
+              row_limits=if ordered { Some(logical) } else { None },
+            ) {
+            Ok(value) => value
+            Err(_) => return reject_client_local_run(run)
+          }
+          let context = match
+            @execution.prepare_runtime_fragment(
+              request,
+              contract,
+              {
+                max_roots: 100,
+                max_nodes: 10000,
+                max_work: 100000,
+                max_text_bytes: 10000,
+                max_links: 10000,
+              },
+              physical,
+              logical,
+              ordered=if ordered { ordered_contract } else { None },
+            ) {
+            Ok(value) => value
+            Err(_) => return reject_client_local_run(run)
+          }
+          contexts.push(context)
+        }
+        _ => ()
+      }
+    }
     let sequence = match
       @publication_host.prepare_client_task_sequence(
         prepared,
         task,
         contracts,
-        [],
+        contexts,
         @publication_host.client_standard_values_sequence_limits(),
         100000,
         10000,
+        prepared_sequence=Some(sequence),
       ) {
       Ok(value) => value
       Err(_) => return reject_client_local_run(run)

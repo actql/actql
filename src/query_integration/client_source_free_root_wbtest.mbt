@@ -763,4 +763,29 @@ test "ordinary AQL values root reaches the installed Local kernel" {
   )
   assert_true(reopened_journal.close())
   assert_true(bundles.close().unwrap())
+  let computed_document =
+    #|{"version":"actql/0.1","id":"client-values-filter","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"selected"},{"filter":"id > 1","as":"filtered"}],"results":{"rows":{"from":"filtered","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+  let computed_prepared = @publication_host.prepare_effect_free_client_program(
+    computed_document,
+    Json,
+    selected,
+    None,
+    preparation,
+  ).unwrap()
+  let computed_setup = @client_local_host.open_source_free_local_host(
+    computed_prepared,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=Some(
+      @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+    ),
+  ).unwrap()
+  let computed = @client_local_host.execute_source_free_values(
+    computed_setup, 32, 1000,
+  ).unwrap()
+  assert_eq(computed.rows().unwrap(), ["{\"id\":2}"])
 }

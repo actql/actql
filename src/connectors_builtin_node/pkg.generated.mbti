@@ -132,7 +132,7 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
-pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManifestIdentity) -> String
 

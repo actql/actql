@@ -1262,9 +1262,18 @@ pub fn client_program_open_source_free_local_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   @client_local_host.open_source_free_local_host(
-    prepared, registry_body, values_body, fixed_ms, per_row_ms, per_wire_byte_ms,
+    prepared,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
     per_pair_ms,
+    fragment_body~,
+    ordered_body~,
   )
 }

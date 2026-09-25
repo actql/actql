@@ -59,6 +59,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
   const aoa = JSON.parse(await readFile(join(packageRoot,
     'spec/contracts/actql-aoa.json'), 'utf8'));
   const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(
+    aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(
+    aoa.execution_contracts['REL.derive.ordered']);
   const principalId = userInfo().username;
   const tenantId = 'local';
   const authorityScopeCid = cid({version: 'actql-local-owner-scope/0.1',
@@ -221,7 +225,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
             retainedDefinitionWire: accepted.runDefinition.wire});
         }
         const setup = moon.clientProgramOpenSourceFreeLocalHost(
-          preparedProgram, registry, values, 1n, 0n, 0n, 0n);
+          preparedProgram, registry, values, 1n, 0n, 0n, 0n,
+          fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
         const published = await runPublishedCapturedStrategy(setup,
           {store, plan});

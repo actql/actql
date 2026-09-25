@@ -11,5 +11,6 @@ import {
   "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/physical_cost" @cost,
   "actql/actql/canonical_json" @identity,
+  "actql/actql/lowering_relation" @lower,
   "moonbitlang/core/json",
 }
