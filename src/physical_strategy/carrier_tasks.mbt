@@ -1,7 +1,8 @@
 ///|
-/// Follow exact checked Relation edges to a bounded zero-input producer.
-/// Every intermediate Stage must expose one selected managed Relation step.
-fn bounded_zero_input_relation_source(graph : CheckedDAG, start : Int) -> Bool {
+/// Follow checked source edges to a bounded zero-input source or a typed
+/// Carrier boundary. Ordinary remote Relation chains keep their native
+/// whole-Stage realization until that realization supports selected Steps.
+fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
   let mut stage = start
   let mut visited = 0
   while stage >= 0 &&
@@ -9,28 +10,30 @@ fn bounded_zero_input_relation_source(graph : CheckedDAG, start : Int) -> Bool {
         visited < graph.owners.length() {
     visited += 1
     let prepared = @lower.bound_preparation(graph.owners[stage])
-    if @pipeline.step_count(@lower.pipeline(prepared)) != 1 {
+    let count = @pipeline.step_count(@lower.pipeline(prepared))
+    for step in 0..<count {
+      guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+        is Some(carrier) else {
+        return false
+      }
+      if @carrier.kind(carrier) != @carrier.RelationKind {
+        return true
+      }
+    }
+    guard count > 0 && @lower.node_at(prepared, 0) is Some(first) else {
       return false
     }
-    guard @lower.node_at(prepared, 0) is Some(node) &&
-      @lower.node_supports_selected_managed_execution(node) &&
-      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
-      return false
+    if @lower.preparation_input_count(prepared) == 0 &&
+      @lower.node_input_count(first) == 0 {
+      return @lower.node_supports_selected_managed_execution(first)
     }
-    if @lower.node_input_count(node) == 0 {
-      return true
-    }
-    guard @lower.node_input_count(node) == 1 &&
-      @lower.node_accepts_managed_relation_view(node, 0) &&
-      @lower.node_input_target(node, 0) is Some(@pipeline.Input(source)) else {
+    guard @lower.node_input_count(first) == 1 &&
+      @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) else {
       return false
     }
     let mut predecessor = -1
     for edge in graph.data {
-      if edge.consumer == stage &&
-        edge.input == source &&
-        edge.target == @pipeline.Step(0) &&
-        edge.producer < stage {
+      if edge.consumer == stage && edge.input == source {
         predecessor = edge.producer
         break
       }
@@ -139,8 +142,8 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     !found_external_input {
     return Some(-1)
   }
-  // Exact supplied input and bounded zero-input source chains can each
-  // select independently owned Relation steps.
+  // Exact supplied input and completed Relation edges can each select
+  // independently owned Relation steps.
   if all_selected && found_relation && !found_carrier {
     guard @lower.node_at(prepared, 0) is Some(first) else { return None }
     if @lower.node_accepts_managed_relation_view(first, 0) &&
@@ -153,11 +156,10 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         if edge.consumer != stage ||
           edge.input != source ||
           edge.producer < 0 ||
-          edge.producer >= graph.owners.length() ||
-          edge.target != @pipeline.Step(0) {
+          edge.producer >= graph.owners.length() {
           continue
         }
-        if bounded_zero_input_relation_source(graph, edge.producer) {
+        if segmentable_relation_source(graph, edge.producer) {
           return Some(-1)
         }
       }

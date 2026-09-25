@@ -131,6 +131,27 @@ fn prepare_application_internal(
     generate(owner, registered, fragment, true, data~, acquisition=index == 0)
   })
   let graph = @strategy.prepare_checked_dag(checked, owners, 5, 10000).unwrap()
+  let task_generated = Array::makei(@strategy.graph_task_count(graph) - 1, index => {
+    let task = index + 1
+    let owner = @strategy.graph_task_owner(graph, task).unwrap()
+    let mut source = None
+    for stage in 1..<owners.length() {
+      if physical_equal(owner, owners[stage]) {
+        source = Some(generated[stage])
+      }
+    }
+    let sequence = source.unwrap()
+    match @strategy.graph_task_selected_step(graph, task) {
+      Some(step) =>
+        @execution.select_generated_sequence_step(sequence, step).unwrap()
+      None =>
+        match @strategy.graph_task_prefix_end(graph, task) {
+          Some(last) =>
+            @execution.select_generated_sequence_prefix(sequence, last).unwrap()
+          None => sequence
+        }
+    }
+  })
   let sequence = @query.prepare_query_sequence(acquisition, generated[0], 10000).unwrap()
   let material : @planning.QueryMaterialLimits = {
     max_work: 1000000,
@@ -204,7 +225,7 @@ fn prepare_application_internal(
     registry,
     input_sequence: sequence,
     program: identity,
-    generated: generated[1:].to_owned(),
+    generated: task_generated,
     data,
   }
 }

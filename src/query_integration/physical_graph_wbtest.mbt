@@ -861,6 +861,12 @@ fn captured_graph_local(
       ).unwrap()
   }
   let generated = task_test_generated(owner)
+  let generated = match
+    @strategy.graph_task_selected_step(@strategy.captured_dag_graph(run), task) {
+    Some(step) =>
+      @execution.select_generated_sequence_step(generated, step).unwrap()
+    None => generated
+  }
   let prepared = @local_connector.local_fixed_compute_candidate(
     @connector.capability_registration_at(registry, 0).unwrap(),
     request,
