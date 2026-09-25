@@ -212,8 +212,8 @@
       }
     },
     {
-      "requirement_id": "actql.protocol.run/policy-risk-acceptance.product-7a26116de02b",
-      "statement_sha256": "7a26116de02b6dddfdceede10c321abcf01876d1b0fede96aea75f2533c92f2a",
+      "requirement_id": "actql.protocol.run/policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope",
+      "statement_sha256": "115839ddd5b724d1efa05b375ef3b79bb6b8c3125fa5b92e3d18d113a8e0eba1",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

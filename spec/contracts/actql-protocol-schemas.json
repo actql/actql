@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:1895f20b5b383cfd038398402563f52ca7fe8fb904037bf4b1f066f2a3d14ea5",
+  "artifact_registry_cid": "sha256:d4c19f4f850cb650e52cc73f92bc89bcad64a6a33aa5ee0338e4096c034753ae",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10704,7 +10704,7 @@
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
-    "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
+    "plan_result": "sha256:25139dc3bb0b8cfa0969c2ea36dd0d2a69148459fc5a9a0279891b8e742cec1c",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
   },
@@ -67266,30 +67266,10 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "statically_required",
                     "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "statically_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "reason": {
-                            "const": "multi_effect_partial_application"
-                          }
-                        }
-                      }
-                    },
                     "contract_required": {
                       "type": "array",
                       "items": {
@@ -70016,30 +69996,10 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "statically_required",
                     "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "statically_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "reason": {
-                            "const": "multi_effect_partial_application"
-                          }
-                        }
-                      }
-                    },
                     "contract_required": {
                       "type": "array",
                       "items": {

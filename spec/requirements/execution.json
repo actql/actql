@@ -1290,8 +1290,19 @@
       }
     },
     {
-      "requirement_id": "actql.execution/checkpoints.a-multi-effect-set-must-enter-that-effect-commit-checkpoint-even",
-      "statement_sha256": "8fd0b7f0768047466cfd6ec698704acc2ef28a4f7e3a3a8f8b11993c2443f641",
+      "requirement_id": "actql.execution/checkpoints.member-count-alone-must-not-require-a-checkpoint-or-risk-claim",
+      "statement_sha256": "6d62907fcd1882b4fd41bd8d1e22738c9b47262cc4b7aca604a085f41c38eda2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/checkpoints.a-host-required-risk-claim-must-be-authenticated-and-recorded-as-host-policy",
+      "statement_sha256": "a8e2659c3b706241d6cb571353b260a18256ba867bd64607c2c7796ff1c9469e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

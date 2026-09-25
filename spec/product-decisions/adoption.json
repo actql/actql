@@ -42,11 +42,15 @@
       "disposition": "adopted",
       "owner_targets": [
         "docs/spec/execution.md#effect-application",
-        "docs/spec/protocols/run.md#policy-risk-acceptance"
+        "docs/spec/protocols/run.md#policy-risk-acceptance",
+        "docs/spec/execution.md#checkpoints",
+        "docs/spec/protocols/run.md#resolution-admission"
       ],
       "acceptance_cases": [
         "D2.multi-allow",
-        "D2.multi-review",
+        "D2.multi-delegate-immediate",
+        "D2.multi-delegate-deferred",
+        "D2.host-required-claim",
         "D2.contract-floor",
         "D2.wrong-claim",
         "D2.future-outside-envelope"

@@ -110,8 +110,10 @@ A `prepare_attempt` subject contains `prepare_attempt_id` and
 and `continuation: resume_unit`. Non-Effect Checkpoints require exactly
 `[invocation_scope_approved]`. An Effect Commit Checkpoint requires
 `[effect_scope_approved]` or
-`[effect_scope_approved, partial_application_accepted]`; multi-Effect review
-requires the latter.
+`[effect_scope_approved, partial_application_accepted]`. The latter records
+that the Host's declared policy for that delegated decision requires the risk
+claim; the number of Effect Set members alone never selects it, so a
+multi-member Effect Set Checkpoint with `[effect_scope_approved]` is valid.
 
 <!-- requirement-block: resolution-admission.its-decision-time-must-be-no-earlier-than-checkpoint-creation resolution-admission.approved-resolution-evidence-bytes-must-hash-to-the-authored-approval-evidence-cid resolution-admission.a-rejection-must-not-carry-approval-evidence resolution-admission.a-host-authorization-port-must-authenticate-the-actor-and-verify resolution-admission.resolution-storage-checkpoint-closure-run-transition-and-creation-of-the -->
 An approval or rejection is an `actql-checkpoint-resolution/0.1` bound to the
@@ -196,7 +198,7 @@ and every row identity with the following strength-specific evidence:
 | `targeted` | Exact target, intended change, target guard, and explicit before-unavailable status |
 | `create`, `command`, `store` | Kind-specific intended operation, payload or typed request, and exact scope |
 
-<!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.product-7a26116de02b approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
+<!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
 Redaction and unavailable evidence are distinct states. Neither is represented
 as an invented empty before object; a redacted projection still binds the
 exact underlying private preview.
@@ -270,11 +272,14 @@ JSON Schema checks are necessary but do not authenticate any CID-only witness.
 ### Policy and human risk acceptance
 
 Risk acceptance has one proposition, `partial_application_accepted`, and a
-tagged issuer `human|policy`. Authenticated evidence MUST bind issuer, policy
+tagged issuer `human|policy`. It is required only when a Host's declared policy
+requires it for a delegated decision; Effect Set member count alone never
+requires it, and an account `allow` neither requires nor fabricates it. When
+present, authenticated evidence MUST bind issuer, policy
 CID, decision, exact Preview and review projection, authority scope and expiry.
-The policy path under resolved allow requires no human Checkpoint, including
-multi-Effect stages. Require-review still signs the complete stage scope.
-The monotone Contract/Host minimum is preserved; earlier coarse allow cannot
+The policy path under a resolved allow or an immediate delegated permit
+requires no human Checkpoint, including multi-Effect stages. A deferred
+decision still signs the complete stage scope. Earlier coarse allow cannot
 authorize an expanded future scope. Human review authority is not data-read
 authority. Claims with wrong issuer, scope, Preview or expiry fail admission.
 

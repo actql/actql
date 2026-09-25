@@ -1359,8 +1359,8 @@ A published checked Plan summary MUST report:
   consumption strengthens it to authority-evidence retention;
 - the public acquisition scope and logical item bound for every typed external
   boundary; and
-- statically required, contract-required, and policy-dependent Checkpoint
-  reasons.
+- contract-required and policy-dependent Checkpoint reasons; Effect Set
+  member count alone is not a Checkpoint reason.
 
 <!-- requirement-block: diagnostic-profiles.for-each-named-effect-set-member-it-must-additionally-report -->
 For each named Effect Set member, it MUST additionally report its name,
@@ -1462,7 +1462,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:496a8d9d57fb426e228c8796222b7974eb1667f004502f97c4683ecc03b412a8
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:25139dc3bb0b8cfa0969c2ea36dd0d2a69148459fc5a9a0279891b8e742cec1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9

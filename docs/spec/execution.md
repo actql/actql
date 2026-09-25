@@ -1410,12 +1410,18 @@ The Effect Set proposal and commit boundary follow [Effect declarations](languag
 is required, the complete Effect Set Preview is the sealed artifact of the
 Effect Commit Checkpoint; its Resolution resumes the same Run's Effect application.
 
-<!-- requirement-block: checkpoints.a-multi-effect-set-must-enter-that-effect-commit-checkpoint-even -->
-A multi-Effect Set MUST retain authenticated `partial_application_accepted`
-evidence from a human or policy issuer. Resolved `allow` does not add a human
-Checkpoint merely because there are multiple members. `require_review` uses
-one Checkpoint for the complete stage Preview. Run-level allow is insufficient
-unless the current concrete scope is proved inside its admitted envelope.
+<!-- requirement-block: checkpoints.member-count-alone-must-not-require-a-checkpoint-or-risk-claim checkpoints.a-host-required-risk-claim-must-be-authenticated-and-recorded-as-host-policy -->
+The number of Effect Set members alone MUST NOT require a Checkpoint, a
+delegated decision, or `partial_application_accepted` evidence. An account
+`allow` commits a multi-Effect Set after whole-set preflight without a risk
+claim, and its evidence does not state that anyone accepted business risk.
+A Host MAY declare a policy that requires `partial_application_accepted` for
+its delegated decision. That claim MUST then be authenticated, bound to the
+exact Preview and review projection, and recorded as that Host's declared
+policy requirement; a missing required claim is not an accepted delegation.
+A deferred decision uses one Checkpoint for the complete stage Preview.
+Run-level allow is insufficient unless the current concrete scope is proved
+inside its admitted envelope.
 
 <!-- requirement-block: checkpoints.actual-requests-must-remain-a-subset-of-that-envelope-and -->
 For data-dependent acquisition, a Checkpoint review projection MAY display the
@@ -1486,16 +1492,17 @@ When review is required, the runtime MUST pause at one Effect Commit
 Checkpoint bound to the complete previewed Effect Set. Resolving that
 Checkpoint resumes the same Run; no interface may
 release a subset. The host MUST preflight every member before the first
-mutation dispatch. A multi-Effect set additionally
-requires authenticated human or policy acceptance of partial-application risk
-bound to its exact Preview and review projection. Before the first mutation
+mutation dispatch. A multi-Effect set requires acceptance of
+partial-application risk only when a Host-declared policy requires it for a
+delegated decision ([Checkpoints and Resolutions](#checkpoints)). Before the first mutation
 dispatch, a data Connector MUST advertise exact
 mutation atomicity, row-error identity, idempotency, request-order behavior,
 and unknown-outcome reconciliation. `store` remains relation materialization
 and is not generalized into binary upload.
 
-> **Note (informative):** `partial_application_accepted` records a reviewer's
-> acceptance of business risk, not a compiler proof of atomicity.
+> **Note (informative):** `partial_application_accepted` records a human or
+> policy issuer's acceptance of business risk that a Host required. It is not
+> a compiler proof of atomicity and is never fabricated from an account allow.
 
 `present` is the observed before row or proposed complete after row.
 `absent` means no row exists (create-before or delete-after), not an unknown
