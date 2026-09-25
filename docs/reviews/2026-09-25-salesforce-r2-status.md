@@ -13,6 +13,14 @@ The completed computation now retains its exact Result export owner,
 retention inventory, and Effect-source Artifact contracts. Its final-chain
 preparation rejects a copied computation or foreign Preview. This closes a
 provenance seam but still stops before apply and publication.
+The installed Host fixture now carries a real checked Compute and its distinct
+private `rows` source and public `answer` Result through encrypted Preview
+holding, Effectful Store commit, replay, Result retirement, and metadata
+retirement. Its set Receipt is deliberately synthetic and has no physical
+write rows; this tests the Compute-to-publication seam, not SF-G1 apply.
+The Effectful commit test also reconciles a lost Store acknowledgement without
+reissuing the set, while private holding tests retain one prepared ciphertext
+across failed commit retry. A real multi-row Ledger issuer remains required.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org

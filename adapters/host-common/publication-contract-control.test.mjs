@@ -1505,8 +1505,23 @@ test('portable control validates Receipt and Captured Run references',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   }), undefined);
-  const effectfulCommitted = await publishEffectfulRun(effectfulPublication);
-  assert.equal(effectfulCommitted.committed, true);
+  let loseEffectfulCommitResponse = true;
+  const lostEffectfulStore = Object.freeze({
+    ...effectfulStore,
+    async commitEffectfulIndex(...args) {
+      const committed = await effectfulStore.commitEffectfulIndex(...args);
+      if (loseEffectfulCommitResponse) {
+        loseEffectfulCommitResponse = false;
+        throw new Error('LostEffectfulCommitResponse');
+      }
+      return committed;
+    },
+  });
+  const effectfulCommitted = await publishEffectfulRun({
+    ...effectfulPublication, store: lostEffectfulStore,
+  });
+  assert.equal(effectfulCommitted.committed, false);
+  assert.equal(effectfulCommitted.idempotent, true);
   assert.equal(effectfulCommitted.state, 'succeeded');
   assert.equal(effectfulCommitted.index.identity, effectfulIndex.identity);
   const effectfulReplay = await publishEffectfulRun(effectfulPublication);

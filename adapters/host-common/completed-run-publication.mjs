@@ -1,7 +1,10 @@
 // Complete publication of every checked Named Result retained by one finished
 // Effect-free Run. MoonBit issues and validates every semantic contract. This
 // coordinator only sequences bounded export and durable Store effects.
-import {publishEffectFreeRun} from './run-publication.mjs';
+import {publishEffectFreeRun, publishEffectfulRun} from
+  './run-publication.mjs';
+import {preparePrivatePublicationHolding} from
+  './private-publication-holding.mjs';
 
 export class CompletedRunPublicationError extends Error {
   constructor(code, cause) {
@@ -26,12 +29,17 @@ const member = (value, name) => {
 const contract = value => value !== null && typeof value === 'object' &&
   typeof value.name === 'string' && typeof value.identity === 'string' &&
   typeof value.wire === 'string';
-const ownContract = value => Object.freeze({
-  name: value.name, identityField: value.identityField,
-  identity: value.identity, wire: value.wire,
-});
+const ownContract = (control, value, limits,
+  code = 'InvalidCompletedRunPublicationContract') => {
+  const admitted = control.admit(value.name, value.wire, limits);
+  if (admitted.identity !== value.identity) {
+    fail(code);
+  }
+  return admitted;
+};
 const completedResultOwners = new WeakMap();
 const completedEffectfulOwners = new WeakMap();
+const privateEffectfulHoldings = new WeakMap();
 
 function validateExecution(execution) {
   if (execution === null || typeof execution !== 'object' ||
@@ -298,7 +306,8 @@ export async function storeCompletedRunResultSet(options) {
     completedResultOwners.set(stored, {
       execution: options.execution, control: options.control,
       retentions: Object.freeze(options.results.map(value =>
-        ownContract(value.retention))),
+        ownContract(options.control, value.retention,
+          options.contractLimits))),
       releaseComplete: false, releaseFlight: undefined,
       cleanupFailure: undefined,
     });
@@ -392,11 +401,25 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
         typeof control?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulComputationOptions');
   }
-  for (const holding of effectSourceHoldings) {
-    const source = holding?.source;
-    const record = holding?.record;
+  const ownedHoldings = effectSourceHoldings.map(holding => {
     if (!contract(holding?.artifact) ||
         holding.artifact.name !== 'effect_source_artifact' ||
+        !holding.record || !Array.isArray(holding.record.objects)) {
+      fail('InvalidCompletedEffectSourceHolding');
+    }
+    return Object.freeze({
+      source: holding.source,
+      artifact: ownContract(control, holding.artifact, contractLimits,
+        'InvalidCompletedEffectSourceHolding'),
+      record: Object.freeze({...holding.record,
+        objects: Object.freeze(holding.record.objects.map(object =>
+          Object.freeze({...object})))}),
+    });
+  });
+  for (const holding of ownedHoldings) {
+    const source = holding.source;
+    const record = holding.record;
+    if (
         record?.namespace !== 'effect-source' ||
         record?.holding_cid !==
           control.capturedEffectSourceHoldingCid(source) ||
@@ -430,16 +453,15 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       captureEvidence.pendingSourceStateAdvances,
     authoringContext,
     modelEvidence: captureEvidence.modelEvidence,
-    effectSources: effectSourceHoldings.map(value => value.source),
+    effectSources: ownedHoldings.map(value => value.source),
   }, preview, plans, contractLimits);
   const issued = Object.freeze({manifest, computationReceipt: receipt,
     capturedRun});
   completedEffectfulOwners.set(issued, Object.freeze({
     execution, store, storedResults, control, preview,
     runDefinition, invocation,
-    effectSourceHoldings: Object.freeze(effectSourceHoldings.map(value =>
-      Object.freeze({source: value.source,
-        artifact: ownContract(value.artifact)}))),
+    effectSourceHoldings: Object.freeze(ownedHoldings.map(value =>
+      Object.freeze({source: value.source, artifact: value.artifact}))),
   }));
   return issued;
 }
@@ -485,6 +507,39 @@ export function prepareCompletedEffectfulPublication(options) {
     sourceArtifacts: Object.freeze(issued.effectSourceHoldings.map(
       value => value.artifact)),
   });
+}
+
+// Publish only from the retained completed owner and an issued physical
+// Effect set. A failed or uncertain commit leaves every owner available for
+// reconciliation; a repeated call never re-runs Compute or Effect dispatch.
+export async function publishCompletedEffectfulRun(options) {
+  if (!exactKeys(options, [
+    'execution', 'store', 'storedResults', 'control', 'computation',
+    'preview', 'ledger', 'issuedSet', 'request', 'attempt',
+    'contractLimits', 'now', 'signal',
+  ])) fail('InvalidCompletedEffectfulRunOptions');
+  const {execution, store, storedResults, control, computation, preview,
+    ledger, issuedSet, request, attempt, contractLimits, now, signal} = options;
+  const inventory = prepareCompletedEffectfulPublication({
+    execution, store, storedResults, control, computation, preview,
+  });
+  let privateOwner = privateEffectfulHoldings.get(computation);
+  if (privateOwner === undefined) {
+    const binding = control.effectPrivateEvidenceBinding(
+      preview, store.storeAuthorityCid,
+    );
+    privateOwner = preparePrivatePublicationHolding(store, binding);
+    privateEffectfulHoldings.set(computation, privateOwner);
+  }
+  await privateOwner.commit();
+  const publication = await publishEffectfulRun({
+    store, control, ...inventory, ledger, issuedSet,
+    request, attempt, limits: contractLimits, now, signal,
+  });
+  if (publication.idempotent) {
+    await releaseCompletedRunPreparedPayloads(storedResults, control);
+  }
+  return Object.freeze({publication, computation, storedResults});
 }
 
 export async function publishCompletedEffectFreeRun(options) {
