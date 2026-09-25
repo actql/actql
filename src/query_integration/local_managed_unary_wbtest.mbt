@@ -376,53 +376,7 @@ fn run_local_managed_unary_case(
   } else {
     None
   }
-  let bounded_advances = Ref(0)
-  let (unary_ops, unary) = run_local_managed_test_task(
-    installed,
-    run,
-    unary_task,
-    [unary_input],
-    [unary_input_rows],
-    unary_task,
-    unary_live,
-    obligations?=unary_obligations,
-    execution_quantum=if kind == "select" ||
-      kind == "derive_map" ||
-      kind == "derive_empty" ||
-      kind == "derive_ordered" ||
-      kind == "assert_where" ||
-      kind == "assert_unique" ||
-      kind == "rename" ||
-      kind == "rename_swap" ||
-      kind == "rename_empty" ||
-      kind == "drop" ||
-      kind == "drop_empty" ||
-      kind == "drop_repeated" ||
-      kind == "filter_text" ||
-      kind == "filter_structured" ||
-      kind == "filter_null" ||
-      kind == "sort" ||
-      kind == "sort_compound" ||
-      kind == "take" ||
-      kind == "take_parameter" ||
-      kind == "top_k" ||
-      kind == "top_k_parameter" ||
-      kind == "top_k_compound" ||
-      kind == "top_k_by" ||
-      kind == "top_k_by_parameter" ||
-      kind == "top_k_by_nullable" ||
-      kind == "unpivot" ||
-      kind == "unpivot_empty" {
-      1
-    } else {
-      0
-    },
-    execution_advances=Some(bounded_advances),
-    require_provider=bounded_top_k_chain ||
-      kind == "unpivot" ||
-      kind == "unpivot_empty",
-  )
-  if kind == "select" ||
+  let bounded_unary = kind == "select" ||
     kind == "derive_map" ||
     kind == "derive_empty" ||
     kind == "derive_ordered" ||
@@ -448,7 +402,22 @@ fn run_local_managed_unary_case(
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable" ||
     kind == "unpivot" ||
-    kind == "unpivot_empty" {
+    kind == "unpivot_empty"
+  let bounded_advances = Ref(0)
+  let (unary_ops, unary) = run_local_managed_test_task(
+    installed,
+    run,
+    unary_task,
+    [unary_input],
+    [unary_input_rows],
+    unary_task,
+    unary_live,
+    obligations?=unary_obligations,
+    execution_quantum=if bounded_unary { 1 } else { 0 },
+    execution_advances=Some(bounded_advances),
+    require_provider=bounded_unary || bounded_top_k_chain,
+  )
+  if bounded_unary {
     assert_true(bounded_advances.val > 4)
   }
   let expected = local_managed_unary_expected(kind)
