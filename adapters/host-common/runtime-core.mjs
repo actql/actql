@@ -2402,6 +2402,10 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    publicIndexSameCommittedContent(committed, candidate) {
+      return moon.strategyPublicIndexSameCommittedContent(
+        token(committed), token(candidate));
+    },
     issuePublicationRecord(attempt, previous, update, limits) {
       issuanceLimits(limits, 'Publication Record');
       if (update === null || typeof update !== 'object') {

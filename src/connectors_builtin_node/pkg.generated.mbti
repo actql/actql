@@ -801,6 +801,8 @@ pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @r
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
 
+pub fn strategy_public_index_same_committed_content(@run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
+
 pub fn strategy_publication_admit(String, String, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_publication_attempt_action(@run_publication.PublicationContract?, Bool, Bool) -> Int

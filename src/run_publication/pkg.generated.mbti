@@ -305,6 +305,8 @@ pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead,
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
 
+pub fn public_index_same_committed_content(PublicationContract, PublicationContract) -> Bool
+
 pub fn publication_attempt_runtime_action_code(PublicationAttemptRuntimeAction) -> Int
 
 pub fn publication_cancellation_action_code(PublicationCancellationAction) -> Int
