@@ -2452,10 +2452,18 @@ test(`two-member captured Effect Run ${
           templateOnly: siteRun});
       const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
+          moon, salesforceMoon, prepared,
+          context: {runDefinition: definition, runInvocation: invocation,
+            compiledPlan: evidence[3],
+            modelDerived: false,
+            resultArtifactCid: sourcePayload.summary.artifact.identity},
           requestScope, members: siteRequests.map((requests, index) => ({
             stageIndex: 0, effectId: memberIds[index], requests,
             observations: previewTargetObservations?.[index],
+            effectIdentityCid: cid(String(index + 1)),
+            sourceBindingCid: cid('c'), capabilityEvidenceCid: cid('d'),
+            authorityScopeCid: cid('e'), requiredPermissions: ['write'],
+            maxItems: 2, approval: 'none', previewStrength: 'full_diff',
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
