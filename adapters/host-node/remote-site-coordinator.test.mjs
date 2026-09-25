@@ -797,6 +797,15 @@ test('deferred remote dispatch persists its Checkpoint before waiting',
     assert.equal(deferral.journal.getRunState(checkpoint.runId).status,
       'waiting_checkpoint');
     assert.equal(gate.counters().checkpointsPersisted, 1);
+    // The Checkpoint requires the dispatch's sealed subject artifact itself;
+    // the Site/registration decision subject is bound next to it.
+    const persisted = deferral.journal.inspect(checkpoint.checkpointCid);
+    assert.match(waiting.error.authorization.subjectCid,
+      /^sha256:[0-9a-f]{64}$/);
+    assert.equal(persisted.requiredArtifact.cid,
+      waiting.error.authorization.subjectCid);
+    assert.equal(persisted.decisionSubjectCid, checkpoint.decisionSubjectCid);
+    assert.notEqual(persisted.decisionSubjectCid, persisted.requiredArtifact.cid);
   });
 
 test('a remote retry under a changed context is decided again', async t => {

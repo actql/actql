@@ -7,8 +7,8 @@
 // Checkpoint journal, an exact-scope decision cache and cheap counters. It
 // performs no network I/O and never reads Program input: the principal and
 // authorization context come from the Host that installs it. The only digest
-// it computes is the subject binding of a deferred decision (below), over the
-// ten-field decision subject projection, never over data.
+// it computes is the decision-subject binding of a deferred decision (below),
+// over the ten-field decision subject projection, never over data.
 
 export const AUTHORIZATION_BOUNDARIES = Object.freeze([
   'preparation', 'acquisition', 'activation', 'transfer', 'effect_commit',
@@ -103,13 +103,17 @@ function frozenDecision(fields) {
   return Object.freeze(fields);
 }
 
-// Subject binding of a deferred decision: SHA-256 over the canonical JSON of
-// the ten-field decision subject projection (all members are strings; keys
-// sorted; ECMAScript string serialization is the canonical string form). The
-// gate writes it as the Checkpoint's required artifact, so a committed
-// approval names exactly one account entry, principal, connection, resource,
-// operation, boundary, subject and context.
-async function subjectBindingCid(subject) {
+// Decision-subject binding of a deferred decision: SHA-256 over the canonical
+// JSON of the ten-field decision subject projection (all members are strings;
+// keys sorted; ECMAScript string serialization is the canonical string form).
+// It is not the Checkpoint's required artifact: the required artifact is the
+// sealed review subject itself (the `subjectCid` of the boundary, for example
+// the Effect Set Preview or the prepared invocation), so approval evidence
+// binds the real artifact. The journal stores this binding next to the
+// Checkpoint, and resume admits the approval only for the exact account
+// entry, principal, connection, resource, operation, boundary, subject and
+// context it names.
+async function decisionSubjectCid(subject) {
   const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
     `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
   const digest = await globalThis.crypto.subtle.digest('SHA-256',
@@ -148,7 +152,25 @@ function answerOf(value) {
     subject,
     authority: value.authority,
     claims: decision === 'permit' ? [...claims] : [],
+    // Optional bindings an immediate answer states (for example from its
+    // verified immediate Resolution); checked against the bound request.
+    subjectArtifactCid: value.subjectArtifactCid,
+    decisionSubjectCid: value.decisionSubjectCid,
   };
+}
+
+// Immediate path: a permit or reject that states the artifact or decision
+// subject it answers must state exactly the bound ones; another artifact or
+// subject is a malformed answer, never a permit or a rejection.
+function immediateBinding(answer, view) {
+  if (answer.kind !== 'permit' && answer.kind !== 'reject') return answer;
+  if ((answer.subjectArtifactCid !== undefined &&
+       answer.subjectArtifactCid !== view.subjectArtifactCid) ||
+      (answer.decisionSubjectCid !== undefined &&
+       answer.decisionSubjectCid !== view.decisionSubjectCid)) {
+    return {kind: 'failure', failure: 'malformed_answer'};
+  }
+  return answer;
 }
 
 function requireRuntime(runtime) {
@@ -310,11 +332,23 @@ function gateFor(core, context) {
       return frozenDecision({...base, action: 'unsupported',
         reason: 'checkpoint_journal_not_configured'});
     }
+    // The sealed review subject is the artifact the Checkpoint requires. A
+    // boundary without a valid sealed subject artifact cannot be deferred.
+    if (!cid(base.subjectCid)) {
+      return frozenDecision({...base, action: 'failure',
+        reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
+    }
     let persisted;
     let bindingCid;
     try {
-      bindingCid = await subjectBindingCid(view.subject);
+      bindingCid = await decisionSubjectCid(view.subject);
       const described = await deferral.describe(view);
+      const supplied = described?.body?.required_artifact?.artifact_cid;
+      // `describe` may not substitute another artifact for the subject.
+      if (supplied !== undefined && supplied !== base.subjectCid) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
+      }
       const kind = described?.body?.kind ?? CHECKPOINT_KIND[base.boundary];
       const phase = base.boundary === 'effect_commit' ? 'commit' : 'preflight';
       const body = {
@@ -325,12 +359,12 @@ function gateFor(core, context) {
           ? ['effect_scope_approved'] : ['invocation_scope_approved'],
         reason_code: 'delegated_decision_deferred',
         ...described.body,
-        // The reviewed artifact of an authorization deferral is the exact
-        // decision subject; the gate owns this binding, not `describe`.
+        // The reviewed artifact of an authorization deferral is the sealed
+        // subject artifact of the boundary; the gate owns this binding.
         required_artifact: {
           artifact_type: ARTIFACT_TYPE[kind],
           ...described.body?.required_artifact,
-          artifact_cid: bindingCid,
+          artifact_cid: base.subjectCid,
         },
       };
       // Durable commit happens before any waiting claim is made.
@@ -343,6 +377,7 @@ function gateFor(core, context) {
         declaredResults: described.declaredResults,
         authorities: deferral.authorities,
         binding: described.binding ?? deferral.binding,
+        decisionSubjectCid: bindingCid,
       });
     } catch (error) {
       return frozenDecision({...base, action: 'failure',
@@ -357,7 +392,8 @@ function gateFor(core, context) {
         prepareAttemptId: persisted.prepareAttemptId ?? null,
         runState: persisted.runState,
         preparation: persisted.preparation,
-        subjectBindingCid: bindingCid,
+        requiredArtifactCid: base.subjectCid,
+        decisionSubjectCid: bindingCid,
       })});
   }
 
@@ -452,10 +488,13 @@ function gateFor(core, context) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: approval.detail});
     }
-    // The approval covers only the subject bound at defer time: another
-    // Site, registration, boundary, subject, context or entry is not it.
-    if (approval.checkpoint.requiredArtifact.cid !==
-        await subjectBindingCid(bound.subject)) {
+    // The approval covers only the sealed artifact and the decision subject
+    // bound at defer time: another artifact, Site, registration, boundary,
+    // subject, context, tuple or entry is not it.
+    if (!cid(subjectCid) ||
+        approval.checkpoint.requiredArtifact.cid !== subjectCid ||
+        approval.checkpoint.decisionSubjectCid !==
+          await decisionSubjectCid(bound.subject)) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: 'ResolutionSubjectMismatch'});
     }
@@ -524,10 +563,15 @@ function gateFor(core, context) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: bound.issue});
     }
+    // The Host sees the sealed subject artifact and the decision-subject
+    // binding, so an immediate answer binds the same artifact and subject a
+    // deferred Checkpoint would.
     const view = Object.freeze({
       boundary,
       tuple,
       subject: Object.freeze({...bound.subject}),
+      subjectArtifactCid: cid(subjectCid) ? subjectCid : null,
+      decisionSubjectCid: await decisionSubjectCid(bound.subject),
       answeringAuthorities: Object.freeze([...bound.answering_authorities]),
       requiredClaims: Object.freeze([...bound.required_claims]),
     });
@@ -536,7 +580,7 @@ function gateFor(core, context) {
     // Host's decision route, so the bound subject is deferred as is.
     const answer = core.decide === undefined
       ? {kind: 'defer', subject: SUBJECT_FIELDS.map(name => view.subject[name])}
-      : await askHost(view, signal);
+      : immediateBinding(await askHost(view, signal), view);
     const runtimeDecision = moon.executionAuthorizationAnswer(
       request,
       answer.kind,

@@ -238,6 +238,16 @@ test('defer persists a Checkpoint and sends nothing; the committed approval ' +
   const resolution = await deferral.answer(checkpoint.checkpointCid,
     'approved');
   assert.equal(resolution.decision, 'approved');
+  // The approval evidence binds the dispatch's real sealed subject artifact,
+  // not a digest of the decision subject (which is bound separately).
+  const subjectArtifact = waiting.error.authorization.subjectCid;
+  assert.match(subjectArtifact, /^sha256:[0-9a-f]{64}$/);
+  const verified = JSON.parse(resolution.verifiedResolutionWire);
+  assert.equal(verified.resolution.required_artifact_cid, subjectArtifact);
+  assert.equal(verified.approval_evidence.compatibility_approval
+    .prepared_invocation_cid, subjectArtifact);
+  assert.equal(deferral.journal.inspect(checkpoint.checkpointCid)
+    .decisionSubjectCid, checkpoint.decisionSubjectCid);
   const claim = deferral.journal.claimResume(checkpoint.runId, {
     claimant: 'coordinator-a', leaseMs: 60_000, binding: deferral.binding,
   });

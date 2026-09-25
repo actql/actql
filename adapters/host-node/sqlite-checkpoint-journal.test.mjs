@@ -1048,3 +1048,172 @@ function storedWire(journal, checkpointCid) {
     database.close();
   }
 }
+
+test('rejection, expiry and cancellation preserve unknown earlier Effect outcomes',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const reconcile = (runId, effects) => {
+      const state = journal.getRunState(runId);
+      assert.equal(state.status, 'needs_reconciliation');
+      assert.equal(state.runState.checkpoint, undefined);
+      assert.deepEqual(state.runState.next_action,
+        {kind: 'reconcile', effects});
+      assert.equal(state.runState.terminal_error, undefined);
+    };
+
+    // Rejection while earlier Effects are unknown: no resume intent, the
+    // continuation is not dispatched and the unknown facts stay visible.
+    const rejected = persist(journal);
+    const answer = await journal.submitResolution({
+      checkpointCid: rejected.checkpointCid,
+      ...resolve(stored(journal), 'rejected'),
+      unknownEffects: ['effect-2', 'effect-1'],
+    });
+    assert.equal(answer.decision, 'rejected');
+    assert.equal(answer.resumeIntentId, null);
+    assert.equal(answer.runState.status, 'needs_reconciliation');
+    reconcile('run-1', ['effect-2', 'effect-1']);
+    assert.equal(journal.inspect(rejected.checkpointCid).closure, 'resolved');
+    assert.throws(() => journal.claimResume('run-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding}),
+    {code: 'ResumeIntentNotFound'});
+    // Identical redelivery is idempotent and changes nothing.
+    const again = await journal.submitResolution({
+      checkpointCid: rejected.checkpointCid,
+      ...resolve(storedWire(journal, rejected.checkpointCid), 'rejected'),
+      unknownEffects: ['effect-2', 'effect-1'],
+    });
+    assert.equal(again.outcome, 'duplicate');
+    reconcile('run-1', ['effect-2', 'effect-1']);
+
+    // Approval resumes the same Run with a resume intent; the Run owner
+    // keeps its Effect facts.
+    const approved = persist(journal, effectBody({runId: 'run-2',
+      checkpointId: 'cp-2'}));
+    const permit = await journal.submitResolution({
+      checkpointCid: approved.checkpointCid,
+      ...resolve(storedWire(journal, approved.checkpointCid), 'approved'),
+      unknownEffects: ['effect-1'],
+    });
+    assert.equal(permit.runState.status, 'resuming');
+    assert.notEqual(permit.resumeIntentId, null);
+
+    // Cancellation with and without unknown Effects.
+    const cancelledUnknown = persist(journal, effectBody({runId: 'run-3',
+      checkpointId: 'cp-3'}));
+    const cancelled = journal.cancelCheckpoint(cancelledUnknown.checkpointCid,
+      {unknownEffects: ['effect-9']});
+    assert.equal(cancelled.runStatus, 'needs_reconciliation');
+    reconcile('run-3', ['effect-9']);
+    const cancelledPlain = persist(journal, effectBody({runId: 'run-4',
+      checkpointId: 'cp-4'}));
+    assert.equal(journal.cancelCheckpoint(cancelledPlain.checkpointCid)
+      .runStatus, 'cancelled');
+    const plainState = journal.getRunState('run-4');
+    assert.equal(plainState.status, 'cancelled');
+    assert.deepEqual(plainState.runState.next_action, {kind: 'none'});
+    assert.equal(counts(journal.path).intents, 1);
+
+    // Expiry sweep: only the Run with unknown Effects needs reconciliation.
+    const expiring = ['run-5', 'run-6'].map(runId => persist(journal,
+      effectBody({runId, checkpointId: `cp-${runId}`,
+        expiresAt: '2026-09-25T11:00:00.000Z'})));
+    clock.ms = T0 + HOUR;
+    assert.deepEqual(journal.expire({unknownEffects: runId =>
+      runId === 'run-5' ? ['effect-5'] : []}).sort(),
+    expiring.map(item => item.checkpointCid).sort());
+    reconcile('run-5', ['effect-5']);
+    assert.equal(journal.getRunState('run-6').status, 'cancelled');
+
+    // Expiry found while answering uses the answer's unknown Effects.
+    clock.ms = T0;
+    const late = persist(journal, effectBody({runId: 'run-7',
+      checkpointId: 'cp-7', expiresAt: '2026-09-25T11:00:00.000Z'}));
+    const lateAnswer = resolve(storedWire(journal, late.checkpointCid),
+      'rejected', {decidedAt: '2026-09-25T10:30:00.000Z'});
+    clock.ms = T0 + HOUR;
+    await assert.rejects(journal.submitResolution({
+      checkpointCid: late.checkpointCid, ...lateAnswer,
+      unknownEffects: ['effect-7'],
+    }), {code: 'CheckpointExpired'});
+    reconcile('run-7', ['effect-7']);
+    assert.equal(journal.inspect(late.checkpointCid).closure, 'expired');
+  });
+
+test('unknown Effects are validated and never apply to a preparation',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const unit = persist(journal);
+    for (const unknownEffects of [['effect-1', 'effect-1'], [''], 'effect-1']) {
+      assert.throws(() => journal.cancelCheckpoint(unit.checkpointCid,
+        {unknownEffects}), {code: 'InvalidUnknownEffects'});
+      await assert.rejects(journal.submitResolution({
+        checkpointCid: unit.checkpointCid,
+        ...resolve(stored(journal), 'rejected'), unknownEffects,
+      }), {code: 'InvalidUnknownEffects'});
+    }
+    assert.equal(journal.getRunState('run-1').status, 'waiting_checkpoint');
+    const preparation = persistPreparation(journal);
+    assert.throws(() => journal.cancelCheckpoint(preparation.checkpointCid,
+      {unknownEffects: ['effect-1']}), {code: 'InvalidUnknownEffects'});
+    await assert.rejects(journal.submitResolution({
+      checkpointCid: preparation.checkpointCid,
+      ...resolvePreparation(storedWire(journal, preparation.checkpointCid),
+        'rejected'),
+      unknownEffects: ['effect-1'],
+    }), {code: 'InvalidUnknownEffects'});
+    assert.equal(journal.getPreparation('attempt-1').status,
+      'waiting_checkpoint');
+    assert.deepEqual(counts(journal.path), {runs: 1, checkpoints: 2,
+      resolutions: 0, intents: 0, preparations: 1});
+  });
+
+test('a decision-subject binding is stored next to its Checkpoint',
+  async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const bound = journal.persistCheckpoint({
+      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+      authorities, binding, decisionSubjectCid: cid('9'),
+    });
+    const view = journal.inspect(bound.checkpointCid);
+    assert.equal(view.decisionSubjectCid, cid('9'));
+    // The sealed required artifact is the body's own, untouched.
+    assert.equal(view.requiredArtifact.cid, cid('3'));
+    // An idempotent retry must name the same binding.
+    assert.throws(() => journal.persistCheckpoint({
+      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+      authorities, binding, decisionSubjectCid: cid('8'),
+    }), {code: 'CheckpointConflict'});
+    assert.throws(() => journal.persistCheckpoint({
+      body: effectBody({runId: 'run-2'}), priorStatus: 'running',
+      declaredResults: ['tickets'], authorities, binding,
+      decisionSubjectCid: 'not-a-cid',
+    }), {code: 'InvalidDecisionSubjectBinding'});
+    const unbound = persist(journal, effectBody({runId: 'run-3'}));
+    assert.equal(journal.inspect(unbound.checkpointCid).decisionSubjectCid,
+      null);
+  });
+
+test('a journal created before the decision-subject column is upgraded',
+  async t => {
+    const {open} = await workspace(t);
+    const first = open();
+    const waiting = persist(first);
+    first.close();
+    const database = new DatabaseSync(first.path);
+    database.exec('ALTER TABLE checkpoints DROP COLUMN decision_subject_cid');
+    database.close();
+    const journal = open();
+    assert.equal(journal.inspect(waiting.checkpointCid).decisionSubjectCid,
+      null);
+    const next = journal.persistCheckpoint({
+      body: effectBody({runId: 'run-2'}), priorStatus: 'running',
+      declaredResults: ['tickets'], authorities, binding,
+      decisionSubjectCid: cid('9'),
+    });
+    assert.equal(journal.inspect(next.checkpointCid).decisionSubjectCid,
+      cid('9'));
+  });

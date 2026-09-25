@@ -112,7 +112,39 @@ async function fixture(t, { outcome = 'delegate' } = {}) {
             .map(row => ({ ...row })),
         };
       } finally { sqlite.close(); }
+    },
+    // The sealed Checkpoint, its stored decision-subject binding and the
+    // committed Resolution, with the continuation and invocation records it
+    // names from the Host artifact store.
+    async sealed() {
+      const sqlite = new DatabaseSync(journalPath, { readOnly: true });
+      let row;
+      let resolution;
+      try {
+        row = sqlite.prepare('SELECT checkpoint_wire, decision_subject_cid FROM checkpoints')
+          .get();
+        resolution = sqlite.prepare('SELECT verified_resolution_wire FROM resolutions').get();
+      } finally { sqlite.close(); }
+      const artifact = async cid => JSON.parse(await readFile(join(directory,
+        'host/state/artifacts', cid.slice('sha256:'.length)), 'utf8'));
+      const checkpoint = JSON.parse(row.checkpoint_wire);
+      const continuation = await artifact(checkpoint.continuation_state_cid);
+      return { checkpoint, decisionSubjectCid: row.decision_subject_cid,
+        verified: resolution && JSON.parse(resolution.verified_resolution_wire),
+        continuation, invocation: await artifact(continuation.invocation_cid) };
     } };
+}
+
+// The approval binds the sealed subject artifact of the boundary itself, and
+// the exact decision subject is a separate binding next to the Checkpoint.
+function assertRealArtifact(sealed) {
+  const required = sealed.checkpoint.required_artifact.artifact_cid;
+  assert.match(sealed.decisionSubjectCid, /^sha256:[0-9a-f]{64}$/);
+  assert.notEqual(sealed.decisionSubjectCid, required);
+  assert.equal(sealed.verified.resolution.required_artifact_cid, required);
+  assert.equal(sealed.verified.approval_evidence.compatibility_approval
+    .prepared_invocation_cid, required);
+  return required;
 }
 
 async function waitingRun(input) {
@@ -172,6 +204,11 @@ test('defer in process A, approve in B, resume in C: same result, one continuati
   assert.equal(approved.code, 0, approved.stderr);
   assert.equal(approved.json.results[0].status, 'committed');
   assert.equal(input.rows().runs, 0);
+  // Preparation is decided before any path read: its sealed subject is the
+  // invocation request that the captured prepared invocation binds.
+  const sealed = await input.sealed();
+  assert.equal(sealed.checkpoint.required_artifact.artifact_type, 'prepared_invocation');
+  assert.equal(assertRealArtifact(sealed), sealed.invocation.request_cid);
 
   // C: the resumed continuation creates its Run in running and completes.
   const resumed = await cli(['resume', waiting.prepare_attempt_id, '--config', input.config]);
@@ -398,6 +435,10 @@ test('an acquisition deferral after a Host permit resumes past the crossed bound
   // permitted preparation is not asked again, the approved read proceeds.
   const approved = await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
   assert.equal(approved.json.results[0].status, 'committed');
+  // The read Checkpoint requires the captured prepared invocation itself.
+  const sealed = await input.sealed();
+  assert.equal(sealed.checkpoint.required_artifact.artifact_type, 'read_scope');
+  assert.equal(assertRealArtifact(sealed), sealed.continuation.invocation_cid);
   const resumed = await cli(['resume', waiting.prepare_attempt_id, '--config', input.config]);
   assert.equal(resumed.code, 0, resumed.stderr);
   assert.equal(resumed.json.status, 'succeeded');

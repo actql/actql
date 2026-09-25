@@ -360,9 +360,10 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
             subject: {kind: 'prepare_attempt', prepare_attempt_id: prepareAttemptId,
               continuation: 'start_run'},
             kind,
-            // The gate binds the required artifact to the exact decision
-            // subject, whose subject CID is the invocation request (for
-            // preparation) or the prepared invocation (for acquisition).
+            // The gate seals the boundary's subject artifact as the required
+            // artifact: the invocation request (for preparation, decided
+            // before any path is read) or the prepared invocation (for
+            // acquisition). The exact decision subject is bound separately.
             review_projection_cid: reviewCid,
             human_summary: `${view.boundary === 'preparation' ? 'Prepare' : 'Read'} ` +
               `${request.schema}.${request.table} for the example invocation`,
@@ -694,9 +695,10 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
         continuation.delegated_subject, actor: answer.actor,
       invocation_cid: continuation.invocation_cid}];
       const port = {
-        persistCheckpoint: ({body, authorities: reviewers, binding: bound}) =>
+        persistCheckpoint: ({body, authorities: reviewers, binding: bound,
+          decisionSubjectCid}) =>
           journal.completeResume(fence.claim, {checkpoint: {body,
-            authorities: reviewers, binding: bound}}),
+            authorities: reviewers, binding: bound, decisionSubjectCid}}),
         submitResolution: item => journal.submitResolution(item),
       };
       const resumeDecide = view => {

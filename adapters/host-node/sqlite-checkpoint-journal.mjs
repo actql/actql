@@ -86,10 +86,22 @@ function declaredJson(results) {
 }
 
 function effectsJson(effects) {
-  if (!Array.isArray(effects) || !effects.every(text)) {
+  if (!Array.isArray(effects) || !effects.every(text) ||
+      new Set(effects).size !== effects.length) {
     fail('InvalidUnknownEffects');
   }
   return JSON.stringify(effects);
+}
+
+// Exact decision-subject binding stored next to a Checkpoint (for example
+// the gate's digest of the ten-field decision subject). Optional: '' when the
+// Checkpoint was persisted without one.
+function subjectBinding(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value)) {
+    fail('InvalidDecisionSubjectBinding');
+  }
+  return value;
 }
 
 // Safe inspection view: identities, the review subject reference, and the
@@ -116,6 +128,8 @@ function checkpointView(wire, row) {
     humanSummary: artifact.human_summary,
     createdAt: artifact.created_at,
     expiresAt: artifact.expires_at,
+    decisionSubjectCid: row.decision_subject_cid === '' ? null :
+      row.decision_subject_cid,
     closure: row.closure,
     resolutionCid: row.resolution_cid === '' ? null : row.resolution_cid,
   });
@@ -199,6 +213,7 @@ export function openSqliteCheckpointJournal(root, {
         expires_at TEXT NOT NULL,
         authorities_json TEXT NOT NULL,
         binding_json TEXT NOT NULL,
+        decision_subject_cid TEXT NOT NULL DEFAULT '',
         closure TEXT NOT NULL
           CHECK (closure IN ('open', 'resolved', 'expired', 'cancelled')),
         resolution_cid TEXT NOT NULL DEFAULT '',
@@ -235,6 +250,13 @@ export function openSqliteCheckpointJournal(root, {
       ) STRICT;
     `);
     transaction(database, () => {
+      // A journal created before the decision-subject binding column gains
+      // it with the empty (unbound) value.
+      const columns = database.prepare('PRAGMA table_info(checkpoints)').all();
+      if (!columns.some(column => column.name === 'decision_subject_cid')) {
+        database.exec(`ALTER TABLE checkpoints ADD COLUMN
+          decision_subject_cid TEXT NOT NULL DEFAULT ''`);
+      }
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -281,8 +303,8 @@ export function openSqliteCheckpointJournal(root, {
     insertCheckpoint: database.prepare(`
       INSERT INTO checkpoints (checkpoint_cid, checkpoint_id, run_id,
         prepare_attempt_id, checkpoint_wire, expires_at, authorities_json,
-        binding_json, closure, persisted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
+        binding_json, decision_subject_cid, closure, persisted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
     closeCheckpoint: database.prepare(`
       UPDATE checkpoints SET closure = ?, resolution_cid = ?, closed_at = ?
       WHERE checkpoint_cid = ? AND closure = 'open'`),
@@ -388,12 +410,46 @@ export function openSqliteCheckpointJournal(root, {
 
   const isPreparation = sealed => sealed.subject_kind === 'prepare_attempt';
 
-  function insertCheckpoint(sealed, authorities, binding, at) {
+  function insertCheckpoint(sealed, authorities, binding, subject, at) {
     statements.insertCheckpoint.run(
       sealed.checkpoint_cid, sealed.checkpoint_id, sealed.run_id,
       sealed.prepare_attempt_id, sealed.checkpoint_wire, sealed.expires_at,
-      authorities, binding, at,
+      authorities, binding, subject, at,
     );
+  }
+
+  // The next Checkpoint named by a resumed continuation's exit.
+  function nextCheckpoint(checkpoint) {
+    return {
+      sealed: sealBody(checkpoint.body),
+      reviewers: authoritiesJson(checkpoint.authorities),
+      bound: bindingJson(checkpoint.binding),
+      subject: subjectBinding(checkpoint.decisionSubjectCid),
+    };
+  }
+
+  // Exit of a waiting Run whose Checkpoint was rejected, expired or
+  // cancelled without dispatching its continuation: `cancelled`, or
+  // `needs_reconciliation` with a `reconcile` action over the earlier Effect
+  // outcomes the Run owner still records as unknown.
+  function waitingExit(run, unknown, at) {
+    const exit = core(runtime.waitingExitState(run.run_id, at,
+      run.declared_results_json, unknown), 'InvalidRunState');
+    transitionAllowed('waiting_checkpoint', exit.run_status);
+    changed(statements.moveRun.run(exit.run_status, at, '',
+      exit.run_status === 'cancelled' ? '' : exit.run_state_wire, run.run_id,
+      run.version, 'waiting_checkpoint'), 'RunStateConflict');
+    return exit.run_status;
+  }
+
+  // Unknown Effects of one Run as the Host reports them: an array, or a
+  // function or object keyed by Run id (for a sweep over several Runs).
+  function unknownOf(unknownEffects, runId) {
+    const value = typeof unknownEffects === 'function'
+      ? unknownEffects(runId)
+      : Array.isArray(unknownEffects) ? unknownEffects
+        : unknownEffects?.[runId];
+    return effectsJson(value ?? []);
   }
 
   // After commit: the waiting projection is issued only from the exact wire
@@ -432,7 +488,7 @@ export function openSqliteCheckpointJournal(root, {
       runStateWire: wire, runState: JSON.parse(wire)});
   }
 
-  function expireLocked(row, at) {
+  function expireLocked(row, at, unknown = '[]') {
     changed(statements.closeCheckpoint.run('expired', '', at,
       row.checkpoint_cid), 'CheckpointAlreadyClosed');
     if (row.prepare_attempt_id !== null) {
@@ -448,9 +504,7 @@ export function openSqliteCheckpointJournal(root, {
     const run = statements.run.get(row.run_id);
     if (run?.status === 'waiting_checkpoint' &&
         run.checkpoint_cid === row.checkpoint_cid) {
-      transitionAllowed('waiting_checkpoint', 'cancelled');
-      changed(statements.moveRun.run('cancelled', at, '', '', run.run_id,
-        run.version, 'waiting_checkpoint'), 'RunStateConflict');
+      waitingExit(run, unknown, at);
     }
   }
 
@@ -515,6 +569,7 @@ export function openSqliteCheckpointJournal(root, {
     // preparation Checkpoint creates no Run.
     persistCheckpoint({
       body, priorStatus, declaredResults, authorities, binding,
+      decisionSubjectCid,
     }) {
       alive();
       const sealed = sealBody(body);
@@ -528,6 +583,7 @@ export function openSqliteCheckpointJournal(root, {
       }
       const reviewers = authoritiesJson(authorities);
       const bound = bindingJson(binding);
+      const subject = subjectBinding(decisionSubjectCid);
       const declared = declaredJson(declaredResults);
       const at = iso(now());
       transaction(database, () => {
@@ -535,7 +591,8 @@ export function openSqliteCheckpointJournal(root, {
         if (existing !== undefined) {
           if (existing.checkpoint_wire !== sealed.checkpoint_wire ||
               existing.authorities_json !== reviewers ||
-              existing.binding_json !== bound) {
+              existing.binding_json !== bound ||
+              existing.decision_subject_cid !== subject) {
             fail('CheckpointConflict');
           }
           return;
@@ -559,7 +616,7 @@ export function openSqliteCheckpointJournal(root, {
               priorStatus), 'RunStateConflict');
           }
         }
-        insertCheckpoint(sealed, reviewers, bound, at);
+        insertCheckpoint(sealed, reviewers, bound, subject, at);
         fault('persistCheckpoint');
       });
       return waitingAfterCommit(sealed);
@@ -628,11 +685,14 @@ export function openSqliteCheckpointJournal(root, {
 
     // Cancel a waiting Checkpoint without dispatching its continuation: the
     // Checkpoint closes as cancelled, a waiting preparation ends without a
-    // Run and a waiting Run moves to `cancelled`. No resume intent exists or
-    // is created. Repeating the cancel is idempotent; an answered or expired
-    // Checkpoint is not cancelled.
-    cancelCheckpoint(reference) {
+    // Run and a waiting Run moves to `cancelled`, or to
+    // `needs_reconciliation` over `unknownEffects` (earlier Effect outcomes
+    // of the Run the Host still records as unknown). No resume intent exists
+    // or is created. Repeating the cancel is idempotent; an answered or
+    // expired Checkpoint is not cancelled.
+    cancelCheckpoint(reference, {unknownEffects = []} = {}) {
       alive();
+      const unknown = effectsJson(unknownEffects);
       const at = iso(now());
       return transaction(database, () => {
         const row = rowFor(reference);
@@ -647,7 +707,10 @@ export function openSqliteCheckpointJournal(root, {
         }
         changed(statements.closeCheckpoint.run('cancelled', '', at,
           row.checkpoint_cid), 'CheckpointAlreadyClosed');
+        let runStatus;
         if (row.prepare_attempt_id !== null) {
+          // A preparation precedes its Run and has no Effect outcomes.
+          if (unknown !== '[]') fail('InvalidUnknownEffects');
           const preparation = statements.preparation.get(row.prepare_attempt_id);
           if (preparation?.status !== 'waiting_checkpoint' ||
               preparation.checkpoint_cid !== row.checkpoint_cid) {
@@ -663,14 +726,12 @@ export function openSqliteCheckpointJournal(root, {
               run.checkpoint_cid !== row.checkpoint_cid) {
             fail('RunStateConflict');
           }
-          transitionAllowed('waiting_checkpoint', 'cancelled');
-          changed(statements.moveRun.run('cancelled', at, '', '', run.run_id,
-            run.version, 'waiting_checkpoint'), 'RunStateConflict');
+          runStatus = waitingExit(run, unknown, at);
         }
         fault('cancelCheckpoint');
         return Object.freeze({outcome: 'cancelled',
           checkpointCid: row.checkpoint_cid,
-          ...(row.run_id !== null ? {runId: row.run_id} :
+          ...(row.run_id !== null ? {runId: row.run_id, runStatus} :
             {prepareAttemptId: row.prepare_attempt_id})});
       });
     },
@@ -725,17 +786,25 @@ export function openSqliteCheckpointJournal(root, {
 
     // Admit, attest, and commit one Resolution. Resolution storage,
     // Checkpoint closure, the Run or preparation transition and the unique
-    // resume intent commit in one transaction.
+    // resume intent commit in one transaction. `unknownEffects` are the
+    // earlier Effect outcomes of the Run the Host still records as unknown:
+    // a rejection (or an expiry found here) then moves the waiting Run to
+    // `needs_reconciliation` instead of `cancelled`, without a resume intent.
     async submitResolution({
       checkpointCid, resolutionWire, approvalEvidenceWire = '',
+      unknownEffects = [],
     }) {
       alive();
       if (!text(checkpointCid) || !text(resolutionWire) ||
           typeof approvalEvidenceWire !== 'string') {
         fail('InvalidResolutionSubmission');
       }
+      const unknown = effectsJson(unknownEffects);
       const row = statements.checkpoint.get(checkpointCid);
       if (row === undefined) fail('CheckpointNotFound');
+      if (row.prepare_attempt_id !== null && unknown !== '[]') {
+        fail('InvalidUnknownEffects');
+      }
       const verifiedAt = iso(now());
       const authJson = await authenticate(row.checkpoint_wire, resolutionWire,
         approvalEvidenceWire);
@@ -753,7 +822,7 @@ export function openSqliteCheckpointJournal(root, {
           current.checkpoint_wire, resolutionWire, approvalEvidenceWire,
           authJson, current.authorities_json, verifiedAt,
           attestation.hostKeyId, attestation.signature, current.closure,
-          current.resolution_cid,
+          current.resolution_cid, unknown,
         ), 'InvalidResolution');
         if (decided.action === 'duplicate') {
           return {kind: 'duplicate', decided};
@@ -762,7 +831,9 @@ export function openSqliteCheckpointJournal(root, {
           return {kind: 'conflict'};
         }
         if (decided.action === 'expired') {
-          if (current.closure === 'open') expireLocked(current, verifiedAt);
+          if (current.closure === 'open') {
+            expireLocked(current, verifiedAt, unknown);
+          }
           return {kind: 'expired'};
         }
         if (decided.effect === 'move_run') {
@@ -771,10 +842,15 @@ export function openSqliteCheckpointJournal(root, {
               run.checkpoint_cid !== checkpointCid) {
             fail('RunStateConflict');
           }
-          transitionAllowed('waiting_checkpoint', decided.run_status);
-          changed(statements.moveRun.run(decided.run_status, verifiedAt, '',
-            '', run.run_id, run.version, 'waiting_checkpoint'),
-          'RunStateConflict');
+          if (decided.decision === 'approved') {
+            transitionAllowed('waiting_checkpoint', decided.run_status);
+            changed(statements.moveRun.run(decided.run_status, verifiedAt, '',
+              '', run.run_id, run.version, 'waiting_checkpoint'),
+            'RunStateConflict');
+          } else if (waitingExit(run, unknown, verifiedAt) !==
+              decided.run_status) {
+            fail('RunTransitionRejected');
+          }
         } else {
           const preparation = statements.preparation.get(
             current.prepare_attempt_id);
@@ -1056,11 +1132,7 @@ export function openSqliteCheckpointJournal(root, {
       let runStateWire = '';
       let next;
       if (outcome?.checkpoint !== undefined) {
-        next = {
-          sealed: sealBody(outcome.checkpoint.body),
-          reviewers: authoritiesJson(outcome.checkpoint.authorities),
-          bound: bindingJson(outcome.checkpoint.binding),
-        };
+        next = nextCheckpoint(outcome.checkpoint);
         if (next.sealed.run_id !== claim.runId) fail('CheckpointRunMismatch');
         target = 'waiting_checkpoint';
       } else if (text(outcome?.runStateWire)) {
@@ -1096,7 +1168,8 @@ export function openSqliteCheckpointJournal(root, {
               undefined) {
             fail('CheckpointConflict');
           }
-          insertCheckpoint(next.sealed, next.reviewers, next.bound, atIso);
+          insertCheckpoint(next.sealed, next.reviewers, next.bound,
+            next.subject, atIso);
           checkpointCid = next.sealed.checkpoint_cid;
         }
         changed(statements.moveRun.run(target, atIso, checkpointCid,
@@ -1109,9 +1182,11 @@ export function openSqliteCheckpointJournal(root, {
     },
 
     // Close every open Checkpoint whose expiration has been reached: a
-    // waiting Run is cancelled and a waiting preparation ends, without
-    // dispatch.
-    expire() {
+    // waiting preparation ends and a waiting Run is cancelled, without
+    // dispatch, or moves to `needs_reconciliation` when the Host reports
+    // unknown earlier Effect outcomes for it. `unknownEffects` is a function
+    // of the Run id or an object keyed by Run id.
+    expire({unknownEffects} = {}) {
       alive();
       const at = iso(now());
       return transaction(database, () => {
@@ -1120,7 +1195,8 @@ export function openSqliteCheckpointJournal(root, {
           const result = core(runtime.checkpointExpiredAt(row.checkpoint_wire,
             at), 'CheckpointJournalCorrupt');
           if (result.expired) {
-            expireLocked(row, at);
+            expireLocked(row, at, row.run_id === null ? '[]'
+              : unknownOf(unknownEffects, row.run_id));
             expired.push(row.checkpoint_cid);
           }
         }
@@ -1162,11 +1238,7 @@ export function openSqliteCheckpointJournal(root, {
     let run;
     let ended;
     if (outcome?.checkpoint !== undefined) {
-      next = {
-        sealed: sealBody(outcome.checkpoint.body),
-        reviewers: authoritiesJson(outcome.checkpoint.authorities),
-        bound: bindingJson(outcome.checkpoint.binding),
-      };
+      next = nextCheckpoint(outcome.checkpoint);
       if (next.sealed.prepare_attempt_id !== claim.prepareAttemptId) {
         fail('CheckpointPreparationMismatch');
       }
@@ -1202,7 +1274,8 @@ export function openSqliteCheckpointJournal(root, {
           fail('CheckpointConflict');
         }
         move('waiting_checkpoint', next.sealed.checkpoint_cid, '', '');
-        insertCheckpoint(next.sealed, next.reviewers, next.bound, atIso);
+        insertCheckpoint(next.sealed, next.reviewers, next.bound, next.subject,
+          atIso);
       } else if (run !== undefined) {
         // The approved preparation continuation creates the Run.
         if (statements.run.get(run.runId) !== undefined) {

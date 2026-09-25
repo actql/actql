@@ -996,6 +996,14 @@ test('a deferred transfer decision persists its Checkpoint and copies nothing',
     assert.equal(pending.kind, 'data_egress');
     assert.equal(pending.checkpointCid,
       waiting.error.authorization.checkpoint.checkpointCid);
+    // The egress Checkpoint requires the transfer's sealed subject artifact;
+    // the exact decision subject is a separate stored binding.
+    assert.match(waiting.error.authorization.subjectCid,
+      /^sha256:[0-9a-f]{64}$/);
+    assert.equal(pending.requiredArtifact.cid,
+      waiting.error.authorization.subjectCid);
+    assert.equal(pending.decisionSubjectCid,
+      waiting.error.authorization.checkpoint.decisionSubjectCid);
   });
 
 test('in-process transfer between unprotected Sites is covered', async () => {

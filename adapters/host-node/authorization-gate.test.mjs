@@ -227,10 +227,14 @@ test('defer persists a durable Checkpoint before waiting', async t => {
   assert.equal(pending.length, 1);
   assert.equal(pending[0].checkpointCid, decision.checkpoint.checkpointCid);
   assert.equal(pending[0].kind, 'read_access');
-  // The gate binds the exact decision subject as the reviewed artifact.
-  assert.equal(pending[0].requiredArtifact.cid,
-    decision.checkpoint.subjectBindingCid);
-  assert.notEqual(pending[0].requiredArtifact.cid, subjectCid);
+  // The reviewed artifact is the sealed subject artifact itself; the exact
+  // decision subject is a separate binding stored next to the Checkpoint.
+  assert.equal(pending[0].requiredArtifact.cid, subjectCid);
+  assert.equal(decision.checkpoint.requiredArtifactCid, subjectCid);
+  assert.equal(pending[0].decisionSubjectCid,
+    decision.checkpoint.decisionSubjectCid);
+  assert.match(pending[0].decisionSubjectCid, /^sha256:[0-9a-f]{64}$/);
+  assert.notEqual(pending[0].decisionSubjectCid, subjectCid);
   assert.equal(
     deferral.journal.getRunState(decision.checkpoint.runId).status,
     'waiting_checkpoint',
@@ -238,6 +242,77 @@ test('defer persists a durable Checkpoint before waiting', async t => {
   assert.equal(gate.counters().checkpointsPersisted, 1);
   assert.equal(gate.counters().protectedDispatches, 0);
 });
+
+test('defer requires the sealed subject artifact and no substitute',
+  async t => {
+    const root = await workspace(t);
+    const deferral = await sqliteDeferral(root);
+    t.after(() => deferral.journal.close());
+    const defer = view => ({decision: 'defer', subject: view.subject});
+    const gate = await fixtureAuthorization(delegateEntries, {
+      decide: defer, answeringAuthorities: ['reviewer'], deferral,
+    });
+    // No or malformed subject artifact: nothing to seal, nothing persisted.
+    for (const options of [{}, {subjectCid: 'sha256:short'}]) {
+      const failed = await gate.authorize('acquisition', scope, options);
+      assert.equal(failed.action, 'failure');
+      assert.match(failed.detail, /^Invalid(SubjectCid|SubjectArtifact)$/);
+    }
+    // A Host `describe` naming another artifact is a decision failure.
+    const substituting = await fixtureAuthorization(delegateEntries, {
+      decide: defer, answeringAuthorities: ['reviewer'],
+      deferral: {...deferral, describe(view) {
+        const described = deferral.describe(view);
+        return {...described, body: {...described.body, required_artifact: {
+          artifact_cid: `sha256:${'6'.repeat(64)}`}}};
+      }},
+    });
+    const substituted = await substituting.authorize('acquisition', scope,
+      {subjectCid});
+    assert.equal(substituted.action, 'failure');
+    assert.equal(substituted.detail, 'SubjectArtifactMismatch');
+    assert.equal(deferral.journal.listPending().length, 0);
+    // Naming the same artifact is accepted.
+    const same = await fixtureAuthorization(delegateEntries, {
+      decide: defer, answeringAuthorities: ['reviewer'],
+      deferral: {...deferral, describe(view) {
+        const described = deferral.describe(view);
+        return {...described, body: {...described.body, required_artifact: {
+          artifact_cid: subjectCid}}};
+      }},
+    });
+    assert.equal((await same.authorize('acquisition', scope, {subjectCid}))
+      .action, 'waiting');
+  });
+
+test('an immediate answer naming another artifact or subject is malformed',
+  async () => {
+    let seen;
+    const answer = extra => async view => {
+      seen = view;
+      return {decision: 'permit', subject: view.subject,
+        authority: 'reviewer', ...extra(view)};
+    };
+    const gateFor = extra => fixtureAuthorization(delegateEntries, {
+      decide: answer(extra), answeringAuthorities: ['reviewer'],
+    });
+    const exact = await (await gateFor(view => ({
+      subjectArtifactCid: view.subjectArtifactCid,
+      decisionSubjectCid: view.decisionSubjectCid,
+    }))).authorize('acquisition', scope, {subjectCid});
+    assert.equal(exact.action, 'dispatch');
+    assert.equal(seen.subjectArtifactCid, subjectCid);
+    assert.match(seen.decisionSubjectCid, /^sha256:[0-9a-f]{64}$/);
+    for (const extra of [
+      () => ({subjectArtifactCid: `sha256:${'6'.repeat(64)}`}),
+      () => ({decisionSubjectCid: subjectCid}),
+    ]) {
+      const other = await (await gateFor(extra)).authorize('acquisition',
+        scope, {subjectCid});
+      assert.equal(other.action, 'failure');
+      assert.equal(other.reason, 'malformed_answer');
+    }
+  });
 
 async function deferredGate(t, entries = delegateEntries) {
   const root = await workspace(t);
@@ -268,13 +343,26 @@ test('resume dispatches only from a committed approval for the exact subject',
     const claim = claimResume(deferral, waiting);
     assert.equal(claim.action, 'claimed');
     const resumption = {claim, resolution};
-    // Another resource, boundary or subject is not the approved subject.
-    for (const [boundary, changed, subject] of [
-      ['acquisition', {...scope, resource: 'items'}, subjectCid],
-      ['transfer', scope, subjectCid],
-      ['acquisition', scope, `sha256:${'6'.repeat(64)}`],
+    // The committed approval binds the real sealed artifact.
+    const checkpoint = deferral.journal.inspect(
+      waiting.checkpoint.checkpointCid);
+    assert.equal(checkpoint.requiredArtifact.cid, subjectCid);
+    const verified = JSON.parse(resolution.verifiedResolutionWire);
+    assert.equal(verified.resolution.required_artifact_cid, subjectCid);
+    assert.equal(verified.approval_evidence.compatibility_approval
+      .prepared_invocation_cid, subjectCid);
+    // Another resource, boundary, subject, context or connection is not the
+    // approved subject.
+    const otherContext = gate.withContext({principal: 'local-user',
+      contextCid: `sha256:${'7'.repeat(64)}`});
+    for (const [target, boundary, changed, subject] of [
+      [gate, 'acquisition', {...scope, resource: 'items'}, subjectCid],
+      [gate, 'acquisition', {...scope, operation: 'write'}, subjectCid],
+      [gate, 'transfer', scope, subjectCid],
+      [gate, 'acquisition', scope, `sha256:${'6'.repeat(64)}`],
+      [otherContext, 'acquisition', scope, subjectCid],
     ]) {
-      const other = await gate.resume(boundary, changed,
+      const other = await target.resume(boundary, changed,
         {subjectCid: subject, resumption});
       assert.equal(other.action, 'failure');
       assert.equal(other.detail, 'ResolutionSubjectMismatch');
