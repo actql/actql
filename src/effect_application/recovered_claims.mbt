@@ -38,6 +38,8 @@ pub fn prepare_effect_recovery_bindings(
     return Err(InvalidLimits)
   }
   let preview_cid = @publication.effect_preview_semantic_identity(preview)
+  let program_bytes = @utf8.encode(program_id).length()
+  let node_bytes = @utf8.encode(node_id).length()
   let bindings : Array[Array[EffectRecoveryBinding]] = []
   let mut work = 0
   let mut total_rows = 0
@@ -56,6 +58,14 @@ pub fn prepare_effect_recovery_bindings(
       return Err(InvalidLimits)
     }
     total_rows += row_count
+    let effect_bytes = @utf8.encode(effect_id).length()
+    let mut name_bytes = program_bytes
+    if node_bytes > name_bytes {
+      name_bytes = node_bytes
+    }
+    if effect_bytes > name_bytes {
+      name_bytes = effect_bytes
+    }
     let rows : Array[EffectRecoveryBinding] = []
     for row_index in 0..<row_count {
       work += 1
@@ -72,17 +82,18 @@ pub fn prepare_effect_recovery_bindings(
         is Some(row_cid) else {
         return Err(ForeignPreviewRow(member_index, row_index))
       }
+      let item_bytes = @utf8.encode(correlation).length()
       let key = match
         prepare_effect_dispatch_key(
-          scope, preview_cid, correlation, 1000000, 1000, 32,
+          scope, preview_cid, correlation, item_bytes, 1000, 32,
         ) {
         Ok(value) => value
         Err(_) => return Err(ForeignPreviewRow(member_index, row_index))
       }
       let locator = match
         prepare_logical_item_locator(
-          scope, program_id, node_id, effect_id, correlation, 1000000, 1000000, 1000,
-          32,
+          scope, program_id, node_id, effect_id, correlation, name_bytes, item_bytes,
+          1000, 32,
         ) {
         Ok(value) => value
         Err(_) => return Err(ForeignPreviewRow(member_index, row_index))
