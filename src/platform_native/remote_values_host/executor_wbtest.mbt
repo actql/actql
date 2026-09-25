@@ -135,7 +135,7 @@ test "native Values task installation binds the checked Run before Compute" {
     admission,
     "site-values-scope",
     "site-values-run",
-    "sha256:" + "c".repeat(64),
+    @publication.empty_initial_input_artifact_set_cid(),
     "2026-09-25T00:00:00.000Z",
     "2027-01-01T00:00:00.000Z",
     100000,
