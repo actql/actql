@@ -764,6 +764,7 @@ pub(all) enum CapturedEffectProposalIssue {
   Plan(@stage_results.EffectPlanBindingIssue)
   Row(@stage_results.EffectPlanRowIssue)
   Changes(@stage_results.EffectPlanChangeIssue)
+  Create(@stage_results.EffectCreateRowIssue)
   SelectorEncoding
 } derive(@debug.Debug)
 

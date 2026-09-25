@@ -2298,7 +2298,7 @@ test(`two-member captured Effect Run ${
         invocation: runInvocation, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
-        ...(siteRun && writeKind !== 'create' ? {
+        ...(siteRun ? {
           proposalMemberIndexes: [0, 1],
           proposalLimits: {maxFields: 10, maxWork: 100,
             maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
@@ -2309,13 +2309,14 @@ test(`two-member captured Effect Run ${
           },
         } : {}),
       });
-      if (siteRun && writeKind !== 'create') {
+      if (siteRun) {
         for (const rows of proposedRows) {
           assert.deepEqual(rows.map(row => JSON.parse(row.selectorWire)),
-            sourceIds);
+            writeKind === 'create' ? [null, null] : sourceIds);
           assert.deepEqual(rows.map(row =>
             JSON.parse(row.changesWire).value),
-          sourceIds.map(Name => ({Name})));
+          sourceIds.map(Name => writeKind === 'create' ?
+            {Name, External_Key__c: Name} : {Name}));
         }
       }
       const effect = runtimeCore(moon).effectApplicationControl;
@@ -2354,8 +2355,7 @@ test(`two-member captured Effect Run ${
         sourceIds.map((value, rowIndex) => checked(
           salesforceMoon.salesforcePrepareWriteBody(
           siteProjections[memberIndex],
-          Buffer.from(JSON.stringify(writeKind === 'create' ?
-            {Name: value, External_Key__c: value} :
+          Buffer.from(JSON.stringify(
             JSON.parse(proposedRows[memberIndex][rowIndex].changesWire)
               .value)),
           1024, 32, 5)))) : undefined;
@@ -2413,9 +2413,9 @@ test(`two-member captured Effect Run ${
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
         writeKind,
-        siteRun && writeKind !== 'create' ? proposedRows[0].map(row =>
+        siteRun ? proposedRows[0].map(row =>
           JSON.parse(row.changesWire).value.Name) :
-          siteRun ? sourceIds : [1, 2],
+          [1, 2],
         siteRun && writeKind !== 'create' ? proposedRows[0].map(row =>
           JSON.parse(row.selectorWire)) :
           siteRun ? sourceIds : [1, 2], memberIds,
