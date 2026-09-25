@@ -2173,9 +2173,9 @@ const _M0FP35actql5actql16canonical__value18normalize__nfc__lfN7_2abindS205 = "\
 const _M0FP35actql5actql6sha25614initial__state = [1779033703, -1150833019, 1013904242, -1521486534, 1359893119, -1694144372, 528734635, 1541459225];
 const _M0FP35actql5actql6sha25616round__constants = [1116352408, 1899447441, -1245643825, -373957723, 961987163, 1508970993, -1841331548, -1424204075, -670586216, 310598401, 607225278, 1426881987, 1925078388, -2132889090, -1680079193, -1046744716, -459576895, -272742522, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, -1740746414, -1473132947, -1341970488, -1084653625, -958395405, -710438585, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, -2117940946, -1838011259, -1564481375, -1474664885, -1035236496, -949202525, -778901479, -694614492, -200395387, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, -2067236844, -1933114872, -1866530822, -1538233109, -1090935817, -965641998];
 const _M0FP35actql5actql12encode__core6quotedN6digitsS82 = "0123456789abcdef";
-const _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS210 = "sha256:";
-const _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS534 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
-const _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS535 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(4);
+const _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS211 = "sha256:";
+const _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS535 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS536 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(4);
 const _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163 = "sha256:";
 const _M0FP35actql5actql16remote__transfer20valid__transfer__cidN7_2abindS751 = "sha256:";
 const _M0FP35actql5actql22remote__site__protocol10valid__cidN7_2abindS1662 = "sha256:";
@@ -2217,17 +2217,16 @@ const _M0MP35actql5actql13source__value6Parser8documentN6constrS1186 = new _M0DT
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1187 = 44;
 const _M0MP35actql5actql13source__value6Parser8documentN6constrS1188 = 58;
 const _M0FP35actql5actql12encode__core12value__startN6constrS363 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(false);
-const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS514 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS515 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS516 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS517 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS518 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS519 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS520 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
-const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS544 = new _M0TP35actql5actql13source__value11ParseLimits(32768, 64, 2);
-const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS545 = new _M0TP35actql5actql12decode__core6Limits(64, 2, 32768, 32768);
-const _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS546 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
-const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS536 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS521 = new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
+const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS545 = new _M0TP35actql5actql13source__value11ParseLimits(32768, 64, 2);
+const _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS546 = new _M0TP35actql5actql12decode__core6Limits(64, 2, 32768, 32768);
+const _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS547 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(0);
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS537 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS538 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS539 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
@@ -2235,16 +2234,17 @@ const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS54
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS541 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS542 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
 const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS543 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
-const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6constrS547 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload31DurablePublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
-const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS548 = new _M0TP35actql5actql13source__value11ParseLimits(65536, 32, 2);
-const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS549 = new _M0TP35actql5actql12decode__core6Limits(32, 2, 32768, 65536);
-const _M0FP35actql5actql20publication__payload46restore__durable__publication__payload__recordN6constrS550 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
-const _M0FP35actql5actql20publication__payload39prepare__publication__payload__reservedN6constrS522 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
-const _M0FP35actql5actql20publication__payload38prepare__publication__payload__writingN6constrS523 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
-const _M0FP35actql5actql20publication__payload44prepare__publication__payload__opaque__ownedN6constrS525 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
-const _M0FP35actql5actql20publication__payload45prepare__publication__payload__opaque__sealedN6constrS528 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
-const _M0FP35actql5actql20publication__payload49prepare__publication__payload__opaque__reclaimingN6constrS532 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(4);
-const _M0FP35actql5actql20publication__payload40prepare__publication__payload__reclaimedN6constrS533 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS544 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6constrS548 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload31DurablePublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS549 = new _M0TP35actql5actql13source__value11ParseLimits(65536, 32, 2);
+const _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS550 = new _M0TP35actql5actql12decode__core6Limits(32, 2, 32768, 65536);
+const _M0FP35actql5actql20publication__payload46restore__durable__publication__payload__recordN6constrS551 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload24PublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload39prepare__publication__payload__reservedN6constrS523 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload38prepare__publication__payload__writingN6constrS524 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload44prepare__publication__payload__opaque__ownedN6constrS526 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload45prepare__publication__payload__opaque__sealedN6constrS529 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
+const _M0FP35actql5actql20publication__payload49prepare__publication__payload__opaque__reclaimingN6constrS533 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(4);
+const _M0FP35actql5actql20publication__payload40prepare__publication__payload__reclaimedN6constrS534 = new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(2);
 const _M0FP35actql5actql12encode__core12begin__arrayN6constrS364 = new _M0DTP35actql5actql12encode__core5Frame10ArrayItems(true);
 const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3564 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol48emit__remote__managed__output__measurement__bodyN6constrS3565 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -2267,8 +2267,8 @@ const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evide
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3580 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3581 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol38remote__output__holding__evidence__cidN6constrS3582 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS249 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS250 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS251 = new _M0DTPC16result6ResultGORPB5ArrayGsERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
 const _M0FP35actql5actql22remote__site__protocol23dispatch__request__jsonN6constrS3612 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3620 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol28emit__remote__output__intentN6constrS3621 = new _M0DTPC16result6ResultGUssERP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
@@ -2279,10 +2279,10 @@ const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operatio
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3626 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3627 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
 const _M0FP35actql5actql22remote__site__protocol37remote__poll__output__operation__jsonN6constrS3628 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS251 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS252 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
-const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS253 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
-const _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS521 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(3);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS252 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(0);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS253 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(10);
+const _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS254 = new _M0DTPC16result6ResultGsRP35actql5actql22remote__site__protocol13DispatchIssueE3Err(1);
+const _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS522 = new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE3Err(3);
 const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1403 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer19emit__request__bodyN6constrS1404 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
 const _M0FP35actql5actql16remote__transfer17request__identityN6constrS1405 = new _M0DTPC16result6ResultGsRP35actql5actql16remote__transfer19RemoteTransferIssueE3Err(0);
@@ -13861,45 +13861,45 @@ function _M0FP35actql5actql12encode__core19finish__hash__usage(w) {
   const _nodes = _bind$2._2;
   return new _M0DTPC16result6ResultGUsiiERP35actql5actql12encode__core13EncodeFailureE2Ok({ _0: _hash, _1: _bytes, _2: _nodes });
 }
-function _M0IP35actql5actql20publication__payload23PublicationPayloadStatePB2Eq5equal(_x_185, _x_186) {
-  switch (_x_185) {
+function _M0IP35actql5actql20publication__payload23PublicationPayloadStatePB2Eq5equal(_x_186, _x_187) {
+  switch (_x_186) {
     case 0: {
-      if (_x_186 === 0) {
+      if (_x_187 === 0) {
         return true;
       } else {
         return false;
       }
     }
     case 1: {
-      if (_x_186 === 1) {
+      if (_x_187 === 1) {
         return true;
       } else {
         return false;
       }
     }
     case 2: {
-      if (_x_186 === 2) {
+      if (_x_187 === 2) {
         return true;
       } else {
         return false;
       }
     }
     case 3: {
-      if (_x_186 === 3) {
+      if (_x_187 === 3) {
         return true;
       } else {
         return false;
       }
     }
     case 4: {
-      if (_x_186 === 4) {
+      if (_x_187 === 4) {
         return true;
       } else {
         return false;
       }
     }
     default: {
-      if (_x_186 === 5) {
+      if (_x_187 === 5) {
         return true;
       } else {
         return false;
@@ -13908,7 +13908,7 @@ function _M0IP35actql5actql20publication__payload23PublicationPayloadStatePB2Eq5
   }
 }
 function _M0FP35actql5actql20publication__payload18valid__sha256__cid(value) {
-  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS210, 0, _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS210.length))) {
+  if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS211, 0, _M0FP35actql5actql20publication__payload18valid__sha256__cidN7_2abindS211.length))) {
     return false;
   }
   let _tmp = 7;
@@ -13929,7 +13929,7 @@ function _M0FP35actql5actql20publication__payload18valid__sha256__cid(value) {
 }
 function _M0FP35actql5actql20publication__payload22emit__payload__request(store_authority_cid, publication_attempt_cid, material_generation_cid, result_definition_cid, logical_relation_cid, result_schema_cid, ordering_evidence_cid, durable_codec_cid, max_bytes, row_count) {
   if (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(store_authority_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(publication_attempt_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(material_generation_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(result_definition_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(logical_relation_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(result_schema_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(ordering_evidence_cid) || (!_M0FP35actql5actql20publication__payload18valid__sha256__cid(durable_codec_cid) || (BigInt.asIntN(64, max_bytes) <= BigInt.asIntN(64, 0n) || BigInt.asIntN(64, row_count) < BigInt.asIntN(64, 0n)))))))))) {
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS514;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS515;
   }
   let writer;
   let _try_err;
@@ -13946,7 +13946,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS515;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS516;
   }
   let _try_err$2;
   _L$2: {
@@ -14169,7 +14169,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L$2;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS516;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS517;
   }
   let _bind;
   let _try_err$3;
@@ -14186,7 +14186,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L$3;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS517;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS518;
   }
   const _digest = _bind._0;
   let body_writer;
@@ -14204,7 +14204,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L$4;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS518;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS519;
   }
   let _try_err$5;
   _L$5: {
@@ -14427,7 +14427,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L$5;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS519;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS520;
   }
   let body;
   let _try_err$6;
@@ -14462,7 +14462,7 @@ function _M0FP35actql5actql20publication__payload22emit__payload__request(store_
       }
       break _L$6;
     }
-    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS520;
+    return _M0FP35actql5actql20publication__payload22emit__payload__requestN6constrS521;
   }
   return new _M0DTPC16result6ResultGUssERP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok({ _0: body, _1: `sha256:${_digest}` });
 }
@@ -14497,7 +14497,7 @@ function _M0FP35actql5actql20publication__payload35publication__payload__request
       break _L;
     }
   }
-  return _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS521;
+  return _M0FP35actql5actql20publication__payload35publication__payload__request__jsonN6constrS522;
 }
 function _M0FP35actql5actql20publication__payload37prepare__publication__payload__record(request) {
   return new _M0TP35actql5actql20publication__payload24PublicationPayloadRecord(request, 0, 0, undefined, undefined, undefined, undefined, 18446744073709551615n, "");
@@ -14507,13 +14507,13 @@ function _M0FP35actql5actql20publication__payload28prepare__payload__transition(
 }
 function _M0FP35actql5actql20publication__payload39prepare__publication__payload__reserved(record) {
   if (_M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql20publication__payload23PublicationPayloadStateE(record.state, 0)) {
-    return _M0FP35actql5actql20publication__payload39prepare__publication__payload__reservedN6constrS522;
+    return _M0FP35actql5actql20publication__payload39prepare__publication__payload__reservedN6constrS523;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 1, undefined, undefined, undefined, undefined, 18446744073709551615n, ""));
 }
 function _M0FP35actql5actql20publication__payload38prepare__publication__payload__writing(record) {
   if (_M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql20publication__payload23PublicationPayloadStateE(record.state, 1)) {
-    return _M0FP35actql5actql20publication__payload38prepare__publication__payload__writingN6constrS523;
+    return _M0FP35actql5actql20publication__payload38prepare__publication__payload__writingN6constrS524;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 2, undefined, undefined, undefined, undefined, 18446744073709551615n, ""));
 }
@@ -14549,7 +14549,7 @@ function _M0FP35actql5actql20publication__payload44prepare__publication__payload
       }
       break _L;
     }
-    return _M0FP35actql5actql20publication__payload44prepare__publication__payload__opaque__ownedN6constrS525;
+    return _M0FP35actql5actql20publication__payload44prepare__publication__payload__opaque__ownedN6constrS526;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 2, undefined, undefined, custody_cid, undefined, 18446744073709551615n, ""));
 }
@@ -14596,7 +14596,7 @@ function _M0FP35actql5actql20publication__payload45prepare__publication__payload
       }
       break _L;
     }
-    return _M0FP35actql5actql20publication__payload45prepare__publication__payload__opaque__sealedN6constrS528;
+    return _M0FP35actql5actql20publication__payload45prepare__publication__payload__opaque__sealedN6constrS529;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 3, undefined, undefined, custody_cid, custody_cid, actual_bytes, physical_digest));
 }
@@ -14640,23 +14640,23 @@ function _M0FP35actql5actql20publication__payload49prepare__publication__payload
       }
       break _L;
     }
-    return _M0FP35actql5actql20publication__payload49prepare__publication__payload__opaque__reclaimingN6constrS532;
+    return _M0FP35actql5actql20publication__payload49prepare__publication__payload__opaque__reclaimingN6constrS533;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 4, undefined, undefined, record.opaque_ownership_cid, record.opaque_generation_cid, record.actual_bytes, record.physical_digest));
 }
 function _M0FP35actql5actql20publication__payload40prepare__publication__payload__reclaimed(record) {
   if (_M0IP016_24default__implPB2Eq10not__equalGRP35actql5actql20publication__payload23PublicationPayloadStateE(record.state, 4)) {
-    return _M0FP35actql5actql20publication__payload40prepare__publication__payload__reclaimedN6constrS533;
+    return _M0FP35actql5actql20publication__payload40prepare__publication__payload__reclaimedN6constrS534;
   }
   return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload28PublicationPayloadTransitionRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_M0FP35actql5actql20publication__payload28prepare__payload__transition(record, 5, record.ownership, record.generation, record.opaque_ownership_cid, record.opaque_generation_cid, record.actual_bytes, record.physical_digest));
 }
 function _M0FP35actql5actql20publication__payload40commit__publication__payload__transition(transition, durable) {
   if (!durable) {
-    return _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS534;
+    return _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS535;
   }
   const record = transition.record;
   if (record.revision !== transition.expected_revision) {
-    return _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS535;
+    return _M0FP35actql5actql20publication__payload40commit__publication__payload__transitionN6constrS536;
   }
   record.revision = record.revision + 1 | 0;
   record.state = transition.next_state;
@@ -14717,7 +14717,7 @@ function _M0FP35actql5actql20publication__payload12parse__state(value) {
 }
 function _M0FP35actql5actql20publication__payload21emit__payload__record(request, revision, state, ownership, generation, opaque_ownership_cid, opaque_generation_cid, actual_bytes, physical_digest) {
   if (revision < 0 || BigInt.asIntN(64, actual_bytes) < BigInt.asIntN(64, 18446744073709551615n)) {
-    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS536;
+    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS537;
   }
   _L: {
     _L$2: {
@@ -14743,7 +14743,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
         }
         break _L$3;
       }
-      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS537;
+      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS538;
     }
     let writer;
     let _try_err;
@@ -14760,7 +14760,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
         }
         break _L$4;
       }
-      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS538;
+      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS539;
     }
     let _try_err$2;
     _L$5: {
@@ -14947,7 +14947,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
         }
         break _L$5;
       }
-      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS539;
+      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS540;
     }
     let _tmp;
     let _try_err$3;
@@ -14982,7 +14982,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
         }
         break _L$6;
       }
-      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS540;
+      return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS541;
     }
     return new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_tmp);
   }
@@ -15001,7 +15001,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
       }
       break _L$2;
     }
-    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS541;
+    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS542;
   }
   let _try_err$2;
   _L$3: {
@@ -15256,7 +15256,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
       }
       break _L$3;
     }
-    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS542;
+    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS543;
   }
   let _tmp;
   let _try_err$3;
@@ -15291,7 +15291,7 @@ function _M0FP35actql5actql20publication__payload21emit__payload__record(request
       }
       break _L$4;
     }
-    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS543;
+    return _M0FP35actql5actql20publication__payload21emit__payload__recordN6constrS544;
   }
   return new _M0DTPC16result6ResultGsRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(_tmp);
 }
@@ -15357,7 +15357,7 @@ function _M0FP35actql5actql20publication__payload10parse__u64(value) {
 }
 function _M0FP35actql5actql20publication__payload20admit__request__json(body) {
   const bytes = _M0FPC28encoding4utf814encode_2einner(new _M0TPC16string10StringView(body, 0, body.length), false);
-  const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS544, "<memory>");
+  const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS545, "<memory>");
   let node;
   if (_bind.$tag === 1) {
     const _Ok = _bind;
@@ -15365,7 +15365,7 @@ function _M0FP35actql5actql20publication__payload20admit__request__json(body) {
   } else {
     return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload11PayloadStopE3Err(_M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__);
   }
-  const _bind$2 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS545));
+  const _bind$2 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql20publication__payload20admit__request__jsonN6recordS546));
   let cursor;
   if (_bind$2.$tag === 1) {
     const _ok = _bind$2;
@@ -15532,12 +15532,12 @@ function _M0FP35actql5actql20publication__payload42admit__publication__payload__
     }
     return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload25PublicationPayloadRequestRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(request);
   }
-  return _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS546;
+  return _M0FP35actql5actql20publication__payload42admit__publication__payload__request__jsonN6constrS547;
 }
 function _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__record(bytes) {
   let _try_err;
   _L: {
-    const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS548, "<memory>");
+    const _bind = _M0FP35actql5actql13source__value26parse__json__bytes_2einner(bytes, _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS549, "<memory>");
     let node;
     if (_bind.$tag === 1) {
       const _Ok = _bind;
@@ -15546,7 +15546,7 @@ function _M0FP35actql5actql20publication__payload44admit__durable__publication__
       _try_err = _M0DTPC15error5Error64actql_2factql_2fpublication__payload_2ePayloadStop_2ePayloadStop__;
       break _L;
     }
-    const _bind$2 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS549));
+    const _bind$2 = _M0FP35actql5actql20publication__payload7decodedGRP35actql5actql12decode__core6CursorE(_M0FP35actql5actql12decode__core5admit(node, _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6recordS550));
     let cursor;
     if (_bind$2.$tag === 1) {
       const _ok = _bind$2;
@@ -16007,7 +16007,7 @@ function _M0FP35actql5actql20publication__payload44admit__durable__publication__
     }
     return new _M0DTPC16result6ResultGRP35actql5actql20publication__payload31DurablePublicationPayloadRecordRP35actql5actql20publication__payload23PublicationPayloadIssueE2Ok(new _M0TP35actql5actql20publication__payload31DurablePublicationPayloadRecord(request, revision, state, ownership, generation, opaque_ownership_cid, opaque_generation_cid, actual_bytes, physical_digest, body));
   }
-  return _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6constrS547;
+  return _M0FP35actql5actql20publication__payload44admit__durable__publication__payload__recordN6constrS548;
 }
 function _M0FP35actql5actql20publication__payload46restore__durable__publication__payload__record(durable) {
   const record = _M0FP35actql5actql20publication__payload37prepare__publication__payload__record(durable.request);
@@ -16033,7 +16033,7 @@ function _M0FP35actql5actql20publication__payload46restore__durable__publication
       break _L;
     }
   }
-  return _M0FP35actql5actql20publication__payload46restore__durable__publication__payload__recordN6constrS550;
+  return _M0FP35actql5actql20publication__payload46restore__durable__publication__payload__recordN6constrS551;
 }
 function _M0FP35actql5actql18physical__manifest10valid__cid(value) {
   if (value.length !== 71 || !_M0MPC16string6String11has__prefix(value, new _M0TPC16string10StringView(_M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163, 0, _M0FP35actql5actql18physical__manifest10valid__cidN7_2abindS163.length))) {
@@ -26902,6 +26902,9 @@ function _M0FP35actql5actql24remote__coordinator__abi40coordinator__payload__com
 function _M0FP35actql5actql24remote__coordinator__abi48coordinator__payload__record__opaque__generation(record) {
   return record.opaque_generation_cid;
 }
+function _M0FP35actql5actql24remote__coordinator__abi47coordinator__payload__record__opaque__ownership(record) {
+  return record.opaque_ownership_cid;
+}
 function _M0FP35actql5actql24remote__coordinator__abi36coordinator__payload__record__digest(record) {
   return record.physical_digest;
 }
@@ -26938,7 +26941,7 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__si
           const _measurement = _Some$3;
           const request = durable.request;
           if (!_M0FP35actql5actql22remote__site__protocol51remote__managed__output__subject__matches__evidence(_subject, _evidence, request) || !_M0FP35actql5actql22remote__site__protocol54remote__managed__output__subject__matches__measurement(_subject, _measurement)) {
-            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS250;
+            return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS251;
           }
           const fields = [_evidence.evidence_cid, _measurement.measurement_cid];
           const _bind$4 = _M0FP35actql5actql22remote__site__protocol44remote__managed__output__subject__projection(_subject);
@@ -26960,7 +26963,7 @@ function _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__si
       }
     }
   }
-  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS249;
+  return _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__outputN6constrS250;
 }
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json(durable, store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, transfer_route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin) {
   _L: {
@@ -26978,7 +26981,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
       }
       break _L;
     }
-    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS251;
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS252;
   }
   const request = durable.request;
   const key = _M0FP35actql5actql22remote__site__protocol31dispatch__request__journal__key(request);
@@ -26990,7 +26993,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
     _tmp = !(_p === coordinator_authority);
   }
   if (_tmp) {
-    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS252;
+    return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS253;
   }
   let route;
   switch (transfer_route) {
@@ -27003,7 +27006,7 @@ function _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__outpu
       break;
     }
     default: {
-      return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS253;
+      return _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__jsonN6constrS254;
     }
   }
   const _bind = _M0FP35actql5actql22remote__site__protocol31prepare__remote__output__intent(request, new _M0TP35actql5actql22remote__site__protocol28RemoteOutputIntentProjection(store_authority_cid, publication_attempt_cid, result_definition_cid, ordering_evidence_cid, coordinator_authority, transfer_attempt, route, destination_site_key, destination_site_generation, transfer_max_bytes, transfer_expires_unix_ms, source_grant_cid, destination_grant_cid, route_capability_cid, transfer_origin));
@@ -27229,4 +27232,4 @@ function _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__stat
 function _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible(record, request) {
   return _M0FP35actql5actql22remote__site__protocol44coordinator__exact__retransmission__eligible(record, request);
 }
-export { _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__request__from__output as coordinatorPayloadRequestFromOutput, _M0FP35actql5actql24remote__coordinator__abi34coordinator__payload__request__cid as coordinatorPayloadRequestCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__payload__request__max__bytes as coordinatorPayloadRequestMaxBytes, _M0FP35actql5actql24remote__coordinator__abi42coordinator__payload__admit__request__json as coordinatorPayloadAdmitRequestJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__payload__prepare__record as coordinatorPayloadPrepareRecord, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__record__durable__json as coordinatorPayloadRecordDurableJson, _M0FP35actql5actql24remote__coordinator__abi42coordinator__payload__admit__durable__json as coordinatorPayloadAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__payload__durable__revision as coordinatorPayloadDurableRevision, _M0FP35actql5actql24remote__coordinator__abi36coordinator__payload__durable__state as coordinatorPayloadDurableState, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__durable__request__cid as coordinatorPayloadDurableRequestCid, _M0FP35actql5actql24remote__coordinator__abi38coordinator__payload__restore__durable as coordinatorPayloadRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi39coordinator__payload__prepare__reserved as coordinatorPayloadPrepareReserved, _M0FP35actql5actql24remote__coordinator__abi38coordinator__payload__prepare__writing as coordinatorPayloadPrepareWriting, _M0FP35actql5actql24remote__coordinator__abi44coordinator__payload__prepare__opaque__owned as coordinatorPayloadPrepareOpaqueOwned, _M0FP35actql5actql24remote__coordinator__abi45coordinator__payload__prepare__opaque__sealed as coordinatorPayloadPrepareOpaqueSealed, _M0FP35actql5actql24remote__coordinator__abi49coordinator__payload__prepare__opaque__reclaiming as coordinatorPayloadPrepareOpaqueReclaiming, _M0FP35actql5actql24remote__coordinator__abi40coordinator__payload__prepare__reclaimed as coordinatorPayloadPrepareReclaimed, _M0FP35actql5actql24remote__coordinator__abi47coordinator__payload__transition__durable__json as coordinatorPayloadTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi52coordinator__payload__transition__expected__revision as coordinatorPayloadTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi40coordinator__payload__commit__transition as coordinatorPayloadCommitTransition, _M0FP35actql5actql24remote__coordinator__abi48coordinator__payload__record__opaque__generation as coordinatorPayloadRecordOpaqueGeneration, _M0FP35actql5actql24remote__coordinator__abi36coordinator__payload__record__digest as coordinatorPayloadRecordDigest, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__record__actual__bytes as coordinatorPayloadRecordActualBytes, _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json as coordinatorIssueOutputPlanPollJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi48coordinator__checked__output__publication__facts as coordinatorCheckedOutputPublicationFacts, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi40coordinator__output__initial__poll__json as coordinatorOutputInitialPollJson, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi40coordinator__durable__output__poll__json as coordinatorDurableOutputPollJson, _M0FP35actql5actql24remote__coordinator__abi49coordinator__admit__output__transfer__reply__json as coordinatorAdmitOutputTransferReplyJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__output__transfer__request__cid as coordinatorOutputTransferRequestCid, _M0FP35actql5actql24remote__coordinator__abi48coordinator__durable__output__publication__facts as coordinatorDurableOutputPublicationFacts, _M0FP35actql5actql24remote__coordinator__abi42coordinator__prepare__output__result__json as coordinatorPrepareOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }
+export { _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__request__from__output as coordinatorPayloadRequestFromOutput, _M0FP35actql5actql24remote__coordinator__abi34coordinator__payload__request__cid as coordinatorPayloadRequestCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__payload__request__max__bytes as coordinatorPayloadRequestMaxBytes, _M0FP35actql5actql24remote__coordinator__abi42coordinator__payload__admit__request__json as coordinatorPayloadAdmitRequestJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__payload__prepare__record as coordinatorPayloadPrepareRecord, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__record__durable__json as coordinatorPayloadRecordDurableJson, _M0FP35actql5actql24remote__coordinator__abi42coordinator__payload__admit__durable__json as coordinatorPayloadAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__payload__durable__revision as coordinatorPayloadDurableRevision, _M0FP35actql5actql24remote__coordinator__abi36coordinator__payload__durable__state as coordinatorPayloadDurableState, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__durable__request__cid as coordinatorPayloadDurableRequestCid, _M0FP35actql5actql24remote__coordinator__abi38coordinator__payload__restore__durable as coordinatorPayloadRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi39coordinator__payload__prepare__reserved as coordinatorPayloadPrepareReserved, _M0FP35actql5actql24remote__coordinator__abi38coordinator__payload__prepare__writing as coordinatorPayloadPrepareWriting, _M0FP35actql5actql24remote__coordinator__abi44coordinator__payload__prepare__opaque__owned as coordinatorPayloadPrepareOpaqueOwned, _M0FP35actql5actql24remote__coordinator__abi45coordinator__payload__prepare__opaque__sealed as coordinatorPayloadPrepareOpaqueSealed, _M0FP35actql5actql24remote__coordinator__abi49coordinator__payload__prepare__opaque__reclaiming as coordinatorPayloadPrepareOpaqueReclaiming, _M0FP35actql5actql24remote__coordinator__abi40coordinator__payload__prepare__reclaimed as coordinatorPayloadPrepareReclaimed, _M0FP35actql5actql24remote__coordinator__abi47coordinator__payload__transition__durable__json as coordinatorPayloadTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi52coordinator__payload__transition__expected__revision as coordinatorPayloadTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi40coordinator__payload__commit__transition as coordinatorPayloadCommitTransition, _M0FP35actql5actql24remote__coordinator__abi48coordinator__payload__record__opaque__generation as coordinatorPayloadRecordOpaqueGeneration, _M0FP35actql5actql24remote__coordinator__abi47coordinator__payload__record__opaque__ownership as coordinatorPayloadRecordOpaqueOwnership, _M0FP35actql5actql24remote__coordinator__abi36coordinator__payload__record__digest as coordinatorPayloadRecordDigest, _M0FP35actql5actql24remote__coordinator__abi43coordinator__payload__record__actual__bytes as coordinatorPayloadRecordActualBytes, _M0FP35actql5actql24remote__coordinator__abi35coordinator__accepted__site__output as coordinatorAcceptedSiteOutput, _M0FP35actql5actql24remote__coordinator__abi44coordinator__issue__output__plan__poll__json as coordinatorIssueOutputPlanPollJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__checked__output__plan as coordinatorAdmitCheckedOutputPlan, _M0FP35actql5actql24remote__coordinator__abi39coordinator__checked__output__plan__cid as coordinatorCheckedOutputPlanCid, _M0FP35actql5actql24remote__coordinator__abi41coordinator__checked__output__intent__cid as coordinatorCheckedOutputIntentCid, _M0FP35actql5actql24remote__coordinator__abi48coordinator__checked__output__publication__facts as coordinatorCheckedOutputPublicationFacts, _M0FP35actql5actql24remote__coordinator__abi36coordinator__prepare__output__intent as coordinatorPrepareOutputIntent, _M0FP35actql5actql24remote__coordinator__abi36coordinator__output__intent__is__new as coordinatorOutputIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi35coordinator__commit__output__intent as coordinatorCommitOutputIntent, _M0FP35actql5actql24remote__coordinator__abi35coordinator__output__record__status as coordinatorOutputRecordStatus, _M0FP35actql5actql24remote__coordinator__abi40coordinator__output__initial__poll__json as coordinatorOutputInitialPollJson, _M0FP35actql5actql24remote__coordinator__abi45coordinator__output__admission__durable__json as coordinatorOutputAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi41coordinator__admit__durable__output__json as coordinatorAdmitDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__restore__durable__output as coordinatorRestoreDurableOutput, _M0FP35actql5actql24remote__coordinator__abi38coordinator__durable__output__revision as coordinatorDurableOutputRevision, _M0FP35actql5actql24remote__coordinator__abi34coordinator__durable__output__json as coordinatorDurableOutputJson, _M0FP35actql5actql24remote__coordinator__abi40coordinator__durable__output__poll__json as coordinatorDurableOutputPollJson, _M0FP35actql5actql24remote__coordinator__abi49coordinator__admit__output__transfer__reply__json as coordinatorAdmitOutputTransferReplyJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__output__transfer__request__cid as coordinatorOutputTransferRequestCid, _M0FP35actql5actql24remote__coordinator__abi48coordinator__durable__output__publication__facts as coordinatorDurableOutputPublicationFacts, _M0FP35actql5actql24remote__coordinator__abi42coordinator__prepare__output__result__json as coordinatorPrepareOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi37coordinator__prepare__output__unknown as coordinatorPrepareOutputUnknown, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__output__success__json as coordinatorPrepareOutputSuccessJson, _M0FP35actql5actql24remote__coordinator__abi51coordinator__output__transition__expected__revision as coordinatorOutputTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi46coordinator__output__transition__durable__json as coordinatorOutputTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi39coordinator__commit__output__transition as coordinatorCommitOutputTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__output__result__json as coordinatorOutputResultJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__create__journal as coordinatorCreateJournal, _M0FP35actql5actql24remote__coordinator__abi30coordinator__prepare__dispatch as coordinatorPrepareDispatch, _M0FP35actql5actql24remote__coordinator__abi26coordinator__dispatch__cid as coordinatorDispatchCid, _M0FP35actql5actql24remote__coordinator__abi27coordinator__dispatch__json as coordinatorDispatchJson, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__dispatch__json as coordinatorAdmitDispatchJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__dispatch__route as coordinatorDispatchRoute, _M0FP35actql5actql24remote__coordinator__abi33coordinator__poll__dispatch__json as coordinatorPollDispatchJson, _M0FP35actql5actql24remote__coordinator__abi30coordinator__poll__query__json as coordinatorPollQueryJson, _M0FP35actql5actql24remote__coordinator__abi28coordinator__prepare__intent as coordinatorPrepareIntent, _M0FP35actql5actql24remote__coordinator__abi28coordinator__intent__is__new as coordinatorIntentIsNew, _M0FP35actql5actql24remote__coordinator__abi37coordinator__admission__durable__json as coordinatorAdmissionDurableJson, _M0FP35actql5actql24remote__coordinator__abi27coordinator__commit__intent as coordinatorCommitIntent, _M0FP35actql5actql24remote__coordinator__abi33coordinator__admit__durable__json as coordinatorAdmitDurableJson, _M0FP35actql5actql24remote__coordinator__abi29coordinator__restore__durable as coordinatorRestoreDurable, _M0FP35actql5actql24remote__coordinator__abi30coordinator__durable__revision as coordinatorDurableRevision, _M0FP35actql5actql24remote__coordinator__abi35coordinator__durable__dispatch__cid as coordinatorDurableDispatchCid, _M0FP35actql5actql24remote__coordinator__abi29coordinator__durable__request as coordinatorDurableRequest, _M0FP35actql5actql24remote__coordinator__abi29coordinator__prepare__unknown as coordinatorPrepareUnknown, _M0FP35actql5actql24remote__coordinator__abi34coordinator__admit__response__json as coordinatorAdmitResponseJson, _M0FP35actql5actql24remote__coordinator__abi43coordinator__prepare__response__observation as coordinatorPrepareResponseObservation, _M0FP35actql5actql24remote__coordinator__abi43coordinator__transition__expected__revision as coordinatorTransitionExpectedRevision, _M0FP35actql5actql24remote__coordinator__abi38coordinator__transition__durable__json as coordinatorTransitionDurableJson, _M0FP35actql5actql24remote__coordinator__abi36coordinator__response__durable__json as coordinatorResponseDurableJson, _M0FP35actql5actql24remote__coordinator__abi31coordinator__commit__transition as coordinatorCommitTransition, _M0FP35actql5actql24remote__coordinator__abi33coordinator__record__state__codes as coordinatorRecordStateCodes, _M0FP35actql5actql24remote__coordinator__abi44coordinator__exact__retransmission__eligible as coordinatorExactRetransmissionEligible }

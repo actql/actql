@@ -58,6 +58,8 @@ pub fn publication_payload_record_generation(PublicationPayloadRecord) -> Public
 
 pub fn publication_payload_record_opaque_generation(PublicationPayloadRecord) -> String?
 
+pub fn publication_payload_record_opaque_ownership(PublicationPayloadRecord) -> String?
+
 pub fn publication_payload_record_ownership(PublicationPayloadRecord) -> PublicationPayloadOwnership?
 
 pub fn publication_payload_record_request(PublicationPayloadRecord) -> PublicationPayloadRequest

@@ -658,6 +658,13 @@ pub fn publication_payload_record_opaque_generation(
 }
 
 ///|
+pub fn publication_payload_record_opaque_ownership(
+  record : PublicationPayloadRecord,
+) -> String? {
+  record.opaque_ownership_cid
+}
+
+///|
 pub fn publication_payload_record_ownership(
   record : PublicationPayloadRecord,
 ) -> PublicationPayloadOwnership? {

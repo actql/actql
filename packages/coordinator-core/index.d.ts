@@ -170,6 +170,8 @@ export function commitPayloadTransition(transition: PayloadTransition):
   PayloadRecord;
 export function payloadRecordOpaqueGeneration(record: PayloadRecord):
   string | undefined;
+export function payloadRecordOpaqueOwnership(record: PayloadRecord):
+  string | undefined;
 export function payloadRecordDigest(record: PayloadRecord): string;
 export function payloadRecordActualBytes(record: PayloadRecord): bigint;
 export function prepareOutputIntent(journal: Journal,

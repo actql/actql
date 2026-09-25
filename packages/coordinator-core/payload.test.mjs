@@ -4,7 +4,8 @@ import test from 'node:test';
 import {admitDurablePayloadJson, admitPayloadRequestJson,
   commitPayloadTransition, durablePayloadRequestCid, durablePayloadRevision,
   durablePayloadState, payloadRecordDigest, payloadRecordDurableJson,
-  payloadRecordOpaqueGeneration, payloadRecordActualBytes,
+  payloadRecordOpaqueGeneration, payloadRecordOpaqueOwnership,
+  payloadRecordActualBytes,
   payloadRequestCid, payloadRequestMaxBytes,
   payloadTransitionDurableJson, payloadTransitionExpectedRevision,
   preparePayloadOpaqueOwned, preparePayloadOpaqueReclaiming,
@@ -50,6 +51,7 @@ test('opaque Store custody uses one durable MoonBit payload owner', () => {
   assert.throws(() => preparePayloadOpaqueSealed(record, cid('9'), 12,
     cid('a')), {code: 'CoordinatorOwnerRejected'});
   advance(preparePayloadOpaqueOwned(record, cid('9')));
+  assert.equal(payloadRecordOpaqueOwnership(record), cid('9'));
   assert.equal(durablePayloadState(admitDurablePayloadJson(persisted)),
     'writing');
   assert.throws(() => preparePayloadOpaqueSealed(record, cid('b'), 12,

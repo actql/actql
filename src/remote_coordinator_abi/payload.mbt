@@ -184,6 +184,14 @@ pub fn coordinator_payload_record_opaque_generation(
 }
 
 ///|
+#export_name("coordinatorPayloadRecordOpaqueOwnership")
+pub fn coordinator_payload_record_opaque_ownership(
+  record : @payload.PublicationPayloadRecord,
+) -> String? {
+  @payload.publication_payload_record_opaque_ownership(record)
+}
+
+///|
 #export_name("coordinatorPayloadRecordDigest")
 pub fn coordinator_payload_record_digest(
   record : @payload.PublicationPayloadRecord,

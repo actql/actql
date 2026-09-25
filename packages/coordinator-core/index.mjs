@@ -191,6 +191,11 @@ export const payloadRecordOpaqueGeneration = record => {
   if (value === undefined || typeof value === 'string') return value;
   throw new Error('InvalidPayloadGenerationProjection');
 };
+export const payloadRecordOpaqueOwnership = record => {
+  const value = owner.coordinatorPayloadRecordOpaqueOwnership(record);
+  if (value === undefined || typeof value === 'string') return value;
+  throw new Error('InvalidPayloadOwnershipProjection');
+};
 export const payloadRecordDigest = owner.coordinatorPayloadRecordDigest;
 export const payloadRecordActualBytes =
   owner.coordinatorPayloadRecordActualBytes;

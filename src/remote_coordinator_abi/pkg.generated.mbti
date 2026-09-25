@@ -115,6 +115,8 @@ pub fn coordinator_payload_record_durable_json(@publication_payload.PublicationP
 
 pub fn coordinator_payload_record_opaque_generation(@publication_payload.PublicationPayloadRecord) -> String?
 
+pub fn coordinator_payload_record_opaque_ownership(@publication_payload.PublicationPayloadRecord) -> String?
+
 pub fn coordinator_payload_request_cid(@publication_payload.PublicationPayloadRequest) -> String
 
 pub fn coordinator_payload_request_from_output(@remote_site_protocol.DurableCoordinatorOutputRecord) -> @publication_payload.PublicationPayloadRequest
