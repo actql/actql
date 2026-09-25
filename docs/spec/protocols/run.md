@@ -398,10 +398,12 @@ a materialized Local bootstrap profile: profile ID, version and exact content
 CID. Routing semantics are owned by [Account authorization routing](../execution.md#policy-routing).
 
 <!-- requirement-block: account-config.a-configuration-must-use-one-canonical-spelling account-config.identifiers-must-match-by-exact-equality account-config.admission-must-decide-overlap-by-this-exact-rule -->
-A configuration MUST use one canonical spelling: entries in ascending
-`entry_id` order, each `any_of` array in ascending order, and each `exclusions`
-array in ascending order of its tuples' canonical JSON text, with UTF-16 code-unit
-ordering of NFC-normalized strings throughout. Its identity is the CID of the
+A configuration MUST use one canonical spelling: entries in strictly
+ascending `entry_id` order, each `any_of` array in strictly ascending order, and
+each `exclusions` array in strictly ascending order of its tuples' canonical JSON
+text, with UTF-16 code-unit ordering throughout. Order, equality and identity are
+decided over admitted text values, which are NFC-normalized as in canonical JSON;
+two values equal after normalization are duplicates. Its identity is the CID of the
 complete canonical document; evidence and Checkpoints bind that CID. A
 principal, connection, resource or operation identifier MUST match only by
 exact equality with the identifier the trusted Run owner presents for the

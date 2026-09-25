@@ -323,7 +323,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/account-config.a-configuration-must-use-one-canonical-spelling",
-      "statement_sha256": "1ef135585e23d049402e5d16fb4c4f00023c1990ec12d30e4885d2c47be463a3",
+      "statement_sha256": "d9fb796d06ab117129e57384db9d0675e4cace2a6b6f90e46d47e1e007266c06",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

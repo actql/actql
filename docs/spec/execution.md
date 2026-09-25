@@ -1398,8 +1398,11 @@ revalidates, the Host MUST NOT dispatch the continuation. A Run-unit
 continuation then exits `resuming` to `failed`, or to `needs_reconciliation`
 when earlier Effect outcomes remain unknown, with runtime error phase
 `admission` and `terminal_error.code` `ACTQL_E_RESUME_REVALIDATION_FAILED`;
-that exit completes the resume intent atomically. A preparation continuation
-ends without creating a Run. The Host does not weaken or reinterpret the old
+that exit completes the resume intent atomically. The unknown Effects are those
+the Run owner's recorded Effect outcomes still mark unknown; the continuation does
+not invent or drop them. A preparation continuation ends without creating a Run.
+An approved preparation continuation that revalidates creates its Run directly in
+`running`; preparation already completed before the Checkpoint. The Host does not weaken or reinterpret the old
 approval, and a changed artifact or target found at a later boundary uses that
 boundary's existing failure.
 
