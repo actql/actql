@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -64,6 +64,24 @@ import {validRunState} from '../../packages/client-wire/index.mjs';
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;
+const runChildWithLiveSite = (script, input) => new Promise((resolve,
+  reject) => {
+  const child = spawn(process.execPath, [fileURLToPath(new URL(script,
+    import.meta.url))], {stdio: ['pipe', 'pipe', 'pipe']});
+  const stdout = [];
+  const stderr = [];
+  const timeout = setTimeout(() => child.kill(), 20_000);
+  child.stdout.on('data', chunk => stdout.push(Buffer.from(chunk)));
+  child.stderr.on('data', chunk => stderr.push(Buffer.from(chunk)));
+  child.once('error', reject);
+  child.once('close', status => {
+    clearTimeout(timeout);
+    resolve({status, stdout: Buffer.concat(stdout).toString('utf8'),
+      stderr: Buffer.concat(stderr).toString('utf8')});
+  });
+  child.stdin.on('error', reject);
+  child.stdin.end(JSON.stringify(input));
+});
 const effectParametersCid = prepared => moon.clientRequestParametersCid(
   moon.clientProgramEffectRequestIdentity(
     prepared, cid('a'), 'effect-fixture', cid('b')));
@@ -2428,6 +2446,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
   'salesforce-prepared-intent-restart',
+  'salesforce-process-prepared-intent-restart',
   'salesforce-terminal-store-restart',
   'salesforce-terminal-process-publication',
   'salesforce-unknown-continue']) {
@@ -2454,7 +2473,9 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
-    const restartPreparedIntent =
+    const processPreparedIntent =
+      physical === 'salesforce-process-prepared-intent-restart';
+    const restartPreparedIntent = processPreparedIntent ||
       physical === 'salesforce-prepared-intent-restart';
     const processPublication =
       physical === 'salesforce-terminal-process-publication';
@@ -3392,10 +3413,7 @@ test(`two-member captured Effect Run ${
           await sourcePayload.prepared.release();
         }
         await store.close();
-        const child = spawnSync(process.execPath, [fileURLToPath(new URL(
-          './fixtures/recover-effect-outcomes.mjs', import.meta.url,
-        ))], {
-          input: JSON.stringify({
+        const childInput = {
             directory, storeAuthorityCid: configuration.storeAuthorityCid,
             capacityBytes: configuration.capacityBytes,
             maxObjectBytes: configuration.maxObjectBytes,
@@ -3407,16 +3425,39 @@ test(`two-member captured Effect Run ${
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
-            prepared: true,
+            prepared: true, applyPrepared: processPreparedIntent,
+            ...(processPreparedIntent ? {riskWire: canonicalJson({
+              ...riskBody, self_cid: riskBody.self_cid ??
+                `sha256:${createHash('sha256')
+                  .update(canonicalJson(riskBody)).digest('hex')}`,
+            })} : {}),
             salesforceRecovery: {
               bodyLimits: {maxBytes: 1024, maxNodes: 32, maxDepth: 5},
               requestLimits: {maxPathBytes: 256, maxTargetBytes: 128,
                 maxBodyBytes: 1024},
               maxRetainedBytes: 30000,
+              ...(processPreparedIntent ? {
+                sites: sites.map(site => site.recoveryConnection),
+              } : {}),
             },
-          }),
-          encoding: 'utf8', timeout: 20_000,
-        });
+          };
+        if (processPreparedIntent) {
+          const foreignSite = structuredClone(childInput);
+          foreignSite.salesforceRecovery.sites[0].authorityPublicKey =
+            sites[1].recoveryConnection.authorityPublicKey;
+          const rejected = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs', foreignSite);
+          assert.notEqual(rejected.status, 0);
+          assert.equal(sites.flatMap(site => site.seen).filter(item =>
+            item.method === 'PATCH').length, 0);
+        }
+        const child = processPreparedIntent
+          ? await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs', childInput)
+          : spawnSync(process.execPath, [fileURLToPath(new URL(
+            './fixtures/recover-effect-outcomes.mjs', import.meta.url,
+          ))], {input: JSON.stringify(childInput), encoding: 'utf8',
+            timeout: 20_000});
         assert.equal(child.status, 0, child.stderr);
         const fresh = JSON.parse(child.stdout);
         assert.equal(fresh.capturedRunCid, computation.capturedRun.identity);
@@ -3426,7 +3467,8 @@ test(`two-member captured Effect Run ${
         assert.deepEqual(fresh.effectIdentities,
           JSON.parse(preview.wire).effects.map(
             member => member.effect_identity_cid));
-        assert.deepEqual(fresh.readyRows, [[0, 0], [1, 0]]);
+        assert.deepEqual(fresh.readyRows, processPreparedIntent
+          ? [] : [[0, 0], [1, 0]]);
         assert.deepEqual(fresh.requestCids,
           members.map(member => member.claims.map(
             claim => claim.canonicalRequestCid)));
@@ -3435,7 +3477,10 @@ test(`two-member captured Effect Run ${
             effect.dispatchKeyCid(key))));
         assert.deepEqual(fresh.recoveredCatalogCids,
           sites.map(site => site.catalog.observationCid));
-        assert.equal(fresh.setReceiptCid, null);
+        assert.equal(fresh.setStatus,
+          processPreparedIntent ? 'applied' : null);
+        assert.equal(fresh.dispatched, processPreparedIntent ? 4 : null);
+        assert.equal(fresh.setReceiptCid === null, !processPreparedIntent);
         control = runtimeCore(moon).publicationControl;
         physicalStore = await openLocalPublicationStore(configuration, control);
         store = Object.freeze({...physicalStore,
@@ -3460,7 +3505,8 @@ test(`two-member captured Effect Run ${
           programId: 'program-1', nodeId: 'node-1',
           maxRows: 4, maxWork: 100,
         });
-        assert.equal(effect.setFrontierReadyCount(recovered.frontier), 2);
+        assert.equal(effect.setFrontierReadyCount(recovered.frontier),
+          processPreparedIntent ? 0 : 2);
         assert.deepEqual(recovered.members.map(member => member.claims.map(
           claim => claim.canonicalRequestCid)),
         members.map(member => member.claims.map(
@@ -3601,23 +3647,25 @@ test(`two-member captured Effect Run ${
             return current;
           },
         };
-        await assert.rejects(applyRecoveredEffectSet({
-          ...recoveredApplyOptions,
-          refreshPreflight: async ({signal}) => ({
-            ...await recoveredApplyOptions.refreshPreflight({signal}),
-            sources: [cid('9'), cid('c')],
-          }),
-          dispatchRow: () => assert.fail('foreign recovery sent a row'),
-        }), {code: 'MoonBitHostFailure'});
-        await assert.rejects(applyRecoveredEffectSet({
-          ...recoveredApplyOptions,
-          refreshPreflight: async ({signal}) => ({
-            ...await recoveredApplyOptions.refreshPreflight({signal}),
-            requestScope: effect.logicalRequestScope(
-              cid('e'), 'another-effect-request', 256),
-          }),
-          dispatchRow: () => assert.fail('foreign scope sent a row'),
-        }), {code: 'EffectRecoveredRequestScopeChanged'});
+        if (!processPreparedIntent) {
+          await assert.rejects(applyRecoveredEffectSet({
+            ...recoveredApplyOptions,
+            refreshPreflight: async ({signal}) => ({
+              ...await recoveredApplyOptions.refreshPreflight({signal}),
+              sources: [cid('9'), cid('c')],
+            }),
+            dispatchRow: () => assert.fail('foreign recovery sent a row'),
+          }), {code: 'MoonBitHostFailure'});
+          await assert.rejects(applyRecoveredEffectSet({
+            ...recoveredApplyOptions,
+            refreshPreflight: async ({signal}) => ({
+              ...await recoveredApplyOptions.refreshPreflight({signal}),
+              requestScope: effect.logicalRequestScope(
+                cid('e'), 'another-effect-request', 256),
+            }),
+            dispatchRow: () => assert.fail('foreign scope sent a row'),
+          }), {code: 'EffectRecoveredRequestScopeChanged'});
+        }
         await assert.rejects(applyRecoveredEffectSet({
           ...recoveredApplyOptions,
           computation: {...computation},
@@ -3631,7 +3679,8 @@ test(`two-member captured Effect Run ${
           dispatchRow: () => assert.fail('foreign recovery sent a row'),
         }), {code: 'MoonBitHostFailure'});
         assert.equal(sites.flatMap(site => site.seen).filter(item =>
-          item.method === 'PATCH').length, 0);
+          item.method === 'PATCH').length,
+        processPreparedIntent ? 4 : 0);
       }
       if (physical === 'salesforce-stale-target' ||
           physical === 'salesforce-schema-drift') {
@@ -3977,12 +4026,16 @@ test(`two-member captured Effect Run ${
       }
       const applied = restartPreparedIntent
         ? await applyRecoveredEffectSet({
-          ...recoveredApplyOptions, dispatchRow,
+          ...recoveredApplyOptions,
+          dispatchRow: processPreparedIntent
+            ? () => assert.fail('fresh-process write resent') : dispatchRow,
+          ...(processPreparedIntent ? {refreshPreflight: () =>
+            assert.fail('settled process replay refreshed Site')} : {}),
         })
         : await applyCapturedEffectSet({
           ...applyOptions, ledger, dispatchRow,
         });
-      assert.equal(applied.dispatched,
+      assert.equal(applied.dispatched, processPreparedIntent ? 0 :
         collectionRecovered ? 2 :
           recoverAfterResponse || restartAfterTerminal || collectionPartial
             ? 3 : 4);
@@ -4076,10 +4129,12 @@ test(`two-member captured Effect Run ${
           }
         }
       }
-      for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
-        assert.deepEqual(sent.filter(item => item[0] === memberIndex)
-          .map(item => item[1]),
-        collectionRecovered && memberIndex === 0 ? [0] : [0, 1]);
+      if (!processPreparedIntent) {
+        for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
+          assert.deepEqual(sent.filter(item => item[0] === memberIndex)
+            .map(item => item[1]),
+          collectionRecovered && memberIndex === 0 ? [0] : [0, 1]);
+        }
       }
       ledger.close();
       ledger = openLedger();
@@ -4252,7 +4307,8 @@ test(`two-member captured Effect Run ${
       assert.equal(JSON.parse(finalReceipt.wire)
         .effect_set_apply_receipt_cid, issuedSet.set.identity);
       assert.equal(commitCalls, processPublication ? 0 : 1);
-      assert.equal(sent.length, collectionRecovered ? 3 : 4);
+      assert.equal(sent.length, processPreparedIntent ? 0 :
+        collectionRecovered ? 3 : 4);
       if (siteRun) {
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === (writeKind === 'create' ?

@@ -235,8 +235,24 @@ export async function openSalesforceEffectSiteFixture(t, {
   };
   const catalog = await refreshCatalog();
   assert.equal(catalog.status, 'complete');
+  const recoveryGrant = authorization => Object.freeze({
+    cid: control.identity(authorization.grant),
+    wire: control.json(authorization.grant),
+  });
+  const recoveryConnection = Object.freeze({
+    origin, orgId,
+    caBase64: ca.toString('base64'),
+    journalRoot: join(root, 'journal'),
+    authorityPublicKey: authority.publicKey.export({
+      type: 'spki', format: 'pem',
+    }),
+    list: recoveryGrant(list),
+    describe: recoveryGrant(describe),
+    observe: recoveryGrant(observe),
+    write: recoveryGrant(write),
+  });
   return {seen, journal, orgId, origin, catalog, observe, write, credential,
-    refreshCatalog,
+    refreshCatalog, recoveryConnection,
     setTargetName(name) { observedName = name; },
     setNameUpdateable(value) { nameUpdateable = value; }};
 }

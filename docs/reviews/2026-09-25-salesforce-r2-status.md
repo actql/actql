@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process recovers prepared row claims from the exact Preview and SQLite heads. It also reprojects bounded retained Catalog response bytes through MoonBit, checks the original observation CID, and reconstructs exact prepared Salesforce requests without another credential use or write. The recovered Host apply entry confirms exact Store holdings and capture owner, rechecks common MoonBit whole-set semantics, and sends remaining prepared rows through the existing Effect frontier loop after Store and Ledger reopen. Its send test still runs in the parent process. Next run that sender in a fresh process with authenticated current-use evidence, connect public `submit` to this owner, and test response loss, process restart, publication-commit loss, partial outcomes, and final cleanup from that public entrypoint. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process recovers prepared row claims from the exact Preview and SQLite heads, reprojects the original Catalog through MoonBit, and reconstructs exact requests. It now also rechecks signed Site credential grants in the real SQLite journal, observes current Catalog and target rows over HTTPS, and sends four ready rows through the common recovered apply owner. The parent reopens the durable outcomes, issues the final Receipts, commits formal publication, reads the Result, and retires holdings. This local fixture still uses example capability and approval references. Next bind real current-use evidence to the admitted Run, connect public `submit`, and test unknown response loss and recovery from that public entrypoint. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
 | Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
 
@@ -46,7 +46,7 @@ retained data. The same path must report partial failure and unknown honestly.
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
 | The Salesforce Host assembles the Preview draft from typed Run contracts, checked member descriptors, exact source Artifacts, typed write requests, and target observations. The local Effect identity is issued from the checked owner and exact local Result Artifact; the product Preview author checks every admitted member against those opaque identities. The ordinary local Host path does not take a fixture-authored template. Captured Run now retains a separate local Stage Result inventory and re-admits it alongside the physical source. Local Artifact scope, policy, and capture authority come from admitted Run evidence rather than raw caller CIDs. Capability and current-use authority evidence still have example references in the Host fixture. | Resolve the remaining current-use evidence against the admitted Run and bind its checks to whole-set preflight and apply before any write. Current Catalog and target observations must still be refreshed before send; a 404 alone is not proof of absence. Public ingress remains Distribution-owned. |
-| The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. The Host can now rehydrate a completed computation and publication owner from an encrypted Store record after Store reopen. The apply owner and public ingress still require a fresh-process recovery test; reopening only the row Ledger or Store in one process does not prove that boundary. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and a fresh Host process without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
+| The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. The Host now rehydrates an admitted computation, request keys, Catalog, and durable claims in a fresh process, then uses the common apply owner with current signed Site grants. The public ingress and response-loss recovery through it remain unconnected. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and a fresh Host process without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
 The common checked owner now issues `actql-local-computation-semantics/0.1`
@@ -140,15 +140,17 @@ the reconstructed claims, repeats whole-set admission and current target
 checks, and sends only still-ready rows. A possible-dispatch head remains
 unknown and cannot be claimed again. A separate process now opens the real
 Store and Ledger after all four intents are prepared. It re-admits the local
-Artifact inventory and Preview, verifies each durable request CID, reprojects
-the exact historical Catalog observation from bounded responses in the
-encrypted capture record, and rebuilds the original request material. It does
-not acquire a new credential or dispatch a write. The parent then repeats
-whole-set preflight with a fresh Catalog and current target observations and
-sends only ready rows. A foreign historical Catalog, projection, or request
-CID is rejected. The complete current-use authority and physical Site owner
-still need restoration in one new process before this counts as full restart
-apply.
+Artifact inventory and Preview, derives exact row keys in MoonBit, verifies
+each durable request CID, reprojects the historical Catalog from bounded
+responses in the encrypted capture record, and rebuilds the original request
+material. In the local HTTPS integration test, the child process then opens
+the signed credential-use journal, refreshes the current Catalog and targets,
+and sends all four rows through the common recovered apply owner. A foreign
+trust key is rejected before any write. The parent reopens the terminal Ledger,
+issues the same final Effect Receipts, publishes and reads the Result, and
+retires its private and public holdings. The fixture still supplies example
+capability and approval references; this is not public Effectful submit or a
+live Salesforce org validation.
 
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
