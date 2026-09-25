@@ -224,6 +224,8 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn check_captured_effect_apply_preflight(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+
 pub fn check_captured_effect_plan_proofs(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Int, Int) -> Result[Unit, CapturedEffectPlanInventoryIssue]
 
 pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
@@ -670,6 +672,16 @@ pub(all) enum CapturedEffectApplyKeyIssue {
   CapacityExceeded
   NotReady
   Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+} derive(@debug.Debug)
+
+pub(all) enum CapturedEffectApplyPreflightIssue {
+  Plan(CapturedEffectPlanInventoryIssue)
+  Binding(CapturedEffectCurrentBindingIssue)
+  Guard(CapturedEffectGuardIssue)
+  Capability(CapturedEffectCapabilityIssue)
+  Risk(CapturedEffectRiskIssue)
+  Keys(CapturedEffectApplyKeyIssue)
+  Footprint(@effect_application.EffectFootprintIssue)
 } derive(@debug.Debug)
 
 pub(all) enum CapturedEffectCapabilityIssue {

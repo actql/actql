@@ -232,7 +232,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
       effect_id: effectId, effect_kind: writeKind,
       target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
       resolved_mapping_contract_cid: mappingCid,
-      effect_identity_cid: cid('a'), source_result: 'rows',
+      effect_identity_cid: cid(String(memberIndex + 1)),
+      source_result: 'rows',
       result_artifact_cid: artifactCid, preview_strength: 'full_diff',
       source_binding_cid: cid('c'), capability_evidence_cid: cid('d'),
       authority_scope_cid: cid('e'),
@@ -1304,6 +1305,37 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.doesNotThrow(() => checked(
         moon.clientProgramCheckEffectPlanProofs(
           previewInputs, [second.proof, verified.proof], 2, 4)));
+      const guardRows = JSON.parse(preview.wire).effects.flatMap(member =>
+        member.changes.map(change => change.row_preview_cid));
+      const preflight = ({proofs = [second.proof, verified.proof],
+        sources = [cid('c'), cid('c')],
+        contracts = [mappingCid, mappingCid],
+        capabilities = [cid('d'), cid('d')],
+        authorities = [cid('e'), cid('e')],
+        observedRows = guardRows,
+        guardVersions = guardRows.map(() => cid('6')),
+        routes = selectedRoutes, riskBody = risk,
+        keys = preview.keys} = {}) => {
+        const result = moon.clientProgramCheckEffectApplyPreflight(
+          previewInputs, proofs, sources, contracts, capabilities,
+          authorities, observedRows, guardVersions, routes, riskBody,
+          cid('a'), cid('e'), cid('a'), cid('a'), cid('a'), cid('a'),
+          'policy', 'allow', requestScope, keys, 2, 4, 4, 100);
+        return checked(result);
+      };
+      assert.doesNotThrow(() => preflight());
+      assert.throws(() => preflight({proofs: [verified.proof]}),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({sources: [cid('c'), cid('f')]}),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({observedRows: [cid('1')]}),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({routes: [selectedRoutes[0]]}),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({riskBody: admittedRisk(riskFor(
+        ['effect_scope_approved']))}), {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({keys: preview.keys.slice(0, 1)}),
+        {code: 'MoonBitHostFailure'});
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
         previewInputs, [verified.proof], 2, 4)),
       {code: 'MoonBitHostFailure'});
@@ -1381,6 +1413,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
         previewInputs, [verified.proof, second.proof], 2, 4)),
       {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight(), {code: 'MoonBitHostFailure'});
     } finally {
       if (inputs !== undefined) {
         moon.clientProgramReleaseEffectInputs(inputs);
