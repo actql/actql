@@ -95,8 +95,11 @@ MoonBit whole-set preflight before the first durable claim and takes each
 next row from the MoonBit frontier over real Ledger heads. Its two-member
 regression rejects stale bindings with zero claims, rejects a Site callback
 that makes no durable progress, and resumes the independent member after an
-unknown first member. The Site callback still uses a local HTTP fixture, and
-the public Client has not yet installed this driver or the Salesforce writer.
+unknown first member. It now also reopens the Ledger after saving an HTTP
+response but before admitting that row's Outcome, confirms no resend, and
+advances the next row only after the saved row becomes terminal. The Site
+callback still uses a local HTTP fixture, and the public Client has not yet
+installed this driver or the Salesforce writer.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org

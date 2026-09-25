@@ -1758,6 +1758,33 @@ test('owned update Plan matches approved rows and rejects altered intent',
       });
       await new Promise(resolve => endpoint.listen(0, '127.0.0.1', resolve));
       t.after(() => new Promise(resolve => endpoint.close(resolve)));
+      const sendRow = (ledger, claim) => captureClaimedEffectResponse({
+        ledger, claim, requestCid: claim.canonicalRequestCid,
+        execute: async () => {
+          const reply = await fetch(
+            `http://127.0.0.1:${endpoint.address().port}` +
+              claim.requestPath,
+            {method: 'PATCH', body: claim.requestBody});
+          return {observation: {useCid: cid('4'),
+            statusCode: reply.status,
+            body: Buffer.from(await reply.arrayBuffer())}};
+        },
+      });
+      const beforeProjection = openProgress();
+      try {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: beforeProjection,
+          dispatchRow: async ({memberIndex, rowIndex, claim}) => {
+            assert.deepEqual([memberIndex, rowIndex], [1, 0]);
+            assert.equal((await sendRow(beforeProjection, claim)).claimed,
+              true);
+            throw new Error('CrashAfterSavedEffectResponse');
+          },
+        }), {message: 'CrashAfterSavedEffectResponse'});
+        assert.equal(seenRequests.length, 1);
+      } finally {
+        beforeProjection.close();
+      }
       const resumedProgress = openProgress();
       try {
         const possible = progressMembers[0].claims[0];
@@ -1767,24 +1794,34 @@ test('owned update Plan matches approved rows and rejects altered intent',
           execute: async () => { throw new Error('UnknownRowResent'); },
         });
         assert.equal(replay.claimed, false);
+        const savedClaim = progressMembers[1].claims[0];
+        const saved = resumedProgress.readClaimedResponse(savedClaim);
+        assert.equal(saved.statusCode, 200);
+        assert.equal(saved.responseBytes.toString('utf8'),
+          canonicalJson({ok: true}));
+        const savedReplay = await captureClaimedEffectResponse({
+          ledger: resumedProgress, claim: savedClaim,
+          requestCid: savedClaim.canonicalRequestCid,
+          execute: async () => { throw new Error('SavedRowResent'); },
+        });
+        assert.equal(savedReplay.claimed, false);
+        assert.deepEqual(ready(resumedProgress), []);
+        resumedProgress.recordAdmittedRowOutcome({
+          claim: savedClaim, preview: applyPreview, memberIndex: 1,
+          previewRowIndex: 0,
+          outcomeWire: canonicalJson({state: 'applied',
+            result: {record_id: 'row-1'}}),
+        });
+        resumedProgress.commitAdmittedRowOutcome({
+          claim: savedClaim, preview: applyPreview, memberIndex: 1,
+          previewRowIndex: 0,
+        });
         const advanced = await applyCapturedEffectSet({
           ...applyOptions, ledger: resumedProgress,
           dispatchRow: async ({memberIndex, rowIndex, claim}) => {
             assert.equal(memberIndex, 1);
             assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
-            const response = await captureClaimedEffectResponse({
-              ledger: resumedProgress, claim,
-              requestCid: claim.canonicalRequestCid,
-              execute: async () => {
-                const reply = await fetch(
-                  `http://127.0.0.1:${endpoint.address().port}` +
-                    claim.requestPath,
-                  {method: 'PATCH', body: claim.requestBody});
-                return {observation: {useCid: cid('4'),
-                  statusCode: reply.status,
-                  body: Buffer.from(await reply.arrayBuffer())}};
-              },
-            });
+            const response = await sendRow(resumedProgress, claim);
             assert.equal(response.claimed, true);
             resumedProgress.recordAdmittedRowOutcome({
               claim, preview: applyPreview, memberIndex,
@@ -1798,7 +1835,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
             });
           },
         });
-        assert.equal(advanced.dispatched, 2);
+        assert.equal(advanced.dispatched, 1);
         assert.deepEqual(ready(resumedProgress), []);
         assert.deepEqual(seenRequests, progressMembers[1].claims.map(
           claim => ({method: 'PATCH', path: claim.requestPath,
