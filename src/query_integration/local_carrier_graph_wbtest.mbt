@@ -4033,6 +4033,99 @@ test "empty components admit exact work and workspace and reclaim cancellation" 
 }
 
 ///|
+test "nonempty components admit exact graph work and workspace" {
+  let source_owner = carrier_graph_self_loop_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  for kind in ["weak", "strong"] {
+    let owner = carrier_graph_components_owner(source_owner, kind)
+    let sequence = prepared_sequence(owner)
+    let external = @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+      100,
+      1000,
+    ).unwrap()
+    let construction = @local_bridge.start_rows_to_graph(
+      @bounded.control(),
+      sequence,
+      0,
+      [external, external],
+      carrier_graph_storage_limits(),
+      4096L,
+      100,
+      fn() { true },
+    ).unwrap()
+    let graph = finish_rows_to_graph(construction)
+    assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
+    let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+    let start = fn(workspace, work) raise {
+      @local_sga.start_components(
+        @bounded.control(),
+        task_test_completion(owner),
+        sequence,
+        1,
+        input,
+        1,
+        {
+          max_nodes: 1000,
+          max_text_bytes: 1000,
+          max_depth: 10,
+          max_work: 1000,
+        },
+        workspace,
+        1000,
+        1000,
+        [external],
+        control_work_limit=Some(work),
+      )
+    }
+    // One node, one edge, and three output fields require 15+2+3+2 slots.
+    assert_true(start(21, 100) is Err(@local_sga.ComponentsWorkspaceLimit))
+    // Common indexing costs seven steps. Weak search costs four steps,
+    // strong search seven, and the output costs five in either case.
+    let exact_work = if kind == "weak" { 16 } else { 19 }
+    let exact = start(22, exact_work).unwrap()
+    let mut complete = false
+    let mut charged = 0L
+    while !complete {
+      match @local_sga.advance_components(exact, 1).unwrap() {
+        @local_sga.ComponentsContinue(work~, ..) => charged = work
+        @local_sga.ComponentsComplete(output, work~, ..) => {
+          charged = work
+          assert_eq(@execution.completed_row_count(output), 1)
+          assert_true(
+            @execution.completed_cell(output, 0, 1) is Some(Number(1.0)),
+          )
+          complete = true
+        }
+        _ => fail("exact nonempty components did not complete")
+      }
+      assert_true(charged <= exact_work.to_int64())
+    }
+    assert_eq(charged, exact_work.to_int64())
+    assert_eq(@local_sga.cleanup_components(exact), Ok(true))
+    let short = start(22, exact_work - 1).unwrap()
+    let mut failed = false
+    let mut short_charged = 0L
+    while !failed {
+      match @local_sga.advance_components(short, 1).unwrap() {
+        @local_sga.ComponentsContinue(work~, ..) => short_charged = work
+        @local_sga.ComponentsFailed(@local_sga.ComponentsWorkLimit, work~, ..) => {
+          short_charged = work
+          failed = true
+        }
+        _ => fail("one-short nonempty components did not fail")
+      }
+      assert_true(short_charged <= exact_work.to_int64())
+    }
+    assert_eq(short_charged, (exact_work - 1).to_int64())
+    assert_eq(@local_sga.cleanup_components(short), Ok(true))
+    assert_true(@graphs.discard_completed(graph))
+  }
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "weak and strong components preserve canonical identities and bounds" {
   let source_owner = carrier_graph_components_source_owner()
   let source = carrier_events_source_output(source_owner)
