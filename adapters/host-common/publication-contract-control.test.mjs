@@ -1377,6 +1377,123 @@ test('portable control validates Receipt and Captured Run references',
     privateBinding.holdingCid);
   assert.deepEqual(checkedPreparation.effectSourceHoldingCids,
     [sourceHoldingCid]);
+  const effectfulDirectory = await mkdtemp(join(
+    tmpdir(), 'actql-effectful-publication-commit-',
+  ));
+  t.after(() => rm(effectfulDirectory, {recursive: true, force: true}));
+  const effectfulConfiguration = {
+    directory: effectfulDirectory,
+    storeAuthorityCid: cid('a'),
+    capacityBytes: 4 * 1024 * 1024,
+    maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100,
+    maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth,
+    privateEvidenceKey: Buffer.alloc(32, 4),
+  };
+  const effectfulStore = await openLocalPublicationStore(
+    effectfulConfiguration, control,
+  );
+  t.after(async () => { await effectfulStore.close(); });
+  const effectfulPrivate = await effectfulStore.preparePrivateEvidence(
+    privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
+  );
+  await effectfulStore.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private',
+    holding_cid: privateBinding.holdingCid,
+    manifest_cid: privateBinding.semanticCid,
+    objects: [{cid: effectfulPrivate.physicalCid,
+      byte_count: effectfulPrivate.bytes}],
+  }, [effectfulPrivate.prepared]);
+  for (const contract of [
+    run, invoked, definition, artifact, derivation, ordering, retention,
+    binding, manifest, receipt, sourceArtifact, effectfulCaptured,
+    memberReceipt, setReceipt, finalReceipt, request, attempt,
+  ]) {
+    await effectfulStore.putPublicationContract(
+      contract.name, contract.wire,
+    );
+  }
+  await effectfulStore.putSemantic(resultSchemaWire, resultSchemaCid);
+  await effectfulStore.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
+  await effectfulStore.createAttempt(attempt.wire);
+  await effectfulStore.appendRecord(preparing.wire, {
+    uncommittedConfirmed: false,
+  });
+  await effectfulStore.appendRecord(committing.wire, {
+    uncommittedConfirmed: false,
+  });
+  const effectfulSourceWriter = effectfulStore.createPreparedObjectWriter(
+    payloadBytes,
+  );
+  await effectfulSourceWriter.append(Buffer.from(payloadWire, 'utf8'));
+  const effectfulSource = await effectfulSourceWriter.seal(physicalCid);
+  await effectfulStore.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'effect-source',
+    holding_cid: sourceHoldingCid,
+    manifest_cid: sourceArtifact.identity,
+    objects: [{cid: effectfulSource.cid,
+      byte_count: effectfulSource.bytes}],
+  }, [effectfulSource.prepared]);
+  const effectfulRequired = [...new Set([
+    run.identity, invoked.identity, definition.identity, artifact.identity,
+    derivation.identity, ordering.identity, retention.identity,
+    binding.identity, manifest.identity, receipt.identity,
+    sourceArtifact.identity, effectfulCaptured.identity,
+    memberReceipt.identity, setReceipt.identity, finalReceipt.identity,
+    request.identity, attempt.identity, resultSchemaCid,
+  ])];
+  await assert.rejects(effectfulStore.commitEffectfulIndex(
+    effectfulPreparation,
+    effectfulRequired.filter(cid => cid !== sourceArtifact.identity),
+  ), {code: 'IncompletePublicationCommitInventory'});
+  assert.equal(await effectfulStore.inspectCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  }), undefined);
+  const effectfulCommitted = await effectfulStore.commitEffectfulIndex(
+    effectfulPreparation, effectfulRequired,
+  );
+  assert.equal(effectfulCommitted.committed, true);
+  const effectfulReplay = await effectfulStore.commitEffectfulIndex(
+    effectfulPreparation, effectfulRequired,
+  );
+  assert.equal(effectfulReplay.idempotent, true);
+  const effectfulKey = {
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  };
+  assert.deepEqual(await effectfulStore.inspectCommittedIndex(effectfulKey),
+    JSON.parse(effectfulIndex.wire));
+  await effectfulStore.close();
+  const reopenedEffectfulStore = await openLocalPublicationStore(
+    {...effectfulConfiguration, privateEvidenceKey: Buffer.alloc(32, 4)},
+    control,
+  );
+  t.after(async () => { await reopenedEffectfulStore.close(); });
+  assert.deepEqual(
+    await reopenedEffectfulStore.inspectCommittedIndex(effectfulKey),
+    JSON.parse(effectfulIndex.wire),
+  );
+  assert.equal(await reopenedEffectfulStore
+    .validateCommittedEffectfulEvidence(effectfulPreparation), true);
+  assert.notEqual(await reopenedEffectfulStore.inspectPhysicalHolding(
+    privateBinding.holdingCid), undefined);
+  assert.notEqual(await reopenedEffectfulStore.inspectPhysicalHolding(
+    sourceHoldingCid), undefined);
+  const effectfulRetired =
+    await reopenedEffectfulStore.retireCommittedPublicationMetadata(
+      effectfulKey, '2026-09-18T00:00:08.000Z',
+    );
+  assert.equal(effectfulRetired.deleted, true);
+  assert.equal(await reopenedEffectfulStore.inspectPhysicalHolding(
+    privateBinding.holdingCid), undefined);
+  assert.equal(await reopenedEffectfulStore.inspectPhysicalHolding(
+    sourceHoldingCid), undefined);
   await assert.rejects(store.inspectEffectfulStoredEvidence({
     ...effectfulPreparation, index: indexEntry,
   }), {code: 'InvalidEffectfulCommitChain'});
