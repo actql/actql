@@ -30,6 +30,15 @@ fn checked_preview_test_member(
   source_name? : String = "r",
 ) -> String {
   let cid = checked_preview_test_cid("a")
+  let effect_identity_cid = checked_preview_test_cid(
+    if id == "first" {
+      "b"
+    } else if id == "second" {
+      "c"
+    } else {
+      "d"
+    },
+  )
   let contract_fields = if kind == "command" {
     "\"contract\":\"" +
     reference +
@@ -50,7 +59,7 @@ fn checked_preview_test_member(
   "\",\"target\":\"Object\"," +
   contract_fields +
   "\"effect_identity_cid\":\"" +
-  cid +
+  effect_identity_cid +
   "\",\"preview_strength\":\"full_diff\",\"source_binding_cid\":\"" +
   cid +
   "\",\"capability_evidence_cid\":\"" +

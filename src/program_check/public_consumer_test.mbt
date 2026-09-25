@@ -83,6 +83,8 @@ fn public_effect_preview_member(
   source_name? : String? = None,
 ) -> String {
   let cid = "sha256:" + "a".repeat(64)
+  let effect_identity_cid = "sha256:" +
+    (if id == "first" { "b" } else { "c" }).repeat(64)
   "{\"effect_id\":\"" +
   id +
   "\",\"effect_kind\":\"create\",\"target\":\"Object\"," +
@@ -90,7 +92,7 @@ fn public_effect_preview_member(
   "\"resolved_mapping_contract_cid\":\"" +
   mapping_cid +
   "\",\"effect_identity_cid\":\"" +
-  cid +
+  effect_identity_cid +
   (if source_name is Some(source) {
     "\",\"source_result\":\"" + source + "\",\"result_artifact_cid\":\"" + cid
   } else {
