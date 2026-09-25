@@ -289,6 +289,28 @@ pub fn client_program_source_free_input_intent_cid() -> String {
 }
 
 ///|
+/// The installed Host reports an uncommitted Run through the portable
+/// validator; physical progress is observed by the adapter, not inferred
+/// from the Client request alone.
+#export_name("clientProgramIssueUnpublishedRunState")
+pub fn client_program_issue_unpublished_run_state(
+  run_id : String,
+  observed_at : String,
+  result_names : Array[String],
+  dispatch_reserved : Bool,
+  worker_active : Bool,
+) -> String? {
+  match
+    @publication.issue_effect_free_unpublished_run_state_wire(
+      run_id, observed_at, result_names, dispatch_reserved, worker_active, 100000,
+      10000, 64,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 /// The installed Local profile applies one bounded sequence definition to
 /// compiler material and the task that physically executes it.
 fn client_local_sequence_limits() -> @lower.SequenceLimits {

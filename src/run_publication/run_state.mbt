@@ -455,3 +455,101 @@ pub fn issue_succeeded_run_state_wire(
     max_nodes, max_depth,
   )
 }
+
+///|
+/// Project a Run before its publication index is committed. The caller
+/// supplies the durable dispatch claim, physical worker liveness and checked
+/// Result inventory; this owner chooses the phase, availability and action.
+/// Effect reconciliation has a distinct state and cannot be inferred from
+/// an interrupted Effect-free Compute.
+pub fn issue_effect_free_unpublished_run_state_wire(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  dispatch_reserved : Bool,
+  worker_active : Bool,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  if run_id.is_empty() {
+    return Err(InvalidRunId)
+  }
+  if !valid_timestamp(updated_at) {
+    return Err(InvalidObservationTime("run"))
+  }
+  let status = if !dispatch_reserved {
+    RunOutcomeStatus::Preparing
+  } else if worker_active {
+    RunOutcomeStatus::Running
+  } else {
+    RunOutcomeStatus::Failed
+  }
+  let names = declared_results.copy()
+  names.sort_by(@canonical.compare_utf16)
+  let observations : Array[ResultAvailability] = []
+  for name in names {
+    observations.push({ name, state: Unavailable, reason: NotPublished, })
+  }
+  match
+    validate_run_state(status, names, observations, false, NoAction, false) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "next_action")
+    @encode.begin_object(writer)
+    @encode.key(writer, "kind")
+    @encode.string_value(writer, "none")
+    @encode.end_object(writer)
+    @encode.key(writer, "result_availability")
+    @encode.begin_object(writer)
+    for name in names {
+      @encode.key(writer, name)
+      @encode.begin_object(writer)
+      @encode.key(writer, "observed_at")
+      @encode.string_value(writer, updated_at)
+      @encode.key(writer, "reason")
+      @encode.string_value(writer, "not_published")
+      @encode.key(writer, "state")
+      @encode.string_value(writer, "unavailable")
+      @encode.end_object(writer)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "result_available")
+    @encode.bool_value(writer, false)
+    @encode.key(writer, "run_id")
+    @encode.string_value(writer, run_id)
+    @encode.key(writer, "status")
+    @encode.string_value(
+      writer,
+      match status {
+        RunOutcomeStatus::Preparing => "preparing"
+        RunOutcomeStatus::Running => "running"
+        RunOutcomeStatus::Failed => "failed"
+        _ => return Err(Encoding)
+      },
+    )
+    if status is RunOutcomeStatus::Failed {
+      @encode.key(writer, "terminal_error")
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "ACTQL_E_UNPUBLISHED_RUN")
+      @encode.key(writer, "message")
+      @encode.string_value(writer, "Run ended before publication")
+      @encode.end_object(writer)
+    }
+    @encode.key(writer, "updated_at")
+    @encode.string_value(writer, updated_at)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-run-state/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
+}

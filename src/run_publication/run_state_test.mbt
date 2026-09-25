@@ -287,3 +287,67 @@ test "succeeded Run state offers only confirmed available Results" {
     is Err(InvalidObservationTime("run")),
   )
 }
+
+///|
+test "unpublished Effect-free Run state preserves progress and failure" {
+  let at = "2026-09-25T01:00:00.000Z"
+  let running = issue_effect_free_unpublished_run_state_wire(
+    "run-a",
+    at,
+    ["second", "first"],
+    true,
+    true,
+    16384,
+    256,
+    8,
+  )
+  assert_true(
+    running is Ok(wire) &&
+    wire.contains("\"status\":\"running\"") &&
+    wire.contains("\"reason\":\"not_published\"") &&
+    wire.contains("\"next_action\":{\"kind\":\"none\"}"),
+  )
+  let failed = issue_effect_free_unpublished_run_state_wire(
+    "run-a",
+    at,
+    ["first"],
+    true,
+    false,
+    16384,
+    256,
+    8,
+  )
+  assert_true(
+    failed is Ok(wire) &&
+    wire.contains("\"status\":\"failed\"") &&
+    wire.contains("\"code\":\"ACTQL_E_UNPUBLISHED_RUN\"") &&
+    wire.contains("\"next_action\":{\"kind\":\"none\"}"),
+  )
+  assert_true(
+    issue_effect_free_unpublished_run_state_wire(
+      "run-a",
+      at,
+      ["first"],
+      false,
+      true,
+      16384,
+      256,
+      8,
+    )
+    is Ok(wire) &&
+    wire.contains("\"status\":\"preparing\""),
+  )
+  assert_true(
+    issue_effect_free_unpublished_run_state_wire(
+      "run-a",
+      at,
+      ["first", "first"],
+      true,
+      true,
+      16384,
+      256,
+      8,
+    )
+    is Err(DuplicateDeclaredResult("first")),
+  )
+}
