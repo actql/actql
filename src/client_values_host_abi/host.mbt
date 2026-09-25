@@ -206,7 +206,8 @@ pub fn client_values_host_project_publication_snapshot(
     (2, Some(entry)) => @publication.IndexCommitted(entry)
     _ => return Err(InvalidObservation)
   }
-  let snapshot = match @publication.project_publication_snapshot(record, observed) {
+  let snapshot = match
+    @publication.project_publication_snapshot(record, observed) {
     Ok(value) => value
     Err(issue) => return Err(Projection(issue))
   }
@@ -228,8 +229,8 @@ pub fn client_values_host_publication_index_scope_key(
   max_depth : Int,
 ) -> Result[String, @publication.PublicationCommitIssuanceIssue] {
   @publication.publication_index_scope_storage_key(
-    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes,
-    max_nodes, max_depth,
+    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
+    max_depth,
   )
 }
 
@@ -271,7 +272,12 @@ pub fn client_values_host_result_schema(
       prepared,
       0,
       @host.client_standard_values_sequence_limits(),
-      { max_fields: 100, max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+      {
+        max_fields: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
       1000000,
       100000,
       100,
@@ -369,7 +375,10 @@ pub fn client_values_host_issue_source_free_invocation(
     @encode.key(writer, "data_policy_cid")
     @encode.string_value(writer, data_policy_cid)
     @encode.key(writer, "invocation_template_cid")
-    @encode.string_value(writer, @publication.run_evidence_value_identity(template))
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_identity(template),
+    )
     @encode.key(writer, "replayability")
     @encode.begin_object(writer)
     @encode.key(writer, "availability_evidence_cids")
@@ -983,7 +992,10 @@ pub fn client_values_host_admit_publication_contract(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.PublicationContractIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationContractIssue,
+] {
   @publication.admit_publication_contract(
     name, wire, max_wire_bytes, max_nodes, max_depth,
   )
@@ -1017,10 +1029,13 @@ pub fn client_values_host_issue_result_manifest(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.ResultManifestIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.ResultManifestIssuanceIssue,
+] {
   @publication.issue_result_manifest(
-    run_definition, invocation, definitions, artifacts,
-    max_wire_bytes, max_nodes, max_depth,
+    run_definition, invocation, definitions, artifacts, max_wire_bytes, max_nodes,
+    max_depth,
   )
 }
 
@@ -1041,12 +1056,14 @@ pub fn client_values_host_issue_result_occurrence_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.ResultOrderingEvidence, @publication.ResultEvidenceIssuanceIssue] {
+) -> Result[
+  @publication.ResultOrderingEvidence,
+  @publication.ResultEvidenceIssuanceIssue,
+] {
   @publication.issue_result_occurrence_evidence(
-    definition, logical_value_cid, result_schema_cid,
-    computation_contract_cid, input_relation_cids, scope_cid,
-    effective_data_policy_cid, issuer_id, authority_scope_cid,
-    max_wire_bytes, max_nodes, max_depth,
+    definition, logical_value_cid, result_schema_cid, computation_contract_cid, input_relation_cids,
+    scope_cid, effective_data_policy_cid, issuer_id, authority_scope_cid, max_wire_bytes,
+    max_nodes, max_depth,
   )
 }
 
@@ -1076,11 +1093,17 @@ pub fn client_values_host_issue_checked_values_result_occurrence_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.ResultOrderingEvidence, ClientValuesHostCheckedOccurrenceIssue] {
-  let admitted = match @publication.admit_result_definition(
-    @publication.publication_contract_json(definition), max_wire_bytes,
-    max_nodes, max_depth,
-  ) {
+) -> Result[
+  @publication.ResultOrderingEvidence,
+  ClientValuesHostCheckedOccurrenceIssue,
+] {
+  let admitted = match
+    @publication.admit_result_definition(
+      @publication.publication_contract_json(definition),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Definition(issue))
   }
@@ -1091,25 +1114,44 @@ pub fn client_values_host_issue_checked_values_result_occurrence_evidence(
     ) {
     return Err(ForeignResult)
   }
-  let schema = match @host.issue_prepared_client_values_output_schema(
-    prepared, 0, @host.client_standard_values_sequence_limits(),
-    { max_fields: 100, max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-    1000000, 100000, 100,
-  ) {
+  let schema = match
+    @host.issue_prepared_client_values_output_schema(
+      prepared,
+      0,
+      @host.client_standard_values_sequence_limits(),
+      {
+        max_fields: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+      1000000,
+      100000,
+      100,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(ResultSchema(issue))
   }
   if result_schema_cid != @execution.relation_schema_cid(schema) {
     return Err(ResultSchemaMismatch)
   }
-  match @publication.issue_result_occurrence_evidence(
-    definition, logical_value_cid, result_schema_cid,
-    @publication.publication_contract_identity(
-      @host.client_values_compilation_compiled_plan(compilation),
-    ),
-    [], scope_cid, effective_data_policy_cid, issuer_id,
-    authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
-  ) {
+  match
+    @publication.issue_result_occurrence_evidence(
+      definition,
+      logical_value_cid,
+      result_schema_cid,
+      @publication.publication_contract_identity(
+        @host.client_values_compilation_compiled_plan(compilation),
+      ),
+      [],
+      scope_cid,
+      effective_data_policy_cid,
+      issuer_id,
+      authority_scope_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(Issuance(issue))
   }
@@ -1144,10 +1186,13 @@ pub fn client_values_host_issue_complete_result_artifact(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.ResultArtifactIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.ResultArtifactIssuanceIssue,
+] {
   @publication.issue_complete_result_artifact(
-    definition, invocation, evidence, retention, actual_row_count,
-    max_wire_bytes, max_nodes, max_depth,
+    definition, invocation, evidence, retention, actual_row_count, max_wire_bytes,
+    max_nodes, max_depth,
   )
 }
 
@@ -1173,12 +1218,14 @@ pub fn client_values_host_issue_durable_result_binding(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.DurableResultBindingIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.DurableResultBindingIssue,
+] {
   @publication.issue_durable_result_binding(
-    run_definition, definition, invocation, artifact, ordering, retention,
-    codec_contract_cid, result_fields, result_schema_wire,
-    material_generation_cid, store_authority_cid, row_count, byte_count,
-    physical_sha256, max_wire_bytes, max_nodes, max_depth,
+    run_definition, definition, invocation, artifact, ordering, retention, codec_contract_cid,
+    result_fields, result_schema_wire, material_generation_cid, store_authority_cid,
+    row_count, byte_count, physical_sha256, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1216,8 +1263,8 @@ pub fn client_values_host_validate_publication_chain(
   max_depth : Int,
 ) -> Result[Unit, @publication.RunPublicationChainIssue] {
   @publication.validate_run_publication_chain(
-    run_definition, invocation, definitions, artifacts, manifest,
-    max_wire_bytes, max_nodes, max_depth,
+    run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
+    max_nodes, max_depth,
   )
 }
 
@@ -1249,11 +1296,13 @@ pub fn client_values_host_issue_publication_request(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationCommitIssuanceIssue,
+] {
   @publication.issue_publication_request(
-    run_definition, definitions, tenant_id, authority_scope_cid,
-    publication_policy_cid, publication_target_cid, requested_at,
-    max_wire_bytes, max_nodes, max_depth,
+    run_definition, definitions, tenant_id, authority_scope_cid, publication_policy_cid,
+    publication_target_cid, requested_at, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1270,11 +1319,13 @@ pub fn client_values_host_issue_publication_attempt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationCommitIssuanceIssue,
+] {
   @publication.issue_publication_attempt(
-    request, run_definition, attempt_id, fence_cid,
-    external_idempotency_key, started_at, max_wire_bytes, max_nodes,
-    max_depth,
+    request, run_definition, attempt_id, fence_cid, external_idempotency_key, started_at,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1295,11 +1346,13 @@ pub fn client_values_host_issue_public_index_entry(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationCommitIssuanceIssue,
+] {
   @publication.issue_public_index_entry(
-    run_definition, invocation, manifest, receipt, captured_run,
-    durable_bindings, request, attempt, committed_at, max_wire_bytes,
-    max_nodes, max_depth,
+    run_definition, invocation, manifest, receipt, captured_run, durable_bindings,
+    request, attempt, committed_at, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1318,11 +1371,13 @@ pub fn client_values_host_issue_publication_record(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.PublicationCommitIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.PublicationCommitIssuanceIssue,
+] {
   @publication.issue_publication_record(
-    attempt, previous, state, observed_at, public_index_entry,
-    failure_cid, cleanup_owner_cids, uncommitted_confirmed,
-    max_wire_bytes, max_nodes, max_depth,
+    attempt, previous, state, observed_at, public_index_entry, failure_cid, cleanup_owner_cids,
+    uncommitted_confirmed, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1346,11 +1401,13 @@ pub fn client_values_host_issue_effect_free_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.RunReceiptIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.RunReceiptIssuanceIssue,
+] {
   @publication.issue_effect_free_run_receipt(
-    admission, run_definition, invocation, observation, definitions,
-    artifacts, manifest, normalization_journal, binding_names,
-    binding_digests, source_evidence, model_evidence,
+    admission, run_definition, invocation, observation, definitions, artifacts, manifest,
+    normalization_journal, binding_names, binding_digests, source_evidence, model_evidence,
     barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
   )
 }
@@ -1366,10 +1423,12 @@ pub fn client_values_host_admit_captured_result_snapshot(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.CapturedResultSnapshot, @publication.CapturedRunIssuanceIssue] {
+) -> Result[
+  @publication.CapturedResultSnapshot,
+  @publication.CapturedRunIssuanceIssue,
+] {
   @publication.admit_captured_result_snapshot(
-    definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes,
-    max_depth,
+    definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
@@ -1390,10 +1449,23 @@ pub fn client_values_host_issue_source_free_captured_run(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[@publication.PublicationContract, @publication.CapturedRunIssuanceIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  @publication.CapturedRunIssuanceIssue,
+] {
   @publication.issue_effect_free_captured_run(
-    run_definition, invocation, definitions, artifacts, manifest,
-    receipt, snapshots, [], authoring, models, max_wire_bytes, max_nodes,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    [],
+    authoring,
+    models,
+    max_wire_bytes,
+    max_nodes,
     max_depth,
   )
 }

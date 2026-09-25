@@ -325,7 +325,11 @@ pub fn prepare_checked_dag(
     return Err(EffectGraphOwnerRequired)
   }
   prepare_checked_dag_owned(
-    program, owners, max_tasks, max_work, source_free_root~,
+    program,
+    owners,
+    max_tasks,
+    max_work,
+    source_free_root~,
   )
 }
 

@@ -31,14 +31,24 @@ pub fn durable_coordinator_output_publication_facts(
 ) -> DurableCoordinatorOutputPublicationFacts {
   let request = durable.plan.payload_request
   {
-    store_authority_cid: @payload.publication_payload_request_store_authority(request),
-    result_definition_cid: @payload.publication_payload_request_result_definition(request),
-    logical_relation_cid: @payload.publication_payload_request_logical_relation(request),
+    store_authority_cid: @payload.publication_payload_request_store_authority(
+      request,
+    ),
+    result_definition_cid: @payload.publication_payload_request_result_definition(
+      request,
+    ),
+    logical_relation_cid: @payload.publication_payload_request_logical_relation(
+      request,
+    ),
     result_schema_cid: @payload.publication_payload_request_schema(request),
-    ordering_evidence_cid: @payload.publication_payload_request_ordering_evidence(request),
+    ordering_evidence_cid: @payload.publication_payload_request_ordering_evidence(
+      request,
+    ),
     codec_contract_cid: @payload.publication_payload_request_codec(request),
     row_count: @payload.publication_payload_request_row_count(request),
-    material_generation_cid: @payload.publication_payload_material_identity(request),
+    material_generation_cid: @payload.publication_payload_material_identity(
+      request,
+    ),
   }
 }
 
@@ -189,14 +199,8 @@ pub fn prepare_durable_coordinator_output_record(
     return Err(InvalidDispatch)
   }
   match emit_durable_coordinator_output_record(output, plan, 0, 0, "") {
-    Ok(body) => Ok({
-      output,
-      plan,
-      revision: 0,
-      progress_code: 0,
-      result_json: "",
-      body,
-    })
+    Ok(body) =>
+      Ok({ output, plan, revision: 0, progress_code: 0, result_json: "", body, })
     Err(issue) => Err(issue)
   }
 }
@@ -359,7 +363,8 @@ pub fn durable_coordinator_output_admit_transfer_reply_json(
 ) -> Result[String, DispatchIssue] {
   let record = match
     @transfer.admit_remote_transfer_reply_json(
-      reply, durable.plan.transfer_request,
+      reply,
+      durable.plan.transfer_request,
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidDispatch)
@@ -396,7 +401,8 @@ pub fn durable_coordinator_output_prepare_result_json(
   }
   let record = match
     @transfer.admit_remote_transfer_reply_json(
-      reply, durable.plan.transfer_request,
+      reply,
+      durable.plan.transfer_request,
     ) {
     Ok(value) => value
     Err(_) => return Err(InvalidDispatch)
@@ -449,7 +455,8 @@ pub fn advance_durable_coordinator_output_record(
   if coordinator_output_record_projection(transition.record) !=
     transition.expected ||
     transition.record.revision != durable.revision ||
-    transition.expected != [
+    transition.expected !=
+    [
       durable.revision.to_string(),
       durable.progress_code.to_string(),
       if durable.result_json.is_empty() {
@@ -482,30 +489,31 @@ pub fn advance_durable_coordinator_output_record(
     return Err(StateCollision)
   }
   let result_json = match transition.next_result {
-    Some(value) => match remote_output_result_json(value) {
-      Ok(body) => body
-      Err(issue) => return Err(issue)
-    }
+    Some(value) =>
+      match remote_output_result_json(value) {
+        Ok(body) => body
+        Err(issue) => return Err(issue)
+      }
     None => ""
   }
-  let progress_code = coordinator_output_progress_code(
-    transition.next_progress,
-  )
-  match emit_durable_coordinator_output_record(
+  let progress_code = coordinator_output_progress_code(transition.next_progress)
+  match
+    emit_durable_coordinator_output_record(
       durable.output,
       durable.plan,
       durable.revision + 1,
       progress_code,
       result_json,
     ) {
-    Ok(body) => Ok({
-      output: durable.output,
-      plan: durable.plan,
-      revision: durable.revision + 1,
-      progress_code,
-      result_json,
-      body,
-    })
+    Ok(body) =>
+      Ok({
+        output: durable.output,
+        plan: durable.plan,
+        revision: durable.revision + 1,
+        progress_code,
+        result_json,
+        body,
+      })
     Err(issue) => Err(issue)
   }
 }

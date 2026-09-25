@@ -588,7 +588,11 @@ pub fn NativeRemoteStandardSiteComponent::open_observed_output_manifest_reader(
     return Err(Closed)
   }
   open_native_remote_observed_output_manifest_reader(
-    self.runtime, self.journal, request, completion, max_chunk_bytes,
+    self.runtime,
+    self.journal,
+    request,
+    completion,
+    max_chunk_bytes,
   )
 }
 
@@ -717,8 +721,15 @@ pub fn NativeRemoteStandardSiteComponent::send_observed_output_direct(
     return Err(Closed)
   }
   send_native_remote_observed_output_direct(
-    self.runtime, self.journal, self.client, transfer_journal, origin,
-    dispatch, completion, transfer, max_chunk_bytes,
+    self.runtime,
+    self.journal,
+    self.client,
+    transfer_journal,
+    origin,
+    dispatch,
+    completion,
+    transfer,
+    max_chunk_bytes,
   )
 }
 
@@ -776,7 +787,11 @@ pub fn NativeRemoteStandardSiteComponent::send_observed_output_store(
   }
   let source = match
     open_native_remote_observed_transfer_source(
-      self.runtime, self.journal, dispatch, completion, transfer,
+      self.runtime,
+      self.journal,
+      dispatch,
+      completion,
+      transfer,
       max_chunk_bytes,
     ) {
     Ok(value) => value

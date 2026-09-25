@@ -11,14 +11,15 @@ pub fn transfer_admit_envelope_json(
   max_referenced_bytes : Int64,
 ) -> Result[@transfer.RemoteTransferRequest, @transfer.RemoteTransferIssue] {
   @transfer.admit_transfer_admission_envelope_json(
-    body, request_cid, manifest_cid, max_chunks, max_manifest_bytes,
-    max_referenced_bytes,
+    body, request_cid, manifest_cid, max_chunks, max_manifest_bytes, max_referenced_bytes,
   )
 }
 
 ///|
 #export_name("transferRequestCid")
-pub fn transfer_request_cid(request : @transfer.RemoteTransferRequest) -> String {
+pub fn transfer_request_cid(
+  request : @transfer.RemoteTransferRequest,
+) -> String {
   @transfer.request_cid(request)
 }
 
@@ -40,7 +41,9 @@ pub fn transfer_request_journal_key(
 
 ///|
 #export_name("transferChunkCids")
-pub fn transfer_chunk_cids(request : @transfer.RemoteTransferRequest) -> Array[String] {
+pub fn transfer_chunk_cids(
+  request : @transfer.RemoteTransferRequest,
+) -> Array[String] {
   @transfer.request_chunk_cids(request)
 }
 
@@ -84,9 +87,15 @@ pub fn transfer_admit_durable_json(
   max_chunks : Int,
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
-) -> Result[@transfer.DurableRemoteTransferRecord, @transfer.RemoteTransferIssue] {
+) -> Result[
+  @transfer.DurableRemoteTransferRecord,
+  @transfer.RemoteTransferIssue,
+] {
   @transfer.admit_durable_remote_transfer_record(
-    @utf8.encode(body), max_chunks, max_manifest_bytes, max_referenced_bytes,
+    @utf8.encode(body),
+    max_chunks,
+    max_manifest_bytes,
+    max_referenced_bytes,
   )
 }
 
@@ -167,8 +176,7 @@ pub fn transfer_prepare_cleanup(
   object_use_released : Bool,
 ) -> Result[@transfer.RemoteTransferTransition, @transfer.RemoteTransferIssue] {
   @transfer.prepare_cleanup(
-    record, source_access_stopped, destination_temporary_reclaimed,
-    object_use_released,
+    record, source_access_stopped, destination_temporary_reclaimed, object_use_released,
   )
 }
 

@@ -29,7 +29,10 @@ pub fn coordinator_payload_request_max_bytes(
 pub fn coordinator_payload_admit_request_json(
   body : String,
   claimed_cid : String,
-) -> Result[@payload.PublicationPayloadRequest, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadRequest,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.admit_publication_payload_request_json(body, claimed_cid)
 }
 
@@ -53,7 +56,10 @@ pub fn coordinator_payload_record_durable_json(
 #export_name("coordinatorPayloadAdmitDurableJson")
 pub fn coordinator_payload_admit_durable_json(
   body : String,
-) -> Result[@payload.DurablePublicationPayloadRecord, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.DurablePublicationPayloadRecord,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.admit_durable_publication_payload_record(@utf8.encode(body))
 }
 
@@ -100,7 +106,10 @@ pub fn coordinator_payload_restore_durable(
 #export_name("coordinatorPayloadPrepareReserved")
 pub fn coordinator_payload_prepare_reserved(
   record : @payload.PublicationPayloadRecord,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_reserved(record)
 }
 
@@ -108,7 +117,10 @@ pub fn coordinator_payload_prepare_reserved(
 #export_name("coordinatorPayloadPrepareWriting")
 pub fn coordinator_payload_prepare_writing(
   record : @payload.PublicationPayloadRecord,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_writing(record)
 }
 
@@ -117,7 +129,10 @@ pub fn coordinator_payload_prepare_writing(
 pub fn coordinator_payload_prepare_opaque_owned(
   record : @payload.PublicationPayloadRecord,
   custody_cid : String,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_opaque_owned(record, custody_cid)
 }
 
@@ -128,7 +143,10 @@ pub fn coordinator_payload_prepare_opaque_sealed(
   custody_cid : String,
   actual_bytes : Int64,
   physical_digest : String,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_opaque_sealed(
     record, custody_cid, actual_bytes, physical_digest,
   )
@@ -139,7 +157,10 @@ pub fn coordinator_payload_prepare_opaque_sealed(
 pub fn coordinator_payload_prepare_opaque_reclaiming(
   record : @payload.PublicationPayloadRecord,
   custody_cid : String,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_opaque_reclaiming(record, custody_cid)
 }
 
@@ -147,7 +168,10 @@ pub fn coordinator_payload_prepare_opaque_reclaiming(
 #export_name("coordinatorPayloadPrepareReclaimed")
 pub fn coordinator_payload_prepare_reclaimed(
   record : @payload.PublicationPayloadRecord,
-) -> Result[@payload.PublicationPayloadTransition, @payload.PublicationPayloadIssue] {
+) -> Result[
+  @payload.PublicationPayloadTransition,
+  @payload.PublicationPayloadIssue,
+] {
   @payload.prepare_publication_payload_reclaimed(record)
 }
 

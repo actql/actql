@@ -37,7 +37,8 @@ test "Coordinator output success follows durable intent and unknown state" {
   assert_eq(
     coordinator_output_initial_poll_json(record),
     remote_poll_output_plan_json(
-      remote_poll_output_request(output), remote_poll_output_intent(output),
+      remote_poll_output_request(output),
+      remote_poll_output_intent(output),
     ),
   )
   ignore(
@@ -47,7 +48,9 @@ test "Coordinator output success follows durable intent and unknown state" {
     ).unwrap(),
   )
   assert_eq(coordinator_output_record_status(record), ["1", "1", ""])
-  assert_true(coordinator_output_initial_poll_json(record) is Err(InvalidTransition))
+  assert_true(
+    coordinator_output_initial_poll_json(record) is Err(InvalidTransition),
+  )
   let result = prepare_remote_output_result(
     output,
     payload_request,
@@ -169,10 +172,12 @@ test "Coordinator output transitions issue exact durable bodies" {
     @payload.publication_payload_material_identity(payload_request),
   )
   let exact_poll = remote_poll_output_plan_json(
-    remote_poll_output_request(output), remote_poll_output_intent(output),
+    remote_poll_output_request(output),
+    remote_poll_output_intent(output),
   ).unwrap()
   assert_eq(
-    durable_coordinator_output_record_poll_json(initial), Ok(exact_poll),
+    durable_coordinator_output_record_poll_json(initial),
+    Ok(exact_poll),
   )
   let unknown = prepare_coordinator_output_unknown(record).unwrap()
   assert_eq(coordinator_output_transition_expected_revision(unknown), 0)
@@ -183,7 +188,8 @@ test "Coordinator output transitions issue exact durable bodies" {
   )
   let unknown_body = durable_coordinator_output_record_json(uncertain)
   assert_eq(
-    durable_coordinator_output_record_poll_json(uncertain), Ok(exact_poll),
+    durable_coordinator_output_record_poll_json(uncertain),
+    Ok(exact_poll),
   )
   assert_eq(
     coordinator_output_transition_durable_json(initial, unknown),
@@ -262,9 +268,7 @@ test "durable output binds Transfer reply before preparing Result" {
   )
   let foreign = reply.replace(
     old=@transfer.request_cid(transfer_request),
-    new=cid(
-      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    ),
+    new=cid("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
   )
   assert_true(
     durable_coordinator_output_admit_transfer_reply_json(durable, foreign)

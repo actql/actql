@@ -343,8 +343,8 @@ pub fn NativeRemoteValuesSiteEndpoint::send_output_direct_json(
 ) -> Result[String, NativeRemoteValuesSiteEndpointIssue] {
   let record = match
     self.send_output_direct(
-      client, transfer_journal, destination_origin, envelope, claimed_cid,
-      max_chunk_bytes, max_chunks, max_manifest_bytes, max_referenced_bytes,
+      client, transfer_journal, destination_origin, envelope, claimed_cid, max_chunk_bytes,
+      max_chunks, max_manifest_bytes, max_referenced_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

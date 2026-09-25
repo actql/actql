@@ -260,8 +260,7 @@ pub fn coordinator_output_record_status(
 pub fn coordinator_output_initial_poll_json(
   record : CoordinatorOutputRecord,
 ) -> Result[String, DispatchIssue] {
-  if record.revision != 0 ||
-    record.progress != CoordinatorOutputIntentDurable {
+  if record.revision != 0 || record.progress != CoordinatorOutputIntentDurable {
     return Err(InvalidTransition)
   }
   remote_poll_output_plan_json(record.output.request, record.output.intent)
