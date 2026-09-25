@@ -27,8 +27,11 @@ credentialed Salesforce-shaped Site operations, durable row custody, and
 unknown without resend, Collections partial failure, claim and saved-response
 faults, and lost publication-index acknowledgement. After Store reopen, the
 installed SDK can attach, inspect committed success, and read `answer` through
-an authorized delivery attempt. These tests do not constitute public
-Effectful `submit`, live Salesforce validation, or same-SHA Linux CI.
+an authorized delivery attempt. After Store reopen, retiring the public
+Result alone leaves private Preview and both Effect-source holdings intact;
+metadata retirement removes them after the last owner. These tests do not
+constitute public Effectful `submit`, live Salesforce validation, or
+same-SHA Linux CI.
 
 The Distribution owner owns the public Client ingress, attach/status,
 authorized Result reader, and package-facing contract. This branch owns the
