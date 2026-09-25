@@ -238,7 +238,21 @@ approvals already admitted for the same attempt, and creates its Run directly
 in `running` once capture completes. As its own delegated-decision policy, an
 approved run-scope Checkpoint of prepared invocation X also answers the
 acquisition of X's declared source in the same attempt under the same entry,
-configuration, context and tuple; it answers nothing else.
+configuration, context and tuple; it answers nothing else. When the resumed
+continuation reuses approvals the attempt answered earlier, each approval's own
+permission is checked at the Host trusted time, not only the approval of the
+Checkpoint being resumed.
+
+Known limitations of the Local Host profile. The captured inputs and Host
+records are held as encrypted private evidence, but the plaintext holding and
+ledger records next to them name each private item by its content CID. A
+low-entropy value (for example a small Parameters file) could therefore be
+guessed offline by hashing candidates and comparing CIDs, even though the value
+itself is only stored encrypted. Effect Set approval attestations carry no
+expiry of their own: only the Checkpoint's answer deadline limits when they can
+be committed, and a committed Effect Set approval stays admissible for the
+resumed commit until its intent completes. Run-scope approvals, in contrast,
+authorize new work only strictly before their own `expires_at`.
 
 ## Delegated-decision adapter
 
