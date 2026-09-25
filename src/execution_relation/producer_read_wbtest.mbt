@@ -117,3 +117,86 @@ test "producer read applies checked aliases without materializing projection row
     is Err(ProducerUnavailable),
   )
 }
+
+///|
+test "producer read exposes admitted cells only from admitted storage" {
+  let owner = row_owner("")
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let active = start_bounded_values(
+    @bounded.control(),
+    generated,
+    2,
+    run_limits().input_values,
+    run_limits().output_values,
+    10000,
+    0,
+    100,
+    10000,
+  ).unwrap()
+  let mut admitted : CompletedOutput? = None
+  for _ in 0..<100 {
+    if admitted is None {
+      match advance_bounded_values(active, 1).unwrap() {
+        BoundedValuesContinue(..) => ()
+        BoundedValuesComplete(output, ..) => admitted = Some(output)
+        _ => fail("bounded values did not produce admitted storage")
+      }
+    }
+  }
+  let output = admitted.unwrap()
+  let receiver = producer_consumer(owner, Step(0))
+  let read = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, owner, output).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  assert_true(
+    producer_read_admitted_cell(read, 0, 0) is Some(@admitted.Number(1.0)),
+  )
+  assert_true(producer_read_admitted_cell(read, -1, 0) is None)
+  assert_true(producer_read_admitted_cell(read, 0, -1) is None)
+  let mut live = true
+  let restricted = prepare_producer_read(
+    receiver,
+    bind_completed_input(
+      receiver,
+      0,
+      owner,
+      restrict_completed_output(output, fn() { live }),
+    ).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  live = false
+  assert_true(producer_read_admitted_cell(restricted, 0, 0) is None)
+  assert_true(cleanup_bounded_values(active).unwrap())
+
+  let ordinary = evaluate_sequence_components(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    ["values_0"],
+    run_limits(),
+    { remaining: 10000, max_frames: 100, },
+  ).unwrap()
+  let fallback = prepare_producer_read(
+    receiver,
+    bind_completed_input(
+      receiver,
+      0,
+      owner,
+      completed_output(ordinary, Step(0)).unwrap(),
+    ).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  assert_true(producer_read_admitted_cell(fallback, 0, 0) is None)
+}
