@@ -101,6 +101,7 @@ function checkpointView(wire, row) {
     checkpointCid: artifact.checkpoint_cid,
     checkpointId: artifact.checkpoint_id,
     runId: artifact.run_id ?? null,
+    runDefinitionCid: artifact.run_definition_cid ?? null,
     prepareAttemptId: artifact.subject.prepare_attempt_id ?? null,
     subject: Object.freeze({...artifact.subject}),
     phase: artifact.phase,
@@ -158,6 +159,9 @@ export function openSqliteCheckpointJournal(root, {
   });
   let closed = false;
   try {
+    // Several Host processes (run, approve, resume) share one journal; a
+    // writer waits for the current transaction instead of failing.
+    database.exec('PRAGMA busy_timeout = 10000');
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`
@@ -693,6 +697,24 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       if (!text(runId)) fail('InvalidRunId');
       return projectRunState(runId);
+    },
+
+    // The committed answer of one Checkpoint: decision, actor and the
+    // Resolution identities. Evidence and review contents are not returned.
+    resolutionOf(reference) {
+      alive();
+      const row = rowFor(reference);
+      if (row === undefined) return undefined;
+      const stored = statements.resolution.get(row.checkpoint_cid);
+      if (stored === undefined) return undefined;
+      const verified = JSON.parse(stored.verified_resolution_wire);
+      return Object.freeze({
+        checkpointCid: row.checkpoint_cid,
+        decision: stored.decision,
+        actor: verified.resolution.actor,
+        resolutionCid: stored.resolution_cid,
+        verifiedResolutionCid: stored.verified_resolution_cid,
+      });
     },
 
     getPreparation(prepareAttemptId) {
