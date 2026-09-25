@@ -164,7 +164,7 @@ pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> Stri
 
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
 
-pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
+pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
 

@@ -137,7 +137,8 @@ test('checked acquired source and downstream task emit their input ports',
       ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
         import.meta.url), 'utf8')));
     const nativeSetup = checked(moon.clientProgramPrepareDuckDBAcquisition(
-      requirement, queryContract, evidenceContract, twoReceiptContract));
+      requirement, 'main', 'records', queryContract, evidenceContract,
+      twoReceiptContract));
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'checked-source-'));
@@ -190,7 +191,8 @@ test('checked acquired source and downstream task emit their input ports',
       await rm(directory, {recursive: true, force: true});
     }
     assert.throws(() => checked(moon.clientProgramPrepareDuckDBAcquisition(
-      requirement, '{}', evidenceContract, twoReceiptContract)));
+      requirement, 'main', 'records', '{}', evidenceContract,
+      twoReceiptContract)));
     assert.throws(() => checked(
       moon.clientProgramPrepareLocalQueryRequirement(prepared, 1, 0,
         registry, JSON.stringify(aoa.execution_contracts['REL.values']),

@@ -1253,6 +1253,8 @@ pub fn client_program_query_requirement_cid(
 #export_name("clientProgramPrepareDuckDBAcquisition")
 pub fn client_program_prepare_duckdb_acquisition(
   requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
   query_contract_body : String,
   evidence_contract_body : String,
   two_receipt_contract_body : String,
@@ -1262,8 +1264,8 @@ pub fn client_program_prepare_duckdb_acquisition(
 ] {
   @client_local_host.prepare_client_duckdb_acquisition(
     requirement,
-    "main",
-    "records",
+    database_schema,
+    table,
     query_contract_body,
     evidence_contract_body,
     two_receipt_contract_body,
