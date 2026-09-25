@@ -301,6 +301,17 @@ test "Effect reconciliation is scoped to one unknown Preview row" {
     256,
     16,
   ).unwrap()
+  assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(set),
+      [publication_contract_json(member_receipt)],
+      8192,
+      256,
+      16,
+    ).unwrap(),
+    1,
+  )
   let wire = effect_receipt_test_reconciliation_body(
       "false", "1", "", "\"command_id\":\"request-1\",\"idempotency_key\":\"key-1\",",
     )
@@ -1039,6 +1050,17 @@ test "Effect Set receipt references every exact Preview member receipt" {
     12,
   ).unwrap()
   assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(issued),
+      member_wires,
+      8192,
+      256,
+      12,
+    ).unwrap(),
+    0,
+  )
+  assert_eq(
     publication_contract_identity(issued),
     publication_contract_identity(set),
   )
@@ -1374,6 +1396,17 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     512,
     16,
   ).unwrap()
+  assert_eq(
+    effect_set_receipt_run_disposition(
+      preview,
+      publication_contract_json(mixed),
+      [wires[0], publication_contract_json(failed_second)],
+      16384,
+      512,
+      16,
+    ).unwrap(),
+    2,
+  )
   assert_true(
     admit_effect_set_apply_receipt_references(
       preview,

@@ -181,6 +181,8 @@ pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
 
+pub fn effect_set_receipt_run_disposition(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[Int, EffectSetApplyReceiptBindingIssue]
+
 pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, String) -> String?
 
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
