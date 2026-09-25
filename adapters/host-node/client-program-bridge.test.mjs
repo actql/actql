@@ -955,6 +955,14 @@ test('admitted source-free Effect Run computes through the installed Host',
                       effectiveDataPolicyCid: cid('d'),
                       authorityScopeCid: cid('a')}, publicationLimits),
                 {code: 'MoonBitHostFailure'});
+                assert.throws(() => control
+                  .issueSourceFreeLocalEffectResultArtifact(
+                    foreignPrepared, inputs, 0, secondImporting,
+                    capturedDefinition, capturedInvocation, secondReceipt,
+                    retention, {scopeCid: cid('3'),
+                      effectiveDataPolicyCid: cid('d'),
+                      authorityScopeCid: cid('a')}, publicationLimits),
+                {code: 'MoonBitHostFailure'});
                 assert.ok(control.issueSourceFreeLocalEffectResultArtifact(
                   prepared, inputs, 0, secondImporting,
                   capturedDefinition, capturedInvocation, secondReceipt,
