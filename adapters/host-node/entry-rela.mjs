@@ -18,3 +18,7 @@ export const runCapturedEffectComputation =
   entry.runCapturedEffectComputation;
 export const runPublishedCapturedStrategy =
   entry.runPublishedCapturedStrategy;
+export const completeCapturedEffectRun =
+  entry.completeCapturedEffectRun;
+export const completeRecoveredEffectRun =
+  entry.completeRecoveredEffectRun;

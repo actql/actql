@@ -44,7 +44,8 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
   installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {runCapturedEffectComputation, runCapturedInternalStrategy,
+import {completeCapturedEffectRun, runCapturedEffectComputation,
+  runCapturedInternalStrategy,
   runCapturedStrategy,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {installNodeResultAccessService,
@@ -5110,7 +5111,7 @@ test(`two-member captured Effect Run ${
           assert.deepEqual(sites.map(site => site.journal.recover().length),
             expectedCredentialUses([1, 2]));
         }
-        const uncertainSet = await issueAuthorizedEffectSetReceipt({
+        const receiptOptions = {
           ledger, preview: applyPreview, commonMoon: moon,
           authorizeEvidenceRead: async () => true,
           publicationPreview: admittedPreview,
@@ -5118,7 +5119,33 @@ test(`two-member captured Effect Run ${
             rowOwners: member.claims.map(claim => ({claim})),
             replayed: true,
           })), limits: publicationLimits,
-        });
+        };
+        let uncertainSet;
+        if (physical === 'salesforce-unknown') {
+          const completed = await completeCapturedEffectRun({
+            apply: {...applyOptions, ledger,
+              refreshPreflight: () => assert.fail('unknown replay refreshed'),
+              dispatchRow: () => assert.fail('unknown row resent')},
+            receipt: receiptOptions,
+            publication: {execution, store, storedResults, control,
+              computation, preview: admittedPreview, ledger,
+              request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+                publicationPolicyCid: cid('e'),
+                publicationTargetCid: cid('f'),
+                requestedAt: '2026-09-24T00:00:01.000Z'},
+              attempt: {attemptId: 'unknown-two-effects-attempt',
+                fenceCid: cid('0'), externalIdempotencyKey: undefined,
+                startedAt: '2026-09-24T00:00:02.000Z'},
+              contractLimits: publicationLimits,
+              now: () => '2026-09-24T00:00:03.000Z'},
+          });
+          assert.equal(completed.status, 'needs_reconciliation');
+          assert.equal(completed.progress.dispatched, 0);
+          uncertainSet = completed.issuedSet;
+        } else {
+          uncertainSet = await issueAuthorizedEffectSetReceipt(
+            receiptOptions);
+        }
         assert.equal(JSON.parse(uncertainSet.set.wire).status,
           'unknown_outcome');
         assert.deepEqual(JSON.parse(uncertainSet.set.wire).effects.map(
@@ -5342,7 +5369,7 @@ test(`two-member captured Effect Run ${
           publicationLimits.maxWireBytes, publicationLimits.maxNodes,
           publicationLimits.maxDepth);
       }
-      const issuedSet = await issueAuthorizedEffectSetReceipt({
+      const receiptOptions = {
         ledger, preview: applyPreview, commonMoon: moon,
         authorizeEvidenceRead: async () => true,
         publicationPreview: admittedPreview,
@@ -5354,12 +5381,7 @@ test(`two-member captured Effect Run ${
           replayed: true,
         })),
         limits: publicationLimits,
-      });
-      assert.equal(issuedSet.members.length, 2);
-      assert.equal(JSON.parse(issuedSet.set.wire).status, 'applied');
-      if (freshProcessSetCid !== undefined) {
-        assert.equal(issuedSet.set.identity, freshProcessSetCid);
-      }
+      };
       const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
@@ -5367,16 +5389,37 @@ test(`two-member captured Effect Run ${
           restartBeforeFinal
           ? null : execution,
         store, storedResults, control, computation,
-        preview: admittedPreview, ledger, issuedSet,
+        preview: admittedPreview, ledger,
         request: publicationRequest,
         attempt: publicationAttempt,
         contractLimits: publicationLimits,
         now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
       };
-      let result;
+      let result, issuedSet;
+      if (physical === 'salesforce') {
+        const completed = await completeCapturedEffectRun({
+          apply: {...applyOptions, ledger,
+            refreshPreflight: () =>
+              assert.fail('settled Run refreshed current Site'),
+            dispatchRow: () => assert.fail('settled Effect row resent')},
+          receipt: receiptOptions, publication: publicationOptions,
+        });
+        assert.equal(completed.status, 'published');
+        assert.equal(completed.progress.dispatched, 0);
+        issuedSet = completed.issuedSet;
+        result = completed.completed;
+      } else {
+        issuedSet = await issueAuthorizedEffectSetReceipt(receiptOptions);
+      }
+      assert.equal(issuedSet.members.length, 2);
+      assert.equal(JSON.parse(issuedSet.set.wire).status, 'applied');
+      if (freshProcessSetCid !== undefined) {
+        assert.equal(issuedSet.set.identity, freshProcessSetCid);
+      }
       if (restartAfterPublication) {
+        const ownedPublication = {...publicationOptions, issuedSet};
         let unknown;
-        try { await publishCompletedEffectfulRun(publicationOptions); }
+        try { await publishCompletedEffectfulRun(ownedPublication); }
         catch (error) { unknown = error; }
         assert.equal(unknown?.code, 'RunPublicationUnknown');
         assert.equal(unknown.cleanupHandle.status().pending, true);
@@ -5393,9 +5436,11 @@ test(`two-member captured Effect Run ${
           dispatchRow: () => assert.fail('committed Effect row resent'),
         });
         assert.equal(afterRestart.dispatched, 0);
-        result = await publishCompletedEffectfulRun(publicationOptions);
-      } else {
-        result = await publishCompletedEffectfulRun(publicationOptions);
+        result = await publishCompletedEffectfulRun(ownedPublication);
+      } else if (result === undefined) {
+        result = await publishCompletedEffectfulRun({
+          ...publicationOptions, issuedSet,
+        });
       }
       assert.equal(result.publication.committed, false);
       assert.equal(result.publication.idempotent, true);

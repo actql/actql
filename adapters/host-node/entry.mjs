@@ -11,6 +11,9 @@ import {enableNodeCompileCache} from './compile-cache.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
   '../host-common/run-publication-preflight.mjs';
 import {missingAuthorizationGate} from '../host-common/authorization-gate.mjs';
+import {completeCapturedEffectRun as completeEffectRun,
+  completeRecoveredEffectRun as completeRecoveredRun} from
+  './effect-run-completion.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 
@@ -177,6 +180,20 @@ export function createNodeHostEntry(loadRuntime, install) {
       setup, publication, options = {}, signal, observer,
     ) => runPublishedCapturedStrategyTarget(setup, publication, options,
       signal, observer, load, install),
+    completeCapturedEffectRun: async options => {
+      const moon = await load();
+      if (options?.apply?.moon !== moon) {
+        throw new TypeError('InvalidCapturedEffectRunRuntime');
+      }
+      return completeEffectRun(options);
+    },
+    completeRecoveredEffectRun: async options => {
+      const moon = await load();
+      if (options?.apply?.moon !== moon) {
+        throw new TypeError('InvalidCapturedEffectRunRuntime');
+      }
+      return completeRecoveredRun(options);
+    },
   });
 }
 
@@ -188,3 +205,7 @@ export const runCapturedEffectComputation =
   standard.runCapturedEffectComputation;
 export const runPublishedCapturedStrategy =
   standard.runPublishedCapturedStrategy;
+export const completeCapturedEffectRun =
+  standard.completeCapturedEffectRun;
+export const completeRecoveredEffectRun =
+  standard.completeRecoveredEffectRun;

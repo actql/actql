@@ -7,7 +7,7 @@ import * as moon from
   '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as salesforceMoon from
   '../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
-import {publishCompletedEffectfulRun, recoverCompletedEffectfulComputation} from
+import {recoverCompletedEffectfulComputation} from
   '../../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
 import {checked} from '../../host-common/runtime-result.mjs';
@@ -22,6 +22,7 @@ import {captureSalesforceSingleEffectWrite,
   reconcileStoredSalesforceSingleEffectWrite} from
   '../salesforce-effect-write.mjs';
 import {applyRecoveredEffectSet} from '../effect-run-apply.mjs';
+import {completeRecoveredEffectRun} from '../entry.mjs';
 import {allowAllAuthorization} from '../authorization-fixture.mjs';
 import {syncSalesforceCatalog} from
   '../../site-node/salesforce-catalog-sync.mjs';
@@ -298,28 +299,50 @@ try {
       maxRows: input.maxRows, maxWork: input.maxWork,
     });
   }
-  const issued = input.prepared === true && input.applyPrepared !== true
-    ? undefined :
-    await issueAuthorizedEffectSetReceipt({
+  const receiptOptions = {
     ledger, preview: admittedPreview, publicationPreview: recovered.preview,
     commonMoon: moon, authorizeEvidenceRead: async () => true,
     members: recorded.members.map(member => ({
       rowOwners: member.claims.map(claim => ({claim})), replayed: true,
     })),
     limits: input.limits,
-    });
-  const publication = input.publish === true
-    ? await publishCompletedEffectfulRun({
+  };
+  const publicationOptions = input.publish === true ? {
       execution: null, store, storedResults: recovered.storedResults,
       control, computation: recovered.computation,
-      preview: recovered.preview, ledger, issuedSet: issued,
+      preview: recovered.preview, ledger,
       request: input.request,
       attempt: {...input.attempt,
         externalIdempotencyKey: input.attempt.externalIdempotencyKey},
       contractLimits: input.limits,
       now: () => input.publicationTime, signal: undefined,
-    })
-    : undefined;
+  } : undefined;
+  let issued, publication;
+  if (input.publish === true) {
+    const completed = await completeRecoveredEffectRun({
+      apply: {moon, store, publicationControl: control,
+        computation: recovered.computation, preview: recovered.preview,
+        ledger, requestScope: scope, programId: input.programId,
+        nodeId: input.nodeId, maxRows: input.maxRows,
+        maxFrontierWork: input.maxWork, maxRecoveryWork: input.maxWork,
+        keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
+          maxWork: input.maxWork},
+        refreshPreflight: () => {
+          throw new Error('SettledRecoveryRefreshedCurrentSite');
+        },
+        dispatchRow: () => {
+          throw new Error('SettledRecoveryResentEffectRow');
+        }},
+      receipt: receiptOptions,
+      publication: publicationOptions,
+    });
+    assert.equal(completed.status, 'published');
+    assert.equal(completed.progress.dispatched, 0);
+    issued = completed.issuedSet;
+    publication = completed.completed;
+  } else if (input.prepared !== true || input.applyPrepared === true) {
+    issued = await issueAuthorizedEffectSetReceipt(receiptOptions);
+  }
   const answer = {
     capturedRunCid: recovered.computation.capturedRun.identity,
     localInventory: JSON.parse(recovered.computation.capturedRun.wire)
