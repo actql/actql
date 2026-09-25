@@ -59,7 +59,8 @@ function measure(command, args, cwd) {
 }
 
 const tarballs = {};
-for (const name of ['client-wire', 'sdk', 'node', 'run-host-core']) {
+for (const name of ['client-wire', 'sdk', 'node', 'run-host-core',
+  'local-node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
   const path = join(root, `actql-${name}-0.0.0-development.tgz`);
@@ -134,13 +135,17 @@ for (const name of ['sdk', 'node']) {
     '{"private":true,"type":"module"}\n');
   const install = name === 'sdk'
     ? [tarballs['client-wire'].path, tarballs.sdk.path]
-    : [tarballs['client-wire'].path, tarballs.sdk.path, tarballs.node.path];
-  run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
+    : [tarballs['client-wire'].path, tarballs.sdk.path,
+      tarballs['run-host-core'].path, tarballs['local-node'].path,
+      tarballs.node.path];
+  run('npm', ['install', ...(name === 'sdk' ? ['--offline'] : []),
+    '--ignore-scripts', '--no-save',
     ...install], installation);
   const installed = (await readdir(join(installation, 'node_modules',
     '@actql'))).sort();
   assert.deepEqual(installed, name === 'sdk'
-    ? ['client-wire', 'sdk'] : ['client-wire', 'node', 'sdk']);
+    ? ['client-wire', 'sdk'] :
+      ['client-wire', 'local-node', 'node', 'run-host-core', 'sdk']);
   await writeFile(join(installation, 'probe.mjs'), probe);
   const packageName = name === 'sdk' ? '@actql/sdk' : '@actql/node';
   profiles[name] = {installed_packages: installed,
@@ -148,6 +153,61 @@ for (const name of ['sdk', 'node']) {
     samples: Array.from({length: repetitions}, () =>
       measure(process.execPath, ['probe.mjs', packageName], installation))};
 }
+
+const localInstallation = join(root, 'install-node');
+await writeFile(join(localInstallation, 'values.json'),
+  await readFile(join(repository, 'packages/sdk/fixtures/values.json')));
+await writeFile(join(localInstallation, 'local-probe.mjs'), `
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {performance} from 'node:perf_hooks';
+process.env.ACTQL_LOCAL_STATE_DIR = join(process.cwd(),
+  process.argv[2] === 'connect' ? 'local-connect-state' : 'local-run-state');
+globalThis.fetch = () => { throw new Error('NetworkOnLocalMeasurement'); };
+const started = performance.now();
+const {connect} = await import('@actql/node');
+const imported = performance.now();
+const client = await connect({mode: 'local', owner: 'local',
+  durability: 'durable'});
+const connected = performance.now();
+let firstRunMs = null, followingRunMs = null;
+if (process.argv[2] === 'run') {
+  const document = readFileSync('values.json', 'utf8');
+  for (const requestId of ['local-measure-first',
+    'local-measure-following']) {
+    const before = performance.now();
+    const execution = await client.aql(document, {format: 'json', requestId});
+    assert.deepEqual(await execution.result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    const elapsed = performance.now() - before;
+    if (firstRunMs === null) firstRunMs = elapsed;
+    else followingRunMs = elapsed;
+  }
+}
+client.close();
+console.log(JSON.stringify({import_ms: imported - started,
+  first_local_connect_ms: connected - imported,
+  first_run_to_result_ms: firstRunMs,
+  following_run_to_result_ms: followingRunMs}));
+`);
+function measureLocal(kind) {
+  const result = run('/usr/bin/time', [platform() === 'darwin' ? '-l' : '-v',
+    process.execPath, 'local-probe.mjs', kind], localInstallation, 120000);
+  const peak = platform() === 'darwin'
+    ? result.stderr.match(/(\d+)\s+maximum resident set size/u)
+    : result.stderr.match(/Maximum resident set size \(kbytes\):\s*(\d+)/u);
+  if (!peak) throw new Error('Missing Local process RSS');
+  return {...JSON.parse(result.stdout.trim()),
+    peak_rss_bytes: Number(peak[1]) * (platform() === 'linux' ? 1024 : 1)};
+}
+profiles.standard_local = {
+  installed_packages: profiles.node.installed_packages,
+  installed_bytes: profiles.node.installed_bytes,
+  scope: 'fresh packed Node process; real Local Site and named Result',
+  connect_only: measureLocal('connect'),
+  two_runs_one_session: measureLocal('run'),
+};
 
 // Bundle the installed remote package exactly as a browser ESM consumer would.
 // The metadata must contain only the two public lightweight packages and no
@@ -180,9 +240,9 @@ const report = {
     repository).stdout.trim(),
   host: {platform: platform(), arch: arch(), release: release(),
     node: process.version},
-  scope: 'fresh process startup, module import, fixture connect and exit; ' +
-    'parent-observed wall time includes the time wrapper; peak process RSS; ' +
-    'no provider, Site, network or build time',
+  scope: 'fresh packed process measurements; remote samples use a local ' +
+    'response fixture; standard Local samples execute a real checked Values ' +
+    'Site and read its named Result without network; no build time',
   repetitions,
   tarballs,
   profiles,
