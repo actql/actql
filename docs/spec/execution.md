@@ -1766,6 +1766,9 @@ IntentFingerprint = CID({version: "actql-logical-request-intent/0.1",
   program_definition_cid})
 NoInputIntent = CID({version: "actql-caller-input-intent/0.1",
   selection: "none"})
+EmptyInitialInputArtifactSet =
+  CID({version: "actql-initial-input-artifact-set/0.1",
+    captured_artifact_cids: []})
 LogicalItemLocator = CID({version: "actql-logical-item/0.1",
   logical_request_scope_cid, unit_namespace, effect_id,
   item_correlation})
@@ -1783,6 +1786,15 @@ contract before accepting the request; an arbitrary caller-supplied CID does
 not itself prove that input is admitted. The logical request key and intent
 fingerprint are distinct: an identical intent under a new caller request ID
 is a new logical request, while a changed intent under the same key conflicts.
+
+`EmptyInitialInputArtifactSet` states only that no input Artifact was captured
+at Run start. It does not assert that a Program contains no Values, that later
+Plan acquisitions or intermediate Artifacts are absent, or that required
+starting inputs may be omitted. A Host may bind this CID to a source-free
+checked Run Definition only after checking the Program's initial input
+requirements. The `caller_input_intent_cid` separately identifies the caller's
+request selection and never substitutes for this captured set. Re-admission
+of a source-free Run Definition rejects a different initial input set CID.
 
 The locator finds durable recovery state; the dispatch key binds the exact
 Preview. Recovery MUST reuse the ledger's original Preview, key and canonical

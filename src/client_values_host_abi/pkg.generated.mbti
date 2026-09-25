@@ -25,6 +25,8 @@ pub fn client_values_host_admit_run_evidence_value(String, String, Int, Int, Int
 
 pub fn client_values_host_admit_source_free_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_admit_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeAdmissionIssue]
+
 pub fn client_values_host_allowed_run_admission(ClientValuesHostAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_values_host_allowed_run_authorization_wire(ClientValuesHostAllowedRun) -> String
@@ -76,6 +78,8 @@ pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAd
 pub fn client_values_host_issue_source_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.CapturedRunIssuanceIssue]
 
 pub fn client_values_host_issue_source_free_invocation(@run_publication_host.ClientValuesCompilation, String, Int, Int, Int) -> Result[Array[String], @run_publication.RunEvidenceValueIssue]
+
+pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -184,6 +188,16 @@ pub(all) enum ClientValuesHostRunAdmissionIssue {
   Prepared(@run_publication.RunEvidenceValueIssue)
   Authorization(@run_publication.RunEvidenceValueIssue)
   Binding(@run_publication.RunPublicationAdmissionIssue)
+}
+
+pub(all) enum ClientValuesHostSourceFreeAdmissionIssue {
+  Contract(@run_publication.PublicationContractIssue)
+  Binding(@run_publication_host.ClientValuesRunBindingIssue)
+}
+
+pub(all) enum ClientValuesHostSourceFreeDefinitionIssue {
+  Definition(@run_publication.RunPublicationAdmissionIssue)
+  Binding(@run_publication_host.ClientValuesRunBindingIssue)
 }
 
 // Type aliases

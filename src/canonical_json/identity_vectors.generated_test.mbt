@@ -145,6 +145,17 @@ test "canonical large-integers" {
 }
 
 ///|
+test "Initial input Artifact set no captured inputs at Run start" {
+  let input = @json.parse([
+    "{\"version\":\"actql-initial-input-artifact-set/0.1\",\"captured_artifact_cids\":[]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 3, 2, 78)
+  assert_eq(@canonical_json.cid_value(value, 78, 3, 2), "sha256:ca6f3f743acfb4611a89a9e85d33ba472bc0aad7acb37ac3821aedc1229d58df")
+  assert_eq(@canonical_json.measure_value(value, 78, 3, 2), 78)
+  assert_eq(@canonical_json.stringify_value(value, 78, 3, 2), "{\"captured_artifact_cids\":[],\"version\":\"actql-initial-input-artifact-set/0.1\"}")
+}
+
+///|
 test "Invocation Bindings no declared bindings" {
   let input = @json.parse([
     "{\"version\":\"actql-invocation-bindings/0.1\",\"bindings\":{}}",
@@ -2265,6 +2276,16 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/call
   let value = @canonical_json.from_json(input, 14, 3, 344)
   assert_eq(@canonical_json.cid_value(value, 344, 14, 3), "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d")
   assert_eq(@canonical_json.measure_value(value, 344, 14, 3), 344)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-initial-input-artifact-set-0.1.json\",\"title\":\"actql-initial-input-artifact-set-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"captured_artifact_cids\"],\"properties\":{\"version\":{\"const\":\"actql-initial-input-artifact-set/0.1\"},\"captured_artifact_cids\":{\"type\":\"array\",\"maxItems\":0}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 15, 3, 404)
+  assert_eq(@canonical_json.cid_value(value, 404, 15, 3), "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d")
+  assert_eq(@canonical_json.measure_value(value, 404, 15, 3), 404)
 }
 
 ///|

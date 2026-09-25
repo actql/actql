@@ -113,6 +113,14 @@ function fixtures() {
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
   const invocation = read('portability/corpus/invocation-bindings.json');
+  const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
+  assert.equal(initialInputs.version,
+    'actql-initial-input-artifact-set-vectors/0.1');
+  for (const input of initialInputs.cases) {
+    result.push({id: 'Initial input Artifact set ' + input.id,
+      value: input.body, cid: input.expected_cid,
+      text: input.expected_canonical_bytes});
+  }
   assert.equal(invocation.version, 'actql-invocation-bindings-vectors/0.1');
   for (const binding of invocation.cases) {
     result.push({

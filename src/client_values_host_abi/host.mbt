@@ -745,6 +745,51 @@ pub fn client_values_host_issue_run_definition(
 }
 
 ///|
+pub(all) enum ClientValuesHostSourceFreeDefinitionIssue {
+  Definition(@publication.RunPublicationAdmissionIssue)
+  Binding(@host.ClientValuesRunBindingIssue)
+}
+
+///|
+/// Issue only when the checked Program has no captured Run-start inputs.
+#export_name("clientValuesHostIssueSourceFreeRunDefinition")
+pub fn client_values_host_issue_source_free_run_definition(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  ClientValuesHostSourceFreeDefinitionIssue,
+] {
+  let definition = match
+    @publication.issue_run_definition(
+      admission,
+      scope_id,
+      run_id,
+      @publication.empty_initial_input_artifact_set_cid(),
+      created_at,
+      valid_until,
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Definition(issue))
+  }
+  match
+    @host.bind_source_free_client_values_run(
+      prepared, compilation, admission, definition,
+    ) {
+    Ok(_) => Ok(definition)
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
 #export_name("clientValuesHostRunDefinitionWire")
 pub fn client_values_host_run_definition_wire(
   definition : @publication.PublicationContract,
@@ -773,6 +818,39 @@ pub fn client_values_host_admit_run_definition(
   @publication.admit_publication_contract(
     "run_definition", wire, 100000, 10000, 100,
   )
+}
+
+///|
+pub(all) enum ClientValuesHostSourceFreeAdmissionIssue {
+  Contract(@publication.PublicationContractIssue)
+  Binding(@host.ClientValuesRunBindingIssue)
+}
+
+///|
+#export_name("clientValuesHostAdmitSourceFreeRunDefinition")
+pub fn client_values_host_admit_source_free_run_definition(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  wire : String,
+) -> Result[
+  @publication.PublicationContract,
+  ClientValuesHostSourceFreeAdmissionIssue,
+] {
+  let definition = match
+    @publication.admit_publication_contract(
+      "run_definition", wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Contract(issue))
+  }
+  match
+    @host.bind_source_free_client_values_run(
+      prepared, compilation, admission, definition,
+    ) {
+    Ok(_) => Ok(definition)
+    Err(issue) => Err(Binding(issue))
+  }
 }
 
 ///|

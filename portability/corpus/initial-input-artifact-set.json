@@ -1,0 +1,11 @@
+{
+  "version": "actql-initial-input-artifact-set-vectors/0.1",
+  "cases": [
+    {
+      "id": "no captured inputs at Run start",
+      "body": {"version": "actql-initial-input-artifact-set/0.1", "captured_artifact_cids": []},
+      "expected_canonical_bytes": "{\"captured_artifact_cids\":[],\"version\":\"actql-initial-input-artifact-set/0.1\"}",
+      "expected_cid": "sha256:ca6f3f743acfb4611a89a9e85d33ba472bc0aad7acb37ac3821aedc1229d58df"
+    }
+  ]
+}

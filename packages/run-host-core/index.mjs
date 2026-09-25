@@ -288,6 +288,24 @@ export function issueRunDefinition(admission, scopeId, runId,
   return handle(definitions, value, 'run-definition');
 }
 
+export function issueSourceFreeRunDefinition(prepared, compilation,
+  admission, scopeId, runId, createdAt, validUntil) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if ([scopeId, runId, createdAt, validUntil]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostDefinition');
+  }
+  const value = checked(owner.clientValuesHostIssueSourceFreeRunDefinition(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    scopeId, runId, createdAt, validUntil),
+  'RunHostSourceFreeDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
 export function privateRunDefinition(definition) {
   const value = requireHandle(definitions, definition);
   return Object.freeze({
@@ -300,6 +318,20 @@ export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),
     'RunHostDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
+export function admitSourceFreeRunDefinition(prepared, compilation,
+  admission, wire) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
+  const value = checked(owner.clientValuesHostAdmitSourceFreeRunDefinition(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    wire), 'RunHostSourceFreeAdmissionRejected');
   return handle(definitions, value, 'run-definition');
 }
 

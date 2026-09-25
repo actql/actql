@@ -5,6 +5,7 @@ import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
+  admitSourceFreeRunDefinition,
   admitPublicationContract, admitRunEvidenceValue, validatePublicationChain,
   validatePublicationRecordTransition,
   issueResultManifest,
@@ -19,7 +20,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
   admitSourceFreeRequestFields, admitRun, compileValues,
-  checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
+  checkRunBinding, issueAllowedRun, issueRunDefinition,
+  issueSourceFreeRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
   executionShape,
   resultDefinitions, resultSchema,
@@ -657,9 +659,36 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     hostPolicyCid: `sha256:${'c'.repeat(64)}`,
     expiresAt: '2099-01-01T00:00:00.000Z'};
   const admission = issueAllowedRun(prepared, compilation, policy).admission;
-  const definition = issueRunDefinition(admission, 'site-scope', 'site-run',
-    `sha256:${'d'.repeat(64)}`, '2026-09-25T00:00:00.000Z',
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    admission, 'site-scope', 'site-run', '2026-09-25T00:00:00.000Z',
     '2027-01-01T00:00:00.000Z');
+  assert.equal(JSON.parse(privateRunDefinition(definition).wire)
+    .input_artifact_set_cid, cid({
+    version: 'actql-initial-input-artifact-set/0.1',
+    captured_artifact_cids: [],
+  }));
+  assert.deepEqual(privateRunDefinition(admitSourceFreeRunDefinition(
+    prepared, compilation, admission, privateRunDefinition(definition).wire)),
+  privateRunDefinition(definition));
+  const substituted = issueRunDefinition(admission, 'site-scope',
+    'substituted-run', `sha256:${'d'.repeat(64)}`,
+    '2026-09-25T00:00:00.000Z', '2027-01-01T00:00:00.000Z');
+  assert.throws(() => admitSourceFreeRunDefinition(prepared, compilation,
+    admission, privateRunDefinition(substituted).wire),
+  {code: 'RunHostSourceFreeAdmissionRejected'});
+  assert.throws(() => issueSourceFreeDispatch(prepared, compilation,
+    admission, substituted, prepareSourceFreeRequest(prepared, compilation,
+      scope, 'substituted-request'), {
+      taskAttempt: 1, dispatchId: 'substituted-dispatch',
+      siteKey: 'site-a', siteGeneration: 1,
+      runtimeBundleCid: `sha256:${'1'.repeat(64)}`,
+      connectorRegistration: 'local', connectorRevision: 'local/1',
+      strategyRevision: 'strategy/1',
+      obligationsCid: `sha256:${'2'.repeat(64)}`,
+      budgetCid: `sha256:${'3'.repeat(64)}`,
+      evidenceIssuerCapabilityCid: `sha256:${'4'.repeat(64)}`,
+      grantCid: `sha256:${'5'.repeat(64)}`,
+    }), {code: 'RunHostDispatchRejected'});
   const request = prepareSourceFreeRequest(prepared, compilation,
     scope, 'site-request');
   const selection = {taskAttempt: 1, dispatchId: 'site-dispatch',
@@ -696,10 +725,19 @@ test('checked Run issues one source-free Site dispatch identity', () => {
   const foreignCompilation = compileValues(foreign);
   const foreignAdmission = issueAllowedRun(foreign, foreignCompilation,
     policy).admission;
-  const foreignDefinition = issueRunDefinition(foreignAdmission,
-    'site-scope', 'foreign-run', `sha256:${'d'.repeat(64)}`,
+  const foreignDefinition = issueSourceFreeRunDefinition(foreign,
+    foreignCompilation, foreignAdmission, 'site-scope', 'foreign-run',
     '2026-09-25T00:00:00.000Z', '2027-01-01T00:00:00.000Z');
   assert.throws(() => issueSourceFreeDispatch(prepared, compilation,
     admission, foreignDefinition, request, selection),
   {code: 'RunHostDispatchRejected'});
+});
+
+test('unresolved starting input cannot use the empty captured set', () => {
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const program = JSON.parse(read('values.json'));
+  program.stages[0].inputs.required = 'relation';
+  assert.throws(() => compileValues(prepare(JSON.stringify(program),
+    'json', environment)), {code: 'RunHostPreparationRejected'});
 });

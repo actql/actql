@@ -331,3 +331,23 @@ pub fn issue_run_definition(
     Err(issue) => Err(RunAdmissionContract(issue))
   }
 }
+
+///|
+/// The initial captured Artifact set is empty at Run start. Later Values,
+/// acquisitions and intermediate Artifacts are outside this preimage.
+pub fn empty_initial_input_artifact_set_cid() -> String {
+  "sha256:" +
+  @sha.hex(
+    @utf8.encode(
+      "{\"captured_artifact_cids\":[],\"version\":\"actql-initial-input-artifact-set/0.1\"}",
+    ),
+  )
+}
+
+///|
+pub fn run_definition_has_empty_initial_input_artifact_set(
+  definition : PublicationContract,
+) -> Bool {
+  contract_string(definition, "input_artifact_set_cid") ==
+  Some(empty_initial_input_artifact_set_cid())
+}

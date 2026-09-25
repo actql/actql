@@ -38,6 +38,9 @@ pub fn bind_source_free_client_values_run(
     @publication.run_publication_template_cid(admission) !=
     @publication.run_evidence_value_identity(
       client_values_compilation_template(compilation),
+    ) ||
+    !@publication.run_definition_has_empty_initial_input_artifact_set(
+      run_definition,
     ) {
     return Err(ForeignRun)
   }

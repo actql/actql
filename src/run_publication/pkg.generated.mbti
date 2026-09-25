@@ -135,6 +135,8 @@ pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
+pub fn empty_initial_input_artifact_set_cid() -> String
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
@@ -336,6 +338,8 @@ pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String
 pub fn result_retention_intervals_valid(PublicationContract) -> Bool
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
