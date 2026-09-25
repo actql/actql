@@ -600,6 +600,26 @@ test('reach assurance requires exact limits and delivered Host cancellation', ()
   }), /SGA reach: entrypoint operation needs work and workspace assurance/u);
 });
 
+test('shortest path retains its fixed scalar control-work boundary', () => {
+  assert.match(run(undefined, routes => {
+    const shortest = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'shortest_path');
+    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
+      item.role !== 'shortest_scalar_control_work_exact_one_short');
+  }), /SGA shortest_path: scalar shortest control-work evidence is missing/u);
+  assert.match(run(undefined, routes => {
+    const shortest = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'shortest_path');
+    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
+      item.role !== 'shortest_scalar_pipeline_work_exact_one_short');
+  }), /SGA shortest_path: scalar shortest control-work evidence is missing/u);
+  assert.match(run(undefined, routes => {
+    const shortest = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'shortest_path');
+    shortest.dispatch.marker = '@sga.start_traverse(';
+  }), /SGA shortest_path: shortest provider loses its cumulative work limit/u);
+});
+
 test('graph matcher assurance requires its exact bounded provider call', () => {
   for (const operation of ['match_nodes', 'match_edges']) {
     assert.match(run(undefined, routes => {

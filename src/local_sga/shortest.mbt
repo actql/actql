@@ -155,6 +155,7 @@ priv struct ShortestState {
   mut value_item : Int
   mut value_nodes_remaining : Int
   value_item_attempts : Ref[Int]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -186,6 +187,7 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestWorkLimit
   ShortestInvalidWeight
   ShortestCostOverrange
   ShortestPredicate(@execution.EvalIssueKind)
@@ -780,6 +782,9 @@ fn shortest_step(
       !shortest_endpoints_available(state.sources) ||
       !shortest_endpoints_available(state.targets) {
       return @bounded.Failed(ShortestInputUnavailable, progress, used)
+    }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(ShortestWorkLimit, progress, used)
     }
     match state.phase {
       InitializeEndpointSelection =>
@@ -1806,6 +1811,7 @@ fn shortest_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1917,7 +1923,12 @@ pub fn start_shortest(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
 ) -> Result[ShortestExecution, ShortestIssue] {
+  let control_limit = control_work_limit.unwrap_or(limits.max_work)
+  if control_limit < 0 {
+    return Err(ShortestWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
@@ -2104,6 +2115,7 @@ pub fn start_shortest(
     value_item: 0,
     value_nodes_remaining: 0,
     value_item_attempts,
+    control_work_remaining: control_limit,
   }
   let (session, token) = @bounded.start(
     control,

@@ -85,6 +85,16 @@ standard Host. Its Node timer fixture delivers cancellation after positive
 work, observes stop, and reclaims the unfinished output. This closes one
 SGA entrypoint, not the eight remaining Graph routes or generic fallback.
 
+The bounded scalar `shortest_path` kernel now checks cumulative control work
+across resumes. Its fixed four-node/four-edge path completes at 88 steps and
+fails at 87, separately from the output Value budget; the existing 89/88
+workspace fixture remains intact. The standard Graph provider passes its
+execution work ceiling to this kernel, and the Host timer still reaches it.
+The registered provider also shares one task-wide ceiling across graph
+construction and scalar search: the fixed path completes at 125 steps and
+fails at 124. Other shortest variants still lack equivalent fixed work proof.
+This is scalar-path progress, not full shortest-path route assurance.
+
 ### Count input measurement review disposition
 
 The P1 input-cell finding in the review of `5a6f1763` is closed by
@@ -173,7 +183,7 @@ and checked by `check:local-resource-accounting`.
 
 ### Remaining path triage after the bounded count-group slice
 
-The 38 unresolved path obligations below are paths, not 38 missing
+The 37 unresolved path obligations below are paths, not 37 missing
 operations. They are whole-operation entrypoints. The categories identify the next
 engineering action; they do not turn a registered route into proof of every
 formal variant.
@@ -182,7 +192,7 @@ formal variant.
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond count-only cases, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 9 | Nine SGA entrypoints (`traverse`, `shortest_path`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Bounded product connection exists, route evidence is incomplete | 8 | Eight SGA entrypoints (`traverse`, `shortest_path`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 An ordinary remote Relation predecessor is a concrete connection gap: its
 downstream multi-step Relation Stage remains one task and can enter the
@@ -1363,11 +1373,13 @@ same-sequence variants can still reach the providerless lane.
   fixture cancels after charged work and confirms cleanup; a Node standard Host
   timer reaches the degree operation. Its kernel-level control-work limit does
   not yet establish task-wide work assurance across construction and projection.
-  Shortest path now binds its existing 89/88 preallocation workspace boundary,
-  large path-value rejection before item construction, kernel cancellation
-  after value-building work, and standard Host consumers to its exact product
-  entrypoint. Its cumulative control-work boundary and a delivered Host timer
-  stop remain open; kernel cancellation is not labeled as delivery evidence.
+  Shortest path binds its 89/88 preallocation workspace boundary, large
+  path-value rejection before item construction, kernel cancellation after
+  value-building work, and standard Host consumers to its product entrypoint.
+  The scalar kernel has an 88/87 cumulative control-work boundary. Its
+  registered graph-construction-plus-search path has a 125/124 task-wide
+  ceiling, and the Host timer delivers cancellation after positive work.
+  Fixed work evidence for the other formal variants remains open.
   The
   selected RelA filter route adds an independent exact/one-short input-admission
   pair alongside mixed-stage and cancel/cleanup fixtures. Its

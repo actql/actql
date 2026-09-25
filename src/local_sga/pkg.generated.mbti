@@ -213,7 +213,7 @@ pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.Prepa
 
 pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ReachExecution, ReachIssue]
 
-pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[ShortestExecution, ShortestIssue]
+pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ShortestExecution, ShortestIssue]
 
 pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
 
@@ -490,6 +490,7 @@ pub(all) enum ShortestIssue {
   ShortestEndpointMissing
   ShortestOutputLimit
   ShortestWorkspaceLimit
+  ShortestWorkLimit
   ShortestInvalidWeight
   ShortestCostOverrange
   ShortestPredicate(@execution_relation.EvalIssueKind)

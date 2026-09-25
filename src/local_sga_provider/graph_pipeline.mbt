@@ -67,6 +67,7 @@ priv struct Execution {
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
+  mut completed_work : Int64
   mut terminal : Bool
   mut reclaimed : Bool
 }
@@ -477,7 +478,18 @@ fn continue_poll(
   }
   value.stage_progress = progress
   value.stage_work = work
+  value.completed_work += work_delta
   Some(@local.managed_provider_continue(progress_delta, work_delta))
+}
+
+///|
+fn remaining_control_work(value : Execution) -> Int? {
+  let ceiling = value.limits.max_work.to_int64()
+  if value.completed_work > ceiling {
+    None
+  } else {
+    Some((ceiling - value.completed_work).to_int())
+  }
 }
 
 ///|
@@ -1356,6 +1368,9 @@ fn advance_execution(
           }
           Some(@lower.GraphShortestStep(_)) => {
             guard input is Some(input) else { return fail_execution(value) }
+            guard remaining_control_work(value) is Some(work_limit) else {
+              return fail_execution(value)
+            }
             match
               @sga.start_shortest(
                 value.control,
@@ -1374,6 +1389,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                control_work_limit=Some(work_limit),
               ) {
               Ok(execution) => ShortestExecution(execution)
               Err(_) => return fail_execution(value)
@@ -1954,6 +1970,7 @@ pub fn provider(
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,
+        completed_work: 0L,
         terminal: false,
         reclaimed: false,
       }

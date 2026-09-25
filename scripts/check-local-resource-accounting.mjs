@@ -1706,6 +1706,36 @@ for (const [index, route] of routeEntries.entries()) {
       !environmentRoles.has('reach_out_host_in_flight_cancel'))) {
     fail(`${label}: reach control-work evidence is missing`);
   }
+  if (route.family === 'SGA' && route.operation === 'shortest_path' &&
+    (!boundaryRoles.has('shortest_scalar_control_work_exact_one_short') ||
+      !boundaryRoles.has('shortest_scalar_pipeline_work_exact_one_short'))) {
+    fail(`${label}: scalar shortest control-work evidence is missing`);
+  }
+  if (route.family === 'SGA' && route.operation === 'shortest_path') {
+    const provider = fs.readFileSync(path.join(root, dispatch.path), 'utf8');
+    const start = provider.indexOf(dispatch.marker);
+    let depth = 0;
+    let end = start;
+    if (start >= 0) {
+      for (let cursor = start + dispatch.marker.length - 1;
+        cursor < provider.length; cursor += 1) {
+        if (provider[cursor] === '(') depth += 1;
+        if (provider[cursor] === ')') depth -= 1;
+        if (depth === 0) {
+          end = cursor + 1;
+          break;
+        }
+      }
+    }
+    const call = provider.slice(start, end);
+    if (!call.includes('control_work_limit=Some(work_limit)') ||
+      !provider.includes('remaining_control_work(value) is Some(work_limit)') ||
+      !provider.includes('value.completed_work += work_delta') ||
+      !provider.includes('let ceiling = value.limits.max_work.to_int64()') ||
+      !provider.includes('ceiling - value.completed_work')) {
+      fail(`${label}: shortest provider loses its cumulative work limit`);
+    }
+  }
   if (route.family === 'SGA' && route.operation === 'traverse' &&
     (!boundaryRoles.has('node_emit_control_work_ceiling') ||
       !boundaryRoles.has('path_emit_control_work_ceiling'))) {

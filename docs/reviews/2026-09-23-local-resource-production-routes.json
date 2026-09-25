@@ -4011,6 +4011,20 @@
           "fixture": "scalar shortest path admits workspace before allocation and cancels"
         },
         {
+          "role": "shortest_scalar_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "scalar shortest path admits workspace before allocation and cancels"
+        },
+        {
+          "role": "shortest_scalar_pipeline_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "registered shortest path shares work across construction and search"
+        },
+        {
           "role": "shortest_value_preallocation_rejection",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

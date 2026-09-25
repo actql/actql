@@ -4931,6 +4931,53 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_output_matches_inputs(output, [external]))
 
+  // The fixed four-node/four-edge scalar path needs 88 charged steps.
+  for (work_limit, accepted) in [(88, true), (87, false)] {
+    let exact = @local_sga.start_shortest(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      1,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      89,
+      1000,
+      1000,
+      [external],
+      control_work_limit=Some(work_limit),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match @local_sga.advance_shortest(exact, 1).unwrap() {
+          @local_sga.ShortestContinue(..) => ()
+          @local_sga.ShortestComplete(result, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 88L)
+            assert_eq(@execution.completed_row_count(result), 1)
+            terminal = true
+          }
+          @local_sga.ShortestFailed(
+            @local_sga.ShortestWorkLimit,
+            work=charged,
+            ..
+          ) => {
+            assert_false(accepted)
+            assert_eq(charged, 87L)
+            assert_true(@local_sga.shortest_cleanup_pending(exact))
+            terminal = true
+          }
+          @local_sga.ShortestFailed(_, ..) =>
+            fail("shortest exact work boundary had a different failure")
+          _ => fail("shortest exact work boundary had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_sga.cleanup_shortest(exact), Ok(true))
+  }
+
   let limited = @local_sga.start_shortest(
     @bounded.control(),
     task_test_completion(owner),
@@ -4999,6 +5046,70 @@ test "scalar shortest path admits workspace before allocation and cancels" {
   assert_false(@local_sga.shortest_cleanup_pending(cancelled))
   assert_true(@graphs.discard_completed(graph))
   assert_true(@execution.completed_output_available(output))
+}
+
+///|
+test "registered shortest path shares work across construction and search" {
+  let source_owner = carrier_graph_components_source_owner()
+  let source = carrier_events_source_output(source_owner)
+  let owner = carrier_graph_shortest_owner(source_owner, 1, 3, 2)
+  let generated = task_test_generated(owner)
+  let external = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source_owner, source).unwrap(),
+    89,
+    1000,
+  ).unwrap()
+  // The fixed graph construction and scalar path consume 125 total steps.
+  for (work_limit, accepted) in [(125, true), (124, false)] {
+    let limits : @graph_storage.Limits = {
+      ..carrier_graph_storage_limits(),
+      max_work: work_limit,
+    }
+    let provider = @local_sga_provider.provider(
+      limits,
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        dispatch_test_limits().local_execution,
+        dispatch_test_limits().guards,
+      ).unwrap(),
+    )
+    let active = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      [@local_connector.managed_provider_relation_input(external)],
+      1,
+      1000,
+    ).unwrap()
+    let mut total = 0L
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match @local_connector.advance_managed_provider(active, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => total += work
+          @local_connector.Complete(output, work~, ..) => {
+            assert_true(accepted)
+            total += work
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+          }
+          @local_connector.Failed(_, work~, ..) => {
+            assert_false(accepted)
+            total += work
+            terminal = true
+          }
+          _ => fail("shortest Graph provider had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(total, work_limit.to_int64())
+    assert_true(
+      @local_connector.cleanup_managed_provider(active).unwrap_or(false),
+    )
+  }
+  assert_true(@execution.completed_output_available(source))
 }
 
 ///|
