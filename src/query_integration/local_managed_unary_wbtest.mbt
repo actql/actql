@@ -2,6 +2,7 @@
 fn local_managed_unary_expected(kind : String) -> Array[String] {
   match kind {
     "select" => ["{\"total\":10,\"id\":1}", "{\"total\":null,\"id\":2}"]
+    "filter_nested" => ["{\"id\":2,\"payload\":[]}"]
     "filter_text" | "filter_structured" => ["{\"amount\":null,\"id\":2}"]
     "filter_null" => ["{\"amount\":10,\"id\":1}"]
     "assert_where" | "assert_unique" =>
@@ -109,7 +110,9 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
 
 ///|
 fn local_managed_unary_input_expected(kind : String) -> Array[String] {
-  if kind == "unnest" || kind == "unnest_inner" {
+  if kind == "filter_nested" {
+    [local_count_payload_row(), "{\"id\":2,\"payload\":[]}"]
+  } else if kind == "unnest" || kind == "unnest_inner" {
     [
       "{\"id\":1,\"items\":[2,null]}", "{\"id\":2,\"items\":[]}", "{\"id\":3,\"items\":null}",
     ]
@@ -257,6 +260,7 @@ fn run_local_managed_unary_case(
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable"
+  let large_nested_input = kind == "filter_nested"
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
     managed_publication=publication,
@@ -303,14 +307,43 @@ fn run_local_managed_unary_case(
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
       wire: {
-        max_bytes: 1000,
-        max_nodes: 200,
+        max_bytes: if large_nested_input {
+          2048
+        } else {
+          1000
+        },
+        max_nodes: if large_nested_input {
+          512
+        } else {
+          200
+        },
         max_depth: 4,
         max_columns: 4,
         max_order_work: 100,
       },
-      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
-      max_batch_bytes: 64,
+      row: {
+        max_bytes: if large_nested_input {
+          2048
+        } else {
+          100
+        },
+        max_nodes: if large_nested_input {
+          512
+        } else {
+          20
+        },
+        max_depth: 4,
+        max_text_bytes: if large_nested_input {
+          2048
+        } else {
+          100
+        },
+      },
+      max_batch_bytes: if large_nested_input {
+        2048
+      } else {
+        64
+      },
     },
     None,
   ).unwrap()
@@ -390,6 +423,7 @@ fn run_local_managed_unary_case(
     kind == "drop_empty" ||
     kind == "drop_repeated" ||
     kind == "filter_text" ||
+    kind == "filter_nested" ||
     kind == "filter_structured" ||
     kind == "filter_null" ||
     kind == "sort" ||
@@ -565,6 +599,92 @@ test "ordinary Local filters resume within quantum" {
   run_local_managed_unary_case("filter_text")
   run_local_managed_unary_case("filter_structured")
   run_local_managed_unary_case("filter_null")
+  run_local_managed_unary_case("filter_nested")
+}
+
+///|
+test "standard Host cancels a filter inside an unused nested input" {
+  let (run, issuer) = captured_graph_fixture(
+    local_values_unary_chain=Some("filter_nested"),
+  )
+  let registry = search_registry()
+  let limits = dispatch_test_limits()
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    limits.local_execution,
+    limits.guards,
+    limits.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: limits.local_execution.rows.input_values,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: 2048,
+        max_nodes: 512,
+      },
+      row: {
+        max_bytes: 2048,
+        max_nodes: 512,
+        max_depth: 4,
+        max_text_bytes: 2048,
+      },
+      max_batch_bytes: 2048,
+    },
+    None,
+  ).unwrap()
+  let values_live = Ref(true)
+  let (value_ops, values) = run_local_managed_test_task(
+    installed,
+    run,
+    1,
+    [],
+    [],
+    1,
+    values_live,
+  )
+  let operations = start_local_managed_test_task_operations(
+    installed,
+    run,
+    2,
+    [values],
+    [local_managed_test_rows(value_ops)],
+    require_provider=true,
+  )
+  for _ in 0..<100 {
+    let next = (operations.advance)(1).unwrap()
+    assert_false(next.complete)
+    assert_eq(next.work, 1L)
+  }
+  assert_true((operations.request_cancel)())
+  assert_true((operations.advance)(1) is Err(_))
+  assert_true((operations.execution_stopped)())
+  assert_true((operations.output_row)(0) is Err(_))
+  assert_true(
+    (operations.complete)(2, operations.storage_bytes, fn() { true }) is Err(_),
+  )
+  (operations.settle)().unwrap()
+  assert_true((operations.cleanup_refresh)())
+  assert_false(@strategy.captured_task_completed(run, 2))
+  assert_true(@execution.managed_completed_output_available(values))
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (value_ops.close)()
+  (value_ops.cleanup_refresh)() |> ignore
+  @strategy.stop_captured_dag(run)
+  @strategy.close_captured_task_output(run, 0)
+  @strategy.close_captured_task_output(run, 2)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
 }
 
 ///|

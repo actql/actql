@@ -368,6 +368,7 @@ priv struct BoundedBindingRowsState {
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
+  mut charge_measure : SteppedValueMeasure?
   mut input_row : Int
   mut row : Int
   mut column : Int
@@ -493,6 +494,10 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.json_current = None
   state.json_picked = None
   state.watermark_times = []
+  if state.charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.charge_measure = None
+  }
   state.workspace.live = 0
   if !state.accepted.val {
     state.rows.val = None
@@ -725,19 +730,37 @@ fn bounded_binding_rows_step(
           used += 1
         } else if state.charge_column < state.input_names.length() {
           let column = state.charge_column
-          guard bounded_binding_input_cell(
-              state.input,
-              state.charge_row,
-              column,
-            )
-            is Some(value) else {
-            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          if state.charge_measure is None {
+            guard bounded_binding_input_cell(
+                state.input,
+                state.charge_row,
+                column,
+              )
+              is Some(value) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            if !charge_text(state.input_values, state.input_names[column]) {
+              return fail_bounded_binding_rows(InputLimit, progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.charge_measure = Some(cursor)
           }
-          if !charge_text(state.input_values, state.input_names[column]) ||
-            !measure_result(value, state.input_values) {
-            return fail_bounded_binding_rows(InputLimit, progress, used)
+          let cursor = state.charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return fail_bounded_binding_rows(InputLimit, progress, used)
+            SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.charge_measure = None
+              state.charge_column += 1
+            }
           }
-          state.charge_column += 1
           used += 1
         } else {
           if state.watermark is Some((column, timestamp, _, _)) {
@@ -2309,6 +2332,7 @@ fn start_bounded_binding_rows_with_input(
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
+    charge_measure: None,
     input_row: 0,
     row: 0,
     column: 0,

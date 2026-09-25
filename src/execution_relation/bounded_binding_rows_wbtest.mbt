@@ -3,12 +3,15 @@ fn bounded_binding_rows_source(
   rows : String,
   id_nullable? : Bool = false,
   distinct? : Bool = false,
+  unused_payload? : Bool = false,
   top_k_source? : Bool = false,
   top_k_by_source? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   let text = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":" +
     (if id_nullable { "true" } else { "false" }) +
-    (if top_k_by_source {
+    (if unused_payload {
+      "},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+    } else if top_k_by_source {
       "},\"group\":{\"type\":\"string\",\"nullable\":true},\"score\":{\"type\":\"number\",\"nullable\":false}}"
     } else if distinct {
       "},\"tag\":{\"type\":\"string\",\"nullable\":true}}"
@@ -168,6 +171,7 @@ fn bounded_binding_rows_fixture(
   sort_empty? : Bool = false,
   distinct? : Bool = false,
   distinct_keyed? : Bool = false,
+  unused_payload? : Bool = false,
   derive_scalar? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
@@ -178,6 +182,7 @@ fn bounded_binding_rows_fixture(
     rows,
     id_nullable~,
     distinct=distinct || distinct_keyed || unique_text,
+    unused_payload~,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
   )
@@ -2723,6 +2728,87 @@ test "bounded binding input value admission has an exact boundary" {
   }
   assert_true(producer_read_available(input))
   assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+}
+
+///|
+fn unused_binding_payload_rows(count : Int) -> String {
+  "[{\"id\":1,\"payload\":[" + Array::make(count, "1").join(",") + "]}]"
+}
+
+///|
+test "bounded filter can stop inside an unused nested input cell" {
+  let (control, execution, input) = bounded_binding_rows_fixture(
+    unused_binding_payload_rows(256),
+    filter=true,
+    unused_payload=true,
+    max_entries=1000,
+  )
+  let mut previous_work = 0L
+  for _ in 0..<100 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(work~, ..) => {
+        assert_true(work - previous_work <= 1L)
+        previous_work = work
+      }
+      _ => fail("nested input finished before cancellation")
+    }
+  }
+  assert_true(execution.state.charge_measure is Some(_))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
+test "bounded filter preserves exact nested input charges" {
+  // The row, id, array and 256 items use 259 nodes. Field names use
+  // nine UTF-8 bytes, so their combined logical work is 268.
+  let exact : ValueLimits = {
+    ..run_limits().input_values,
+    max_nodes: 259,
+    max_text_bytes: 9,
+    max_work: 268,
+  }
+  for
+    (nodes, work, should_complete) in [
+      (259, 268, true),
+      (258, 268, false),
+      (259, 267, false),
+    ] {
+    let limits : ValueLimits = { ..exact, max_nodes: nodes, max_work: work, }
+    let (_, execution, input) = bounded_binding_rows_fixture(
+      unused_binding_payload_rows(256),
+      filter=true,
+      unused_payload=true,
+      input_limits=Some(limits),
+      max_entries=1000,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_binding_rows(execution, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(should_complete)
+            assert_eq(completed_row_count(output), 0)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(InputLimit, ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("nested input ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+    assert_true(producer_read_available(input))
+  }
 }
 
 ///|

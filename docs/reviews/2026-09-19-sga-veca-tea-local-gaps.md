@@ -92,6 +92,15 @@ the count kernel's 10 tests and managed group's 19 tests passed on each
 of JS, Wasm, and native. This input-side evidence alone did not close the
 output-key admission or the providerless fallback listed above.
 
+The selected bounded Relation row evaluator now uses the same stepped
+input-cell measurement for an unused nested field. A quantum-one filter
+fixture stops inside a 256-element array and verifies exact and one-short
+input node and work budgets, source availability, and cleanup. The normal
+standard-Host filter fixture traverses the same nested input, feeds two
+downstream Computes with independent release, and cancels after positive
+work in the nested cell without publishing partial output. This does not
+make the separate providerless whole-sequence evaluator bounded.
+
 The output continuation now charges the output row and each field to the
 existing value budget and traverses long text for that charge in bounded
 resume steps. The exact admitted producer/supplied input branch now reuses

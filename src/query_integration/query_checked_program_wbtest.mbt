@@ -1305,6 +1305,19 @@ fn local_decimal_pivot_sum_program() -> String {
 
 ///|
 fn local_values_unary_program(kind : String) -> String {
+  if kind == "filter_nested" {
+    return local_values_unary_program("filter_text")
+      .replace_all(old="\"amount\"", new="\"payload\"")
+      .replace(
+        old="\"payload\":{\"type\":\"number\",\"nullable\":true}",
+        new="\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+      )
+      .replace(
+        old="\"payload\":10",
+        new="\"payload\":[" + Array::make(256, "1").join(",") + "]",
+      )
+      .replace(old="\"payload\":null", new="\"payload\":[]")
+  }
   if kind == "unnest" {
     return local_unnest_program()
   }
