@@ -10,7 +10,10 @@
     "cancel": ["connection", "ref"],
     "reconcile": ["connection", "ref"],
     "read": ["connection", "ref", "resultName", "format", "attemptId"],
-    "delivery-attempt": ["connection", "ref", "resultName", "attemptId"]
+    "delivery-attempt": ["connection", "ref", "resultName", "attemptId"],
+    "checkpoints": ["connection", "after", "limit"],
+    "checkpoint-review": ["connection", "checkpointCid", "maxBytes"],
+    "resolve": ["connection", "items"]
   },
   "schemas": {
     "cancellation": {
@@ -136,6 +139,77 @@
     },
     "lookup_not_found": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"const": "not_found"}}},
     "lookup_unknown": {"type": "object", "additionalProperties": false, "required": ["kind", "reason"], "properties": {"kind": {"const": "unknown"}, "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}},
+    "held": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "requestId", "prepareAttemptId", "state", "durability", "lookupExpiresAt"],
+      "properties": {
+        "kind": {"const": "held"},
+        "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "prepareAttemptId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "state": {"enum": ["waiting_checkpoint", "resuming", "ended"]},
+        "durability": {"const": "durable"},
+        "lookupExpiresAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "checkpoint": {"type": "object", "additionalProperties": false, "required": ["checkpointId", "checkpointCid", "kind", "expiresAt"], "properties": {"checkpointId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "checkpointCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "kind": {"enum": ["run_scope", "read_access", "data_egress", "cost_scope", "effect_set"]}, "expiresAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}},
+        "endReason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "terminalErrorCode": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
+      }
+    },
+    "checkpoint_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpointId", "checkpointCid", "kind", "phase", "subject", "requiredArtifact", "reviewProjectionCid", "requirements", "createdAt", "expiresAt", "humanSummary"],
+      "properties": {
+        "checkpointId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "checkpointCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "kind": {"enum": ["run_scope", "read_access", "data_egress", "cost_scope", "effect_set"]},
+        "phase": {"enum": ["preflight", "commit"]},
+        "subject": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["kind", "prepareAttemptId", "requestId"], "properties": {"kind": {"const": "prepare_attempt"}, "prepareAttemptId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}}},
+          {"type": "object", "additionalProperties": false, "required": ["kind", "runId", "runDefinitionCid"], "properties": {"kind": {"const": "run_unit"}, "runId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}}
+        ]},
+        "requiredArtifact": {"type": "object", "additionalProperties": false, "required": ["type", "cid"], "properties": {"type": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "cid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
+        "reviewProjectionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "requirements": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
+        "createdAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "expiresAt": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "humanSummary": {"type": "string", "maxLength": 1024}
+      }
+    },
+    "checkpoint_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "checkpointCid", "artifactCid", "byteLength", "contentBase64"],
+      "properties": {
+        "kind": {"const": "review"},
+        "checkpointCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "artifactCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "byteLength": {"type": "integer", "minimum": 1},
+        "contentBase64": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9+/]+={0,2}$"}
+      }
+    },
+    "resolve_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpointCid", "resolutionWire", "approvalEvidenceWire"],
+      "properties": {
+        "checkpointCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "resolutionWire": {"type": "string", "minLength": 1, "maxLength": 16384},
+        "approvalEvidenceWire": {"type": "string", "maxLength": 16384}
+      }
+    },
+    "resolve_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpointCid", "status"],
+      "properties": {
+        "checkpointCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "status": {"enum": ["committed", "duplicate", "conflicting", "expired", "cancelled", "invalid"]},
+        "decision": {"enum": ["approved", "rejected"]},
+        "resolutionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
+      }
+    },
     "submit_preparation_error": {
       "type": "object",
       "additionalProperties": false,

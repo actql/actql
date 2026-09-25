@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clientHostOperations, validClientAdmission, validClientBody,
+import {checkpointLimits, clientHostOperations, validCheckpointPage,
+  validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
-  validRequestLookup, validRunRef, validRunState,
-  validSubmitPreparationError} from './index.mjs';
+  validHeldRequest, validRequestLookup, validResolveResults, validRunRef,
+  validRunState, validSubmitPreparationError,
+  validSubmitReply} from './index.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
@@ -13,7 +15,7 @@ const ref = Object.freeze({tenantId: 'tenant-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
 test('public wire accepts the exact connected request shapes', () => {
-  assert.equal(clientHostOperations.length, 10);
+  assert.equal(clientHostOperations.length, 13);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -212,3 +214,107 @@ test('delivery lookup rejects foreign identity and contradictory receipts', () =
     answer => { answer.record.sequence = 1; },
   ]) assert.equal(changed(update), false);
 });
+
+const checkpointCid = `sha256:${'c'.repeat(64)}`;
+const held = Object.freeze({kind: 'held', requestId: 'saved-a',
+  prepareAttemptId: 'prepare-a', state: 'waiting_checkpoint',
+  durability: 'durable', lookupExpiresAt: '2026-10-03T00:00:00.000Z',
+  checkpoint: {checkpointId: 'prepare-a-preparation', checkpointCid,
+    kind: 'run_scope', expiresAt: '2026-09-27T00:00:00.000Z'}});
+const summary = Object.freeze({checkpointId: 'prepare-a-preparation',
+  checkpointCid, kind: 'run_scope', phase: 'preflight',
+  subject: {kind: 'prepare_attempt', prepareAttemptId: 'prepare-a',
+    requestId: 'saved-a'},
+  requiredArtifact: {type: 'prepared_invocation',
+    cid: `sha256:${'d'.repeat(64)}`},
+  reviewProjectionCid: `sha256:${'e'.repeat(64)}`,
+  requirements: ['invocation_scope_approved'],
+  createdAt: '2026-09-26T00:00:00.000Z',
+  expiresAt: '2026-09-27T00:00:00.000Z', humanSummary: 'Run on site-a'});
+
+test('a held request is a typed reply, distinct from a Run admission', () => {
+  assert.equal(validHeldRequest(held, 'saved-a'), true);
+  assert.equal(validHeldRequest(held, 'saved-b'), false);
+  assert.equal(validSubmitReply(held, connection, 'saved-a'), true);
+  assert.equal(validRequestLookup(held, 'saved-a'), true);
+  // Waiting always names its Checkpoint; an ended request says why and
+  // names no fictitious Run.
+  const {checkpoint, ...unnamed} = held;
+  assert.equal(validHeldRequest(unnamed, 'saved-a'), false);
+  assert.equal(validHeldRequest({...unnamed, state: 'resuming'}, 'saved-a'),
+    true);
+  assert.equal(validHeldRequest({...unnamed, state: 'ended'}, 'saved-a'),
+    false);
+  assert.equal(validHeldRequest({...unnamed, state: 'ended',
+    endReason: 'rejected'}, 'saved-a'), true);
+  assert.equal(validHeldRequest({...held, ref}, 'saved-a'), false);
+  assert.equal(validHeldRequest({...held, durability: 'volatile'},
+    'saved-a'), false);
+});
+
+test('Checkpoint operations carry bounded, exact request shapes', () => {
+  assert.equal(validClientBody('checkpoints', {connection, after: '',
+    limit: 10}), true);
+  assert.equal(validClientBody('checkpoints', {connection, after: 'x|y',
+    limit: checkpointLimits.maxPageItems + 1}), false);
+  assert.equal(validClientBody('checkpoints', {connection, limit: 10}),
+    false);
+  assert.equal(validClientBody('checkpoint-review', {connection,
+    checkpointCid, maxBytes: 4096}), true);
+  assert.equal(validClientBody('checkpoint-review', {connection,
+    checkpointCid: 'cp-1', maxBytes: 4096}), false);
+  assert.equal(validClientBody('checkpoint-review', {connection,
+    checkpointCid, maxBytes: checkpointLimits.maxReviewBytes + 1}), false);
+  const item = {checkpointCid, resolutionWire: '{}',
+    approvalEvidenceWire: ''};
+  assert.equal(validClientBody('resolve', {connection, items: [item]}),
+    true);
+  assert.equal(validClientBody('resolve', {connection, items: []}), false);
+  assert.equal(validClientBody('resolve', {connection,
+    items: [item, item]}), false);
+  // A signing key or credential has no place in an answer item.
+  assert.equal(validClientBody('resolve', {connection,
+    items: [{...item, privateKey: 'x'}]}), false);
+  assert.equal(validClientBody('resolve', {connection, items: Array.from(
+    {length: checkpointLimits.maxResolveItems + 1}, (_, index) => ({...item,
+      checkpointCid: `sha256:${index.toString(16).padStart(64, '0')}`}))}),
+  false);
+});
+
+test('Checkpoint replies bind page bounds, exact review bytes and each item',
+  () => {
+    assert.equal(validCheckpointPage({items: [summary]}, 1), true);
+    assert.equal(validCheckpointPage({items: [summary], next: 'a|b'}, 1),
+      true);
+    assert.equal(validCheckpointPage({items: [summary, summary]}, 2), false);
+    assert.equal(validCheckpointPage({items: [summary]}, 0), false);
+    assert.equal(validCheckpointPage({items: [{...summary,
+      review: 'private'}]}, 1), false);
+    const review = {kind: 'review', checkpointCid,
+      artifactCid: `sha256:${'e'.repeat(64)}`, byteLength: 5,
+      contentBase64: Buffer.from('hello').toString('base64')};
+    assert.equal(validCheckpointReview(review, {checkpointCid,
+      maxBytes: 5}), true);
+    assert.equal(validCheckpointReview(review, {checkpointCid,
+      maxBytes: 4}), false);
+    assert.equal(validCheckpointReview({...review, byteLength: 6},
+      {checkpointCid, maxBytes: 8}), false);
+    assert.equal(validCheckpointReview(review, {checkpointCid:
+      `sha256:${'f'.repeat(64)}`, maxBytes: 8}), false);
+    const items = [{checkpointCid}, {checkpointCid:
+      `sha256:${'f'.repeat(64)}`}];
+    assert.equal(validResolveResults({results: [
+      {checkpointCid, status: 'committed', decision: 'approved',
+        resolutionCid: `sha256:${'1'.repeat(64)}`},
+      {checkpointCid: items[1].checkpointCid, status: 'conflicting',
+        reason: 'CheckpointResolutionConflict'},
+    ]}, items), true);
+    assert.equal(validResolveResults({results: [
+      {checkpointCid, status: 'committed', decision: 'approved'},
+      {checkpointCid: items[1].checkpointCid, status: 'invalid',
+        reason: 'x'}]}, items), false);
+    assert.equal(validResolveResults({results: [
+      {checkpointCid: items[1].checkpointCid, status: 'invalid', reason: 'x'},
+      {checkpointCid, status: 'invalid', reason: 'x'}]}, items), false);
+    assert.equal(validResolveResults({results: []}, items), false);
+  });

@@ -1,6 +1,8 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
-  WireConnectionShape, WireLookupFoundShape, WireLookupNotFoundShape,
-  WireLookupUnknownShape, WireProfileShape, WireRunRefShape,
+  WireCheckpointReviewShape, WireCheckpointSummaryShape,
+  WireConnectionShape, WireHeldShape, WireLookupFoundShape,
+  WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
+  WireResolveItemShape, WireResolveResultShape, WireRunRefShape,
   WireRunStateShape, WireSubmitPreparationErrorShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
@@ -51,6 +53,12 @@ export type WireClientBodyByOperation = Readonly<{
     resultName: string;
     attemptId: string;
   }>;
+  checkpoints: WireBodyBase & Readonly<{after: string; limit: number}>;
+  'checkpoint-review': WireBodyBase & Readonly<{
+    checkpointCid: string;
+    maxBytes: number;
+  }>;
+  resolve: WireBodyBase & Readonly<{items: readonly WireResolveItem[]}>;
 }>;
 
 export type WireClientBody =
@@ -74,8 +82,26 @@ export type WireClientProfile = WireProfileShape & WireProfileSelection;
 
 export type WireClientAdmission = WireAdmissionShape;
 
+export type WireHeldRequest = WireHeldShape;
 export type WireRequestLookup =
-  | WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape;
+  | WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape
+  | WireHeldRequest;
+export type WireSubmitReply = WireClientAdmission | WireHeldRequest;
+export type WireCheckpointSummary = WireCheckpointSummaryShape;
+export type WireCheckpointPage = Readonly<{
+  items: readonly WireCheckpointSummary[];
+  next?: string;
+}>;
+export type WireCheckpointReview = WireCheckpointReviewShape;
+export type WireResolveItem = WireResolveItemShape;
+export type WireResolveResult = WireResolveResultShape;
+
+export declare const checkpointLimits: Readonly<{
+  maxPageItems: number;
+  maxCursorLength: number;
+  maxReviewBytes: number;
+  maxResolveItems: number;
+}>;
 
 export declare function validClientProfile(value: unknown,
   selected: WireConnection): value is WireClientProfile;
@@ -84,6 +110,21 @@ export declare function validClientAdmission(value: unknown,
 export declare function validRequestLookup(value: unknown,
   expectedRequestId: string):
   value is WireRequestLookup;
+export declare function validHeldRequest(value: unknown,
+  expectedRequestId: string): value is WireHeldRequest;
+export declare function validSubmitReply(value: unknown,
+  selected: WireConnection, expectedRequestId: string):
+  value is WireSubmitReply;
+export declare function validCheckpointPage(value: unknown, limit: number):
+  value is WireCheckpointPage;
+export declare function validCheckpointReview(value: unknown,
+  expected: Readonly<{checkpointCid: string; maxBytes: number}>):
+  value is WireCheckpointReview;
+export declare function validResolveItem(value: unknown):
+  value is WireResolveItem;
+export declare function validResolveResults(value: unknown,
+  items: readonly Readonly<{checkpointCid: string}>[]):
+  value is Readonly<{results: readonly WireResolveResult[]}>;
 
 import type {WireDeliveryAttempt, WireDeliveryRecord,
   WireHostReleaseReceipt} from './publication.generated.js';
