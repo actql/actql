@@ -44,7 +44,7 @@ separate input bindings and route-specific evidence.
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 56 path-scoped counts describe evidence, not
+list. Its 23 full-route and 57 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
