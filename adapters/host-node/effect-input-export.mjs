@@ -212,5 +212,6 @@ export async function commitPinnedEffectSourceHolding({
     })]),
   });
   await store.commitPhysicalHolding(record, [payload.prepared]);
-  return Object.freeze({source, holdingCid, record});
+  return Object.freeze({source, artifact: payload.summary.artifact,
+    holdingCid, record});
 }

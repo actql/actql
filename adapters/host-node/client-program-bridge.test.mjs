@@ -25,6 +25,7 @@ import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
+  prepareCompletedEffectfulPublication,
   releaseCompletedRunPreparedPayloads,
   storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
@@ -793,9 +794,41 @@ test('admitted source-free Effect Run computes through the installed Host',
           effectSourceHoldings: [{...sourceHolding,
             record: {...sourceHolding.record, manifest_cid: cid('9')}}],
         }), {code: 'InvalidCompletedEffectSourceHolding'});
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          effectSourceHoldings: [{...sourceHolding,
+            artifact: {...sourceArtifact, identity: cid('9')}}],
+        }), {code: 'InvalidCompletedEffectSourceHolding'});
         const computation = await issueCompletedEffectfulComputationEvidence(
           captureOptions);
         assert.equal(sourceWriters, 1);
+        const finalInventory = prepareCompletedEffectfulPublication({
+          execution, store, storedResults, control,
+          computation, preview: admittedPreview,
+        });
+        assert.equal(finalInventory.chain.capturedRun.identity,
+          computation.capturedRun.identity);
+        assert.equal(finalInventory.chain.artifacts[0].identity,
+          storedResults.artifacts[0].identity);
+        assert.equal(finalInventory.sourceArtifacts[0].identity,
+          sourceArtifact.identity);
+        assert.equal(finalInventory.effectSources[0], sourceHolding.source);
+        const mutableArtifact = {...sourceArtifact};
+        const mutableComputation =
+          await issueCompletedEffectfulComputationEvidence({
+            ...captureOptions,
+            effectSourceHoldings: [{...sourceHolding,
+              artifact: mutableArtifact}],
+          });
+        mutableArtifact.identity = cid('9');
+        assert.equal(prepareCompletedEffectfulPublication({
+          execution, store, storedResults, control,
+          computation: mutableComputation, preview: admittedPreview,
+        }).sourceArtifacts[0].identity, sourceArtifact.identity);
+        assert.throws(() => prepareCompletedEffectfulPublication({
+          execution, store, storedResults, control,
+          computation: {...computation}, preview: admittedPreview,
+        }), {code: 'InvalidCompletedEffectfulRunOwner'});
         await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions, storedResults: {...storedResults},
         }), {code: 'InvalidCompletedEffectfulComputationOptions'});
@@ -820,6 +853,10 @@ test('admitted source-free Effect Run computes through the installed Host',
           control.admitEffectComputationPreview(
             foreignArtifactPreview.wire, runDefinitionContract,
             authoringContext, publicationLimits);
+        assert.throws(() => prepareCompletedEffectfulPublication({
+          execution, store, storedResults, control,
+          computation, preview: foreignAdmittedPreview,
+        }), {code: 'InvalidCompletedEffectfulRunOwner'});
         await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions,
           preview: foreignAdmittedPreview, plans: [],

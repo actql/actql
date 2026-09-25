@@ -9,6 +9,10 @@ publication, delivery, and cleanup. The shared publication coordinator now
 accepts an issued set Receipt tied to its exact Ledger and Preview. This
 component connection does not satisfy SF-G1: the current publication fixture
 still assembles a synthetic set and does not execute physical writes.
+The completed computation now retains its exact Result export owner,
+retention inventory, and Effect-source Artifact contracts. Its final-chain
+preparation rejects a copied computation or foreign Preview. This closes a
+provenance seam but still stops before apply and publication.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
