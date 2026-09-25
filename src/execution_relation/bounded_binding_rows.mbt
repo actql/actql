@@ -25,6 +25,7 @@ priv enum BoundedBindingRowsPhase {
   BuildOutputRow
   CheckOutputRow
   ChargeOutputRow
+  ChargeCaptureRow
   CommitOutputRow
   FinishOutput
   Terminal
@@ -385,6 +386,10 @@ priv struct BoundedBindingRowsState {
   mut output_charge_column : Int
   mut output_charge_measure : SteppedValueMeasure?
   mut output_requires_steps : Bool
+  mut capture_charge_open : Bool
+  mut capture_charge_column : Int
+  mut capture_charge_measure : SteppedValueMeasure?
+  mut capture_row : Array[@admitted.Value]
 }
 
 ///|
@@ -550,6 +555,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.snapshot = Map([])
   state.output_row = []
   state.checked_row = []
+  state.capture_row = []
   state.json_current = None
   state.json_picked = None
   state.watermark_times = []
@@ -564,6 +570,10 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   if state.output_charge_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.output_charge_measure = None
+  }
+  if state.capture_charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.capture_charge_measure = None
   }
   state.workspace.live = 0
   if !state.accepted.val {
@@ -1369,6 +1379,7 @@ fn bounded_binding_rows_step(
         state.snapshot = Map([])
         state.output_row = []
         state.checked_row = []
+        state.capture_row = []
         state.output_requires_steps = state.output_names.length() > 8
         state.column = 0
         state.phase = if state.json_path is Some(_) {
@@ -1776,8 +1787,82 @@ fn bounded_binding_rows_step(
           }
           used += 1
         } else {
+          state.phase = ChargeCaptureRow
+        }
+      ChargeCaptureRow => {
+        guard state.output is Some(output) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if !state.capture_charge_open {
+          if !output.buffer.open ||
+            output.buffer.reading ||
+            output.buffer.rows.length() >= output.buffer.max_rows ||
+            !charge_node(output.buffer.budget, 1) {
+            return fail_bounded_binding_rows(
+              Capture(CaptureLimit),
+              progress,
+              used,
+            )
+          }
+          state.capture_charge_open = true
+          used += 1
+        } else if state.capture_charge_column < state.checked_row.length() {
+          let column = state.capture_charge_column
+          guard @schema.field_at(output.buffer.schema, column) is Some(field) &&
+            state.checked_row.get(column) is Some(checked) &&
+            physical_equal(field.contract, checked.contract) else {
+            return fail_bounded_binding_rows(
+              Capture(ForeignCheckedValue(output.buffer.rows.length(), column)),
+              progress,
+              used,
+            )
+          }
+          if state.capture_charge_measure is None {
+            if !charge_text(
+                output.buffer.budget,
+                @schema.reference_name(field.name),
+              ) {
+              return fail_bounded_binding_rows(
+                Capture(CaptureLimit),
+                progress,
+                used,
+              )
+            }
+            guard start_stepped_measure_result(
+                Captured(checked.value),
+                state.workspace,
+              )
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.capture_charge_measure = Some(cursor)
+          }
+          let cursor = state.capture_charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, output.buffer.budget) {
+            SteppedMeasureLimit =>
+              return fail_bounded_binding_rows(
+                Capture(CaptureLimit),
+                progress,
+                used,
+              )
+            SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.capture_charge_measure = None
+              if !reserve_slots(state.workspace, 1) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.capture_row.push(checked.value)
+              state.capture_charge_column += 1
+            }
+          }
+          used += 1
+        } else {
           state.phase = CommitOutputRow
         }
+      }
       CommitOutputRow => {
         if !state.output_requires_steps &&
           !retain_row(state.output_row, state.output_names, state.output_values) {
@@ -1803,25 +1888,41 @@ fn bounded_binding_rows_step(
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Err(issue) =>
-            return fail_bounded_binding_rows(Capture(issue), progress, used)
-          Ok(_) => ()
+        if state.output_requires_steps {
+          if !output.buffer.open ||
+            output.buffer.reading ||
+            output.buffer.rows.length() >= output.buffer.max_rows ||
+            state.capture_row.length() != state.checked_row.length() ||
+            state.capture_row.length() !=
+            @schema.field_count(output.buffer.schema) {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          output.buffer.rows.push(state.capture_row)
+        } else {
+          match append_admitted_output(output, state.checked_row) {
+            Err(issue) =>
+              return fail_bounded_binding_rows(Capture(issue), progress, used)
+            Ok(_) => ()
+          }
         }
         release_slots(
           state.workspace,
           state.snapshot.length() +
           state.values.length() * 2 +
           state.output_row.length() +
-          state.checked_row.length(),
+          state.checked_row.length() +
+          state.capture_row.length(),
         )
         state.snapshot = Map([])
         state.values = []
         state.slot_roots = []
         state.output_row = []
         state.checked_row = []
+        state.capture_row = []
         state.output_charge_open = false
         state.output_charge_column = 0
+        state.capture_charge_open = false
+        state.capture_charge_column = 0
         state.json_current = None
         state.json_picked = None
         state.json_segment = -1
@@ -2474,6 +2575,10 @@ fn start_bounded_binding_rows_with_input(
     output_charge_column: 0,
     output_charge_measure: None,
     output_requires_steps: false,
+    capture_charge_open: false,
+    capture_charge_column: 0,
+    capture_charge_measure: None,
+    capture_row: [],
   }
   let (session, token) = @bounded.start(
     engine,

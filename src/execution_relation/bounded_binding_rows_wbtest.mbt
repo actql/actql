@@ -2794,6 +2794,41 @@ test "keyed take stops inside selected output retention" {
 }
 
 ///|
+test "keyed take stops inside unpublished output capture" {
+  let (execution, input) = bounded_binding_rows_keyed_take_fixture(
+    100000,
+    long_text_selected=true,
+  )
+  let mut measuring = false
+  let mut previous_work = 0L
+  for _ in 0..<1000 {
+    if !measuring {
+      match advance_bounded_binding_rows(execution, 1).unwrap() {
+        BoundedBindingRowsContinue(work~, ..) => {
+          assert_true(work - previous_work <= 1L)
+          previous_work = work
+        }
+        _ => fail("keyed take finished before output capture")
+      }
+      measuring = execution.state.phase is ChargeCaptureRow &&
+        execution.state.capture_charge_measure is Some(_)
+    }
+  }
+  assert_true(measuring)
+  guard execution.state.output is Some(output) else {
+    fail("unpublished output is missing")
+  }
+  assert_eq(output.buffer.rows.length(), 0)
+  assert_true(@bounded.request_cancel(execution.state.engine))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
 test "keyed take retains the selected long value at exact limits" {
   // Three sorted rows use nine nodes and 4,113 text bytes. Retaining the
   // selected long row adds three nodes and 4,098 text bytes.
@@ -2823,6 +2858,11 @@ test "keyed take retains the selected long value at exact limits" {
           BoundedBindingRowsComplete(output, ..) => {
             assert_true(accepted)
             assert_eq(completed_row_count(output), 1)
+            let text = match completed_cell(output, 0, 1) {
+              Some(Text(text)) | Some(Captured(@admitted.Text(text))) => text
+              _ => fail("selected long text is missing")
+            }
+            assert_eq(text, Array::make(256, "aaaaaaaaaaaaaaaa").join(""))
             terminal = true
           }
           BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
@@ -2840,10 +2880,11 @@ test "keyed take retains the selected long value at exact limits" {
 }
 
 ///|
-test "keyed take reserves one live cursor slot for long output retention" {
+test "keyed take reserves overlapping long output capture workspace" {
   // Nine metadata slots, three retained sort ordinals, two output cells,
-  // two checked cells and one measurement cursor overlap at the peak.
-  for (slots, accepted) in [(17, true), (16, false)] {
+  // two checked cells and two unpublished capture cells overlap at the
+  // peak. During the second cell, its cursor replaces that cell's slot.
+  for (slots, accepted) in [(18, true), (17, false)] {
     let (execution, input) = bounded_binding_rows_keyed_take_fixture(
       100000,
       max_entries=slots,

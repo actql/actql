@@ -5156,6 +5156,9 @@ async function exerciseStrategyGraph(
     stage => stage.id === 'consumer_a' || stage.id === 'consumer_b')) {
     consumer.inputs.x.result.stage = 'ordered';
   }
+  const longSelectedSortTakeProgram = structuredClone(separateSortTakeProgram);
+  longSelectedSortTakeProgram.stages.find(stage =>
+    stage.id === 'values_a').steps[0].values.rows[1].label = 'a'.repeat(512);
   const separateFilterSortTakeProgram = structuredClone(
     separateSortTakeProgram,
   );
@@ -6210,6 +6213,8 @@ async function exerciseStrategyGraph(
     ['split values take', splitValuesTakeProgram, [1, 2, 3, 4]],
     ['split values sort/take', splitValuesSortTakeProgram, [1, 2, 3, 4, 5]],
     ['separate sort/take Stage', separateSortTakeProgram, [1, 2, 3, 4, 5]],
+    ['long selected sort/take Stage', longSelectedSortTakeProgram,
+      [1, 2, 3, 4, 5]],
     ['separate filter/sort/take Stage', separateFilterSortTakeProgram,
       [1, 2, 3, 4, 5, 6]],
     ['chained filter then sort/take Stages', chainedFilterSortTakeProgram,
@@ -6355,7 +6360,8 @@ async function exerciseStrategyGraph(
         );
       }
       if (name === 'split values sort/take' ||
-          name === 'separate sort/take Stage') {
+          name === 'separate sort/take Stage' ||
+          name === 'long selected sort/take Stage') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 1, 1, 1],
