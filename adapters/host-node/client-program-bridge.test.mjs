@@ -2809,6 +2809,86 @@ test(`two-member captured Effect Run ${
       assert.equal(Buffer.concat(chunks).toString('utf8'),
         JSON.stringify(siteRun ? sourceIds.map(id => ({id}))
           : [{id: 1}, {id: 2}]));
+      const accessAuthority = installResultAccessAuthority({
+        authorizeResultReadRequest: () => true,
+        admitResultRead: facts => ({
+          authorizationContextCid: `sha256:${createHash('sha256')
+            .update(facts.attemptId).digest('hex')}`,
+          dataCeilingCid: cid('9'), egressAdmissionCid: cid('a'),
+          expiresAt: '2026-09-24T01:00:00.000Z',
+          maxBytes: 100000, maxUses: 1,
+        }),
+        authorizeResultRead: () => true,
+        authorizeDeliveryAttemptLookup: () => true,
+      });
+      const resultService = installNodeResultAccessService({
+        store, control, authority: accessAuthority,
+        now: () => '2026-09-24T00:30:00.000Z',
+        limits: publicationLimits,
+        frameLimits: {maxRowBytes: 4096, maxDepth: 32,
+          maxFrameBytes: 4096},
+      });
+      const stateService = installRunStateService({
+        store, control,
+        authority: installRunStateAuthority({
+          authorizeRunState: () => true,
+          resultPolicyAvailable: () => true,
+        }),
+        now: () => '2026-09-24T00:30:00.000Z',
+        limits: publicationLimits,
+      });
+      const clientServer = createServer(createClientHttpHandler({
+        authenticate: header => header === 'Bearer scoped-token'
+          ? 'principal-after-restart' : undefined,
+        authorizeConnection: facts => facts.connection.mode === 'local' &&
+          facts.connection.owner === 'local' &&
+          (facts.ref === undefined || facts.ref.tenantId === 'tenant-a'),
+        negotiate: () => ({
+          version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'principal-after-restart',
+          capabilities: ['result-jsonl'],
+          limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+            maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 100,
+            maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+        }),
+        attach: async ({ref, principalId}) => {
+          await inspectAuthorizedRunState(stateService, {
+            indexKey: ref, principalId, purpose: 'inspect',
+          });
+          return {ref, durability: 'durable', revision: 0};
+        },
+        stateService, resultService,
+      }));
+      await new Promise(resolve => clientServer.listen(0, '127.0.0.1',
+        resolve));
+      try {
+        const client = await connectClient({mode: 'local', owner: 'local',
+          endpoint: `http://127.0.0.1:${clientServer.address().port}/`,
+          token: 'scoped-token'});
+        try {
+          const run = await client.attach(key);
+          const state = await run.status();
+          assert.equal(validRunState(state), true);
+          assert.equal(state.status, 'succeeded');
+          const reader = run.result('answer').rows();
+          assert.deepEqual(await Array.fromAsync(reader),
+            siteRun ? sourceIds.map(id => ({id})) :
+              [{id: 1}, {id: 2}]);
+          assert.equal(reader.state(), 'complete');
+          let attempt = await run.result('answer')
+            .deliveryAttempt(reader.attemptId);
+          for (let tries = 0; tries < 100 &&
+            attempt.record?.state !== 'succeeded'; tries++) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            attempt = await run.result('answer')
+              .deliveryAttempt(reader.attemptId);
+          }
+          assert.equal(attempt.record?.state, 'succeeded');
+        } finally { client.close(); }
+      } finally {
+        await new Promise(resolve => clientServer.close(resolve));
+      }
       assert.equal((await store.retireCommittedResult(key,
         storedResults.definitions[0].identity)).deleted, true);
       assert.equal((await store.retireCommittedPublicationMetadata(
