@@ -126,6 +126,8 @@ pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservati
 
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
+pub fn recover_single_write_request(WriteProjection, String, String, String, WriteBodyLimits, WriteRequestLimits) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue]
+
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
 
 pub fn require_read_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -456,6 +458,11 @@ pub(all) enum ReadProjectionIssue {
   UnsupportedReadType(String)
   ForeignCurrentObservation
   SchemaChanged(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RecoveredWriteRequestIssue {
+  Body(WriteBodyIssue)
+  Request(WriteRequestIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResourceDescribeOutcome {

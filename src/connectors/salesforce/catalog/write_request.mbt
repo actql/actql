@@ -26,6 +26,12 @@ pub(all) enum WriteRequestIssue {
 } derive(Eq, Debug)
 
 ///|
+pub(all) enum RecoveredWriteRequestIssue {
+  Body(WriteBodyIssue)
+  Request(WriteRequestIssue)
+} derive(Eq, Debug)
+
+///|
 /// Provider request material only; this is not a dispatch permit. Effect
 /// preview, apply admission, current grant, and durable intent come first.
 pub struct SingleWriteRequest {
@@ -423,4 +429,96 @@ pub fn prepare_single_write_request(
     target,
     max_target_bytes: limits.max_target_bytes,
   })
+}
+
+///|
+/// Rebuild provider request material from one approved Preview row value and
+/// correlation. The caller must obtain both from the admitted Preview and
+/// compare the resulting request to the exact durable claim.
+/// This function does not restore mutation authority or authorize a send.
+pub fn recover_single_write_request(
+  projection : WriteProjection,
+  approved_body_wire : String,
+  correlation_wire : String,
+  api_version : String,
+  body_limits : WriteBodyLimits,
+  request_limits : WriteRequestLimits,
+) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue] {
+  if body_limits.max_bytes < 0 ||
+    body_limits.max_nodes < 1 ||
+    body_limits.max_depth < 1 {
+    return Err(Body(InvalidLimits))
+  }
+  if request_limits.max_path_bytes < 1 ||
+    request_limits.max_target_bytes < 1 ||
+    request_limits.max_body_bytes < 1 {
+    return Err(Request(InvalidLimits))
+  }
+  match @scalar.admit_utf8_length(approved_body_wire, body_limits.max_bytes) {
+    Ok(_) => ()
+    Err(@scalar.MalformedUtf16(_)) => return Err(Body(InvalidBody))
+    Err(_) => return Err(Body(BudgetExceeded))
+  }
+  let body = match
+    prepare_write_body(
+      projection,
+      @utf8.encode(approved_body_wire),
+      body_limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Body(issue))
+  }
+  let target = match projection.operation {
+    WriteCreate => NoWriteTarget
+    _ => {
+      let parsed = match
+        @source.parse_json(correlation_wire, {
+          max_input_bytes: request_limits.max_body_bytes,
+          max_nodes: 2,
+          max_depth: 1,
+        }) {
+        Ok(value) => value
+        Err(_) => return Err(Request(InvalidTarget))
+      }
+      let admitted = match
+        @decode.admit(parsed, {
+          max_nodes: 2,
+          max_depth: 1,
+          max_string_bytes: request_limits.max_target_bytes,
+          max_total_string_bytes: request_limits.max_target_bytes,
+        }) {
+        Ok(value) => value
+        Err(_) => return Err(Request(InvalidTarget))
+      }
+      match projection.operation {
+        WriteUpdateById =>
+          match @decode.text(admitted) {
+            Ok(value) => RecordId(value)
+            Err(_) => return Err(Request(InvalidTarget))
+          }
+        WriteUpsertByExternalId(_) => {
+          guard projection.external_target is Some(field) else {
+            return Err(Request(InvalidTarget))
+          }
+          if field.native_type == "int" {
+            match @decode.int32(admitted) {
+              Ok(value) => ExternalInt(value)
+              Err(_) => return Err(Request(InvalidTarget))
+            }
+          } else {
+            match @decode.text(admitted) {
+              Ok(value) => ExternalText(value)
+              Err(_) => return Err(Request(InvalidTarget))
+            }
+          }
+        }
+        WriteCreate => NoWriteTarget
+      }
+    }
+  }
+  match
+    prepare_single_write_request(body, api_version, target, request_limits) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(Request(issue))
+  }
 }

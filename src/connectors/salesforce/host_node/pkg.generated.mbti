@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn salesforce_admit_recovery_preview(String, String, String, Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> @catalog.QueryRead raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_broad_host_abort(@host.SalesforceBroadHostRun) -> Unit
@@ -179,6 +181,12 @@ pub fn salesforce_recheck_single_write_request(@catalog.SingleWriteRequest, @cat
 
 pub fn salesforce_recheck_write_projection(@catalog.WriteProjection, @catalog.CatalogObservation) -> Bool raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_recover_single_write_request(@run_publication.EffectPreviewIdentity, Int, Int, @catalog.WriteProjection, String, Int, Int, Int, Int, Int, Int, Int, String, String) -> @catalog.SingleWriteRequest raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_recovery_preview_member_count(@run_publication.EffectPreviewIdentity) -> Int
+
+pub fn salesforce_recovery_preview_row_count(@run_publication.EffectPreviewIdentity, Int) -> Int?
+
 pub fn salesforce_single_write_member_footprint(Array[@catalog.SingleWriteRequest], Int, Int) -> (String, String, String, String, String, Array[String]) raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_single_write_request_body(@catalog.SingleWriteRequest) -> String
@@ -232,6 +240,9 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteProjection(@catalog.WriteProjectionIssue)
   WriteBody(@catalog.WriteBodyIssue)
   WriteRequest(@catalog.WriteRequestIssue)
+  RecoveredWriteRequest(@catalog.RecoveredWriteRequestIssue)
+  RecoveryPreview(@run_publication.EffectPreviewIdentityIssue)
+  ForeignRecoveredRequest
   TargetObservation(@catalog.TargetObservationIssue)
   WriteSingleResponse(@catalog.WriteSingleResponseIssue)
   WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)

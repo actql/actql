@@ -115,6 +115,121 @@ pub fn salesforce_prepare_single_write_request(
 }
 
 ///|
+/// Re-admit the private Preview inside this connector bundle. This is only
+/// identity admission; current apply and credential authority stay separate.
+#export_name("salesforceAdmitRecoveryPreview")
+pub fn salesforce_admit_recovery_preview(
+  wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.EffectPreviewIdentity raise SalesforceCatalogBridgeIssue {
+  match
+    @publication.admit_effect_preview_identity(
+      wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RecoveryPreview(issue)
+  }
+}
+
+///|
+#export_name("salesforceRecoveryPreviewMemberCount")
+pub fn salesforce_recovery_preview_member_count(
+  preview : @publication.EffectPreviewIdentity,
+) -> Int {
+  @publication.effect_preview_member_count(preview)
+}
+
+///|
+#export_name("salesforceRecoveryPreviewRowCount")
+pub fn salesforce_recovery_preview_row_count(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+) -> Int? {
+  @publication.effect_preview_row_count(preview, member_index)
+}
+
+///|
+/// Use an identity admitted in this connector bundle. Provider request
+/// material is rebuilt once per row without reading the captured data again.
+#export_name("salesforceRecoverSingleWriteRequest")
+pub fn salesforce_recover_single_write_request(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  ordered_row_index : Int,
+  projection : @catalog.WriteProjection,
+  api_version : String,
+  max_body_bytes : Int,
+  max_body_nodes : Int,
+  max_body_depth : Int,
+  max_path_bytes : Int,
+  max_target_bytes : Int,
+  max_request_body_bytes : Int,
+  max_identity_bytes : Int,
+  resource_origin : String,
+  expected_request_cid : String,
+) -> @catalog.SingleWriteRequest raise SalesforceCatalogBridgeIssue {
+  guard @publication.effect_preview_ordered_row_identity(
+      preview, member_index, ordered_row_index,
+    )
+    is Some(row_cid) &&
+    @publication.effect_preview_row_index(preview, member_index, row_cid)
+    is Some(change_index) &&
+    @publication.effect_preview_ordered_row_intended_value_wire(
+      preview, member_index, ordered_row_index,
+    )
+    is Some(body_wire) &&
+    @publication.effect_preview_ordered_row_correlation_wire(
+      preview, member_index, ordered_row_index,
+    )
+    is Some(correlation_wire) else {
+    raise InvalidResource
+  }
+  let request = match
+    @catalog.recover_single_write_request(
+      projection,
+      body_wire,
+      correlation_wire,
+      api_version,
+      {
+        max_bytes: max_body_bytes,
+        max_nodes: max_body_nodes,
+        max_depth: max_body_depth,
+      },
+      {
+        max_path_bytes,
+        max_target_bytes,
+        max_body_bytes: max_request_body_bytes,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RecoveredWriteRequest(issue)
+  }
+  if @publication.effect_preview_member_kind(preview, member_index) !=
+    Some(@catalog.single_write_request_effect_kind(request)) ||
+    !salesforce_single_write_request_matches_preview_footprint(
+      preview, member_index, change_index, request, max_identity_bytes,
+    ) {
+    raise InvalidResource
+  }
+  let actual_request_cid = match
+    @catalog.single_write_request_cid(
+      request, resource_origin, max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise WriteRequest(issue)
+  }
+  if actual_request_cid != expected_request_cid {
+    raise ForeignRecoveredRequest
+  }
+  request
+}
+
+///|
 #export_name("salesforceSingleWriteRequestMethod")
 pub fn salesforce_single_write_request_method(
   request : @catalog.SingleWriteRequest,

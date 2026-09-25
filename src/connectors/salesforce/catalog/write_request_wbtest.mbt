@@ -125,6 +125,87 @@ test "single write request derives method and path from selected operation" {
 }
 
 ///|
+test "approved write values reconstruct the exact physical request" {
+  let update_body = write_request_body(WriteUpdateById)
+  let original = prepare_single_write_request(
+    update_body,
+    "v66.0",
+    RecordId("001000000000001"),
+    write_request_test_limits(),
+  ).unwrap()
+  let recovered = recover_single_write_request(
+    write_body_projection(update_body),
+    single_write_request_body(original),
+    "\"001000000000001\"",
+    "v66.0",
+    write_body_test_limits(),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_eq(
+    single_write_request_cid(recovered, "https://example.invalid", 1000),
+    single_write_request_cid(original, "https://example.invalid", 1000),
+  )
+  assert_true(
+    recover_single_write_request(
+      write_body_projection(update_body),
+      single_write_request_body(original),
+      "\"foreign-target\"",
+      "v66.0",
+      write_body_test_limits(),
+      write_request_test_limits(),
+    )
+    is Err(Request(InvalidTarget)),
+  )
+  assert_true(
+    recover_single_write_request(
+      write_body_projection(update_body),
+      "{\"Foreign\":1}",
+      "\"001000000000001\"",
+      "v66.0",
+      write_body_test_limits(),
+      write_request_test_limits(),
+    )
+    is Err(Body(UnexpectedField(_))),
+  )
+  assert_true(
+    recover_single_write_request(
+      write_body_projection(update_body),
+      single_write_request_body(original),
+      "\"001000000000001\"",
+      "v66.0",
+      { max_bytes: -1, max_nodes: 1, max_depth: 1, },
+      write_request_test_limits(),
+    )
+    is Err(Body(InvalidLimits)),
+  )
+  let create_body = write_request_body(WriteCreate)
+  let created = recover_single_write_request(
+    write_body_projection(create_body),
+    "{\"External_Key__c\":\"one\"}",
+    "\"source-row\"",
+    "v66.0",
+    write_body_test_limits(),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_eq(single_write_request_method(created), "POST")
+  let upsert_body = write_request_body(
+    WriteUpsertByExternalId("External_Key__c"),
+  )
+  let upserted = recover_single_write_request(
+    write_body_projection(upsert_body),
+    "{\"Optional_Value__c\":\"value\"}",
+    "\"a/b é\"",
+    "v66.0",
+    write_body_test_limits(),
+    write_request_test_limits(),
+  ).unwrap()
+  assert_eq(
+    single_write_request_path(upserted),
+    "/services/data/v66.0/sobjects/ActQL_Test_Record__c/External_Key__c/a%2Fb%20%C3%A9",
+  )
+}
+
+///|
 test "single write request rejects target confusion and invalid paths" {
   let create = write_request_body(WriteCreate)
   let update = write_request_body(WriteUpdateById)
