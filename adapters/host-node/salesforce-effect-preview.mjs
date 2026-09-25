@@ -21,11 +21,11 @@ const parseExactJson = wire => {
 // target, guard, before, after, and intended changes. This authors no grant or
 // apply permit; the checked captured owner must still admit the whole Preview.
 export function authorObservedSalesforceEffectPreview({
-  moon, salesforceMoon, templateWire, requestScope, members,
+  moon, salesforceMoon, prepared, templateWire, requestScope, members,
   maxWireBytes, maxNodes, maxDepth, maxRows, maxIdentityBytes,
-  maxKeyBytes, maxKeyNodes, maxKeyDepth,
+  maxKeyBytes, maxKeyNodes, maxKeyDepth, planLimits,
 }) {
-  if (!moon || !salesforceMoon || !requestScope ||
+  if (!moon || !salesforceMoon || !prepared || !requestScope ||
       typeof templateWire !== 'string' ||
       !Number.isSafeInteger(maxWireBytes) || maxWireBytes < 1 ||
       maxWireBytes > 1_000_000 ||
@@ -34,7 +34,11 @@ export function authorObservedSalesforceEffectPreview({
       maxRows > 100_000 ||
       !Array.isArray(members) || members.length === 0 ||
       !Number.isSafeInteger(maxIdentityBytes) || maxIdentityBytes < 1 ||
-      maxIdentityBytes > maxWireBytes) {
+      maxIdentityBytes > maxWireBytes ||
+      !planLimits ||
+      !['maxFields', 'maxWork', 'maxBytes', 'maxNodes', 'maxDepth']
+        .every(key => Number.isSafeInteger(planLimits[key]) &&
+          planLimits[key] > 0)) {
     fail('InvalidSalesforceEffectPreviewAuthoring');
   }
   let template;
@@ -44,7 +48,13 @@ export function authorObservedSalesforceEffectPreview({
     fail('InvalidSalesforceEffectPreviewAuthoring');
   }
   if (!Array.isArray(template.effects) ||
-      template.effects.length !== members.length) {
+      template.effects.length !== members.length ||
+      template.program_definition_cid !==
+        moon.clientProgramEffectDefinitionCid(prepared) ||
+      template.program_semantics_cid !==
+        moon.clientProgramEffectSemanticsCid(prepared) ||
+      template.check_environment_cid !==
+        moon.clientProgramEffectEnvironmentCid(prepared)) {
     fail('InvalidSalesforceEffectPreviewAuthoring');
   }
   let rowCount = 0;
@@ -52,6 +62,32 @@ export function authorObservedSalesforceEffectPreview({
   const requestOrder = [];
   for (const [memberIndex, member] of members.entries()) {
     const proposal = template.effects[memberIndex];
+    const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+      prepared, memberIndex));
+    if (!proposal || member?.effectId !== descriptor._0) {
+      fail('ForeignSalesforceEffectPreviewMember');
+    }
+    Object.assign(proposal, {
+      effect_id: descriptor._0,
+      effect_kind: descriptor._1,
+      target: descriptor._2,
+      mapping: descriptor._3,
+      resolved_mapping_contract_cid: descriptor._4,
+      on_item_failure: descriptor._6,
+    });
+    if (descriptor._5 === undefined) {
+      delete proposal.source_result;
+    } else {
+      proposal.source_result = descriptor._5;
+    }
+    const planCid = checked(moon.clientProgramEffectPlanCid(
+      prepared, memberIndex, planLimits.maxFields, planLimits.maxWork,
+      planLimits.maxBytes, planLimits.maxNodes, planLimits.maxDepth));
+    if (planCid === undefined) {
+      delete proposal.effect_plan_logical_cid;
+    } else {
+      proposal.effect_plan_logical_cid = planCid;
+    }
     if (!Array.isArray(member?.requests) ||
         (proposal?.effect_kind !== 'create' &&
           (!Array.isArray(member?.observations) ||

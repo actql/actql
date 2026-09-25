@@ -382,6 +382,64 @@ pub fn client_program_effect_plan_cid(
 }
 
 ///|
+pub(all) enum ClientEffectMemberDescriptorIssue {
+  InvalidMember
+  MissingMapping
+} derive(Debug)
+
+///|
+/// Read the authored member and its resolved Mapping from one checked
+/// Program. Physical observations and current authority are separate.
+#export_name("clientProgramEffectMemberDescriptor")
+pub fn client_program_effect_member_descriptor(
+  value : @publication_host.PreparedClientEffectComputation,
+  member_index : Int,
+) -> Result[
+  (String, String, String, String, String, String?, String),
+  ClientEffectMemberDescriptorIssue,
+] {
+  let candidate = @publication_host.prepared_client_effect_computation_candidate(
+    value,
+  )
+  let header = match
+    @stage_syntax.effect_header_at(
+      @program_check.effect_program_static_headers(candidate),
+      member_index,
+    ) {
+    Some(value) => value
+    None => return Err(InvalidMember)
+  }
+  let effects = @program_check.effect_program_static_effects(candidate)
+  let shapes = @effect_results.effect_mapping_rules_shapes(
+    @effect_results.effect_static_candidate_mapping_rules(effects),
+  )
+  for index in 0..<@effect_results.effect_mapping_shape_count(shapes) {
+    let shape = @effect_results.effect_mapping_shape_at(shapes, index).unwrap()
+    let selected = @effect_results.effect_result_binding_header(
+      @effect_results.effect_mapping_shape_effect(shape),
+    )
+    if @stage_syntax.effect_header_stage(selected) ==
+      @stage_syntax.effect_header_stage(header) &&
+      @stage_syntax.effect_header_id(selected) ==
+      @stage_syntax.effect_header_id(header) {
+      let mapping = @effect_results.effect_mapping_shape_contract(shape)
+      return Ok(
+        (
+          @stage_syntax.effect_header_id(header),
+          @stage_syntax.effect_header_kind(header),
+          @check_environment.mapping_shape_target(mapping),
+          @check_environment.mapping_shape_reference(mapping),
+          @check_environment.mapping_shape_cid(mapping),
+          @stage_syntax.effect_header_source_result(header),
+          @stage_syntax.effect_header_failure_policy(header),
+        ),
+      )
+    }
+  }
+  Err(MissingMapping)
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,
