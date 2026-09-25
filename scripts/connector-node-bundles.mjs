@@ -225,7 +225,28 @@ if (existsSync(join(root, 'src', bridgePackage,
   'client_program_bridge.mbt'))) {
   dependencies.set('actql/actql/sourceview_resolution', 'acquisition');
   dependencies.set('actql/actql/query_planning', 'planning');
-  dependencies.set('actql/actql/connectors/duckdb/host', 'duckdb_host');
+  const manifestPath = join(root, 'src', bridgePackage,
+    'client-program-dependencies.json');
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    if (Object.keys(manifest).join() !== 'imports' ||
+        !Array.isArray(manifest.imports)) {
+      throw new Error(`Invalid Client bridge dependencies: ${manifestPath}`);
+    }
+    for (const entry of manifest.imports) {
+      if (entry === null || typeof entry !== 'object' ||
+          Object.keys(entry).sort().join() !== 'alias,path' ||
+          typeof entry.path !== 'string' ||
+          !/^actql\/actql\/[a-z0-9_/]+$/.test(entry.path) ||
+          typeof entry.alias !== 'string' ||
+          !/^[a-z][a-z0-9_]*$/.test(entry.alias) ||
+          dependencies.has(entry.path) ||
+          [...dependencies.values()].includes(entry.alias)) {
+        throw new Error(`Invalid Client bridge dependency: ${manifestPath}`);
+      }
+      dependencies.set(entry.path, entry.alias);
+    }
+  }
 }
 if (hasLocalCarrierBridge) {
   dependencies.set(

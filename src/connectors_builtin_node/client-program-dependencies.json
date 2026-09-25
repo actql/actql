@@ -1,0 +1,8 @@
+{
+  "imports": [
+    {
+      "path": "actql/actql/connectors/duckdb/host",
+      "alias": "duckdb_host"
+    }
+  ]
+}
