@@ -24,6 +24,7 @@ function productPreviewDraft({moon, control, prepared, context, members,
   if (typeof control?.effectSourceArtifactPreviewBinding !== 'function' ||
       !context?.runDefinition || !context?.runInvocation ||
       !context?.compiledPlan ||
+      typeof context.storeAuthorityCid !== 'string' ||
       context.modelDerived !== false ||
       !Array.isArray(members) || members.length === 0) {
     fail('InvalidSalesforceEffectPreviewContext');
@@ -73,7 +74,7 @@ function productPreviewDraft({moon, control, prepared, context, members,
       const source = control.effectSourceArtifactPreviewBinding(
         member.sourceArtifact,
         moon.strategyPublicationContractIdentity(context.runInvocation),
-        descriptor._6);
+        descriptor._6, context.storeAuthorityCid);
       return {
         effect_id: descriptor._1, effect_kind: descriptor._2,
         target: descriptor._3, mapping: descriptor._4,

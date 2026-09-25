@@ -2163,9 +2163,10 @@ pub fn client_program_effect_source_artifact_preview_binding(
   artifact : @publication.PublicationContract,
   invocation_cid : String,
   source_result : String,
+  store_authority_cid : String,
 ) -> Result[(String, String), @publication.EffectSourceArtifactIssue] {
   @publication.effect_source_artifact_preview_binding(
-    artifact, invocation_cid, source_result,
+    artifact, invocation_cid, source_result, store_authority_cid,
   )
 }
 

@@ -100,11 +100,15 @@ pub fn effect_source_artifact_preview_binding(
   artifact : PublicationContract,
   invocation_cid : String,
   source_result : String,
+  store_authority_cid : String,
 ) -> Result[(String, String), EffectSourceArtifactIssue] {
   if artifact.name != "effect_source_artifact" ||
     !valid_contract_cid(invocation_cid) ||
+    !valid_contract_cid(store_authority_cid) ||
     contract_string(artifact, "invocation_cid") != Some(invocation_cid) ||
-    contract_string(artifact, "source_result") != Some(source_result) {
+    contract_string(artifact, "source_result") != Some(source_result) ||
+    contract_string(artifact, "store_authority_cid") !=
+    Some(store_authority_cid) {
     return Err(EffectSourceWrongContract)
   }
   guard contract_string(artifact, "source_binding_cid") is Some(binding) &&
