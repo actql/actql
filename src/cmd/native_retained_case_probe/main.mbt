@@ -104,6 +104,8 @@ fn native_strategy_issue_name(
             @strategy.Implementation(_) => "start-strategy-implementation"
             @strategy.Physical(issue) =>
               "start-strategy-physical-" + rejection_name(Some(issue))
+            @strategy.ActivationNotAuthorized =>
+              "start-strategy-activation-not-authorized"
           }
         @host.Settlement(_) => "start-settlement"
         @host.MissingOutput => "start-missing-output"
