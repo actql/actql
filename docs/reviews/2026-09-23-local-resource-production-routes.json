@@ -2229,6 +2229,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
           "fixture": "bounded count preserves exact nested input value charges"
+        },
+        {
+          "role": "count_long_text_input_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count steps a long unused text cell and preserves its budget"
+        },
+        {
+          "role": "count_long_text_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count stops while measuring a long unused text cell"
         }
       ],
       "environment_tests": [

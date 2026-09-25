@@ -3,12 +3,15 @@ fn bounded_global_count_fixture(
   rows : String,
   keyed? : Bool = false,
   unused_payload? : Bool = false,
+  unused_text? : Bool = false,
   input_values? : ValueLimits = run_limits().input_values,
   max_work? : Int = 100,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
   let schema = if unused_payload {
     "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+  } else if unused_text {
+    "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"string\",\"nullable\":false}}"
   } else {
     "{\"id\":{\"type\":\"number\",\"nullable\":true}}"
   }
@@ -279,6 +282,15 @@ fn unused_count_payload_rows(count : Int) -> String {
 }
 
 ///|
+fn unused_count_text_rows(count : Int) -> String {
+  let mut payload = ""
+  for _ in 0..<count {
+    payload = payload + "aaaaaaaaaaaaaaaa"
+  }
+  "[{\"id\":1,\"payload\":\"" + payload + "\"}]"
+}
+
+///|
 test "bounded count stops inside an unused nested input value" {
   let (control, execution, source) = bounded_global_count_fixture(
     unused_count_payload_rows(256),
@@ -355,6 +367,88 @@ test "bounded count preserves exact nested input value charges" {
     assert_true(cleanup_bounded_global_count(execution).unwrap())
     assert_true(completed_output_available(source))
   }
+}
+
+///|
+test "bounded count steps a long unused text cell and preserves its budget" {
+  let rows = unused_count_text_rows(256)
+  let exact : ValueLimits = {
+    ..run_limits().input_values,
+    max_nodes: 3,
+    max_text_bytes: 4105,
+    max_work: 4108,
+  }
+  for
+    (bytes, work, should_complete) in [
+      (4105, 4108, true),
+      (4104, 4108, false),
+      (4105, 4107, false),
+    ] {
+    let input_values : ValueLimits = {
+      ..exact,
+      max_text_bytes: bytes,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_global_count_fixture(
+      rows,
+      unused_text=true,
+      input_values~,
+      max_work=1000,
+      max_entries=100,
+    )
+    let mut terminal = false
+    let mut previous_work = 0L
+    for _ in 0..<300 {
+      if !terminal {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(work~, ..) => {
+            assert_true(work - previous_work <= 1L)
+            previous_work = work
+          }
+          BoundedGlobalCountComplete(output, work~, ..) => {
+            assert_true(should_complete)
+            assert_true(work - previous_work <= 1L)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedGlobalCountFailed(InputLimit, ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("long text count ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "bounded count stops while measuring a long unused text cell" {
+  let (control, execution, source) = bounded_global_count_fixture(
+    unused_count_text_rows(256),
+    unused_text=true,
+    max_work=1000,
+  )
+  let mut previous_work = 0L
+  for _ in 0..<35 {
+    match advance_bounded_global_count(execution, 1).unwrap() {
+      BoundedGlobalCountContinue(work~, ..) => {
+        assert_eq(work - previous_work, 1L)
+        previous_work = work
+      }
+      _ => fail("long text input finished before cancellation")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
 }
 
 ///|

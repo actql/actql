@@ -146,8 +146,12 @@ The count input scan now resumes inside nested arrays, objects, and long
 text rather than treating a whole cell as one non-interruptible step.
 An unused 256-element array has exact and one-short value-budget fixtures,
 an in-measurement stop/cleanup fixture, and a delivered standard Host timer
-case. These do not prove a bounded output recheck for every structured key;
-that separate output boundary remains to be audited.
+case. A 4,096-byte unused text cell also has quantum-one, exact/one-short,
+and in-measurement stop/cleanup fixtures. Structured group keys are rejected
+by the formal `KeyComparable` check, but a long text group key can still be
+scanned synchronously by `checked_ordered_output_value` and again by
+`append_admitted_output`. The stepped input proof does not cover those output
+passes; they remain an explicit boundedness gap for keyed count.
 Other aggregate members and providerless whole-sequence group execution
 remain open.
 The `components` route has an independent one-node self-loop boundary:
