@@ -114,6 +114,7 @@ test('row window loses its bounded route when production evidence is removed', (
   }), /RelA row_window: bounded selected row-window entrypoint is missing/u);
   for (const role of [
     'row_window_bounded_quantum_output',
+    'row_window_exact_output_boundary',
     'row_window_bounded_cancel_cleanup',
     'row_window_bounded_workspace_exact_one_short',
     'row_window_bounded_control_work_exact_one_short',

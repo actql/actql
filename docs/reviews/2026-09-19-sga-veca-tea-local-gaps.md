@@ -140,6 +140,9 @@ delivers cancellation after bounded row-window work, observes stop, and
 reclaims the attempt without exposing partial output. This establishes the
 selected entrypoint only. Nested value checking and timestamp parsing still
 need a maximum non-interruptible interval audit.
+The bounded kernel also checks the large-time boundary rule: a representable
+output succeeds even when intermediate coordinates exceed binary64, while an
+unrepresentable output boundary fails without exposing partial completion.
 Multi-step sequences that cannot select this provider still use the
 providerless synchronous path. The operation is not marked fully assured.
 The `lag` evaluator likewise reserves its output-name entries before copying
