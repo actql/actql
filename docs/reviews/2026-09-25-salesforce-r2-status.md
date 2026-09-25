@@ -66,6 +66,17 @@ retention, and provenance must still be resolved from authenticated completed
 Stage evidence. The private Effect-source Artifact remains Run-bound custody
 evidence and cannot be relabeled as that local semantic Artifact.
 
+The shared boundary is commit `07c99312f`: Distribution can use
+`clientProgramIssueSourceFreeLocalEffectInvocation` for the checked root Unit
+and `clientProgramIssueCapturedEffectInputLocalResultDefinition` with the same
+prepared computation and live pinned Effect input inventory. The latter
+returns an opaque definition whose CID and canonical wire are exposed by
+`clientProgramLocalEffectResultDefinitionCid` and
+`clientProgramLocalEffectResultDefinitionJson`. It neither authorizes a write
+nor replaces the private source Artifact. Product export consumes this API in
+`preparePinnedEffectSourcePayload`; a foreign preparation fails before the
+Store writer is created. Public Client ingress remains Distribution-owned.
+
 The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
 must retain the handle from the callback installed by
