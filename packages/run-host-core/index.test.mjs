@@ -38,6 +38,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   resultDefinitions, resultSchema,
   issueSourceFreeInvocation,
   admitCompletedSourceObservation,
+  issueTaskInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire,
   resultReadAvailability,
   prepareRunStart,
@@ -84,13 +85,16 @@ test('acquired observation binds the checked source and completed input',
     }), limits);
     const facts = {sourceEvidenceWire: evidence.wire,
       inputLogicalWire: logical.wire, sourceRef, sourceContractCid,
-      authorityScopeCid, limits};
+      authorityScopeCid, effectiveDataPolicyCid: other, limits};
     assert.equal(admitCompletedSourceObservation(facts), evidence.cid);
     assert.throws(() => admitCompletedSourceObservation({...facts,
       sourceRef: 'connector://foreign'}),
     {code: 'RunHostSourceObservationRejected'});
     assert.throws(() => admitCompletedSourceObservation({...facts,
       authorityScopeCid: other}),
+    {code: 'RunHostSourceObservationRejected'});
+    assert.throws(() => admitCompletedSourceObservation({...facts,
+      effectiveDataPolicyCid: sourceContractCid}),
     {code: 'RunHostSourceObservationRejected'});
     const foreignInput = sealRunEvidenceValue('source_input_logical',
       JSON.stringify({...JSON.parse(logical.wire),
@@ -147,6 +151,51 @@ test('checked acquired Program issues and re-admits its task Run', () => {
   const definition = issueTaskRunDefinition(prepared, compilation,
     allowed.admission, 'task-scope', 'task-run',
     '2026-09-26T00:00:00.000Z', '2026-09-27T00:00:00.000Z');
+  const limits = {maxWireBytes: 8192, maxNodes: 256, maxDepth: 16};
+  const sourceContractCid =
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3';
+  const sourceRef = 'connector://crm/main/r#v';
+  const authorityScopeCid = cid({scope: 'task'});
+  const dataPolicyCid = cid({policy: 'task'});
+  const other = cid({evidence: 'task'});
+  const ordering = {stable: false, keys: []};
+  const input = sealRunEvidenceValue('source_input_logical',
+    JSON.stringify({version: 'actql-source-input-logical/0.1',
+      logical_relation_cid: other, relation_schema_cid: other,
+      source_contract_cid: sourceContractCid, completeness: 'complete',
+      ordering_evidence: ordering}), limits);
+  const sourceEvidence = sealRunEvidenceValue('source_evidence',
+    JSON.stringify({version: 'actql-source-evidence/0.1',
+      source_ref: sourceRef, input_logical_cid: input.cid,
+      source_contract_cid: sourceContractCid, schema_evidence_cid: other,
+      capability_evidence_cid: other,
+      authority_scope_cid: authorityScopeCid,
+      source_data_policy_cid: other,
+      effective_data_policy_cid: dataPolicyCid,
+      data_classification: 'internal', source_view_contract_cid: other,
+      output_carrier: 'relation', read_mode: 'snapshot',
+      observed_at: '2026-09-26T00:00:01.000Z', snapshot_ref: 'read-view-1',
+      completeness: 'complete', ordering_evidence: ordering,
+      consistency_level: 'snapshot'}), limits);
+  const sourceFacts = {sourceEvidenceWire: sourceEvidence.wire,
+    inputLogicalWire: input.wire, sourceRef, sourceContractCid,
+    authorityScopeCid, dataPolicyCid,
+    captureStartedAt: '2026-09-26T00:00:00.000Z',
+    captureCompletedAt: '2026-09-26T00:00:01.000Z'};
+  const issued = issueTaskInvocation(prepared, compilation,
+    allowed.admission, definition, sourceFacts, limits);
+  assert.deepEqual(JSON.parse(issued.observation.wire)
+    .source_evidence_cids, [sourceEvidence.cid]);
+  assert.equal(JSON.parse(issued.invocation.wire).observation_set_cid,
+    issued.observation.cid);
+  assert.throws(() => issueTaskInvocation(prepared, compilation,
+    allowed.admission, definition, {...sourceFacts,
+      dataPolicyCid: other}, limits),
+  {code: 'RunHostTaskInvocationRejected'});
+  assert.throws(() => issueTaskInvocation(prepared, compilation,
+    allowed.admission, definition, {...sourceFacts,
+      captureCompletedAt: '2026-09-25T00:00:00.000Z'}, limits),
+  {name: 'TypeError', message: 'InvalidRunHostTaskObservation'});
   const wire = privateRunDefinition(definition).wire;
   const restoredAdmission = admitTaskRun(prepared, compilation,
     allowed.preparedInvocationWire, allowed.authorizationWire);

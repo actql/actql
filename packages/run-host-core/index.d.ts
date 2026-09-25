@@ -415,8 +415,25 @@ export function admitCompletedSourceObservation(facts: Readonly<{
   sourceRef: string;
   sourceContractCid: string;
   authorityScopeCid: string;
+  effectiveDataPolicyCid: string;
   limits: PublicationLimits;
 }>): string;
+/** Issue a task Invocation after one completed source capture is admitted. */
+export function issueTaskInvocation(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, source: Readonly<{
+    sourceEvidenceWire: string;
+    inputLogicalWire: string;
+    sourceRef: string;
+    sourceContractCid: string;
+    authorityScopeCid: string;
+    dataPolicyCid: string;
+    captureStartedAt: string;
+    captureCompletedAt: string;
+  }>, limits: PublicationLimits): Readonly<{
+    observation: RunEvidence;
+    invocation: PublicationContract;
+  }>;
 export interface ValuesSiteSelection {
   readonly taskAttempt: number;
   readonly dispatchId: string;

@@ -137,19 +137,20 @@ test "source observation binds the completed input and checked source" {
   ).unwrap()
   assert_eq(
     admit_completed_source_observation_binding(
-      evidence, input, source_ref, source_cid, scope, 8192, 256, 16,
+      evidence, input, source_ref, source_cid, scope, other, 8192, 256, 16,
     ),
     Ok(run_evidence_value_identity(evidence)),
   )
   assert_true(
     admit_completed_source_observation_binding(
-      evidence, input, "connector://other", source_cid, scope, 8192, 256, 16,
+      evidence, input, "connector://other", source_cid, scope, other, 8192, 256,
+      16,
     )
     is Err(Mismatch("source_ref")),
   )
   assert_true(
     admit_completed_source_observation_binding(
-      evidence, input, source_ref, source_cid, other, 8192, 256, 16,
+      evidence, input, source_ref, source_cid, other, other, 8192, 256, 16,
     )
     is Err(Mismatch("authority_scope_cid")),
   )
@@ -165,7 +166,7 @@ test "source observation binds the completed input and checked source" {
   ).unwrap()
   assert_true(
     admit_completed_source_observation_binding(
-      partial, input, source_ref, source_cid, scope, 8192, 256, 16,
+      partial, input, source_ref, source_cid, scope, other, 8192, 256, 16,
     )
     is Err(Incomplete),
   )
@@ -178,7 +179,7 @@ test "source observation binds the completed input and checked source" {
   ).unwrap()
   assert_true(
     admit_completed_source_observation_binding(
-      wrong_order, input, source_ref, source_cid, scope, 8192, 256, 16,
+      wrong_order, input, source_ref, source_cid, scope, other, 8192, 256, 16,
     )
     is Err(InvalidOrdering),
   )

@@ -81,6 +81,7 @@ pub fn admit_completed_source_observation_binding(
   source_ref : String,
   source_contract_cid : String,
   authority_scope_cid : String,
+  effective_data_policy_cid : String,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -98,6 +99,7 @@ pub fn admit_completed_source_observation_binding(
       ("source_ref", source_ref),
       ("source_contract_cid", source_contract_cid),
       ("authority_scope_cid", authority_scope_cid),
+      ("effective_data_policy_cid", effective_data_policy_cid),
       ("input_logical_cid", input.identity),
     ] {
     if contract_string_from_value(source.value, field) != Some(expected) {

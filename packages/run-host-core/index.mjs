@@ -696,17 +696,58 @@ export function issueSourceFreeInvocation(prepared, compilation, admission,
 // owns authorization and the live capture; this identity grants neither.
 export function admitCompletedSourceObservation({sourceEvidenceWire,
   inputLogicalWire, sourceRef, sourceContractCid, authorityScopeCid,
+  effectiveDataPolicyCid,
   limits}) {
   if ([sourceEvidenceWire, inputLogicalWire, sourceRef,
-    sourceContractCid, authorityScopeCid].some(value =>
+    sourceContractCid, authorityScopeCid, effectiveDataPolicyCid].some(value =>
     typeof value !== 'string')) {
     throw new TypeError('InvalidRunHostSourceObservation');
   }
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   return checked(owner.clientValuesHostAdmitCompletedSourceObservation(
     sourceEvidenceWire, inputLogicalWire, sourceRef, sourceContractCid,
-    authorityScopeCid, maxWireBytes, maxNodes, maxDepth),
+    authorityScopeCid, effectiveDataPolicyCid, maxWireBytes, maxNodes,
+    maxDepth),
   'RunHostSourceObservationRejected');
+}
+
+export function issueTaskInvocation(prepared, compilation, admission,
+  definition, {sourceEvidenceWire, inputLogicalWire, sourceRef,
+    sourceContractCid, authorityScopeCid, dataPolicyCid,
+    captureStartedAt, captureCompletedAt}, limits) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  checkRunBinding(prepared, admission, definition);
+  if ([sourceEvidenceWire, inputLogicalWire, sourceRef, sourceContractCid,
+    authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt]
+    .some(value => typeof value !== 'string') ||
+    ![captureStartedAt, captureCompletedAt].every(value =>
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value) &&
+      Number.isFinite(Date.parse(value)) &&
+      new Date(value).toISOString() === value) ||
+    captureStartedAt > captureCompletedAt) {
+    throw new TypeError('InvalidRunHostTaskObservation');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const facts = checked(owner.clientValuesHostIssueTaskInvocation(
+    compiled.value, sourceEvidenceWire, inputLogicalWire, sourceRef,
+    sourceContractCid, authorityScopeCid, dataPolicyCid,
+    captureStartedAt, captureCompletedAt, maxWireBytes, maxNodes,
+    maxDepth), 'RunHostTaskInvocationRejected');
+  if (!Array.isArray(facts) || facts.length !== 4 ||
+      !facts.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostTaskInvocationProjection');
+  }
+  const observation = admitRunEvidenceValue('observation_set', facts[1],
+    limits);
+  const invocation = admitPublicationContract('run_invocation', facts[3],
+    limits);
+  if (observation.cid !== facts[0] || invocation.cid !== facts[2]) {
+    throw new Error('InvalidRunHostTaskInvocationProjection');
+  }
+  return Object.freeze({observation, invocation});
 }
 
 const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
