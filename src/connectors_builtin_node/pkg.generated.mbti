@@ -204,6 +204,14 @@ pub fn client_program_query_acquisition_source_index(@sourceview_resolution.Quer
 
 pub fn client_program_query_requirement_cid(@query_planning.QueryRequirement) -> String
 
+pub fn client_program_query_requirement_input_contract_cid(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_query_requirement_output_contract_cid(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_query_requirement_source_contract_cid(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
+
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int

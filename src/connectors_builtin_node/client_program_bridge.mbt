@@ -1250,6 +1250,38 @@ pub fn client_program_query_requirement_cid(
 }
 
 ///|
+#export_name("clientProgramQueryRequirementSourceRef")
+pub fn client_program_query_requirement_source_ref(
+  requirement : @planning.QueryRequirement,
+) -> String {
+  @planning.query_requirement_source(requirement).0
+}
+
+///|
+#export_name("clientProgramQueryRequirementSourceContractCid")
+pub fn client_program_query_requirement_source_contract_cid(
+  requirement : @planning.QueryRequirement,
+) -> String {
+  @planning.query_requirement_source(requirement).1
+}
+
+///|
+#export_name("clientProgramQueryRequirementInputContractCid")
+pub fn client_program_query_requirement_input_contract_cid(
+  requirement : @planning.QueryRequirement,
+) -> String {
+  @planning.query_requirement_contracts(requirement).0
+}
+
+///|
+#export_name("clientProgramQueryRequirementOutputContractCid")
+pub fn client_program_query_requirement_output_contract_cid(
+  requirement : @planning.QueryRequirement,
+) -> String {
+  @planning.query_requirement_contracts(requirement).1
+}
+
+///|
 #export_name("clientProgramPrepareDuckDBAcquisition")
 pub fn client_program_prepare_duckdb_acquisition(
   requirement : @planning.QueryRequirement,
