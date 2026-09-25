@@ -99,10 +99,12 @@ record retains the exact captured chain and schema wires. Recovery derives
 both holding keys from the admitted Run and Store authority, decrypts the
 record, re-admits the computation chain with MoonBit, confirms source and
 output custody, and reconstructs only the publication owner. It does not
-re-run Compute or grant write authority. The two-member Host regression
-reopens the real Store with a fresh publication control before apply, then
-publishes and reads the Result and retires all holdings. This is a Store
-restart boundary, not proof of a killed Host process or restored apply owner.
+re-run Compute or grant write authority. A separate Node process opens the
+real Store and re-admits this capture from the Run Definition alone. The
+two-member Host regression then reopens the Store with a fresh publication
+control before apply, publishes and reads the Result, and retires all
+holdings. The subprocess probes capture restoration, not a killed Host
+process with its apply owner restored.
 The same two-member path also reopens the Store after all row outcomes are
 durable but before final Receipt issuance. It re-admits the captured chain,
 derives member and Set Receipts from the reopened Ledger, and publishes

@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {join} from 'node:path';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
@@ -3130,6 +3132,27 @@ test(`two-member captured Effect Run ${
           await sourcePayload.prepared.release();
         }
         await store.close();
+        const child = spawnSync(process.execPath, [fileURLToPath(new URL(
+          './fixtures/recover-effect-capture.mjs', import.meta.url,
+        ))], {
+          input: JSON.stringify({
+            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            capacityBytes: configuration.capacityBytes,
+            maxObjectBytes: configuration.maxObjectBytes,
+            maxObjects: configuration.maxObjects,
+            maxContractNodes: configuration.maxContractNodes,
+            maxContractDepth: configuration.maxContractDepth,
+            runDefinitionWire: runDefinition.wire,
+            limits: publicationLimits,
+          }),
+          encoding: 'utf8',
+          timeout: 20_000,
+        });
+        assert.equal(child.status, 0, child.stderr);
+        assert.deepEqual(JSON.parse(child.stdout), {
+          capturedRunCid: computation.capturedRun.identity,
+          artifactCids: storedResults.artifacts.map(value => value.identity),
+        });
         control = runtimeCore(moon).publicationControl;
         physicalStore = await openLocalPublicationStore(configuration, control);
         store = Object.freeze({...physicalStore,
