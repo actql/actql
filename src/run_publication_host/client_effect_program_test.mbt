@@ -213,11 +213,44 @@ test "checked source-free Effect owner issues its local Invocation" {
   let foreign = prepare_client_effect_computation(
     document, Json, environment, None, [], limits,
   ).unwrap()
+  let replayed = issue_source_free_client_effect_local_invocation(
+    foreign, 0, 4096, 32, 8,
+  ).unwrap()
+  assert_eq(
+    client_effect_local_invocation_cid(replayed),
+    client_effect_local_invocation_cid(issued),
+  )
   assert_true(!client_effect_local_invocation_matches(issued, foreign, 0))
   assert_true(
     issue_source_free_client_effect_local_invocation(prepared, 1, 4096, 32, 8)
     is Err(MissingUnit),
   )
+}
+
+///|
+test "checked Effect member resolution retains the exact Stage and Mapping" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document, Json, environment, None, [], limits,
+  ).unwrap()
+  let descriptor = client_effect_member_descriptor(
+    prepared, 0, "save", 16,
+  ).unwrap()
+  assert_eq(descriptor.0, 0)
+  assert_eq(descriptor.1, "save")
+  assert_eq(descriptor.2, "create")
+  assert_eq(descriptor.3, "connector://crm/account")
+  assert_eq(descriptor.4, "mapping:crm.account.v1")
+  assert_eq(descriptor.6, Some("out"))
+  assert_true(client_effect_member_descriptor(
+    prepared, 1, "save", 16,
+  ) is Err(InvalidMember))
+  assert_true(client_effect_member_descriptor(
+    prepared, 0, "foreign", 16,
+  ) is Err(InvalidMember))
+  assert_true(client_effect_member_descriptor(
+    prepared, 0, "save", 1,
+  ) is Err(WorkLimit))
 }
 
 ///|
