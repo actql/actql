@@ -4179,8 +4179,10 @@ test(`two-member captured Effect Run ${
         preflight, ledger, members, maxFrontierWork: 64,
         refreshPreflight: async ({preflight}) => preflight,
         authorization: {
-          gate: await fixtureAuthorization([accountEntry('effect-allow',
-            'allow', {operation: 'effect'})]),
+          gate: await fixtureAuthorization([
+            accountEntry('effect-allow', 'allow', {operation: 'effect'}),
+            accountEntry('target-read-allow', 'allow', {operation: 'read'}),
+          ]),
           scopes: commitScopes,
         }};
       const expectedCredentialUses = baseline => baseline.map(
@@ -4552,6 +4554,87 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen).filter(item =>
           item.method === 'PATCH').length,
         processUnknownIntent ? 3 : processPreparedIntent ? 4 : 0);
+        // The guard refresh is a credentialed read of the Effect targets:
+        // it is authorized at the acquisition boundary (operation read,
+        // Effect target connection/resource, sealed Set Preview subject)
+        // before any read, and the commit is authorized separately.
+        // Provider reads for the refresh: target record GETs, and the
+        // Site's current Catalog recheck (sObject list and describe).
+        const record = /^\/services\/data\/v62\.0\/sobjects\/Test_Record__c\/0/u;
+        const readsOf = isRecord => () => sites.map(site => site.seen.filter(
+          item => item.method === 'GET' &&
+            record.test(item.path) === isRecord).length);
+        const targetReads = readsOf(true);
+        const describeReads = readsOf(false);
+        const writes = () => sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length;
+        const readCounts = {};
+        const tryGate = async (name, entries, code, check) => {
+          const readsBefore = targetReads();
+          const describesBefore = describeReads();
+          const usesBefore = sites.map(site => site.journal.recover().length);
+          const writesBefore = writes();
+          const gate = await fixtureAuthorization(entries);
+          await assert.rejects(applyCapturedEffectSet({...applyOptions,
+            authorization: {gate, scopes: commitScopes},
+            dispatchRow: () => assert.fail(`${name} dispatched a row`),
+          }), error => error.code === code && check(error.authorization));
+          readCounts[name] = {
+            targetReads: targetReads().reduce((sum, value, index) =>
+              sum + value - readsBefore[index], 0),
+            catalogReads: describeReads().reduce((sum, value, index) =>
+              sum + value - describesBefore[index], 0),
+            credentialUses: sites.reduce((sum, site, index) =>
+              sum + site.journal.recover().length - usesBefore[index], 0),
+            writes: writes() - writesBefore,
+            ledgerHeads: members.flatMap(member => member.claims).filter(
+              claim => ledger.current(effect.logicalItemLocatorCid(
+                claim.locator)) !== undefined).length,
+            counters: gate.counters(),
+          };
+        };
+        // Read denied: no target read, no credential use, no write.
+        await tryGate('readDenied', [
+          accountEntry('effect-allow', 'allow', {operation: 'effect'}),
+          accountEntry('target-read-deny', 'deny', {operation: 'read'}),
+        ], 'ExecutionAuthorizationDenied', decision =>
+          decision.boundary === 'acquisition' &&
+          decision.tuple.operation === 'read' &&
+          decision.tuple.resource === 'Test_Record__c' &&
+          decision.subjectCid === JSON.parse(preview.wire).effect_preview_cid);
+        // Read unmatched (no read entry): denied as no-match, nothing read.
+        await tryGate('readNoMatch', [
+          accountEntry('effect-allow', 'allow', {operation: 'effect'}),
+        ], 'ExecutionAuthorizationDenied', decision =>
+          decision.boundary === 'acquisition' &&
+          decision.reason === 'no_match');
+        // Read allowed, Effect commit denied: target reads happen, no write.
+        await tryGate('commitDenied', [
+          accountEntry('effect-deny', 'deny', {operation: 'effect'}),
+          accountEntry('target-read-allow', 'allow', {operation: 'read'}),
+        ], 'ExecutionAuthorizationDenied', decision =>
+          decision.boundary === 'effect_commit' &&
+          decision.tuple.operation === 'effect');
+        for (const name of ['readDenied', 'readNoMatch']) {
+          assert.equal(readCounts[name].targetReads, 0, name);
+          assert.equal(readCounts[name].catalogReads, 0, name);
+          assert.equal(readCounts[name].credentialUses, 0, name);
+        }
+        // Authorized refresh: one record read per guarded row plus each
+        // Site's current Catalog recheck, each a credential use.
+        assert.equal(readCounts.commitDenied.targetReads, 4);
+        assert.equal(readCounts.commitDenied.catalogReads, 4);
+        assert.equal(readCounts.commitDenied.credentialUses, 8);
+        for (const counts of Object.values(readCounts)) {
+          assert.equal(counts.writes, 0);
+          assert.equal(counts.ledgerHeads, 0);
+        }
+        t.diagnostic(`effect target read authorization counts ${
+          JSON.stringify(Object.fromEntries(Object.entries(readCounts).map(
+            ([name, {counters, ...rest}]) => [name, {...rest,
+              evaluations: counters.evaluations,
+              protectedDispatches: counters.protectedDispatches,
+              deniedBeforeDispatch: counters.deniedBeforeDispatch}])))}`);
       }
       if (physical === 'salesforce-stale-target' ||
           physical === 'salesforce-schema-drift') {

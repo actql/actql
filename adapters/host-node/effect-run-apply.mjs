@@ -16,6 +16,7 @@ const text = value => typeof value === 'string' && value.length > 0 &&
 // classification. The boundary kind (effect_commit) and the sealed Set
 // Preview stay in the decision subject.
 const EFFECT_OPERATION = 'effect';
+const READ_OPERATION = 'read';
 
 // Host-installed Effect commit authorization. `gate` is the execution-account
 // gate; `scopes` gives the Host-derived connection and resource of each
@@ -62,6 +63,25 @@ function sealedSubject(moon, capturedInputs, memberCount) {
     fail('InvalidCapturedEffectApply');
   }
   return subjectCid;
+}
+
+// Authorize the credentialed target reads of the guard refresh: one
+// acquisition decision per distinct Effect target, bound to the sealed Set
+// Preview. Only dispatch continues; nothing is read otherwise.
+async function authorizeTargetReads(authorization, subjectCid, signal) {
+  const tuples = new Map(authorization.scopes.map(scope => [
+    JSON.stringify([scope.connection, scope.resource]),
+    Object.freeze({connection: scope.connection, resource: scope.resource,
+      operation: READ_OPERATION})]));
+  const decisions = [];
+  for (const tuple of tuples.values()) {
+    signal?.throwIfAborted();
+    const decision = await authorization.gate.authorize('acquisition', tuple,
+      {subjectCid, signal});
+    decisions.push(decision);
+    if (decision.action !== 'dispatch') break;
+  }
+  return Object.freeze(decisions);
 }
 
 // Evaluate the Effect commit boundary for the complete sealed Effect Set
@@ -219,6 +239,19 @@ export async function applyCapturedEffectSet({
     capturedInputs, ownedMembers, maxFrontierWork);
   const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
   const subjectCid = sealedSubject(moon, capturedInputs, ownedMembers.length);
+  let readDecisions = Object.freeze([]);
+  if (!noReadyRows) {
+    readDecisions = await authorizeTargetReads(commit, subjectCid, signal);
+    const read = readDecisions.at(-1);
+    if (read?.action === 'waiting') {
+      return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
+        checkpoint: read.checkpoint, authorization: readDecisions});
+    }
+    if (read?.action !== 'dispatch') {
+      throw Object.assign(new ExecutionAuthorizationError(read),
+        {subjectCid});
+    }
+  }
   const current = noReadyRows ? preflight :
     ownPreflight(await refreshPreflight({signal, preflight}));
   if (current.requirePartialApplication !== undefined &&
@@ -273,7 +306,8 @@ export async function applyCapturedEffectSet({
       capturedInputs, members, maxWork),
   });
   return Object.freeze({status: 'applied', ...result, subjectCid, identity,
-    authorization: authorized.decisions, resume: authorized.claim,
+    authorization: authorized.decisions,
+    readAuthorization: readDecisions, resume: authorized.claim,
     admission: entered});
 }
 
