@@ -446,7 +446,7 @@ pub fn publication_index_scope_storage_key(
   let body = @encode.finish(writer) catch {
     _ => return Err(CommitIssuanceEncoding)
   }
-  Ok(@sha.hex(@sha.digest(@utf8.encode(body))))
+  Ok(@sha.hex(@utf8.encode(body)))
 }
 
 ///|

@@ -79,6 +79,8 @@ pub fn client_values_host_publication_contract_identity(@run_publication.Publica
 
 pub fn client_values_host_publication_contract_wire(@run_publication.PublicationContract) -> String
 
+pub fn client_values_host_publication_index_scope_key(String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationCommitIssuanceIssue]
+
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
 pub fn client_values_host_request_caller_id(@run_publication_host.ClientRequestIdentity) -> String

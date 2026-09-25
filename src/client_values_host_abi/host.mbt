@@ -217,6 +217,23 @@ pub fn client_values_host_project_publication_snapshot(
 }
 
 ///|
+/// Shared Store slot identity for the one public index of an exact Run.
+#export_name("clientValuesHostPublicationIndexScopeKey")
+pub fn client_values_host_publication_index_scope_key(
+  tenant_id : String,
+  authority_scope_cid : String,
+  run_definition_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.PublicationCommitIssuanceIssue] {
+  @publication.publication_index_scope_storage_key(
+    tenant_id, authority_scope_cid, run_definition_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
 /// In-process checked execution coordinates for the single Values node.
 /// The Site still needs an authorized candidate, grant and Run dispatch.
 #export_name("clientValuesHostPlanNodeId")

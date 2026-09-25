@@ -52,6 +52,13 @@ export function projectPublicationSnapshot(
     evidenceCid: string | undefined;
   }>;
 
+/** Shared Store key; the key alone grants no read or publication access. */
+export function publicationIndexScopeKey(ref: Readonly<{
+  tenantId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>, limits: PublicationLimits): string;
+
 export interface RunEvidence {
   readonly token: {readonly [runEvidenceBrand]: true};
   readonly cid: string;

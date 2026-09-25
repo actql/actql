@@ -11,6 +11,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
   issueDurableResultBinding,
   projectPublicationSnapshot,
+  publicationIndexScopeKey,
   inspectCanonicalResultRows,
   admitSourceFreeRequestFields, admitRun, compileValues,
   checkRunBinding, issueAllowedRun, issueRunDefinition, prepare, prepareRequest,
@@ -106,6 +107,23 @@ test('portable Host keeps publication absence and uncertainty distinct',
       {kind: 'committed', entry: record}),
     {code: 'RunHostPublicationSnapshotRejected'});
   });
+
+test('portable Host uses the registered one-index-per-Run Store key', () => {
+  const limits = {maxWireBytes: 4096, maxNodes: 128, maxDepth: 16};
+  const ref = {tenantId: 'tenant-a',
+    authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+  const expected = cid({version: 'actql-public-index-key/0.1',
+    tenant_id: ref.tenantId,
+    authority_scope_cid: ref.authorityScopeCid,
+    run_definition_cid: ref.runDefinitionCid}).slice(7);
+  assert.equal(publicationIndexScopeKey(ref, limits), expected);
+  assert.notEqual(publicationIndexScopeKey({...ref,
+    tenantId: 'tenant-b'}, limits), expected);
+  assert.throws(() => publicationIndexScopeKey({...ref,
+    runDefinitionCid: 'invalid'}, limits),
+  {code: 'RunHostPublicationIndexScopeRejected'});
+});
 
 test('portable Host derives logical identity from exact ordered rows', () => {
   const limits = {maxWireBytes: 4096, maxNodes: 100, maxDepth: 16};

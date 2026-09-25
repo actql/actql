@@ -469,6 +469,21 @@ export function projectPublicationSnapshot(record, index) {
     evidenceCid: facts[1] || undefined});
 }
 
+export function publicationIndexScopeKey(ref, limits) {
+  if (ref === null || typeof ref !== 'object' || Array.isArray(ref) ||
+      Object.keys(ref).sort().join('\0') !==
+        'authorityScopeCid\0runDefinitionCid\0tenantId' ||
+      !['tenantId', 'authorityScopeCid', 'runDefinitionCid']
+        .every(key => typeof ref[key] === 'string')) {
+    throw new TypeError('InvalidRunHostPublicationIndexScope');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return checked(owner.clientValuesHostPublicationIndexScopeKey(
+    ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid,
+    maxWireBytes, maxNodes, maxDepth),
+  'RunHostPublicationIndexScopeRejected');
+}
+
 function nonnegativeCount(value) {
   if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) {
     throw new TypeError('InvalidRunHostPublicationCount');
