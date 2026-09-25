@@ -12,6 +12,24 @@ struct CapturedEffectPlanVerifier {
 }
 
 ///|
+/// Minted only after the complete checked Plan stream matches its captured
+/// input. The proof is tied to the live Preview and physical input owner.
+struct CapturedEffectPlanProof {
+  preview : CapturedEffectPreviewInputs
+  preview_index : Int
+  input : CapturedEffectInput
+}
+
+///|
+pub(all) enum CapturedEffectPlanInventoryIssue {
+  InvalidLimits
+  CapacityExceeded
+  ForeignProof(Int)
+  DuplicateProof(Int)
+  MissingProof(Int)
+} derive(Debug)
+
+///|
 pub(all) enum CapturedEffectPlanVerifyIssue {
   InvalidMember
   MissingPlan
@@ -139,7 +157,7 @@ pub fn check_captured_effect_plan_row(
 ///|
 pub fn finish_captured_effect_plan_verifier(
   value : CapturedEffectPlanVerifier,
-) -> Result[Unit, CapturedEffectPlanVerifyIssue] {
+) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue] {
   if !value.live ||
     captured_effect_preview_input_at(value.preview, value.preview_index) is None {
     value.live = false
@@ -152,6 +170,74 @@ pub fn finish_captured_effect_plan_verifier(
   if @publication.effect_preview_row_count(identity, value.preview_index) !=
     Some(value.next_row) {
     return Err(PreviewMismatch)
+  }
+  guard captured_effect_preview_input_at(value.preview, value.preview_index)
+    is Some(input) else {
+    return Err(NotReady)
+  }
+  Ok({ preview: value.preview, preview_index: value.preview_index, input, })
+}
+
+///|
+pub fn captured_effect_plan_proof_matches(
+  proof : CapturedEffectPlanProof,
+  preview : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  if !physical_equal(proof.preview, preview) ||
+    proof.preview_index != preview_index {
+    return false
+  }
+  match captured_effect_preview_input_at(preview, preview_index) {
+    Some(input) => physical_equal(input, proof.input)
+    None => false
+  }
+}
+
+///|
+/// Every member with a checked Plan must contribute exactly one proof from
+/// the same captured owner. This is payload evidence, not send authority.
+pub fn check_captured_effect_plan_proofs(
+  preview : CapturedEffectPreviewInputs,
+  proofs : Array[CapturedEffectPlanProof],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectPlanInventoryIssue] {
+  if max_members < 1 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  let identity = @checked.effect_program_run_preview_identity(
+    captured_effect_preview_owner(preview),
+  )
+  let count = @publication.effect_preview_member_count(identity)
+  if count < 1 ||
+    count > max_members ||
+    proofs.length() > count ||
+    count > max_work ||
+    proofs.length() > max_work - count {
+    return Err(CapacityExceeded)
+  }
+  let seen = Array::make(count, false)
+  for proof_index in 0..<proofs.length() {
+    let proof = proofs[proof_index]
+    let member_index = proof.preview_index
+    if member_index < 0 ||
+      member_index >= count ||
+      @publication.effect_preview_member_plan_cid(identity, member_index)
+      is None ||
+      !captured_effect_plan_proof_matches(proof, preview, member_index) {
+      return Err(ForeignProof(proof_index))
+    }
+    if seen[member_index] {
+      return Err(DuplicateProof(member_index))
+    }
+    seen[member_index] = true
+  }
+  for index in 0..<count {
+    if @publication.effect_preview_member_plan_cid(identity, index) is Some(_) &&
+      !seen[index] {
+      return Err(MissingProof(index))
+    }
   }
   Ok(())
 }

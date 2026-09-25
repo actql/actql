@@ -110,6 +110,8 @@ pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
+pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
+
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
@@ -222,6 +224,8 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn check_captured_effect_plan_proofs(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Int, Int) -> Result[Unit, CapturedEffectPlanInventoryIssue]
+
 pub fn check_captured_effect_plan_row(CapturedEffectPlanVerifier, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[Unit, CapturedEffectPlanVerifyIssue]
 
 pub fn check_captured_effect_preview_apply_keys(CapturedEffectPreviewInputs, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
@@ -312,7 +316,7 @@ pub fn expand_internal_carrier_tasks(CheckedDAG, Int, Int) -> Result[CheckedDAG,
 
 pub fn explain_captured_strategy(CapturedDAG, Int, Int, excluded? : Array[(Int, String, String)]) -> Result[String, @encode_core.EncodeFailure]
 
-pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[Unit, CapturedEffectPlanVerifyIssue]
+pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Result[CapturedEffectPlanProof, CapturedEffectPlanVerifyIssue]
 
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 
@@ -694,12 +698,22 @@ type CapturedEffectInput
 
 type CapturedEffectInputs
 
+pub(all) enum CapturedEffectPlanInventoryIssue {
+  InvalidLimits
+  CapacityExceeded
+  ForeignProof(Int)
+  DuplicateProof(Int)
+  MissingProof(Int)
+} derive(@debug.Debug)
+
 pub(all) enum CapturedEffectPlanIssue {
   InvalidMember
   NotReady
   ForeignBinding
   Plan(@stage_results.EffectPlanBindingIssue)
 } derive(@debug.Debug)
+
+type CapturedEffectPlanProof
 
 type CapturedEffectPlanVerifier
 
