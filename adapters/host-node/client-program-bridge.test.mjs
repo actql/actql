@@ -2047,7 +2047,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-unknown', 'salesforce-lost-http-reply',
-  'salesforce-collection-partial',
+  'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
@@ -2067,7 +2067,9 @@ test(`two-member captured Effect Run ${
       loseHttpReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
     const collectionPartial = physical === 'salesforce-collection-partial';
-    const continueMembers = continueAfterUnknown || collectionPartial
+    const collectionRecovered = physical === 'salesforce-collection-recovered';
+    const collectionMode = collectionPartial || collectionRecovered;
+    const continueMembers = continueAfterUnknown || collectionMode
       ? ['save'] : [];
     const sourceIds = siteRun
       ? ['001000000000001', '001000000000002'] : undefined;
@@ -2198,6 +2200,7 @@ test(`two-member captured Effect Run ${
           orgId: index === 0 ? '00D000000000001EAA'
             : '00D000000000002EAA',
           losePatchReplyOnce: loseHttpReply && index === 0,
+          collectionPartial: collectionPartial && index === 0,
         }))) : undefined;
       const siteProjections = sites?.map(site => {
         const binding = site.write.scope;
@@ -2329,7 +2332,7 @@ test(`two-member captured Effect Run ${
       assert.equal(captured.effect_context.effect_source_artifacts.save
         .source_result, 'rows');
       const body = JSON.parse(preview.wire);
-      const collectionRequest = collectionPartial ? checked(
+      const collectionRequest = collectionMode ? checked(
         salesforceMoon.salesforcePrepareContinueWriteCollection(
           body.effects[0].row_order, siteBodies[0], [1, 1],
           sourceIds, [0, 0], 'v62.0', 256, 128, 1024, 64, 6,
@@ -2363,7 +2366,7 @@ test(`two-member captured Effect Run ${
           const path = `/effect/${member.effect_id}/${rowIndex}`;
           const requestWire = canonicalJson({path, row: change.row_preview_cid});
           const request = siteRequests?.[memberIndex]?.[rowIndex];
-          const canonicalRequestCid = collectionPartial && memberIndex === 0
+          const canonicalRequestCid = collectionMode && memberIndex === 0
             ? checked(salesforceMoon.salesforceCollectionWriteRequestCid(
               collectionRequest, sites[0].origin, 4096))
             : siteRun ? checked(
@@ -2424,16 +2427,26 @@ test(`two-member captured Effect Run ${
           .filter(item => item.method === 'PATCH').length, 0);
       }
       let responseFaultPending = recoverAfterResponse;
+      let collectionFaultPending = collectionRecovered;
       let terminalFaultPending = restartAfterTerminal;
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
       const dispatchRow = async ({memberIndex, rowIndex, claim}) => {
           sent.push([memberIndex, rowIndex]);
           if (siteRun) {
             const site = sites[memberIndex];
-            if (collectionPartial && memberIndex === 0) {
+            if (collectionMode && memberIndex === 0) {
               assert.equal(rowIndex, 0);
+              const collectionFault = collectionFaultPending;
+              collectionFaultPending = false;
+              const collectionLedger = collectionFault ? Object.freeze({
+                ...ledger,
+                recordBatchResponse(observation) {
+                  ledger.recordBatchResponse(observation);
+                  throw new Error('LostAfterSavedCollectionResponse');
+                },
+              }) : ledger;
               const batch = await captureSalesforceCollectionEffectWrite({
-                ledger, claims: members[0].claims,
+                ledger: collectionLedger, claims: members[0].claims,
                 admittedPreview: applyPreview, memberIndex: 0,
                 firstRow: 0, commonMoon: moon, moon: salesforceMoon,
                 request: collectionRequest,
@@ -2539,6 +2552,34 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         assert.ok(ledger.readClaimedOutcome(members[0].claims[0]));
       }
+      if (collectionRecovered) {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, dispatchRow,
+        }), {message: 'LostAfterSavedCollectionResponse'});
+        assert.deepEqual(sent, [[0, 0]]);
+        assert.equal(sites[0].seen.filter(item =>
+          item.method === 'PATCH').length, 1);
+        ledger.close();
+        ledger = openLedger();
+        const saved = await captureSalesforceCollectionEffectWrite({
+          ledger, claims: members[0].claims,
+          admittedPreview: applyPreview, memberIndex: 0,
+          firstRow: 0, commonMoon: moon, moon: salesforceMoon,
+          request: collectionRequest,
+          currentObservation: sites[0].catalog.observation,
+          authorization: {...sites[0].write,
+            useId: 'collection-recovery-no-send'},
+          credential: sites[0].credential,
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 64, maxDepth: 6, maxRows: 2},
+          authorizeEvidenceRead: async () => true,
+        });
+        assert.equal(saved.claimed, false);
+        assert.equal(saved.outcomeReceipts.length, 2);
+        assert.equal(sites[0].seen.filter(item =>
+          item.method === 'PATCH').length, 1);
+        assert.equal(sites[0].journal.recover().length, 3);
+      }
       const rejectPublicationAndRetire = async (issuedSet, code,
         attemptId) => {
         const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
@@ -2637,8 +2678,9 @@ test(`two-member captured Effect Run ${
         ...applyOptions, ledger, dispatchRow,
       });
       assert.equal(applied.dispatched,
-        recoverAfterResponse || restartAfterTerminal || collectionPartial
-          ? 3 : 4);
+        collectionRecovered ? 2 :
+          recoverAfterResponse || restartAfterTerminal || collectionPartial
+            ? 3 : 4);
       if (collectionPartial) {
         assert.deepEqual(sent, [[0, 0], [1, 0], [1, 1]]);
         assert.deepEqual(sites.map(site => site.seen
@@ -2676,19 +2718,27 @@ test(`two-member captured Effect Run ${
         return;
       }
       if (siteRun) {
-        assert.equal(sites.flatMap(site => site.seen)
-          .filter(item => item.method === 'PATCH').length,
-          4);
-        assert.deepEqual(sites.map(site => site.journal.recover().length),
-          [4, 4]);
         assert.deepEqual(sites.map(site => site.seen
-          .filter(item => item.method === 'PATCH')
-          .map(item => JSON.parse(item.body).Name)),
-        [sourceIds, sourceIds]);
+          .filter(item => item.method === 'PATCH').length),
+        collectionRecovered ? [1, 2] : [2, 2]);
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+        collectionRecovered ? [3, 4] : [4, 4]);
+        if (collectionRecovered) {
+          const sentBatch = JSON.parse(sites[0].seen.find(item =>
+            item.method === 'PATCH').body);
+          assert.deepEqual(sentBatch.records.map(item => item.Name),
+            sourceIds);
+        } else {
+          assert.deepEqual(sites.map(site => site.seen
+            .filter(item => item.method === 'PATCH')
+            .map(item => JSON.parse(item.body).Name)),
+          [sourceIds, sourceIds]);
+        }
       }
       for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
         assert.deepEqual(sent.filter(item => item[0] === memberIndex)
-          .map(item => item[1]), [0, 1]);
+          .map(item => item[1]),
+        collectionRecovered && memberIndex === 0 ? [0] : [0, 1]);
       }
       ledger.close();
       ledger = openLedger();
@@ -2701,8 +2751,11 @@ test(`two-member captured Effect Run ${
         ledger, preview: applyPreview, commonMoon: moon,
         authorizeEvidenceRead: async () => true,
         publicationPreview: admittedPreview,
-        members: members.map(member => ({
-          rowOwners: member.claims.map(claim => ({claim})),
+        members: members.map((member, memberIndex) => ({
+          rowOwners: member.claims.map((claim, rowIndex) =>
+            collectionRecovered && memberIndex === 0
+              ? {claims: member.claims, batchRowIndex: rowIndex}
+              : {claim}),
           replayed: true,
         })),
         limits: publicationLimits,
@@ -2735,11 +2788,11 @@ test(`two-member captured Effect Run ${
       assert.equal(JSON.parse(finalReceipt.wire)
         .effect_set_apply_receipt_cid, issuedSet.set.identity);
       assert.equal(commitCalls, 1);
-      assert.equal(sent.length, 4);
+      assert.equal(sent.length, collectionRecovered ? 3 : 4);
       if (siteRun) {
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length,
-          4);
+        collectionRecovered ? 3 : 4);
       }
       await releaseCompletedRunPreparedPayloads(storedResults, control);
       assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);

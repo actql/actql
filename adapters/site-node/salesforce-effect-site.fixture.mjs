@@ -19,6 +19,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   commonMoon, salesforceMoon, runInvocationCid, dispatchRequestCid,
   orgId = '00D000000000001EAA',
   losePatchReplyOnce = false,
+  collectionPartial = true,
 }) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
@@ -94,11 +95,13 @@ export async function openSalesforceEffectSiteFixture(t, {
         assert.equal(batch.allOrNone, false);
         assert.equal(batch.records.length, 2);
         response.writeHead(200, {'content-type': 'application/json'});
-        response.end(JSON.stringify([
-          {id: null, success: false, errors: [{statusCode: 'INVALID_FIELD',
-            message: 'Rejected field', fields: ['Name']}]},
-          {id: '001000000000002', success: true, errors: []},
-        ]));
+        response.end(JSON.stringify(batch.records.map((_, index) =>
+          collectionPartial && index === 0
+            ? {id: null, success: false, errors: [
+              {statusCode: 'INVALID_FIELD', message: 'Rejected field',
+                fields: ['Name']}]}
+            : {id: `00100000000000${index + 1}`, success: true,
+              errors: []})));
       });
       return;
     }
