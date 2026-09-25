@@ -342,6 +342,176 @@ test "bounded supplied projection admits exact work and workspace" {
 }
 
 ///|
+fn long_supplied_projection_fixture(
+  output_text_bytes : Int,
+  output_work? : Int = 6000,
+  max_entries? : Int = 100,
+) -> (@bounded.Control, BoundedBindingRowsExecution, SuppliedRelationRead) raise {
+  let owner = input_owner()
+  let text = Array::make(256, "aaaaaaaaaaaaaaaa").join("")
+  let captured = capture_input(
+    owner,
+    0,
+    [input_cursor("{\"s\":\"" + text + "\",\"n\":3}")],
+    max_rows=1,
+    { max_nodes: 10, max_text_bytes: 5000, max_depth: 10, max_work: 6000, },
+  ).unwrap()
+  let read = prepare_supplied_relation_read(owner, 0, captured, fn() { true }).unwrap()
+  let sequence = prepared_sequence(owner)
+  let node = @lower.node_at(@lower.bound_preparation(owner), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    [@lower.node_id(node)],
+    10000,
+    1000,
+  ).unwrap()
+  let control = @bounded.control()
+  let active = start_bounded_binding_rows_supplied(
+    control,
+    generated,
+    read,
+    1,
+    { max_nodes: 10, max_text_bytes: 5000, max_depth: 10, max_work: 6000, },
+    {
+      max_nodes: 10,
+      max_text_bytes: output_text_bytes,
+      max_depth: 10,
+      max_work: output_work,
+    },
+    10000,
+    100,
+    max_entries,
+    10000,
+  ).unwrap()
+  (control, active, read)
+}
+
+///|
+test "bounded supplied projection stops during admitted output retention" {
+  let (control, active, read) = long_supplied_projection_fixture(4098)
+  let mut measuring = false
+  for _ in 0..<10000 {
+    if !measuring {
+      match advance_bounded_binding_rows(active, 1).unwrap() {
+        BoundedBindingRowsContinue(..) => ()
+        _ => fail("long projection ended before output retention")
+      }
+      measuring = active.state.phase is ChargeOutputRow &&
+        active.state.output_charge_measure is Some(_)
+    }
+  }
+  assert_true(measuring)
+  assert_true(
+    active.state.checked_row.any(value => value is ExactAdmittedOutputCell(_)),
+  )
+  guard active.state.output is Some(output) else {
+    fail("unpublished projection output is missing")
+  }
+  assert_eq(output.buffer.rows.length(), 0)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_binding_rows(active, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  assert_true(supplied_relation_read_available(read))
+}
+
+///|
+test "bounded supplied projection charges exact admitted output text" {
+  // One 4,096-byte value and two one-byte output field names are retained.
+  for (text_bytes, succeeds) in [(4098, true), (4097, false)] {
+    let (_, active, read) = long_supplied_projection_fixture(text_bytes)
+    let mut terminal = false
+    for _ in 0..<20000 {
+      if !terminal {
+        match advance_bounded_binding_rows(active, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(output, ..) => {
+            assert_true(succeeds)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..)
+          | BoundedBindingRowsFailed(Capture(CaptureLimit), ..) => {
+            assert_false(succeeds)
+            terminal = true
+          }
+          _ => fail("long projection ended with another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(supplied_relation_read_available(read))
+  }
+}
+
+///|
+test "bounded supplied projection admits exact work for copied long text" {
+  // A row node, two one-byte names, two cell nodes and 4,096 value bytes.
+  for (work, succeeds) in [(4101, true), (4100, false)] {
+    let (_, active, read) = long_supplied_projection_fixture(
+      4098,
+      output_work=work,
+    )
+    let mut terminal = false
+    for _ in 0..<20000 {
+      if !terminal {
+        match advance_bounded_binding_rows(active, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(_, ..) => {
+            assert_true(succeeds)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..)
+          | BoundedBindingRowsFailed(Capture(CaptureLimit), ..) => {
+            assert_false(succeeds)
+            terminal = true
+          }
+          _ => fail("long projection work boundary had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(supplied_relation_read_available(read))
+  }
+}
+
+///|
+test "bounded supplied projection reserves long capture overlap" {
+  for (slots, succeeds) in [(16, true), (15, false)] {
+    let (_, active, read) = long_supplied_projection_fixture(
+      4098,
+      max_entries=slots,
+    )
+    let mut terminal = false
+    for _ in 0..<20000 {
+      if !terminal {
+        match advance_bounded_binding_rows(active, 1).unwrap() {
+          BoundedBindingRowsContinue(..) => ()
+          BoundedBindingRowsComplete(_, ..) => {
+            assert_true(succeeds)
+            terminal = true
+          }
+          BoundedBindingRowsFailed(Rows(RowLimit), ..) => {
+            assert_false(succeeds)
+            terminal = true
+          }
+          _ => fail("long projection workspace had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_binding_rows(active).unwrap())
+    assert_true(supplied_relation_read_available(read))
+  }
+}
+
+///|
 test "supplied relation read rejects foreign owners and input positions" {
   let owner = input_owner()
   let rows = capture_input(owner, 0, [], max_rows=0, {

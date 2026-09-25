@@ -358,6 +358,34 @@
           "fixture": "bounded supplied projection admits exact work and workspace"
         },
         {
+          "role": "admitted_text_copy_in_flight_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection stops during admitted output retention"
+        },
+        {
+          "role": "admitted_text_copy_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection charges exact admitted output text"
+        },
+        {
+          "role": "admitted_text_copy_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection admits exact work for copied long text"
+        },
+        {
+          "role": "admitted_text_copy_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/supplied_input_wbtest.mbt",
+          "fixture": "bounded supplied projection reserves long capture overlap"
+        },
+        {
           "role": "supplied_relation_chain_two_consumers",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],

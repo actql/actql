@@ -40,6 +40,12 @@ priv enum BoundedBindingInput {
 }
 
 ///|
+priv enum BoundedOutputCell {
+  CheckedOutputCell(@admitted.CheckedValue)
+  ExactAdmittedOutputCell(@admitted.Value)
+}
+
+///|
 fn bounded_binding_input_row_count(input : BoundedBindingInput) -> Int {
   match input {
     CompletedBindingInput(read) => producer_read_row_count(read)
@@ -65,6 +71,37 @@ fn bounded_binding_input_cell(
     CompletedBindingInput(read) => producer_read_cell(read, row, column)
     SuppliedBindingInput(read) =>
       supplied_relation_read_cell(read, row, column).map(capture)
+  }
+}
+
+///|
+/// Only an admitted backing table can carry a reusable cell proof. A raw
+/// RowTable may contain computed values and must be checked again.
+fn bounded_binding_input_admitted_cell(
+  input : BoundedBindingInput,
+  row : Int,
+  column : Int,
+) -> @admitted.Value? {
+  match input {
+    CompletedBindingInput(read) =>
+      producer_read_admitted_cell(read, row, column)
+    SuppliedBindingInput(read) => supplied_relation_read_cell(read, row, column)
+  }
+}
+
+///|
+/// Text has no recursive contract children, so this equality check is bounded
+/// independently of the size of the retained value.
+fn bounded_binding_same_text_contract(
+  source : @contract.Contract,
+  output : @contract.Contract,
+) -> Bool {
+  if source.shape is @contract.Text(_) && output.shape is @contract.Text(_) {
+    @contract.type_equal(source, output, 1) catch {
+      _ => false
+    }
+  } else {
+    false
   }
 }
 
@@ -381,7 +418,8 @@ priv struct BoundedBindingRowsState {
   mut values : Array[Value]
   mut slot_roots : Array[ExpressionRootLease]
   mut output_row : Array[Value]
-  mut checked_row : Array[@admitted.CheckedValue]
+  // Exact admitted copies still pass stepped output and capture limits.
+  mut checked_row : Array[BoundedOutputCell]
   mut output_charge_open : Bool
   mut output_charge_column : Int
   mut output_charge_measure : SteppedValueMeasure?
@@ -1734,13 +1772,71 @@ fn bounded_binding_rows_step(
           }
           continue
         }
-        guard @schema.field_at(state.output_schema, state.column) is Some(field) &&
-          checked_ordered_output_value(
-            state.output_row[state.column],
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(value) else {
+        guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        let source_row = match state.sorted_indices {
+          Some(indices) => indices[state.row]
+          None => state.row
+        }
+        let exact_admitted = match state.projection_ordinals {
+          Some(projection) =>
+            match projection.get(state.output_names[state.column]) {
+              Some(source_column) =>
+                match
+                  @schema.field_at(
+                    bounded_binding_input_schema(state.input),
+                    source_column,
+                  ) {
+                  Some(source_field) =>
+                    if bounded_binding_same_text_contract(
+                        source_field.contract,
+                        field.contract,
+                      ) {
+                      bounded_binding_input_admitted_cell(
+                        state.input,
+                        source_row,
+                        source_column,
+                      )
+                    } else {
+                      None
+                    }
+                  None => None
+                }
+              None => None
+            }
+          None => None
+        }
+        let checked = match exact_admitted {
+          Some(@admitted.Text(_) as admitted) =>
+            match state.output_row[state.column] {
+              Text(_) if !bounded_small_output_value(
+                  state.output_row[state.column],
+                ) => {
+                state.output_requires_steps = true
+                Some(ExactAdmittedOutputCell(admitted))
+              }
+              _ =>
+                checked_ordered_output_value(
+                  state.output_row[state.column],
+                  field.contract,
+                  state.admitted_limits,
+                ).map(value => CheckedOutputCell(value))
+            }
+          None =>
+            checked_ordered_output_value(
+              state.output_row[state.column],
+              field.contract,
+              state.admitted_limits,
+            ).map(value => CheckedOutputCell(value))
+          Some(_) =>
+            checked_ordered_output_value(
+              state.output_row[state.column],
+              field.contract,
+              state.admitted_limits,
+            ).map(value => CheckedOutputCell(value))
+        }
+        guard checked is Some(checked) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
         if !reserve_slots(state.workspace, 1) {
@@ -1750,7 +1846,7 @@ fn bounded_binding_rows_step(
           !bounded_small_output_value(state.output_row[state.column]) {
           state.output_requires_steps = true
         }
-        state.checked_row.push(value)
+        state.checked_row.push(checked)
         state.column += 1
         used += 1
       }
@@ -1809,13 +1905,27 @@ fn bounded_binding_rows_step(
         } else if state.capture_charge_column < state.checked_row.length() {
           let column = state.capture_charge_column
           guard @schema.field_at(output.buffer.schema, column) is Some(field) &&
-            state.checked_row.get(column) is Some(checked) &&
-            physical_equal(field.contract, checked.contract) else {
+            state.checked_row.get(column) is Some(checked) else {
             return fail_bounded_binding_rows(
               Capture(ForeignCheckedValue(output.buffer.rows.length(), column)),
               progress,
               used,
             )
+          }
+          let admitted = match checked {
+            CheckedOutputCell(value) => {
+              if !physical_equal(field.contract, value.contract) {
+                return fail_bounded_binding_rows(
+                  Capture(
+                    ForeignCheckedValue(output.buffer.rows.length(), column),
+                  ),
+                  progress,
+                  used,
+                )
+              }
+              value.value
+            }
+            ExactAdmittedOutputCell(value) => value
           }
           if state.capture_charge_measure is None {
             if !charge_text(
@@ -1829,7 +1939,7 @@ fn bounded_binding_rows_step(
               )
             }
             guard start_stepped_measure_result(
-                Captured(checked.value),
+                Captured(admitted),
                 state.workspace,
               )
               is Some(cursor) else {
@@ -1854,7 +1964,7 @@ fn bounded_binding_rows_step(
               if !reserve_slots(state.workspace, 1) {
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
-              state.capture_row.push(checked.value)
+              state.capture_row.push(admitted)
               state.capture_charge_column += 1
             }
           }
@@ -1899,7 +2009,13 @@ fn bounded_binding_rows_step(
           }
           output.buffer.rows.push(state.capture_row)
         } else {
-          match append_admitted_output(output, state.checked_row) {
+          match
+            append_admitted_output_cells(output, state.checked_row.length(), index => {
+              match state.checked_row.get(index) {
+                Some(CheckedOutputCell(value)) => Some(value)
+                _ => None
+              }
+            }) {
             Err(issue) =>
               return fail_bounded_binding_rows(Capture(issue), progress, used)
             Ok(_) => ()

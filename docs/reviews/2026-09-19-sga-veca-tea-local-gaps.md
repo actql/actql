@@ -76,8 +76,13 @@ sorted-row value, retaining a long selected output value, and charging
 that value into the unpublished result buffer. Quantum-one cancellation,
 nonpublication, and independently calculated exact/one-short value and
 workspace limits cover these phases on three targets. This does not yet
-close the entire route: checked-value admission can still recheck an
-entire long value synchronously. The normal Host sort/take composition
+close the entire route: exact admitted Text copied under an equal typed
+contract now bypasses the redundant synchronous recheck, while both output
+budgets are still charged in bounded steps. A supplied-input fixture checks
+the exact proof branch, a 4,096-byte value, cancellation, exact/one-short
+text and work, and the overlapping workspace boundary. Raw RowTable values
+and recursive checked values can still recheck synchronously. The normal
+Host sort/take composition
 now includes a 512-byte selected value feeding two real downstream Computes
 and final cleanup. It is a connection control, not proof that every internal
 value pass is interruptible.
@@ -250,10 +255,11 @@ successful path reaches two downstream Computes and independent release.
 The existing scalar count case also has a delivered standard Host timer
 test. A 4,096-byte unused text cell has quantum-one, exact/one-short,
 and in-measurement stop/cleanup fixtures. Structured group keys are rejected
-by the formal `KeyComparable` check, but a long text group key can still be
-scanned synchronously by `checked_ordered_output_value` and again by
-`append_admitted_output`. The stepped input proof does not cover those output
-passes; they remain an explicit boundedness gap for keyed count.
+by the formal `KeyComparable` check. An exact admitted long Text group key
+now reuses its source proof and charges output in bounded steps; its output
+boundary, active cancellation, and two-consumer fixtures are separate from
+the input-scan proof. A providerless raw RowTable Text key still requires a
+synchronous canonical recheck, so the keyed route is not universally bounded.
 Other aggregate members and providerless whole-sequence group execution
 remain open.
 The `components` route has an independent one-node self-loop boundary:
