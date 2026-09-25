@@ -656,7 +656,10 @@ pub fn client_values_host_admit_completed_source_observation(
 /// evidence from its live capture and for current provider authorization.
 #export_name("clientValuesHostIssueTaskInvocation")
 pub fn client_values_host_issue_task_invocation(
+  prepared : @host.PreparedClientProgram,
   compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
   source_evidence_wire : String,
   input_logical_wire : String,
   source_ref : String,
@@ -669,6 +672,16 @@ pub fn client_values_host_issue_task_invocation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Array[String], @publication.RunEvidenceValueIssue] {
+  if @host.bind_client_task_run(
+      prepared, compilation, admission, run_definition,
+    )
+    is Err(_) {
+    return Err(
+      @publication.RunEvidenceValueIssue::RunEvidenceReferenceMismatch(
+        "task_run",
+      ),
+    )
+  }
   let source = match
     @publication.admit_run_evidence_value(
       "source_evidence", source_evidence_wire, max_wire_bytes, max_nodes, max_depth,

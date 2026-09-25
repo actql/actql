@@ -732,7 +732,10 @@ export function issueTaskInvocation(prepared, compilation, admission,
   }
   const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
   const facts = checked(owner.clientValuesHostIssueTaskInvocation(
-    compiled.value, sourceEvidenceWire, inputLogicalWire, sourceRef,
+    requireHandle(preparations, prepared), compiled.value,
+    requireHandle(admissions, admission).value,
+    requireHandle(definitions, definition), sourceEvidenceWire,
+    inputLogicalWire, sourceRef,
     sourceContractCid, authorityScopeCid, dataPolicyCid,
     captureStartedAt, captureCompletedAt, maxWireBytes, maxNodes,
     maxDepth), 'RunHostTaskInvocationRejected');
