@@ -3,17 +3,22 @@
 // inferred from a missing configuration.
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
+import {existsSync} from 'node:fs';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 
 // Tests build the JS release bundles they load, as other release-bundle tests
 // do; product loaders never build. Each package is built at most once per
 // process, synchronously, because `fixtureSourceAccess` below installs a gate
-// while this module is evaluated.
+// while this module is evaluated. An isolated tree without MoonBit sources
+// (scripts/check-node-without-duckdb.mjs) carries the compiled bundles it
+// copied and is not rebuilt.
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+const hasMoonBitSources = existsSync(join(repositoryRoot, 'moon.mod'));
 const builtRuntimes = new Set();
 function ensureReleaseBundle(pkg) {
-  if (builtRuntimes.has(pkg)) return;
+  if (!hasMoonBitSources || builtRuntimes.has(pkg)) return;
   execFileSync('moon', ['build', '--target', 'js', '--release', `src/${pkg}`],
     {cwd: repositoryRoot, stdio: ['ignore', 'ignore', 'pipe']});
   builtRuntimes.add(pkg);
