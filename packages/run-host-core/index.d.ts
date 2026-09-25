@@ -7,6 +7,7 @@ declare const definitionBrand: unique symbol;
 declare const publicationBrand: unique symbol;
 declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
+declare const capturedSnapshotBrand: unique symbol;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
@@ -63,6 +64,10 @@ export interface RunEvidence {
   readonly token: {readonly [runEvidenceBrand]: true};
   readonly cid: string;
   readonly wire: string;
+}
+
+export interface CapturedResultSnapshot {
+  readonly token: {readonly [capturedSnapshotBrand]: true};
 }
 
 export interface PublicationLimits {
@@ -304,3 +309,31 @@ export function issuePublicationRecord(attempt: PublicationContract,
     cleanupOwnerCids: readonly string[];
     uncommittedConfirmed: boolean;
   }>, limits: PublicationLimits): PublicationContract;
+/** The shared owner checks the full Effect-free completion chain. */
+export function issueEffectFreeRunReceipt(admission: RunAdmission,
+  runDefinition: PublicationContract, invocation: PublicationContract,
+  observation: RunEvidence,
+  definitions: readonly PublicationContract[],
+  artifacts: readonly PublicationContract[],
+  manifest: PublicationContract, normalizationJournal: RunEvidence,
+  facts: Readonly<{
+    bindingNames: readonly string[];
+    bindingDigests: readonly string[];
+    sourceEvidence: readonly RunEvidence[];
+    modelEvidence: readonly RunEvidence[];
+    barrierAttemptReceiptCids: readonly string[];
+  }>, limits: PublicationLimits): PublicationContract;
+/** Rows are checked against the issued Result Artifact before capture. */
+export function admitCapturedResultSnapshot(definition: PublicationContract,
+  artifact: PublicationContract, rowsWire: string,
+  fields: readonly string[], limits: PublicationLimits):
+  CapturedResultSnapshot;
+/** Source-free capture has no source-state advances to invent. */
+export function issueSourceFreeCapturedRun(
+  runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[],
+  artifacts: readonly PublicationContract[],
+  manifest: PublicationContract, receipt: PublicationContract,
+  snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence,
+  models: readonly RunEvidence[], limits: PublicationLimits):
+  PublicationContract;

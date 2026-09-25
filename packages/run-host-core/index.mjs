@@ -9,6 +9,7 @@ const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
 const runEvidences = new WeakMap();
 const resultOccurrences = new WeakMap();
+const capturedSnapshots = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
@@ -716,4 +717,73 @@ export function issuePublicationRecord(attempt, previous, facts, limits) {
       publicationToken(facts.publicIndexEntry), facts.failureCid,
     facts.cleanupOwnerCids, facts.uncommittedConfirmed,
     maxWireBytes, maxNodes, maxDepth), 'RunHostPublicationRecordRejected'));
+}
+
+function evidenceItems(values) {
+  if (!Array.isArray(values)) {
+    throw new TypeError('InvalidRunHostEvidenceInventory');
+  }
+  return values.map(value => requireHandle(runEvidences, value?.token));
+}
+
+export function issueEffectFreeRunReceipt(admission, runDefinition,
+  invocation, observation, definitions, artifacts, manifest,
+  normalizationJournal, facts, limits) {
+  if (facts === null || typeof facts !== 'object' ||
+      !Array.isArray(facts.bindingNames) ||
+      !facts.bindingNames.every(value => typeof value === 'string') ||
+      !Array.isArray(facts.bindingDigests) ||
+      !facts.bindingDigests.every(value => typeof value === 'string') ||
+      !Array.isArray(facts.barrierAttemptReceiptCids) ||
+      !facts.barrierAttemptReceiptCids.every(value =>
+        typeof value === 'string')) {
+    throw new TypeError('InvalidRunHostReceiptFacts');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssueEffectFreeRunReceipt(
+      requireHandle(admissions, admission).value,
+      publicationToken(runDefinition), publicationToken(invocation),
+      requireHandle(runEvidences, observation?.token),
+      publicationItems(definitions), publicationItems(artifacts),
+      publicationToken(manifest),
+      requireHandle(runEvidences, normalizationJournal?.token),
+      facts.bindingNames, facts.bindingDigests,
+      evidenceItems(facts.sourceEvidence),
+      evidenceItems(facts.modelEvidence),
+      facts.barrierAttemptReceiptCids,
+      maxWireBytes, maxNodes, maxDepth),
+    'RunHostReceiptRejected'));
+}
+
+export function admitCapturedResultSnapshot(definition, artifact, rowsWire,
+  fields, limits) {
+  if (typeof rowsWire !== 'string' || !Array.isArray(fields) ||
+      !fields.every(value => typeof value === 'string')) {
+    throw new TypeError('InvalidRunHostCapturedRows');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const snapshot = checked(owner.clientValuesHostAdmitCapturedResultSnapshot(
+    publicationToken(definition), publicationToken(artifact), rowsWire,
+    fields, maxWireBytes, maxNodes, maxDepth),
+  'RunHostCapturedRowsRejected');
+  return handle(capturedSnapshots, snapshot, 'captured-result-snapshot');
+}
+
+export function issueSourceFreeCapturedRun(runDefinition, invocation,
+  definitions, artifacts, manifest, receipt, snapshots, authoring, models,
+  limits) {
+  if (!Array.isArray(snapshots)) {
+    throw new TypeError('InvalidRunHostCapturedInventory');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return publicationContract(checked(
+    owner.clientValuesHostIssueSourceFreeCapturedRun(
+      publicationToken(runDefinition), publicationToken(invocation),
+      publicationItems(definitions), publicationItems(artifacts),
+      publicationToken(manifest), publicationToken(receipt),
+      snapshots.map(value => requireHandle(capturedSnapshots, value)),
+      requireHandle(runEvidences, authoring?.token), evidenceItems(models),
+      maxWireBytes, maxNodes, maxDepth),
+    'RunHostCapturedRunRejected'));
 }

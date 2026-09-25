@@ -1247,3 +1247,75 @@ pub fn client_values_host_issue_publication_record(
     max_wire_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+/// The shared issuer checks the complete Effect-free Run evidence chain.
+#export_name("clientValuesHostIssueEffectFreeRunReceipt")
+pub fn client_values_host_issue_effect_free_run_receipt(
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  normalization_journal : @publication.RunEvidenceValue,
+  binding_names : Array[String],
+  binding_digests : Array[String],
+  source_evidence : Array[@publication.RunEvidenceValue],
+  model_evidence : Array[@publication.RunEvidenceValue],
+  barrier_attempt_receipt_cids : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.RunReceiptIssuanceIssue] {
+  @publication.issue_effect_free_run_receipt(
+    admission, run_definition, invocation, observation, definitions,
+    artifacts, manifest, normalization_journal, binding_names,
+    binding_digests, source_evidence, model_evidence,
+    barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Captured rows must match the previously issued logical Result Artifact.
+#export_name("clientValuesHostAdmitCapturedResultSnapshot")
+pub fn client_values_host_admit_captured_result_snapshot(
+  definition : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  rows_wire : String,
+  fields : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.CapturedResultSnapshot, @publication.CapturedRunIssuanceIssue] {
+  @publication.admit_captured_result_snapshot(
+    definition, artifact, rows_wire, fields, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Source-free capture has no pending source-state advances. Other capture
+/// modes must expose their checked advances through a separate shared API.
+#export_name("clientValuesHostIssueSourceFreeCapturedRun")
+pub fn client_values_host_issue_source_free_captured_run(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.CapturedRunIssuanceIssue] {
+  @publication.issue_effect_free_captured_run(
+    run_definition, invocation, definitions, artifacts, manifest,
+    receipt, snapshots, [], authoring, models, max_wire_bytes, max_nodes,
+    max_depth,
+  )
+}

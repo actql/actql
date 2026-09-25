@@ -13,6 +13,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueDurableResultBinding,
   issuePublicationRequest, issuePublicationAttempt,
   issuePublicIndexEntry, issuePublicationRecord,
+  issueEffectFreeRunReceipt, admitCapturedResultSnapshot,
+  issueSourceFreeCapturedRun,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
@@ -38,6 +40,19 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('captured completion requires owner-admitted handles', () => {
+  const limits = {maxWireBytes: 4096, maxNodes: 128, maxDepth: 16};
+  assert.throws(() => admitCapturedResultSnapshot({}, {}, '[]', [],
+    limits), {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  assert.throws(() => issueEffectFreeRunReceipt({}, {}, {}, {}, [], [],
+    {}, {}, {bindingNames: [], bindingDigests: [], sourceEvidence: [],
+      modelEvidence: [], barrierAttemptReceiptCids: []}, limits),
+  {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  assert.throws(() => issueSourceFreeCapturedRun({}, {}, [], [], {}, {},
+    [], {}, [], limits),
+  {name: 'TypeError', message: 'ForeignRunHostHandle'});
+});
 
 test('portable Host re-admits exact publication evidence', () => {
   const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};

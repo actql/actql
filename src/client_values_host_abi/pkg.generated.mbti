@@ -11,6 +11,8 @@ import {
 }
 
 // Values
+pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]
+
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
@@ -55,6 +57,8 @@ pub fn client_values_host_issue_complete_result_artifact(@run_publication.Public
 
 pub fn client_values_host_issue_durable_result_binding(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.DurableResultBindingIssue]
 
+pub fn client_values_host_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.RunReceiptIssuanceIssue]
+
 pub fn client_values_host_issue_public_index_entry(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
 
 pub fn client_values_host_issue_publication_attempt(@run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationCommitIssuanceIssue]
@@ -68,6 +72,8 @@ pub fn client_values_host_issue_result_manifest(@run_publication.PublicationCont
 pub fn client_values_host_issue_result_occurrence_evidence(@run_publication.PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, @run_publication.ResultEvidenceIssuanceIssue]
 
 pub fn client_values_host_issue_run_definition(@run_publication.RunPublicationAdmission, String, String, String, String, String) -> Result[@run_publication.PublicationContract, @run_publication.RunPublicationAdmissionIssue]
+
+pub fn client_values_host_issue_source_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.CapturedRunIssuanceIssue]
 
 pub fn client_values_host_issue_source_free_invocation(@run_publication_host.ClientValuesCompilation, String, Int, Int, Int) -> Result[Array[String], @run_publication.RunEvidenceValueIssue]
 
