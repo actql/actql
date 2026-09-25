@@ -101,6 +101,13 @@ external facts, run every obligation against the same captured owner before
 any mutation, and carry a non-forgeable admitted owner into common dispatch.
 Calling those checks independently from a provider-specific writer would
 leave a bypass and would not close R2-G1.
+Plan proof issuance and complete-member inventory admission now live in the
+shared `physical_strategy` owner. Both the full and RelA-only Node bridges
+call that same MoonBit implementation; their duplicate proof types and
+inventory loops were removed. Three-target tests, the real Host bridge, the
+RelA-only product artifact, public interfaces, and documentation gates pass.
+This gives the future whole-set apply owner a portable, non-forgeable payload
+proof, but does not itself admit current authority or unlock dispatch.
 
 The installed Host now connects a live Preview input to the generation-checked
 managed Result importer and the common canonical Result cursor. For each row,
