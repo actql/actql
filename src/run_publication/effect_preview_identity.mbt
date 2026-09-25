@@ -663,6 +663,49 @@ fn effect_member_row_inventory(
     Some(@json.Array(items)) => @json.array_values(items)
     _ => return Err(InvalidMember)
   }
+  if @json.object_field(effect, "effect_kind") is Some(@json.String("create")) {
+    let after_wires : Array[String] = []
+    for change in changes {
+      guard @json.object_field(change, "after") is Some(after) else {
+        return Err(InvalidMember)
+      }
+      let wire = @json.stringify_value(
+        after, max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(Encoding)
+      }
+      after_wires.push(wire)
+    }
+    let inventory = match
+      derive_effect_create_row_inventory(
+        after_wires,
+        changes.length(),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    for position in 0..<changes.length() {
+      let (source_index, expected) = inventory[position]
+      if source_index != position {
+        return Err(RowInventoryMismatch(index))
+      }
+      guard @json.object_field(changes[position], "target_row_identity")
+        is Some(actual) else {
+        return Err(InvalidMember)
+      }
+      let actual_wire = @json.stringify_value(
+        actual, max_wire_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(Encoding)
+      }
+      if actual_wire != expected {
+        return Err(RowIdentityMismatch(index, position))
+      }
+    }
+  }
   guard @json.object_field(effect, "count") is Some(@json.Number(count)) &&
     @json.object_field(effect, "max_items") is Some(@json.Number(max_items)) &&
     count == changes.length().to_double() &&

@@ -87,6 +87,8 @@ pub fn delivery_record_retry_action_code(DeliveryRecordRetryAction) -> Int
 
 pub fn delivery_result_definition_cid(PublicationContract, PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn derive_effect_create_row_inventory(Array[String], Int, Int, Int, Int) -> Result[Array[(Int, String)], EffectPreviewIdentityIssue]
+
 pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String, Array[String]), EffectPreviewIdentityIssue]
 
 pub fn derive_effect_preview_row_identities(String, Int, Int, Int) -> Result[Array[Array[String]], EffectPreviewIdentityIssue]

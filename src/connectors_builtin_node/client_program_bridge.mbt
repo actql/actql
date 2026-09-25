@@ -2173,6 +2173,22 @@ pub fn client_program_author_effect_preview(
 }
 
 ///|
+/// Return the common canonical create-row order and distinct correlation for
+/// every source row. This does not authorize a write or read a physical body.
+#export_name("clientProgramEffectCreateRowInventory")
+pub fn client_program_effect_create_row_inventory(
+  after_wires : Array[String],
+  max_rows : Int,
+  max_total_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(Int, String)], @publication.EffectPreviewIdentityIssue] {
+  @publication.derive_effect_create_row_inventory(
+    after_wires, max_rows, max_total_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// Check the complete semantic preflight on one captured Preview owner.
 /// The Host must independently authenticate all current facts and claim the
 /// physical send through its durable Effect ledger before any mutation.

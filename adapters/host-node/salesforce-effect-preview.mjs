@@ -4,6 +4,19 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+const parseExactJson = wire => {
+  let value;
+  try {
+    value = JSON.parse(wire);
+  } catch {
+    fail('InvalidSalesforceEffectPreviewAuthoring');
+  }
+  if (JSON.stringify(value) !== wire) {
+    fail('LossySalesforceEffectPreviewProjection');
+  }
+  return value;
+};
+
 // Only Salesforce's typed request and target observation determine a row's
 // target, guard, before, after, and intended changes. This authors no grant or
 // apply permit; the checked captured owner must still admit the whole Preview.
@@ -36,19 +49,62 @@ export function authorObservedSalesforceEffectPreview({
   }
   let rowCount = 0;
   let projectedBytes = Buffer.byteLength(templateWire, 'utf8');
+  const requestOrder = [];
   for (const [memberIndex, member] of members.entries()) {
     const proposal = template.effects[memberIndex];
     if (!Array.isArray(member?.requests) ||
-        !Array.isArray(member?.observations) ||
-        member.requests.length !== member.observations.length ||
+        (proposal?.effect_kind !== 'create' &&
+          (!Array.isArray(member?.observations) ||
+            member.requests.length !== member.observations.length)) ||
         !Array.isArray(proposal?.changes) ||
         proposal.changes.length !== member.requests.length ||
-        !['update', 'upsert'].includes(proposal.effect_kind) ||
+        !['create', 'update', 'upsert'].includes(proposal.effect_kind) ||
         member.requests.length > proposal.max_items ||
         rowCount + member.requests.length > maxRows) {
       fail('InvalidSalesforceEffectPreviewAuthoring');
     }
     rowCount += member.requests.length;
+    if (proposal.effect_kind === 'create') {
+      const afterWires = [];
+      for (const [rowIndex, request] of member.requests.entries()) {
+        if (salesforceMoon.salesforceSingleWriteRequestEffectKind(request) !==
+            'create') {
+          fail('ForeignSalesforceEffectPreviewObservation');
+        }
+        const bodyWire = salesforceMoon.salesforceSingleWriteRequestBody(request);
+        const bodyBytes = typeof bodyWire === 'string' ?
+          Buffer.byteLength(bodyWire, 'utf8') : maxWireBytes;
+        if (typeof bodyWire !== 'string' ||
+            bodyBytes > (maxWireBytes - projectedBytes) / 2) {
+          fail('SalesforceEffectPreviewByteLimit');
+        }
+        const body = parseExactJson(bodyWire);
+        if (body === null || Array.isArray(body) || typeof body !== 'object') {
+          fail('InvalidSalesforceEffectPreviewAuthoring');
+        }
+        projectedBytes += bodyBytes * 2;
+        const after = {state: 'present', value: body};
+        afterWires.push(JSON.stringify(after));
+        proposal.changes[rowIndex] = {
+          ...proposal.changes[rowIndex],
+          target_guard: {state: 'not_applicable'},
+          before: {state: 'absent'},
+          after,
+          intended_changes: {state: 'present', value: body},
+        };
+      }
+      const inventory = checked(moon.clientProgramEffectCreateRowInventory(
+        afterWires, member.requests.length, maxWireBytes,
+        maxNodes, maxDepth));
+      const original = proposal.changes;
+      proposal.changes = inventory.map(entry => ({
+        ...original[entry._0],
+        target_row_identity: parseExactJson(entry._1),
+      }));
+      requestOrder.push(inventory.map(entry => entry._0));
+      continue;
+    }
+    requestOrder.push(member.requests.map((_, index) => index));
     for (const [rowIndex, request] of member.requests.entries()) {
       const observation = member.observations[rowIndex];
       if (!observation?.record || observation.request !== request) {
@@ -71,11 +127,11 @@ export function authorObservedSalesforceEffectPreview({
       }
       proposal.changes[rowIndex] = {
         ...proposal.changes[rowIndex],
-        target_row_identity: JSON.parse(fields[0]),
+        target_row_identity: parseExactJson(fields[0]),
         target_guard: {state: 'version', version_cid: fields[1]},
-        before: {state: 'present', value: JSON.parse(fields[2])},
-        after: {state: 'present', value: JSON.parse(fields[3])},
-        intended_changes: {state: 'present', value: JSON.parse(fields[4])},
+        before: {state: 'present', value: parseExactJson(fields[2])},
+        after: {state: 'present', value: parseExactJson(fields[3])},
+        intended_changes: {state: 'present', value: parseExactJson(fields[4])},
       };
     }
   }
@@ -90,5 +146,7 @@ export function authorObservedSalesforceEffectPreview({
     rowCount, maxKeyBytes, maxKeyNodes, maxKeyDepth));
   return Object.freeze({wire: authored._0,
     authoringCid: template.authoring_context.authoring_context_cid,
-    keys: authored._1});
+    keys: authored._1,
+    requestOrder: Object.freeze(requestOrder.map(order =>
+      Object.freeze(order)))});
 }

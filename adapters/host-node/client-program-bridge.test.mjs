@@ -2124,6 +2124,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
+  'salesforce-create-duplicates',
   'salesforce-publication-restart',
   'salesforce-overlap', 'salesforce-stale-target',
   'salesforce-unknown', 'salesforce-lost-http-reply',
@@ -2163,7 +2164,10 @@ test(`two-member captured Effect Run ${
     const continueMembers = continueAfterUnknown || collectionMode
       ? ['save'] : [];
     const sourceIds = siteRun
-      ? ['001000000000001', '001000000000002'] : undefined;
+      ? physical === 'salesforce-create-duplicates'
+        ? ['001000000000001', '001000000000001']
+        : ['001000000000001', '001000000000002']
+      : undefined;
     const target = siteRun ? 'connector://salesforce/Test_Record__c'
       : 'connector://crm/account';
     const mappingRef = siteRun ? 'mapping:salesforce.test-record.v1'
@@ -2359,7 +2363,7 @@ test(`two-member captured Effect Run ${
             JSON.parse(proposedRows[memberIndex][rowIndex].changesWire)
               .value)),
           1024, 32, 5)))) : undefined;
-      const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
+      let siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map((value, rowIndex) => {
         return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
           siteBodies[memberIndex][rowIndex], 'v62.0',
@@ -2424,16 +2428,77 @@ test(`two-member captured Effect Run ${
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
           footprints: siteFootprints, continueMembers,
           guardVersions: previewGuardVersions,
-          templateOnly: siteRun && writeKind !== 'create'});
-      const preview = siteRun && writeKind !== 'create'
+          templateOnly: siteRun});
+      const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
-            requests, observations: previewTargetObservations[index],
+            requests, observations: previewTargetObservations?.[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
         }) : previewDraft;
+      if (siteRun && writeKind === 'create') {
+        assert.throws(() => checked(moon.clientProgramAuthorEffectPreview(
+          previewDraft.wire,
+          JSON.parse(previewDraft.wire).run_identity_cid,
+          previewDraft.authoringCid, requestScope,
+          20000, 1000, 20, 2, 4, 128, 8, 3,
+        )), {code: 'MoonBitHostFailure'});
+        siteRequests = siteRequests.map((requests, memberIndex) =>
+          preview.requestOrder[memberIndex].map(index => requests[index]));
+        const fabricated = JSON.parse(previewDraft.wire);
+        fabricated.effects[0].changes[0].after =
+          {state: 'present', value: {Name: 'fabricated'}};
+        fabricated.effects[0].changes[0].target_guard =
+          {state: 'version', version_cid: cid('9')};
+        const restored = authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, templateWire: JSON.stringify(fabricated),
+          requestScope, members: siteRequests.map(requests => ({requests})),
+          maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+        });
+        assert.equal(restored.wire, preview.wire);
+        if (physical === 'salesforce-create') {
+          assert.throws(() => authorObservedSalesforceEffectPreview({
+            moon, salesforceMoon: {...salesforceMoon,
+              salesforceSingleWriteRequestBody: () =>
+                '{"Name":9007199254740993}'},
+            templateWire: previewDraft.wire, requestScope,
+            members: siteRequests.map(requests => ({requests})),
+            maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+            maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+            maxKeyNodes: 8, maxKeyDepth: 3,
+          }), {code: 'LossySalesforceEffectPreviewProjection'});
+        }
+        const foreignContent = JSON.parse(preview.wire);
+        foreignContent.effects[0].changes[0]
+          .target_row_identity.content_cid = cid('9');
+        assert.throws(() => effect.derivePreviewIdentities(
+          canonicalJson(foreignContent), 20000, 1000, 20),
+        {code: 'MoonBitHostFailure'});
+        const foreignOrder = JSON.parse(preview.wire);
+        foreignOrder.effects[0].changes.reverse();
+        assert.throws(() => effect.derivePreviewIdentities(
+          canonicalJson(foreignOrder), 20000, 1000, 20),
+        {code: 'MoonBitHostFailure'});
+        for (const member of JSON.parse(preview.wire).effects) {
+          assert.deepEqual(member.changes.map(change =>
+            change.target_guard), [
+            {state: 'not_applicable'}, {state: 'not_applicable'},
+          ]);
+          assert.ok(member.changes.every(change =>
+            typeof change.target_row_identity.content_cid === 'string' &&
+            Number.isInteger(change.target_row_identity.occurrence)));
+          if (physical === 'salesforce-create-duplicates') {
+            assert.deepEqual(member.changes.map(change =>
+              change.target_row_identity.occurrence), [0, 1]);
+            assert.equal(member.changes[0].target_row_identity.content_cid,
+              member.changes[1].target_row_identity.content_cid);
+          }
+        }
+      }
       if (physical === 'salesforce') {
         const alteredTemplate = JSON.parse(previewDraft.wire);
         alteredTemplate.effects[0].changes[0].before =

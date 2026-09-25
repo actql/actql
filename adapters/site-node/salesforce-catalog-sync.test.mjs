@@ -1326,7 +1326,12 @@ test('Host custody binds one HTTPS Collections response to every row',
       salesforceMoon.salesforcePrepareWriteBody(projection,
         Buffer.from(JSON.stringify({External_Key__c: key})),
         1024, 32, 5)));
-    const contentCids = [cid('c'), cid('d')];
+    // Independent fixed hashes of the 0.1 content-row preimages for key-1
+    // and key-2; neither the request builder nor the author is the oracle.
+    const contentCids = [
+      'sha256:7ce09707fd3536365f014709747d65543e87e2275954be399195ea40f84af20d',
+      'sha256:cd284cc2dafaee96a14341975ded56ad6072cf0aff34891428b711df06afbd31',
+    ];
     const rowCids = contentCids.map((contentCid, index) => {
       const after = {state: 'present', value: {
         External_Key__c: `key-${index + 1}`}};
