@@ -5,7 +5,7 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {promisify} from 'node:util';
-import {managedCaseConfiguration, productResidentOffer} from
+import {managedCaseConfiguration, nativeRegisteredResidentOffer} from
   './managed-configuration.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 import {workloads} from './fixtures.mjs';
@@ -21,7 +21,7 @@ import {productAcquisitionMetadata} from
 // override only.
 export async function prepareNativeDirectProduct({root, fixture, database,
   directory, nativeMs = '1000', localRates, nativeRates,
-  residentPolicy = productResidentOffer}) {
+  residentPolicy = nativeRegisteredResidentOffer}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
   assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
   const text = path => readFile(join(root, path), 'utf8');

@@ -10,6 +10,11 @@ import {workloads} from './fixtures.mjs';
 // case name selects it. Diagnostics that construct their own selection keep
 // their explicit inputs.
 export const productResidentOffer = true;
+// The registered Native pair admission counts one physical attempt per task.
+// A resident environment and its imports are further physical attempts, so
+// the Native product runs without the resident offer until that admission
+// accounts for them. The resident Native Host itself is tested separately.
+export const nativeRegisteredResidentOffer = false;
 
 export function managedCaseConfiguration(fixture, contracts, database, directory) {
   const l = fixture.limits;

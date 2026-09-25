@@ -8,7 +8,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {retainedCase, retainedMatrix, workloads} from './fixtures.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
-import {productResidentOffer} from './managed-configuration.mjs';
+import {nativeRegisteredResidentOffer} from './managed-configuration.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
 
@@ -47,14 +47,14 @@ const rates = name => {
 };
 if (!/^(0|[1-9][0-9]*)$/.test(nativeMs) ||
     BigInt(nativeMs) > 2147483647n) throw new TypeError('InvalidNativeProbeEstimate');
-// Absent: the product selection (productResidentOffer). Present: an explicit
+// Absent: the product selection (nativeRegisteredResidentOffer). Present: an explicit
 // diagnostic override.
 const residentText = options.get('resident-policy');
 if (residentText !== undefined && !['true', 'false'].includes(residentText)) {
   throw new TypeError('InvalidNativeResidentPolicy');
 }
 const residentPolicy = residentText === undefined
-  ? productResidentOffer : residentText === 'true';
+  ? nativeRegisteredResidentOffer : residentText === 'true';
 const localRates = rates('local-task-ms');
 const nativeRates = rates('native-task-ms');
 const localEligible = registeredLocalEligibility(fixture).eligible;
