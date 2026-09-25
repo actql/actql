@@ -1465,6 +1465,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_relation_provider"
+      },
       "boundary_tests": [
         {
           "role": "lag_empty_schema_workspace_exact_one_short",
@@ -1472,6 +1476,37 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/lag_sequence_wbtest.mbt",
           "fixture": "empty lag reserves output schema before copying input names"
+        },
+        {
+          "role": "lag_selected_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_lag_wbtest.mbt",
+          "fixture": "bounded lag admits its exact structural workspace peak"
+        },
+        {
+          "role": "lag_selected_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_lag_wbtest.mbt",
+          "fixture": "bounded lag stops and reclaims before publishing rows"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "lag_selected_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "parameter lag",
+          "case": "lagProgram"
+        },
+        {
+          "role": "lag_selected_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-lag-in-flight"
         }
       ]
     },

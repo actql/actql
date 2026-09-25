@@ -2,7 +2,7 @@
 
 ## Current delivery unit and acceptance boundary
 
-Assessed at product source commit `b9b183987c7a9d37e4cc1c41f667a2b652c7e84b` against the
+Assessed at product source commit `2460736acc05961df2188f53a19dc3e947955184` against the
 current product code and the historical Local work order and progress review.
 This section describes the current delivery unit, not the whole original
 RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
@@ -103,6 +103,12 @@ Host-delivered timer cancellation after positive work. Its independent
 whole-sequence entrypoint remains unassured and the providerless synchronous
 fallback remains reachable; this is selected-only evidence, not completion
 of `watermark_rows` or of the delivery unit.
+The `lag` step in a `values -> assert_unique -> lag` Stage now reaches the
+selected bounded row provider. Quantum-one tests cover partition ordering,
+workspace exact/one-short, cancellation and cleanup; the standard Host runs
+both downstream consumers and delivers an in-flight timer cancellation.
+Its selected work boundary and the independent whole-sequence entrypoint
+remain unassured, so this does not close the strict resource gate.
 The review of `0e8e0ada` found a binary input scan cleanup gap. The shared
 scan cleanup, Append/CrossJoin wiring, retained-frame assertions, borrowed
 input checks, and standard Host input-admission cancellation were already
