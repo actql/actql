@@ -13,6 +13,8 @@ import {applyCapturedEffectSet} from './effect-run-apply.mjs';
 import {captureSalesforceCollectionEffectWrite,
   captureSalesforceSingleEffectWrite} from
   './salesforce-effect-write.mjs';
+import {authorObservedSalesforceEffectPreview} from
+  './salesforce-effect-preview.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
 import {observeSalesforceTargetSet} from
@@ -255,7 +257,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   memberBoundaries = memberIds.map((_, index) => cid(String(index))),
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
-    footprints, continueMembers = [], guardVersions, beforeValues} = {}) {
+    footprints, continueMembers = [], guardVersions,
+    templateOnly = false} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -303,8 +306,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         intended_changes: {state: 'present', value: writeKind === 'create'
           ? {Name: value, External_Key__c: value} : {Name: value}},
         before: writeKind === 'create' ? {state: 'absent'}
-          : {state: 'present', value: beforeValues?.[memberIndex]?.[index]
-            ?? {Name: typeof value === 'string' ? 'before' : 0}},
+          : {state: 'present', value: {Name: typeof value === 'string'
+            ? 'before' : 0}},
         after: {state: 'present', value: writeKind === 'create'
           ? {Name: value, External_Key__c: value} : {Name: value}},
         row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
@@ -320,6 +323,10 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         moon.clientProgramEffectPlanCid(prepared, index, 10, 100,
           20000, 1000, 20));
     }
+  }
+  if (templateOnly) {
+    return {wire: canonicalJson(preview),
+      authoringCid: authoring.authoring_context_cid};
   }
   if (scope !== undefined) {
     const authored = checked(moon.clientProgramAuthorEffectPreview(
@@ -2357,11 +2364,9 @@ test(`two-member captured Effect Run ${
         ? await observeCurrentTargets() : undefined;
       const previewGuardVersions = previewTargetObservations?.map(member =>
         member.map(observed => observed.versionCid));
-      const previewBeforeValues = previewTargetObservations?.map(member =>
-        member.map(observed => JSON.parse(observed.beforeWire)));
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
-      const preview = effectInputPreview(
+      const previewDraft = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
         writeKind,
@@ -2372,7 +2377,45 @@ test(`two-member captured Effect Run ${
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
           footprints: siteFootprints, continueMembers,
           guardVersions: previewGuardVersions,
-          beforeValues: previewBeforeValues});
+          templateOnly: siteRun && writeKind !== 'create'});
+      const preview = siteRun && writeKind !== 'create'
+        ? authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, templateWire: previewDraft.wire,
+          requestScope, members: siteRequests.map((requests, index) => ({
+            requests, observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+        }) : previewDraft;
+      if (physical === 'salesforce') {
+        const alteredTemplate = JSON.parse(previewDraft.wire);
+        alteredTemplate.effects[0].changes[0].before =
+          {state: 'present', value: {Name: 'fabricated-before'}};
+        alteredTemplate.effects[0].changes[0].after =
+          {state: 'present', value: {Name: 'fabricated-after'}};
+        alteredTemplate.effects[0].changes[0].target_guard =
+          {state: 'version', version_cid: cid('9')};
+        const restored = authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, templateWire: JSON.stringify(alteredTemplate),
+          requestScope, members: siteRequests.map((requests, index) => ({
+            requests, observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+        });
+        assert.equal(restored.wire, preview.wire);
+        const foreignObservations = previewTargetObservations.map(rows =>
+          [...rows]);
+        foreignObservations[0][0] = previewTargetObservations[1][0];
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, templateWire: previewDraft.wire,
+          requestScope, members: siteRequests.map((requests, index) => ({
+            requests, observations: foreignObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+        }), {code: 'ForeignSalesforceEffectPreviewObservation'});
+      }
       const authoringContext = control.admitRunEvidence(
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),

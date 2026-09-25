@@ -29,7 +29,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The installed Host fixture now authors update/upsert Preview guards from authorized target GETs and reobserves every target before the common MoonBit whole-set preflight. MoonBit now seals the row, member, set and dispatch-key chain in one product authoring operation. A changed target rejects the set with zero writes and zero write-credential uses. The general Salesforce Host operation still needs to assemble the semantic Preview body from captured input and exact observations, rather than leaving that assembly to the fixture. | Connect the exact observed records, checked plan values and guard CIDs to one production Preview body assembly before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
+| The product Salesforce Host operation now fills update/upsert Preview row facts from exact typed requests and target observations, and MoonBit seals the row, member, set and dispatch-key chain. The installed Host fixture reobserves every target before the common whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. The surrounding semantic Preview template and checked Plan values are still assembled by the fixture, not one general Host authoring operation. | Derive the complete template and mapped values from the captured input and checked Program through a production Host caller, then bind the exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -46,10 +46,13 @@ apply. The Site owns a target-set read operation bounded by row count and
 total response bytes; over-limit inventories fail before credential use, and
 a 404 cannot become a version guard. A changed target is rejected by the common
 preflight before any write request or write credential use. The observation
-inventory and its typed before-value projection are product Site operations,
-but Preview assembly remains in the Host fixture. The row-to-set identity and
-dispatch-key sealing step now uses one MoonBit product operation; semantic
-body assembly is still not a general Host authoring operation.
+inventory and its typed before-value projection are product Site operations.
+The product Host row assembler now replaces update/upsert target, guard,
+before, after, and intended-change fields from one exact typed request and
+observation; it rejects an observation from another request. The fixture still
+provides the surrounding semantic template and mapped values. Row-to-set
+identity and dispatch-key sealing uses one MoonBit product operation; complete
+semantic body assembly is not yet a general Host authoring operation.
 A Store restart after durable index commit leaves a commit-unknown owner
 that reconciles the exact
 index without another Effect send. The installed SDK can then attach, inspect

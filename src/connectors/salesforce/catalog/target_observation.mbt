@@ -22,6 +22,101 @@ pub struct TargetObservation {
   version_cid : String
   response_sha256 : String
   before_value_wire : String
+  source_path : String
+  source_body : String
+  source_catalog_cid : String
+  source_boundary_cid : String
+  source_scheme_cid : String
+  source_object_cid : String
+}
+
+///|
+/// Provider-specific row facts for the common private Effect Preview.
+/// This records no apply authority and does not replace plan verification.
+pub struct TargetPreviewRow {
+  target_row_identity_wire : String
+  target_guard_cid : String
+  before_value_wire : String
+  after_value_wire : String
+  intended_changes_wire : String
+}
+
+///|
+pub fn target_preview_row_target_wire(value : TargetPreviewRow) -> String {
+  value.target_row_identity_wire
+}
+
+///|
+pub fn target_preview_row_guard_cid(value : TargetPreviewRow) -> String {
+  value.target_guard_cid
+}
+
+///|
+pub fn target_preview_row_before_wire(value : TargetPreviewRow) -> String {
+  value.before_value_wire
+}
+
+///|
+pub fn target_preview_row_after_wire(value : TargetPreviewRow) -> String {
+  value.after_value_wire
+}
+
+///|
+pub fn target_preview_row_changes_wire(value : TargetPreviewRow) -> String {
+  value.intended_changes_wire
+}
+
+///|
+pub fn prepare_observed_target_preview_row(
+  request : SingleWriteRequest,
+  observation : TargetObservation,
+  max_identity_bytes : Int,
+) -> Result[TargetPreviewRow, TargetObservationIssue] {
+  if max_identity_bytes < 1 {
+    return Err(InvalidLimits)
+  }
+  let target = match
+    prepare_write_target_identity(
+      request.projection,
+      request.target,
+      request.max_target_bytes,
+      max_identity_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidRecord)
+  }
+  if request.verb != "PATCH" ||
+    request.path != observation.source_path ||
+    request.body != observation.source_body ||
+    request.projection.observation_cid != observation.source_catalog_cid ||
+    target.boundary_cid != observation.source_boundary_cid ||
+    target.scheme_cid != observation.source_scheme_cid ||
+    target.object_cid != observation.source_object_cid {
+    return Err(ForeignTarget)
+  }
+  let output = @encode.writer(max_identity_bytes, 2, 1) catch {
+    _ => return Err(CapacityExceeded)
+  }
+  try {
+    match request.target {
+      RecordId(value) | ExternalText(value) =>
+        @encode.string_value(output, value)
+      ExternalInt(value) => @encode.number_value(output, value.to_double())
+      NoWriteTarget => return Err(InvalidRecord)
+    }
+  } catch {
+    _ => return Err(CapacityExceeded)
+  }
+  let target_row_identity_wire = @encode.finish(output) catch {
+    _ => return Err(CapacityExceeded)
+  }
+  Ok({
+    target_row_identity_wire,
+    target_guard_cid: observation.version_cid,
+    before_value_wire: observation.before_value_wire,
+    after_value_wire: request.body,
+    intended_changes_wire: request.body,
+  })
 }
 
 ///|
@@ -200,5 +295,15 @@ pub fn prepare_target_observation(
     Ok(value) => value
     Err(_) => return Err(CapacityExceeded)
   }
-  Ok({ version_cid, response_sha256, before_value_wire, })
+  Ok({
+    version_cid,
+    response_sha256,
+    before_value_wire,
+    source_path: request.path,
+    source_body: request.body,
+    source_catalog_cid: request.projection.observation_cid,
+    source_boundary_cid: expected.boundary_cid,
+    source_scheme_cid: expected.scheme_cid,
+    source_object_cid: expected.object_cid,
+  })
 }
