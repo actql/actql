@@ -2098,6 +2098,8 @@ pub fn client_program_effect_risk_unsigned_payload_cid(
 ///|
 /// Compare Host-verified risk facts with the same live captured Preview.
 /// The Host must first verify their authentication and current authority.
+/// `require_partial_application` is the Host-declared delegated-decision
+/// policy; member count alone never requires the risk claim.
 #export_name("clientProgramCheckEffectRiskAcceptanceBody")
 pub fn client_program_check_effect_risk_acceptance_body(
   preview : @strategy.CapturedEffectPreviewInputs,
@@ -2110,10 +2112,11 @@ pub fn client_program_check_effect_risk_acceptance_body(
   authentication_evidence_cid : String,
   issuer_kind : String,
   decision : String,
+  require_partial_application : Bool,
 ) -> Result[Unit, @strategy.CapturedEffectRiskIssue] {
   @strategy.check_captured_effect_risk_acceptance_body(
     preview, body, review_projection_cid, authority_scope_cid, policy_cid, validity_evidence_cid,
-    issuer_evidence_cid, authentication_evidence_cid, issuer_kind, decision,
+    issuer_evidence_cid, authentication_evidence_cid, issuer_kind, decision, require_partial_application,
   )
 }
 
@@ -2285,6 +2288,8 @@ pub fn client_program_effect_create_row_inventory(
 /// Check the complete semantic preflight on one captured Preview owner.
 /// The Host must independently authenticate all current facts and claim the
 /// physical send through its durable Effect ledger before any mutation.
+/// `risk` is absent (`undefined`) when the Host holds no risk-acceptance
+/// body; it is required only under `require_partial_application`.
 #export_name("clientProgramCheckEffectApplyPreflight")
 pub fn client_program_check_effect_apply_preflight(
   preview : @strategy.CapturedEffectPreviewInputs,
@@ -2296,7 +2301,8 @@ pub fn client_program_check_effect_apply_preflight(
   guard_row_cids : Array[String],
   guard_version_cids : Array[String],
   routes : Array[@effect.EffectApplyCapabilityObservation],
-  risk : @effect.EffectRiskAcceptanceBody,
+  risk : @effect.EffectRiskAcceptanceBody?,
+  require_partial_application : Bool,
   review_projection_cid : String,
   risk_authority_scope_cid : String,
   policy_cid : String,
@@ -2326,7 +2332,8 @@ pub fn client_program_check_effect_apply_preflight(
   })
   @strategy.check_captured_effect_apply_preflight(
     preview, proofs, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
-    authority_scope_cids, guards, routes, risk, review_projection_cid, risk_authority_scope_cid,
+    authority_scope_cids, guards, routes, risk, require_partial_application, review_projection_cid,
+    risk_authority_scope_cid,
     policy_cid, validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid,
     issuer_kind, decision, request_scope, keys, max_members, max_rows, max_targets,
     max_work,

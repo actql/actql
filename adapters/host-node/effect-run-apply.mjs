@@ -45,6 +45,15 @@ export async function applyCapturedEffectSet({
   if (totalRows === 0 || totalRows > 100_000) {
     fail('InvalidCapturedEffectApply');
   }
+  // Risk acceptance is Host policy, not a member-count floor: a body is
+  // passed only when the Host holds one, and `partial_application_accepted`
+  // is required only when the Host's delegated-decision policy declares it.
+  if (preflight.requirePartialApplication !== undefined &&
+      typeof preflight.requirePartialApplication !== 'boolean') {
+    fail('InvalidCapturedEffectApply');
+  }
+  const requirePartialApplication =
+    preflight.requirePartialApplication === true;
   signal?.throwIfAborted();
   const control = runtimeCore(moon).effectApplicationControl;
   const initialFrontier = ledger.frontierFromCapturedHeads(
@@ -62,7 +71,8 @@ export async function applyCapturedEffectSet({
     preflight.contracts, preflight.capabilities, preflight.authorities,
     currentGuards.observedRows, currentGuards.guardVersions,
     preflight.routes,
-    preflight.risk, preflight.reviewProjectionCid,
+    preflight.risk ?? undefined, requirePartialApplication,
+    preflight.reviewProjectionCid,
     preflight.authorityScopeCid, preflight.policyCid,
     preflight.validityCid, preflight.issuerCid,
     preflight.authenticationCid, preflight.issuerKind,
