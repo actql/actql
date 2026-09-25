@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
+import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
@@ -313,6 +314,106 @@ try {
   releaseDispatch();
   await new Promise(resolve => remoteServer.close(resolve));
 }
+await writeFile(join(root, 'restart-remote-host.mjs'), `
+import {readFileSync} from 'node:fs';
+import {createServer} from 'node:https';
+import {userInfo} from 'node:os';
+import {join} from 'node:path';
+import {openInstalledRemoteHttpHost} from
+  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+const host = await openInstalledRemoteHttpHost({
+  directory: join(process.cwd(), 'restart-remote-state'),
+  authenticate: header => header === 'Bearer packed-test-token'
+    ? userInfo().username : undefined,
+  beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
+    ? async () => new Promise(() => {}) : undefined,
+});
+const server = createServer({key: readFileSync('remote.key'),
+  cert: readFileSync('remote.crt')}, host.handler);
+server.listen(0, '127.0.0.1', () => {
+  console.log('READY:' + server.address().port);
+});
+`);
+await writeFile(join(root, 'reserve-remote.mjs'), `
+import assert from 'node:assert/strict';
+import {readFileSync, writeFileSync} from 'node:fs';
+import {connect} from '@actql/node';
+const client = await connect({mode: 'remote',
+  endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
+  token: 'packed-test-token', durability: 'durable'});
+const document = readFileSync('values.json', 'utf8');
+const execution = await client.aql(document, {format: 'json',
+  requestId: 'packed-restart-before-physical-start'});
+for (let attempt = 0; attempt < 100; attempt++) {
+  if ((await execution.status()).status === 'running') break;
+  await new Promise(resolve => setTimeout(resolve, 20));
+}
+assert.equal((await execution.status()).status, 'running');
+writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
+client.close();
+`);
+await writeFile(join(root, 'resume-remote.mjs'), `
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {connect} from '@actql/node';
+const client = await connect({mode: 'remote',
+  endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
+  token: 'packed-test-token', durability: 'durable'});
+const document = readFileSync('values.json', 'utf8');
+const ref = JSON.parse(readFileSync('restart-remote-ref.json', 'utf8'));
+const attached = await client.attach(ref);
+assert.equal((await attached.status()).status, 'running');
+const execution = await client.aql(document, {format: 'json',
+  requestId: 'packed-restart-before-physical-start'});
+assert.deepEqual(execution.ref, ref);
+assert.equal((await execution.wait()).status, 'succeeded');
+assert.deepEqual(await execution.result('answer').all(),
+  [{id: 1}, {id: 2}]);
+const repeated = await client.aql(document, {format: 'json',
+  requestId: 'packed-restart-before-physical-start'});
+assert.deepEqual(repeated.ref, ref);
+assert.equal((await repeated.status()).status, 'succeeded');
+assert.deepEqual((await client.lookupRequest(
+  'packed-restart-before-physical-start')).ref, ref);
+client.close();
+`);
+async function startRestartHost(hold) {
+  const child = spawn(process.execPath, ['restart-remote-host.mjs'], {
+    cwd: root, env: {...environment, ACTQL_HOLD_DISPATCH: hold ? '1' : '0'},
+  });
+  let output = '';
+  return new Promise((resolve, reject) => {
+    child.stdout.setEncoding('utf8').on('data', chunk => {
+      output += chunk;
+      const ready = output.match(/READY:(\d+)/u);
+      if (ready) resolve({child, port: Number(ready[1])});
+    });
+    child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
+    child.on('error', reject);
+    child.on('exit', code => reject(new Error(
+      `Packed restart Host exited before ready (${code}): ${output}`)));
+  });
+}
+async function stopRestartHost(host) {
+  if (host.child.exitCode !== null) return;
+  const stopped = once(host.child, 'exit');
+  host.child.kill('SIGTERM');
+  await stopped;
+}
+const heldHost = await startRestartHost(true);
+try {
+  await runAsync(process.execPath, ['reserve-remote.mjs'], root, {
+    ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${heldHost.port}/`,
+    NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
+  });
+} finally { await stopRestartHost(heldHost); }
+const resumedHost = await startRestartHost(false);
+try {
+  await runAsync(process.execPath, ['resume-remote.mjs'], root, {
+    ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${resumedHost.port}/`,
+    NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
+  });
+} finally { await stopRestartHost(resumedHost); }
 await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';

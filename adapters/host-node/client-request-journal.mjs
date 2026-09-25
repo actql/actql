@@ -123,7 +123,7 @@ const columns = `authority_scope_cid, caller_request_id,
   tenant_id, run_definition_cid, run_definition_wire, revision,
   lookup_expires_at, result_names_json`;
 const selectColumns = `${columns}, dispatch_reserved,
-  pre_dispatch_failure_confirmed`;
+  pre_dispatch_failure_confirmed, physical_start_reserved`;
 
 export function openClientRequestJournal(directory, {
   maxRecords = 100_000,
@@ -166,6 +166,8 @@ export function openClientRequestJournal(directory, {
           CHECK (dispatch_reserved IN (0, 1)),
         pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0
           CHECK (pre_dispatch_failure_confirmed IN (0, 1)),
+        physical_start_reserved INTEGER NOT NULL DEFAULT 0
+          CHECK (physical_start_reserved IN (0, 1)),
         PRIMARY KEY (authority_scope_cid, caller_request_id)
       ) STRICT;
     `);
@@ -200,6 +202,22 @@ export function openClientRequestJournal(directory, {
         + 'pre_dispatch_failure_confirmed INTEGER NOT NULL DEFAULT 0 '
         + 'CHECK (pre_dispatch_failure_confirmed IN (0, 1))');
     }
+    if (!fields.some(field => field.name === 'physical_start_reserved')) {
+      // Existing reserved Runs may have started physical work. Keep their
+      // observation unknown, while new rows default to confirmed unstarted.
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        database.exec('ALTER TABLE client_requests ADD COLUMN '
+          + 'physical_start_reserved INTEGER DEFAULT 0 '
+          + 'CHECK (physical_start_reserved IN (0, 1))');
+        database.exec('UPDATE client_requests SET physical_start_reserved = '
+          + 'NULL WHERE dispatch_reserved = 1');
+        database.exec('COMMIT');
+      } catch (error) {
+        database.exec('ROLLBACK');
+        throw error;
+      }
+    }
     if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
@@ -226,7 +244,12 @@ export function openClientRequestJournal(directory, {
     SET pre_dispatch_failure_confirmed = 1, revision = revision + 1
     WHERE tenant_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ? AND dispatch_reserved = 1 AND
-      pre_dispatch_failure_confirmed = 0`);
+      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0`);
+  const reservePhysicalStart = database.prepare(`UPDATE client_requests
+    SET physical_start_reserved = 1, revision = revision + 1
+    WHERE tenant_id = ? AND authority_scope_cid = ? AND
+      run_definition_cid = ? AND dispatch_reserved = 1 AND
+      pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0`);
 
   const acceptRecord = (identity, {tenantId, runDefinitionCid,
     runDefinitionWire, resultNames, revision = 0, lookupExpiresAt}, control) => {
@@ -382,6 +405,8 @@ export function openClientRequestJournal(directory, {
         dispatchReserved: retained.row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           retained.row.pre_dispatch_failure_confirmed === 1,
+        physicalStartReserved: retained.row.physical_start_reserved === null
+          ? undefined : retained.row.physical_start_reserved === 1,
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
@@ -413,6 +438,8 @@ export function openClientRequestJournal(directory, {
         dispatchReserved: row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           row.pre_dispatch_failure_confirmed === 1,
+        physicalStartReserved: row.physical_start_reserved === null
+          ? undefined : row.physical_start_reserved === 1,
         runDefinition: retainedRunDefinition(
           row, publicationControl, maxRunDefinitionWireBytes),
       });
@@ -446,6 +473,8 @@ export function openClientRequestJournal(directory, {
         dispatchReserved: retained.row.dispatch_reserved === 1,
         preDispatchFailureConfirmed:
           retained.row.pre_dispatch_failure_confirmed === 1,
+        physicalStartReserved: retained.row.physical_start_reserved === null
+          ? undefined : retained.row.physical_start_reserved === 1,
       });
     },
     // Physical admit-or-lookup ordering for a checked request. The common
@@ -516,6 +545,42 @@ export function openClientRequestJournal(directory, {
         fail('ClientRunStartUnknown', error);
       }
     },
+    // The exact durable claim precedes the call that can start physical
+    // Compute. A missing claim is safe to resume; a claim or legacy unknown
+    // is never evidence that Compute did not run.
+    reservePhysicalStart(ref) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid)) {
+        fail('InvalidClientRunPhysicalStart');
+      }
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+        if (row === undefined || row.dispatch_reserved !== 1) {
+          fail('ClientRunPhysicalStartDenied');
+        }
+        if (row.pre_dispatch_failure_confirmed === 1 ||
+            row.physical_start_reserved !== 0) {
+          database.exec('COMMIT');
+          return false;
+        }
+        if (reservePhysicalStart.run(ref.tenantId,
+          ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
+          fail('ClientRequestJournalCorrupt');
+        }
+        database.exec('COMMIT');
+        return true;
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) { fail('ClientRunPhysicalStartUnknown', rollback); }
+        if (typeof error?.code === 'string' &&
+            (error.code.startsWith('ClientRun') ||
+              error.code.startsWith('ClientRequest'))) throw error;
+        fail('ClientRunPhysicalStartUnknown', error);
+      }
+    },
     // Physical Host evidence only: a failure before invoking Site execution
     // is confirmed. A lost reply or absent worker cannot call this method.
     markPreDispatchFailure(ref) {
@@ -528,7 +593,9 @@ export function openClientRequestJournal(directory, {
       try {
         const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
           ref.runDefinitionCid);
-        if (row === undefined || row.dispatch_reserved !== 1) {
+        if (row === undefined || row.dispatch_reserved !== 1 ||
+            row.pre_dispatch_failure_confirmed === 0 &&
+            row.physical_start_reserved !== 0) {
           fail('ClientRunFailureObservationDenied');
         }
         if (row.pre_dispatch_failure_confirmed === 0 &&

@@ -268,10 +268,40 @@ test('only an exact reserved Run retains a confirmed pre-dispatch failure',
     const retained = reopened.lookupRunDefinition(accepted.ref, moon,
       publicationControl);
     assert.equal(retained.preDispatchFailureConfirmed, true);
+    assert.equal(retained.physicalStartReserved, false);
     assert.equal(retained.revision, 2);
+    assert.equal(reopened.reservePhysicalStart(accepted.ref), false);
     assert.equal(reopened.reserveDispatch(identity(), {
       tenantId: 'tenant-a', currentAuthorization: true,
     }, moon, publicationControl).kind, 'reconcile');
+  });
+
+test('a restarted Run can claim physical start once after a safe reservation',
+  async t => {
+    const path = await directory(t);
+    const first = openClientRequestJournal(path);
+    const accepted = first.acceptDefinition(identity(), {
+      tenantId: 'tenant-a', runDefinition: runDefinition('restart-before-site'),
+      lookupExpiresAt: expires,
+    }, moon, publicationControl);
+    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    first.close();
+    const reopened = openClientRequestJournal(path);
+    t.after(() => reopened.close());
+    assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
+      publicationControl).physicalStartReserved, false);
+    assert.throws(() => reopened.reservePhysicalStart({
+      ...accepted.ref, tenantId: 'other-tenant',
+    }), {code: 'ClientRunPhysicalStartDenied'});
+    assert.equal(reopened.reservePhysicalStart(accepted.ref), true);
+    assert.equal(reopened.reservePhysicalStart(accepted.ref), false);
+    assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
+      publicationControl).physicalStartReserved, true);
+    assert.throws(() => reopened.markPreDispatchFailure(accepted.ref),
+      {code: 'ClientRunFailureObservationDenied'});
+    assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
+      publicationControl).revision, 2);
   });
 
 test('checked Result inventory stays with the durable Run', async t => {
@@ -509,6 +539,35 @@ test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
     assert.equal(start.kind, 'reconcile');
     assert.equal(start.revision, 0);
     assert.equal(start.ref.runDefinitionCid, definition.identity);
+    assert.equal(migrated.lookupRunDefinition(start.ref, moon,
+      publicationControl).physicalStartReserved, undefined);
+    assert.equal(migrated.reservePhysicalStart(start.ref), false);
+  });
+
+test('prior reserved Runs never migrate into a safe physical restart',
+  async t => {
+    const path = await directory(t);
+    const first = openClientRequestJournal(path);
+    const accepted = first.acceptDefinition(identity(), {
+      tenantId: 'tenant-a', runDefinition: runDefinition('prior-reserved'),
+      lookupExpiresAt: expires,
+    }, moon, publicationControl);
+    first.reserveDispatch(identity(), {tenantId: 'tenant-a',
+      currentAuthorization: true}, moon, publicationControl);
+    first.close();
+    const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+    database.exec('ALTER TABLE client_requests DROP COLUMN '
+      + 'physical_start_reserved');
+    database.close();
+    const migrated = openClientRequestJournal(path);
+    t.after(() => migrated.close());
+    const retained = migrated.lookupRunDefinition(accepted.ref, moon,
+      publicationControl);
+    assert.equal(retained.dispatchReserved, true);
+    assert.equal(retained.physicalStartReserved, undefined);
+    assert.equal(migrated.reservePhysicalStart(accepted.ref), false);
+    assert.throws(() => migrated.markPreDispatchFailure(accepted.ref),
+      {code: 'ClientRunFailureObservationDenied'});
   });
 
 test('the atomic key rejects changed intent and keeps the original Run',

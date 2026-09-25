@@ -207,15 +207,21 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
         return plan.runDefinition;
       },
     }, moon, control);
-    if (!activeDispatches.has(accepted.ref.runDefinitionCid) &&
-        accepted.dispatchReserved !== true) {
+    const unstarted = accepted.dispatchReserved !== true ||
+      accepted.physicalStartReserved === false &&
+      !accepted.preDispatchFailureConfirmed;
+    if (!activeDispatches.has(accepted.ref.runDefinitionCid) && unstarted) {
       const active = {promise: undefined, reserved: false,
-        physicalStarted: false};
+        physicalStarted: false, physicalStartClaimAttempted: false};
       activeDispatches.set(accepted.ref.runDefinitionCid, active);
       active.promise = Promise.resolve().then(async () => {
         const start = await startRun({identity: requested, tenantId,
           principalId: actual, connection});
-        if (start.kind !== 'reserved') return;
+        if (start.kind !== 'reserved' &&
+            !(start.kind === 'reconcile' &&
+              accepted.dispatchReserved === true &&
+              accepted.physicalStartReserved === false &&
+              !accepted.preDispatchFailureConfirmed)) return;
         active.reserved = true;
         if (beforeDispatch !== undefined) await beforeDispatch(start.ref);
         if (plan === undefined) {
@@ -230,13 +236,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
+        active.physicalStartClaimAttempted = true;
+        if (!journal.reservePhysicalStart(accepted.ref)) return;
         active.physicalStarted = true;
         const published = await runPublishedCapturedStrategy(setup,
           {store, plan});
         await published.close();
         await published.cleanup();
       }).catch(async cause => {
-        if (active.reserved && !active.physicalStarted) {
+        if (active.reserved && !active.physicalStartClaimAttempted) {
           try { journal.markPreDispatchFailure(accepted.ref); } catch {}
         }
         if (cause?.execution) {
