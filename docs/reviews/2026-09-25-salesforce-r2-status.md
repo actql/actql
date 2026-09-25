@@ -40,6 +40,22 @@ known and unknown facts without creating another Client-side Effect scheduler.
 This branch will supply the completed Host/Site operation and its tests; the
 Distribution owner supplies public ingress and package-facing state access.
 
+Distribution handoff: install Effect-aware preparation at the existing public
+`submit` boundary and retain the prepared owner with the admitted Run, rather
+than rerunning the checker from a serialized copy. Its submit callback must
+use the same captured computation owner, Preview and apply authority supplied
+to `applyCapturedEffectSet`; each Site write remains bound to that member's
+exact row claim. It must return one Run reference for `attach`, `status`,
+`wait`, `cancel` and `reconcile`. The existing authorized Result reader must
+use the committed index for that reference; an unknown or partial-failure
+set must not be exposed as a successful published Result. Acceptance is a
+`connectClient` test that submits the two-member Program through public HTTP.
+One run must retain `needs_reconciliation` after a lost write reply and
+restart. A separate recoverable run must publish `answer` only after commit,
+allow an authorized read, and release its last private and public holdings.
+The Host/Site tests below provide the physical fault cases, but they do not
+substitute for this public-Client test.
+
 Outside this completion unit, but still part of the original broader plan,
 are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
 other distribution modes and frontends, and the separately managed performance
