@@ -5,7 +5,8 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {promisify} from 'node:util';
-import {managedCaseConfiguration} from './managed-configuration.mjs';
+import {managedCaseConfiguration, productResidentOffer} from
+  './managed-configuration.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 import {workloads} from './fixtures.mjs';
 import {productAcquisitionMetadata} from
@@ -14,11 +15,13 @@ import {productAcquisitionMetadata} from
 // The caller prepares a registered source before the process-cold interval.
 // The binary performs application admission, planning, execution, retention,
 // downstream reads, and confirmed release inside that interval.
-// residentPolicy installs the resident DuckDB profile as a strategy candidate
-// for every case alike; the portable strategy still selects where it is used.
+// The resident DuckDB profile is offered from the same product selection as
+// the Node managed product leg, for every case alike; the portable strategy
+// still selects where it is used. An explicit residentPolicy is a diagnostic
+// override only.
 export async function prepareNativeDirectProduct({root, fixture, database,
   directory, nativeMs = '1000', localRates, nativeRates,
-  residentPolicy = false}) {
+  residentPolicy = productResidentOffer}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
   assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
   const text = path => readFile(join(root, path), 'utf8');

@@ -3,6 +3,14 @@
 import {benchmarkEnvironment} from './environment.mjs';
 import {workloads} from './fixtures.mjs';
 
+// Product selection shared by the Node managed product leg (retained-case)
+// and the native product (native-direct-product): the resident DuckDB profile
+// is offered to the portable strategy, which still decides per task from its
+// estimates and resource ceilings. It is the same for every case; no size or
+// case name selects it. Diagnostics that construct their own selection keep
+// their explicit inputs.
+export const productResidentOffer = true;
+
 export function managedCaseConfiguration(fixture, contracts, database, directory) {
   const l = fixture.limits;
   const environment = benchmarkEnvironment(fixture);

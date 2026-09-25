@@ -21,6 +21,7 @@ if (await git(['status', '--porcelain'])) throw Error('DiagnosticCheckoutDirty')
 const load = path => import(pathToFileURL(join(root, path)).href);
 const {retainedCase} = await load('benchmarks/retained-results/fixtures.mjs');
 const {runRetainedComparator} = await load('adapters/connectors/duckdb/node/bench/retained-comparator.mjs');
+const {productResidentOffer} = await load('benchmarks/retained-results/managed-configuration.mjs');
 const {admitRetainedEstimateProfile} = await load('benchmarks/retained-results/estimate-profile.mjs');
 const {admitRetainedProductSample} = await load(
   'benchmarks/retained-results/product-sample-admission.mjs');
@@ -69,7 +70,7 @@ try {
       targetSourceSha256: targetSourceHash};
   }
   const report = await runRetainedComparator(fixture, contracts, resolve(database), resolve(directory),
-    {resident: true,
+    {resident: productResidentOffer,
       nativeMilliseconds: estimates?.nativeTaskMilliseconds[0] ?? nativeMilliseconds,
       ...(estimates ? {localEligible: estimates.localEligible,
         ...(estimates.localEligible ? {
