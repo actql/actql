@@ -43,6 +43,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   ]);
   const seen = [];
   let loseReply = loseWriteReplyOnce;
+  let observedName = 'before';
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -72,6 +73,15 @@ export async function openSalesforceEffectSiteFixture(t, {
             defaultedOnCreate: false, createable: true,
             updateable: true},
         ]}));
+      return;
+    }
+    if (request.method === 'GET' && request.url?.startsWith(
+        `${prefix}sobjects/Test_Record__c/`)) {
+      const target = decodeURIComponent(request.url.slice(
+        `${prefix}sobjects/Test_Record__c/`.length).split('/').at(-1));
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({Id: target, Name: observedName,
+        External_Key__c: target}));
       return;
     }
     if (request.method === 'POST' && request.url ===
@@ -176,6 +186,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   };
   const list = authorize('salesforce:catalog:list');
   const describe = authorize('salesforce:catalog:describe');
+  const observe = authorize('salesforce:record:observe');
   const write = authorize(`salesforce:record:${writeOperation}`);
   const credential = {orgId, control, journal,
     resolveSecret: async () => 'test-only-secret', ca,
@@ -194,5 +205,6 @@ export async function openSalesforceEffectSiteFixture(t, {
       maxFields: 20, maxNameUnits: 1000},
   });
   assert.equal(catalog.status, 'complete');
-  return {seen, journal, orgId, origin, catalog, write, credential};
+  return {seen, journal, orgId, origin, catalog, observe, write, credential,
+    setTargetName(name) { observedName = name; }};
 }

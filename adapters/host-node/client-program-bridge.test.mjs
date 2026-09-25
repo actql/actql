@@ -15,6 +15,8 @@ import {captureSalesforceCollectionEffectWrite,
   './salesforce-effect-write.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
+import {observeSalesforceSingleTarget} from
+  '../site-node/salesforce-target-observation.mjs';
 import * as salesforceMoon from
   '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {issueAuthorizedEffectSetReceipt} from
@@ -253,7 +255,7 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   memberBoundaries = memberIds.map((_, index) => cid(String(index))),
   scope, {target = 'connector://crm/account',
     mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
-    footprints, continueMembers = []} = {}) {
+    footprints, continueMembers = [], guardVersions} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -296,7 +298,8 @@ function effectInputPreview(prepared, evidence, definition, invocation,
         target_row_identity: targetRows[index],
         target_guard: writeKind === 'create'
           ? {state: 'not_applicable'}
-          : {state: 'version', version_cid: cid('6')},
+          : {state: 'version', version_cid:
+            guardVersions?.[memberIndex]?.[index] ?? cid('6')},
         intended_changes: {state: 'present', value: writeKind === 'create'
           ? {Name: value, External_Key__c: value} : {Name: value}},
         before: writeKind === 'create' ? {state: 'absent'}
@@ -2073,7 +2076,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
   'salesforce-publication-restart',
-  'salesforce-overlap',
+  'salesforce-overlap', 'salesforce-stale-target',
   'salesforce-unknown', 'salesforce-lost-http-reply',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
@@ -2082,8 +2085,9 @@ test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
     physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
-    physical === 'salesforce-overlap'
-      ? 'rejects overlapping members before send' :
+    physical === 'salesforce-overlap' ||
+      physical === 'salesforce-stale-target'
+      ? 'rejects stale or overlapping members before send' :
     physical === 'salesforce-publication-restart'
       ? 'reconciles publication after Store restart' :
     physical === 'salesforce-collection-partial'
@@ -2310,6 +2314,36 @@ test(`two-member captured Effect Run ${
       if (overlappingMembers) {
         siteFootprints[1] = siteFootprints[0];
       }
+      let targetRead = 0;
+      const observeCurrentTargets = async ({signal} = {}) => {
+        const observations = [];
+        for (let memberIndex = 0; memberIndex < memberIds.length;
+          memberIndex++) {
+          const site = sites[memberIndex];
+          const member = [];
+          for (const request of siteRequests[memberIndex]) {
+            const observed = await observeSalesforceSingleTarget({
+              moon: salesforceMoon, request,
+              currentCatalog: site.catalog.observation,
+              authorization: {...site.observe,
+                useId: `target-read-${targetRead++}`},
+              credential: site.credential,
+              limits: {maxResponseBytes: 1024, maxNodes: 32,
+                maxDepth: 5, maxIdentityBytes: 1024},
+              signal,
+            });
+            assert.equal(observed.statusCode, 200);
+            assert.ok(observed.versionCid);
+            member.push(observed);
+          }
+          observations.push(member);
+        }
+        return observations;
+      };
+      const previewTargetObservations = siteRun && writeKind !== 'create'
+        ? await observeCurrentTargets() : undefined;
+      const previewGuardVersions = previewTargetObservations?.map(member =>
+        member.map(observed => observed.versionCid));
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
       const preview = effectInputPreview(
@@ -2321,7 +2355,8 @@ test(`two-member captured Effect Run ${
         siteRun ? siteBoundaries : [cid('0'), cid('1')],
         requestScope, {target, mapping: mappingRef,
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
-          footprints: siteFootprints, continueMembers});
+          footprints: siteFootprints, continueMembers,
+          guardVersions: previewGuardVersions});
       const authoringContext = control.admitRunEvidence(
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -2494,7 +2529,7 @@ test(`two-member captured Effect Run ${
         capabilities: [cid('d'), cid('d')],
         authorities: [cid('e'), cid('e')],
         observedRows, guardVersions: writeKind === 'create' ? [] :
-          observedRows.map(() => cid('6')),
+          previewGuardVersions?.flat() ?? observedRows.map(() => cid('6')),
         routes: [route, route], risk,
         reviewProjectionCid: cid('a'),
         authorityScopeCid: cid('e'), policyCid: cid('a'),
@@ -2505,6 +2540,11 @@ test(`two-member captured Effect Run ${
       };
       const applyOptions = {moon, capturedInputs: previewInputs,
         preflight, ledger, members, maxFrontierWork: 64};
+      const expectedCredentialUses = baseline => baseline.map(
+        (count, index) => count + sites[index].seen.filter(item =>
+          item.method === 'GET' && item.path.startsWith(
+            '/services/data/v62.0/sobjects/Test_Record__c/') &&
+          !item.path.endsWith('/describe')).length);
       if (siteRun && writeKind !== 'create') {
         const usesBefore = sites.map(site => site.journal.recover().length);
         await assert.rejects(applyCapturedEffectSet({
@@ -2524,6 +2564,36 @@ test(`two-member captured Effect Run ${
           usesBefore);
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
+      }
+      if (siteRun && writeKind !== 'create') {
+        applyOptions.refreshGuardObservations = async ({signal}) => ({
+          observedRows,
+          guardVersions: (await observeCurrentTargets({signal}))
+            .flatMap(member => member.map(observed => observed.versionCid)),
+        });
+      }
+      if (physical === 'salesforce-stale-target') {
+        sites[0].setTargetName('changed-after-preview');
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions,
+          dispatchRow: () => assert.fail('stale target dispatched'),
+        }), {code: 'MoonBitHostFailure'});
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length, 0);
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+          expectedCredentialUses([2, 2]));
+        const privateHoldingCid = control.effectPrivateEvidenceBinding(
+          admittedPreview, store.storeAuthorityCid).holdingCid;
+        for (const holdingCid of [privateHoldingCid,
+          firstHolding.holdingCid, secondHolding.holdingCid]) {
+          assert.equal((await store.retirePhysicalHolding(holdingCid))
+            .deleted, true);
+        }
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+        published = true;
+        return;
       }
       let responseFaultPending = recoverAfterResponse;
       let collectionFaultPending = collectionRecovered;
@@ -2677,7 +2747,8 @@ test(`two-member captured Effect Run ${
         assert.equal(saved.outcomeReceipts.length, 2);
         assert.equal(sites[0].seen.filter(item =>
           item.method === 'PATCH').length, 1);
-        assert.equal(sites[0].journal.recover().length, 3);
+        assert.equal(sites[0].journal.recover().length,
+          expectedCredentialUses([3, 4])[0]);
       }
       const rejectPublicationAndRetire = async (issuedSet, code,
         attemptId) => {
@@ -2755,7 +2826,7 @@ test(`two-member captured Effect Run ${
             ? {Name: sourceIds[0], External_Key__c: sourceIds[0]}
             : {Name: sourceIds[0]});
           assert.deepEqual(sites.map(site => site.journal.recover().length),
-            [3, 4]);
+            expectedCredentialUses([3, 4]));
         }
         const uncertainSet = await issueAuthorizedEffectSetReceipt({
           ledger, preview: applyPreview, commonMoon: moon,
@@ -2787,7 +2858,7 @@ test(`two-member captured Effect Run ${
         assert.deepEqual(sites.map(site => site.seen
           .filter(item => item.method === 'PATCH').length), [1, 2]);
         assert.deepEqual(sites.map(site => site.journal.recover().length),
-          [3, 4]);
+          expectedCredentialUses([3, 4]));
         ledger.close();
         ledger = openLedger();
         const replay = await applyCapturedEffectSet({
@@ -2824,7 +2895,7 @@ test(`two-member captured Effect Run ${
           .filter(item => item.method === writeMethod).length),
         collectionRecovered ? [1, 2] : [2, 2]);
         assert.deepEqual(sites.map(site => site.journal.recover().length),
-        collectionRecovered ? [3, 4] : [4, 4]);
+          expectedCredentialUses(collectionRecovered ? [3, 4] : [4, 4]));
         if (collectionRecovered) {
           const sentBatch = JSON.parse(sites[0].seen.find(item =>
             item.method === 'PATCH').body);
