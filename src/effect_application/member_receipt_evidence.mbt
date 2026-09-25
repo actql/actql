@@ -7,7 +7,182 @@ pub(all) enum EffectMemberReceiptEvidenceIssue {
   ForeignTerminalReceipt(Int)
   RowPartitionMismatch(Int)
   MemberReceipt(@publication.EffectApplyReceiptBindingIssue)
+  Receipt(@publication.PublicationContractIssue)
+  Encoding
 } derive(Debug)
+
+///|
+/// Issue one member Receipt from the exact durable row partition. The caller
+/// must re-admit terminal receipts from saved response bytes before calling.
+/// Physical custody and evidence-view authority remain Host obligations.
+pub fn issue_effect_member_receipt_from_row_partition(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[LogicalRequestScope],
+  locators : Array[LogicalItemLocator],
+  keys : Array[EffectDispatchKey],
+  bases : Array[EffectLedgerBasis],
+  heads : Array[EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipts : Array[@publication.PublicationContract?],
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, EffectMemberReceiptEvidenceIssue] {
+  guard @publication.effect_preview_row_count(preview, member_index)
+    is Some(row_count) &&
+    row_count <= max_rows &&
+    heads.length() == row_count &&
+    terminal_receipts.length() == row_count else {
+    return Err(InvalidInventory)
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let mut success = false
+  let mut accepted = false
+  let mut unknown = false
+  let mut failure = false
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "effect_member_preview_cid")
+    @encode.string_value(
+      writer,
+      @publication.effect_preview_member_identity(preview, member_index).unwrap(),
+    )
+    @encode.key(writer, "effect_preview_cid")
+    @encode.string_value(
+      writer,
+      @publication.effect_preview_semantic_identity(preview),
+    )
+    @encode.key(writer, "rows")
+    @encode.begin_array(writer)
+    for index in 0..<row_count {
+      let row_cid = @publication.effect_preview_ordered_row_identity(
+        preview, member_index, index,
+      ).unwrap()
+      let head = heads[index]
+      let state = match head {
+        None => "unattempted"
+        Some(entry) =>
+          match entry.state {
+            Prepared => "unattempted"
+            Dispatching | Unknown => "unknown"
+            Applied => "applied"
+            Accepted => "accepted"
+            Failed => "failed"
+          }
+      }
+      match state {
+        "applied" => success = true
+        "accepted" => {
+          success = true
+          accepted = true
+        }
+        "unknown" => unknown = true
+        _ => failure = true
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "row_index")
+      @encode.number_value(writer, index.to_double())
+      @encode.key(writer, "row_preview_cid")
+      @encode.string_value(writer, row_cid)
+      @encode.key(writer, "state")
+      @encode.string_value(writer, state)
+      if state != "unattempted" {
+        let entry = head.unwrap()
+        let dispatch_cid = if state == "unknown" {
+          if entry.state == Dispatching {
+            entry.cid
+          } else {
+            entry.prior_entry_cid.unwrap_or("")
+          }
+        } else {
+          match terminal_receipts[index] {
+            Some(receipt) =>
+              @publication.effect_row_outcome_receipt_dispatch_identity(receipt).unwrap_or(
+                "",
+              )
+            None => return Err(MissingTerminalReceipt(index))
+          }
+        }
+        @encode.key(writer, "dispatch_entry_cid")
+        @encode.string_value(writer, dispatch_cid)
+        @encode.key(writer, "attempt_sequence")
+        @encode.number_value(writer, entry.attempt_sequence.to_double())
+        if state == "unknown" {
+          @encode.key(writer, "ledger_head_cid")
+          @encode.string_value(writer, entry.cid)
+        } else {
+          guard terminal_receipts[index] is Some(receipt) else {
+            return Err(MissingTerminalReceipt(index))
+          }
+          @encode.key(writer, "outcome_receipt_cid")
+          @encode.string_value(
+            writer,
+            @publication.publication_contract_identity(receipt),
+          )
+        }
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "run_identity_cid")
+    @encode.string_value(
+      writer,
+      @publication.effect_preview_run_identity(preview),
+    )
+    @encode.key(writer, "status")
+    let status = if unknown {
+      "unknown_outcome"
+    } else if failure {
+      if success {
+        "partial_failure"
+      } else {
+        "failed"
+      }
+    } else if accepted {
+      "accepted"
+    } else {
+      "applied"
+    }
+    @encode.string_value(writer, status)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-apply-receipt/0.1")
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  let issued = match
+    @publication.seal_publication_contract(
+      "effect_apply_receipt", body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Receipt(issue))
+  }
+  match
+    check_effect_member_receipt_row_partition_evidence(
+      preview,
+      member_index,
+      scopes,
+      locators,
+      keys,
+      bases,
+      heads,
+      active_owners,
+      terminal_receipts,
+      @publication.publication_contract_json(issued),
+      max_rows,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => Ok(issued)
+    Err(issue) => Err(issue)
+  }
+}
 
 ///|
 /// Check a member receipt's row partition against exact durable Ledger heads and
