@@ -1992,6 +1992,18 @@ function publicationControl(moon) {
       localEffectManifestTokens.set(value, issued);
       return value;
     },
+    localEffectSourceMatches(owner, inputs, memberIndex, manifest,
+      invocation, artifact, source) {
+      const ownedManifest = localEffectManifestTokens.get(manifest);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedManifest === undefined || ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign local Effect source evidence');
+      }
+      return moon.clientProgramLocalEffectSourceMatches(
+        owner, inputs, memberIndex, ownedManifest, invocation,
+        ownedArtifact, effectSourceToken(source));
+    },
     issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,
       limits) {
       issuanceLimits(limits, 'local Effect identity');

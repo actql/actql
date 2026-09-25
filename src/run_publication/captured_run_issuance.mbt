@@ -42,6 +42,34 @@ pub fn captured_effect_source_store_authority_cid(
 }
 
 ///|
+/// Compare facts established by one completed export across the local
+/// semantic Artifact and the Run-bound physical Effect source. The caller
+/// must also prove that the local Artifact has the exact checked owner.
+pub fn captured_effect_source_matches_result_facts(
+  source : CapturedEffectSourceArtifact,
+  result : PublicationContract,
+  result_name : String,
+) -> Bool {
+  if source.artifact.name != "effect_source_artifact" ||
+    result.name != "result_artifact" ||
+    contract_string(source.artifact, "source_result") != Some(result_name) ||
+    contract_string(source.artifact, "actual_completeness") != Some("complete") ||
+    contract_string(result, "actual_completeness") != Some("complete") {
+    return false
+  }
+  for
+    field in [
+      "logical_result_cid", "result_schema_cid", "effective_data_policy_cid", "effective_retention_policy_cid",
+    ] {
+    if contract_string(source.artifact, field) != contract_string(result, field) {
+      return false
+    }
+  }
+  contract_count(source.artifact, "actual_row_count") ==
+  contract_count(result, "actual_row_count")
+}
+
+///|
 /// One admitted source-state update staged by the captured observation. It is
 /// embedded only after its ObservationSet and checkpoint value identity agree.
 struct PendingSourceStateAdvance {

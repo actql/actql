@@ -162,3 +162,49 @@ pub fn client_effect_local_result_ordering_json(
     @publication.result_ordering_evidence_contract(value.evidence),
   )
 }
+
+///|
+/// Match the checked local Artifact inventory to one retained Run-bound
+/// source before Store custody is acquired. Separate Effect members may use
+/// the same physical view, but equal Result values alone do not share owner.
+pub fn client_effect_local_source_matches(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : ClientEffectLocalManifest,
+  invocation : ClientEffectLocalInvocation,
+  artifact : ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+) -> Bool {
+  if !physical_equal(artifact.inputs, inputs) ||
+    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
+    !@strategy.captured_effect_inputs_share_view(
+      inputs,
+      artifact.member_index,
+      member_index,
+    ) ||
+    !client_effect_local_manifest_matches(manifest, owner, invocation, [
+      artifact,
+    ]) {
+    return false
+  }
+  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return false
+  }
+  let unit = @strategy.captured_effect_input_stage(input)
+  let name = @execution.managed_result_occurrence_name(
+    @strategy.captured_effect_input_occurrence(input),
+  )
+  client_effect_local_result_definition_matches(
+    artifact.definition,
+    owner,
+    unit,
+    name,
+  ) &&
+  client_effect_local_invocation_matches(invocation, owner, unit) &&
+  @publication.captured_effect_source_matches_result_facts(
+    source,
+    artifact.artifact,
+    name,
+  )
+}

@@ -94,6 +94,8 @@ pub fn client_effect_local_result_derivation_json(ClientEffectLocalResultArtifac
 
 pub fn client_effect_local_result_ordering_json(ClientEffectLocalResultArtifact) -> String
 
+pub fn client_effect_local_source_matches(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
+
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]

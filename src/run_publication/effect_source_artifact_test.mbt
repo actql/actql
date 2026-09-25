@@ -97,3 +97,43 @@ test "Effect source issuer binds checked export facts without public name" {
     is Err(EffectSourceInvalidMeasurement),
   )
 }
+
+///|
+test "captured Effect source matches only the same completed Result facts" {
+  let chain = captured_run_test_chain()
+  let source = final_test_source(chain, final_test_preview(chain))
+  assert_true(
+    captured_effect_source_matches_result_facts(source, chain.artifact, "rows"),
+  )
+  assert_false(
+    captured_effect_source_matches_result_facts(
+      source,
+      chain.artifact,
+      "answer",
+    ),
+  )
+  assert_false(
+    captured_effect_source_matches_result_facts(
+      source,
+      final_test_source_artifact(chain),
+      "rows",
+    ),
+  )
+  let body = @json.object_without_field(
+    captured_test_value(publication_contract_json(chain.artifact)),
+    "result_artifact_cid",
+  ).unwrap()
+  let changed = seal_publication_contract(
+    "result_artifact",
+    captured_test_wire(body).replace(
+      old="\"actual_row_count\":1",
+      new="\"actual_row_count\":2",
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_false(
+    captured_effect_source_matches_result_facts(source, changed, "rows"),
+  )
+}

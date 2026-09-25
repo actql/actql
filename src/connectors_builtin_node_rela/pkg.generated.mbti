@@ -279,6 +279,8 @@ pub fn client_program_local_effect_result_ordering_json(@run_publication_host.Cl
 
 pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 
+pub fn client_program_local_effect_source_matches(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact) -> Bool
+
 pub fn client_program_local_values_aoa_cid(@run_publication_host.ClientValuesAoAIdentity) -> String
 
 pub fn client_program_local_values_aoa_wire(@run_publication_host.ClientValuesAoAIdentity) -> String

@@ -1073,16 +1073,38 @@ test('admitted source-free Effect Run computes through the installed Host',
             maxNodes: 1000, maxDepth: 20, maxUtf16Units: 20000},
           onChunk: chunk => { planChunks.push(chunk); },
         });
+        let matchedSource;
+        const sourceControl = {...control,
+          localEffectSourceMatches(...args) {
+            matchedSource = args;
+            return control.localEffectSourceMatches(...args);
+          }};
         const commitSource = () => commitPinnedEffectSourceHolding({
-          payload: sourcePayload, store: sourceStore, control,
+          payload: sourcePayload, store: sourceStore, control: sourceControl,
           preview: admittedPreview,
           memberIndex: 0, invocation: invocationContract,
         });
+        await assert.rejects(commitPinnedEffectSourceHolding({
+          payload: sourcePayload, store: sourceStore,
+          control: {...control, localEffectSourceMatches: () => false},
+          preview: admittedPreview,
+          memberIndex: 0, invocation: invocationContract,
+        }), {message: 'ForeignLocalEffectSource'});
+        assert.equal(holdingCommits, 0);
         await assert.rejects(commitSource(),
           {message: 'LostEffectSourceCommitAck'});
         const sourceHolding = await commitSource();
         assert.equal(sourceWriters, 1);
         assert.equal(holdingCommits, 2);
+        assert.equal(sourceHolding.localResultArtifact,
+          sourcePayload.localResultArtifact);
+        assert.equal(sourceHolding.localManifest, sourcePayload.localManifest);
+        assert.equal(control.localEffectSourceMatches(...matchedSource), true);
+        assert.equal(control.localEffectSourceMatches(
+          foreignPrepared, ...matchedSource.slice(1)), false);
+        assert.throws(() => control.localEffectSourceMatches(
+          ...matchedSource.slice(0, 3), {...sourceHolding.localManifest},
+          ...matchedSource.slice(4)), {name: 'TypeError'});
         sourceHoldingCid = sourceHolding.holdingCid;
         assert.deepEqual(await store.inspectPhysicalHolding(
           sourceHoldingCid), sourceHolding.record);
@@ -1649,6 +1671,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }
       assert.notEqual(sourceHoldings[0].holdingCid,
         sourceHoldings[1].holdingCid);
+      assert.equal(sourceHoldings[0].localManifest,
+        sourceHoldings[1].localManifest);
       const duplicateIdentity = JSON.parse(preview.wire);
       duplicateIdentity.effects[1].effect_identity_cid =
         duplicateIdentity.effects[0].effect_identity_cid;

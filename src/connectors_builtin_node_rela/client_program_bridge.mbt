@@ -628,6 +628,22 @@ pub fn client_program_local_effect_result_manifest_json(
 }
 
 ///|
+#export_name("clientProgramLocalEffectSourceMatches")
+pub fn client_program_local_effect_source_matches(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : @publication_host.ClientEffectLocalManifest,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+) -> Bool {
+  @publication_host.client_effect_local_source_matches(
+    owner, inputs, member_index, manifest, invocation, artifact, source,
+  )
+}
+
+///|
 #export_name("clientProgramIssueSourceFreeLocalEffectIdentity")
 pub fn client_program_issue_source_free_local_effect_identity(
   owner : @publication_host.PreparedClientEffectComputation,

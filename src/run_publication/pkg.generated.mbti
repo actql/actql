@@ -55,6 +55,8 @@ pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> Stri
 
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
 
+pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
+
 pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]

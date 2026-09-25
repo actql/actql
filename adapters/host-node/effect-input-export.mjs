@@ -279,7 +279,9 @@ export async function preparePinnedEffectSourcePayload({
       physical: Object.freeze({cid: sealed.cid, bytes: sealed.bytes}),
       prepared: sealed.prepared,
     });
-    preparedEffectSourceOwners.set(payload, store);
+    preparedEffectSourceOwners.set(payload, Object.freeze({
+      store, checkedOwner, inputs, memberIndex, localInvocationToken,
+    }));
     return payload;
   } catch (failure) {
     const pendingOwners = [];
@@ -342,16 +344,23 @@ export async function commitPinnedEffectSourceHolding({
   payload, store, control, preview, memberIndex, invocation,
   shareFromHoldingCid,
 }) {
-  if (preparedEffectSourceOwners.get(payload) !== store ||
+  const owner = preparedEffectSourceOwners.get(payload);
+  if (owner?.store !== store ||
       typeof store?.commitPhysicalHolding !== 'function' ||
       typeof control?.admitCapturedEffectSourceArtifact !== 'function' ||
       typeof control?.capturedEffectSourceHoldingCid !== 'function' ||
+      typeof control?.localEffectSourceMatches !== 'function' ||
       payload.summary.artifact === undefined) {
     throw new TypeError('InvalidEffectSourceHoldingOwner');
   }
   const source = control.admitCapturedEffectSourceArtifact(
     preview, memberIndex, invocation, payload.summary.artifact,
     store.storeAuthorityCid);
+  if (control.localEffectSourceMatches(
+    owner.checkedOwner, owner.inputs, memberIndex, payload.localManifest,
+    owner.localInvocationToken, payload.localResultArtifact, source) !== true) {
+    throw new TypeError('ForeignLocalEffectSource');
+  }
   const holdingCid = control.capturedEffectSourceHoldingCid(source);
   const record = Object.freeze({
     version: 'actql-local-physical-holding/0.1',
@@ -373,5 +382,9 @@ export async function commitPinnedEffectSourceHolding({
     await store.sharePhysicalHolding(shareFromHoldingCid, record);
   }
   return Object.freeze({source, artifact: payload.summary.artifact,
+    localResultDefinition: payload.localResultDefinition,
+    localInvocation: payload.localInvocation,
+    localResultArtifact: payload.localResultArtifact,
+    localManifest: payload.localManifest,
     holdingCid, record});
 }
