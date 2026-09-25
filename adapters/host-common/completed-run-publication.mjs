@@ -26,7 +26,12 @@ const member = (value, name) => {
 const contract = value => value !== null && typeof value === 'object' &&
   typeof value.name === 'string' && typeof value.identity === 'string' &&
   typeof value.wire === 'string';
+const ownContract = value => Object.freeze({
+  name: value.name, identityField: value.identityField,
+  identity: value.identity, wire: value.wire,
+});
 const completedResultOwners = new WeakMap();
+const completedEffectfulOwners = new WeakMap();
 
 function validateExecution(execution) {
   if (execution === null || typeof execution !== 'object' ||
@@ -292,6 +297,8 @@ export async function storeCompletedRunResultSet(options) {
     const stored = await exportCompletedRunResultSet(options, exported);
     completedResultOwners.set(stored, {
       execution: options.execution, control: options.control,
+      retentions: Object.freeze(options.results.map(value =>
+        ownContract(value.retention))),
       releaseComplete: false, releaseFlight: undefined,
       cleanupFailure: undefined,
     });
@@ -388,11 +395,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   for (const holding of effectSourceHoldings) {
     const source = holding?.source;
     const record = holding?.record;
-    if (record?.namespace !== 'effect-source' ||
+    if (!contract(holding?.artifact) ||
+        holding.artifact.name !== 'effect_source_artifact' ||
+        record?.namespace !== 'effect-source' ||
         record?.holding_cid !==
           control.capturedEffectSourceHoldingCid(source) ||
         record.manifest_cid !==
           control.capturedEffectSourceArtifactCid(source) ||
+        record.manifest_cid !== holding.artifact.identity ||
         control.capturedEffectSourceStoreAuthorityCid(source) !==
           store.storeAuthorityCid) {
       fail('InvalidCompletedEffectSourceHolding');
@@ -422,7 +432,59 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     modelEvidence: captureEvidence.modelEvidence,
     effectSources: effectSourceHoldings.map(value => value.source),
   }, preview, plans, contractLimits);
-  return Object.freeze({manifest, computationReceipt: receipt, capturedRun});
+  const issued = Object.freeze({manifest, computationReceipt: receipt,
+    capturedRun});
+  completedEffectfulOwners.set(issued, Object.freeze({
+    execution, store, storedResults, control, preview,
+    runDefinition, invocation,
+    effectSourceHoldings: Object.freeze(effectSourceHoldings.map(value =>
+      Object.freeze({source: value.source,
+        artifact: ownContract(value.artifact)}))),
+  }));
+  return issued;
+}
+
+// Derive the only final-chain inventory from the same completed Compute and
+// Effect-source owners used at capture. This is not apply or publication.
+export function prepareCompletedEffectfulPublication(options) {
+  if (!exactKeys(options, [
+    'execution', 'store', 'storedResults', 'control', 'computation',
+    'preview',
+  ])) fail('InvalidCompletedEffectfulRunOptions');
+  const {execution, store, storedResults, control, computation, preview,
+  } = options;
+  const issued = completedEffectfulOwners.get(computation);
+  const resultOwner = completedResultOwners.get(storedResults);
+  if (issued?.execution !== execution || issued.store !== store ||
+      issued.storedResults !== storedResults || issued.control !== control ||
+      issued.preview !== preview || resultOwner?.execution !== execution ||
+      resultOwner.control !== control || resultOwner.releaseComplete ||
+      resultOwner.releaseFlight !== undefined ||
+      resultOwner.cleanupFailure !== undefined) {
+    fail('InvalidCompletedEffectfulRunOwner');
+  }
+  const chain = Object.freeze({
+    runDefinition: issued.runDefinition,
+    invocation: issued.invocation,
+    definitions: storedResults.definitions,
+    artifacts: storedResults.artifacts,
+    derivations: Object.freeze(storedResults.results.map(
+      value => value.publication.derivation)),
+    orderings: Object.freeze(storedResults.results.map(
+      value => value.publication.ordering)),
+    retentions: Object.freeze(uniqueContracts(resultOwner.retentions)),
+    durableBindings: Object.freeze(storedResults.results.map(
+      value => value.publication.durableBinding)),
+    manifest: computation.manifest,
+    computationReceipt: computation.computationReceipt,
+    capturedRun: computation.capturedRun,
+  });
+  return Object.freeze({chain, preview,
+    effectSources: Object.freeze(issued.effectSourceHoldings.map(
+      value => value.source)),
+    sourceArtifacts: Object.freeze(issued.effectSourceHoldings.map(
+      value => value.artifact)),
+  });
 }
 
 export async function publishCompletedEffectFreeRun(options) {
