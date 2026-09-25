@@ -1237,6 +1237,37 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
+    // The committed approval of one resolved Checkpoint and whether its own
+    // permission is still current at the Host trusted time. Read from
+    // committed rows only; used for approvals an attempt answered earlier
+    // than the Checkpoint its current claim resumes (each approval is
+    // checked on its own, never through a later one).
+    committedApprovalAt(checkpointCid) {
+      alive();
+      if (!text(checkpointCid)) fail('InvalidCheckpointReference');
+      const atIso = iso(now());
+      const checkpoint = statements.checkpoint.get(checkpointCid);
+      const stored = statements.resolution.get(checkpointCid);
+      if (checkpoint?.closure !== 'resolved' || stored?.decision !== 'approved' ||
+          checkpoint.resolution_cid !== stored.resolution_cid) {
+        fail('ResolutionNotCommitted');
+      }
+      const approval = core(runtime.resumedApprovalAt(
+        stored.verified_resolution_wire, atIso), 'ResolutionNotCommitted');
+      if (approval.checkpoint_cid !== checkpointCid ||
+          approval.resolution_cid !== stored.resolution_cid) {
+        fail('ResolutionNotCommitted');
+      }
+      return Object.freeze({
+        checkpointCid,
+        resolutionCid: stored.resolution_cid,
+        authority: approval.reviewer_id,
+        expiresAt: approval.expires_at,
+        current: approval.current === true,
+        checkedAt: atIso,
+      });
+    },
+
     // Admission of one resumed protected dispatch at the Host trusted time.
     // `claim` names the claim the caller holds ({intentId, claimant,
     // generation}); it is an identity to check, never an authority record.

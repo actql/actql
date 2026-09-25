@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { exampleAccountConfiguration } from '../examples/physical-strategy.mjs';
-import { openLocalHost, readSigner } from '../examples/local-host.mjs';
+import { exactApprovedSubject, openLocalHost, readSigner } from '../examples/local-host.mjs';
 import { decisionSubjectCid } from '../../../../host-common/authorization-gate.mjs';
 import { runtimeCore } from '../../../../host-common/runtime-core.mjs';
 import { loadPrivateEvidenceKey, openContinuationEvidence } from
@@ -616,4 +616,45 @@ test('a later claimant after an entered provider session starts no second one', 
   assert.deepEqual(rows.intentRows, [{ state: 'claimed', generation: 2,
     claimant: 'claimant-2', outcome_status: '' }]);
   assert.equal(host.journal.getPreparation(waiting.prepare_attempt_id).status, 'resuming');
+});
+
+test('an earlier approval of the attempt that lapsed resumes no provider session', async t => {
+  // A Host whose policy answers only exactly approved subjects: the
+  // preparation approval does not cover the acquisition, which defers again.
+  const scenario = async (t, resumeAt) => {
+    const input = await fixture(t);
+    const clock = { ms: Date.now() };
+    const host = await openLocalHost(input.config, { now: () => clock.ms,
+      coverage: exactApprovedSubject });
+    t.after(() => host.close());
+    const signer = await readSigner(input.signer);
+    const waiting = await host.run({ database: input.database,
+      environment: input.files.environment, environmentCid: input.environmentCid,
+      program: input.files.program, parameters: input.files.parameters });
+    assert.equal(waiting.checkpoint.boundary, 'preparation');
+    await host.answer([waiting.checkpoint.checkpoint_id], 'approved', { signer });
+    // Later, the preparation resumes and its acquisition defers again.
+    clock.ms += 60_000;
+    const read = await host.resume(waiting.prepare_attempt_id);
+    assert.equal(read.status, 'waiting_checkpoint');
+    assert.equal(read.checkpoint.boundary, 'acquisition');
+    assert.equal(read.counters.provider_sessions, 0);
+    assert(Date.parse(read.checkpoint.expires_at) >
+      Date.parse(waiting.checkpoint.expires_at));
+    await host.answer([read.checkpoint.checkpoint_id], 'approved', { signer });
+    clock.ms = resumeAt(Date.parse(waiting.checkpoint.expires_at));
+    return { input, resumed: await host.resume(waiting.prepare_attempt_id) };
+  };
+  // The claimed acquisition approval is current but the earlier preparation
+  // approval's own permission lapsed: nothing is admitted.
+  const lapsed = await scenario(t, expiry => expiry);
+  assert.equal(lapsed.resumed.status, 'ended');
+  assert.equal(lapsed.resumed.code, 'ApprovalExpired');
+  assert.equal(lapsed.resumed.counters.provider_sessions, 0);
+  assert.equal(lapsed.input.rows().runs, 0);
+  assert.equal(lapsed.input.rows().resolutions, 2);
+  // Just before that expiry both approvals admit the continuation.
+  const current = await scenario(t, expiry => expiry - 1);
+  assert.equal(current.resumed.status, 'succeeded', JSON.stringify(current.resumed));
+  assert.equal(current.resumed.counters.provider_sessions, 1);
 });

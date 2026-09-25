@@ -177,7 +177,15 @@ function approvedBy(item, subject) {
       item.subject[name] === subject[name]);
 }
 
-export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
+// `coverage(item, subject)` is the Host's delegated-decision coverage policy
+// for approved subjects (default `approvedBy`); a Host that answers only the
+// exact approved subjects passes `exactApprovedSubject`.
+export const exactApprovedSubject = (item, subject) =>
+  sameSubject(item.subject, subject);
+
+export async function openLocalHost(configPath, {now = () => Date.now(),
+  coverage = approvedBy} = {}) {
+  if (typeof coverage !== 'function') fail('InvalidApprovalCoverage');
   const config = await loadHostConfig(configPath);
   const state = config.stateDirectory;
   const reviewersByKey = new Map(config.reviewers.map(item => [item.keyId, item]));
@@ -733,11 +741,31 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       } catch (error) {
         return end('failed', {code: error.code ?? 'ContinuationUnavailable'});
       }
-      // The approved subjects of this attempt, each with its answering actor.
+      // The approved subjects of this attempt, each with its answering actor
+      // and, for a reviewer approval, the Checkpoint it answered.
       const answer = journal.resolutionOf(claimed.checkpointCid);
       const approved = [...continuation.approved, {subject:
         continuation.delegated_subject, actor: answer.actor,
-      invocation_cid: continuation.invocation_cid}];
+      invocation_cid: continuation.invocation_cid,
+      checkpoint_cid: claimed.checkpointCid}];
+      // Approvals this attempt answered before the claimed Checkpoint are
+      // each checked on their own at the Host trusted time: an earlier
+      // approval whose permission lapsed authorizes no new work, even while
+      // the claimed Checkpoint's approval is current. (The claimed approval
+      // is checked by the admission itself.)
+      const earlierApprovalsCurrent = () => {
+        const seen = new Set([claimed.checkpointCid]);
+        for (const item of approved) {
+          const cid = item.checkpoint_cid;
+          if (cid === undefined || seen.has(cid)) continue;
+          seen.add(cid);
+          const approval = journal.committedApprovalAt(cid);
+          if (approval.authority !== item.actor) {
+            fail('ResolutionNotCommitted');
+          }
+          if (!approval.current) fail('ApprovalExpired');
+        }
+      };
       const port = {
         persistCheckpoint: ({body, authorities: reviewers, binding: bound,
           decisionSubjectCid, requestedClaims}) =>
@@ -752,8 +780,13 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       let admission;
       let admissionRefusal;
       const resumeDecide = view => {
-        const match = approved.find(item => approvedBy(item, view.subject));
+        const match = approved.find(item => coverage(item, view.subject));
         if (match !== undefined) {
+          try { earlierApprovalsCurrent(); }
+          catch (error) {
+            admissionRefusal = error.code;
+            throw error;
+          }
           const admitted = admitResumedDispatch(journal, {claim: {
             checkpointCid: claimed.checkpointCid, claim: fence.claim}},
           {requiredClaims: view.requiredClaims});
@@ -794,6 +827,7 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
             // claimant stops here.
             beforeAcquisition() {
               fence.claim = journal.renewResume(fence.claim, leaseMs);
+              earlierApprovalsCurrent();
               // The provider session is the protected send: enter the
               // admission (fence, approval validity, single start per claim
               // generation) immediately before it. A session an earlier
