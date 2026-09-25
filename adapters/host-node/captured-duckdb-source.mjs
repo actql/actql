@@ -49,17 +49,20 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const capture = await runNativeHostQuery(grant, acquisition,
     transportLimits, signal);
   try {
+    const capturedSource = capture.source();
     if (moon.clientProgramCapturedSourceMatches(preparedProgram,
-      capture.source()) !== true) {
+      capturedSource) !== true) {
       throw new Error('InstalledSourceProgramMismatch');
     }
     const identity = checked(moon.clientProgramIdentifyCapturedSourceRelation(
-      capture.source()));
+      capturedSource));
+    const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
+      preparedProgram, capturedSource, identity, requirement));
     const setup = moon.clientProgramOpenCapturedLocalHost(preparedProgram,
-      capture.source(), registry, values, 1n, 0n, 0n, 0n,
+      capturedSource, registry, values, 1n, 0n, 0n, 0n,
       fragment, ordered);
     if (setup === undefined) throw new Error('InstalledSourceHostUnavailable');
-    return Object.freeze({capture, identity, checkedSource, setup,
+    return Object.freeze({capture, identity, logicalInput, checkedSource, setup,
       close: () => capture.close()});
   } catch (cause) {
     capture.close();

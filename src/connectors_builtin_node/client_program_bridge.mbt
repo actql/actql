@@ -1375,8 +1375,9 @@ pub fn client_program_captured_source_row_count(
 
 ///|
 pub(all) enum ClientCapturedSourceLogicalIssue {
-  ForeignCapture
-  Capture(@query.CapturedSourceIssue)
+  ForeignPrepared
+  ForeignIdentity
+  ForeignRequirement
   Encoding(@encode.EncodeFailure)
   Evidence(@publication.RunEvidenceValueIssue)
   Admission(@publication.SourceInputLogicalIssue)
@@ -1390,18 +1391,19 @@ pub(all) enum ClientCapturedSourceLogicalIssue {
 pub fn client_program_issue_captured_source_logical(
   prepared : @publication_host.PreparedClientProgram,
   source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
 ) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
   let graph = @publication_host.prepared_client_graph(prepared)
   let program = @program_check.source_identity(@strategy.graph_program(graph))
-  if !client_program_captured_source_matches(prepared, source) ||
-    !physical_equal(@planning.query_requirement_program(requirement), program) {
-    return Err(ForeignCapture)
+  if !client_program_captured_source_matches(prepared, source) {
+    return Err(ForeignPrepared)
   }
-  let identity = match
-    client_program_identify_captured_source_relation(source) {
-    Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
+  if !@query.captured_source_relation_identity_matches_source(identity, source) {
+    return Err(ForeignIdentity)
+  }
+  if !physical_equal(@planning.query_requirement_program(requirement), program) {
+    return Err(ForeignRequirement)
   }
   let rows = @query.captured_source_relation_logical_cid(identity)
   let schema = @query.captured_source_relation_schema_cid(identity)

@@ -201,9 +201,7 @@ test('checked acquired source and downstream task emit their input ports',
           moon.clientProgramCapturedSourceLogicalCid(observed));
         assert.equal(moon.clientProgramCapturedSourceSchemaCid(repeated),
           moon.clientProgramCapturedSourceSchemaCid(observed));
-        const logicalInput = checked(
-          moon.clientProgramIssueCapturedSourceLogical(prepared,
-            capturedSource, requirement));
+        const logicalInput = opened.logicalInput;
         const logicalBody = JSON.parse(
           moon.strategyRunEvidenceJson(logicalInput));
         assert.equal(admitSourceInputLogical(logicalBody, {
@@ -241,7 +239,7 @@ test('checked acquired source and downstream task emit their input ports',
           moon.clientProgramIdentifyCapturedSourceRelation(capturedSource)));
         assert.throws(() => checked(
           moon.clientProgramIssueCapturedSourceLogical(prepared,
-            capturedSource, requirement)));
+            capturedSource, opened.identity, requirement)));
       }
     } finally {
       await rm(directory, {recursive: true, force: true});

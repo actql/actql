@@ -23,6 +23,8 @@ pub fn captured_source_available(CapturedInputSource) -> Bool
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
 
+pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
+
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
 
 pub fn captured_source_relation_row_count(CapturedSourceRelationIdentity) -> Int
@@ -75,6 +77,7 @@ pub(all) enum CapturedSourceIssue {
 }
 
 pub struct CapturedSourceRelationIdentity {
+  origin : CapturedInputSource
   logical_relation_cid : String
   schema_cid : String
   row_count : Int

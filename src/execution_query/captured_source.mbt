@@ -89,9 +89,21 @@ pub fn prepare_captured_source_relation_export(
 /// Relation. It describes observed input material, not Run admission or a
 /// source authorization grant.
 pub struct CapturedSourceRelationIdentity {
+  origin : CapturedInputSource
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
+}
+
+///|
+/// A completed identity belongs to the exact capture that issued it.
+pub fn captured_source_relation_identity_matches_source(
+  identity : CapturedSourceRelationIdentity,
+  source : CapturedInputSource,
+) -> Bool {
+  (source.live)() && physical_equal(identity.origin.output, source.output) &&
+  physical_equal(identity.origin.owner, source.owner) &&
+  physical_equal(identity.origin.program, source.program)
 }
 
 ///|
@@ -153,6 +165,7 @@ pub fn identify_captured_source_relation(
     }
   }
   let identity = {
+    origin: source,
     logical_relation_cid: @execution.logical_relation_cid(
       @execution.completed_relation_export_identity(receipt),
     ),
