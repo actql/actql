@@ -479,6 +479,8 @@ pub fn resident_query_read_sql(ResidentQuery) -> String
 
 pub fn retain_native_output_rows(NativeReceiving, Int, @execution_relation.ValueLimits) -> Result[NativeOutputRows, NativeOutputRetentionIssue]
 
+pub fn reuse_fixed_import_demand_measurement(FixedImportStream) -> Bool
+
 pub fn reuse_fixed_import_identity(FixedImportStream, @execution_relation.RetainedScanReuse) -> Bool
 
 pub fn reuse_fixed_import_values(FixedImportStream) -> Bool

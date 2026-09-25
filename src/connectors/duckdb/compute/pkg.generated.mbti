@@ -141,6 +141,8 @@ pub fn receive_managed_duckdb_compute_output(ManagedDuckDBComputeOutput, Int, Ar
 
 pub fn retained_duckdb_compute_bytes(DuckDBComputeAttempt) -> Int64?
 
+pub fn reuse_duckdb_compute_input_demand(DuckDBComputeAttempt, Int) -> Bool
+
 pub fn reuse_duckdb_compute_input_identity(DuckDBComputeAttempt, Int, @execution_relation.RetainedScanReuse) -> Bool
 
 pub fn reuse_duckdb_compute_input_values(DuckDBComputeAttempt, Int) -> Bool

@@ -74,9 +74,12 @@ test('explicit data profiles select resident reuse with independent retained out
         if (fixture.workload === workloads[2] && fixture.layout === 'numeric-64') {
           const filtered = result.report.completed[1].phases;
           assert.equal(filtered.reusedInputValues, 1);
-          assert.equal(filtered.demandColumnScans, 1);
+          assert.equal(filtered.demandColumnScans, 0,
+            'the filter demand is discharged from the reused generation\'s column facts');
+          assert.equal(filtered.reusedDemandMeasurements, 1);
           assert.equal(filtered.directInputScans, 0);
-          assert.equal(filtered.nativeSemanticCells, fixture.rows * 65);
+          // The 64 output columns only; the demanded input column is not re-read.
+          assert.equal(filtered.nativeSemanticCells, fixture.rows * 64);
         }
       } finally {
         await result?.close();

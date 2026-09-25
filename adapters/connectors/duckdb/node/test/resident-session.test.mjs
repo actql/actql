@@ -347,7 +347,7 @@ function assertResidentPhases(phases) {
   assert.deepEqual(Object.keys(phases), [...names, 'inputCallbackMilliseconds',
     'outputCallbackMilliseconds', 'directInputScans',
     'reusedInputIdentities', 'reusedInputValues', 'demandColumnScans',
-    'workMilliseconds']);
+    'reusedDemandMeasurements', 'workMilliseconds']);
   assert(Number.isInteger(phases.directInputScans));
   assert(Number.isInteger(phases.reusedInputIdentities));
   assert(Number.isInteger(phases.demandColumnScans));

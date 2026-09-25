@@ -174,6 +174,7 @@ export async function runResidentFixedCompute(
     let reusedInputIdentities = 0;
     let reusedInputValues = 0;
     let demandColumnScans = 0;
+    let reusedDemandMeasurements = 0;
     const endPhase = name => {
       const now = performance.now();
       phases[name] = now - boundary;
@@ -189,6 +190,7 @@ export async function runResidentFixedCompute(
         if (verified) {
           if (verified.valuesReused === true) reusedInputValues++;
           if (verified.demandColumnScan === true) demandColumnScans++;
+          if (verified.demandReused === true) reusedDemandMeasurements++;
           if (verified.valuesReused !== true && verified.demandColumnScan !== true) {
             directInputScans++;
           }
@@ -219,7 +221,7 @@ export async function runResidentFixedCompute(
     return Object.freeze({ fields, importedRows: 0, importedCells: 0,
       diagnostics: Object.freeze({...phases, inputCallbackMilliseconds,
         outputCallbackMilliseconds, directInputScans, reusedInputIdentities,
-        reusedInputValues, demandColumnScans,
+        reusedInputValues, demandColumnScans, reusedDemandMeasurements,
         workMilliseconds: boundary - workStarted}) });
   }, signal, accounting);
   // Preserve completed Host-output provenance independently of future DB loss.

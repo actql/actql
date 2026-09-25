@@ -12,6 +12,7 @@ struct RetainedProducerScan {
   mut measurement_start : (Int, Int, Int)?
   mut measurement_reuse : RetainedValueMeasurement?
   mut column_measurements : Array[(Int, Int)]
+  mut column_nulls : Array[Int]
   mut guard_issue : FixedInputGuardIssue?
   mut join_validation : FixedJoinStream?
 }
@@ -98,6 +99,7 @@ pub fn prepare_retained_producer_scan(
     measurement_start: None,
     measurement_reuse: None,
     column_measurements: [],
+    column_nulls: [],
     guard_issue: None,
     join_validation: None,
   })

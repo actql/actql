@@ -73,6 +73,8 @@ pub fn compute_host_input_demand_physical_accept(ComputeNodeRun, Int, @adapter.P
 
 pub fn compute_host_input_demand_physical_begin(ComputeNodeRun, Int, String) -> @adapter.PhysicalResult raise NodeHostFailure
 
+pub fn compute_host_input_demand_reuse(ComputeNodeRun, Int) -> Bool
+
 pub fn compute_host_input_file_plan(ComputeNodeRun, Int, @execution_relation.RowWireLimits, Int, Int) -> NativeFileInputPlan? raise NodeHostFailure
 
 pub fn compute_host_input_file_plan_reuse(NativeFileInputPlan, ComputeNodeRun, Int, () -> Bool) -> Bool

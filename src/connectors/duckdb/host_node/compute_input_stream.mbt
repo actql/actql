@@ -28,6 +28,17 @@ pub fn compute_host_input_values_reuse(
 }
 
 ///|
+/// `true` discharges the input's comparison demand without its column scan.
+#export_name("computeHostInputDemandReuse")
+pub fn compute_host_input_demand_reuse(
+  run : ComputeNodeRun,
+  port : Int,
+) -> Bool {
+  !run.closed &&
+  @duckdb_compute.reuse_duckdb_compute_input_demand(run.attempt, port)
+}
+
+///|
 #export_name("computeHostInputDemandColumn")
 pub fn compute_host_input_demand_column(
   run : ComputeNodeRun,

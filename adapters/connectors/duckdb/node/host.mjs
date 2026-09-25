@@ -661,7 +661,10 @@ async function runHostCompute(
       if (identityReused && (demandColumn == null || demandSql != null) &&
           moon.computeHostInputValuesReuse(run, port)) {
         signal?.throwIfAborted();
-        if (demandSql != null) {
+        // Canonical per-value facts of the same reused generation discharge the
+        // demand exactly; limits that need a failure position keep the scan.
+        const demandReused = demandSql != null && moon.computeHostInputDemandReuse(run, port);
+        if (demandSql != null && !demandReused) {
           let physical;
           const begin = fields => physical ??= checked(moon.computeHostInputDemandPhysicalBegin(
             run, port, fieldsFrame(fields)));
@@ -680,7 +683,7 @@ async function runHostCompute(
         }
         checked(moon.computeHostInputStreamFinish(run, port));
         return Object.freeze({identityReused, valuesReused: true,
-          demandColumnScan: demandSql != null});
+          demandColumnScan: demandSql != null && !demandReused, demandReused});
       }
       let physical;
       const begin = fields => physical ??= checked(moon.computeHostInputPhysicalBegin(run, port, fieldsFrame(fields)));

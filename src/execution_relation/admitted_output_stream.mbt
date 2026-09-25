@@ -17,6 +17,7 @@ struct AdmittedOutputStream {
   encoded_cell_usage : Array[(Int, Int)]
   capture_value_measurement : Bool
   encoded_column_usage : Array[(Int, Int)]
+  encoded_column_nulls : Array[Int]
   mut encoded_max_value_bytes : Int
   mut encoded_value_depth : Int
 }
@@ -128,6 +129,7 @@ fn prepare_admitted_stream(
       encoded_cell_usage: Array::make(width, (0, 0)),
       capture_value_measurement,
       encoded_column_usage: Array::make(width, (0, 0)),
+      encoded_column_nulls: Array::make(width, 0),
       encoded_max_value_bytes: 0,
       encoded_value_depth: 0,
     })
@@ -281,6 +283,9 @@ fn append_output_stream_row(
             stream.encoded_max_value_bytes,
             value_bytes,
           )
+          if row[column] is @admitted.Null {
+            stream.encoded_column_nulls[column] += 1
+          }
         }
       }
     }
@@ -370,6 +375,7 @@ pub fn finish_admitted_output_stream(
             Some({
               columns: Array::makei(width, index => index),
               column_usage: stream.encoded_column_usage.copy(),
+              column_nulls: stream.encoded_column_nulls.copy(),
               ceiling: stream.encoded_max_value_bytes,
               depth: stream.encoded_value_depth,
               work: measured_work.to_int(),

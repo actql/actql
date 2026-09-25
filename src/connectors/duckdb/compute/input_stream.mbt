@@ -26,6 +26,20 @@ pub fn reuse_duckdb_compute_input_values(
 }
 
 ///|
+/// Same attempt/port binding as the ordered demand scan it replaces.
+pub fn reuse_duckdb_compute_input_demand(
+  value : DuckDBComputeAttempt,
+  port : Int,
+) -> Bool {
+  guard value.live &&
+    value.receiving is None &&
+    value.input_streams.get(port) is Some(Some(stream)) else {
+    return false
+  }
+  @duckdb.reuse_fixed_import_demand_measurement(stream)
+}
+
+///|
 pub fn duckdb_compute_input_demand_column(
   value : DuckDBComputeAttempt,
   port : Int,

@@ -169,6 +169,7 @@ test "checked retained projection rename and copies reuse exact per-value quanti
     ..narrow,
     columns: [narrow.columns[0]],
     column_usage: [narrow.column_usage[0]],
+    column_nulls: [narrow.column_nulls[0]],
     work: 4,
     bytes: 2,
     nodes: 2,

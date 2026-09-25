@@ -56,6 +56,7 @@ pub fn attach_retained_producer_measurement(
   }
   measurement.scanning_input = true
   scan.column_measurements = Array::make(scan.wire_columns.length(), (0, 0))
+  scan.column_nulls = Array::make(scan.wire_columns.length(), 0)
   scan.measurement = Some(measurement)
   scan.measurement_start = Some(
     (
@@ -94,6 +95,7 @@ fn measure_retained_producer_scan_row(
       InputValues,
       measurement.budget,
       column_usage=scan.column_measurements,
+      column_nulls=scan.column_nulls,
     ) {
     Ok(_) => ()
     Err(issue) =>
@@ -119,6 +121,7 @@ fn finish_retained_producer_scan_measurement(
   }
   if scan.guard_issue is Some(issue) {
     scan.column_measurements = []
+    scan.column_nulls = []
     measurement.open = false
     return Err(issue)
   }
@@ -135,6 +138,7 @@ fn finish_retained_producer_scan_measurement(
     material.value_measurement = Some({
       columns: scan.wire_columns.copy(),
       column_usage: scan.column_measurements,
+      column_nulls: scan.column_nulls,
       ceiling: measurement.max_value_bytes,
       depth: measurement.budget.depth,
       work: work - measurement.budget.work,
@@ -145,6 +149,7 @@ fn finish_retained_producer_scan_measurement(
   // Ownership of successful subtotals moves to the immutable material cache.
   // Do not keep a second per-column buffer in the closed scan.
   scan.column_measurements = []
+  scan.column_nulls = []
   measurement.scanning_input = false
   measurement.next_input += 1
   advance_fixed_producer_input_measurement(measurement)
@@ -156,6 +161,8 @@ fn finish_retained_producer_scan_measurement(
 priv struct RetainedValueMeasurement {
   columns : Array[Int]
   column_usage : Array[(Int, Int)]
+  // Exact null occurrences per measured column, over the same complete rows.
+  column_nulls : Array[Int]
   ceiling : Int
   depth : Int
   work : Int
@@ -207,6 +214,7 @@ fn project_retained_value_measurement(
   let mut nodes = 0
   let mut remaining = scan.wire.max_order_work
   let column_usage = []
+  let column_nulls = []
   for column in scan.wire_columns {
     let mut found = None
     for index, stored in evidence.columns {
@@ -215,11 +223,17 @@ fn project_retained_value_measurement(
       }
       remaining -= 1
       if stored == column {
-        found = evidence.column_usage.get(index)
+        found = match
+          (evidence.column_usage.get(index), evidence.column_nulls.get(index)) {
+          (Some(usage), Some(nulls)) => Some((usage, nulls))
+          _ => None
+        }
         break
       }
     }
-    guard found is Some((column_bytes, column_nodes)) else { return None }
+    guard found is Some(((column_bytes, column_nodes), null_rows)) else {
+      return None
+    }
     if rows > budget.work - work ||
       column_bytes > budget.bytes - bytes ||
       column_nodes > budget.nodes - nodes {
@@ -229,14 +243,78 @@ fn project_retained_value_measurement(
     bytes += column_bytes
     nodes += column_nodes
     column_usage.push((column_bytes, column_nodes))
+    column_nulls.push(null_rows)
   }
   Some({
     columns: scan.wire_columns.copy(),
     column_usage,
+    column_nulls,
     ceiling: evidence.ceiling,
     depth: evidence.depth,
     work,
     bytes,
     nodes,
   })
+}
+
+///|
+/// Canonical per-value facts for one receiving column of a reused retained read.
+/// The bound is a successful ceiling over the measured values, not an exact
+/// maximum; depth is a conservative admission depth. Not an issuer capability.
+pub(all) struct RetainedColumnMeasurement {
+  rows : Int
+  bytes : Int
+  nodes : Int
+  null_rows : Int
+  value_bytes_bound : Int
+  depth : Int
+} derive(Eq, Debug)
+
+///|
+/// Facts only from the live exact representation this scan is already bound to
+/// by its trusted reuse proof: same read, same immutable generation, all rows
+/// (a read is a projection/rename/copy and never selects rows), and the stored
+/// column that the checked read names. Anything else is `None`, never a guess.
+pub fn retained_producer_scan_column_measurement(
+  scan : RetainedProducerScan,
+  column : Int,
+) -> RetainedColumnMeasurement? {
+  guard retained_producer_scan_reuse_current(scan) &&
+    scan.reuse is Some(reuse) &&
+    physical_equal(reuse.input, scan.input) &&
+    producer_read_retained_material(scan.input) is Some(material) &&
+    physical_equal(material, reuse.material) &&
+    material.value_measurement is Some(evidence) &&
+    scan.wire_columns.get(column) is Some(stored) else {
+    return None
+  }
+  let rows = producer_read_row_count(scan.input)
+  if rows != material.receipt.rows ||
+    evidence.column_usage.length() != evidence.columns.length() ||
+    evidence.column_nulls.length() != evidence.columns.length() {
+    return None
+  }
+  let mut remaining = scan.wire.max_order_work
+  for index, candidate in evidence.columns {
+    if remaining <= 0 {
+      return None
+    }
+    remaining -= 1
+    if candidate == stored {
+      let (bytes, nodes) = evidence.column_usage[index]
+      let null_rows = evidence.column_nulls[index]
+      if null_rows < 0 || null_rows > rows {
+        return None
+      }
+      return Some({
+        rows,
+        bytes,
+        nodes,
+        null_rows,
+        value_bytes_bound: evidence.ceiling,
+        depth: evidence.depth,
+      })
+    }
+  }
+  None
 }

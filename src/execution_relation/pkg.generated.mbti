@@ -828,6 +828,8 @@ pub fn[T] retained_producer_columns(RetainedOutputHandle[T], ProducerRead, Int) 
 
 pub fn[T] retained_producer_payload(RetainedOutputHandle[T], ProducerRead) -> T?
 
+pub fn retained_producer_scan_column_measurement(RetainedProducerScan, Int) -> RetainedColumnMeasurement?
+
 pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
 
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
@@ -1629,6 +1631,15 @@ pub(all) struct RelationSchemaIdentityLimits {
   max_nodes : Int
   max_depth : Int
 }
+
+pub(all) struct RetainedColumnMeasurement {
+  rows : Int
+  bytes : Int
+  nodes : Int
+  null_rows : Int
+  value_bytes_bound : Int
+  depth : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct RetainedCompletionDescriptor {
   registry_cid : String
