@@ -288,8 +288,10 @@ fn effect_set_frontier_from_ledger_entries(
             entry.state != Unknown {
             return Err(InvalidHistory)
           }
+          // Historical rows may use another request. Only a live owner
+          // establishes the fence against later overlapping sends.
           match entry.state {
-            Dispatching =>
+            Dispatching if active[row_index] =>
               match sending_request {
                 None => sending_request = Some(entry.canonical_request_cid)
                 Some(cid) if cid != entry.canonical_request_cid =>
@@ -303,7 +305,7 @@ fn effect_set_frontier_from_ledger_entries(
                   return Err(InvalidHistory)
                 _ => ()
               }
-            Applied | Accepted | Failed | Unknown =>
+            Applied | Accepted | Failed | Unknown | Dispatching =>
               match sending_request {
                 Some(cid) if cid != entry.canonical_request_cid =>
                   return Err(InvalidHistory)
