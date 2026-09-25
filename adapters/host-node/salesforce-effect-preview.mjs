@@ -20,7 +20,7 @@ const parseExactJson = wire => {
 const pendingCid = `sha256:${'0'.repeat(64)}`;
 
 function productPreviewDraft({moon, control, prepared, inputs, context, members,
-  maxWireBytes, maxNodes, maxDepth, planLimits}) {
+  requestAuthority, maxWireBytes, maxNodes, maxDepth, planLimits}) {
   if (typeof control?.effectSourceArtifactPreviewBinding !== 'function' ||
       typeof control?.issueSourceFreeLocalEffectIdentity !== 'function' ||
       typeof control?.checkSourceFreeLocalEffectPreviewIdentities !==
@@ -63,13 +63,16 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
           !member.localResultArtifact ||
           !member.sourceArtifact ||
           typeof member.capabilityEvidenceCid !== 'string' ||
-          typeof member.authorityScopeCid !== 'string' ||
           !Array.isArray(member.requiredPermissions) ||
           !Number.isSafeInteger(member.maxItems) ||
           member.maxItems < member.requests.length ||
           typeof member.approval !== 'string' ||
           typeof member.previewStrength !== 'string') {
         fail('InvalidSalesforceEffectPreviewContext');
+      }
+      if (member.authorityScopeCid !== undefined &&
+          member.authorityScopeCid !== requestAuthority) {
+        fail('ForeignSalesforceEffectPreviewAuthority');
       }
       const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
         prepared, member.stageIndex, member.effectId, planLimits.maxWork));
@@ -95,7 +98,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
         preview_strength: member.previewStrength,
         source_binding_cid: source._1,
         capability_evidence_cid: member.capabilityEvidenceCid,
-        authority_scope_cid: member.authorityScopeCid,
+        authority_scope_cid: requestAuthority,
         write_footprint: {
           kind: 'opaque', provider_boundary_cid: pendingCid,
           provider_namespace: 'pending', resource_kind: 'pending',
@@ -161,7 +164,7 @@ export function authorObservedSalesforceEffectPreview({
   let issuedIdentities;
   if (templateWire === undefined) {
     const productDraft = productPreviewDraft({moon, control, prepared, inputs,
-      context, members,
+      context, members, requestAuthority,
       maxWireBytes, maxNodes, maxDepth, planLimits});
     templateWire = productDraft.wire;
     issuedIdentities = productDraft.identities;

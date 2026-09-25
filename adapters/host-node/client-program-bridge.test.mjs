@@ -3667,7 +3667,7 @@ test(`two-member captured Effect Run ${
         localResultArtifact: sourcePayload.localResultArtifact,
         sourceArtifact: sourcePayload.summary.artifact,
         capabilityEvidenceCid: cid('d'),
-        authorityScopeCid: cid('e'), requiredPermissions: ['write'],
+        requiredPermissions: ['write'],
         maxItems: 2, approval: 'none', previewStrength: 'full_diff',
       })) : undefined;
       const issuedLocalIdentities = [];

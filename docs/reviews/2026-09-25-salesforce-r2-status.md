@@ -16,6 +16,10 @@ publication commit; they do not implement another Effect scheduler. The normal
 two-member HTTPS test covers successful completion and an unknown row, while a
 fresh-process test covers settled recovery and publication. They are Host
 connection progress, not public `submit` acceptance or live-org evidence.
+The Salesforce Preview author now takes member authority from the checked
+logical request scope; a member cannot choose or relabel that authority. The
+local fixture's scope origin and capability evidence still need product
+issuance, so this does not close current-use evidence acceptance.
 
 ## OSS main integration baseline
 
