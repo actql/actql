@@ -20,6 +20,10 @@ The Salesforce Preview author now takes member authority from the checked
 logical request scope; a member cannot choose or relabel that authority. The
 local fixture's scope origin and capability evidence still need product
 issuance, so this does not close current-use evidence acceptance.
+The common completion entry now rejects a foreign apply or Receipt Preview
+before any row send. Replaying a Set with no ready rows needs no fresh mutation
+grant or target refresh; current evidence-read admission still governs Receipt
+issuance. Neither change substitutes for the pending production Host caller.
 
 ## OSS main integration baseline
 
