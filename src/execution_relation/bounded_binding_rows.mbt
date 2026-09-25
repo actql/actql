@@ -13,6 +13,8 @@ priv enum BoundedBindingRowsPhase {
   StartSort
   SortIdentityRows
   SortRows
+  InitializeLagValues
+  BuildLagValues
   ChargeSortedRows
   ChargeTakeNames
   BeginRow
@@ -295,6 +297,12 @@ priv struct BoundedBindingRowsState {
   mut watermark_checked : Bool
   mut watermark_current : Double
   mut watermark_late : Bool
+  lag : (Int, String, Int64)?
+  mut lag_values : Array[Value]
+  mut lag_values_reserved : Bool
+  mut lag_position : Int
+  mut lag_partition_start : Int
+  mut lag_row_open : Bool
   mut json_current : @admitted.Value?
   mut json_picked : Value?
   mut json_segment : Int
@@ -439,6 +447,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   }
   state.sort_orders = []
   state.sorted_indices = None
+  state.lag_values = []
   state.distinct_keep = []
   if state.binding_execution is Some(execution) {
     cancel_ordered_bindings_execution(execution)
@@ -752,6 +761,11 @@ fn bounded_binding_rows_step(
           state.phase = StartSort
           continue
         }
+        if state.lag is Some(_) {
+          state.column = 0
+          state.phase = ChargeSortNames
+          continue
+        }
         if state.take_range is Some(_) {
           state.column = 0
           state.phase = if state.sort_kernel is Some(_) {
@@ -840,8 +854,12 @@ fn bounded_binding_rows_step(
         }
         let (field, descending, nulls_first) = if state.column <
           state.partition_terms {
-          guard @lower.kernel_top_k_partition_at(kernel, state.column)
-            is Some(field) else {
+          let field = if state.lag is Some(_) {
+            @lower.kernel_lag_partition_at(kernel, state.column)
+          } else {
+            @lower.kernel_top_k_partition_at(kernel, state.column)
+          }
+          guard field is Some(field) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
           (field, false, true)
@@ -908,6 +926,8 @@ fn bounded_binding_rows_step(
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
             }
             InitializeDistinctKeep
+          } else if state.lag is Some(_) {
+            InitializeLagValues
           } else if state.sort_only {
             BeginRow
           } else {
@@ -953,6 +973,8 @@ fn bounded_binding_rows_step(
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
               InitializeDistinctKeep
+            } else if state.lag is Some(_) {
+              InitializeLagValues
             } else if state.sort_only {
               BeginRow
             } else {
@@ -961,6 +983,85 @@ fn bounded_binding_rows_step(
             used += 1
           }
         }
+      }
+      InitializeLagValues => {
+        if !state.lag_values_reserved {
+          if !reserve_slots(state.workspace, count) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.lag_values_reserved = true
+        }
+        if state.lag_values.length() == count {
+          state.lag_position = 0
+          state.lag_partition_start = 0
+          state.phase = BuildLagValues
+          continue
+        }
+        if !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        state.lag_values.push(Null)
+        used += 1
+      }
+      BuildLagValues => {
+        guard state.lag is Some((source_column, _, offset)) &&
+          state.sorted_indices is Some(indices) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.lag_position == count {
+          release_slots(state.workspace, count)
+          state.sorted_indices = None
+          state.phase = BeginRow
+          continue
+        }
+        if !state.lag_row_open {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          state.lag_row_open = true
+          used += 1
+          continue
+        }
+        let position = state.lag_position
+        if position > 0 {
+          let same = match
+            bounded_row_comparison_step(
+              state,
+              indices[position - 1],
+              indices[position],
+              state.partition_terms,
+            ) {
+            Ok(Some(value)) => value == 0
+            Ok(None) => {
+              used += 1
+              continue
+            }
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Rows(ordering_row_issue(issue)),
+                progress,
+                used + 1,
+              )
+          }
+          if !same {
+            state.lag_partition_start = position
+          }
+        }
+        let within = position - state.lag_partition_start
+        if within.to_int64() >= offset {
+          guard bounded_binding_input_cell(
+              state.input,
+              indices[position - offset.to_int()],
+              source_column,
+            )
+            is Some(value) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.lag_values[indices[position]] = value
+        }
+        state.lag_position += 1
+        state.lag_row_open = false
+        used += 1
       }
       ChargeSortedRows => {
         if state.sort_row == count {
@@ -1462,6 +1563,8 @@ fn bounded_binding_rows_step(
                       )
                     _ => None
                   }
+                } else if state.lag is Some((_, output, _)) && name == output {
+                  state.lag_values.get(source_row)
                 } else {
                   None
                 }
@@ -1585,6 +1688,11 @@ fn bounded_binding_rows_step(
         if state.watermark is Some(_) {
           release_slots(state.workspace, state.watermark_times.length())
           state.watermark_times = []
+        }
+        if state.lag_values_reserved {
+          release_slots(state.workspace, state.lag_values.length())
+          state.lag_values = []
+          state.lag_values_reserved = false
         }
         if state.distinct {
           release_slots(state.workspace, state.distinct_keep.length())
@@ -1728,6 +1836,7 @@ fn start_bounded_binding_rows_with_input(
     @lower.AssertUnique(_) => ([], false, None, false, None, None)
     @lower.JsonPick(_, _, _) => ([], false, None, false, None, None)
     @lower.Watermark(_, _, _, _) => ([], false, None, false, None, None)
+    @lower.Lag(_, _) => ([], false, None, false, None, Some(kernel))
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.DistinctRows => ([], false, None, false, None, None)
     @lower.StableSort(_) =>
@@ -1801,7 +1910,9 @@ fn start_bounded_binding_rows_with_input(
     @lower.PartitionedTopK(count, _) => Some(count)
     _ => None
   }
-  let partition_terms = if partition_limit is Some(_) {
+  let partition_terms = if body is @lower.Lag(_, _) {
+    @lower.kernel_lag_partition_count(kernel)
+  } else if partition_limit is Some(_) {
     @lower.kernel_top_k_partition_count(kernel)
   } else {
     0
@@ -1818,7 +1929,11 @@ fn start_bounded_binding_rows_with_input(
     _ => None
   }
   let watermark_kind = body is @lower.Watermark(_, _, _, _)
+  let lag_kind = body is @lower.Lag(_, _)
   if watermark_kind && output_width != input_width + 3 {
+    return Err(InvalidExecution)
+  }
+  if lag_kind && output_width != input_width + 1 {
     return Err(InvalidExecution)
   }
   if json_pick is Some((_, path, _)) &&
@@ -1834,6 +1949,7 @@ fn start_bounded_binding_rows_with_input(
     unique_keys is None &&
     json_pick is None &&
     !watermark_kind &&
+    !lag_kind &&
     bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
@@ -1842,7 +1958,8 @@ fn start_bounded_binding_rows_with_input(
       take_range is Some(_) ||
       distinct ||
       json_pick is Some(_) ||
-      watermark_kind
+      watermark_kind ||
+      lag_kind
     ) &&
     !admit_metadata(output_width) {
     return Err(InvalidExecution)
@@ -1871,7 +1988,8 @@ fn start_bounded_binding_rows_with_input(
     unique_keys is None &&
     take_range is None &&
     json_pick is None &&
-    !watermark_kind {
+    !watermark_kind &&
+    !lag_kind {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(
@@ -1903,6 +2021,17 @@ fn start_bounded_binding_rows_with_input(
       Some((column, timestamp, policy, threshold))
     }
     _ => None
+  }
+  let lag = if lag_kind {
+    guard @lower.kernel_lag(kernel) is Some((field, output, offset)) &&
+      input_ordinals.get(@schema.reference_name(field)) is Some(column) &&
+      !input_ordinals.contains(output) &&
+      output_names.contains(output) else {
+      return Err(InvalidExecution)
+    }
+    Some((column, output, offset))
+  } else {
+    None
   }
   let binding_ordinals : Map[String, Int] = Map([])
   for index, binding in bindings {
@@ -1999,6 +2128,16 @@ fn start_bounded_binding_rows_with_input(
       }
       Some(projection)
     }
+    @lower.Lag(_, _) => {
+      let projection : Map[String, Int] = Map([])
+      for name in input_names {
+        guard input_ordinals.get(name) is Some(index) else {
+          return Err(InvalidExecution)
+        }
+        projection[name] = index
+      }
+      Some(projection)
+    }
     _ => None
   }
   let output = match
@@ -2082,6 +2221,12 @@ fn start_bounded_binding_rows_with_input(
     watermark_checked: false,
     watermark_current: 0.0,
     watermark_late: false,
+    lag,
+    lag_values: [],
+    lag_values_reserved: false,
+    lag_position: 0,
+    lag_partition_start: 0,
+    lag_row_open: false,
     json_current: None,
     json_picked: None,
     json_segment: -1,

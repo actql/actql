@@ -6052,7 +6052,7 @@ async function exerciseStrategyGraph(
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
     ['sliding parameter row window', slidingRowWindowProgram, [1, 2, 3, 4]],
     ['window group', windowGroupProgram, [1, 2, 3]],
-    ['parameter lag', lagProgram, [1, 2, 3]],
+    ['parameter lag', lagProgram, [1, 2, 3, 4, 5]],
     ['analytic', analyticProgram, [1, 2, 3]],
     ['unpivot', unpivotProgram, [1, 2, 3, 4]],
     ['same-stage unpivot', sameStageUnpivotProgram, [1, 2, 3, 4]],
@@ -6188,7 +6188,7 @@ async function exerciseStrategyGraph(
       if (name === 'parameter lag') {
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
-          [5, 5, 5],
+          [5, 5, 5, 5, 5],
           `${name} and both consumers publish complete retained outputs`,
         );
       }
@@ -6751,6 +6751,8 @@ async function exerciseStrategyGraph(
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
       program: splitValuesUniqueProgram, cancelAtStart: 3},
+    {name: 'same-stage-lag-in-flight',
+      program: lagProgram, cancelAtStart: 3},
     {name: 'split-values-sort-in-flight',
       program: splitValuesSortTakeProgram, cancelAtStart: 3},
     {name: 'separate-sort-in-flight',
@@ -6767,6 +6769,7 @@ async function exerciseStrategyGraph(
     const watermarkCancellation = cancellationName ===
       'split-values-fixed-watermark-in-flight' ||
       cancellationName === 'split-values-prefix-watermark-in-flight';
+    const lagCancellation = cancellationName === 'same-stage-lag-in-flight';
     const unpivotCancellation = cancellationName ===
       'split-values-unpivot-in-flight';
     const unnestCancellation = cancellationName ===
@@ -6776,7 +6779,8 @@ async function exerciseStrategyGraph(
     const sameStageJsonFilterCancellation = cancellationName ===
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
-      stage => stage.id === (rowWindowCancellation
+      stage => stage.id === (lagCancellation
+        ? 'lagged' : rowWindowCancellation
         ? 'window_values' : watermarkCancellation
           ? 'watermark_values' : unpivotCancellation
           ? 'unpivot_values' : unnestCancellation
@@ -6787,6 +6791,8 @@ async function exerciseStrategyGraph(
     valuesStage.steps[0].values.rows = Array.from(
       {length: 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
+        : lagCancellation
+          ? {amount: index, group: index % 2 ? 'a' : null, id: index}
         : watermarkCancellation
           ? {id: index, time: 100 - index}
         : unpivotCancellation
@@ -6849,6 +6855,7 @@ async function exerciseStrategyGraph(
                   const stepQuantum = start === cancelAtStart &&
                     (cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || watermarkCancellation ||
+                      lagCancellation ||
                       unpivotCancellation ||
                       unnestCancellation || jsonPickCancellation ||
                       sameStageJsonFilterCancellation)
