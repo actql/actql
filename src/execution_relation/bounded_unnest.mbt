@@ -107,6 +107,7 @@ priv struct BoundedUnnestState {
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
+  mut charge_measure : SteppedValueMeasure?
   mut source : Int
   mut source_ready : Bool
   mut item : Int
@@ -130,6 +131,7 @@ pub(all) enum BoundedUnnestIssue {
 
 ///|
 struct BoundedUnnestExecution {
+  state : BoundedUnnestState
   session : @bounded.Session[
     BoundedUnnestState,
     CompletedOutput,
@@ -137,6 +139,13 @@ struct BoundedUnnestExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+#warnings("-unused_value")
+fn bounded_unnest_measuring_input(execution : BoundedUnnestExecution) -> Bool {
+  execution.state.phase is ChargeInput &&
+  execution.state.charge_measure is Some(_)
 }
 
 ///|
@@ -166,6 +175,10 @@ fn cleanup_bounded_unnest_state(state : BoundedUnnestState) -> Bool {
   state.ordinals.clear()
   state.output_columns = []
   state.checked_row = []
+  if state.charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.charge_measure = None
+  }
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
     state.rows.val = None
@@ -274,19 +287,40 @@ fn bounded_unnest_step(
           state.charge_open = true
           used += 1
         } else if state.charge_column < width {
-          guard unnest_bounded_cell(
-              state.input,
-              state.charge_row,
-              state.charge_column,
-            )
-            is Some(value) else {
-            return fail_bounded_unnest(InvalidExecution, progress, used)
+          if state.charge_measure is None {
+            guard unnest_bounded_cell(
+                state.input,
+                state.charge_row,
+                state.charge_column,
+              )
+              is Some(value) else {
+              return fail_bounded_unnest(InvalidExecution, progress, used)
+            }
+            if !charge_text(
+                state.input_values,
+                state.names[state.charge_column],
+              ) {
+              return fail_bounded_unnest(InputLimit, progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return fail_bounded_unnest(Rows(RowLimit), progress, used)
+            }
+            state.charge_measure = Some(cursor)
           }
-          if !charge_text(state.input_values, state.names[state.charge_column]) ||
-            !measure_result(value, state.input_values) {
-            return fail_bounded_unnest(InputLimit, progress, used)
+          let cursor = state.charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return fail_bounded_unnest(InputLimit, progress, used)
+            SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_unnest(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.charge_measure = None
+              state.charge_column += 1
+            }
           }
-          state.charge_column += 1
           used += 1
         } else {
           state.charge_row += 1
@@ -543,6 +577,7 @@ fn start_bounded_unnest_input(
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
+    charge_measure: None,
     source: 0,
     source_ready: false,
     item: 0,
@@ -563,7 +598,7 @@ fn start_bounded_unnest_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

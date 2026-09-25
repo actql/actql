@@ -1762,6 +1762,20 @@
           "fixture": "bounded unpivot cancels after output work without partial completion"
         },
         {
+          "role": "unpivot_unused_nested_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot stops inside an unused nested input value"
+        },
+        {
+          "role": "unpivot_nested_input_value_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot preserves exact nested input value charges"
+        },
+        {
           "role": "unpivot_bounded_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1802,6 +1816,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary captured Relation chain cancels after bounded work"
+        },
+        {
+          "role": "unpivot_nested_input_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "standard Host cancels a unary kernel inside a nested input"
         }
       ],
       "environment_tests": [
@@ -2035,6 +2056,20 @@
           "fixture": "bounded unnest stops after output work without partial completion"
         },
         {
+          "role": "unnest_long_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest stops inside its long input array"
+        },
+        {
+          "role": "unnest_input_array_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
+          "fixture": "bounded unnest preserves exact input array charges"
+        },
+        {
           "role": "unnest_bounded_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -2068,6 +2103,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_nest_wbtest.mbt",
           "fixture": "nest output unnest filter feeds two bounded consumers"
+        },
+        {
+          "role": "unnest_long_input_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "standard Host cancels a unary kernel inside a nested input"
         }
       ],
       "environment_tests": [

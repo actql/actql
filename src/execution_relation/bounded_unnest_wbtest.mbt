@@ -1,12 +1,17 @@
 ///|
 fn bounded_unnest_fixture(
   rows : String,
+  large_items? : Bool = false,
+  input_values? : ValueLimits = run_limits().input_values,
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedUnnestExecution, CompletedOutput) raise {
+  let item_limit = if large_items { "256" } else { "2" }
   let source_owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":2}},\"rows\":" +
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"items\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true},\"max_items\":" +
+    item_limit +
+    "}},\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -73,7 +78,7 @@ fn bounded_unnest_fixture(
     generated,
     read,
     max_rows,
-    run_limits().input_values,
+    input_values,
     run_limits().output_values,
     max_work,
     100,
@@ -81,6 +86,84 @@ fn bounded_unnest_fixture(
     10000,
   ).unwrap()
   (control, execution, source)
+}
+
+///|
+fn long_unnest_items_rows(count : Int) -> String {
+  "[{\"id\":1,\"items\":[" + Array::make(count, "1").join(",") + "]}]"
+}
+
+///|
+test "bounded unnest stops inside its long input array" {
+  let (control, execution, source) = bounded_unnest_fixture(
+    long_unnest_items_rows(256),
+    large_items=true,
+    max_rows=256,
+    max_work=1000,
+  )
+  let mut measuring = false
+  for _ in 0..<30 {
+    if !measuring {
+      match advance_bounded_unnest(execution, 1).unwrap() {
+        BoundedUnnestContinue(..) =>
+          measuring = bounded_unnest_measuring_input(execution)
+        _ => fail("long input completed before cancellation")
+      }
+    }
+  }
+  assert_true(measuring)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_unnest(execution, 1).unwrap() is BoundedUnnestStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_unnest(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded unnest preserves exact input array charges" {
+  // One row, id, array, and eight items cost 11 nodes and 18 work.
+  for
+    (nodes, work, accepted) in [
+      (11, 18, true),
+      (10, 18, false),
+      (11, 17, false),
+    ] {
+    let input_values : ValueLimits = {
+      ..run_limits().input_values,
+      max_nodes: nodes,
+      max_text_bytes: 7,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_unnest_fixture(
+      long_unnest_items_rows(8),
+      large_items=true,
+      input_values~,
+      max_rows=8,
+      max_work=1000,
+    )
+    let mut terminal = false
+    for _ in 0..<500 {
+      if !terminal {
+        match advance_bounded_unnest(execution, 1).unwrap() {
+          BoundedUnnestContinue(..) => ()
+          BoundedUnnestComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 8)
+            terminal = true
+          }
+          BoundedUnnestFailed(InputLimit, ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("input array ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_unnest(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

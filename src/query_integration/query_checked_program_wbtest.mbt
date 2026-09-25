@@ -1330,11 +1330,37 @@ fn local_values_unary_program(kind : String) -> String {
   if kind == "unnest" {
     return local_unnest_program()
   }
+  if kind == "unnest_long_items" {
+    return local_unnest_program()
+      .replace(old="\"max_items\":2", new="\"max_items\":256")
+      .replace(
+        old="\"items\":[2,null]",
+        new="\"items\":[" + Array::make(256, "1").join(",") + "]",
+      )
+  }
   if kind == "unnest_inner" {
     return local_inner_unnest_program()
   }
   if kind == "unpivot" {
     return local_unpivot_program()
+  }
+  if kind == "unpivot_unused_payload" {
+    return local_unpivot_program()
+      .replace(
+        old="\"feb\":{\"type\":\"number\",\"nullable\":true}},\"rows\"",
+        new="\"feb\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\"",
+      )
+      .replace(
+        old="\"feb\":null},{\"id\":2",
+        new="\"feb\":null,\"payload\":[" +
+          Array::make(256, "1").join(",") +
+          "]},{\"id\":2",
+      )
+      .replace(old="\"feb\":20}]", new="\"feb\":20,\"payload\":[]}]")
+      .replace(
+        old="\"fields\":[\"id\",\"jan\",\"feb\"]",
+        new="\"fields\":[\"id\",\"jan\",\"feb\",\"payload\"]",
+      )
   }
   if kind == "unpivot_empty" {
     return local_empty_unpivot_program()

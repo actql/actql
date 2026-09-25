@@ -61,7 +61,7 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
       [
         "{\"id\":1,\"item\":2,\"items\":[2,null]}", "{\"id\":1,\"item\":null,\"items\":[2,null]}",
       ]
-    "unpivot" =>
+    "unpivot" | "unpivot_unused_payload" =>
       [
         "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":1,\"jan\":10,\"metric\":\"feb\"}",
         "{\"amount\":10,\"id\":1,\"jan\":10,\"metric\":\"jan\"}", "{\"amount\":null,\"id\":2,\"jan\":null,\"metric\":\"jan\"}",
@@ -115,6 +115,12 @@ fn local_managed_unary_input_expected(kind : String) -> Array[String] {
   } else if kind == "unnest" || kind == "unnest_inner" {
     [
       "{\"id\":1,\"items\":[2,null]}", "{\"id\":2,\"items\":[]}", "{\"id\":3,\"items\":null}",
+    ]
+  } else if kind == "unpivot_unused_payload" {
+    let payload = "1" + ",1".repeat(255)
+    [
+      "{\"feb\":null,\"id\":1,\"jan\":10,\"payload\":[" + payload + "]}",
+      "{\"feb\":20,\"id\":2,\"jan\":null,\"payload\":[]}",
     ]
   } else if kind == "unpivot" {
     ["{\"feb\":null,\"id\":1,\"jan\":10}", "{\"feb\":20,\"id\":2,\"jan\":null}"]
@@ -262,7 +268,8 @@ fn run_local_managed_unary_case(
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable"
-  let large_nested_input = kind == "filter_nested"
+  let large_nested_input = kind == "filter_nested" ||
+    kind == "unpivot_unused_payload"
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
     managed_publication=publication,
@@ -443,6 +450,7 @@ fn run_local_managed_unary_case(
     kind == "unnest" ||
     kind == "unnest_inner" ||
     kind == "unpivot" ||
+    kind == "unpivot_unused_payload" ||
     kind == "unpivot_empty"
   let bounded_advances = Ref(0)
   let (unary_ops, unary) = run_local_managed_test_task(
@@ -577,9 +585,9 @@ test "Local managed unary source forms feed two downstream Computes" {
       "sort", "sort_compound", "take", "take_parameter", "distinct", "top_k", "top_k_parameter",
       "top_k_compound", "top_k_by", "top_k_by_parameter", "top_k_by_nullable", "dedupe_rows",
       "distinct_keyed_nullable", "dedupe_compound_nullable", "unnest", "unpivot",
-      "unnest_inner", "unpivot_empty", "pivot", "pivot_min_fill", "pivot_empty_axis",
-      "pivot_numeric", "pivot_decimal_sum", "pivot_parameter_fill", "pivot_max",
-      "pivot_first",
+      "unnest_inner", "unpivot_empty", "unpivot_unused_payload", "pivot", "pivot_min_fill",
+      "pivot_empty_axis", "pivot_numeric", "pivot_decimal_sum", "pivot_parameter_fill",
+      "pivot_max", "pivot_first",
     ] {
     run_local_managed_unary_case(kind)
   }
@@ -607,9 +615,16 @@ test "ordinary Local filters resume within quantum" {
 }
 
 ///|
-test "standard Host cancels a filter inside an unused nested input" {
+test "standard Host cancels a unary kernel inside a nested input" {
+  for kind in ["filter_nested", "unpivot_unused_payload", "unnest_long_items"] {
+    run_local_managed_nested_input_cancel(kind)
+  }
+}
+
+///|
+fn run_local_managed_nested_input_cancel(kind : String) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
-    local_values_unary_chain=Some("filter_nested"),
+    local_values_unary_chain=Some(kind),
   )
   let registry = search_registry()
   let limits = dispatch_test_limits()

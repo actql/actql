@@ -107,6 +107,7 @@ priv struct BoundedUnpivotState {
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
+  mut charge_measure : SteppedValueMeasure?
   mut source : Int
   mut occurrence : Int
   mut column : Int
@@ -127,6 +128,7 @@ pub(all) enum BoundedUnpivotIssue {
 
 ///|
 struct BoundedUnpivotExecution {
+  state : BoundedUnpivotState
   session : @bounded.Session[
     BoundedUnpivotState,
     CompletedOutput,
@@ -134,6 +136,13 @@ struct BoundedUnpivotExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+#warnings("-unused_value")
+fn bounded_unpivot_measuring_input(execution : BoundedUnpivotExecution) -> Bool {
+  execution.state.phase is ChargeInput &&
+  execution.state.charge_measure is Some(_)
 }
 
 ///|
@@ -166,6 +175,10 @@ fn cleanup_bounded_unpivot_state(state : BoundedUnpivotState) -> Bool {
   state.keeps.clear()
   state.output_columns = []
   state.checked_row = []
+  if state.charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.charge_measure = None
+  }
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
     state.rows.val = None
@@ -319,19 +332,40 @@ fn bounded_unpivot_step(
           state.charge_open = true
           used += 1
         } else if state.charge_column < width {
-          guard unpivot_input_cell(
-              state.input,
-              state.charge_row,
-              state.charge_column,
-            )
-            is Some(value) else {
-            return fail_bounded_unpivot(InvalidExecution, progress, used)
+          if state.charge_measure is None {
+            guard unpivot_input_cell(
+                state.input,
+                state.charge_row,
+                state.charge_column,
+              )
+              is Some(value) else {
+              return fail_bounded_unpivot(InvalidExecution, progress, used)
+            }
+            if !charge_text(
+                state.input_values,
+                state.names[state.charge_column],
+              ) {
+              return fail_bounded_unpivot(InputLimit, progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return fail_bounded_unpivot(Rows(RowLimit), progress, used)
+            }
+            state.charge_measure = Some(cursor)
           }
-          if !charge_text(state.input_values, state.names[state.charge_column]) ||
-            !measure_result(value, state.input_values) {
-            return fail_bounded_unpivot(InputLimit, progress, used)
+          let cursor = state.charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return fail_bounded_unpivot(InputLimit, progress, used)
+            SteppedMeasureWorkspaceLimit =>
+              return fail_bounded_unpivot(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.charge_measure = None
+              state.charge_column += 1
+            }
           }
-          state.charge_column += 1
           used += 1
         } else {
           state.charge_row += 1
@@ -549,6 +583,7 @@ fn start_bounded_unpivot_input(
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
+    charge_measure: None,
     source: 0,
     occurrence: 0,
     column: 0,
@@ -566,7 +601,7 @@ fn start_bounded_unpivot_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

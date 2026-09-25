@@ -1,12 +1,22 @@
 ///|
 fn bounded_unpivot_fixture(
   rows : String,
+  unused_payload? : Bool = false,
+  input_values? : ValueLimits = run_limits().input_values,
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedUnpivotExecution, CompletedOutput) raise {
+  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}" +
+    (if unused_payload {
+      ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+    } else {
+      "}"
+    })
   let source_owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}},\"rows\":" +
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -73,7 +83,7 @@ fn bounded_unpivot_fixture(
     generated,
     read,
     max_rows,
-    run_limits().input_values,
+    input_values,
     run_limits().output_values,
     max_work,
     100,
@@ -81,6 +91,87 @@ fn bounded_unpivot_fixture(
     10000,
   ).unwrap()
   (control, execution, source)
+}
+
+///|
+fn unpivot_unused_payload_rows(count : Int) -> String {
+  let numbers = Array::makei(count, index => index.to_string()).join(",")
+  "[{\"id\":1,\"jan\":10,\"feb\":20,\"payload\":[" + numbers + "]}]"
+}
+
+///|
+test "bounded unpivot stops inside an unused nested input value" {
+  let (control, execution, source) = bounded_unpivot_fixture(
+    unpivot_unused_payload_rows(256),
+    unused_payload=true,
+    max_work=1000,
+    max_entries=1000,
+  )
+  let mut measuring = false
+  for _ in 0..<50 {
+    if !measuring {
+      match advance_bounded_unpivot(execution, 1).unwrap() {
+        BoundedUnpivotContinue(..) =>
+          measuring = bounded_unpivot_measuring_input(execution)
+        _ => fail("nested input finished before cancellation")
+      }
+    }
+  }
+  assert_true(measuring)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_unpivot(execution, 1).unwrap()
+    is BoundedUnpivotStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_unpivot(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded unpivot preserves exact nested input value charges" {
+  // Row, three scalar cells, array, and 256 elements: 261 nodes.
+  // Four names cost 15 UTF-8 bytes, giving 276 logical work units.
+  for
+    (nodes, work, accepted) in [
+      (261, 276, true),
+      (260, 276, false),
+      (261, 275, false),
+    ] {
+    let input_values : ValueLimits = {
+      ..run_limits().input_values,
+      max_nodes: nodes,
+      max_text_bytes: 15,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_unpivot_fixture(
+      unpivot_unused_payload_rows(256),
+      unused_payload=true,
+      input_values~,
+      max_work=1000,
+      max_entries=1000,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_unpivot(execution, 1).unwrap() {
+          BoundedUnpivotContinue(..) => ()
+          BoundedUnpivotComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 3)
+            terminal = true
+          }
+          BoundedUnpivotFailed(InputLimit, ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("nested unpivot ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_unpivot(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

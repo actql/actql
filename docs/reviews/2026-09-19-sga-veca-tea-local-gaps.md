@@ -143,6 +143,19 @@ downstream Computes with independent release, and cancels after positive
 work in the nested cell without publishing partial output. This does not
 make the separate providerless whole-sequence evaluator bounded.
 
+The selected `unpivot` provider now also measures every input cell in resumed
+steps, including a nested field excluded from the output. Its 256-element
+input fixture fixes exact/one-short value work and node limits, stops inside
+measurement, and reclaims the unfinished operation. A normal Program sends
+that same shape through the standard Host, two downstream Computes, and an
+in-flight cancellation before completion. This improves the selected route;
+it does not certify the remaining providerless whole-sequence path.
+The selected `unnest` provider uses the same resumed measurement for its
+array input. Independent eight-item exact/one-short value budgets and a
+256-item input cancellation prove the local boundary; the normal Program
+also delivers cancellation during the large input via the standard Host.
+Existing two-consumer success fixtures remain the output-lifetime control.
+
 The output continuation now charges the output row and each field to the
 existing value budget and traverses long text for that charge in bounded
 resume steps. The exact admitted producer/supplied input branch now reuses
