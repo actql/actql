@@ -27,6 +27,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 - [Logical request and dispatch evidence](#logical-request)
 - [Source-state operator claim](#source-advance-claim)
 - [Authorized private inspection](#private-inspection)
+- [Execution-account configuration](#account-config)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -361,6 +362,41 @@ Approval authority alone cannot grant that access. Public explain remains
 redacted. Inspection never returns signing/encryption keys or Connector secrets.
 Progress is nonsemantic status, not a partially materialized Result.
 
+<a id="account-config"></a>
+
+### Execution-account configuration
+
+An execution-account configuration is an `actql-execution-account-config/0.1`
+document. It binds one `account_id` and a finite set of entries, each with a
+unique `entry_id`, one outcome `allow`, `deny` or `delegate`, one selector for
+each of `principal`, `connection`, `resource` and `operation`, and a set of
+tuple `exclusions`. A selector is `{all: true}`, which includes current and
+future members of that dimension, or `{any_of: [...]}`, a finite set of exact
+identifiers. An exclusion is one selector per dimension and denotes their
+Cartesian tuple set. The optional `bootstrap` member records the provenance of
+a materialized Local bootstrap profile: profile ID, version and exact content
+CID. Routing semantics are owned by [Account authorization routing](../execution.md#policy-routing).
+
+<!-- requirement-block: account-config.a-configuration-must-use-one-canonical-spelling account-config.identifiers-must-match-by-exact-equality account-config.admission-must-decide-overlap-by-this-exact-rule -->
+A configuration MUST use one canonical spelling: entries in ascending
+`entry_id` order, each `any_of` array in ascending order, and each `exclusions`
+array in ascending order of its tuples' canonical JSON text, with UTF-16 code-unit
+ordering of NFC-normalized strings throughout. Its identity is the CID of the
+complete canonical document; evidence and Checkpoints bind that CID. A
+principal, connection, resource or operation identifier MUST match only by
+exact equality with the identifier the trusted Run owner presents for the
+boundary, without prefixes, patterns or case folding. An entry's effective set
+is the Cartesian product of its four selectors minus the union of its
+exclusions. For two entries with different outcomes, the candidate box is the
+per-dimension intersection of their selectors, where `all` intersected with a
+finite set is that set. The configuration conflicts when that box, minus the
+exclusions of both entries, is nonempty. Admission MUST decide overlap by this
+exact rule: in each dimension, use the box's finite set, or, for `all`, every
+identifier named by those exclusions in that dimension plus one fresh
+identifier that only `all` contains; the configuration conflicts exactly when
+some point of that finite grid lies outside every exclusion. The result is
+therefore independent of discovered connections, resources and operations.
+
 <a id="machine-contracts"></a>
 
 ## Machine contracts
@@ -405,6 +441,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```

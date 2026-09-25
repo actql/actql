@@ -1,0 +1,1417 @@
+{
+  "version": "actql-execution-account-config-vectors/0.1",
+  "notes": [
+    "Expected CIDs were computed with Python json.dumps(sort_keys, compact) and hashlib over ASCII-only values, independently of product code.",
+    "Overlap and evaluation expectations are hand-derived from the design acceptance cases and Run#account-config."
+  ],
+  "cases": [
+    {
+      "id": "local-allow-selected-connection",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:operator",
+        "entries": [
+          {
+            "entry_id": "files",
+            "outcome": "allow",
+            "principal": {
+              "any_of": [
+                "operator"
+              ]
+            },
+            "connection": {
+              "any_of": [
+                "local-files"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      },
+      "expected_cid": "sha256:e240525257340428cc9117b0b0e84a000996791f43b230abdb553e55223bec12"
+    },
+    {
+      "id": "same-scope-deny",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:operator",
+        "entries": [
+          {
+            "entry_id": "files",
+            "outcome": "deny",
+            "principal": {
+              "any_of": [
+                "operator"
+              ]
+            },
+            "connection": {
+              "any_of": [
+                "local-files"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      },
+      "expected_cid": "sha256:8511f88f45fbdd0c2e1d9cd474819ccc9d5b638bf467bbc578bc938da47f76ab"
+    },
+    {
+      "id": "other-account",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:ci",
+        "entries": [
+          {
+            "entry_id": "files",
+            "outcome": "allow",
+            "principal": {
+              "any_of": [
+                "operator"
+              ]
+            },
+            "connection": {
+              "any_of": [
+                "local-files"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      },
+      "expected_cid": "sha256:ef9df824b152b00324a8fb39706a0f7a8b56f84e9574bca88d31ee3427ce2df7"
+    },
+    {
+      "id": "finite-resource",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:operator",
+        "entries": [
+          {
+            "entry_id": "files",
+            "outcome": "allow",
+            "principal": {
+              "any_of": [
+                "operator"
+              ]
+            },
+            "connection": {
+              "any_of": [
+                "local-files"
+              ]
+            },
+            "resource": {
+              "any_of": [
+                "workspace"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      },
+      "expected_cid": "sha256:137db0ec19429adc0616057cc6a8e247cd8cd056e2f767fbc61e9f5ae280536a"
+    },
+    {
+      "id": "bootstrap-provenance",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:operator",
+        "entries": [
+          {
+            "entry_id": "files",
+            "outcome": "allow",
+            "principal": {
+              "any_of": [
+                "operator"
+              ]
+            },
+            "connection": {
+              "any_of": [
+                "local-files"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ],
+        "bootstrap": {
+          "profile_id": "actql-local-workspace",
+          "profile_version": "0.1",
+          "profile_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected_cid": "sha256:1716dd9538c0283c31e40b1860ca84669fda3675e9937964462971dfa69c2ebb"
+    },
+    {
+      "id": "delegate-except-deny",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "cloud:service",
+        "entries": [
+          {
+            "entry_id": "broad",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "any_of": [
+                    "crm"
+                  ]
+                },
+                "resource": {
+                  "any_of": [
+                    "X"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "system",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "crm"
+              ]
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      },
+      "expected_cid": "sha256:dd1267582266945349fe7f14e5e253774f6a8ac37726f87142eebc8ca83b6112"
+    },
+    {
+      "id": "empty-entries",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "local:empty",
+        "entries": []
+      },
+      "expected_cid": "sha256:e15af0b4de9509da2734f4fa3c1defc7e49fe415308c4f69b4d97dfdf22cf58c"
+    }
+  ],
+  "rejections": [
+    {
+      "id": "missing-version",
+      "remove": "version"
+    },
+    {
+      "id": "wrong-version",
+      "changes": {
+        "version": "actql-execution-account-config/0.2"
+      }
+    },
+    {
+      "id": "review-outcome",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "review",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "all": true
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "empty-any-of",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": []
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "all-false",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "all": false
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "all-and-any-of",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "all": true,
+            "any_of": [
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "unsorted-any-of",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "Y",
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "duplicate-any-of",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "X",
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "missing-exclusions",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "all": true
+          },
+          "operation": {
+            "all": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "duplicate-entry-id",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        },
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "Y"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "unsorted-entries",
+      "entries": [
+        {
+          "entry_id": "b",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        },
+        {
+          "entry_id": "a",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "any_of": [
+              "Y"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    {
+      "id": "exclusion-missing-dimension",
+      "entries": [
+        {
+          "entry_id": "e",
+          "outcome": "allow",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "all": true
+          },
+          "resource": {
+            "all": true
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": [
+            {
+              "principal": {
+                "all": true
+              },
+              "connection": {
+                "all": true
+              },
+              "resource": {
+                "any_of": [
+                  "X"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-member",
+      "changes": {
+        "default": "allow"
+      }
+    },
+    {
+      "id": "bootstrap-without-cid",
+      "changes": {
+        "bootstrap": {
+          "profile_id": "p",
+          "profile_version": "0.1"
+        }
+      }
+    },
+    {
+      "id": "empty-account",
+      "changes": {
+        "account_id": ""
+      }
+    }
+  ],
+  "overlap": [
+    {
+      "id": "design-13-conflict-at-undiscovered-Y",
+      "expected": "conflict",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "all": true
+                },
+                "resource": {
+                  "any_of": [
+                    "X"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X",
+                "Y"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "design-13-disjoint",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "all": true
+                },
+                "resource": {
+                  "any_of": [
+                    "X",
+                    "Y"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X",
+                "Y"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "tuple-exclusion-disjoint",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "any_of": [
+                    "A"
+                  ]
+                },
+                "resource": {
+                  "any_of": [
+                    "X"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "tuple-exclusion-non-cartesian-conflict",
+      "expected": "conflict",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "any_of": [
+                    "A"
+                  ]
+                },
+                "resource": {
+                  "any_of": [
+                    "X"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "projection-overlap-without-tuple-overlap",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A",
+                "B"
+              ]
+            },
+            "resource": {
+              "any_of": [
+                "X",
+                "Y"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "any_of": [
+                    "A"
+                  ]
+                },
+                "resource": {
+                  "any_of": [
+                    "X"
+                  ]
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "design-14-allow-against-explicit-deny",
+      "expected": "conflict",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          },
+          {
+            "entry_id": "b",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "design-14-allow-formerly-unmatched",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "Y"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          },
+          {
+            "entry_id": "b",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "same-outcome-overlap",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "any_of": [
+                "X"
+              ]
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          },
+          {
+            "entry_id": "b",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "broad-allow-plus-deny-no-exclusion",
+      "expected": "conflict",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "allow",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "any_of": [
+                "delete"
+              ]
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "all-exclusion-covers-dimension",
+      "expected": "valid",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "all": true
+                },
+                "resource": {
+                  "all": true
+                },
+                "operation": {
+                  "any_of": [
+                    "delete"
+                  ]
+                }
+              },
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "any_of": [
+                    "A"
+                  ]
+                },
+                "resource": {
+                  "all": true
+                },
+                "operation": {
+                  "all": true
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "any_of": [
+                "delete",
+                "update"
+              ]
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "fresh-member-remains",
+      "expected": "conflict",
+      "config": {
+        "version": "actql-execution-account-config/0.1",
+        "account_id": "acct",
+        "entries": [
+          {
+            "entry_id": "a",
+            "outcome": "delegate",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "all": true
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": [
+              {
+                "principal": {
+                  "all": true
+                },
+                "connection": {
+                  "all": true
+                },
+                "resource": {
+                  "all": true
+                },
+                "operation": {
+                  "any_of": [
+                    "delete"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "entry_id": "b",
+            "outcome": "deny",
+            "principal": {
+              "all": true
+            },
+            "connection": {
+              "any_of": [
+                "A"
+              ]
+            },
+            "resource": {
+              "all": true
+            },
+            "operation": {
+              "all": true
+            },
+            "exclusions": []
+          }
+        ]
+      }
+    }
+  ],
+  "evaluation": {
+    "config": {
+      "version": "actql-execution-account-config/0.1",
+      "account_id": "acct",
+      "entries": [
+        {
+          "entry_id": "crm",
+          "outcome": "delegate",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "any_of": [
+              "crm"
+            ]
+          },
+          "resource": {
+            "all": true
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": [
+            {
+              "principal": {
+                "all": true
+              },
+              "connection": {
+                "all": true
+              },
+              "resource": {
+                "any_of": [
+                  "X"
+                ]
+              },
+              "operation": {
+                "all": true
+              }
+            }
+          ]
+        },
+        {
+          "entry_id": "files",
+          "outcome": "allow",
+          "principal": {
+            "any_of": [
+              "operator"
+            ]
+          },
+          "connection": {
+            "any_of": [
+              "local-files"
+            ]
+          },
+          "resource": {
+            "all": true
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": [
+            {
+              "principal": {
+                "all": true
+              },
+              "connection": {
+                "all": true
+              },
+              "resource": {
+                "any_of": [
+                  "secrets"
+                ]
+              },
+              "operation": {
+                "all": true
+              }
+            }
+          ]
+        },
+        {
+          "entry_id": "system",
+          "outcome": "deny",
+          "principal": {
+            "all": true
+          },
+          "connection": {
+            "any_of": [
+              "crm"
+            ]
+          },
+          "resource": {
+            "any_of": [
+              "X"
+            ]
+          },
+          "operation": {
+            "all": true
+          },
+          "exclusions": []
+        }
+      ]
+    },
+    "cases": [
+      {
+        "id": "allow-future-resource",
+        "tuple": {
+          "principal": "operator",
+          "connection": "local-files",
+          "resource": "new-dir",
+          "operation": "read"
+        },
+        "expected": {
+          "outcome": "allow",
+          "entry_id": "files"
+        }
+      },
+      {
+        "id": "excluded-without-other-match",
+        "tuple": {
+          "principal": "operator",
+          "connection": "local-files",
+          "resource": "secrets",
+          "operation": "read"
+        },
+        "expected": {
+          "outcome": "no_match"
+        }
+      },
+      {
+        "id": "finite-principal",
+        "tuple": {
+          "principal": "guest",
+          "connection": "local-files",
+          "resource": "new-dir",
+          "operation": "read"
+        },
+        "expected": {
+          "outcome": "no_match"
+        }
+      },
+      {
+        "id": "delegate-future-operation",
+        "tuple": {
+          "principal": "svc",
+          "connection": "crm",
+          "resource": "Account",
+          "operation": "merge"
+        },
+        "expected": {
+          "outcome": "delegate",
+          "entry_id": "crm"
+        }
+      },
+      {
+        "id": "explicit-deny",
+        "tuple": {
+          "principal": "svc",
+          "connection": "crm",
+          "resource": "X",
+          "operation": "update"
+        },
+        "expected": {
+          "outcome": "deny",
+          "entry_id": "system"
+        }
+      },
+      {
+        "id": "unconfigured-connection",
+        "tuple": {
+          "principal": "operator",
+          "connection": "mail",
+          "resource": "inbox",
+          "operation": "read"
+        },
+        "expected": {
+          "outcome": "no_match"
+        }
+      }
+    ]
+  }
+}

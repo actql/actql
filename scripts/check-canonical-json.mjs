@@ -116,6 +116,11 @@ function fixtures() {
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});
   }
+  const accountConfigs = read('portability/corpus/execution-account-config.json');
+  assert.equal(accountConfigs.version, 'actql-execution-account-config-vectors/0.1');
+  for (const c of accountConfigs.cases) {
+    result.push({id: 'execution account config ' + c.id, value: c.config, cid: c.expected_cid});
+  }
   const family = read('spec/spec-family.json');
   const sourceStates = read('portability/corpus/source-state-requirement.json');
   for (const c of sourceStates.cases) {

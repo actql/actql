@@ -175,6 +175,76 @@ test "local contract set pair" {
 }
 
 ///|
+test "execution account config local-allow-selected-connection" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:operator\",\"entries\":[{\"entry_id\":\"files\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local-files\"]},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 18, 5, 270)
+  assert_eq(@canonical_json.cid_value(value, 270, 18, 5), "sha256:e240525257340428cc9117b0b0e84a000996791f43b230abdb553e55223bec12")
+  assert_eq(@canonical_json.measure_value(value, 270, 18, 5), 270)
+}
+
+///|
+test "execution account config same-scope-deny" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:operator\",\"entries\":[{\"entry_id\":\"files\",\"outcome\":\"deny\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local-files\"]},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 18, 5, 269)
+  assert_eq(@canonical_json.cid_value(value, 269, 18, 5), "sha256:8511f88f45fbdd0c2e1d9cd474819ccc9d5b638bf467bbc578bc938da47f76ab")
+  assert_eq(@canonical_json.measure_value(value, 269, 18, 5), 269)
+}
+
+///|
+test "execution account config other-account" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:ci\",\"entries\":[{\"entry_id\":\"files\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local-files\"]},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 18, 5, 264)
+  assert_eq(@canonical_json.cid_value(value, 264, 18, 5), "sha256:ef9df824b152b00324a8fb39706a0f7a8b56f84e9574bca88d31ee3427ce2df7")
+  assert_eq(@canonical_json.measure_value(value, 264, 18, 5), 264)
+}
+
+///|
+test "execution account config finite-resource" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:operator\",\"entries\":[{\"entry_id\":\"files\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local-files\"]},\"resource\":{\"any_of\":[\"workspace\"]},\"operation\":{\"all\":true},\"exclusions\":[]}]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 19, 5, 282)
+  assert_eq(@canonical_json.cid_value(value, 282, 19, 5), "sha256:137db0ec19429adc0616057cc6a8e247cd8cd056e2f767fbc61e9f5ae280536a")
+  assert_eq(@canonical_json.measure_value(value, 282, 19, 5), 282)
+}
+
+///|
+test "execution account config bootstrap-provenance" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:operator\",\"entries\":[{\"entry_id\":\"files\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"local-files\"]},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}],\"bootstrap\":{\"profile_id\":\"actql-local-workspace\",\"profile_version\":\"0.1\",\"profile_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 22, 5, 433)
+  assert_eq(@canonical_json.cid_value(value, 433, 22, 5), "sha256:1716dd9538c0283c31e40b1860ca84669fda3675e9937964462971dfa69c2ebb")
+  assert_eq(@canonical_json.measure_value(value, 433, 22, 5), 433)
+}
+
+///|
+test "execution account config delegate-except-deny" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"cloud:service\",\"entries\":[{\"entry_id\":\"broad\",\"outcome\":\"delegate\",\"principal\":{\"all\":true},\"connection\":{\"all\":true},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[{\"principal\":{\"all\":true},\"connection\":{\"any_of\":[\"crm\"]},\"resource\":{\"any_of\":[\"X\"]},\"operation\":{\"all\":true}}]},{\"entry_id\":\"system\",\"outcome\":\"deny\",\"principal\":{\"all\":true},\"connection\":{\"any_of\":[\"crm\"]},\"resource\":{\"any_of\":[\"X\"]},\"operation\":{\"all\":true},\"exclusions\":[]}]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 41, 7, 523)
+  assert_eq(@canonical_json.cid_value(value, 523, 41, 7), "sha256:dd1267582266945349fe7f14e5e253774f6a8ac37726f87142eebc8ca83b6112")
+  assert_eq(@canonical_json.measure_value(value, 523, 41, 7), 523)
+}
+
+///|
+test "execution account config empty-entries" {
+  let input = @json.parse([
+    "{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"local:empty\",\"entries\":[]}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 4, 2, 88)
+  assert_eq(@canonical_json.cid_value(value, 88, 4, 2), "sha256:e15af0b4de9509da2734f4fa3c1defc7e49fe415308c4f69b4d97dfdf22cf58c")
+  assert_eq(@canonical_json.measure_value(value, 88, 4, 2), 88)
+}
+
+///|
 test "source state requirement first-stage" {
   let input = @json.parse([
     "{\"checkpoint_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"initial_position\":\"explicit_state_required\",\"input_name\":\"rows\",\"mode\":\"changes\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"requirement\":\"required\",\"source_view_contract_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"version\":\"actql-source-state-requirement/0.1\",\"stage_id\":\"first\"}",
@@ -3423,6 +3493,17 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_
   let value = @canonical_json.from_json(input, 301, 10, 4372)
   assert_eq(@canonical_json.cid_value(value, 4372, 301, 10), "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c")
   assert_eq(@canonical_json.measure_value(value, 4372, 301, 10), 4372)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-execution-account-config-0.1.json\",\"title\":\"actql-execution-account-config-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"account_id\",\"entries\"],\"properties\":{\"version\":{\"const\":\"actql-execution-account-config/0.1\"},\"account_id\":{\"type\":\"string\",\"minLength\":1},\"entries\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"$ref\":\"#/$defs/entry\"}},\"bootstrap\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"profile_id\",\"profile_version\",\"profile_cid\"],\"properties\":{\"profile_id\":{\"type\":\"string\",\"minLength\":1},\"profile_version\":{\"type\":\"string\",\"minLength\":1},\"profile_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}},\"$defs\":{\"selector\":{\"oneOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"all\"],\"properties\":{\"all\":{\"const\":true}}},{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"any_of\"],\"properties\":{\"any_of\":{\"type\":\"array\",\"minItems\":1,\"uniqueItems\":",
+    "true,\"items\":{\"type\":\"string\",\"minLength\":1}}}}]},\"tuple\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"principal\",\"connection\",\"resource\",\"operation\"],\"properties\":{\"principal\":{\"$ref\":\"#/$defs/selector\"},\"connection\":{\"$ref\":\"#/$defs/selector\"},\"resource\":{\"$ref\":\"#/$defs/selector\"},\"operation\":{\"$ref\":\"#/$defs/selector\"}}},\"entry\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"entry_id\",\"outcome\",\"principal\",\"connection\",\"resource\",\"operation\",\"exclusions\"],\"properties\":{\"entry_id\":{\"type\":\"string\",\"minLength\":1},\"outcome\":{\"enum\":[\"allow\",\"deny\",\"delegate\"]},\"principal\":{\"$ref\":\"#/$defs/selector\"},\"connection\":{\"$ref\":\"#/$defs/selector\"},\"resource\":{\"$ref\":\"#/$defs/selector\"},\"operation\":{\"$ref\":\"#/$defs/selector\"},\"exclusions\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"$ref\":\"#/$defs/tuple\"}}}}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 112, 8, 1863)
+  assert_eq(@canonical_json.cid_value(value, 1863, 112, 8), "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20")
+  assert_eq(@canonical_json.measure_value(value, 1863, 112, 8), 1863)
 }
 
 ///|

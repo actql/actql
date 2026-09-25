@@ -1622,7 +1622,9 @@ does not. A missing, unreadable, conflicting or otherwise invalid configuration
 MUST NOT be treated as allow. A Local Host may instead materialize an explicit
 versioned bootstrap profile identified by its exact content CID. Its adoption
 MUST be recorded durably before any protected dispatch relies on it, and it is
-never re-materialized to restore removed or restricted grants.
+never re-materialized to restore removed or restricted grants. The
+configuration document is `actql-execution-account-config/0.1`, whose wire form
+and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
 
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision

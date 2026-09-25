@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:81304e67aabc3bfb4dfb1a9d3fbcc4aee9267243c4472e21cd4574e79346fa1d",
+  "artifact_registry_cid": "sha256:3b18fb5d4a429c64142201de2e33d1965f3f03221ccd2170b0e015e383a67732",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10692,7 +10692,8 @@
     "plan_document": "sha256:ce5c4b9f29cb8922e565d9f62bf422a6097fe3317d487e3e2ceff3e32d69f88e",
     "plan_result": "sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
-    "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993"
+    "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993",
+    "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -71543,6 +71544,162 @@
         "captured_run_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "execution_account_config": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-execution-account-config-0.1.json",
+      "title": "actql-execution-account-config-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "account_id",
+        "entries"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-execution-account-config/0.1"
+        },
+        "account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "bootstrap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile_id",
+            "profile_version",
+            "profile_cid"
+          ],
+          "properties": {
+            "profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "selector": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "all"
+              ],
+              "properties": {
+                "all": {
+                  "const": true
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "any_of"
+              ],
+              "properties": {
+                "any_of": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "tuple": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "principal",
+            "connection",
+            "resource",
+            "operation"
+          ],
+          "properties": {
+            "principal": {
+              "$ref": "#/$defs/selector"
+            },
+            "connection": {
+              "$ref": "#/$defs/selector"
+            },
+            "resource": {
+              "$ref": "#/$defs/selector"
+            },
+            "operation": {
+              "$ref": "#/$defs/selector"
+            }
+          }
+        },
+        "entry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entry_id",
+            "outcome",
+            "principal",
+            "connection",
+            "resource",
+            "operation",
+            "exclusions"
+          ],
+          "properties": {
+            "entry_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "outcome": {
+              "enum": [
+                "allow",
+                "deny",
+                "delegate"
+              ]
+            },
+            "principal": {
+              "$ref": "#/$defs/selector"
+            },
+            "connection": {
+              "$ref": "#/$defs/selector"
+            },
+            "resource": {
+              "$ref": "#/$defs/selector"
+            },
+            "operation": {
+              "$ref": "#/$defs/selector"
+            },
+            "exclusions": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/tuple"
+              }
+            }
+          }
         }
       }
     }
