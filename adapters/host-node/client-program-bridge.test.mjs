@@ -2072,6 +2072,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
+  'salesforce-publication-restart',
   'salesforce-overlap',
   'salesforce-unknown', 'salesforce-lost-http-reply',
   'salesforce-create-lost-http-reply',
@@ -2083,6 +2084,8 @@ test(`two-member captured Effect Run ${
     ? 'retains uncertain outcomes' :
     physical === 'salesforce-overlap'
       ? 'rejects overlapping members before send' :
+    physical === 'salesforce-publication-restart'
+      ? 'reconciles publication after Store restart' :
     physical === 'salesforce-collection-partial'
       ? 'retains partial failure outcomes' :
       'publishes after all rows settle'
@@ -2092,6 +2095,8 @@ test(`two-member captured Effect Run ${
     const siteRun = physical !== 'simulated';
     const recoverAfterResponse = physical === 'salesforce-recovered';
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
+    const restartAfterPublication =
+      physical === 'salesforce-publication-restart';
     const loseHttpReply = physical.endsWith('lost-http-reply');
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
       loseHttpReply;
@@ -2170,7 +2175,7 @@ test(`two-member captured Effect Run ${
       maxObjects: 100, maxContractNodes: 10000,
       maxContractDepth: 64, privateEvidenceKey: Buffer.alloc(32, 4),
     };
-    const physicalStore = await openLocalPublicationStore(
+    let physicalStore = await openLocalPublicationStore(
       configuration, control);
     let commitCalls = 0;
     let store = Object.freeze({...physicalStore,
@@ -2181,6 +2186,22 @@ test(`two-member captured Effect Run ${
         return result;
       },
     });
+    if (restartAfterPublication) {
+      store = new Proxy({}, {get(_target, property) {
+        if (property === 'commitEffectfulIndex') {
+          return async (...args) => {
+            commitCalls++;
+            const result = await physicalStore.commitEffectfulIndex(...args);
+            if (commitCalls === 1) {
+              await physicalStore.close();
+              throw new Error('LostEffectIndexCommitAckAfterStoreClose');
+            }
+            return result;
+          };
+        }
+        return physicalStore[property];
+      }});
+    }
     let storedResults, inputs, sourcePayload, ledger;
     let published = false;
     try {
@@ -2871,7 +2892,28 @@ test(`two-member captured Effect Run ${
         contractLimits: publicationLimits,
         now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
       };
-      const result = await publishCompletedEffectfulRun(publicationOptions);
+      let result;
+      if (restartAfterPublication) {
+        let unknown;
+        try { await publishCompletedEffectfulRun(publicationOptions); }
+        catch (error) { unknown = error; }
+        assert.equal(unknown?.code, 'RunPublicationUnknown');
+        assert.equal(unknown.cleanupHandle.status().pending, true);
+        assert.equal(commitCalls, 1);
+        physicalStore = await openLocalPublicationStore(
+          configuration, control);
+        const reconciled = await unknown.cleanupHandle.retry();
+        assert.equal(reconciled.pending, false);
+        assert.equal(reconciled.outcome, 'committed');
+        const afterRestart = await applyCapturedEffectSet({
+          ...applyOptions, ledger,
+          dispatchRow: () => assert.fail('committed Effect row resent'),
+        });
+        assert.equal(afterRestart.dispatched, 0);
+        result = await publishCompletedEffectfulRun(publicationOptions);
+      } else {
+        result = await publishCompletedEffectfulRun(publicationOptions);
+      }
       assert.equal(result.publication.committed, false);
       assert.equal(result.publication.idempotent, true);
       assert.equal(result.publication.state, 'succeeded');
