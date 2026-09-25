@@ -130,7 +130,7 @@ export async function applyRecoveredEffectSet({
   moon, store, publicationControl, computation, preview, ledger,
   requestScope, programId, nodeId, maxRows, maxFrontierWork,
   maxRecoveryWork, keyLimits,
-  refreshPreflight, dispatchRow, signal,
+  reconcileStoredResponses, refreshPreflight, dispatchRow, signal,
 }) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
       typeof ledger?.recoverClaimFacts !== 'function' ||
@@ -146,6 +146,8 @@ export async function applyRecoveredEffectSet({
       !Number.isSafeInteger(keyLimits.maxWork) ||
       keyLimits.maxBytes < 1 || keyLimits.maxNodes < 1 ||
       keyLimits.maxDepth < 1 || keyLimits.maxWork < 1 ||
+      (reconcileStoredResponses !== undefined &&
+        typeof reconcileStoredResponses !== 'function') ||
       typeof refreshPreflight !== 'function' ||
       typeof dispatchRow !== 'function') {
     fail('InvalidRecoveredEffectApply');
@@ -154,12 +156,20 @@ export async function applyRecoveredEffectSet({
   const control = runtimeCore(moon).effectApplicationControl;
   const admittedPreview = publicationControl
     .effectComputationPreviewLedgerIdentity(preview);
-  const recovered = ledger.recoverClaimFacts({preview: admittedPreview,
+  let recovered = ledger.recoverClaimFacts({preview: admittedPreview,
     scope: requestScope, programId, nodeId, maxRows,
     maxWork: maxRecoveryWork});
-  const initial = recovered.frontier;
   await confirmCompletedEffectfulApplySources({store,
     control: publicationControl, computation, preview});
+  if (reconcileStoredResponses !== undefined) {
+    await reconcileStoredResponses(Object.freeze({
+      members: recovered.members, preview: admittedPreview, signal,
+    }));
+    recovered = ledger.recoverClaimFacts({preview: admittedPreview,
+      scope: requestScope, programId, nodeId, maxRows,
+      maxWork: maxRecoveryWork});
+  }
+  const initial = recovered.frontier;
   if (control.setFrontierReadyCount(initial) === 0) {
     return Object.freeze({dispatched: 0, frontier: initial});
   }
