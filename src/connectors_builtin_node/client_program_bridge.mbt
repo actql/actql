@@ -2623,6 +2623,57 @@ pub fn client_program_check_effect_apply_preflight(
 }
 
 ///|
+/// Apply the same semantic checks to an admitted recovered Preview. The
+/// recovered capture, prior Plan proof, current Store holding, and Site
+/// authority must be established separately before any physical send.
+#export_name("clientProgramCheckRecoveredEffectApplySemantics")
+pub fn client_program_check_recovered_effect_apply_semantics(
+  preview : @publication.EffectPreviewIdentity,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  guard_row_cids : Array[String],
+  guard_version_cids : Array[String],
+  routes : Array[@effect.EffectApplyCapabilityObservation],
+  risk : @effect.EffectRiskAcceptanceBody,
+  review_projection_cid : String,
+  risk_authority_scope_cid : String,
+  policy_cid : String,
+  validity_evidence_cid : String,
+  issuer_evidence_cid : String,
+  authentication_evidence_cid : String,
+  issuer_kind : String,
+  decision : String,
+  request_scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_members : Int,
+  max_rows : Int,
+  max_targets : Int,
+  max_work : Int,
+) -> Result[Unit, @strategy.CapturedEffectApplyPreflightIssue] {
+  if guard_row_cids.length() != guard_version_cids.length() ||
+    guard_row_cids.length() > max_rows {
+    return Err(
+      @strategy.CapturedEffectApplyPreflightIssue::Guard(
+        @strategy.CapturedEffectGuardIssue::InvalidLimits,
+      ),
+    )
+  }
+  let guards = Array::makei(guard_row_cids.length(), index => @effect.EffectTargetVersionObservation::{
+    row_preview_cid: guard_row_cids[index],
+    version_cid: guard_version_cids[index],
+  })
+  @strategy.check_effect_preview_apply_semantics(
+    preview, source_binding_cids, resolved_contract_cids, capability_evidence_cids,
+    authority_scope_cids, guards, routes, risk, review_projection_cid, risk_authority_scope_cid,
+    policy_cid, validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid,
+    issuer_kind, decision, request_scope, keys, max_members, max_rows, max_targets,
+    max_work,
+  )
+}
+
+///|
 /// Exact Host limits for the checked Effect input stream, shared by cell and
 /// resident representations. These limits do not grant access or apply.
 #export_name("clientProgramEffectInputExportLimits")

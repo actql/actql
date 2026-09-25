@@ -126,6 +126,8 @@ pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffec
 
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
 
+pub fn captured_effect_preview_inputs_available(CapturedEffectPreviewInputs) -> Bool
+
 pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
 
 pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
@@ -251,6 +253,12 @@ pub fn check_captured_effect_preview_current_bindings(CapturedEffectPreviewInput
 pub fn check_captured_effect_preview_target_guards(CapturedEffectPreviewInputs, Array[@effect_application.EffectTargetVersionObservation], Int, Int) -> Result[Unit, CapturedEffectGuardIssue]
 
 pub fn check_captured_effect_risk_acceptance_body(CapturedEffectPreviewInputs, @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String) -> Result[Unit, CapturedEffectRiskIssue]
+
+pub fn check_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
+
+pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+
+pub fn check_effect_preview_current_bindings(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
 
 pub fn checked_effect_computation_graph(CheckedEffectComputationDAG) -> CheckedDAG
 

@@ -319,6 +319,25 @@ pub(all) enum CapturedEffectCurrentBindingIssue {
 } derive(Debug)
 
 ///|
+/// Current physical availability is distinct from the semantic bindings in
+/// an admitted Preview. A recovered Run must establish availability from its
+/// retained Store holdings instead of manufacturing a live captured input.
+pub fn captured_effect_preview_inputs_available(
+  value : CapturedEffectPreviewInputs,
+) -> Bool {
+  if !value.inputs.live {
+    return false
+  }
+  for index in 0..<value.source_indexes.length() {
+    if value.source_indexes[index] is Some(_) &&
+      captured_effect_preview_input_at(value, index) is None {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Compare all currently observed source, resolved Contract, capability, and
 /// authority bindings against the same private Preview and captured input.
 /// The Site must establish current observations under authenticated authority;
@@ -332,13 +351,36 @@ pub fn check_captured_effect_preview_current_bindings(
   max_members : Int,
   max_work : Int,
 ) -> Result[Unit, CapturedEffectCurrentBindingIssue] {
+  if !captured_effect_preview_inputs_available(value) {
+    return Err(NotReady)
+  }
+  check_effect_preview_current_bindings(
+    @checked.effect_program_run_preview_identity(value.preview),
+    source_binding_cids,
+    resolved_contract_cids,
+    capability_evidence_cids,
+    authority_scope_cids,
+    max_members,
+    max_work,
+  )
+}
+
+///|
+/// Compare authenticated current observations with an admitted Preview.
+/// This does not establish physical source availability or authenticate the
+/// observations; the Host must prove both before any recovered send.
+pub fn check_effect_preview_current_bindings(
+  identity : @publication.EffectPreviewIdentity,
+  source_binding_cids : Array[String],
+  resolved_contract_cids : Array[String],
+  capability_evidence_cids : Array[String],
+  authority_scope_cids : Array[String],
+  max_members : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectCurrentBindingIssue] {
   if max_members < 1 || max_members > 1000 || max_work < 1 {
     return Err(InvalidLimits)
   }
-  if !value.inputs.live {
-    return Err(NotReady)
-  }
-  let identity = @checked.effect_program_run_preview_identity(value.preview)
   let count = @publication.effect_preview_member_count(identity)
   if count < 1 ||
     count > max_members ||
@@ -352,10 +394,6 @@ pub fn check_captured_effect_preview_current_bindings(
     return Err(CapacityExceeded)
   }
   for index in 0..<count {
-    if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
-      return Err(NotReady)
-    }
     if @publication.effect_preview_member_source_binding_cid(identity, index) !=
       Some(source_binding_cids[index]) {
       return Err(ForeignSource(index))
@@ -475,13 +513,32 @@ pub fn check_captured_effect_preview_apply_keys(
   max_rows : Int,
   max_work : Int,
 ) -> Result[Unit, CapturedEffectApplyKeyIssue] {
+  if !captured_effect_preview_inputs_available(value) {
+    return Err(NotReady)
+  }
+  check_effect_preview_apply_keys(
+    @checked.effect_program_run_preview_identity(value.preview),
+    scope,
+    keys,
+    max_rows,
+    max_work,
+  )
+}
+
+///|
+/// Check every derived dispatch key against an admitted private Preview.
+/// A recovered caller must separately prove current source custody and
+/// authorization; matching these keys alone never permits a physical send.
+pub fn check_effect_preview_apply_keys(
+  identity : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Unit, CapturedEffectApplyKeyIssue] {
   if max_rows < 0 || max_work < 1 {
     return Err(InvalidLimits)
   }
-  if !value.inputs.live {
-    return Err(NotReady)
-  }
-  let identity = @checked.effect_program_run_preview_identity(value.preview)
   let member_count = @publication.effect_preview_member_count(identity)
   if member_count > max_work / 2 {
     return Err(CapacityExceeded)
@@ -497,12 +554,6 @@ pub fn check_captured_effect_preview_apply_keys(
     }
     total_rows += row_count
     remaining -= row_count
-  }
-  for index in 0..<value.source_indexes.length() {
-    if value.source_indexes[index] is Some(_) &&
-      captured_effect_preview_input_at(value, index) is None {
-      return Err(NotReady)
-    }
   }
   @effect.check_admitted_effect_preview_apply_keys(identity, scope, keys).map_err(issue => {
       Keys(issue)
