@@ -3218,7 +3218,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
   }, {
-    name: 'match-nodes-predicate',
+    name: 'match-nodes-predicate-in-flight',
     rows: 40,
     step: {
       from: 'g',
@@ -3230,7 +3230,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['id', 'node_name'],
   }, {
-    name: 'match-edges',
+    name: 'match-edges-in-flight',
     rows: 40,
     step: {
       from: 'g',
@@ -3239,7 +3239,7 @@ async function exerciseStrategyGraph(
     },
     fields: ['src', 'dst', 'weight'],
   }, {
-    name: 'match-edges-predicate',
+    name: 'match-edges-predicate-in-flight',
     rows: 40,
     step: {
       from: 'g',

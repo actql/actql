@@ -364,7 +364,13 @@ one node identity needs two sort slots and two output-name slots, while three
 edge identities with one type entry need six sort, four output-name, and one
 type-index slot. Limits of four and eleven admit; one short rejects before
 the corresponding execution starts. The route gate rejects either missing
-workspace record. Predicate and other output variants remain unassured.
+workspace record. The property-predicate paths now add exact and one-short
+workspace fixtures: nine versus eight slots for node matching and sixteen
+versus fifteen for edge matching. Distinct standard Host fixtures execute
+literal and predicate forms with two real consumers; timer fixtures deliver
+in-flight cancellation in predicate matching and both edge paths. Predicate
+control-work ceilings, value-width interactions, and the full route resource
+proof remain open, so neither matching entrypoint is marked assured.
 
 The edge matcher now builds its authored type filter over charged bounded
 steps, one occurrence per quantum-one advance, then uses a typed string index

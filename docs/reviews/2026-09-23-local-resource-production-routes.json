@@ -3456,6 +3456,36 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "node identity sort yields during a long text comparison"
+        },
+        {
+          "role": "match_nodes_predicate_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded node match evaluates a checked property predicate"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "match_nodes_literal_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-nodes"
+        },
+        {
+          "role": "match_nodes_predicate_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-nodes-predicate"
+        },
+        {
+          "role": "match_nodes_predicate_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-nodes-predicate-in-flight"
         }
       ]
     },
@@ -3507,6 +3537,43 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "edge identity sort yields during a long text comparison"
+        },
+        {
+          "role": "match_edges_predicate_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "bounded edge match evaluates a checked property predicate"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "match_edges_literal_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-edges"
+        },
+        {
+          "role": "match_edges_predicate_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-edges-predicate"
+        },
+        {
+          "role": "match_edges_literal_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-edges-in-flight"
+        },
+        {
+          "role": "match_edges_predicate_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "match-edges-predicate-in-flight"
         }
       ]
     },

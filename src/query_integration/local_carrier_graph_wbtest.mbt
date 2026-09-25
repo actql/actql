@@ -2438,6 +2438,7 @@ fn match_nodes_predicate_output(
   source_owner : @lower.BoundPrepared,
   predicate : String,
   workspace? : Int = 8,
+  check_workspace_boundary? : Bool = false,
 ) -> @execution.CompletedOutput raise {
   let source = carrier_events_source_output(source_owner)
   let owner = carrier_graph_match_body_owner(
@@ -2464,6 +2465,27 @@ fn match_nodes_predicate_output(
   let graph = finish_rows_to_graph(construction)
   assert_eq(@local_bridge.cleanup_rows_to_graph(construction), Ok(true))
   let input = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  if check_workspace_boundary {
+    let short = @local_sga.start_match_nodes(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      input,
+      2,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 10000, },
+      workspace - 1,
+      1000,
+      1000,
+      [external],
+    ).unwrap()
+    assert_true(
+      finish_match_nodes(short)
+      is Err(@local_sga.MatchNodesPredicate(@execution.WorkspaceLimit)),
+    )
+    assert_eq(@local_sga.cleanup_match_nodes(short), Ok(true))
+    assert_true(@graphs.producer_read_available(input))
+  }
   let execution = @local_sga.start_match_nodes(
     @bounded.control(),
     task_test_completion(owner),
@@ -2503,6 +2525,7 @@ test "bounded node match evaluates a checked property predicate" {
     source_owner,
     "node_name = 'second'",
     workspace=9,
+    check_workspace_boundary=true,
   )
   assert_eq(@execution.completed_row_count(selected), 1)
   assert_true(@execution.completed_cell(selected, 0, 0) is Some(Number(2.0)))

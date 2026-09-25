@@ -521,6 +521,31 @@ test('graph matching requires bounded long-key comparison evidence', () => {
   }
 });
 
+test('graph matcher variants require product and predicate boundary evidence', () => {
+  for (const operation of ['match_nodes', 'match_edges']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_predicate_workspace_exact_one_short`);
+    }), new RegExp(`SGA ${operation}: predicate workspace evidence is missing`, 'u'));
+    for (const role of [
+      `${operation}_literal_host_two_consumers`,
+      `${operation}_predicate_host_two_consumers`,
+      `${operation}_predicate_host_in_flight_cancel`,
+      ...(operation === 'match_edges'
+        ? ['match_edges_literal_host_in_flight_cancel'] : []),
+    ]) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'SGA' &&
+          entry.operation === operation);
+        route.environment_tests = route.environment_tests.filter(item =>
+          item.role !== role);
+      }), new RegExp(`SGA ${operation}: ${role} Host fixture is missing`, 'u'));
+    }
+  }
+});
+
 test('edge matching loses bounded type-index evidence without its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'SGA' &&
