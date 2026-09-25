@@ -1427,7 +1427,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-row-window-in-flight"
         }
-      ]
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "row_window_bounded_workspace_exact_one_short",
+          "one_short_limit": "row_window_bounded_control_work_exact_one_short",
+          "in_flight_cancel": "row_window_in_flight_host_timer",
+          "cleanup": "row_window_bounded_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "row_window_bounded_control_work_exact_one_short",
+            "one_short_limit": "row_window_bounded_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "row_window_bounded_workspace_exact_one_short",
+            "one_short_limit": "row_window_bounded_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",

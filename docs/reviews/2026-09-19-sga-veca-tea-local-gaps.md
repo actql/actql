@@ -30,7 +30,7 @@ prove these properties; a normal gate result or an operation count does not.
 The strict gate currently rejects 29 RelA whole-sequence entrypoints, five
 additional selected RelA paths, two same-Stage binary paths, thirteen SGA
 entrypoints, `merge_rankings`, two VecA row expressions, and the providerless
-synchronous computation. These are route/evidence gaps, not 53 claims of
+synchronous computation. These are route/evidence gaps, not claims of
 incorrect values. Multiple rows below share one implementation but retain
 separate input bindings and route-specific evidence.
 
@@ -43,7 +43,7 @@ separate input bindings and route-specific evidence.
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 53 path-scoped counts describe evidence, not
+list. Its 23 full-route and 54 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -91,8 +91,8 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 53 |
-| Selected-only assurance | 2 |
+| Path-scoped work/workspace assurance | 54 |
+| Selected-only assurance | 3 |
 <!-- local-resource-accounting-summary:end -->
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
@@ -227,8 +227,10 @@ independently calculated exact/one-short control-work and peak-workspace
 fixtures, plus a kernel cancel/cleanup fixture. A Node standard Host timer
 delivers cancellation after bounded row-window work, observes stop, and
 reclaims the attempt without exposing partial output. This establishes the
-selected entrypoint only. Nested value checking and timestamp parsing still
-need a maximum non-interruptible interval audit.
+selected entrypoint only; the exact resource and cancellation roles are now
+bound to that path in the production-route inventory and the strict gate.
+The ordinary whole-sequence route remains unassured. Nested value checking
+and timestamp parsing still need a maximum non-interruptible interval audit.
 The bounded kernel also checks the large-time boundary rule: a representable
 output succeeds even when intermediate coordinates exceed binary64, while an
 unrepresentable output boundary fails without exposing partial completion.

@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 53 with path-scoped work\/workspace evidence, 2 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 54 with path-scoped work\/workspace evidence, 3 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -136,6 +136,17 @@ test('row window loses its bounded route when production evidence is removed', (
         item.role !== role);
     }), new RegExp(`RelA row_window: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'row_window');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'row_window_in_flight_host_timer');
+  }), /RelA row_window: selected_entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'row_window');
+    delete route.resource_assurance.selected_entrypoint.workspace;
+  }), /RelA row_window: selected_entrypoint operation needs work and workspace assurance/u);
 });
 
 test('unpivot loses its bounded route when production evidence is removed', () => {
@@ -540,7 +551,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 53 |',
+    '| Path-scoped work/workspace assurance | 54 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
