@@ -3893,6 +3893,19 @@ test(`two-member captured Effect Run ${
         collectionRecovered ? 2 :
           recoverAfterResponse || restartAfterTerminal || collectionPartial
             ? 3 : 4);
+      if (restartPreparedIntent) {
+        const settled = await applyRecoveredEffectSet({
+          ...recoveredApplyOptions,
+          refreshPreflight: () => assert.fail('settled replay refreshed Site'),
+          dispatchRow: () => assert.fail('settled row resent'),
+        });
+        assert.equal(settled.dispatched, 0);
+        await assert.rejects(applyRecoveredEffectSet({
+          ...recoveredApplyOptions, computation: {...computation},
+          refreshPreflight: () => assert.fail('foreign replay refreshed Site'),
+          dispatchRow: () => assert.fail('foreign row sent'),
+        }), {code: 'InvalidCompletedEffectfulApplyOwner'});
+      }
       if (collectionPartial) {
         assert.deepEqual(sent, [[0, 0], [1, 0], [1, 1]]);
         assert.deepEqual(sites.map(site => site.seen

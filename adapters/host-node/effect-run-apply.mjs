@@ -152,11 +152,11 @@ export async function applyRecoveredEffectSet({
     scope: requestScope, programId, nodeId, maxRows,
     maxWork: maxRecoveryWork});
   const initial = recovered.frontier;
+  await confirmCompletedEffectfulApplySources({store,
+    control: publicationControl, computation, preview});
   if (control.setFrontierReadyCount(initial) === 0) {
     return Object.freeze({dispatched: 0, frontier: initial});
   }
-  await confirmCompletedEffectfulApplySources({store,
-    control: publicationControl, computation, preview});
   const preflight = ownPreflight(await refreshPreflight({signal}), false);
   // A fresh authorization cannot silently change the logical request that
   // owns the already prepared intents.
