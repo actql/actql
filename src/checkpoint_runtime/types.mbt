@@ -151,6 +151,21 @@ pub struct VerifiedResolution {
 } derive(Eq, Debug)
 
 ///|
+/// Permission a committed approved verified Resolution grants a resumed
+/// continuation: the verified reviewer, the claims its approval evidence
+/// establishes, and, for a run-scope style approval, the instant from which
+/// it no longer authorizes new work. An Effect Set attestation carries no
+/// expiry of its own (`expires_at` is `None`).
+pub struct ResumedApproval {
+  checkpoint_cid : String
+  resolution_cid : String
+  verified_resolution_cid : String
+  reviewer_id : String
+  claims : Array[String]
+  expires_at : String?
+} derive(Eq, Debug)
+
+///|
 /// An immediate delegated answer admitted against the Checkpoint body the Host
 /// would persist if it deferred. It is not bound to a persisted Checkpoint:
 /// no function accepts it as a Checkpoint, a waiting state or a commit

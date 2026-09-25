@@ -1386,3 +1386,71 @@ test "failed resume revalidation ends the run with its terminal error" {
     run_transition_allowed(Resuming, revalidation_failure_status(["e"])),
   )
 }
+
+///|
+test "a resumed approval reports only evidence claims and its own lifetime" {
+  let checkpoint = sealed_of(run_scope_request())
+  let evidence = run_scope_evidence(checkpoint)
+  let resolution = with_self_cid(
+    resolution_fields_for(checkpoint, "approved", Some(canonical_cid(evidence))),
+    "resolution_cid",
+  )
+  let verified = seal_verified_resolution(
+    admit(checkpoint, resolution, Some(evidence)).unwrap(),
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  let approval = resumed_approval(verified.wire, limits()).unwrap()
+  assert_eq(approval.checkpoint_cid, checkpoint.checkpoint_cid)
+  assert_eq(approval.resolution_cid, verified.resolution_cid)
+  assert_eq(approval.verified_resolution_cid, verified.verified_resolution_cid)
+  assert_eq(approval.reviewer_id, "alice")
+  assert_eq(approval.claims, ["invocation_scope_approved"])
+  assert_eq(approval.expires_at, Some("2026-09-26T10:00:00.000Z"))
+  assert_true(resumed_approval_current(approval, "2026-09-26T09:59:59.999Z"))
+  // The exact expiry instant no longer authorizes new work.
+  assert_true(!resumed_approval_current(approval, "2026-09-26T10:00:00.000Z"))
+  assert_true(!resumed_approval_current(approval, "2026-09-27T00:00:00.000Z"))
+  assert_true(!resumed_approval_current(approval, "not a time"))
+  // An Effect Set attestation establishes its carried claims and no expiry.
+  let (effect, effect_resolution, effect_evidence) = approved_effect()
+  let attested = seal_verified_resolution(
+    admit(effect, effect_resolution, Some(effect_evidence)).unwrap(),
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  let effect_approval = resumed_approval(attested.wire, limits()).unwrap()
+  assert_eq(effect_approval.claims, [
+    "effect_scope_approved", "partial_application_accepted",
+  ])
+  assert_eq(effect_approval.expires_at, None)
+  // A rejection or an altered wrapper grants nothing.
+  let rejection = with_self_cid(
+    resolution_fields_for(checkpoint, "rejected", None),
+    "resolution_cid",
+  )
+  let rejected = seal_verified_resolution(
+    admit(checkpoint, rejection, None).unwrap(),
+    "host-key",
+    "aG9zdA==",
+    limits(),
+  ).unwrap()
+  assert_eq(
+    issue_of(resumed_approval(rejected.wire, limits())),
+    Some(ResolutionInvalidField("resolution.decision")),
+  )
+  assert_eq(
+    issue_of(
+      resumed_approval(
+        verified.wire.replace(
+          old="invocation_scope_approved",
+          new="host-required-risk",
+        ),
+        limits(),
+      ),
+    ),
+    Some(ResolutionIdentityMismatch),
+  )
+}

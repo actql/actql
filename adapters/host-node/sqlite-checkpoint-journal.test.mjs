@@ -691,7 +691,8 @@ function prepareBody({
   };
 }
 
-function resolvePreparation(checkpoint, decision, {reviewer = 'alice'} = {}) {
+function resolvePreparation(checkpoint, decision, {reviewer = 'alice',
+  approvalExpiresAt = '2026-09-26T10:00:00.000Z'} = {}) {
   let evidence;
   if (decision === 'approved') {
     const approval = {
@@ -701,7 +702,7 @@ function resolvePreparation(checkpoint, decision, {reviewer = 'alice'} = {}) {
       claim: 'invocation_scope_approved',
       approver: reviewer,
       approved_at: '2026-09-25T11:00:00.000Z',
-      expires_at: '2026-09-26T10:00:00.000Z',
+      expires_at: approvalExpiresAt,
       proof: {scheme: 'ed25519-v1', key_id: `${reviewer}-key`,
         signature: 'c2lnbmF0dXJl'},
     };
@@ -1216,4 +1217,225 @@ test('a journal created before the decision-subject column is upgraded',
     });
     assert.equal(journal.inspect(next.checkpointCid).decisionSubjectCid,
       cid('9'));
+  });
+
+test('resumed dispatch admission reads the live claim and committed approval',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const waiting = journal.persistCheckpoint({
+      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+      authorities, binding, decisionSubjectCid: cid('9'),
+      requestedClaims: ['partial_application_accepted', 'effect_scope_approved'],
+    });
+    assert.deepEqual(journal.inspect(waiting.checkpointCid).requestedClaims,
+      ['effect_scope_approved', 'partial_application_accepted']);
+    assert.equal(journal.currentResume(waiting.checkpointCid), undefined);
+    const approved = await journal.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      ...resolve(stored(journal), 'approved'),
+    });
+    const pending = journal.currentResume(waiting.checkpointCid);
+    assert.equal(pending.intentId, approved.resumeIntentId);
+    assert.equal(pending.state, 'pending');
+    assert.equal(pending.generation, 0);
+    assert.equal(pending.claimant, '');
+    assert.equal(pending.resolutionCid, approved.resolutionCid);
+    assert.equal(pending.decision, 'approved');
+
+    // No claim, a guessed claim of the pending intent, or another intent
+    // are not the live claim.
+    for (const [claim, code] of [
+      [undefined, 'ResumeNotClaimed'],
+      [{runId: 'run-1'}, 'ResumeNotClaimed'],
+      [{intentId: pending.intentId, claimant: 'worker-a', generation: 0},
+        'ResumeClaimStale'],
+      [{intentId: cid('f'), claimant: 'worker-a', generation: 1},
+        'ResumeIntentNotFound'],
+    ]) {
+      assert.throws(() => journal.admitResume(claim), {code}, code);
+      assert.throws(() => journal.enterResumedDispatch(claim), {code}, code);
+    }
+    const first = journal.claimResume('run-1',
+      {claimant: 'worker-a', leaseMs: 1000, binding});
+    const admission = journal.admitResume(first.claim,
+      {checkpointCid: waiting.checkpointCid});
+    assert.equal(admission.intentId, pending.intentId);
+    assert.equal(admission.runId, 'run-1');
+    assert.equal(admission.checkpointCid, waiting.checkpointCid);
+    assert.equal(admission.resolutionCid, approved.resolutionCid);
+    assert.equal(admission.verifiedResolutionCid,
+      approved.verifiedResolutionCid);
+    assert.equal(admission.claimant, 'worker-a');
+    assert.equal(admission.generation, 1);
+    assert.equal(admission.leaseExpiresMs, first.claim.leaseExpiresMs);
+    assert.equal(admission.decisionSubjectCid, cid('9'));
+    assert.equal(admission.requiredArtifactCid, cid('3'));
+    assert.equal(admission.authority, 'alice');
+    // Observed claims come from the committed evidence; an Effect Set
+    // attestation has no expiry of its own.
+    assert.deepEqual(admission.observedClaims,
+      ['effect_scope_approved', 'partial_application_accepted']);
+    assert.deepEqual(admission.requestedClaims,
+      ['effect_scope_approved', 'partial_application_accepted']);
+    assert.equal(admission.approvalExpiresAt, null);
+    assert.throws(() => journal.admitResume(first.claim,
+      {checkpointCid: cid('e')}), {code: 'ResumeIntentMismatch'});
+    assert.throws(() => journal.admitResume({...first.claim, claimant: 'x'}),
+      {code: 'ResumeClaimStale'});
+    assert.throws(() => journal.admitResume({...first.claim, generation: 2}),
+      {code: 'ResumeClaimStale'});
+
+    // One protected dispatch start per claim generation.
+    const entered = journal.enterResumedDispatch(first.claim,
+      {checkpointCid: waiting.checkpointCid,
+        resolutionCid: approved.resolutionCid});
+    assert.equal(entered.generation, 1);
+    assert.throws(() => journal.enterResumedDispatch(first.claim),
+      {code: 'ResumeAdmissionConsumed'});
+    // The lease expires: the old claimant is fenced out of every admission.
+    clock.ms += 1000;
+    assert.throws(() => journal.admitResume(first.claim),
+      {code: 'ResumeClaimStale'});
+    const second = journal.claimResume('run-1',
+      {claimant: 'worker-b', leaseMs: 60_000, binding});
+    assert.equal(second.claim.generation, 2);
+    assert.throws(() => journal.enterResumedDispatch(first.claim),
+      {code: 'ResumeClaimStale'});
+    assert.throws(() => journal.enterResumedDispatch(second.claim,
+      {resolutionCid: cid('e')}), {code: 'ResolutionNotCommitted'});
+    assert.equal(journal.enterResumedDispatch(second.claim).generation, 2);
+    assert.throws(() => journal.enterResumedDispatch(second.claim),
+      {code: 'ResumeAdmissionConsumed'});
+    const current = journal.currentResume(waiting.checkpointCid);
+    assert.equal(current.state, 'claimed');
+    assert.equal(current.claimant, 'worker-b');
+    assert.equal(current.generation, 2);
+    // A completed intent admits nothing.
+    journal.completeResume(second.claim, {status: 'cancelled'});
+    assert.throws(() => journal.admitResume(second.claim),
+      {code: 'ResumeClaimStale'});
+  });
+
+test('a resumed approval stops admitting new work at its own expiry',
+  async t => {
+    const {clock, open} = await workspace(t);
+    const journal = open();
+    const waiting = persistPreparation(journal);
+    clock.ms = T0 + HOUR;
+    // The permission lapses two hours after the answer, well before the
+    // Checkpoint's own answer deadline and independently of any lease.
+    await journal.submitResolution({checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(stored(journal), 'approved',
+        {approvalExpiresAt: '2026-09-25T13:00:00.000Z'})});
+    const expiry = Date.parse('2026-09-25T13:00:00.000Z');
+    clock.ms = expiry - 10_000;
+    const {claim} = journal.claimPreparationResume('attempt-1',
+      {claimant: 'worker-a', leaseMs: 60_000, binding});
+    const admission = journal.admitResume(claim);
+    assert.equal(admission.prepareAttemptId, 'attempt-1');
+    assert.equal(admission.runId, null);
+    assert.deepEqual(admission.observedClaims, ['invocation_scope_approved']);
+    assert.equal(admission.approvalExpiresAt, '2026-09-25T13:00:00.000Z');
+    clock.ms = expiry - 1;
+    assert.equal(journal.admitResume(claim).generation, 1);
+    // The exact expiry instant, with the lease still live.
+    clock.ms = expiry;
+    assert.throws(() => journal.admitResume(claim), {code: 'ApprovalExpired'});
+    assert.throws(() => journal.enterResumedDispatch(claim),
+      {code: 'ApprovalExpired'});
+    // The historical Resolution is kept and the preparation still exits
+    // through its owner.
+    assert.equal(journal.resolutionOf(waiting.checkpointCid).decision,
+      'approved');
+    assert.equal(journal.getPreparation('attempt-1').status, 'resuming');
+    assert.equal(journal.completeResume(claim, {status: 'failed'})
+      .preparation.status, 'ended');
+  });
+
+test('the commit decision rereads trusted time after slow authentication',
+  async t => {
+    const {root, clock} = await workspace(t);
+    const opened = [];
+    t.after(() => { for (const journal of opened) journal.close(); });
+    const slow = ({authorizeMs = 0, attestMs = 0}) => {
+      const journal = openSqliteCheckpointJournal(root, {
+        runtime,
+        now: () => clock.ms,
+        async authorizeResolution(request) {
+          await new Promise(resolve => setImmediate(resolve));
+          clock.ms += authorizeMs;
+          return authorizeResolution(request);
+        },
+        async attestResolution(preimage) {
+          await new Promise(resolve => setImmediate(resolve));
+          clock.ms += attestMs;
+          return attestResolution(preimage);
+        },
+      });
+      opened.push(journal);
+      return journal;
+    };
+    // The Checkpoint answer deadline passes during authentication: the
+    // answer was decided in time but is not committed, and the waiting Run
+    // closes as expired with no resume intent.
+    const late = slow({authorizeMs: 2 * HOUR});
+    const deadline = persist(late, effectBody({
+      expiresAt: '2026-09-25T11:00:00.000Z'}));
+    clock.ms = T0 + HOUR - 1000;
+    await assert.rejects(late.submitResolution({
+      checkpointCid: deadline.checkpointCid,
+      ...resolve(stored(late), 'approved',
+        {decidedAt: '2026-09-25T10:59:59.000Z'}),
+    }), {code: 'CheckpointExpired'});
+    assert.equal(late.inspect(deadline.checkpointCid).closure, 'expired');
+    assert.equal(late.getRunState('run-1').status, 'cancelled');
+    assert.equal(late.currentResume(deadline.checkpointCid), undefined);
+
+    // The approval's own permission lapses during attestation: nothing is
+    // committed and the Checkpoint keeps waiting within its deadline.
+    clock.ms = T0 + 3 * HOUR;
+    const lapsing = slow({attestMs: 2 * HOUR});
+    const waiting = persistPreparation(lapsing, prepareBody({
+      attemptId: 'attempt-9', checkpointId: 'cp-lapse'}));
+    const database = new DatabaseSync(lapsing.path, {readOnly: true});
+    const checkpoint = JSON.parse(database.prepare(
+      'SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?',
+    ).get(waiting.checkpointCid).checkpoint_wire);
+    database.close();
+    await assert.rejects(lapsing.submitResolution({
+      checkpointCid: waiting.checkpointCid,
+      ...resolvePreparation(checkpoint, 'approved',
+        {approvalExpiresAt: '2026-09-25T14:00:00.000Z'}),
+    }), {code: 'ApprovalExpired'});
+    assert.equal(lapsing.inspect(waiting.checkpointCid).closure, 'open');
+    assert.equal(lapsing.resolutionOf(waiting.checkpointCid), undefined);
+    assert.equal(lapsing.getPreparation('attempt-9').status,
+      'waiting_checkpoint');
+    assert.equal(lapsing.currentResume(waiting.checkpointCid), undefined);
+  });
+
+test('a journal created before the requested-claims column is upgraded',
+  async t => {
+    const {open} = await workspace(t);
+    const first = open();
+    const waiting = persist(first);
+    first.close();
+    const database = new DatabaseSync(first.path);
+    database.exec('ALTER TABLE checkpoints DROP COLUMN requested_claims_json');
+    database.exec('DROP TABLE resume_admissions');
+    database.close();
+    const journal = open();
+    assert.deepEqual(journal.inspect(waiting.checkpointCid).requestedClaims,
+      []);
+    assert.throws(() => journal.persistCheckpoint({
+      body: effectBody({runId: 'run-2'}), priorStatus: 'running',
+      declaredResults: ['tickets'], authorities, binding,
+      requestedClaims: ['a', 'a'],
+    }), {code: 'InvalidRequestedClaims'});
+    // An idempotent retry must name the same requested claims.
+    assert.throws(() => journal.persistCheckpoint({
+      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
+      authorities, binding, requestedClaims: ['effect_scope_approved'],
+    }), {code: 'CheckpointConflict'});
   });

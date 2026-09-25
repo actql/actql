@@ -10,6 +10,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openSqliteCoordinatorDispatchJournal} from
   './sqlite-coordinator-journal.mjs';
 import {createRemoteSiteCoordinator} from './remote-site-coordinator.mjs';
+import {ExecutionAuthorizationError} from
+  '../host-common/authorization-gate.mjs';
 import {
   FIXTURE_CONTEXT,
   accountEntry,
@@ -893,4 +895,188 @@ test('remote output egress is authorized before durable output and I/O',
       control.outputResultIdentity(fixture.result));
     assert.equal(outputs, 1);
     assert.equal(egress.counters().hostDecisionCalls, 0);
+  });
+
+// Resumed remote dispatch: the Coordinator admits a resumed dispatch only
+// through the gate's resume admission, entered synchronously after every
+// await and before the durable intent and the send. Counts are the product
+// send calls.
+async function resumedCoordinator(t, {now, send} = {}) {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-resume-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const journalRoot = await mkdtemp(join(tmpdir(), 'actql-remote-resume-'));
+  t.after(() => rm(journalRoot, {recursive: true, force: true}));
+  const clock = {ms: Date.parse('2026-09-25T10:00:00.000Z')};
+  const deferral = await sqliteDeferral(journalRoot, {now: () => clock.ms});
+  t.after(() => deferral.journal.close());
+  const gate = await fixtureAuthorization(remoteEntries('delegate'), {
+    decide: view => ({decision: 'defer', subject: view.subject}),
+    answeringAuthorities: ['reviewer'],
+    deferral,
+  });
+  const store = openSqliteCoordinatorDispatchJournal(root, {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => store.close());
+  const sends = [];
+  const state = {authorization: gate};
+  // The authorization seam lets a test act between the gate's resume
+  // decision and the Coordinator's send (an async delay or lease handoff).
+  const authorization = Object.freeze({
+    authorize: (...args) => state.authorization.authorize(...args),
+    resume: (...args) => state.authorization.resume(...args),
+  });
+  const coordinator = createRemoteSiteCoordinator({
+    authorization,
+    control,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    store,
+    send: async value => {
+      sends.push(control.identity(value.dispatch));
+      if (send !== undefined) return send(value);
+      return Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]});
+    },
+  });
+  const first = request('resume-waiting');
+  let waiting;
+  try { await coordinator.dispatch({dispatch: first}); }
+  catch (error) { waiting = error; }
+  assert.equal(waiting?.code, 'ExecutionAuthorizationWaiting');
+  const checkpoint = waiting.authorization.checkpoint;
+  const dispatch = async (dispatchId, resumption) => {
+    const before = sends.length;
+    const value = request(dispatchId);
+    let error;
+    try { await coordinator.dispatch({dispatch: value, resumption}); }
+    catch (reason) { error = reason; }
+    return {error, sends: sends.length - before,
+      recorded: store.contains(value, control)};
+  };
+  return {
+    clock, deferral, gate, state, checkpoint, dispatch, sends,
+    claim: (claimant, leaseMs = 60_000) => deferral.journal.claimResume(
+      checkpoint.runId, {claimant, leaseMs, binding: deferral.binding}),
+  };
+}
+
+const refusedResume = (result, detail, label) => {
+  assert.equal(result.error?.code, 'ExecutionAuthorizationDecisionFailed',
+    label);
+  assert.equal(result.error.authorization.detail, detail, label);
+  assert.equal(result.sends, 0, label);
+  assert.equal(result.recorded, false, label);
+};
+
+test('a resumed remote dispatch sends only for the live, valid claim',
+  async t => {
+    const x = await resumedCoordinator(t);
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+    // No real claim.
+    refusedResume(await x.dispatch('resume-a', {claim: {action: 'claimed',
+      checkpointCid: x.checkpoint.checkpointCid,
+      claim: {runId: x.checkpoint.runId}}}), 'ResumeNotClaimed', 'never');
+    // Expired lease, then a superseded generation.
+    const first = x.claim('coordinator-a', 1000);
+    x.clock.ms += 1000;
+    refusedResume(await x.dispatch('resume-a', {claim: first}),
+      'ResumeClaimStale', 'expired');
+    const second = x.claim('coordinator-b');
+    refusedResume(await x.dispatch('resume-a', {claim: first}),
+      'ResumeClaimStale', 'superseded');
+    // Mismatched intent.
+    refusedResume(await x.dispatch('resume-a', {claim: {...second,
+      checkpointCid: `sha256:${'e'.repeat(64)}`}}), 'ResumeIntentMismatch',
+    'mismatch');
+    // The live claim sends exactly once.
+    const sent = await x.dispatch('resume-a', {claim: second});
+    assert.equal(sent.error, undefined);
+    assert.equal(sent.sends, 1);
+    assert.equal(sent.recorded, true);
+    // The same claim generation cannot start a second protected dispatch.
+    refusedResume(await x.dispatch('resume-b', {claim: second}),
+      'ResumeAdmissionConsumed', 'reused');
+    assert.equal(x.sends.length, 1);
+  });
+
+test('a handoff or expiry immediately before the send sends nothing',
+  async t => {
+    const x = await resumedCoordinator(t);
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved',
+      {approvalExpiresAt: '2026-09-25T12:00:00.000Z'});
+    const between = act => ({
+      authorize: (...args) => x.gate.authorize(...args),
+      async resume(...args) {
+        const decision = await x.gate.resume(...args);
+        assert.equal(decision.action, 'dispatch');
+        // An async delay after the gate's admission, before the send.
+        await new Promise(resolve => setImmediate(resolve));
+        act();
+        return decision;
+      },
+    });
+    // The lease lapses and a new claimant takes over.
+    const first = x.claim('coordinator-a', 1000);
+    let handed;
+    x.state.authorization = between(() => {
+      x.clock.ms += 1000;
+      handed = x.claim('coordinator-b', 1000);
+    });
+    refusedResume(await x.dispatch('handoff', {claim: first}),
+      'ResumeClaimStale', 'handoff');
+    assert.equal(handed.action, 'claimed');
+    // The lease lapses with no new claimant.
+    x.state.authorization = between(() => { x.clock.ms += 1000; });
+    refusedResume(await x.dispatch('handoff', {claim: handed}),
+      'ResumeClaimStale', 'lapsed');
+    // The approval's own permission lapses (the lease is still live).
+    const third = x.claim('coordinator-c', 86_400_000);
+    x.clock.ms = Date.parse('2026-09-25T12:00:00.000Z') - 1;
+    x.state.authorization = between(() => { x.clock.ms += 1; });
+    refusedResume(await x.dispatch('handoff', {claim: third}),
+      'ApprovalExpired', 'permission');
+    x.state.authorization = x.gate;
+    refusedResume(await x.dispatch('handoff', {claim: third}),
+      'ApprovalExpired', 'after');
+    assert.equal(x.sends.length, 0);
+    // Historical Resolution and the resuming Run are unchanged.
+    assert.equal(x.deferral.journal.resolutionOf(x.checkpoint.checkpointCid)
+      .decision, 'approved');
+    assert.equal(x.deferral.journal.getRunState(x.checkpoint.runId).status,
+      'resuming');
+  });
+
+test('a new claimant reconciles an unknown resumed dispatch, never restarts it',
+  async t => {
+    let fail = true;
+    const x = await resumedCoordinator(t, {send: () => {
+      if (fail) throw new Error('ConnectionReset');
+      return Object.freeze({revision: 0, state: [0, 0, 0, 0, 0]});
+    }});
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+    const first = x.claim('coordinator-a', 1000);
+    const unknown = await x.dispatch('resume-unknown', {claim: first});
+    assert.equal(unknown.error?.message, 'ConnectionReset');
+    assert.equal(unknown.sends, 1);
+    assert.equal(unknown.recorded, true);
+    fail = false;
+    x.clock.ms += 1000;
+    // A new claimant is no permission for a new physical attempt of the
+    // same task: another dispatch identity is refused before any send, by
+    // the Coordinator journal's attempt collision (not by authorization).
+    const second = x.claim('coordinator-b', 1000);
+    const restarted = await x.dispatch('resume-restart', {claim: second});
+    assert.notEqual(restarted.error, undefined);
+    assert.equal(restarted.error instanceof ExecutionAuthorizationError,
+      false);
+    assert.equal(restarted.sends, 0);
+    assert.equal(restarted.recorded, false);
+    // The recorded attempt is reconciled under its own durable identity
+    // (the Site deduplicates that identity), by the next live claimant only.
+    x.clock.ms += 1000;
+    const third = x.claim('coordinator-c');
+    const reconciled = await x.dispatch('resume-unknown', {claim: third});
+    assert.equal(reconciled.error, undefined);
+    assert.equal(reconciled.sends, 1);
+    assert.deepEqual(new Set(x.sends).size, 1);
   });

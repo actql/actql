@@ -61,6 +61,10 @@ pub fn resume_completion_allowed(@run_publication.RunOutcomeStatus) -> Bool
 
 pub fn resume_intent_id(String, String, WireLimits) -> String?
 
+pub fn resumed_approval(String, WireLimits) -> Result[ResumedApproval, ResolutionIssue]
+
+pub fn resumed_approval_current(ResumedApproval, String) -> Bool
+
 pub fn revalidation_failure_status(Array[String]) -> @run_publication.RunOutcomeStatus
 
 pub fn run_status_token(@run_publication.RunOutcomeStatus) -> String
@@ -263,6 +267,15 @@ pub(all) enum ResumeIssue {
   InvalidClock
   InvalidBinding
   InvalidIntent
+} derive(Eq, @debug.Debug)
+
+pub struct ResumedApproval {
+  checkpoint_cid : String
+  resolution_cid : String
+  verified_resolution_cid : String
+  reviewer_id : String
+  claims : Array[String]
+  expires_at : String?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ReviewerAuthority {

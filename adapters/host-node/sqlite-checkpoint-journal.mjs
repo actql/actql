@@ -104,6 +104,18 @@ function subjectBinding(value) {
   return value;
 }
 
+// Claims the Host required of the decision when it deferred it, bound next to
+// the Checkpoint: the decision request's own claims, never claims an answer
+// establishes. Sorted and unique; '[]' when none were requested.
+function requestedClaimsJson(value) {
+  if (value === undefined || value === null) return '[]';
+  if (!Array.isArray(value) || !value.every(text) ||
+      new Set(value).size !== value.length) {
+    fail('InvalidRequestedClaims');
+  }
+  return JSON.stringify([...value].sort());
+}
+
 // Safe inspection view: identities, the review subject reference, and the
 // non-restricted metadata sealed in the Checkpoint. No review projection
 // contents, evidence, or Host authority configuration are returned.
@@ -130,6 +142,7 @@ function checkpointView(wire, row) {
     expiresAt: artifact.expires_at,
     decisionSubjectCid: row.decision_subject_cid === '' ? null :
       row.decision_subject_cid,
+    requestedClaims: Object.freeze(JSON.parse(row.requested_claims_json)),
     closure: row.closure,
     resolutionCid: row.resolution_cid === '' ? null : row.resolution_cid,
   });
@@ -214,6 +227,7 @@ export function openSqliteCheckpointJournal(root, {
         authorities_json TEXT NOT NULL,
         binding_json TEXT NOT NULL,
         decision_subject_cid TEXT NOT NULL DEFAULT '',
+        requested_claims_json TEXT NOT NULL DEFAULT '[]',
         closure TEXT NOT NULL
           CHECK (closure IN ('open', 'resolved', 'expired', 'cancelled')),
         resolution_cid TEXT NOT NULL DEFAULT '',
@@ -248,6 +262,13 @@ export function openSqliteCheckpointJournal(root, {
         completed_at TEXT NOT NULL DEFAULT '',
         CHECK ((run_id IS NULL) != (prepare_attempt_id IS NULL))
       ) STRICT;
+      CREATE TABLE IF NOT EXISTS resume_admissions (
+        intent_id TEXT NOT NULL REFERENCES resume_intents (intent_id),
+        generation INTEGER NOT NULL CHECK (generation >= 1),
+        claimant TEXT NOT NULL,
+        admitted_at TEXT NOT NULL,
+        PRIMARY KEY (intent_id, generation)
+      ) STRICT;
     `);
     transaction(database, () => {
       // A journal created before the decision-subject binding column gains
@@ -256,6 +277,11 @@ export function openSqliteCheckpointJournal(root, {
       if (!columns.some(column => column.name === 'decision_subject_cid')) {
         database.exec(`ALTER TABLE checkpoints ADD COLUMN
           decision_subject_cid TEXT NOT NULL DEFAULT ''`);
+      }
+      // ... and the requested-claims binding with no requested claim.
+      if (!columns.some(column => column.name === 'requested_claims_json')) {
+        database.exec(`ALTER TABLE checkpoints ADD COLUMN
+          requested_claims_json TEXT NOT NULL DEFAULT '[]'`);
       }
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
@@ -303,8 +329,9 @@ export function openSqliteCheckpointJournal(root, {
     insertCheckpoint: database.prepare(`
       INSERT INTO checkpoints (checkpoint_cid, checkpoint_id, run_id,
         prepare_attempt_id, checkpoint_wire, expires_at, authorities_json,
-        binding_json, decision_subject_cid, closure, persisted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
+        binding_json, decision_subject_cid, requested_claims_json, closure,
+        persisted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
     closeCheckpoint: database.prepare(`
       UPDATE checkpoints SET closure = ?, resolution_cid = ?, closed_at = ?
       WHERE checkpoint_cid = ? AND closure = 'open'`),
@@ -353,6 +380,11 @@ export function openSqliteCheckpointJournal(root, {
       UPDATE resume_intents SET state = 'completed', generation = ?,
         claimant = ?, outcome_status = ?, completed_at = ?
       WHERE intent_id = ? AND generation = ? AND state != 'completed'`),
+    // One protected dispatch admission per claim generation of an intent.
+    enterAdmission: database.prepare(`
+      INSERT INTO resume_admissions (intent_id, generation, claimant,
+        admitted_at)
+      VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING`),
   };
 
   const alive = () => { if (closed) fail('CheckpointJournalClosed'); };
@@ -410,11 +442,12 @@ export function openSqliteCheckpointJournal(root, {
 
   const isPreparation = sealed => sealed.subject_kind === 'prepare_attempt';
 
-  function insertCheckpoint(sealed, authorities, binding, subject, at) {
+  function insertCheckpoint(sealed, authorities, binding, subject, claims,
+    at) {
     statements.insertCheckpoint.run(
       sealed.checkpoint_cid, sealed.checkpoint_id, sealed.run_id,
       sealed.prepare_attempt_id, sealed.checkpoint_wire, sealed.expires_at,
-      authorities, binding, subject, at,
+      authorities, binding, subject, claims, at,
     );
   }
 
@@ -425,6 +458,7 @@ export function openSqliteCheckpointJournal(root, {
       reviewers: authoritiesJson(checkpoint.authorities),
       bound: bindingJson(checkpoint.binding),
       subject: subjectBinding(checkpoint.decisionSubjectCid),
+      claims: requestedClaimsJson(checkpoint.requestedClaims),
     };
   }
 
@@ -569,7 +603,7 @@ export function openSqliteCheckpointJournal(root, {
     // preparation Checkpoint creates no Run.
     persistCheckpoint({
       body, priorStatus, declaredResults, authorities, binding,
-      decisionSubjectCid,
+      decisionSubjectCid, requestedClaims,
     }) {
       alive();
       const sealed = sealBody(body);
@@ -584,6 +618,7 @@ export function openSqliteCheckpointJournal(root, {
       const reviewers = authoritiesJson(authorities);
       const bound = bindingJson(binding);
       const subject = subjectBinding(decisionSubjectCid);
+      const claims = requestedClaimsJson(requestedClaims);
       const declared = declaredJson(declaredResults);
       const at = iso(now());
       transaction(database, () => {
@@ -592,7 +627,8 @@ export function openSqliteCheckpointJournal(root, {
           if (existing.checkpoint_wire !== sealed.checkpoint_wire ||
               existing.authorities_json !== reviewers ||
               existing.binding_json !== bound ||
-              existing.decision_subject_cid !== subject) {
+              existing.decision_subject_cid !== subject ||
+              existing.requested_claims_json !== claims) {
             fail('CheckpointConflict');
           }
           return;
@@ -616,7 +652,7 @@ export function openSqliteCheckpointJournal(root, {
               priorStatus), 'RunStateConflict');
           }
         }
-        insertCheckpoint(sealed, reviewers, bound, subject, at);
+        insertCheckpoint(sealed, reviewers, bound, subject, claims, at);
         fault('persistCheckpoint');
       });
       return waitingAfterCommit(sealed);
@@ -818,6 +854,16 @@ export function openSqliteCheckpointJournal(root, {
         const current = statements.checkpoint.get(checkpointCid);
         // A cancelled Checkpoint admits no Resolution and no resume intent.
         if (current.closure === 'cancelled') return {kind: 'cancelled'};
+        // Authentication and attestation are asynchronous Host work: the
+        // expiration decision uses the trusted time read again here, at the
+        // commit boundary, never the time captured before that work.
+        const committedAt = iso(now());
+        if (current.closure === 'open' && core(runtime.checkpointExpiredAt(
+          current.checkpoint_wire, committedAt), 'CheckpointJournalCorrupt')
+          .expired) {
+          expireLocked(current, committedAt, unknown);
+          return {kind: 'expired'};
+        }
         const decided = core(runtime.resolutionDecide(
           current.checkpoint_wire, resolutionWire, approvalEvidenceWire,
           authJson, current.authorities_json, verifiedAt,
@@ -829,6 +875,14 @@ export function openSqliteCheckpointJournal(root, {
         }
         if (decided.action === 'conflict') {
           return {kind: 'conflict'};
+        }
+        // An approval whose own permission already lapsed at the commit
+        // boundary authorizes nothing: it is not committed, and the open
+        // Checkpoint keeps waiting for an answer within its deadline.
+        if (decided.action !== 'expired' && decided.decision === 'approved' &&
+            !core(runtime.resumedApprovalAt(decided.verified_resolution_wire,
+              committedAt), 'InvalidResolution').current) {
+          return {kind: 'approval_expired'};
         }
         if (decided.action === 'expired') {
           if (current.closure === 'open') {
@@ -885,6 +939,7 @@ export function openSqliteCheckpointJournal(root, {
       if (outcome.kind === 'conflict') fail('CheckpointResolutionConflict');
       if (outcome.kind === 'cancelled') fail('CheckpointCancelled');
       if (outcome.kind === 'expired') fail('CheckpointExpired');
+      if (outcome.kind === 'approval_expired') fail('ApprovalExpired');
       const stored = statements.resolution.get(checkpointCid);
       const intent = statements.intentByCheckpoint.get(checkpointCid);
       return Object.freeze({
@@ -1111,6 +1166,77 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
+    // Committed resume state of one Checkpoint, read from journal rows only:
+    // its current resume intent (state, claimant, generation, lease), the
+    // committed Resolution and the requested claims bound when it deferred.
+    // Undefined when the Checkpoint has no resume intent.
+    currentResume(checkpointCid) {
+      alive();
+      if (!text(checkpointCid)) fail('InvalidCheckpointReference');
+      const intent = statements.intentByCheckpoint.get(checkpointCid);
+      if (intent === undefined) return undefined;
+      const checkpoint = statements.checkpoint.get(checkpointCid);
+      const stored = statements.resolution.get(checkpointCid);
+      return Object.freeze({
+        checkpointCid,
+        intentId: intent.intent_id,
+        runId: intent.run_id,
+        prepareAttemptId: intent.prepare_attempt_id,
+        state: intent.state,
+        claimant: intent.claimant,
+        generation: Number(intent.generation),
+        leaseExpiresMs: Number(intent.lease_expires_ms),
+        resolutionCid: intent.resolution_cid,
+        decision: stored?.decision ?? null,
+        verifiedResolutionCid: stored?.verified_resolution_cid ?? null,
+        closure: checkpoint.closure,
+        decisionSubjectCid: checkpoint.decision_subject_cid === '' ? null :
+          checkpoint.decision_subject_cid,
+        requestedClaims: Object.freeze(
+          JSON.parse(checkpoint.requested_claims_json)),
+      });
+    },
+
+    // Admission of one resumed protected dispatch at the Host trusted time.
+    // `claim` names the claim the caller holds ({intentId, claimant,
+    // generation}); it is an identity to check, never an authority record.
+    // Everything else comes from committed rows: the intent must be the
+    // current intent of its Checkpoint (and of its Run or preparation) and
+    // the claim must pass the MoonBit fence (current claimant, generation
+    // and unexpired lease); the Checkpoint must be resolved by the intent's
+    // committed approved Resolution, the Run or preparation `resuming`, and
+    // the approval's own permission current. Returns the bound admission;
+    // throws a coded error otherwise. Nothing is recorded.
+    admitResume(claim, {checkpointCid} = {}) {
+      alive();
+      const at = now();
+      return transaction(database, () => admissionLocked(claim,
+        checkpointCid, at));
+    },
+
+    // The same admission, taken immediately before the protected send and
+    // recorded durably: at most one protected dispatch start per claim
+    // generation of an intent. A second entry with the same generation, by
+    // this or any other process, is `ResumeAdmissionConsumed`; a later
+    // claimant (a higher generation) is admitted again only through its own
+    // fence, and physical attempt reconciliation stays with the dispatcher.
+    enterResumedDispatch(claim, {checkpointCid, resolutionCid} = {}) {
+      alive();
+      const at = now();
+      return transaction(database, () => {
+        const admission = admissionLocked(claim, checkpointCid, at);
+        if (resolutionCid !== undefined &&
+            resolutionCid !== admission.resolutionCid) {
+          fail('ResolutionNotCommitted');
+        }
+        changed(statements.enterAdmission.run(admission.intentId,
+          admission.generation, admission.claimant, admission.admittedAt),
+        'ResumeAdmissionConsumed');
+        fault('enterResumedDispatch');
+        return admission;
+      });
+    },
+
     // Complete the resume intent together with the resumed continuation's
     // exit. For a Run the outcome is one of: {runStateWire} for a
     // continuation-issued state, {status: 'failed' | 'cancelled'}, or
@@ -1169,7 +1295,7 @@ export function openSqliteCheckpointJournal(root, {
             fail('CheckpointConflict');
           }
           insertCheckpoint(next.sealed, next.reviewers, next.bound,
-            next.subject, atIso);
+            next.subject, next.claims, atIso);
           checkpointCid = next.sealed.checkpoint_cid;
         }
         changed(statements.moveRun.run(target, atIso, checkpointCid,
@@ -1221,6 +1347,67 @@ export function openSqliteCheckpointJournal(root, {
       row = rows[0];
     }
     return row;
+  }
+
+  function admissionLocked(claim, checkpointCid, at) {
+    if (!text(claim?.intentId) || !text(claim?.claimant) ||
+        !Number.isSafeInteger(claim?.generation)) {
+      fail('ResumeNotClaimed');
+    }
+    const intent = statements.intentById.get(claim.intentId);
+    if (intent === undefined) fail('ResumeIntentNotFound');
+    if (checkpointCid !== undefined && intent.checkpoint_cid !== checkpointCid) {
+      fail('ResumeIntentMismatch');
+    }
+    const latest = intent.run_id !== null
+      ? statements.intent.get(intent.run_id)
+      : statements.preparationIntent.get(intent.prepare_attempt_id);
+    if (latest?.intent_id !== intent.intent_id) fail('ResumeIntentMismatch');
+    const fence = core(runtime.resumeFenceDecide(intentView(intent),
+      claim.claimant, claim.generation, at), 'ResumeClaimStale');
+    if (fence.action !== 'current') fail('ResumeClaimStale');
+    const checkpoint = statements.checkpoint.get(intent.checkpoint_cid);
+    const stored = statements.resolution.get(intent.checkpoint_cid);
+    if (checkpoint?.closure !== 'resolved' || stored?.decision !== 'approved' ||
+        checkpoint.resolution_cid !== intent.resolution_cid ||
+        stored.resolution_cid !== intent.resolution_cid) {
+      fail('ResolutionNotCommitted');
+    }
+    const owner = intent.run_id !== null
+      ? statements.run.get(intent.run_id)
+      : statements.preparation.get(intent.prepare_attempt_id);
+    if (owner?.status !== 'resuming') fail('RunNotResuming');
+    const atIso = iso(at);
+    const approval = core(runtime.resumedApprovalAt(
+      stored.verified_resolution_wire, atIso), 'ResolutionNotCommitted');
+    if (approval.checkpoint_cid !== intent.checkpoint_cid ||
+        approval.resolution_cid !== intent.resolution_cid ||
+        approval.verified_resolution_cid !== stored.verified_resolution_cid) {
+      fail('ResolutionNotCommitted');
+    }
+    if (approval.current !== true) fail('ApprovalExpired');
+    const artifact = JSON.parse(checkpoint.checkpoint_wire);
+    return Object.freeze({
+      intentId: intent.intent_id,
+      checkpointCid: intent.checkpoint_cid,
+      runId: intent.run_id,
+      prepareAttemptId: intent.prepare_attempt_id,
+      resolutionCid: intent.resolution_cid,
+      verifiedResolutionCid: stored.verified_resolution_cid,
+      claimant: intent.claimant,
+      generation: Number(intent.generation),
+      leaseExpiresMs: Number(intent.lease_expires_ms),
+      kind: artifact.kind,
+      requiredArtifactCid: artifact.required_artifact.artifact_cid,
+      decisionSubjectCid: checkpoint.decision_subject_cid === '' ? null :
+        checkpoint.decision_subject_cid,
+      requestedClaims: Object.freeze(
+        JSON.parse(checkpoint.requested_claims_json)),
+      observedClaims: Object.freeze([...approval.claims]),
+      authority: approval.reviewer_id,
+      approvalExpiresAt: approval.expires_at,
+      admittedAt: atIso,
+    });
   }
 
   // Only the current, unexpired claimant may complete an intent.
@@ -1275,7 +1462,7 @@ export function openSqliteCheckpointJournal(root, {
         }
         move('waiting_checkpoint', next.sealed.checkpoint_cid, '', '');
         insertCheckpoint(next.sealed, next.reviewers, next.bound, next.subject,
-          atIso);
+          next.claims, atIso);
       } else if (run !== undefined) {
         // The approved preparation continuation creates the Run.
         if (statements.run.get(run.runId) !== undefined) {
