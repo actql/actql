@@ -1701,7 +1701,9 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'SGA' && route.operation === 'reach' &&
     (!boundaryRoles.has('reach_prefix_work_workspace_active_cancel') ||
-      !boundaryRoles.has('reach_long_text_sort_cancel_cleanup'))) {
+      !boundaryRoles.has('reach_long_text_sort_cancel_cleanup') ||
+      !boundaryRoles.has('reach_nonempty_exact_work_workspace') ||
+      !environmentRoles.has('reach_out_host_in_flight_cancel'))) {
     fail(`${label}: reach control-work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'traverse' &&

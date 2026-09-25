@@ -29,7 +29,7 @@ prove these properties; a normal gate result or an operation count does not.
 ### Remaining product work and its acceptance tests
 
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
-nine SGA entrypoints, and the providerless synchronous computation.
+eight SGA entrypoints, and the providerless synchronous computation.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking
 paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
@@ -42,7 +42,7 @@ implementation while retaining separate input bindings and route evidence.
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
 | Ordinary keyed `group count` reuses exact admitted cell evidence from supplied or admitted producer storage and steps output charging. A providerless RowTable with raw Text still undergoes synchronous canonical recheck. | Remove or bound the remaining raw RowTable path without changing its contract or output charge. Keep quantum-one, exact/one-short, Host cancellation, two-consumer and cleanup proofs as controls. Structured keys remain rejected by the formal checker. |
 | Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
-| Standard SGA Graph programs still have nine registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
+| Standard SGA Graph programs still have eight registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
 
 At `90f193102`, a temporary read-only diagnostic in the standard managed
@@ -66,7 +66,7 @@ above. A final route proof must come from persistent standard-Host fixtures
 with delivered cancellation, exact/one-short limits, and cleanup.
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 30 full-route and 67 path-scoped counts describe evidence, not
+list. Its 31 full-route and 68 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -76,6 +76,14 @@ Host timer cases: both request cancellation after positive pair progress,
 observe stop, and reclaim their owners. This removes a stale evidence-name
 failure only. The ordinary whole-sequence cross-join entrypoint and the
 providerless synchronous lane remain unassured.
+
+The standard Graph `reach` entrypoint now has a nonempty fixed boundary:
+76 control-work units and 66 structural workspace slots succeed; 75 work
+units and 65 slots fail before completion. The same production provider
+reaches two downstream Computes and Effect-free publication through the
+standard Host. Its Node timer fixture delivers cancellation after positive
+work, observes stop, and reclaims the unfinished output. This closes one
+SGA entrypoint, not the eight remaining Graph routes or generic fallback.
 
 ### Count input measurement review disposition
 
@@ -157,9 +165,9 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 30 |
-| Full route work/workspace assurance | 30 |
-| Path-scoped work/workspace assurance | 67 |
+| Four-role lifecycle assurance | 31 |
+| Full route work/workspace assurance | 31 |
+| Path-scoped work/workspace assurance | 68 |
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 

@@ -41,6 +41,7 @@
     {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
     {"family": "SGA", "operation": "degree", "path": "entrypoint"},
     {"family": "SGA", "operation": "components", "path": "entrypoint"},
+    {"family": "SGA", "operation": "reach", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},

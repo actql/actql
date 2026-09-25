@@ -4636,6 +4636,33 @@ test "reach preserves direction depth bounds and cancellation" {
     is @local_sga.ReachStopped(_, progress=0L, work=1L),
   )
   assert_eq(@local_sga.cleanup_reach(active), Ok(true))
+  // Four nodes and four edges: 29 structural, 13 traversal, 15 stable-sort,
+  // 18 output-field, and one completion step require exactly 76 work.
+  for (work, accepted) in [(76, true), (75, false)] {
+    let execution = start(@bounded.control(), 66, work).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match @local_sga.advance_reach(execution, 1).unwrap() {
+          @local_sga.ReachContinue(..) => ()
+          @local_sga.ReachComplete(output, work=charged, ..) => {
+            assert_true(accepted)
+            assert_eq(charged, 76L)
+            assert_eq(@execution.completed_row_count(output), 3)
+            terminal = true
+          }
+          @local_sga.ReachFailed(@local_sga.ReachWorkLimit, ..) => {
+            assert_false(accepted)
+            assert_true(@local_sga.reach_cleanup_pending(execution))
+            terminal = true
+          }
+          _ => fail("reach exact work boundary had another outcome")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_sga.cleanup_reach(execution), Ok(true))
+  }
   assert_true(@graphs.discard_completed(graph))
 }
 

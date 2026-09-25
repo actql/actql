@@ -4144,13 +4144,49 @@
           "fixture": "reach preserves direction depth bounds and cancellation"
         },
         {
+          "role": "reach_nonempty_exact_work_workspace",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "reach preserves direction depth bounds and cancellation"
+        },
+        {
           "role": "reach_long_text_sort_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
           "fixture": "reach yields during long typed identity sorting"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "reach_out_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "reach-out"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "reach_nonempty_exact_work_workspace",
+          "one_short_limit": "reach_nonempty_exact_work_workspace",
+          "in_flight_cancel": "reach_out_host_in_flight_cancel",
+          "cleanup": "reach_prefix_work_workspace_active_cancel"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "reach_nonempty_exact_work_workspace",
+            "one_short_limit": "reach_nonempty_exact_work_workspace"
+          },
+          "workspace": {
+            "exact_limit": "reach_nonempty_exact_work_workspace",
+            "one_short_limit": "reach_nonempty_exact_work_workspace"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

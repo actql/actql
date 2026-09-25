@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 30 with four-role boundary evidence, 30 with full work\/workspace assurance, 67 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 31 with four-role boundary evidence, 31 with full work\/workspace assurance, 68 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Graph equality route requires exact limits and delivered cancellation', () => {
@@ -581,6 +581,25 @@ test('components loses assurance without its nonempty exact boundary', () => {
   }), /SGA components: entrypoint exact_limit lacks an executable fixture/u);
 });
 
+test('reach assurance requires exact limits and delivered Host cancellation', () => {
+  assert.match(run(undefined, routes => {
+    const reach = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'reach');
+    reach.boundary_tests = reach.boundary_tests.filter(item =>
+      item.role !== 'reach_nonempty_exact_work_workspace');
+  }), /SGA reach: reach control-work evidence is missing/u);
+  assert.match(run(undefined, routes => {
+    const reach = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'reach');
+    reach.environment_tests = [];
+  }), /SGA reach: reach control-work evidence is missing/u);
+  assert.match(run(undefined, routes => {
+    const reach = routes.routes.find(entry =>
+      entry.family === 'SGA' && entry.operation === 'reach');
+    delete reach.resource_assurance.entrypoint.workspace;
+  }), /SGA reach: entrypoint operation needs work and workspace assurance/u);
+});
+
 test('graph matcher assurance requires its exact bounded provider call', () => {
   for (const operation of ['match_nodes', 'match_edges']) {
     assert.match(run(undefined, routes => {
@@ -745,7 +764,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 67 |',
+    '| Path-scoped work/workspace assurance | 68 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
