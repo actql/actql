@@ -69,7 +69,8 @@ pub fn issue_source_free_client_effect_local_invocation(
     @checked.unit_pipeline(program, unit) is Some(pipeline) else {
     return Err(MissingUnit)
   }
-  if unit != 0 || !@pipeline.starts_with_values(pipeline) ||
+  if unit != 0 || @pipeline.input_count(pipeline) != 0 ||
+    !@pipeline.starts_with_values(pipeline) ||
     @checked.unit_result_import_count(program, unit) != Some(0) ||
     @checked.unit_import_cid_count(program, unit) != Some(0) {
     return Err(NotSourceFree)

@@ -2366,6 +2366,11 @@ test(`two-member captured Effect Run ${
           },
         } : {}),
       });
+      const custodyInvocationCid = JSON.parse(
+        sourcePayload.summary.artifact.wire).invocation_cid;
+      assert.equal(custodyInvocationCid, runInvocation.identity);
+      assert.notEqual(custodyInvocationCid,
+        moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
       if (siteRun) {
         for (const rows of proposedRows) {
           assert.deepEqual(rows.map(row => JSON.parse(row.selectorWire)),
