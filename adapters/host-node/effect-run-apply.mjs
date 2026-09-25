@@ -1,8 +1,59 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {confirmCompletedEffectfulApplySources} from
+  '../host-common/completed-run-publication.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
+};
+
+const ownPreflight = (supplied, requireProofs = true) => {
+  if (!supplied) fail('InvalidCapturedEffectApply');
+  const preflight = {...supplied};
+  const names = ['sources', 'contracts', 'capabilities',
+    'authorities', 'observedRows', 'guardVersions', 'routes'];
+  if (requireProofs) names.unshift('proofs');
+  for (const name of names) {
+    if (!Array.isArray(preflight[name])) fail('InvalidCapturedEffectApply');
+    preflight[name] = Object.freeze([...preflight[name]]);
+  }
+  if (!Array.isArray(preflight.keys) ||
+      !preflight.keys.every(Array.isArray)) {
+    fail('InvalidCapturedEffectApply');
+  }
+  preflight.keys = Object.freeze(preflight.keys.map(keys =>
+    Object.freeze([...keys])));
+  if (!requireProofs) preflight.proofs = Object.freeze([]);
+  return Object.freeze(preflight);
+};
+
+const driveAdmittedFrontier = async ({control, frontier, members,
+  maxFrontierWork, dispatchRow, signal}) => {
+  const totalRows = members.reduce((sum, member) =>
+    sum + member.claims.length, 0);
+  let dispatched = 0;
+  for (;;) {
+    signal?.throwIfAborted();
+    const current = frontier(members, maxFrontierWork);
+    if (control.setFrontierReadyCount(current) === 0) {
+      return Object.freeze({dispatched, frontier: current});
+    }
+    if (dispatched === totalRows) fail('EffectApplyDidNotAdvance');
+    const memberIndex = control.setFrontierReadyMember(current, 0);
+    const rowIndex = control.setFrontierReadyRow(current, 0);
+    const claim = members[memberIndex]?.claims[rowIndex];
+    if (claim === undefined) fail('InvalidCapturedEffectFrontier');
+    await dispatchRow(Object.freeze({memberIndex, rowIndex, claim}));
+    dispatched++;
+    const next = frontier(members, maxFrontierWork);
+    for (let index = 0; index < control.setFrontierReadyCount(next);
+      index++) {
+      if (control.setFrontierReadyMember(next, index) === memberIndex &&
+          control.setFrontierReadyRow(next, index) === rowIndex) {
+        fail('EffectApplyDidNotAdvance');
+      }
+    }
+  }
 };
 
 // Drive only the rows admitted by the retained MoonBit Effect frontier.
@@ -23,19 +74,7 @@ export async function applyCapturedEffectSet({
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1) {
     fail('InvalidCapturedEffectApply');
   }
-  const preflight = {...suppliedPreflight};
-  for (const name of ['proofs', 'sources', 'contracts', 'capabilities',
-    'authorities', 'observedRows', 'guardVersions', 'routes']) {
-    if (!Array.isArray(preflight[name])) fail('InvalidCapturedEffectApply');
-    preflight[name] = Object.freeze([...preflight[name]]);
-  }
-  if (!Array.isArray(preflight.keys) ||
-      !preflight.keys.every(Array.isArray)) {
-    fail('InvalidCapturedEffectApply');
-  }
-  preflight.keys = Object.freeze(preflight.keys.map(keys =>
-    Object.freeze([...keys])));
-  Object.freeze(preflight);
+  const preflight = ownPreflight(suppliedPreflight);
   const ownedMembers = Object.freeze(members.map(member => {
     if (!Array.isArray(member?.claims)) fail('InvalidCapturedEffectApply');
     return Object.freeze({claims: Object.freeze(member.claims.map(claim =>
@@ -76,29 +115,72 @@ export async function applyCapturedEffectSet({
   }
   ledger.prepareCapturedSetIntents(
     capturedInputs, ownedMembers, maxFrontierWork);
-  let dispatched = 0;
-  for (;;) {
-    signal?.throwIfAborted();
-    const frontier = ledger.frontierFromCapturedHeads(
-      capturedInputs, ownedMembers, maxFrontierWork);
-    if (control.setFrontierReadyCount(frontier) === 0) {
-      return Object.freeze({dispatched, frontier});
-    }
-    if (dispatched === totalRows) fail('EffectApplyDidNotAdvance');
-    const memberIndex = control.setFrontierReadyMember(frontier, 0);
-    const rowIndex = control.setFrontierReadyRow(frontier, 0);
-    const claim = ownedMembers[memberIndex]?.claims[rowIndex];
-    if (claim === undefined) fail('InvalidCapturedEffectFrontier');
-    await dispatchRow(Object.freeze({memberIndex, rowIndex, claim}));
-    dispatched++;
-    const next = ledger.frontierFromCapturedHeads(
-      capturedInputs, ownedMembers, maxFrontierWork);
-    for (let index = 0; index < control.setFrontierReadyCount(next);
-      index++) {
-      if (control.setFrontierReadyMember(next, index) === memberIndex &&
-          control.setFrontierReadyRow(next, index) === rowIndex) {
-        fail('EffectApplyDidNotAdvance');
-      }
-    }
+  return driveAdmittedFrontier({control, members: ownedMembers,
+    maxFrontierWork, dispatchRow, signal,
+    frontier: (members, maxWork) => ledger.frontierFromCapturedHeads(
+      capturedInputs, members, maxWork),
+  });
+}
+
+// Continue only exact durable intents owned by the recovered captured Run.
+// Recovery confirms physical source holdings, refreshes current observations,
+// and uses the same MoonBit frontier and dispatch loop as the live path. A
+// prepared Ledger head alone is never permission for another physical call.
+export async function applyRecoveredEffectSet({
+  moon, store, publicationControl, computation, preview, ledger,
+  requestScope, programId, nodeId, maxRows, maxFrontierWork,
+  maxRecoveryWork,
+  refreshPreflight, dispatchRow, signal,
+}) {
+  if (!moon || !store || !publicationControl || !computation || !preview ||
+      typeof ledger?.recoverClaimFacts !== 'function' ||
+      typeof ledger?.frontierFromDurableHeads !== 'function' ||
+      !requestScope || typeof programId !== 'string' ||
+      typeof nodeId !== 'string' ||
+      !Number.isSafeInteger(maxRows) || maxRows < 1 ||
+      !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1 ||
+      !Number.isSafeInteger(maxRecoveryWork) || maxRecoveryWork < 1 ||
+      typeof refreshPreflight !== 'function' ||
+      typeof dispatchRow !== 'function') {
+    fail('InvalidRecoveredEffectApply');
   }
+  signal?.throwIfAborted();
+  const control = runtimeCore(moon).effectApplicationControl;
+  const admittedPreview = publicationControl
+    .effectComputationPreviewLedgerIdentity(preview);
+  const recovered = ledger.recoverClaimFacts({preview: admittedPreview,
+    scope: requestScope, programId, nodeId, maxRows,
+    maxWork: maxRecoveryWork});
+  const initial = recovered.frontier;
+  if (control.setFrontierReadyCount(initial) === 0) {
+    return Object.freeze({dispatched: 0, frontier: initial});
+  }
+  await confirmCompletedEffectfulApplySources({store,
+    control: publicationControl, computation, preview});
+  const preflight = ownPreflight(await refreshPreflight({signal}), false);
+  // A fresh authorization cannot silently change the logical request that
+  // owns the already prepared intents.
+  if (control.logicalRequestScopeCid(preflight.requestScope) !==
+      control.logicalRequestScopeCid(requestScope)) {
+    fail('EffectRecoveredRequestScopeChanged');
+  }
+  signal?.throwIfAborted();
+  checked(moon.clientProgramCheckRecoveredEffectApplySemantics(
+    admittedPreview, preflight.sources, preflight.contracts,
+    preflight.capabilities, preflight.authorities,
+    preflight.observedRows, preflight.guardVersions, preflight.routes,
+    preflight.risk, preflight.reviewProjectionCid,
+    preflight.authorityScopeCid, preflight.policyCid,
+    preflight.validityCid, preflight.issuerCid,
+    preflight.authenticationCid, preflight.issuerKind,
+    preflight.decision, preflight.requestScope, preflight.keys,
+    preflight.maxMembers, preflight.maxRows,
+    preflight.maxFootprintWork, preflight.maxWork,
+  ));
+  const result = await driveAdmittedFrontier({control,
+    members: recovered.members, maxFrontierWork, dispatchRow, signal,
+    frontier: (members, maxWork) => ledger.frontierFromDurableHeads(
+      admittedPreview, members, maxWork),
+  });
+  return Object.freeze({...result, members: recovered.members});
 }

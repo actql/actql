@@ -843,6 +843,49 @@ export function prepareCompletedEffectfulPublication(options) {
   });
 }
 
+// A recovered Preview remains historical evidence until its exact physical
+// source holdings and capture record are confirmed at the send boundary.
+// This does not authenticate a current Site grant or admit an Effect apply.
+export async function confirmCompletedEffectfulApplySources({
+  store, control, computation, preview,
+}) {
+  const issued = completedEffectfulOwners.get(computation);
+  if (issued?.store !== store || issued.control !== control ||
+      issued.preview !== preview ||
+      typeof store?.inspectPhysicalHolding !== 'function' ||
+      typeof store?.commitPhysicalHolding !== 'function' ||
+      typeof store?.confirmPrivateEvidence !== 'function') {
+    fail('InvalidCompletedEffectfulApplyOwner');
+  }
+  const capture = await store.inspectPhysicalHolding(
+    issued.captureHolding.holding_cid);
+  if (JSON.stringify(capture) !==
+      JSON.stringify(issued.captureHolding)) {
+    fail('CompletedEffectfulCaptureUnavailable');
+  }
+  const record = completedResultOwners.get(issued.storedResults)
+    ?.captureRecordOwner;
+  if (record === undefined ||
+      await store.confirmPrivateEvidence(record.binding) === undefined) {
+    fail('CompletedEffectfulCaptureRecordUnavailable');
+  }
+  for (const {source, artifact} of issued.effectSourceHoldings) {
+    const holdingCid = control.capturedEffectSourceHoldingCid(source);
+    const holding = await store.inspectPhysicalHolding(holdingCid);
+    if (holding?.namespace !== 'effect-source' ||
+        holding.holding_cid !== holdingCid ||
+        holding.manifest_cid !== artifact.identity ||
+        control.capturedEffectSourceArtifactCid(source) !==
+          artifact.identity ||
+        control.capturedEffectSourceStoreAuthorityCid(source) !==
+          store.storeAuthorityCid) {
+      fail('CompletedEffectfulCaptureSourceUnavailable');
+    }
+    await store.commitPhysicalHolding(holding, []);
+  }
+  return control.effectComputationPreviewLedgerIdentity(preview);
+}
+
 // Publish only from the retained completed owner and an issued physical
 // Effect set. A failed or uncertain commit leaves every owner available for
 // reconciliation; a repeated call never re-runs Compute or Effect dispatch.

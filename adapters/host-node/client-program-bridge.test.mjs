@@ -11,7 +11,8 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {applyCapturedEffectSet} from './effect-run-apply.mjs';
+import {applyCapturedEffectSet, applyRecoveredEffectSet} from
+  './effect-run-apply.mjs';
 import {captureSalesforceCollectionEffectWrite,
   captureSalesforceSingleEffectWrite,
   recoverPreparedSalesforceSingleRequests} from
@@ -1950,6 +1951,24 @@ test('owned update Plan matches approved rows and rejects altered intent',
         return checked(result);
       };
       assert.doesNotThrow(() => preflight());
+      const recoveredPreflight = ({sources = [cid('c'), cid('c')],
+        observedRows = guardRows,
+        guardVersions = guardRows.map(() => cid('6')),
+        keys = preview.keys} = {}) => checked(
+        moon.clientProgramCheckRecoveredEffectApplySemantics(
+          moon.clientProgramEffectPreviewLedgerIdentity(previewInputs),
+          sources, [mappingCid, mappingCid], [cid('d'), cid('d')],
+          [cid('e'), cid('e')], observedRows, guardVersions,
+          selectedRoutes, risk, cid('a'), cid('e'), cid('a'), cid('a'),
+          cid('a'), cid('a'), 'policy', 'allow', requestScope, keys,
+          2, 4, 4, 100));
+      assert.doesNotThrow(() => recoveredPreflight());
+      assert.throws(() => recoveredPreflight({
+        sources: [cid('c'), cid('f')],
+      }), {code: 'MoonBitHostFailure'});
+      assert.throws(() => recoveredPreflight({
+        guardVersions: guardRows.map(() => cid('9')),
+      }), {code: 'MoonBitHostFailure'});
       const runEvidence = evidence.slice(0, 3).map((value, index) =>
         control.admitRunEvidence(
           ['bound_invocation_template', 'prepared_invocation',
@@ -3339,6 +3358,7 @@ test(`two-member captured Effect Run ${
                 member.map(observed => observed.versionCid))};
         };
       }
+      let recoveredApplyOptions;
       if (restartPreparedIntent) {
         assert.equal(ledger.prepareCapturedSetIntents(
           previewInputs, members, 64), 4);
@@ -3476,6 +3496,40 @@ test(`two-member captured Effect Run ${
             1024, 32, 5, 256, 128, 1024, 4096,
             sites[0].origin, cid('9'))),
         {code: 'MoonBitHostFailure'});
+        recoveredApplyOptions = {
+          moon, store, publicationControl: control, computation,
+          preview: admittedPreview, ledger, requestScope,
+          programId: 'program-1', nodeId: 'node-1', maxRows: 4,
+          maxFrontierWork: 64, maxRecoveryWork: 100,
+          refreshPreflight: async ({signal}) => {
+            const current = {...preflight,
+              ...(await applyOptions.refreshGuardObservations({signal}))};
+            delete current.proofs;
+            return current;
+          },
+        };
+        await assert.rejects(applyRecoveredEffectSet({
+          ...recoveredApplyOptions,
+          refreshPreflight: async ({signal}) => ({
+            ...await recoveredApplyOptions.refreshPreflight({signal}),
+            sources: [cid('9'), cid('c')],
+          }),
+          dispatchRow: () => assert.fail('foreign recovery sent a row'),
+        }), {code: 'MoonBitHostFailure'});
+        await assert.rejects(applyRecoveredEffectSet({
+          ...recoveredApplyOptions,
+          refreshPreflight: async ({signal}) => ({
+            ...await recoveredApplyOptions.refreshPreflight({signal}),
+            requestScope: effect.logicalRequestScope(
+              cid('e'), 'another-effect-request', 256),
+          }),
+          dispatchRow: () => assert.fail('foreign scope sent a row'),
+        }), {code: 'EffectRecoveredRequestScopeChanged'});
+        await assert.rejects(applyRecoveredEffectSet({
+          ...recoveredApplyOptions,
+          computation: {...computation},
+          dispatchRow: () => assert.fail('unowned recovery sent a row'),
+        }), {code: 'InvalidCompletedEffectfulApplyOwner'});
         applyOptions.ledger = ledger;
         applyOptions.members = recovered.members;
         await assert.rejects(applyCapturedEffectSet({
@@ -3828,9 +3882,13 @@ test(`two-member captured Effect Run ${
           'unknown-two-effects-attempt');
         return;
       }
-      const applied = await applyCapturedEffectSet({
-        ...applyOptions, ledger, dispatchRow,
-      });
+      const applied = restartPreparedIntent
+        ? await applyRecoveredEffectSet({
+          ...recoveredApplyOptions, dispatchRow,
+        })
+        : await applyCapturedEffectSet({
+          ...applyOptions, ledger, dispatchRow,
+        });
       assert.equal(applied.dispatched,
         collectionRecovered ? 2 :
           recoverAfterResponse || restartAfterTerminal || collectionPartial
