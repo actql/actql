@@ -63,14 +63,15 @@ async function exampleInput(t) {
     environmentCid: catalog[2], nativeMilliseconds: '5' };
 }
 
-// Account entries for this example Host: prepare and read the source; the
-// activation entry decides protected-Site compute activation.
+// Account entries for this example Host: read the source (preparation
+// capture and acquisition are both reads); the activation entry decides
+// protected-Site compute activation, a write of captured inputs to that Site.
 const entries = (input, activation) => [
   accountEntry('example-source', 'allow', {
-    connection: input.database, resource: 'main.records', operation: ['prepare', 'read'],
+    connection: input.database, resource: 'main.records', operation: 'read',
   }),
   ...(activation === undefined ? [] : [accountEntry('site-compute', activation, {
-    connection: SITE, operation: 'activate',
+    connection: SITE, operation: 'write',
   })]),
 ];
 
@@ -223,12 +224,14 @@ test('the captured Run refuses every realization start that the Host did not gra
 test('preparation is authorized before any Program path read or source access', async t => {
   const input = await exampleInput(t);
   let hostCalls = 0;
-  const gate = await fixtureAuthorization([accountEntry('read-only', 'allow', {
-    connection: input.database, operation: 'read',
+  // The account reads another table only: the source tuple is a no-match.
+  const gate = await fixtureAuthorization([accountEntry('other-table', 'allow', {
+    connection: input.database, resource: 'main.other', operation: 'read',
   })], { decide: () => { hostCalls++; }, answeringAuthorities: ['reviewer'] });
   await assert.rejects(runExample({ ...input, program: join(input.directory, 'absent.json'),
     authorization: gate }), error => error.code === 'ExecutionAuthorizationDenied' &&
-    error.authorization.boundary === 'preparation');
+    error.authorization.boundary === 'preparation' &&
+    error.authorization.reason === 'no_match');
   assert.equal(hostCalls, 0);
   assert.equal(gate.counters().evaluations, 1);
 });

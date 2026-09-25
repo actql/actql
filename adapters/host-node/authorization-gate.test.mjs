@@ -277,7 +277,7 @@ test('covered operations cost no evaluation and no Host call', async () => {
   });
   for (let index = 0; index < 1000; index++) {
     gate.cover('activation', {connection: 'in-process', resource: 'compute',
-      operation: 'activate'});
+      operation: 'write'});
   }
   assert.equal(calls, 0);
   assert.equal(gate.counters().evaluations, 0);

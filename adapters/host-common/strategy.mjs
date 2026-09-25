@@ -408,7 +408,7 @@ export async function runInstalledStrategy(
     const scope = Object.freeze({
       connection: siteKey,
       resource: entry.managedSelectionKey ?? 'installed-strategy',
-      operation: 'activate',
+      operation: 'write',
     });
     if (!authorization.isProtectedSite(siteKey)) {
       authorization.cover('activation', scope);

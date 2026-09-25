@@ -365,7 +365,7 @@ export function createManagedSiteTransferCoordinator(
     const scope = Object.freeze({
       connection: destinationKey,
       resource: sourceKey,
-      operation: 'transfer',
+      operation: 'write',
     });
     if (!authorization.isProtectedSite(destinationKey) &&
         !authorization.isProtectedSite(sourceKey)) {

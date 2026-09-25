@@ -191,6 +191,40 @@ Pure computation and necessary evidence construction are not automatically a
 human-review step. Conversely, reads, inference and egress can themselves need
 authorization; an Effect decision does not retroactively authorize acquisition.
 
+<a id="local-host-boundary-mapping"></a>
+
+## Local Host boundary mapping (informative)
+
+This table is guidance for the in-repository Reference/Local Host. It is not a
+new normative Core dimension; another Host chooses its own connection and
+resource identifiers. Core sees only the principal × connection × resource ×
+operation tuple of [Account authorization routing](../spec/execution.md#policy-routing).
+The operation dimension carries only the basic Read/Write/Effect
+classification drawn from existing operation contracts: `read` for source
+reads, `write` for writing captured data to another Site or recipient, and the
+Effect Preview's `effect_kind` (`create`, `update`, `upsert`, `delete`,
+`command` or `store`) for an Effect commit. The kind of boundary stays in the
+decision subject and the Checkpoint kind; it is never encoded as an operation
+name. Advanced governance such as data inspection, model egress, query cost,
+business risk, approver selection or batched approval remains the Host's
+delegated-decision policy.
+
+| Boundary | Connection | Resource | Operation | Decision subject | Deferred Checkpoint kind (subject) |
+| --- | --- | --- | --- | --- | --- |
+| Preparation, before operator-supplied path capture and Run creation | Source connection (the Local example uses the database locator) | Source resource (`schema.table`) | `read` | `preparation`; CID of the invocation request | `run_scope` (`prepare_attempt`) |
+| Acquisition, before any provider session | Source connection | Source resource | `read` | `acquisition`; Prepared Invocation CID when known | `read_access` (`prepare_attempt` before the Run, otherwise `run_unit`) |
+| Task activation on a Host-declared protected Site | Site key | Realization key | `write` | `activation` | `cost_scope` (`run_unit`) |
+| Managed or remote transfer and output egress | Recipient Site key | Source Site key or output scope | `write` | `transfer` | `data_egress` (`run_unit`) |
+| Remote Site dispatch | Remote Site | Site registration | `write` | `activation` | `cost_scope` (`run_unit`) |
+| Effect Set commit | Effect target connection | Effect target resource | Effect kind | `effect_commit`; Effect Set Preview CID | `effect_set` (`run_unit`) |
+
+The principal is always the trusted Host context principal. Pure computation
+over captured inputs on an unprotected in-process Site is covered without an
+evaluation or a Host call. The Local Host binds its resume revalidation to the
+principal, authorization context and admitted configuration CID, and to the
+invocation environment; a changed configuration therefore fails resume
+revalidation rather than reinterpreting an earlier approval.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,

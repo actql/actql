@@ -55,7 +55,7 @@ export function exampleAuthorization({database, schema = 'main', table = 'record
       principal: {all: true},
       connection: {any_of: [database]},
       resource: {any_of: [`${schema}.${table}`]},
-      operation: {any_of: ['prepare', 'read']},
+      operation: {any_of: ['read']},
       exclusions: [],
     }],
   });
@@ -93,7 +93,7 @@ export async function runExample({ database, environment, environmentCid, progra
   // source capture or Run creation.
   const gate = authorization ?? await exampleAuthorization({database, schema, table});
   await requireAuthorizedDispatch(gate, 'preparation',
-    {...exampleSourceScope({database, schema, table}), operation: 'prepare'}, {signal});
+    {...exampleSourceScope({database, schema, table}), operation: 'read'}, {signal});
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
     await Promise.all([program, environment, parameters,
       new URL('../contracts/adopted-relation.json', import.meta.url),
