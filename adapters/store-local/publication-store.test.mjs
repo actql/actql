@@ -2582,6 +2582,27 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const reconciled = await unknown.cleanupHandle.retry();
     assert.equal(reconciled.pending, false);
     assert.equal(reconciled.outcome, 'uncommitted');
+    const holdingCid = digest('uncommitted-effect-source-holding');
+    const heldBytes = Buffer.from('held effect source', 'utf8');
+    const heldWriter = store.createPreparedObjectWriter(heldBytes.length);
+    await heldWriter.append(heldBytes);
+    const held = await heldWriter.seal(digest(heldBytes));
+    await store.commitPhysicalHolding({
+      version: 'actql-local-physical-holding/0.1',
+      namespace: 'effect-source',
+      holding_cid: holdingCid,
+      manifest_cid: cids.manifest,
+      objects: [{cid: held.cid, byte_count: held.bytes}],
+    }, [held.prepared]);
+    // Model an Effectful commit's exact durable inventory at the fault edge.
+    const inventoryPath = join(directory, 'metadata-inventories',
+      `${entry.public_index_entry_cid.slice(7)}.json`);
+    const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
+    inventory.physical_holding_cids = [holdingCid];
+    await writeFile(inventoryPath, JSON.stringify(inventory));
+    const inventoryHandle = await open(inventoryPath, 'r');
+    try { await inventoryHandle.sync(); }
+    finally { await inventoryHandle.close(); }
     const candidateCleanup = await store.retireUncommittedPublication(
       entry.public_index_entry_cid,
     );
@@ -2594,10 +2615,21 @@ test('confirmed non-commit releases custody before prepared reclamation',
     assert.equal((await readdir(
       join(directory, 'metadata-inventories'),
     )).length, 1);
+    await assert.rejects(store.close(),
+      code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().closed, false);
     const cancelled = publicationRecord(
       attempt, 2, 'cancelled', prepared.committing,
     );
     await store.appendRecord(wire(cancelled), {uncommittedConfirmed: true});
+    await assert.rejects(candidateCleanup.cleanup.retry(),
+      code('PublicationPhysicalHoldingCleanupRequired'));
+    assert.notEqual(await store.inspectPhysicalHolding(holdingCid), undefined);
+    assert.equal((await readdir(
+      join(directory, 'metadata-inventories'),
+    )).length, 1);
+    assert.equal((await store.retirePhysicalHolding(holdingCid)).deleted,
+      true);
     assert.equal((await candidateCleanup.cleanup.retry()).pending, false);
     assert.deepEqual(await readdir(
       join(directory, 'metadata-inventories'),
