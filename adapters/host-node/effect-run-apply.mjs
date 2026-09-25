@@ -46,7 +46,11 @@ export async function applyCapturedEffectSet({
     fail('InvalidCapturedEffectApply');
   }
   signal?.throwIfAborted();
-  const currentGuards = refreshGuardObservations === undefined
+  const control = runtimeCore(moon).effectApplicationControl;
+  const initialFrontier = ledger.frontierFromCapturedHeads(
+    capturedInputs, ownedMembers, maxFrontierWork);
+  const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
+  const currentGuards = noReadyRows || refreshGuardObservations === undefined
     ? preflight : await refreshGuardObservations({signal});
   if (!Array.isArray(currentGuards?.observedRows) ||
       !Array.isArray(currentGuards.guardVersions)) {
@@ -66,7 +70,9 @@ export async function applyCapturedEffectSet({
     preflight.maxMembers, preflight.maxRows,
     preflight.maxFootprintWork, preflight.maxWork,
   ));
-  const control = runtimeCore(moon).effectApplicationControl;
+  if (noReadyRows) {
+    return Object.freeze({dispatched: 0, frontier: initialFrontier});
+  }
   let dispatched = 0;
   for (;;) {
     signal?.throwIfAborted();

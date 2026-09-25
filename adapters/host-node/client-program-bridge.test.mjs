@@ -3198,6 +3198,8 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         const noReplay = await applyCapturedEffectSet({
           ...applyOptions, ledger,
+          refreshGuardObservations: () =>
+            assert.fail('unknown replay refreshed current Site'),
           dispatchRow: () => assert.fail('uncertain or terminal row resent'),
         });
         assert.equal(noReplay.dispatched, 0);
@@ -3249,6 +3251,8 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         const replay = await applyCapturedEffectSet({
           ...applyOptions, ledger,
+          refreshGuardObservations: () =>
+            assert.fail('terminal replay refreshed current Site'),
           dispatchRow: () => assert.fail('known row resent'),
         });
         assert.equal(replay.dispatched, 0);
@@ -3321,8 +3325,17 @@ test(`two-member captured Effect Run ${
       }
       ledger.close();
       ledger = openLedger();
+      await assert.rejects(applyCapturedEffectSet({
+        ...applyOptions, ledger,
+        preflight: {...preflight, sources: [cid('c'), cid('f')]},
+        refreshGuardObservations: () =>
+          assert.fail('foreign terminal replay refreshed current Site'),
+        dispatchRow: () => assert.fail('foreign terminal row resent'),
+      }), {code: 'MoonBitHostFailure'});
       const replay = await applyCapturedEffectSet({
         ...applyOptions, ledger,
+        refreshGuardObservations: () =>
+          assert.fail('terminal replay refreshed current Site'),
         dispatchRow: () => assert.fail('terminal row resent'),
       });
       assert.equal(replay.dispatched, 0);
@@ -3371,6 +3384,8 @@ test(`two-member captured Effect Run ${
         assert.equal(reconciled.outcome, 'committed');
         const afterRestart = await applyCapturedEffectSet({
           ...applyOptions, ledger,
+          refreshGuardObservations: () =>
+            assert.fail('publication replay refreshed current Site'),
           dispatchRow: () => assert.fail('committed Effect row resent'),
         });
         assert.equal(afterRestart.dispatched, 0);
