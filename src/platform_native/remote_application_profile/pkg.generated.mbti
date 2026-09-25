@@ -9,6 +9,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_example",
+  "actql/actql/physical_task_manifest",
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
@@ -29,7 +30,7 @@ pub fn bind_native_remote_application_run(NativeRemoteApplicationRun, () -> Bool
 
 pub fn load_native_remote_application(String, NativeRemoteApplicationFiles, Int64, String, String) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
 
-pub fn load_native_remote_application_with_data(String, NativeRemoteApplicationFiles, Int64, String, String, @physical_strategy_example.DataProfile) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
+pub fn load_native_remote_application_with_data(String, NativeRemoteApplicationFiles, Int64, String, String, @physical_task_manifest.DataProfile) -> Result[@physical_strategy_example.Application, NativeRemoteApplicationLoadIssue]
 
 pub fn native_remote_application_output_cleanup_pending(NativeRemoteApplicationOutputIssue) -> Bool
 

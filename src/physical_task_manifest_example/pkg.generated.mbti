@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_task_manifest_example"
+
+import {
+  "actql/actql/physical_strategy",
+  "actql/actql/physical_task_manifest",
+}
+
+// Values
+pub fn application_task_manifest(String, String, String, String, @physical_task_manifest.DataProfile) -> Array[@physical_strategy.CheckedTaskIdentity] raise
+
+pub fn application_task_manifest_default(String, String, String, String) -> Array[@physical_strategy.CheckedTaskIdentity] raise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

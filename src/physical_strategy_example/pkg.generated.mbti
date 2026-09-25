@@ -9,6 +9,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
+  "actql/actql/physical_task_manifest",
   "actql/actql/pipeline_check_context",
 }
 
@@ -63,7 +64,7 @@ pub fn application_task_content_read(Application, Int, @execution_relation.Retai
 
 pub fn application_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
 
-pub fn application_task_manifest(String, String, String, String, DataProfile) -> Array[@physical_strategy.CheckedTaskIdentity] raise
+pub fn application_task_manifest(String, String, String, String, @physical_task_manifest.DataProfile) -> Array[@physical_strategy.CheckedTaskIdentity] raise
 
 pub fn application_task_manifest_default(String, String, String, String) -> Array[@physical_strategy.CheckedTaskIdentity] raise
 
@@ -73,26 +74,14 @@ pub fn application_task_reference(Application, Int) -> @physical_strategy.Checke
 
 pub fn prepare_application(String, String, String, String, String, String, String, String, String, String, String, String) -> Application raise
 
-pub fn prepare_application_with_data(String, String, String, String, String, String, String, String, String, String, String, String, DataProfile) -> Application raise
+pub fn prepare_application_with_data(String, String, String, String, String, String, String, String, String, String, String, String, @physical_task_manifest.DataProfile) -> Application raise
 
 // Errors
 
 // Types and methods
 type Application
 
-pub(all) struct DataProfile {
-  source_rows : Int
-  task_rows : Int
-  columns : Int
-  value_bytes : Int
-  wire_bytes : Int
-  value_nodes : Int
-  text_bytes : Int
-  work : Int
-  entries : Int
-  batch_bytes : Int
-}
-
 // Type aliases
+pub using @physical_task_manifest {type DataProfile}
 
 // Traits

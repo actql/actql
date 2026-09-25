@@ -46,7 +46,8 @@ test('retained comparator rejects invalid selection before preparing or executin
 test('managed host-cycle diagnostic reuses identity and independently releases files', async () => {
   const root = new URL('../../../../../', import.meta.url);
   for (const target of ['connectors/duckdb/host_node', 'retained_host_bridge',
-    'process_host_bridge', 'connectors_builtin_node', 'physical_strategy_example']) {
+    'process_host_bridge', 'connectors_builtin_node', 'physical_strategy_example',
+    'physical_task_manifest_example']) {
     await promisify(execFile)('moon', ['build', '--target', 'js', '--release', `src/${target}`],
       {cwd: fileURLToPath(root)});
   }

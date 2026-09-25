@@ -10,6 +10,7 @@ const modules = Object.freeze([
   'connectors/duckdb/host_node/host_node.js',
   'connectors_builtin_node/connectors_builtin_node.js',
   'physical_strategy_example/physical_strategy_example.js',
+  'physical_task_manifest_example/physical_task_manifest_example.js',
   'process_host_bridge/process_host_bridge.js',
   'retained_host_bridge/retained_host_bridge.js',
 ]);

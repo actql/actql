@@ -54,6 +54,7 @@ for (const target of [
   'connectors/duckdb/host_node',
   'connectors_builtin_node',
   'physical_strategy_example',
+  'physical_task_manifest_example',
 ]) {
   await run('moon', ['build', '--target', 'js', '--release', `src/${target}`], {
     cwd: root,

@@ -6,6 +6,7 @@ import {createProcessCompletionCustody} from '../../../../host-node/completion-c
 import {snapshotProcessLimits} from '../../../../host-node/process-accounting.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
 import {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
+import {prepareExampleTaskManifestInThread} from './task-manifest.mjs';
 
 // The worker can prepare its checked Program while the controller derives the
 // independent task manifest. No Store operation is available until the two
@@ -108,10 +109,9 @@ export async function createManagedExampleHost(limits) {
         const preparationStarted = performance.now();
         const parentStarted = performance.now();
         const parentPreparation = (async () => {
-          // Loading the physical checker is part of the preparation cost. The
-          // worker can start while this trusted module graph is imported.
-          const {prepareExampleTaskManifest} = await import('./physical-strategy.mjs');
-          const tasks = await prepareExampleTaskManifest(input);
+          // Deriving the checked manifest is part of the preparation cost. It
+          // runs off this event loop so the child starts and prepares meanwhile.
+          const tasks = await prepareExampleTaskManifestInThread(input, signal);
           phases.parentPreparationMs = performance.now() - parentStarted;
           return tasks;
         })();

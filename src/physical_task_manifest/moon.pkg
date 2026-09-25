@@ -1,0 +1,23 @@
+// Control-side projection of a checked example Program into its exact task
+// manifest. It has no connector, physical candidate or execution dependency so
+// that a Host controller can derive the independent manifest cheaply.
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/program_check",
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/sourceview_resolution" @acquisition,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/parameter_references" @parameters,
+  "actql/actql/stage_syntax" @syntax,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/capacity_witness" @wire,
+  "actql/actql/capacity_host_witness" @host,
+  "actql/actql/capacity_policy",
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+}

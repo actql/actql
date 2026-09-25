@@ -66,7 +66,7 @@ pub fn application_task_manifest(
   parameter_json : String,
   data : DataProfile,
 ) -> Array[@strategy.CheckedTaskIdentity] raise {
-  core_application_task_manifest(
+  @manifest.application_task_manifest(
     program_json,
     environment_json,
     environment_cid,
@@ -84,7 +84,7 @@ pub fn application_task_manifest_default(
   environment_cid : String,
   parameter_json : String,
 ) -> Array[@strategy.CheckedTaskIdentity] raise {
-  core_application_task_manifest(
+  @manifest.application_task_manifest(
     program_json,
     environment_json,
     environment_cid,

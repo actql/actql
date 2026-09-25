@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/physical_task_manifest"
+
+import {
+  "actql/actql/lowering_relation",
+  "actql/actql/physical_strategy",
+  "actql/actql/pipeline_check_context",
+  "actql/actql/program_check",
+  "actql/actql/sourceview_resolution",
+}
+
+// Values
+pub fn application_task_manifest(String, String, String, String, DataProfile?) -> Array[@physical_strategy.CheckedTaskIdentity] raise
+
+pub fn prepare_application_graph_prelude(String, String, String, String, DataProfile?) -> ApplicationGraphPrelude raise
+
+pub fn validate_data_profile(DataProfile) -> Bool
+
+// Errors
+
+// Types and methods
+pub struct ApplicationGraphPrelude {
+  checked : @program_check.CheckedProgram
+  identity : @pipeline_check_context.ProgramSourceIdentity
+  acquisition : @sourceview_resolution.QueryAcquisition
+  owners : Array[@lowering_relation.BoundPrepared]
+}
+
+pub(all) struct DataProfile {
+  source_rows : Int
+  task_rows : Int
+  columns : Int
+  value_bytes : Int
+  wire_bytes : Int
+  value_nodes : Int
+  text_bytes : Int
+  work : Int
+  entries : Int
+  batch_bytes : Int
+}
+
+// Type aliases
+
+// Traits

@@ -1,4 +1,4 @@
-import { DuckDBTransportError } from './session.mjs';
+import { DuckDBTransportError } from './configuration.mjs';
 
 // The pinned compiler exports typed raise as Result rather than a JS throw.
 // Only fixed product runtime returns enter this ABI adapter, never provider data.

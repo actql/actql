@@ -1,0 +1,10 @@
+// JavaScript entry for a Host controller's independent task manifest. It links
+// only the control-side manifest projection, not the runnable application.
+supported_targets = "+js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/physical_task_manifest" @manifest,
+}

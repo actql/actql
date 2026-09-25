@@ -26,6 +26,7 @@ test.before(async () => {
     'process_host_bridge',
     'connectors_builtin_node',
     'physical_strategy_example',
+    'physical_task_manifest_example',
   ]) {
     await run('moon', ['build', '--target', 'js', '--release', `src/${target}`], {
       cwd: fileURLToPath(root),

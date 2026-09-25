@@ -20,7 +20,8 @@ test('retained benchmark shapes execute in a managed process and retain exact re
   assert(['smoke', 'registered'].includes(matrix), 'ACTQL_RETAINED_CASES must be smoke or registered');
   const root = new URL('../../../../../', import.meta.url);
   for (const target of ['connectors/duckdb/host_node', 'retained_host_bridge',
-    'process_host_bridge', 'connectors_builtin_node', 'physical_strategy_example']) {
+    'process_host_bridge', 'connectors_builtin_node', 'physical_strategy_example',
+    'physical_task_manifest_example']) {
     await promisify(execFile)('moon', ['build', '--target', 'js', '--release', `src/${target}`],
       {cwd: fileURLToPath(root)});
   }

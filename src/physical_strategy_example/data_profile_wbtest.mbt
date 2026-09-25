@@ -12,7 +12,7 @@ test "explicit data profile preserves distinct source and intermediate row bound
     entries: 200000,
     batch_bytes: 100000,
   }
-  assert_true(validate_data_profile(data))
+  assert_true(@manifest.validate_data_profile(data))
   let acquisition = acquisition_limits(data=Some(data))
   let dispatch = dispatch_limits(data=Some(data))
   assert_eq(acquisition.physical.max_rows, 3000)
@@ -95,6 +95,6 @@ test "explicit data profile preserves distinct source and intermediate row bound
       { ..data, batch_bytes: 1000001, },
       { ..data, wire_bytes: 715827883, },
     ] {
-    assert_false(validate_data_profile(invalid))
+    assert_false(@manifest.validate_data_profile(invalid))
   }
 }

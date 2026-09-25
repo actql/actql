@@ -422,6 +422,7 @@ test('standard native and broad Node Hosts own verification through real capture
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/connectors/duckdb/conformance'], { cwd: root });
   await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_strategy_example'], { cwd: root });
+  await exec('moon', ['build', '--target', 'js', '--release', 'src/physical_task_manifest_example'], { cwd: root });
   const fixture = await import(pathToFileURL(join(root, '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const publicApi = await readFile(join(root, 'src/query_planning/pkg.generated.mbti'), 'utf8');
   assert.doesNotMatch(publicApi, /DuckDB|MockQuery|duckdb_broad_attempt/);
