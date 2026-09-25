@@ -191,6 +191,69 @@ Pure computation and necessary evidence construction are not automatically a
 human-review step. Conversely, reads, inference and egress can themselves need
 authorization; an Effect decision does not retroactively authorize acquisition.
 
+<a id="local-host-boundary-mapping"></a>
+
+## Local Host boundary mapping (informative)
+
+This table is guidance for the in-repository Reference/Local Host. It is not a
+new normative Core dimension; another Host chooses its own connection and
+resource identifiers. Core sees only the principal × connection × resource ×
+operation tuple of [Account authorization routing](../spec/execution.md#policy-routing).
+The operation dimension carries only the basic Read/Write/Effect
+classification the [Run protocol](../spec/protocols/run.md#account-config)
+requires: `read`, `write` or `effect`. The kind of boundary stays in the
+decision subject and the Checkpoint kind; it is never encoded as an operation
+name. Advanced governance such as data inspection, model egress, query cost,
+business risk, approver selection or batched approval remains the Host's
+delegated-decision policy.
+
+| Boundary | Connection | Resource | Operation | Decision subject | Deferred Checkpoint kind (subject) |
+| --- | --- | --- | --- | --- | --- |
+| Preparation, before operator-supplied path capture and Run creation | Source connection (the Local example uses the database locator) | Source resource (`schema.table`) | `read` | `preparation`; CID of the invocation request | `run_scope` (`prepare_attempt`) |
+| Acquisition, before any provider session | Source connection | Source resource | `read` | `acquisition`; Prepared Invocation CID when known | `read_access` (`prepare_attempt` before the Run, otherwise `run_unit`) |
+| Task activation on a Host-declared protected Site | Site key | Realization key | `write` | `activation` | `cost_scope` (`run_unit`) |
+| Managed or remote transfer and output egress | Recipient Site key | Source Site key or output scope | `write` | `transfer` | `data_egress` (`run_unit`) |
+| Remote Site dispatch | Remote Site | Site registration | `write` | `activation` | `cost_scope` (`run_unit`) |
+| Effect Set commit | Effect target connection | Effect target resource | `effect` | `effect_commit`; Effect Set Preview CID | `effect_set` (`run_unit`) |
+
+The principal is always the trusted Host context principal. Pure computation
+over captured inputs on an unprotected in-process Site is covered without an
+evaluation or a Host call. The Local Host binds its resume revalidation to the
+principal, authorization context and admitted configuration CID, and to the
+invocation environment; a changed configuration therefore fails resume
+revalidation rather than reinterpreting an earlier approval.
+
+A deferred preparation or acquisition decision becomes a `prepare_attempt`
+Checkpoint. Preparation is two-phase: the account outcome and any immediate
+Host answer are decided on the invocation request before any path is read, so
+a denial reads and captures nothing. Only a deferred preparation then captures
+the operator-supplied Program, Environment and Parameter files as private
+content-addressed artifacts, records the prepared invocation and continuation,
+and seals the `run_scope` Checkpoint with that prepared invocation as its
+required artifact; its decision-subject binding still names the request, and
+resume requires both. No source is read before the Checkpoint, so there are
+no source observations to reuse. The
+resumed continuation reads only the captured bytes, reuses the permits and
+approvals already admitted for the same attempt, and creates its Run directly
+in `running` once capture completes. As its own delegated-decision policy, an
+approved run-scope Checkpoint of prepared invocation X also answers the
+acquisition of X's declared source in the same attempt under the same entry,
+configuration, context and tuple; it answers nothing else. When the resumed
+continuation reuses approvals the attempt answered earlier, each approval's own
+permission is checked at the Host trusted time, not only the approval of the
+Checkpoint being resumed.
+
+Known limitations of the Local Host profile. The captured inputs and Host
+records are held as encrypted private evidence, but the plaintext holding and
+ledger records next to them name each private item by its content CID. A
+low-entropy value (for example a small Parameters file) could therefore be
+guessed offline by hashing candidates and comparing CIDs, even though the value
+itself is only stored encrypted. Effect Set approval attestations carry no
+expiry of their own: only the Checkpoint's answer deadline limits when they can
+be committed, and a committed Effect Set approval stays admissible for the
+resumed commit until its intent completes. Run-scope approvals, in contrast,
+authorize new work only strictly before their own `expires_at`.
+
 ## Delegated-decision adapter
 
 The logical request contains or references the admitted execution account,

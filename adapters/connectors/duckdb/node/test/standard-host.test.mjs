@@ -27,7 +27,7 @@ import {
 } from '../../../../host-node/managed-identity-policy.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { checked } from '../runtime-result.mjs';
-import { runExample } from '../examples/physical-strategy.mjs';
+import { exampleAccountConfiguration, runExample } from '../examples/physical-strategy.mjs';
 import {installCompletionObserver} from '../../../../host-common/completion-observer.mjs';
 import {retainedStorageBody} from '../../../../store-local/representations.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
@@ -55,6 +55,7 @@ import {
   installResultAccessAuthority,
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -482,7 +483,7 @@ test('standard native and broad Node Hosts own verification through real capture
           ? "INSERT INTO records VALUES (3,30),(1,'Infinity'::DOUBLE)"
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
-      const grant = await authorizeLocalDatabase(path);
+      const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       for (const strategy of ['native', 'broad']) {
         const native = strategy === 'native';
         const create = count => native ? fixture.issuedNativeCreate(...args, count, () => true)
@@ -5492,12 +5493,15 @@ async function exerciseStrategyGraph(
     const environment = join(exampleDirectory, 'environment.json');
     const programFile = join(exampleDirectory, 'program.json');
     const parameters = join(exampleDirectory, 'parameters.json');
+    // The example installs no account by itself: this Host names its file.
+    const accountConfig = join(exampleDirectory, 'account-config.json');
     const exampleProgram = await readFile(join(root, 'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
     await Promise.all([writeFile(environment, args[0]), writeFile(programFile, exampleProgram),
-      writeFile(parameters, '{"minimum":1}')]);
+      writeFile(parameters, '{"minimum":1}'),
+      writeFile(accountConfig, exampleAccountConfiguration({database: path}))]);
     for (const [estimate, expected] of [['1', ['duckdb', 'duckdb', 'duckdb']],
       ['20', ['local', 'local', 'local']], ['5', ['duckdb', 'duckdb', 'local']]]) {
-      const result = await runExample({ database: path, environment, environmentCid: args[1],
+      const result = await runExample({ accountConfig, database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: estimate });
       try {
         assert.equal(result.report.status, 'host-tasks-completed');
@@ -5530,7 +5534,7 @@ async function exerciseStrategyGraph(
         assert.equal(typeof readRetained, 'function');
         observed.push({task, output, evidence, descriptor, readRetained});
       });
-      const result = await runExample({database: path, environment, environmentCid: args[1],
+      const result = await runExample({accountConfig, database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: native,
         localImportWorkMilliseconds: imports,
         retainedWorkMilliseconds: fileWork,
@@ -5577,7 +5581,7 @@ async function exerciseStrategyGraph(
       assert.equal(result.execution.usage().heldBytes, 0n);
       assert.deepEqual((await readdir(exampleDirectory)).sort(), beforeFiles);
     }
-    const residentExample = await runExample({ database: path, environment, environmentCid: args[1],
+    const residentExample = await runExample({ accountConfig, database: path, environment, environmentCid: args[1],
       program: programFile, parameters, nativeMilliseconds: '20', resident: true });
     try {
       assert.equal(residentExample.report.status, 'host-tasks-completed');
@@ -5597,7 +5601,7 @@ async function exerciseStrategyGraph(
     for (const [estimate, resident, expected] of [
       ['20', false, 'local'], ['1', false, 'duckdb'], ['20', true, 'duckdb-resident'],
     ]) {
-      const result = await runExample({ database: path, environment, environmentCid: args[1],
+      const result = await runExample({ accountConfig, database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: estimate, resident });
       try {
         assert.equal(
@@ -5617,7 +5621,7 @@ async function exerciseStrategyGraph(
     arithmeticProgram.stages[1].steps[0].filter = 'id + 0 > 2';
     await writeFile(programFile, JSON.stringify(arithmeticProgram));
     for (const estimate of ['1', '20']) {
-      const result = await runExample({ database: path, environment, environmentCid: args[1],
+      const result = await runExample({ accountConfig, database: path, environment, environmentCid: args[1],
         program: programFile, parameters, nativeMilliseconds: estimate });
       try {
         assert.equal(result.report.status, 'host-tasks-completed');
@@ -5629,15 +5633,22 @@ async function exerciseStrategyGraph(
       assert.equal(result.execution.usage().heldBytes, 0n);
     }
     await writeFile(programFile, exampleProgram);
-    const cli = await promisify(execFile)(process.execPath, [
+    // Without --account-config the CLI denies before any path read.
+    await assert.rejects(promisify(execFile)(process.execPath, [
       'adapters/connectors/duckdb/node/examples/physical-strategy.mjs', '--database', path,
       '--environment', environment, '--environment-cid', args[1], '--program', programFile,
+      '--parameters', parameters, '--native-ms', '5',
+    ], { cwd: root, maxBuffer: 1000000 }), error => error.code === 1 &&
+      /ACTQL_E_ACCOUNT_CONFIG_INVALID/.test(error.stderr) && error.stdout === '');
+    const cli = await promisify(execFile)(process.execPath, [
+      'adapters/connectors/duckdb/node/examples/physical-strategy.mjs', '--database', path,
+      '--account-config', accountConfig, '--environment', environment, '--environment-cid', args[1], '--program', programFile,
       '--parameters', parameters, '--native-ms', '5',
     ], { cwd: root, maxBuffer: 1000000 });
     assert.equal(JSON.parse(cli.stdout).status, 'host-tasks-completed');
     const residentCli = await promisify(execFile)(process.execPath, [
       'adapters/connectors/duckdb/node/examples/physical-strategy.mjs', '--database', path,
-      '--environment', environment, '--environment-cid', args[1], '--program', programFile,
+      '--account-config', accountConfig, '--environment', environment, '--environment-cid', args[1], '--program', programFile,
       '--parameters', parameters, '--native-ms', '20', '--resident',
     ], { cwd: root, maxBuffer: 1000000 });
     const residentReport = JSON.parse(residentCli.stdout);
@@ -5651,7 +5662,7 @@ async function exerciseStrategyGraph(
     assert.match(exampleGuide, /does not force every task/);
     assert.match(exampleGuide, /500000 cumulative transfer bytes/);
     assert.doesNotMatch(exampleGuide, /no resident DuckDB\s+sharing/);
-    await assert.rejects(runExample({ database: path, environment,
+    await assert.rejects(runExample({ accountConfig, database: path, environment,
       environmentCid: 'sha256:' + '0'.repeat(64), program: programFile,
       parameters, nativeMilliseconds: '5' }));
     const applicationSource = await readFile(join(root, 'src/physical_strategy_example/moon.pkg'), 'utf8');
@@ -5666,7 +5677,7 @@ async function exerciseStrategyGraph(
       ['20', true, ['local', 'local', 'duckdb-resident', 'duckdb-resident']],
       ['1', false, ['duckdb', 'duckdb', 'duckdb', 'duckdb'], true],
     ]) {
-      const result = await runExample({ database: path, environment,
+      const result = await runExample({ accountConfig, database: path, environment,
         environmentCid: args[1], program: programFile, parameters,
         nativeMilliseconds: estimate, resident,
         ...(retained ? {localImportWorkMilliseconds: '0', retainedWorkMilliseconds: '0',
@@ -5692,7 +5703,7 @@ async function exerciseStrategyGraph(
         'adapters/connectors/duckdb/node/examples/join-count.json'), 'utf8'));
       Object.assign(joined.stages[3].steps[0].join, obligation);
       await writeFile(programFile, JSON.stringify(joined));
-      const result = await runExample({database: path, environment,
+      const result = await runExample({accountConfig, database: path, environment,
         environmentCid: args[1], program: programFile, parameters,
         nativeMilliseconds: '1', localImportWorkMilliseconds: '0',
         retainedWorkMilliseconds: '0',

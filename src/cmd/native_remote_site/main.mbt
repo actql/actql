@@ -66,6 +66,7 @@ fn client_issue_code(issue : @client.NativeRemoteClientIssue) -> String {
     @client.Protocol(_) => "protocol"
     @client.HttpStatus(value) => "http-status-" + value.to_string()
     @client.InvalidUtf8 => "invalid-utf8"
+    @client.NotAuthorized => "not-authorized"
     @client.OutcomeUnknownPersistence(_, primary) =>
       "outcome-unknown-" + client_issue_code(primary)
   }

@@ -1,4 +1,5 @@
 import {readFile} from 'node:fs/promises';
+import https from 'node:https';
 import process from 'node:process';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -19,6 +20,20 @@ if (typeof configurationPath !== 'string') {
   throw new Error('Missing Remote Site fixture configuration');
 }
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
+
+// Site-side observation for tests: every HTTP request that reaches this
+// process's HTTPS server (after the TLS handshake, before any routing or
+// admission), keyed by path suffix, and every dispatch runtime start.
+const stats = {requests: {}, runtimeStarts: 0};
+const emit = https.Server.prototype.emit;
+https.Server.prototype.emit = function countRequest(event, request, ...rest) {
+  if (event === 'request') {
+    const operation = /\/dispatches(?:\/([a-z]+))?$/.exec(request.url ?? '')
+      ?.[1] ?? (request.url?.endsWith('/dispatches') ? 'dispatch' : 'other');
+    stats.requests[operation] = (stats.requests[operation] ?? 0) + 1;
+  }
+  return emit.call(this, event, request, ...rest);
+};
 const [key, cert, ca] = await Promise.all([
   readFile(configuration.keyPath),
   readFile(configuration.certPath),
@@ -102,7 +117,7 @@ const budgets = configuration.budgets.map(budget =>
     retainedBytes: BigInt(budget.retainedBytes),
     executionBytes: BigInt(budget.executionBytes),
   }));
-const dispatchRuntime = createRemoteDispatchRuntime({
+const createdRuntime = createRemoteDispatchRuntime({
   control: runtime.remoteSiteControl,
   siteControl: runtime.siteControl,
   store,
@@ -110,6 +125,13 @@ const dispatchRuntime = createRemoteDispatchRuntime({
   bundleControl: runtime.remoteBundleControl,
   registrations: [registration],
   budgets,
+});
+const dispatchRuntime = Object.freeze({
+  ...createdRuntime,
+  start(...arguments_) {
+    stats.runtimeStarts++;
+    return createdRuntime.start(...arguments_);
+  },
 });
 const agent = await startHttpsRemoteSiteAgent({
   key,
@@ -146,6 +168,10 @@ async function close() {
 }
 
 process.on('message', message => {
+  if (message?.type === 'site-stats') {
+    process.send?.({type: 'site-stats', stats: structuredClone(stats)});
+    return;
+  }
   if (message?.type === 'stop-admission') {
     process.send?.({
       type: 'admission-stopped',

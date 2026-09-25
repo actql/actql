@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:b21fd805a06af1ce2abb3d0907ef45a7b909c3715609329e3ce8ecff89acf541",
+  "registry_cid": "sha256:9733edd2e52626c724b1fa00ee705c4b82b57bec07c23de128d7c95ceedd9c46",
   "schema_cids": {
     "model_task": "sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -12,8 +12,8 @@
     "observation_facts": "sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4",
     "event_delivery_evidence": "sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582",
     "source_view": "sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74",
-    "command_contract": "sha256:1d4f0afc13fe2fb73b193d377cf7f42729f80f8438076f31bcb80f951c8eff01",
-    "connector_catalog": "sha256:877f1571d0ec91367c8ea53f39e9692a6b34fa788334a748f9f878bcefc004a3",
+    "command_contract": "sha256:d0d694427bd1ca9fede3fca5f2c490ca024c7763b3caf4165d8d5ba130f8f1ba",
+    "connector_catalog": "sha256:1ff8228ce7e75a9493e201a8991845d42a989e55a2f6e536b15461610a6ffaec",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
     "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
     "author_value_contract": "sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e",
@@ -4205,7 +4205,6 @@
         "input_contract",
         "output_schema",
         "permissions",
-        "minimum_approval",
         "idempotency",
         "preview",
         "reversibility",
@@ -4325,12 +4324,6 @@
             "minLength": 1
           },
           "uniqueItems": true
-        },
-        "minimum_approval": {
-          "enum": [
-            "none",
-            "required"
-          ]
         },
         "idempotency": {
           "type": "object",
@@ -6513,12 +6506,6 @@
               ],
               "type": "object"
             },
-            "minimum_approval": {
-              "enum": [
-                "none",
-                "required"
-              ]
-            },
             "outcome": {
               "enum": [
                 "synchronous",
@@ -6670,7 +6657,6 @@
             "input_contract",
             "output_schema",
             "permissions",
-            "minimum_approval",
             "idempotency",
             "preview",
             "reversibility",
@@ -10672,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:bc2f8dda282f48ac55a55238161550eb4f8fbc67ea2b636e5a90e84100995cfe",
+  "artifact_registry_cid": "sha256:cbf1c74640b565b8c5e53b96250ce68d480fe4528e3cd6839fdfd1cc7d819b03",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10700,17 +10686,18 @@
     "run_scope_approval": "sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de",
     "run_authorization": "sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9",
     "run_definition": "sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045",
-    "execution_checkpoint": "sha256:c0dc4575988d74a799ea739c0eeef7ae17d94618649c3eebfa671e28bdb77e41",
-    "checkpoint_resolution": "sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355",
-    "verified_checkpoint_resolution": "sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820",
+    "execution_checkpoint": "sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b",
+    "checkpoint_resolution": "sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5",
+    "verified_checkpoint_resolution": "sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
-    "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
+    "plan_result": "sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a",
     "run_state": "sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c",
     "captured_run": "sha256:6395cccc33f41c6b20ccc6131bc58a3c1da1b21413a3d34f0b17eebef5e87b9a",
     "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
-    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee"
+    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee",
+    "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -39760,8 +39747,6 @@
       "required": [
         "version",
         "checkpoint_id",
-        "run_id",
-        "run_definition_cid",
         "continuation_state_cid",
         "subject",
         "phase",
@@ -40274,6 +40259,68 @@
             }
           }
         }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "kind": {
+                    "const": "run_unit"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "subject"
+            ]
+          },
+          "then": {
+            "required": [
+              "run_id",
+              "run_definition_cid"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "subject": {
+                "properties": {
+                  "kind": {
+                    "const": "prepare_attempt"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            },
+            "required": [
+              "subject"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "run_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "run_definition_cid"
+                  ]
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "checkpoint_resolution": {
@@ -40286,8 +40333,6 @@
         "resolution_id",
         "checkpoint_id",
         "checkpoint_cid",
-        "run_id",
-        "run_definition_cid",
         "decision",
         "actor",
         "decided_at",
@@ -40319,6 +40364,10 @@
         "run_definition_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prepare_attempt_id": {
+          "type": "string",
+          "minLength": 1
         },
         "decision": {
           "enum": [
@@ -40396,6 +40445,42 @@
             ]
           }
         }
+      ],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "run_id",
+                "run_definition_cid"
+              ],
+              "not": {
+                "required": [
+                  "prepare_attempt_id"
+                ]
+              }
+            },
+            {
+              "required": [
+                "prepare_attempt_id"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "run_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "run_definition_cid"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     "verified_checkpoint_resolution": {
@@ -40428,8 +40513,6 @@
             "resolution_id",
             "checkpoint_id",
             "checkpoint_cid",
-            "run_id",
-            "run_definition_cid",
             "decision",
             "actor",
             "decided_at",
@@ -40461,6 +40544,10 @@
             "run_definition_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "prepare_attempt_id": {
+              "type": "string",
+              "minLength": 1
             },
             "decision": {
               "enum": [
@@ -40537,6 +40624,42 @@
                   "approval_evidence_cid"
                 ]
               }
+            }
+          ],
+          "allOf": [
+            {
+              "oneOf": [
+                {
+                  "required": [
+                    "run_id",
+                    "run_definition_cid"
+                  ],
+                  "not": {
+                    "required": [
+                      "prepare_attempt_id"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "prepare_attempt_id"
+                  ],
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "run_id"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "run_definition_cid"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           ]
         },
@@ -67630,8 +67753,6 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
-                      "contract_minimum_approval",
-                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -67725,19 +67846,6 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      "contract_minimum_approval": {
-                        "enum": [
-                          "none",
-                          "required",
-                          null
-                        ]
-                      },
-                      "resolved_approval": {
-                        "enum": [
-                          "none",
-                          "required"
-                        ]
-                      },
                       "executed": {
                         "const": false
                       }
@@ -67827,54 +67935,9 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "statically_required",
-                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "statically_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "reason": {
-                            "const": "multi_effect_partial_application"
-                          }
-                        }
-                      }
-                    },
-                    "contract_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "effect",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "effect": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "reason": {
-                            "const": "contract_minimum"
-                          }
-                        }
-                      }
-                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {
@@ -70380,8 +70443,6 @@
                       "author_guard",
                       "author_guard_binding",
                       "resolved_limit_cid",
-                      "contract_minimum_approval",
-                      "resolved_approval",
                       "executed"
                     ],
                     "properties": {
@@ -70475,19 +70536,6 @@
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
                       },
-                      "contract_minimum_approval": {
-                        "enum": [
-                          "none",
-                          "required",
-                          null
-                        ]
-                      },
-                      "resolved_approval": {
-                        "enum": [
-                          "none",
-                          "required"
-                        ]
-                      },
                       "executed": {
                         "const": false
                       }
@@ -70577,54 +70625,9 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "statically_required",
-                    "contract_required",
                     "policy_dependent"
                   ],
                   "properties": {
-                    "statically_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "reason": {
-                            "const": "multi_effect_partial_application"
-                          }
-                        }
-                      }
-                    },
-                    "contract_required": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "kind",
-                          "effect",
-                          "reason"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "const": "effect_set"
-                          },
-                          "effect": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "reason": {
-                            "const": "contract_minimum"
-                          }
-                        }
-                      }
-                    },
                     "policy_dependent": {
                       "type": "array",
                       "items": {
@@ -72707,6 +72710,162 @@
         "store_authority_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "execution_account_config": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-execution-account-config-0.1.json",
+      "title": "actql-execution-account-config-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "account_id",
+        "entries"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-execution-account-config/0.1"
+        },
+        "account_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        },
+        "bootstrap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile_id",
+            "profile_version",
+            "profile_cid"
+          ],
+          "properties": {
+            "profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "profile_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
+      },
+      "$defs": {
+        "selector": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "all"
+              ],
+              "properties": {
+                "all": {
+                  "const": true
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "any_of"
+              ],
+              "properties": {
+                "any_of": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "tuple": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "principal",
+            "connection",
+            "resource",
+            "operation"
+          ],
+          "properties": {
+            "principal": {
+              "$ref": "#/$defs/selector"
+            },
+            "connection": {
+              "$ref": "#/$defs/selector"
+            },
+            "resource": {
+              "$ref": "#/$defs/selector"
+            },
+            "operation": {
+              "$ref": "#/$defs/selector"
+            }
+          }
+        },
+        "entry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entry_id",
+            "outcome",
+            "principal",
+            "connection",
+            "resource",
+            "operation",
+            "exclusions"
+          ],
+          "properties": {
+            "entry_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "outcome": {
+              "enum": [
+                "allow",
+                "deny",
+                "delegate"
+              ]
+            },
+            "principal": {
+              "$ref": "#/$defs/selector"
+            },
+            "connection": {
+              "$ref": "#/$defs/selector"
+            },
+            "resource": {
+              "$ref": "#/$defs/selector"
+            },
+            "operation": {
+              "$ref": "#/$defs/selector"
+            },
+            "exclusions": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/tuple"
+              }
+            }
+          }
         }
       }
     }

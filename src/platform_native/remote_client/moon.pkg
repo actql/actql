@@ -4,6 +4,7 @@ import {
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/execution_authorization" @authorization,
   "moonbitlang/core/encoding/utf8",
 }
 
@@ -17,6 +18,7 @@ options(
   targets: {
     "client_native.mbt": [ "native" ],
     "client_native_wbtest.mbt": [ "native" ],
+    "client_authorization_native_wbtest.mbt": [ "native" ],
     "client_unsupported.mbt": [ "not", "native" ],
     "client_unsupported_wbtest.mbt": [ "not", "native" ],
   },

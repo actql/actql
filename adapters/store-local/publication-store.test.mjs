@@ -489,6 +489,57 @@ test('private evidence is encrypted, bound, and readable after restart',
     assert.equal(withoutKey.status().storedBytes, 0);
   });
 
+test('Local continuation evidence has its own private holding namespace',
+  async t => {
+    const {store} = await fixture(t, {
+      privateEvidenceKey: Buffer.alloc(32, 6),
+    });
+    const wire = '{"minimum":"local-secret-marker"}';
+    const semanticCid = digest(wire);
+    const hold = async (name, namespace, holdingCid) => {
+      const prepared = await store.preparePrivateEvidence(
+        name, wire, semanticCid,
+      );
+      await store.commitPhysicalHolding({
+        version: 'actql-local-physical-holding/0.1',
+        namespace,
+        holding_cid: holdingCid,
+        manifest_cid: semanticCid,
+        objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+      }, [prepared.prepared]);
+      return prepared;
+    };
+    const local = digest('local-continuation-holding');
+    const prepared = await hold('captured_input',
+      'local-continuation-private', local);
+    assert.deepEqual(await store.readPrivateEvidence(
+      'captured_input', semanticCid, local,
+    ), Buffer.from(wire));
+    const ciphertext = [];
+    await store.consumeObject(prepared.physicalCid,
+      chunk => ciphertext.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(ciphertext).includes(
+      Buffer.from('local-secret-marker')), false);
+    // A shared holding of the same ciphertext keeps it through one retirement.
+    const shared = digest('local-continuation-shared');
+    await store.sharePhysicalHolding(local, {
+      ...(await store.inspectPhysicalHolding(local)), holding_cid: shared,
+    });
+    assert.equal((await store.retirePhysicalHolding(local)).deleted, true);
+    assert.deepEqual(await store.readPrivateEvidence(
+      'captured_input', semanticCid, shared,
+    ), Buffer.from(wire));
+    // Publication evidence names are not admitted in the Local namespace.
+    const foreign = digest('local-continuation-foreign');
+    await hold('effect_preview', 'local-continuation-private', foreign);
+    await assert.rejects(store.readPrivateEvidence(
+      'effect_preview', semanticCid, foreign,
+    ), code('PublicationPrivateEvidenceUnavailable'));
+    assert.equal((await store.retirePhysicalHolding(foreign)).deleted, true);
+    assert.equal((await store.retirePhysicalHolding(shared)).deleted, true);
+    assert.equal(store.status().storedBytes, 0);
+  });
+
 test('uncommitted private evidence retains a recoverable prepared owner',
   async t => {
     const {store, configuration} = await fixture(t, {

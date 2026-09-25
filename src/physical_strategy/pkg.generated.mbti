@@ -6,6 +6,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/effect_application",
   "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/logical_request_scope",
@@ -28,6 +29,8 @@ pub fn abort_captured_managed_transfer(CapturedDAG, ManagedTransfer, Bool) -> Re
 pub fn abort_resident_transfer(CapturedDAG, ResidentTransfer) -> Result[Unit, RunIssue]
 
 pub fn admit_placement_policy_response_json(String, PolicyRequest, String) -> Result[PolicyResponse, SearchIssue]
+
+pub fn authorize_captured_task_activation(CapturedDAG, Int, TaskActivationGrant) -> Result[Unit, RunIssue]
 
 pub fn begin_captured_managed_transfer(CapturedDAG, Int, Int64, Int64, Int64) -> Result[ManagedTransfer, RunIssue]
 
@@ -184,6 +187,10 @@ pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> Captur
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
 pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
+
+pub fn captured_task_activation_granted(CapturedDAG, Int) -> Bool
+
+pub fn captured_task_activation_required(CapturedDAG) -> Bool
 
 pub fn captured_task_aggregate_output_at(CapturedDAG, Int, Int) -> @connector_sdk.AggregateOutputCeiling?
 
@@ -527,6 +534,8 @@ pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physi
 
 pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
 
+pub fn require_captured_task_activation(CapturedDAG) -> Unit
+
 pub fn resident_environment_available(CapturedDAG, ResidentEnvironment) -> Bool
 
 pub fn resident_environment_resource_binding(ResidentEnvironment) -> @connector_sdk.ResourceBinding?
@@ -622,6 +631,12 @@ pub fn strategy_selection_source(StrategyRevision) -> StrategySelectionSource
 pub fn strategy_task_envelope(CapturedDAG, Int) -> PhysicalEnvelope?
 
 pub fn strategy_usage_before(StrategyRevision) -> @physical_resources.LedgerUsage
+
+pub fn task_activation_authorized(@execution_authorization.RuntimeAction) -> TaskActivationGrant?
+
+pub fn task_activation_covered() -> TaskActivationGrant
+
+pub fn task_activation_grant_basis(TaskActivationGrant) -> @execution_authorization.DispatchBasis?
 
 pub fn task_execution_allocation_available(TaskRetainedAllocation) -> Bool
 
@@ -993,6 +1008,7 @@ pub(all) enum RunIssue {
   Compute(@connector_sdk.FixedComputeIssue)
   Implementation(Error)
   Physical(@physical_resources.LedgerIssue)
+  ActivationNotAuthorized
 }
 
 pub(all) enum SearchIssue {
@@ -1058,6 +1074,8 @@ pub(all) enum StrategySelectionSource {
   HostProposal
   ExternalPolicy(PolicyDecisionRef)
 } derive(Eq, @debug.Debug)
+
+type TaskActivationGrant
 
 type TaskExecution
 

@@ -4,6 +4,10 @@ import {
   releaseRemoteDispatch,
   sendRemoteDispatch,
 } from './remote-site-client.mjs';
+import {
+  ExecutionAuthorizationError,
+  missingAuthorizationGate,
+} from '../host-common/authorization-gate.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -55,6 +59,7 @@ export function createRemoteSiteCoordinator({
   output: executeOutput,
   receiveStoreOutput,
   transferControl,
+  authorization = missingAuthorizationGate(),
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.prepareCoordinatorIntent !== 'function' ||
@@ -71,6 +76,10 @@ export function createRemoteSiteCoordinator({
       typeof send !== 'function' || typeof query !== 'function' ||
       typeof cancel !== 'function' || typeof release !== 'function') {
     fail('InvalidRemoteSiteCoordinator');
+  }
+  if (authorization === null || typeof authorization !== 'object' ||
+      typeof authorization.authorize !== 'function') {
+    fail('InvalidRemoteSiteCoordinatorAuthorization');
   }
   if (planOutput !== undefined && typeof planOutput !== 'function') {
     fail('InvalidRemoteSiteCoordinatorOutputPlan');
@@ -364,11 +373,99 @@ export function createRemoteSiteCoordinator({
     outputOwners.set(key, owner);
     return owner.promise;
   };
+  // The Run owner decides. Dispatch is the remote Site's activation of the
+  // selected registration for this checked Run; the Site keeps its own mTLS
+  // and authority checks. A decision is reused only for this exact scope.
+  const dispatchFacts = dispatch => {
+    const body = JSON.parse(control.requestJson(dispatch));
+    return Object.freeze({
+      site: body.site_key,
+      registration: body.connector_registration,
+      runDefinitionCid: body.run_definition_cid,
+    });
+  };
+  // `resumption` continues a deferred dispatch from its committed Resolution
+  // (the gate's `resume`); it is still decided for this exact scope.
+  const requireDispatch = async (
+    boundary,
+    scope,
+    subjectCid,
+    signal,
+    resumption,
+  ) => {
+    if (resumption !== undefined &&
+        typeof authorization.resume !== 'function') {
+      fail('RemoteCoordinatorResumeUnavailable');
+    }
+    const decision = resumption === undefined
+      ? await authorization.authorize(boundary, scope, {subjectCid, signal})
+      : await authorization.resume(boundary, scope, {
+        subjectCid,
+        signal,
+        resumption,
+      });
+    if (decision.action !== 'dispatch') {
+      throw new ExecutionAuthorizationError(decision);
+    }
+    return decision;
+  };
+  // A decision taken from a committed approval (basis `resumed`) must carry
+  // its admission; an account allow needs no Resolution and has none.
+  // The admission records the durable dispatch identity. When an earlier
+  // claim generation already started a protected dispatch (its outcome is
+  // unknown here), a fresh start is refused and the only path is physical
+  // reconciliation: re-send that exact durable dispatch identity, which the
+  // Site deduplicates. Another dispatch identity is refused before any send.
+  const enterResumed = (decision, dispatchIdentity) => {
+    if (decision.admission === undefined && decision.basis !== 'resumed') {
+      return;
+    }
+    if (typeof decision.admission?.enter !== 'function') {
+      throw new ExecutionAuthorizationError(Object.freeze({...decision,
+        action: 'failure', reason: 'adapter_error',
+        detail: 'ResumeAdmissionUnavailable'}));
+    }
+    try {
+      try {
+        decision.admission.enter(dispatchIdentity);
+      } catch (error) {
+        if (error?.code !== 'PriorAdmissionUnresolved' ||
+            typeof decision.admission.reconcile !== 'function') {
+          throw error;
+        }
+        decision.admission.reconcile(dispatchIdentity);
+      }
+    } catch (error) {
+      throw new ExecutionAuthorizationError(Object.freeze({...decision,
+        action: 'failure', reason: 'adapter_error',
+        detail: typeof error?.code === 'string' ? error.code
+          : 'ResumeAdmissionFailed',
+        error}));
+    }
+  };
   return Object.freeze({
     recovered,
     recoveredOutputs,
     async dispatch(value) {
       const request = options(value);
+      // Before the durable intent and before any send: a deny, failure,
+      // unsupported defer or persisted wait records nothing and sends nothing.
+      const facts = dispatchFacts(request.dispatch);
+      const decision = await requireDispatch('activation', {
+        connection: facts.site,
+        resource: facts.registration,
+        operation: 'write',
+      }, facts.runDefinitionCid, request.signal, request.resumption);
+      // A resumed dispatch is fenced again here, synchronously and after
+      // every await: the claim must still be the current live claim and the
+      // approval still valid at the Host trusted time, and this claim
+      // generation must not have started a protected dispatch already. From
+      // here to the send nothing awaits. A recorded earlier attempt keeps its
+      // durable identity (which the Site deduplicates); a new claimant gets
+      // no new physical attempt of the same task.
+      if (request.resumption !== undefined) {
+        enterResumed(decision, control.identity(request.dispatch));
+      }
       const admission = control.prepareCoordinatorIntent(
         journal,
         request.dispatch,
@@ -423,6 +520,21 @@ export function createRemoteSiteCoordinator({
         transferRequest = planned.transferRequest;
       }
       let record = currentOutput?.record;
+      // An already committed output is a recorded fact: replay needs no new
+      // decision and performs no I/O.
+      if (record !== undefined &&
+          store.inspectOutput(record, control)?.progress === 2) {
+        return projectOutputRecord(record);
+      }
+      // Egress boundary: the recipient Site and scope are authorized before
+      // durable output admission and before any physical output or receive.
+      // A recovered unknown output is re-authorized before it is retried.
+      const transferFacts = transferControl.requestProjection(transferRequest);
+      await requireDispatch('transfer', {
+        connection: transferFacts[4],
+        resource: transferFacts[2],
+        operation: 'write',
+      }, dispatchFacts(request.dispatch).runDefinitionCid, request.signal);
       if (record === undefined) {
         const admission = control.prepareCoordinatorOutput(
           journal,

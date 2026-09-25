@@ -10,6 +10,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeQuery } from '../native-query.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -129,7 +130,7 @@ test('real native SQL and public CheckedProgram produce independently checked tw
           ? "INSERT INTO records VALUES (3,30),(1,'Infinity'::DOUBLE)"
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
-      const grant = await authorizeLocalDatabase(path);
+      const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       const inspect = { nativeQueries: 0, completions: 0 };
       const run = runNativeQuery(grant, realBridge(moon, configuration, {}, inspect), limits);
       if (name === 'invalid-unused') {

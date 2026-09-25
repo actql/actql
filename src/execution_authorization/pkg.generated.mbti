@@ -1,0 +1,304 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/execution_authorization"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub const ACCOUNT_CONFIG_INVALID_CODE : String = "ACTQL_E_ACCOUNT_CONFIG_INVALID"
+
+pub const ACCOUNT_CONFIG_VERSION : String = "actql-execution-account-config/0.1"
+
+pub const ACCOUNT_DENIED_CODE : String = "ACTQL_E_ACCOUNT_DENIED"
+
+pub const ACCOUNT_NO_MATCH_CODE : String = "ACTQL_E_ACCOUNT_NO_MATCH"
+
+pub const DELEGATION_REJECTED_CODE : String = "ACTQL_E_DELEGATION_REJECTED"
+
+pub const DELEGATION_UNAVAILABLE_CODE : String = "ACTQL_E_DELEGATION_UNAVAILABLE"
+
+pub const MAX_CONFIG_INPUT_BYTES : Int = 1048576
+
+pub const MAX_ENTRIES : Int = 1024
+
+pub const MAX_EXCLUSIONS_PER_ENTRY : Int = 64
+
+pub const MAX_NAME_LENGTH : Int = 512
+
+pub const MAX_OVERLAP_WORK : Int = 32000000
+
+pub const MAX_SELECTOR_VALUES : Int = 256
+
+pub fn account_configuration_cid(AdmittedAccountConfiguration) -> String
+
+pub fn account_configuration_cid_json(String) -> Result[String, ConfigurationIssue]
+
+pub fn admit_account_configuration(RawAccountConfiguration) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]
+
+pub fn admit_account_configuration_json(String) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]
+
+pub fn admit_host_answer(DecisionRequest, HostAnswer) -> Result[RuntimeAction, AnswerIssue]
+
+pub fn bind_bootstrap_adoption(AdmittedAccountConfiguration, BootstrapAdoptionRecord) -> Result[BootstrappedConfiguration, BootstrapIssue]
+
+pub fn configuration_issue_error_code(ConfigurationIssue) -> String
+
+pub fn decision_failure_error_code(DecisionFailureReason) -> String
+
+pub fn decode_account_configuration_json(String) -> Result[RawAccountConfiguration, ConfigurationIssue]
+
+pub fn denial_error_code(Denial) -> String
+
+pub fn deny_reason_error_code(DenyReason) -> String
+
+pub fn evaluate_account(AdmittedAccountConfiguration, AccessTuple) -> AccountOutcome
+
+pub fn evaluate_account_state(AccountConfigurationState, AccessTuple) -> AccountOutcome
+
+pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, boundary~ : DecisionBoundary, subject_cid~ : String, context_cid~ : String, answering_authorities~ : Array[String], required_claims? : Array[String]) -> Result[DecisionRequest, RequestIssue]
+
+pub fn runtime_action_error_code(RuntimeAction) -> String?
+
+pub fn runtime_action_for(AccountOutcome) -> RuntimeAction?
+
+// Errors
+
+// Types and methods
+pub(all) struct AccessTuple {
+  principal : String
+  connection : String
+  resource : String
+  operation : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum AccountConfigurationState {
+  Missing
+  Admitted(AdmittedAccountConfiguration)
+}
+
+pub enum AccountOutcome {
+  Allow(String)
+  Deny(DenyReason)
+  Delegate(DelegatedMatch)
+} derive(Eq, @debug.Debug)
+
+type AdmittedAccountConfiguration
+pub fn AdmittedAccountConfiguration::account_id(Self) -> String
+pub fn AdmittedAccountConfiguration::bootstrap_profile(Self) -> BootstrapProfile?
+pub fn AdmittedAccountConfiguration::configuration_cid(Self) -> String
+pub fn AdmittedAccountConfiguration::entry_count(Self) -> Int
+
+pub(all) struct AnswerBinding {
+  subject : DecisionSubject
+  authority : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum AnswerIssue {
+  SubjectMismatch
+  UnauthorizedAuthority(String)
+  MissingRequiredClaim(String)
+  UnrequestedClaim(String)
+  DuplicateClaim(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BootstrapAdoptionRecord {
+  record_id : String
+  account_id : String
+  profile : BootstrapProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum BootstrapIssue {
+  InvalidAdoptionRecord
+  ConfigurationWithoutBootstrapProfile
+  ProfileMismatch
+  AccountMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BootstrapProfile {
+  profile_id : String
+  profile_version : String
+  profile_cid : String
+} derive(Eq, @debug.Debug)
+
+pub struct BootstrappedConfiguration {
+  configuration : AdmittedAccountConfiguration
+  adoption : BootstrapAdoptionRecord
+}
+
+pub(all) enum ConfigurationIssue {
+  MalformedWire(WireIssue)
+  InvalidAccountId
+  InvalidBootstrapProfile
+  TooManyEntries(Int)
+  InvalidEntryId(Int)
+  DuplicateEntryId(String)
+  TooManyExclusions(String)
+  EmptyAnyOf(String, SelectorLocation)
+  InvalidSelectorValue(String, SelectorLocation)
+  DuplicateSelectorValue(String, SelectorLocation, String)
+  SelectorTooLarge(String, SelectorLocation)
+  ConflictingOutcomes(OutcomeConflict)
+  OverlapCheckBudgetExceeded(String, String)
+  NonCanonicalOrder(String)
+  NonNormalizedText(String)
+  DuplicateExclusion(String, Int)
+  CanonicalDocumentTooLarge
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConfiguredOutcome {
+  Allow
+  Deny
+  Delegate
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DecisionBoundary {
+  Preparation
+  Acquisition
+  Activation
+  Transfer
+  EffectCommit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DecisionFailureReason {
+  Timeout
+  Unavailable
+  MalformedAnswer
+  AdapterError(String)
+} derive(Eq, @debug.Debug)
+
+type DecisionRequest derive(Eq, @debug.Debug)
+pub fn DecisionRequest::answering_authorities(Self) -> Array[String]
+pub fn DecisionRequest::required_claims(Self) -> Array[String]
+pub fn DecisionRequest::subject(Self) -> DecisionSubject
+
+pub(all) struct DecisionSubject {
+  account_id : String
+  configuration_cid : String
+  entry_id : String
+  tuple : AccessTuple
+  boundary : DecisionBoundary
+  subject_cid : String
+  context_cid : String
+} derive(Eq, @debug.Debug)
+
+pub struct DelegatedMatch {
+  account_id : String
+  entry_id : String
+  tuple : AccessTuple
+} derive(Eq, @debug.Debug)
+
+pub enum Denial {
+  Account(DenyReason)
+  RejectedByHost(DecisionSubject, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DenyReason {
+  NoMatch
+  Explicit(String)
+  ConfigurationMissing
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Dimension {
+  Principal
+  Connection
+  Resource
+  Operation
+} derive(Eq, @debug.Debug)
+
+pub enum DispatchBasis {
+  AccountAllow(String)
+  HostPermit(DecisionSubject, String, Array[String])
+} derive(Eq, @debug.Debug)
+
+pub(all) enum HostAnswer {
+  Permit(AnswerBinding, Array[String])
+  Reject(AnswerBinding)
+  Defer(DecisionSubject)
+  Failure(DecisionFailureReason)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct OutcomeConflict {
+  first_entry_id : String
+  first_outcome : ConfiguredOutcome
+  second_entry_id : String
+  second_outcome : ConfiguredOutcome
+  witness : WitnessTuple
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RawAccountConfiguration {
+  account_id : String
+  entries : Array[RawAccountEntry]
+  bootstrap : BootstrapProfile?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RawAccountEntry {
+  entry_id : String
+  outcome : ConfiguredOutcome
+  scope : SelectorBox
+  exclusions : Array[SelectorBox]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RequestIssue {
+  InvalidConfigurationCid
+  InvalidSubjectCid
+  InvalidContextCid
+  NoAnsweringAuthority
+  InvalidAnsweringAuthority
+  DuplicateAnsweringAuthority(String)
+  InvalidRequiredClaim
+  DuplicateRequiredClaim(String)
+} derive(Eq, @debug.Debug)
+
+pub enum RuntimeAction {
+  AuthorizedForDispatch(DispatchBasis)
+  Deny(Denial)
+  Checkpoint(DecisionRequest)
+  DecisionFailure(DecisionFailureReason)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Selector {
+  All
+  AnyOf(Array[String])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SelectorBox {
+  principal : Selector
+  connection : Selector
+  resource : Selector
+  operation : Selector
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SelectorLocation {
+  Scope(Dimension)
+  Exclusion(Int, Dimension)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WireIssue {
+  kind : WireIssueKind
+  path : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WireIssueKind {
+  InputTooLarge
+  InvalidJson
+  InvalidShape
+  UnsupportedVersion
+} derive(Eq, @debug.Debug)
+
+pub(all) struct WitnessTuple {
+  principal : WitnessValue
+  connection : WitnessValue
+  resource : WitnessValue
+  operation : WitnessValue
+} derive(Eq, @debug.Debug)
+pub fn WitnessTuple::describe(Self) -> String
+
+pub(all) enum WitnessValue {
+  Named(String)
+  AnyOtherThan(Array[String])
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

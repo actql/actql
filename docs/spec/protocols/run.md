@@ -27,6 +27,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 - [Logical request and dispatch evidence](#logical-request)
 - [Source-state operator claim](#source-advance-claim)
 - [Authorized private inspection](#private-inspection)
+- [Execution-account configuration](#account-config)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -107,11 +108,35 @@ The valid combinations are exactly:
 
 A `prepare_attempt` subject contains `prepare_attempt_id` and
 `continuation: start_run`. A `run_unit` subject contains `run_id`, `unit_id`,
-and `continuation: resume_unit`. Non-Effect Checkpoints require exactly
+and `continuation: resume_unit`. Only a `run_unit` Checkpoint carries the
+top-level `run_id`, equal to its subject's, and `run_definition_cid`; a
+`prepare_attempt` Checkpoint carries neither. Its Resolution likewise carries
+`run_id` and `run_definition_cid` for a Run-unit Checkpoint, or only
+`prepare_attempt_id` for a preparation Checkpoint. Non-Effect Checkpoints require exactly
 `[invocation_scope_approved]`. An Effect Commit Checkpoint requires
 `[effect_scope_approved]` or
-`[effect_scope_approved, partial_application_accepted]`; multi-Effect review
-requires the latter.
+`[effect_scope_approved, partial_application_accepted]`. The latter records
+that the Host's declared policy for that delegated decision requires the risk
+claim; the number of Effect Set members alone never selects it, so a
+multi-member Effect Set Checkpoint with `[effect_scope_approved]` is valid.
+
+<!-- requirement-block: resolution-admission.an-immediate-delegated-answer-must-bind-the-exact-decision-subject resolution-admission.admitting-an-immediate-answer-must-not-persist-a-checkpoint-or-create-a-resume-intent resolution-admission.a-delegated-answer-must-not-be-admitted-without-a-delegate-outcome-for-its-subject -->
+Only an execution-account `delegate` outcome creates a delegated decision
+([Account authorization routing](../execution.md#policy-routing)). Its decision
+subject is the exact `actql-execution-checkpoint/0.1` body that the Host would
+persist if it deferred, identified by its `checkpoint_cid`, with one of the
+valid combinations above. An immediate permit or reject is an
+`actql-checkpoint-resolution/0.1` verified through the same Host authorization
+port. It MUST bind that subject CID, its preparation or Run identity, required
+artifact, review projection and current authorization context. Admitting an
+immediate answer MUST NOT persist a Checkpoint, enter `waiting_checkpoint`, or
+create a resume intent; the verified Resolution is retained as the decision
+evidence of the permitted or rejected unit. A deferred answer persists that
+same body as the Checkpoint, and its later Resolution uses the atomic admission
+below. A delegated answer MUST NOT be admitted for a subject whose current
+account outcome is not `delegate`, so no answer overrides an account `deny` or
+no-match. A missing, malformed, unauthenticated, expired or undelivered answer
+is a technical decision failure, not a permit or a rejection.
 
 <!-- requirement-block: resolution-admission.its-decision-time-must-be-no-earlier-than-checkpoint-creation resolution-admission.approved-resolution-evidence-bytes-must-hash-to-the-authored-approval-evidence-cid resolution-admission.a-rejection-must-not-carry-approval-evidence resolution-admission.a-host-authorization-port-must-authenticate-the-actor-and-verify resolution-admission.resolution-storage-checkpoint-closure-run-transition-and-creation-of-the -->
 An approval or rejection is an `actql-checkpoint-resolution/0.1` bound to the
@@ -134,6 +159,22 @@ to an adapter; they are not a second independent authority source.
 Every field in a Host-verified Resolution wrapper MUST identify the same
 authority decision: its Resolution CID, Checkpoint CID, authority-context CID,
 signer key ID, and reviewer identity cannot contradict one another.
+
+<!-- requirement-block: resolution-admission.a-resolution-proof-must-sign-the-unsigned-resolution-cid resolution-admission.a-host-attestation-must-sign-the-unsigned-verified-wrapper-cid -->
+Resolution identities follow the evidence-envelope convention of
+[Stage wire and immutable history](#stage-wire). `resolution_cid` is the CID of
+the complete Resolution without `resolution_cid`, so it includes `proof`.
+`proof.signature` MUST be the Ed25519 signature, in padded base64, over the
+UTF-8 bytes of the unsigned Resolution CID text, which is the CID of the
+Resolution without both `resolution_cid` and `proof`. Likewise,
+`verified_resolution_cid` is the CID of the complete verified wrapper without
+`verified_resolution_cid`, so it includes `host_attestation`.
+`host_attestation.signature` MUST be the Ed25519 signature, in the same
+encoding, over the UTF-8 bytes of the unsigned wrapper CID text, which is the
+CID of the wrapper without both `host_attestation` and
+`verified_resolution_cid`. The signed CID binds the artifact `version`, so a
+signature cannot be replayed as another artifact kind. `proof.key_id` and
+`host_attestation.host_key_id` select only Host-trusted keys.
 
 <a id="preview-row-state"></a>
 
@@ -241,7 +282,7 @@ authorization binding at apply.
 | `targeted` | Exact target, intended change, target guard, and explicit before-unavailable status |
 | `create`, `command`, `store` | Kind-specific intended operation, payload or typed request, and exact scope |
 
-<!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.product-7a26116de02b approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
+<!-- requirement-block: review-artifacts.approval-attestation-must-bind-both-effect-preview-cid-and-the-exact-review-projection-cid review-artifacts.redaction-must-not-substitute-for-an-authority-preview stage-wire.product-36870f813edf policy-risk-acceptance.present-risk-acceptance-evidence-must-bind-issuer-policy-preview-and-scope approval-renewal.product-6542a3eac80f logical-request.product-26cde1934ed3 source-advance-claim.product-026cf595ba1a private-inspection.product-f6c29d1d5272 -->
 Redaction and unavailable evidence are distinct states. Neither is represented
 as an invented empty before object; a redacted projection still binds the
 exact underlying private preview.
@@ -315,11 +356,14 @@ JSON Schema checks are necessary but do not authenticate any CID-only witness.
 ### Policy and human risk acceptance
 
 Risk acceptance has one proposition, `partial_application_accepted`, and a
-tagged issuer `human|policy`. Authenticated evidence MUST bind issuer, policy
+tagged issuer `human|policy`. It is required only when a Host's declared policy
+requires it for a delegated decision; Effect Set member count alone never
+requires it, and an account `allow` neither requires nor fabricates it. When
+present, authenticated evidence MUST bind issuer, policy
 CID, decision, exact Preview and review projection, authority scope and expiry.
-The policy path under resolved allow requires no human Checkpoint, including
-multi-Effect stages. Require-review still signs the complete stage scope.
-The monotone Contract/Host minimum is preserved; earlier coarse allow cannot
+The policy path under a resolved allow or an immediate delegated permit
+requires no human Checkpoint, including multi-Effect stages. A deferred
+decision still signs the complete stage scope. Earlier coarse allow cannot
 authorize an expanded future scope. Human review authority is not data-read
 authority. Claims with wrong issuer, scope, Preview or expiry fail admission.
 
@@ -383,6 +427,53 @@ Approval authority alone cannot grant that access. Public explain remains
 redacted. Inspection never returns signing/encryption keys or Connector secrets.
 Progress is nonsemantic status, not a partially materialized Result.
 
+<a id="account-config"></a>
+
+### Execution-account configuration
+
+An execution-account configuration is an `actql-execution-account-config/0.1`
+document. It binds one `account_id` and a finite set of entries, each with a
+unique `entry_id`, one outcome `allow`, `deny` or `delegate`, one selector for
+each of `principal`, `connection`, `resource` and `operation`, and a set of
+tuple `exclusions`. A selector is `{all: true}`, which includes current and
+future members of that dimension, or `{any_of: [...]}`, a finite set of exact
+identifiers. An exclusion is one selector per dimension and denotes their
+Cartesian tuple set. The optional `bootstrap` member records the provenance of
+a materialized Local bootstrap profile: profile ID, version and exact content
+CID. Routing semantics are owned by [Account authorization routing](../execution.md#policy-routing).
+
+<!-- requirement-block: account-config.the-run-owner-must-present-a-basic-operation-class -->
+The trusted Run owner MUST present the operation identifier of a protected
+boundary as `read`, `write` or `effect`, derived from that boundary's existing
+operation contract: `read` for preparation input capture, acquisition and
+catalog, metadata or inference reads; `write` for dispatching work to, or
+transferring or egressing data to, another Site, recipient or Store; and
+`effect` for an Effect commit. Covered pure computation is not a protected
+operation. The boundary kind belongs to the decision subject, never to the
+operation identifier.
+
+<!-- requirement-block: account-config.a-configuration-must-use-one-canonical-spelling account-config.identifiers-must-match-by-exact-equality account-config.admission-must-decide-overlap-by-this-exact-rule -->
+A configuration MUST use one canonical spelling: entries in strictly
+ascending `entry_id` order, each `any_of` array in strictly ascending order, and
+each `exclusions` array in strictly ascending order of its tuples' canonical JSON
+text, with UTF-16 code-unit ordering throughout. Order, equality and identity are
+decided over admitted text values, which are NFC-normalized as in canonical JSON;
+two values equal after normalization are duplicates. Its identity is the CID of the
+complete canonical document; evidence and Checkpoints bind that CID. A
+principal, connection, resource or operation identifier MUST match only by
+exact equality with the identifier the trusted Run owner presents for the
+boundary, without prefixes, patterns or case folding. An entry's effective set
+is the Cartesian product of its four selectors minus the union of its
+exclusions. For two entries with different outcomes, the candidate box is the
+per-dimension intersection of their selectors, where `all` intersected with a
+finite set is that set. The configuration conflicts when that box, minus the
+exclusions of both entries, is nonempty. Admission MUST decide overlap by this
+exact rule: in each dimension, use the box's finite set, or, for `all`, every
+identifier named by those exclusions in that dimension plus one fresh
+identifier that only `all` contains; the configuration conflicts exactly when
+some point of that finite grid lies outside every exclusion. The result is
+therefore independent of discovered connections, resources and operations.
+
 <a id="machine-contracts"></a>
 
 ## Machine contracts
@@ -425,10 +516,11 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_scope_approval sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_authorization sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_definition sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:c0dc4575988d74a799ea739c0eeef7ae17d94618649c3eebfa671e28bdb77e41
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:2946a790957ed322c1f2e800bb4d8a0dd22a33ae7bd02be823ff42aaa6035355
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:a0576742d08e69b46c928ac8b13e8479f26d47ccf8bc474c1fa1d0807254a820
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:6395cccc33f41c6b20ccc6131bc58a3c1da1b21413a3d34f0b17eebef5e87b9a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```

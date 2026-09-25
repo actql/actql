@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/remote_client"
 
 import {
+  "actql/actql/execution_authorization",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/remote_site_protocol",
@@ -18,13 +19,17 @@ pub fn acknowledge_status(@remote_journal.Journal, @http_client.Client, String, 
 
 pub fn cancel(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
 
-pub fn dispatch(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
+pub fn dispatch(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest, @execution_authorization.RuntimeAction) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
 
 pub fn poll(@http_client.Client, String) -> Result[@remote_site_protocol.DispatchRequest?, NativeRemoteClientIssue]
 
 pub fn poll_operation(@http_client.Client, String) -> Result[@remote_site_protocol.RemotePollOperation?, NativeRemoteClientIssue]
 
 pub fn query(@remote_journal.CoordinatorJournal, @http_client.Client, String, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteDispatchResponse, NativeRemoteClientIssue]
+
+pub fn remote_dispatch_access_tuple(String, @remote_site_protocol.DispatchRequest) -> @execution_authorization.AccessTuple
+
+pub fn remote_dispatch_authorized(@execution_authorization.RuntimeAction, @remote_site_protocol.DispatchRequest) -> Bool
 
 // Errors
 
@@ -37,6 +42,7 @@ pub(all) enum NativeRemoteClientIssue {
   Protocol(@remote_site_protocol.DispatchIssue)
   HttpStatus(Int)
   InvalidUtf8
+  NotAuthorized
   OutcomeUnknownPersistence(@remote_journal.NativeRemoteJournalIssue, NativeRemoteClientIssue)
 }
 

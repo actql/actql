@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/checkpoint_runtime_node"
+
+// Values
+pub fn checkpoint_admit(String) -> String
+
+pub fn checkpoint_expired_at(String, String) -> String
+
+pub fn checkpoint_lifecycle_state(String, String, String, String) -> String
+
+pub fn checkpoint_seal_body(String) -> String
+
+pub fn checkpoint_waiting_state(String, String, String, String) -> String
+
+pub fn resolution_admit(String, String, String, String, String, String) -> String
+
+pub fn resolution_admit_immediate(String, String, String, String, String, String) -> String
+
+pub fn resolution_decide(String, String, String, String, String, String, String, String, String, String, String) -> String
+
+pub fn resolution_proof_preimage(String) -> String
+
+pub fn resolution_seal_immediate(String, String, String, String, String, String, String, String) -> String
+
+pub fn resume_claim_decide(String, String, Double, Double, String, String) -> String
+
+pub fn resume_completion_allowed(String) -> Bool
+
+pub fn resume_fence_decide(String, String, Double, Double) -> String
+
+pub fn resume_revalidation_failed_code() -> String
+
+pub fn resumed_approval_at(String, String) -> String
+
+pub fn revalidation_failed_state(String, String, String, String) -> String
+
+pub fn run_state_admit(String) -> String
+
+pub fn run_transition_allowed(String, String) -> Bool
+
+pub fn verified_attestation_preimage(String) -> String
+
+pub fn waiting_exit_state(String, String, String, String) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

@@ -27,4 +27,5 @@ import {
   "moonbitlang/core/encoding/utf8",
   "actql/actql/canonical_json" @identity,
   "actql/actql/numeric_reduction" @numeric,
+  "actql/actql/execution_authorization" @authorization,
 }

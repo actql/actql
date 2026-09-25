@@ -207,31 +207,75 @@
       "decision_refs": [
         "D2"
       ],
-      "given": "Two independent Effects with resolved allow",
+      "given": "Two independent Effects whose account configuration outcome is allow",
       "when": "Run",
-      "then": "No extra human Checkpoint; record policy risk acceptance.",
+      "then": "After whole-set preflight, commit without a delegated callback, Checkpoint or partial_application_accepted claim; record per-member partial and unknown outcomes.",
       "admission_context": "Apply the normative scope, identity and claim-admission rules.",
       "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
     },
     {
-      "case_id": "D2.multi-review",
+      "case_id": "D2.multi-delegate-immediate",
       "decision_refs": [
         "D2"
       ],
-      "given": "Two independent Effects with require_review",
-      "when": "Run",
-      "then": "Create one commit Checkpoint for the complete same-stage Preview.",
+      "given": "Two independent Effects whose account outcome is delegate and whose Host policy requires no risk claim",
+      "when": "The Host permits immediately",
+      "then": "Commit after whole-set preflight without a Checkpoint or partial_application_accepted claim.",
       "admission_context": "Apply the normative scope, identity and claim-admission rules.",
       "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
     },
     {
-      "case_id": "D2.contract-floor",
+      "case_id": "D2.multi-delegate-deferred",
       "decision_refs": [
         "D2"
       ],
-      "given": "Host raw allow but Contract minimum review",
-      "when": "Resolve authorization",
-      "then": "Retain require_review; Host allow does not override the minimum.",
+      "given": "Two independent Effects whose account outcome is delegate",
+      "when": "The Host defers its answer",
+      "then": "Persist one Effect Commit Checkpoint for the complete same-stage Preview; [effect_scope_approved] alone is admissible unless the Host policy requires the risk claim.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.host-required-claim",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "A Host policy declares that its delegated multi-Effect decision requires partial_application_accepted",
+      "when": "A permit arrives without that authenticated claim",
+      "then": "Do not treat it as accepted delegation; dispatch nothing and record the requirement as that Host policy, not a Core or Connector rule.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.no-contract-floor",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "A Mapping or Command Contract with exact permission_rules and an account configuration outcome of allow for its target operation",
+      "when": "Resolve Effect authority",
+      "then": "Dispatch after technical and current-context checks; the Contract supplies provider permission requirements only and cannot raise routing to a Checkpoint.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.account-deny",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "An account configuration outcome of deny, or no matching entry, for an Effect commit",
+      "when": "A Host decision policy or operator approval would permit it",
+      "then": "Dispatch nothing; report explicit deny and no-match distinctly; no answer overrides either.",
+      "admission_context": "Apply the normative scope, identity and claim-admission rules.",
+      "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
+    },
+    {
+      "case_id": "D2.decision-failure",
+      "decision_refs": [
+        "D2"
+      ],
+      "given": "An account outcome of delegate",
+      "when": "The Host answer is missing, malformed, unauthenticated or times out",
+      "then": "Dispatch nothing; record a technical decision failure, not a permit or an intentional rejection.",
       "admission_context": "Apply the normative scope, identity and claim-admission rules.",
       "owner_semantics": "Shared Run Graph and unit execution contracts; stages are a lowering surface."
     },
@@ -2434,9 +2478,9 @@
         "D2",
         "A7"
       ],
-      "given": "Contract routes to review because of multiple Effects",
-      "when": "Resolve minimum",
-      "then": "Do not admit count-proxy routing as conforming.",
+      "given": "A Connector contract declares review routing because of multiple Effects",
+      "when": "Admit the contract",
+      "then": "Do not admit Connector approval routing; Connectors declare technical permission requirements only.",
       "execute_both_forms": true
     },
     {

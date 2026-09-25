@@ -12,6 +12,7 @@ import { runCapturedStrategy } from '../../../../host-node/entry.mjs';
 import { prepareDuckDBStrategyConfiguration } from '../configuration.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -78,7 +79,7 @@ test('typed composite join and count preserve fixed capture across Local fresh a
         } finally { connection.closeSync(); db.closeSync(); }
       };
       await write(false);
-      const grant = await authorizeLocalDatabase(path);
+      const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
       let freshBytes;
       for (const placement of ['local', 'duckdb', 'resident']) {
         await write(true);

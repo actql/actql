@@ -1,5 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdtemp, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {accountEntry, fixtureAuthorization, sqliteDeferral} from
+  '../host-node/authorization-fixture.mjs';
 import {
   beginExecutionSiteTeardown,
   createInProcessExecutionSite,
@@ -870,4 +875,147 @@ test('destination cleanup without an explicit recovery handle is never retried',
     context.sourceSite).teardownComplete, true);
   assert.equal(beginExecutionSiteTeardown(
     context.destinationSite).teardownComplete, false);
+});
+
+// Transfer boundary: the Host gate decides the recipient Site before any
+// copy, run-ledger transfer or Site transfer operation starts.
+async function transferUnderAuthorization(authorization) {
+  const input = {}, logicalMaterial = {}, sourceMaterial = {};
+  const source = registerManagedMemoryInput(
+    sourceMaterial,
+    value => value === input,
+    () => true,
+    Object.freeze({async read(_file, emit) { await emit('{"id":1}'); }}),
+    () => {},
+    estimate,
+  );
+  const provider = createManagedMemoryTransferProvider({
+    maxBatchRows: 1,
+    maxBatchBytes: 64,
+  });
+  let copies = 0;
+  const context = setup(Object.freeze({
+    ...provider,
+    copy(options) { copies++; return provider.copy(options); },
+  }));
+  const {candidate} = candidateFor(context, sourceMaterial, logicalMaterial);
+  const events = [];
+  const coordinator = createManagedSiteTransferCoordinator(
+    {}, coreFor(input, logicalMaterial, events), context.installation,
+    {authorization, subjectCid: transferSubjectCid},
+  );
+  let error;
+  try { await coordinator.resolve(candidate, [input]); }
+  catch (reason) { error = reason; }
+  await coordinator.close();
+  await source.close();
+  return {
+    copies,
+    begins: events.filter(event => event[0] === 'begin').length,
+    error,
+  };
+}
+
+const transferSubjectCid = `sha256:${'5'.repeat(64)}`;
+const transferEntries = outcome => [accountEntry('recipient', outcome, {
+  connection: 'destination', operation: 'write',
+})];
+
+test('transfer to a protected recipient needs a dispatch decision first',
+  async () => {
+    let hostCalls = 0;
+    const counting = decide => view => { hostCalls++; return decide(view); };
+    const permit = view => ({decision: 'permit', subject: view.subject,
+      authority: 'reviewer'});
+    const allowed = await fixtureAuthorization(transferEntries('allow'), {
+      protectedSites: ['destination'],
+      decide: counting(permit), answeringAuthorities: ['reviewer'],
+    });
+    const allow = await transferUnderAuthorization(allowed);
+    assert.equal(allow.error, undefined);
+    assert.equal(allow.copies, 1);
+    assert.equal(allow.begins, 1);
+    assert.equal(hostCalls, 0);
+    assert.equal(allowed.counters().checkpointsPersisted, 0);
+
+    for (const [label, entries, decide, code] of [
+      ['explicit deny', transferEntries('deny'), undefined,
+        'ExecutionAuthorizationDenied'],
+      ['no-match deny', [], undefined, 'ExecutionAuthorizationDenied'],
+      ['reject', transferEntries('delegate'), view => ({decision: 'reject',
+        subject: view.subject, authority: 'reviewer'}),
+      'ExecutionAuthorizationDenied'],
+      ['throw', transferEntries('delegate'), () => {
+        throw new Error('DecisionServiceDown');
+      }, 'ExecutionAuthorizationDecisionFailed'],
+      ['defer without journal', transferEntries('delegate'), view => ({
+        decision: 'defer', subject: view.subject,
+      }), 'ExecutionAuthorizationDeferralUnsupported'],
+    ]) {
+      const before = hostCalls;
+      const gate = await fixtureAuthorization(entries, {
+        protectedSites: ['destination'],
+        decide: decide === undefined ? undefined : counting(decide),
+        answeringAuthorities: ['reviewer'],
+      });
+      const refused = await transferUnderAuthorization(gate);
+      assert.equal(refused.error?.code, code, label);
+      assert.equal(refused.copies, 0, label);
+      assert.equal(refused.begins, 0, label);
+      assert.equal(hostCalls - before, decide === undefined ? 0 : 1, label);
+    }
+
+    const delegated = await fixtureAuthorization(transferEntries('delegate'), {
+      protectedSites: ['destination'],
+      decide: counting(permit), answeringAuthorities: ['reviewer'],
+    });
+    const before = hostCalls;
+    const permitted = await transferUnderAuthorization(delegated);
+    assert.equal(permitted.error, undefined);
+    assert.equal(permitted.copies, 1);
+    assert.equal(hostCalls - before, 1);
+  });
+
+test('a deferred transfer decision persists its Checkpoint and copies nothing',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-transfer-deferral-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const deferral = await sqliteDeferral(root);
+    t.after(() => deferral.journal.close());
+    const gate = await fixtureAuthorization(transferEntries('delegate'), {
+      protectedSites: ['destination'],
+      decide: view => ({decision: 'defer', subject: view.subject}),
+      answeringAuthorities: ['reviewer'],
+      deferral,
+    });
+    const waiting = await transferUnderAuthorization(gate);
+    assert.equal(waiting.error?.code, 'ExecutionAuthorizationWaiting');
+    assert.equal(waiting.copies, 0);
+    assert.equal(waiting.begins, 0);
+    const [pending] = deferral.journal.listPending();
+    assert.equal(pending.kind, 'data_egress');
+    assert.equal(pending.checkpointCid,
+      waiting.error.authorization.checkpoint.checkpointCid);
+    // The egress Checkpoint requires the transfer's sealed subject artifact;
+    // the exact decision subject is a separate stored binding.
+    assert.match(waiting.error.authorization.subjectCid,
+      /^sha256:[0-9a-f]{64}$/);
+    assert.equal(pending.requiredArtifact.cid,
+      waiting.error.authorization.subjectCid);
+    assert.equal(pending.decisionSubjectCid,
+      waiting.error.authorization.checkpoint.decisionSubjectCid);
+  });
+
+test('in-process transfer between unprotected Sites is covered', async () => {
+  let hostCalls = 0;
+  // An account with no matching entry: any evaluation would deny.
+  const gate = await fixtureAuthorization([], {
+    decide: () => { hostCalls++; }, answeringAuthorities: ['reviewer'],
+  });
+  const covered = await transferUnderAuthorization(gate);
+  assert.equal(covered.error, undefined);
+  assert.equal(covered.copies, 1);
+  assert.equal(gate.counters().evaluations, 0);
+  assert.equal(gate.counters().coveredOperations, 1);
+  assert.equal(hostCalls, 0);
 });

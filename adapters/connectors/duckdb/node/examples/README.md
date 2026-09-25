@@ -18,6 +18,7 @@ moon build --target js --release src/connectors_builtin_node
 moon build --target js --release src/physical_strategy_example
 node adapters/connectors/duckdb/node/examples/physical-strategy.mjs \
   --database /absolute/path/to/trusted.duckdb \
+  --account-config /absolute/path/to/account-config.json \
   --environment /absolute/path/to/check-environment.json \
   --environment-cid sha256:YOUR_EXPECTED_ENVIRONMENT_CID \
   --program adapters/connectors/duckdb/node/examples/program.json \
@@ -37,6 +38,16 @@ non-null number; all other known columns are also validated. The selected real
 table and declared schema must match. The example does not create a source DB,
 generate a Catalog, grant access based on Program text, or repair an invalid file.
 The path is an explicit Host binding to a trusted existing file opened read-only.
+
+`--account-config` names the operator's execution-account configuration, an
+`actql-execution-account-config/0.1` file. The example installs no account of
+its own: without this option, or with an unreadable or rejected file, the
+preparation boundary denies the run with `ACTQL_E_ACCOUNT_CONFIG_INVALID` before
+any Program, Parameter, Environment or source read. Preparation capture and
+source acquisition are evaluated as `read` of connection `<database path>` and
+resource `<schema>.<table>`; an entry allowing exactly that tuple is enough to
+run the example. `exampleAccountConfiguration({database})` returns the text of
+such a one-entry file for embedding applications that write their own.
 
 `prepareExampleText` exposes the same application preparation over bounded text
 documents. Its returned `open(signal)` performs source authorization/acquisition
@@ -290,6 +301,61 @@ as confirmed release or durable recovery. Cancelling the imported API accepts
 an `AbortSignal`. Completed-input sharing is process-local; task streaming,
 automatic failed-query retry and remote replay are not provided.
 
+## Delegated decisions on the Local Host
+
+`local-host-cli.mjs` is a minimal noninteractive Local Host for this example,
+not a full `actql` CLI. It adds a persistent SQLite Checkpoint journal,
+Host-trusted Ed25519 reviewer keys and a Host attestation key to the same
+application. With an account entry whose outcome is `delegate` and no
+application decision function, `run` persists a `prepare_attempt` Checkpoint
+and exits 0 with `waiting_checkpoint`; no source is read. A later process
+answers it and another resumes the same continuation.
+
+```sh
+cli=adapters/connectors/duckdb/node/examples/local-host-cli.mjs
+node $cli init --directory host --account-config account-config.json --reviewer alice
+node $cli run --config host/host.json --database /absolute/path/to/trusted.duckdb \
+  --environment check-environment.json --environment-cid sha256:YOUR_ENVIRONMENT_CID \
+  --program adapters/connectors/duckdb/node/examples/program.json \
+  --parameters adapters/connectors/duckdb/node/examples/parameters.json
+node $cli list --config host/host.json
+node $cli inspect <checkpoint> --config host/host.json
+node $cli approve <checkpoint> [<checkpoint> ...] --config host/host.json \
+  --signer host/alice.signer.json [--decided-at <time>]
+node $cli reject <checkpoint> [<checkpoint> ...] --config host/host.json --signer host/alice.signer.json
+node $cli resume <checkpoint|prepare-attempt> --config host/host.json [--claimant <id>] [--lease-ms <n>]
+node $cli status <run|prepare-attempt|checkpoint> --config host/host.json
+node $cli cancel <checkpoint|prepare-attempt> --config host/host.json
+node $cli retire --config host/host.json
+```
+
+Output is JSON. The CLI never prompts or reads stdin, so a TTY, EOF or a
+timeout cannot approve, reject or dispatch. `list` and `inspect` return safe
+Checkpoint metadata only, never the review projection or captured inputs.
+Before the Checkpoint is persisted the Host captures the Program, Environment
+and Parameter files as private content-addressed evidence; `resume` reads
+those bytes, not the original paths. The captured inputs, request, prepared
+invocation, review projection and continuation record are encrypted objects
+in the Local Store (`state/private-store`) under the key that `init` creates
+in `state/private-evidence.key`; each continuation holds its own references,
+and continuations with identical evidence share the encrypted object through
+separate holdings. A different key is refused (`PrivateEvidenceKeyMismatch`)
+before any decryption; key rotation is not provided. Evidence is never
+deleted on close or by time. After a command that can end a continuation, the
+CLI retires the holdings of continuations with no remaining need (terminal
+Run exit, or a rejected, cancelled, expired or invalidated preparation); the
+request stays as the preparation's identity. A failed deletion remains owned,
+is reported under `retention`, and `retire --config host/host.json` retries it.
+Each `approve`/`reject` item is signed
+and admitted as the answer to its own Checkpoint, and the command reports a
+per-item result (`committed`, `duplicate`, `conflicting`, `expired`,
+`cancelled` or `invalid`); an invalid item does not affect the others.
+`resume` claims the fenced resume intent, revalidates the bound account
+configuration and environment (any change fails with
+`ACTQL_E_RESUME_REVALIDATION_FAILED` and dispatches nothing), then creates the
+Run in `running` and executes it once. An approved run-scope Checkpoint also
+answers the acquisition of the same prepared invocation's declared source.
+
 ## Resident candidates
 
 To run the join/count variant, use the same command with
@@ -314,6 +380,7 @@ it does not force every task onto resident DuckDB. For example:
 ```sh
 node adapters/connectors/duckdb/node/examples/physical-strategy.mjs \
   --database /absolute/path/to/trusted.duckdb \
+  --account-config /absolute/path/to/account-config.json \
   --environment /absolute/path/to/check-environment.json \
   --environment-cid sha256:YOUR_EXPECTED_ENVIRONMENT_CID \
   --program adapters/connectors/duckdb/node/examples/program.json \

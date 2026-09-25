@@ -70,6 +70,8 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test durable Checkpoint journal and resumed dispatch admission
+        run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test Salesforce Site Catalog and bounded query acquisition

@@ -26,7 +26,7 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 - [Run states and transitions](#run-states)
 - [Checkpoints and Resolutions](#checkpoints)
 - [Effect preview, approval, and application](#effect-application)
-- [Semantic risk routing](#policy-routing)
+- [Account authorization routing](#policy-routing)
 - [Logical request and item recovery](#logical-request)
 - [Preview renewal and template authorization](#approval-renewal)
 - [Outcomes and reconciliation](#reconciliation)
@@ -1325,10 +1325,18 @@ the public state does not require a new state name.
 | `preparing` | `running` | Initial admission completed; execution may begin. |
 | `preparing`, `running`, `resuming` | `waiting_checkpoint` | The exact continuation and Checkpoint were persisted before protected dispatch ([Checkpoints and Resolutions](#checkpoints)). |
 | `waiting_checkpoint` | `resuming` | A Host-verified approved Resolution and unique resume intent were stored atomically ([Checkpoints and Resolutions](#checkpoints)). |
-| `waiting_checkpoint` | `cancelled` | The Checkpoint was rejected or expired without dispatching its continuation. |
+| `waiting_checkpoint` | `cancelled` | The Checkpoint was rejected or expired without dispatching its continuation, and no earlier Effect outcome of the Run remains unknown. |
+| `waiting_checkpoint` | `needs_reconciliation` | The Checkpoint was rejected or expired, or cancellation was admitted, without dispatching its continuation while earlier Effect outcomes recorded by the Run owner remain unknown ([Checkpoints and Resolutions](#checkpoints)). |
 | `preparing`, `waiting_checkpoint`, `resuming` | `cancelled` | Cancellation was admitted with no dispatch in flight or unresolved Effect outcome. |
 | `preparing`, `running`, `resuming` | `succeeded`, `failed`, `needs_reconciliation` | The continuation completed or failed; admission, publication, and Effect aggregation conditions determine the destination ([Capture, execution, and replay](#capture-and-replay), [Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `needs_reconciliation`, `succeeded`, `failed` | A valid reconciliation receipt extended the sealed member history and all member outcomes were aggregated ([Outcomes and reconciliation](#reconciliation)). |
+
+<!-- requirement-block: run-states.a-resumed-continuation-must-not-return-to-running -->
+A resumed continuation MUST NOT return to `running`: it remains `resuming`
+while it executes and until it exits to `waiting_checkpoint`, `succeeded`,
+`failed`, `needs_reconciliation` or `cancelled`. That exit transition is the
+resumed Run transition that completes the claimed resume intent. No additional
+state is introduced.
 
 <!-- requirement-block: run-states.a-transition-must-not-dispatch-a-continuation-across-an-unresolved run-states.a-terminal-state-must-not-transition-to-another-state -->
 A transition MUST NOT dispatch a continuation across an unresolved Checkpoint.
@@ -1386,7 +1394,12 @@ deny        terminate the Run without dispatching the unit
 checkpoint  persist a sealed Checkpoint and stop before dispatch
 ```
 
-Checkpoint message variants and authenticated decisions use the Run protocol binding.
+This runtime action results from execution-account evaluation and, for a
+delegated outcome, the Host's answer ([Account authorization routing](#policy-routing)).
+Account `allow` and an immediate delegated permit yield `allow`; account `deny`
+and an immediate delegated reject yield `deny`; only a deferred delegated
+answer yields `checkpoint`. Checkpoint message variants and authenticated
+decisions use the Run protocol binding.
 
 <!-- requirement-block: checkpoints.the-host-must-reuse-already-captured-unit-outputs checkpoints.the-host-must-not-silently-regenerate-a-new-review-artifact checkpoints.before-dispatch-after-a-delayed-resolution-it-must-revalidate-the -->
 An approved preparation Resolution continues the same preparation attempt;
@@ -1396,8 +1409,30 @@ a new review artifact under the old approval. Before dispatch after a delayed
 Resolution, it MUST revalidate the bound authorization-context and
 environment-binding CIDs. Artifact availability and exact target freshness are
 then revalidated at their existing provider-access and Effect-commit boundaries.
-If those facts changed, the Checkpoint is invalidated or the Run fails; the Host
-does not weaken or reinterpret the old approval.
+
+<!-- requirement-block: checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation -->
+If a bound authorization-context or environment-binding CID no longer
+revalidates, the Host MUST NOT dispatch the continuation. A Run-unit
+continuation then exits `resuming` to `failed`, or to `needs_reconciliation`
+when earlier Effect outcomes remain unknown, with runtime error phase
+`admission` and `terminal_error.code` `ACTQL_E_RESUME_REVALIDATION_FAILED`;
+that exit completes the resume intent atomically. The unknown Effects are those
+the Run owner's recorded Effect outcomes still mark unknown; the continuation does
+not invent or drop them. A preparation continuation ends without creating a Run.
+An approved preparation continuation that revalidates creates its Run directly in
+`running`; preparation already completed before the Checkpoint. The Host does not weaken or reinterpret the old
+approval, and a changed artifact or target found at a later boundary uses that
+boundary's existing failure.
+
+<!-- requirement-block: checkpoints.a-rejected-expired-or-cancelled-wait-must-not-hide-unknown-effect-outcomes -->
+A rejected or expired Checkpoint, or an admitted cancellation of a waiting Run,
+never dispatches the continuation and creates no resume intent. Such an exit
+MUST NOT hide unknown Effect outcomes: when earlier Effect outcomes recorded by
+the Run owner remain unknown, the Run exits `waiting_checkpoint` to
+`needs_reconciliation` with next action `reconcile` over exactly those Effects
+and its prior facts are preserved; otherwise it exits to `cancelled`. A
+preparation Checkpoint precedes its Run and has no Effect outcomes; it ends
+without creating a Run.
 
 <!-- requirement-block: checkpoints.every-path-backed-run-input-and-model-replay-bundle-must-be-captured -->
 Every path-backed Run input and model-replay bundle MUST be captured as an
@@ -1410,29 +1445,40 @@ Execution reads only those captured locators, not their mutable source paths.
 A Host policy denial MUST be decided before reading or capturing path-backed
 Run inputs, creating private invocation artifacts, or creating durable Run
 state. Denial evidence belongs to Host audit rather than to a Run that has not
-started.
+started. An account deny, a no-match deny or an immediate delegated reject at
+the preparation boundary is such a denial; a technical decision failure there
+creates no Run either, but it is not recorded as a rejection.
 
-<!-- requirement-block: checkpoints.current-effect-policy-identity-must-bind-both-the-policy-contract-cid -->
-Current Effect policy identity MUST bind both the policy-contract CID and the
-evaluated `allow`, `review`, or `deny` decision, and that complete identity is
-revalidated before resumed Effect dispatch.
+<!-- requirement-block: checkpoints.current-effect-authorization-identity-must-bind-account-outcome-and-host-decision -->
+Current Effect authorization identity MUST bind the admitted execution-account
+configuration CID and its evaluated `allow`, `deny`, or `delegate` outcome and,
+for a delegated outcome, the Host policy-contract CID and its evaluated `allow`,
+`review`, or `deny` decision; that complete identity is revalidated before
+resumed Effect dispatch.
 
 <!-- requirement-block: checkpoints.an-expired-or-superseded-resume-claimant-must-not-release-fail checkpoints.a-resumed-run-transition-and-resume-intent-completion-must-occur-in -->
 An expired or superseded resume claimant MUST NOT release, fail, complete, or
 otherwise alter a resume intent or its Run. A resumed Run transition and
 resume-intent completion MUST occur in the same transaction; the portable store
-does not expose intent-only successful completion.
+does not expose intent-only successful completion. The resumed Run transition
+is the Run's exit from `resuming` ([Run states and transitions](#run-states)).
 
-The Effect Set proposal and commit boundary follow [Effect declarations](language.md#effects) and [Effect preview, approval, and application](#effect-application). When review
-is required, the complete Effect Set Preview is the sealed artifact of the
+The Effect Set proposal and commit boundary follow [Effect declarations](language.md#effects) and [Effect preview, approval, and application](#effect-application). When a delegated
+decision is deferred, the complete Effect Set Preview is the sealed artifact of the
 Effect Commit Checkpoint; its Resolution resumes the same Run's Effect application.
 
-<!-- requirement-block: checkpoints.a-multi-effect-set-must-enter-that-effect-commit-checkpoint-even -->
-A multi-Effect Set MUST retain authenticated `partial_application_accepted`
-evidence from a human or policy issuer. Resolved `allow` does not add a human
-Checkpoint merely because there are multiple members. `require_review` uses
-one Checkpoint for the complete stage Preview. Run-level allow is insufficient
-unless the current concrete scope is proved inside its admitted envelope.
+<!-- requirement-block: checkpoints.member-count-alone-must-not-require-a-checkpoint-or-risk-claim checkpoints.a-host-required-risk-claim-must-be-authenticated-and-recorded-as-host-policy -->
+The number of Effect Set members alone MUST NOT require a Checkpoint, a
+delegated decision, or `partial_application_accepted` evidence. An account
+`allow` commits a multi-Effect Set after whole-set preflight without a risk
+claim, and its evidence does not state that anyone accepted business risk.
+A Host MAY declare a policy that requires `partial_application_accepted` for
+its delegated decision. That claim MUST then be authenticated, bound to the
+exact Preview and review projection, and recorded as that Host's declared
+policy requirement; a missing required claim is not an accepted delegation.
+A deferred decision uses one Checkpoint for the complete stage Preview.
+Run-level allow is insufficient unless the current concrete scope is proved
+inside its admitted envelope.
 
 <!-- requirement-block: checkpoints.actual-requests-must-remain-a-subset-of-that-envelope-and -->
 For data-dependent acquisition, a Checkpoint review projection MAY display the
@@ -1450,8 +1496,10 @@ dispatch. This remains a same-Run Checkpoint, not the later-work boundary in
 ### Effect preview, approval, and application
 
 <!-- requirement-block: effect-application.when-approval-is-required-its-attestation-must-sign-the-effect effect-application.when-approval-is-required-its-attestation-must-sign-the-effect.second -->
-Approval requirements come from Host and Contract policy; source validation
-does not approve a concrete Effect.
+Effect commit authority comes from execution-account evaluation and, for a
+delegated outcome, the Host's answer ([Account authorization routing](#policy-routing));
+source validation does not approve a concrete Effect. Mapping and Command
+Contracts declare exact technical permission requirements, not approval policy.
 Parameter declarations, authored Mapping or Command Contract references, and
 Effect semantics belong to Program identity. Resolved permission sets and
 Contract evidence belong to checked Plan and Effect Preview identity, not to
@@ -1460,15 +1508,14 @@ belong to Invocation and Effect Preview identity as specified in [Canonical iden
 The exact target set and before/after rows belong to the Effect
 Preview CID. When approval is required, its attestation MUST sign the Effect
 Preview CID, and the apply receipt MUST bind both the preview identity and
-approval evidence. When current Host policy and the Contract minimum both
-allow direct commit, the receipt instead records that no approval attestation
-was required.
+approval evidence. When the account outcome is `allow`, the receipt instead
+records the account configuration identity and that no approval attestation or
+risk claim was required.
 
-Resolved approval is the monotone maximum of the Mapping or Command Contract
-minimum and the current Host minimum. Host policy MAY strengthen an internally
-resolved no-minimum policy to `required`, but it cannot weaken a contract
-minimum. The absence of approval syntax does not grant permission to bypass
-approval.
+A Connector contract cannot raise or lower account routing, and no Host answer
+converts an account `deny` into permission. The absence of approval syntax does
+not grant permission to bypass account evaluation; a configuration without a
+matching entry denies.
 
 <!-- requirement-block: effect-application.they-must-not-make-structural-or-authority-choices-such-as -->
 ActQL 0.1 parameters follow [Parameters and binding](language.md#parameters). They MUST NOT make structural or authority
@@ -1516,22 +1563,23 @@ No other semantic field is excluded. The omitted physical Run, Authoring
 Context, and derived keys remain required fields of the transported Preview;
 apply admission checks their exact bindings independently of the semantic CID.
 
-<!-- requirement-block: effect-application.when-review-is-required-the-runtime-must-pause-at-one effect-application.the-host-must-preflight-every-member-before-the-first-mutation effect-application.before-the-first-mutation-dispatch-a-data-connector-must-advertise -->
+<!-- requirement-block: effect-application.when-a-delegated-decision-is-deferred-the-runtime-must-pause-at-one effect-application.the-host-must-preflight-every-member-before-the-first-mutation effect-application.before-the-first-mutation-dispatch-a-data-connector-must-advertise -->
 Application remains a separate host-authorized phase inside that Run.
-When review is required, the runtime MUST pause at one Effect Commit
+When a delegated commit decision is deferred, the runtime MUST pause at one Effect Commit
 Checkpoint bound to the complete previewed Effect Set. Resolving that
 Checkpoint resumes the same Run; no interface may
 release a subset. The host MUST preflight every member before the first
-mutation dispatch. A multi-Effect set additionally
-requires authenticated human or policy acceptance of partial-application risk
-bound to its exact Preview and review projection. Before the first mutation
+mutation dispatch. A multi-Effect set requires acceptance of
+partial-application risk only when a Host-declared policy requires it for a
+delegated decision ([Checkpoints and Resolutions](#checkpoints)). Before the first mutation
 dispatch, a data Connector MUST advertise exact
 mutation atomicity, row-error identity, idempotency, request-order behavior,
 and unknown-outcome reconciliation. `store` remains relation materialization
 and is not generalized into binary upload.
 
-> **Note (informative):** `partial_application_accepted` records a reviewer's
-> acceptance of business risk, not a compiler proof of atomicity.
+> **Note (informative):** `partial_application_accepted` records a human or
+> policy issuer's acceptance of business risk that a Host required. It is not
+> a compiler proof of atomicity and is never fabricated from an account allow.
 
 `present` is the observed before row or proposed complete after row.
 `absent` means no row exists (create-before or delete-after), not an unknown
@@ -1566,7 +1614,7 @@ is the zero-based count among canonical-content-identical rows. This makes batch
 order and idempotency independent of provider enumeration without collapsing
 intentional duplicate rows.
 
-<!-- requirement-block: effect-application.two-conforming-implementations-must-produce-the-same-row-key-for policy-routing.product-e8810b68bee2 policy-routing.product-f9a159648240 logical-request.product-2af972f63b66 logical-request.product-5fbdd5fa2eb2 logical-request.product-c3acfb1394ec logical-request.product-a93ff1904dcb -->
+<!-- requirement-block: effect-application.two-conforming-implementations-must-produce-the-same-row-key-for -->
 `effect_identity_cid` binds the local Unit Definition CID and local Invocation,
 Effect ID, canonical Effect semantics, the exact Result Artifact
 CID when a Result is consumed, and the resolved Mapping or Command Contract
@@ -1588,29 +1636,108 @@ request. Ledger lookup precedes refreshing any Preview of possibly dispatched wo
 
 <a id="policy-routing"></a>
 
-### Semantic risk routing
+### Account authorization routing
 
-Approval routing MUST NOT consume Effect/stage counts, multiple/later flags,
-array lengths, source AST, arbitrary metadata or equivalent proxies. Moving a
-count rule into a Connector minimum is still prohibited. Current semantic risk
-may include operation, target scope, permissions, classification/egress, actual
-logical item/record count, amount/cost/write bytes, irreversibility, partial
-application and reconciliation capability, actor and current allowances.
-One 1000-item Effect is not presumed safer than two one-item Effects.
+<!-- requirement-block: policy-routing.the-run-owner-must-evaluate-the-account-configuration-before-each-protected-dispatch policy-routing.program-input-must-not-select-or-strengthen-the-execution-account -->
+Execution authority is configured for an execution account, not authored in
+a Program. Before each protected dispatch, the trusted Run owner MUST evaluate
+the admitted execution-account configuration for the trusted execution
+principal and the boundary's connection, resource and operation. Protected
+boundaries include preparation input capture, provider access for acquisition
+or inference, data egress or transfer, and Effect commit; covered pure
+computation needs no decision request. Program input MUST NOT select or
+strengthen the execution account. Configuration identity is authorization
+evidence, not Program Definition identity.
+
+<!-- requirement-block: policy-routing.account-outcome-execution-behavior -->
+| Account outcome | Execution behavior |
+| --- | --- |
+| `allow` | Continue after the remaining technical and current-context checks, with no delegated-decision callback, no Checkpoint and no fabricated risk claim. |
+| `deny` | Dispatch none of the affected work. No Host answer, Resolution or operator resume overrides it. |
+| `delegate` | Hand the exact decision subject to the Host's delegated-decision adapter; cross the boundary only after an admitted permit. |
+
+<!-- requirement-block: policy-routing.host-answer-execution-behavior -->
+| Host answer to a delegated decision | Execution behavior |
+| --- | --- |
+| immediate permit | Authenticate the answer and bind it to the exact decision subject, then continue without creating a Checkpoint. |
+| immediate reject | Dispatch none of the affected work and retain earlier facts; no Checkpoint is created. |
+| defer | Persist the existing sealed Checkpoint and continuation before relinquishing execution ([Checkpoints and Resolutions](#checkpoints)). |
+| missing, malformed, unauthenticated, timed out or unavailable | Technical decision failure: dispatch nothing and record neither a permit nor an intentional rejection. |
+
+<!-- requirement-block: policy-routing.account-routing-runtime-action-and-host-answer-vocabularies-must-remain-distinct -->
+Account `allow`/`deny`/`delegate` routes authority, runtime
+`allow`/`deny`/`checkpoint` is the resulting execution action, and Host
+`permit`/`reject`/`defer` is adapter vocabulary. These vocabularies MUST remain
+distinct types. Existing Host policy decisions keep their spelling: for a
+delegated request, a Host policy decision `allow`, `review` or `deny` means
+immediate permit, defer, or immediate reject respectively, and
+`require_review` means defer. Core checks the answering authority, exact
+subject and permitted transition, not the Host's business decision method,
+which may be an embedded function, automated policy, external service, human
+review or a combination.
+
+<!-- requirement-block: policy-routing.admission-must-reject-overlapping-entries-with-different-outcomes policy-routing.an-unmatched-tuple-must-be-denied-as-no-match policy-routing.a-missing-or-invalid-configuration-must-not-be-treated-as-allow policy-routing.a-bootstrap-profile-adoption-must-be-recorded-durably-before-use -->
+Configuration entries address principal × connection × resource × operation.
+An explicit all-target selector includes future members of its dimension; a
+finite selector does not. Each entry's tuple exclusions are subtracted from its
+own selected tuple set before overlap is checked. Admission MUST reject a
+configuration in which two entries with different outcomes have a nonempty
+exact tuple-set intersection. Overlap is decided symbolically over the open
+universe, independently of discovered resources; entry order, specificity and
+deny-wins never resolve it. A tuple that no effective entry matches MUST be
+denied as no-match, reported distinctly from an explicit deny. An explicit deny
+makes a later overlapping allow or delegate a configuration conflict; a no-match
+does not. A missing, unreadable, conflicting or otherwise invalid configuration
+MUST NOT be treated as allow. A Local Host may instead materialize an explicit
+versioned bootstrap profile identified by its exact content CID. Its adoption
+MUST be recorded durably before any protected dispatch relies on it, and it is
+never re-materialized to restore removed or restricted grants. The
+configuration document is `actql-execution-account-config/0.1`, whose wire form
+and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
+
+<!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
+Initial denial and later denial are distinct. A denial or technical decision
+failure before Run creation follows [Checkpoints and Resolutions](#checkpoints).
+Inside a Run, a deny or immediate reject leaves the affected unit undispatched
+and the Run ends `failed`, or `needs_reconciliation` when earlier outcomes are
+unknown, retaining prior acquisitions, costs and Effect outcomes. The runtime
+error uses phase `admission` and code `ACTQL_E_ACCOUNT_DENIED`,
+`ACTQL_E_ACCOUNT_NO_MATCH`, `ACTQL_E_ACCOUNT_CONFIG_INVALID` or
+`ACTQL_E_DELEGATION_REJECTED`. A technical decision failure MUST NOT dispatch
+the unit or be recorded as a rejection: the Host may retry the decision request
+for the same subject without dispatching, or end the Run as above with
+`ACTQL_E_DELEGATION_UNAVAILABLE`. No new Run state is introduced.
+
+<!-- requirement-block: policy-routing.core-routing-and-connector-contracts-must-not-consume-count-proxies policy-routing.packaging-equivalent-work-must-not-change-account-routing-or-the-decision-subject -->
+Core account evaluation and Connector contracts MUST NOT route authority on
+Effect/stage counts, multiple/later flags, array lengths, source AST, arbitrary
+metadata or equivalent proxies. A Host's delegated-decision policy is
+Host-defined; the [Reference Host](../design/reference-host.md) recommends
+routing on current semantic risk, which may include operation, target scope,
+permissions, classification/egress, actual logical item/record count,
+amount/cost/write bytes, irreversibility, partial application and
+reconciliation capability, actor and current allowances. One 1000-item Effect
+is not presumed safer than two one-item Effects.
 
 Packaging independent work without changing action semantics, failure guarantees
-or authority MUST NOT change review routing. Provider atomicity or real ordering
-changes are not such a packaging equivalence. Cumulative risk/spend uses logical
-request or explicit operational-period scope, not a reset per stage. Unknown
-future values use finite reservations and concrete admission, not forced review
-based on stage count. Node-count capacity is separate, not review-overridable.
-Record the exact semantic facts and rule identity: allow records policy acceptance,
-require_review creates the local Checkpoint, deny dispatches nothing. A legitimate
-Contract minimum still applies. Graph launch allowlists remain separate admission.
+or authority MUST NOT change account routing or the decision subject presented
+to the Host. Provider atomicity or real ordering changes are not such a
+packaging equivalence. An earlier decision is reusable only while its bound
+scope, context and validity still apply; changed egress, destination, Site,
+cost or other decision inputs require a valid new decision or foregoing the
+transformation. Cumulative risk/spend uses logical request or explicit
+operational-period scope, not a reset per stage. Unknown future values use
+finite reservations and concrete admission, not forced review based on stage
+count. Node-count capacity is separate and not overridable by a decision.
+Record the account configuration identity and outcome and, for a delegated
+decision, the Host decision evidence. Graph launch allowlists remain separate
+admission.
 
 <a id="logical-request"></a>
 
 ### Logical request and item recovery
+
+<!-- requirement-block: logical-request.product-2af972f63b66 logical-request.product-5fbdd5fa2eb2 logical-request.product-c3acfb1394ec logical-request.product-a93ff1904dcb -->
 
 Target identity reuses scoped ResourceRef/Mapping identity; item identity reuses
 the row key, Command namespace/target/payload tuple or create occurrence. Only

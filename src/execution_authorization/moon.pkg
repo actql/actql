@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/canonical_json",
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/utf8",
+}
+
+formatter(ignore: [ "corpus.generated_test.mbt" ])

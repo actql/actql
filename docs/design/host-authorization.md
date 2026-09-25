@@ -266,12 +266,12 @@ details silently decided by whichever Host is written first.
 
 ## Relationship to current pinned contracts
 
-This is an intentional semantic change, not merely clarification. The current
-normative owners and pinned machine contracts have not adopted this design.
-Until coordinated revision, they remain authoritative for their artifacts;
-this design guide cannot override them. The table records required work, not
-completed migration. Locations were checked on this branch's specification
-baseline `8bc037388c454f7568fa5121d896ecd42dd5429a`; anchors and case IDs are
+This is an intentional semantic change, not merely clarification. The
+normative owners and pinned machine contracts are authoritative for their
+artifacts; this design guide cannot override them. The table records the
+migration from the earlier Contract-floor and review model to the owners that
+now specify account routing, delegated answers and conditional risk claims.
+Locations were checked on this branch's specification baseline `8bc037388c454f7568fa5121d896ecd42dd5429a`; anchors and case IDs are
 preferred to line numbers when the files move.
 
 | Current fact | Design target | Required work |

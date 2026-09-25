@@ -10,6 +10,7 @@ import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';
 import {enableNodeCompileCache} from './compile-cache.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
   '../host-common/run-publication-preflight.mjs';
+import {missingAuthorizationGate} from '../host-common/authorization-gate.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 
@@ -47,6 +48,13 @@ async function runCapturedStrategyTarget(
     throw new TypeError('Managed identity policy is not admissible');
   }
   const core = runtimeCore(moon);
+  // Host-installed gate (never Program input). Without one the Host has no
+  // account configuration: protected boundaries deny, covered in-process
+  // compute still runs.
+  const authorization = configurations.authorization ??
+    missingAuthorizationGate();
+  // Seal the activation requirement before any contribution is installed.
+  core.requireActivation(setup);
   const installed = await install(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
   return runInstalledStrategy(
@@ -64,6 +72,7 @@ async function runCapturedStrategyTarget(
         publicationInventory: facts.publicationInventory,
         plan: publication.plan,
       }),
+    authorization,
   );
 }
 

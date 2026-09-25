@@ -13,8 +13,16 @@ import {createManagedExampleHost} from '../examples/managed-host.mjs';
 
 export async function exerciseManagedExample(database, environmentText, environmentCid, expectedCid) {
   const root = new URL('../../../../../', import.meta.url);
+  // Explicit execution account of this test Host: read main.records on every
+  // source this test creates, installed as exact text in each worker.
+  const accountConfiguration = JSON.stringify({
+    version: 'actql-execution-account-config/0.1', account_id: 'example-application',
+    entries: [{entry_id: 'example-source', outcome: 'allow', principal: {all: true},
+      connection: {all: true}, resource: {any_of: ['main.records']},
+      operation: {any_of: ['read']}, exclusions: []}],
+  });
   const input = {
-    database, environmentText, environmentCid,
+    database, accountConfiguration, environmentText, environmentCid,
     programText: await readFile(new URL('../examples/program.json', import.meta.url), 'utf8'),
     parameterText: '{"minimum":1}',
     adoptedText: await readFile(new URL('../contracts/adopted-relation.json', import.meta.url), 'utf8'),

@@ -42,4 +42,6 @@ import {
   "actql/actql/managed_graph_storage" @graph_storage,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/stage_results" @effect_results,
+  "actql/actql/execution_authorization" @authorization,
+  "moonbitlang/core/debug",
 }

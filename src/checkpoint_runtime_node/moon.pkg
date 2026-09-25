@@ -1,0 +1,11 @@
+// Node-facing string boundary for the portable Checkpoint lifecycle core.
+// It owns no storage and no clock; the adapter supplies both.
+supported_targets = "js"
+
+pkgtype(kind: "foreign_library")
+
+import {
+  "actql/actql/checkpoint_runtime" @checkpoint,
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json" @core_json,
+}

@@ -14,6 +14,9 @@ import { checked } from '../runtime-result.mjs';
 import {configureLocalProcessStore} from '../../../../local-node/retained-process.mjs';
 import {completionObserver} from '../../../../host-common/completion-observer.mjs';
 import {snapshotDataProfile} from './data-profile.mjs';
+import {createLocalAuthorizationGate, sourceReadAccountConfiguration} from
+  '../../../../host-node/local-account-config.mjs';
+import {requireAuthorizedDispatch} from '../../../../host-common/authorization-gate.mjs';
 
 const root = new URL('../../../../../', import.meta.url);
 const runtimeUrl = new URL('_build/js/release/build/physical_strategy_example/physical_strategy_example.js', root);
@@ -37,6 +40,32 @@ export function exampleDatabaseMemoryBytes(
     ? Number(configured / 2n) : limits.memoryBytes;
 }
 
+// Text of an explicit execution-account configuration that allows reading
+// exactly the example's source table (`outcome` may be `delegate` or `deny`).
+// It is a convenience for writing an operator-owned file; the example never
+// installs it by itself.
+export function exampleAccountConfiguration({database, schema = 'main',
+  table = 'records', outcome = 'allow', accountId = 'example-application'}) {
+  return sourceReadAccountConfiguration({connection: database,
+    resource: `${schema}.${table}`, outcome, accountId, entryId: 'example-source'});
+}
+
+// The installed execution account is explicit Host installation, never
+// Program input: a gate supplied by the embedding application, the
+// operator-selected configuration file `accountConfig`, or the exact
+// configuration text `accountConfiguration` a trusted parent Host passes to
+// its managed worker. With none, the Missing gate denies every protected
+// boundary (ACTQL_E_ACCOUNT_CONFIG_INVALID); there is no allow-all default.
+export function exampleAuthorization({authorization, accountConfig,
+  accountConfiguration, principal = 'example-application'} = {}) {
+  if (authorization !== undefined) return authorization;
+  return createLocalAuthorizationGate({accountConfig, accountConfiguration,
+    principal});
+}
+
+const exampleSourceScope = ({database, schema = 'main', table = 'records'}) =>
+  Object.freeze({connection: database, resource: `${schema}.${table}`});
+
 async function boundedText(path) {
   if ((await stat(path)).size > 1000000) throw new Error('Example input exceeds 1000000 bytes');
   const bytes = await readFile(path);
@@ -51,10 +80,32 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal }, observer) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal,
+  authorization, accountConfig, accountConfiguration, invocation, continuation },
+  observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
+  if (typeof database !== 'string') throw new Error('Invalid example configuration');
+  // Preparation boundary: decided on the invocation request before any
+  // Program/Environment path read, source capture or Run creation. Only a
+  // deferred delegated decision calls the Host's `seal`, which captures the
+  // inputs and returns the prepared invocation the Checkpoint requires.
+  const gate = await exampleAuthorization({authorization, accountConfig,
+    accountConfiguration});
+  await requireAuthorizedDispatch(gate, 'preparation',
+    {...exampleSourceScope({database, schema, table}), operation: 'read'},
+    {signal, subjectCid: invocation?.requestCid,
+      sealDeferredSubject: invocation?.seal});
+  // A resumed preparation continuation supplies the immutable bytes captured
+  // before its Checkpoint; it never rereads the mutable operator paths.
+  const captured = invocation?.texts;
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
+    captured !== undefined ? [captured.programText, captured.environmentText,
+      captured.parameterText, ...await Promise.all([
+        new URL('../contracts/adopted-relation.json', import.meta.url),
+        new URL('spec/contracts/actql-query-acquisition.json', root),
+        new URL('spec/contracts/actql-query-process-evidence.json', root),
+        new URL('spec/contracts/actql-query-two-receipt.json', root)].map(boundedText))] :
     await Promise.all([program, environment, parameters,
       new URL('../contracts/adopted-relation.json', import.meta.url),
       new URL('spec/contracts/actql-query-acquisition.json', root),
@@ -66,11 +117,18 @@ export async function runExample({ database, environment, environmentCid, progra
     acquisitionRetainedOutput, managedOutput,
     retainedWorkMilliseconds, localImportWorkMilliseconds,
     localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds,
-    localEligible, dataProfile});
+    localEligible, dataProfile, authorization: gate,
+    acquisitionSubjectCid: invocation?.identify?.({programText, environmentText,
+      parameterText})});
+  // A resumed continuation re-proves its fence before provider I/O and
+  // creates its Run only once capture completed.
+  await continuation?.beforeAcquisition?.();
   const opened = await plan.open(signal);
   let execution;
   try {
-    execution = await runCapturedStrategy(opened.setup, opened.configurations, signal, observer);
+    await continuation?.beforeRun?.();
+    execution = await runCapturedStrategy(opened.setup,
+      {...opened.configurations, authorization: gate}, signal, observer);
     return Object.freeze({report: opened.describe(execution), execution, capture: opened.capture,
       close() {
         // Revoke both result ports synchronously; await independent physical
@@ -97,7 +155,9 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile}, resourceLimits) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile,
+  authorization, accountConfig, accountConfiguration, acquisitionSubjectCid},
+  resourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -258,7 +318,15 @@ export async function prepareExampleText({database, environmentCid, programText,
         retainedOutput: computeRetention,
       })
       : duckdbConfiguration;
-    const grant = await authorizeLocalDatabase(database);
+    // Acquisition boundary: the source grant carries the installed gate and
+    // the exact source scope; no provider session opens without a dispatch
+    // decision for it.
+    const grant = await authorizeLocalDatabase(database, {
+      authorization: await exampleAuthorization({authorization, accountConfig,
+        accountConfiguration}),
+      ...exampleSourceScope({database, schema, table}),
+      subjectCid: acquisitionSubjectCid,
+    });
     signal?.throwIfAborted();
     const capture = acquisitionRetention
       ? await runRetainedStrategyNativeHostQuery(grant, app.applicationAcquisition(prepared),
@@ -328,11 +396,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       parameters: { type: 'string' }, schema: { type: 'string', default: 'main' },
       table: { type: 'string', default: 'records' }, 'native-ms': { type: 'string', default: '5' },
       resident: { type: 'boolean', default: false },
+      // Operator-selected execution-account configuration. Without it every
+      // protected boundary is denied (ACTQL_E_ACCOUNT_CONFIG_INVALID).
+      'account-config': { type: 'string' },
     } });
     for (const key of ['database', 'environment', 'environment-cid', 'program', 'parameters']) {
       if (!values[key]) throw new Error(`Required --${key}`);
     }
-    result = await runExample({ ...values, environmentCid: values['environment-cid'], nativeMilliseconds: values['native-ms'] });
+    result = await runExample({ ...values, environmentCid: values['environment-cid'],
+      nativeMilliseconds: values['native-ms'], accountConfig: values['account-config'] });
     console.log(JSON.stringify(result.report, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
     if (result.execution.failure) {
       // Cleanup only: this cannot retry a query or turn failure into success.
@@ -341,6 +413,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       process.exitCode = 1;
     }
   } catch (error) {
+    if (error.runtimeCode) console.error(`${error.runtimeCode}: ${error.code}`);
     console.error(error);
     if (error.cleanupHandle?.status().pending) await error.cleanupHandle.retry();
     process.exitCode = 1;

@@ -125,6 +125,19 @@ function fixtures() {
   for (const c of localContracts.cases) {
     result.push({id: 'local contract set ' + c.id, value: c.envelope, cid: c.expected_cid});
   }
+  const accountConfigs = read('portability/corpus/execution-account-config.json');
+  assert.equal(accountConfigs.version, 'actql-execution-account-config-vectors/0.1');
+  for (const c of accountConfigs.cases) {
+    result.push({id: 'execution account config ' + c.id, value: c.config, cid: c.expected_cid});
+  }
+  const signatures = read('portability/corpus/checkpoint-resolution-signatures.json');
+  assert.equal(signatures.version, 'actql-checkpoint-resolution-signature-vectors/0.1');
+  for (const c of signatures.cases) {
+    const {[c.self_field]: _self, ...signed} = c.artifact;
+    const {[c.signature_field]: _signature, ...unsigned} = signed;
+    result.push({id: 'checkpoint resolution unsigned ' + c.id, value: unsigned, cid: c.expected_unsigned_cid});
+    result.push({id: 'checkpoint resolution signed ' + c.id, value: signed, cid: c.expected_self_cid});
+  }
   const family = read('spec/spec-family.json');
   const sourceStates = read('portability/corpus/source-state-requirement.json');
   for (const c of sourceStates.cases) {

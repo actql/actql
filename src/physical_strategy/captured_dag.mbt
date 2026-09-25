@@ -38,6 +38,8 @@ struct CapturedDAG {
   mut managed_host_identity : Bool
   mut managed_identity_policy_sealed : Bool
   managed_selections : Array[@connector.CapabilityRegistration?]
+  mut activation_required : Bool
+  mut activation_grant : (Int, Int)?
 }
 
 ///|
@@ -106,6 +108,7 @@ pub(all) enum RunIssue {
   Compute(@connector.FixedComputeIssue)
   Implementation(Error)
   Physical(@resources.LedgerIssue)
+  ActivationNotAuthorized
 }
 
 ///|
@@ -649,6 +652,8 @@ fn open_checked_dag(
     managed_host_identity: false,
     managed_identity_policy_sealed: false,
     managed_selections: Array::make(count, None),
+    activation_required: false,
+    activation_grant: None,
   })
 }
 
@@ -1300,6 +1305,9 @@ pub fn execute_captured_synchronous_task(
   if next_captured_task(run) != Some(task) {
     return Err(NotReady)
   }
+  if !consume_task_activation(run, task) {
+    return Err(ActivationNotAuthorized)
+  }
   let request = @connector.fixed_compute_candidate_request(
     @connector.synchronous_compute_candidate(compute),
   )
@@ -1469,6 +1477,7 @@ pub fn captured_carrier_managed_task_output_matches(
 /// closing the caller-owned capture. In-flight asynchronous cleanup is separate.
 pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   run.stopped = true
+  run.activation_grant = None
   if run.running is Some((_, execution)) {
     // Revocation is not stop acknowledgement. The Host still owns cleanup.
     task_execution_cancel(execution)

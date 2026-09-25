@@ -132,6 +132,7 @@ test('standard Node execution uses the connector-free serial driver and exact re
   const driverImports = [...driver.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
     .map(match => match[1]).sort();
   assert.deepEqual(driverImports, [
+    './authorization-gate.mjs',
     './completed-run-publication.mjs',
     './durable-result-payload.mjs',
     './execution-sites.mjs',
@@ -142,7 +143,7 @@ test('standard Node execution uses the connector-free serial driver and exact re
   assert.match(driver, /installed\.get\(core\.registration\(task\)\)/);
   assert.match(driver, /core\.completed\(setup, index\)/);
   assert.match(entry,
-    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*\)/u);
+    /runInstalledStrategy\(\s*setup,\s*core,\s*installed,\s*signal,\s*observeCompletion,\s*configurations\.executionSitePolicy,\s*publication === undefined[\s\S]*?prepareCompletedEffectFreeRunPublication\([\s\S]*?\),\s*authorization,\s*\)/u);
   assert.match(entry, /const observeCompletion = completionObserver\(observer\)/);
   assert(entry.indexOf('completionObserver(observer)') < entry.indexOf('await'));
   assert.doesNotMatch(entry, /strategyHostNative|runResidentStrategyHostCompute|runStrategyHostCompute/);

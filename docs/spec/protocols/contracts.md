@@ -864,8 +864,10 @@ complete resolved mapping evidence as
 `resolved_mapping_contract_cid`. The canonical resolved contract contains its
 version, mapping and target references, connector-manifest and resource
 identity, target-schema identity, complete target schema and nullability,
-primary identity, writable fields, conversions, permission rules, required
-permissions, and mapping minimum approval. When no external schema reference exists,
+primary identity, writable fields, conversions, permission rules, and required
+permissions. It carries no approval minimum: permission rules are exact
+technical provider requirements, not execution-account grants or approval
+policy. When no external schema reference exists,
 `target_schema_identity` is the canonical CID of the complete resolved target
 field contract. Changing any member changes the CID and therefore the effect
 preview identity. The 0.1 resolved body uses the closed
@@ -970,7 +972,7 @@ A command resolves to a canonical `actql.command_contract/0.1` containing:
 command_id, version, connector_id,
 target {resource_kind, cardinality, max_items},
 input_schema and closed input_contract, output_schema, permissions,
-minimum_approval, idempotency {support, key_schema, retention}, preview strength,
+idempotency {support, key_schema, retention}, preview strength,
 reversibility, atomicity, outcome, reconciliation, cancellation, contract_cid
 ```
 
@@ -1412,16 +1414,17 @@ A published checked Plan summary MUST report:
   consumption strengthens it to authority-evidence retention;
 - the public acquisition scope and logical item bound for every typed external
   boundary; and
-- statically required, contract-required, and policy-dependent Checkpoint
-  reasons.
+- policy-dependent Checkpoint reasons; Effect Set member count alone is not a
+  Checkpoint reason, and Connector contracts declare no approval minimum.
 
 <!-- requirement-block: diagnostic-profiles.for-each-named-effect-set-member-it-must-additionally-report -->
 For each named Effect Set member, it MUST additionally report its name,
 `effect_kind`, resolved
 target, whether authority was resolved or deferred to preview, write fields,
 exact required permissions when known, the effective item limit, any author
-guard and its binding status, the resolved-limit CID, contract minimum,
-resolved approval policy, and `executed: false`. The effective limit is not an
+guard and its binding status, the resolved-limit CID, and `executed: false`.
+Execution-account routing is evaluated at the protected boundary, not reported
+as a checked approval policy. The effective limit is not an
 inferred author guard ([Author guards, resolved limits, and Plan facts](../language.md#resolved-limits)). Mapping and Connector contract bodies,
 bound requests, idempotency material, and private parameter-derived literals
 remain in the private Plan Document. This public summary is a normative
@@ -1506,8 +1509,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_ref sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/contract_envelope sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/source_view sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:1d4f0afc13fe2fb73b193d377cf7f42729f80f8438076f31bcb80f951c8eff01
-../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:877f1571d0ec91367c8ea53f39e9692a6b34fa788334a748f9f878bcefc004a3
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/command_contract sha256:d0d694427bd1ca9fede3fca5f2c490ca024c7763b3caf4165d8d5ba130f8f1ba
+../../../spec/contracts/actql-protocol-schemas.json#/schemas/connector_catalog sha256:1ff8228ce7e75a9493e201a8991845d42a989e55a2f6e536b15461610a6ffaec
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/lock sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
@@ -1517,7 +1520,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:18640f4455f83a54ef5c7b89b08d65456d0b9de28765badb8ab1f38af0c68e3a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9

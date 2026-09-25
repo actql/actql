@@ -10,6 +10,7 @@ import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeAcquisition } from '../native-acquisition.mjs';
 import { runBroadAcquisition } from '../broad-acquisition.mjs';
 import { matchesSourceAcquisition, releaseSourceAcquisition } from '../source-acquisition.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -74,7 +75,7 @@ test('generated native acquisition awaits validation on the same read view and c
       await connection.run('CREATE TABLE records (id DOUBLE, amount DOUBLE)');
       await connection.run('INSERT INTO records VALUES (3, 30), (1, NULL), (2, 20)');
     } finally { connection.closeSync(); instance.closeSync(); }
-    const grant = await authorizeLocalDatabase(path);
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const good = receiver(commands);
     const accountingEvents = [];
     let charged = 0;
@@ -100,7 +101,7 @@ test('generated native acquisition awaits validation on the same read view and c
       + result.value.native.transport.transportBytes); // Metadata is also charged.
     assert.equal(matchesSourceAcquisition(result, grant, good.port, result.value.readView), true);
     assert.equal(matchesSourceAcquisition({ ...result }, grant, good.port, result.value.readView), false);
-    assert.equal(matchesSourceAcquisition(result, await authorizeLocalDatabase(path), good.port, result.value.readView), false);
+    assert.equal(matchesSourceAcquisition(result, await authorizeLocalDatabase(path, fixtureSourceAccess), good.port, result.value.readView), false);
     assert.equal(matchesSourceAcquisition(result, grant, { ...good.port }, result.value.readView), false);
     assert.equal(matchesSourceAcquisition(result, grant, good.port, Object.freeze({})), false);
     assert.deepEqual(good.received.validation_scan[0].columns, [
@@ -206,7 +207,7 @@ test('generated native acquisition awaits validation on the same read view and c
     try { await emptyConnection.run('CREATE TABLE records (id DOUBLE, amount DOUBLE)'); }
     finally { emptyConnection.closeSync(); emptyDB.closeSync(); }
     const empty = receiver(commands);
-    const emptyResult = await runNativeAcquisition(await authorizeLocalDatabase(emptyPath), empty.port, limits);
+    const emptyResult = await runNativeAcquisition(await authorizeLocalDatabase(emptyPath, fixtureSourceAccess), empty.port, limits);
     assert.equal(emptyResult.value.validation.transport.rows, 0);
     assert.equal(emptyResult.value.native.transport.rows, 0);
     assert(Number.isFinite(emptyResult.value.diagnostics.validationMilliseconds));
