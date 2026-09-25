@@ -72,6 +72,8 @@ export async function observeSalesforceSingleTarget({
     body: response.body, record,
     versionCid: record === undefined ? undefined :
       moon.salesforceTargetObservationVersionCid(record),
+    beforeWire: record === undefined ? undefined :
+      moon.salesforceTargetObservationBeforeValueWire(record),
   });
 }
 

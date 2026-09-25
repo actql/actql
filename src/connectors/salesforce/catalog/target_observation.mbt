@@ -21,6 +21,7 @@ pub(all) enum TargetObservationIssue {
 pub struct TargetObservation {
   version_cid : String
   response_sha256 : String
+  before_value_wire : String
 }
 
 ///|
@@ -31,6 +32,15 @@ pub fn target_observation_version_cid(value : TargetObservation) -> String {
 ///|
 pub fn target_observation_response_sha256(value : TargetObservation) -> String {
   value.response_sha256
+}
+
+///|
+/// Return the canonical, typed projection of the observed writable fields.
+/// The full HTTP response remains physical evidence, not a Preview value.
+pub fn target_observation_before_value_wire(
+  value : TargetObservation,
+) -> String {
+  value.before_value_wire
 }
 
 ///|
@@ -97,6 +107,39 @@ pub fn prepare_target_observation(
       return Err(InvalidRecord)
     }
   }
+  let ordered = request.projection.fields.copy()
+  ordered.sort_by((left, right) => {
+    @canonical.compare_utf16(left.name, right.name)
+  })
+  let output = @encode.writer(
+    limits.max_bytes,
+    limits.max_nodes,
+    limits.max_depth,
+  ) catch {
+    _ => return Err(CapacityExceeded)
+  }
+  @encode.begin_object(output) catch {
+    _ => return Err(CapacityExceeded)
+  }
+  for field in ordered {
+    guard @decode.lookup(object, field.name) is Some(cursor) else {
+      return Err(InvalidRecord)
+    }
+    @encode.key(output, field.name) catch {
+      _ => return Err(CapacityExceeded)
+    }
+    match emit_write_cell(output, cursor, field) {
+      Ok(_) => ()
+      Err(BudgetExceeded) => return Err(CapacityExceeded)
+      Err(_) => return Err(InvalidRecord)
+    }
+  }
+  @encode.end_object(output) catch {
+    _ => return Err(CapacityExceeded)
+  }
+  let before_value_wire = @encode.finish(output) catch {
+    _ => return Err(CapacityExceeded)
+  }
   let observed_target = match request.projection.operation {
     WriteUpdateById => RecordId(record_id)
     WriteUpsertByExternalId(name) => {
@@ -157,5 +200,5 @@ pub fn prepare_target_observation(
     Ok(value) => value
     Err(_) => return Err(CapacityExceeded)
   }
-  Ok({ version_cid, response_sha256, })
+  Ok({ version_cid, response_sha256, before_value_wire, })
 }

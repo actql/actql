@@ -199,6 +199,8 @@ pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteReque
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_target_observation_before_value_wire(@catalog.TargetObservation) -> String
+
 pub fn salesforce_target_observation_response_sha256(@catalog.TargetObservation) -> String
 
 pub fn salesforce_target_observation_version_cid(@catalog.TargetObservation) -> String

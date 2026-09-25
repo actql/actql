@@ -326,6 +326,14 @@ pub fn salesforce_target_observation_version_cid(
 }
 
 ///|
+#export_name("salesforceTargetObservationBeforeValueWire")
+pub fn salesforce_target_observation_before_value_wire(
+  value : @catalog.TargetObservation,
+) -> String {
+  @catalog.target_observation_before_value_wire(value)
+}
+
+///|
 #export_name("salesforceTargetObservationResponseSha256")
 pub fn salesforce_target_observation_response_sha256(
   value : @catalog.TargetObservation,

@@ -602,6 +602,8 @@ test('Site reads the exact prospective target with separate read authority',
       Id: 'a00123456789012', External_Key__c: 'key-1',
     });
     assert.match(observed.versionCid, /^sha256:[0-9a-f]{64}$/);
+    assert.equal(observed.beforeWire,
+      '{"External_Key__c":"key-1"}');
     assert.equal(observed.versionCid,
       salesforceMoon.salesforceTargetObservationVersionCid(observed.record));
     const target = checked(
@@ -670,6 +672,9 @@ test('target read cannot turn absence or a foreign record into a guard',
       {targetStatus: 200, targetResponse: JSON.stringify({
         Id: 'a00123456789012',
       }), expected: 'incomplete'},
+      {targetStatus: 200, targetResponse: JSON.stringify({
+        Id: 'a00123456789012', External_Key__c: 7,
+      }), expected: 'wrong-field-type'},
     ]) {
       await t.test(scenario.expected, async child => {
         const setup = await fixture(child, scenario);
@@ -704,6 +709,7 @@ test('target read cannot turn absence or a foreign record into a guard',
           assert.equal(observed.statusCode, 404);
           assert.equal(observed.record, undefined);
           assert.equal(observed.versionCid, undefined);
+          assert.equal(observed.beforeWire, undefined);
           await assert.rejects(observeSalesforceTargetSet({
             moon: salesforceMoon, members: [{requests: [update],
               currentCatalog: catalog.observation,

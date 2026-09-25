@@ -162,6 +162,8 @@ pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
 
+pub fn target_observation_before_value_wire(TargetObservation) -> String
+
 pub fn target_observation_response_sha256(TargetObservation) -> String
 
 pub fn target_observation_version_cid(TargetObservation) -> String
@@ -498,6 +500,7 @@ pub struct SingleWriteRequest {
 pub struct TargetObservation {
   version_cid : String
   response_sha256 : String
+  before_value_wire : String
 }
 
 pub(all) enum TargetObservationIssue {
