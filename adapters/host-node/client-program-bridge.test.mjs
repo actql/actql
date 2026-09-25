@@ -69,6 +69,86 @@ async function checkedFixture() {
   return {document, environment};
 }
 
+test('checked acquired source and downstream task emit their input ports',
+  async () => {
+    const source = await readFile(new URL(
+      '../../src/query_integration/query_amount_catalog_wbtest.mbt',
+      import.meta.url), 'utf8');
+    const catalog = source.slice(source.indexOf(
+      'fn query_amount_nullable_catalog')).match(
+      /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+    assert.ok(catalog);
+    const environment = moon.clientProgramCheckEnvironment(
+      JSON.parse(catalog[1]), catalog[2], false, false, true,
+      false, false, false, false);
+    assert.ok(environment);
+    const [document, parameters] = await Promise.all([
+      readFile(new URL(
+        '../connectors/duckdb/node/examples/program.json', import.meta.url),
+      'utf8'),
+      readFile(new URL(
+        '../connectors/duckdb/node/examples/parameters.json', import.meta.url),
+      'utf8'),
+    ]);
+    const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
+      document, 'json', environment, parameters);
+    const prepared = moon.clientProgramPreparationReady(outcome);
+    assert.ok(prepared,
+      String(moon.clientProgramPreparationIssueCode(outcome)));
+    const acquired = JSON.parse(checked(
+      moon.clientProgramTaskPipelineWire(prepared, 0)));
+    const downstream = JSON.parse(checked(
+      moon.clientProgramTaskPipelineWire(prepared, 1)));
+    assert.deepEqual(acquired.sources, {remote: {sort: 'relation'}});
+    assert.deepEqual(acquired.steps.map(step => step.op),
+      ['REL.where', 'REL.select']);
+    assert.deepEqual(downstream.sources, {x: {sort: 'relation'}});
+    assert.deepEqual(downstream.steps.map(step => step.op),
+      ['REL.where', 'REL.select']);
+    const acquiredNode = JSON.parse(moon.clientProgramTaskFragmentWire(
+      checked(moon.clientProgramIssueTaskFragment(prepared, 0))));
+    const downstreamNode = JSON.parse(moon.clientProgramTaskFragmentWire(
+      checked(moon.clientProgramIssueTaskFragment(prepared, 1))));
+    assert.equal(acquiredNode.kind, 'aoa_fragment');
+    assert.equal(acquiredNode.pipeline.output, 'select_1');
+    assert.equal(downstreamNode.pipeline.output, 'select_1');
+    assert.notEqual(acquiredNode.node_id, downstreamNode.node_id);
+    assert.notEqual(acquiredNode.input_contracts.remote,
+      acquiredNode.output_contracts[acquiredNode.pipeline.output]);
+    assert.equal(downstreamNode.input_contracts.x,
+      acquiredNode.output_contracts[acquiredNode.pipeline.output]);
+    const resultNode = JSON.parse(moon.clientProgramTaskFragmentWire(
+      checked(moon.clientProgramIssueTaskFragment(prepared, 2))));
+    const root = JSON.parse(moon.clientProgramDirectValuesResultRootWire(
+      checked(moon.clientProgramIssueDirectTaskResultRoot(prepared, 0))));
+    assert.deepEqual(root.ref, {
+      node_id: resultNode.node_id, port: resultNode.pipeline.output,
+    });
+    const graph = JSON.parse(moon.clientProgramTaskPlanGraphWire(
+      checked(moon.clientProgramIssueTaskPlanGraph(prepared))));
+    assert.deepEqual(graph.nodes.map(node => node.node_id),
+      ['task_0', 'task_1', 'task_2', 'task_3']);
+    assert.deepEqual(graph.data_edges.map(edge => edge.from.node_id),
+      ['task_0', 'task_0', 'task_1']);
+    assert.deepEqual(graph.data_edges.map(edge => edge.to.node_id),
+      ['task_1', 'task_2', 'task_3']);
+    assert.deepEqual(graph.root_refs[0], root);
+    for (const edge of graph.data_edges) {
+      const from = graph.nodes.find(node => node.node_id === edge.from.node_id);
+      const to = graph.nodes.find(node => node.node_id === edge.to.node_id);
+      assert.equal(edge.carrier, 'relation');
+      assert.equal(edge.contract_cid, from.output_contracts[edge.from.port]);
+      assert.equal(edge.contract_cid, to.input_contracts[edge.to.port]);
+    }
+    const graphWire = JSON.stringify(graph);
+    assert.equal(moon.clientProgramTaskPlanGraphWire(checked(
+      moon.clientProgramAdmitTaskPlanGraph(prepared, graphWire))), graphWire);
+    assert.throws(() => checked(moon.clientProgramAdmitTaskPlanGraph(
+      prepared, graphWire.replace('task_0', 'task_7'))));
+    assert.throws(() => checked(
+      moon.clientProgramTaskPipelineWire(prepared, 4)));
+  });
+
 test('private Plan binding uses the escaped checked Unit Result name', async () => {
   const {document, environment} = await checkedFixture();
   const renamed = JSON.parse(document);

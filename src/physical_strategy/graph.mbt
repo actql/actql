@@ -889,6 +889,21 @@ pub fn data_edge_operation_input(value : DataEdge) -> (Int, Int)? {
 }
 
 ///|
+pub fn data_edge_producer(value : DataEdge) -> Int {
+  value.producer
+}
+
+///|
+pub fn data_edge_consumer(value : DataEdge) -> Int {
+  value.consumer
+}
+
+///|
+pub fn data_edge_input(value : DataEdge) -> Int {
+  value.input
+}
+
+///|
 pub fn graph_control_count(graph : CheckedDAG) -> Int {
   graph.control.length()
 }

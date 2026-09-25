@@ -1013,6 +1013,95 @@ pub fn client_program_compile_local_values(
 }
 
 ///|
+/// Host-internal projection of one checked task's AoA pipeline. It does not
+/// authorize source acquisition or stand in for a complete Executable Plan.
+#export_name("clientProgramTaskPipelineWire")
+pub fn client_program_task_pipeline_wire(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[String, @publication_host.ClientTaskPipelineIssue] {
+  @publication_host.emit_prepared_client_task_pipeline(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramIssueTaskFragment")
+pub fn client_program_issue_task_fragment(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+) -> Result[
+  @publication_host.ClientTaskFragmentNode,
+  @publication_host.ClientTaskFragmentIssue,
+] {
+  @publication_host.issue_prepared_client_task_fragment(
+    prepared,
+    task,
+    client_local_sequence_limits(),
+    1000000,
+    100000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramTaskFragmentWire")
+pub fn client_program_task_fragment_wire(
+  value : @publication_host.ClientTaskFragmentNode,
+) -> String {
+  @publication_host.client_task_fragment_wire(value)
+}
+
+///|
+#export_name("clientProgramIssueTaskPlanGraph")
+pub fn client_program_issue_task_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientTaskPlanGraph,
+  @publication_host.ClientTaskPlanGraphIssue,
+] {
+  @publication_host.issue_prepared_client_task_plan_graph(
+    prepared,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramTaskPlanGraphWire")
+pub fn client_program_task_plan_graph_wire(
+  value : @publication_host.ClientTaskPlanGraph,
+) -> String {
+  @publication_host.client_task_plan_graph_wire(value)
+}
+
+///|
+#export_name("clientProgramAdmitTaskPlanGraph")
+pub fn client_program_admit_task_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+  saved_wire : String,
+) -> Result[
+  @publication_host.ClientTaskPlanGraph,
+  @publication_host.ClientTaskPlanGraphAdmissionIssue,
+] {
+  @publication_host.admit_prepared_client_task_plan_graph(
+    prepared,
+    saved_wire,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 #export_name("clientProgramCompilationExecutablePlanWire")
 pub fn client_program_compilation_executable_plan_wire(
   value : @publication_host.ClientValuesCompilation,
@@ -1176,6 +1265,25 @@ pub fn client_program_issue_direct_values_result_root(
   @publication_host.ClientDirectResultRootIssue,
 ] {
   @publication_host.issue_prepared_client_direct_values_result_root(
+    prepared,
+    result,
+    client_local_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramIssueDirectTaskResultRoot")
+pub fn client_program_issue_direct_task_result_root(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+) -> Result[
+  @publication_host.ClientDirectResultRoot,
+  @publication_host.ClientDirectResultRootIssue,
+] {
+  @publication_host.issue_prepared_client_direct_task_result_root(
     prepared,
     result,
     client_local_sequence_limits(),

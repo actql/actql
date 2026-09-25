@@ -231,7 +231,13 @@ pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> 
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
 
+pub fn data_edge_consumer(DataEdge) -> Int
+
+pub fn data_edge_input(DataEdge) -> Int
+
 pub fn data_edge_operation_input(DataEdge) -> (Int, Int)?
+
+pub fn data_edge_producer(DataEdge) -> Int
 
 pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 

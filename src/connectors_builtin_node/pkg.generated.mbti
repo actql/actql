@@ -52,6 +52,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
+pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
+
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
@@ -80,6 +82,8 @@ pub fn client_program_direct_values_result_root_wire(@run_publication_host.Clien
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
+
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
@@ -101,6 +105,10 @@ pub fn client_program_issue_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanIssue]
 
 pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientResultRowContractIdentity, @run_publication_host.ClientResultRowContractIssue]
+
+pub fn client_program_issue_task_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
+
+pub fn client_program_issue_task_plan_graph(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphIssue]
 
 pub fn client_program_issue_unpublished_run_state(String, String, Array[String], Bool, Bool) -> String?
 
@@ -197,6 +205,12 @@ pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram
 pub fn client_program_source_free_input_intent_cid() -> String
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
+pub fn client_program_task_fragment_wire(@run_publication_host.ClientTaskFragmentNode) -> String
+
+pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskPipelineIssue]
+
+pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
 
 pub fn client_request_admit_record(String, String, String, String, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 

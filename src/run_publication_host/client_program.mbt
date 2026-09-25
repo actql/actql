@@ -323,6 +323,79 @@ pub fn emit_prepared_client_task_aoa_steps(
 }
 
 ///|
+pub(all) enum ClientTaskPipelineIssue {
+  MissingTask
+  MissingOutput
+  UnsupportedCarrier
+  Sequence(@lower.SequenceIssue)
+  Encoding
+}
+
+///|
+/// Emit the checked AoA pipeline of one task, including its declared input
+/// ports. A source input remains an input port; this does not claim that its
+/// physical acquisition, barrier, or Run observation has been admitted.
+pub fn emit_prepared_client_task_pipeline(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientTaskPipelineIssue] {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingTask)
+  }
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  let count = @pipeline.step_count(pipeline)
+  guard count > 0 &&
+    @lower.node_at(@lower.bound_preparation(owner), count - 1) is Some(output) else {
+    return Err(MissingOutput)
+  }
+  let sequence = match @lower.prepare_sequence(owner, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Sequence(issue))
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "output")
+    @encode.string_value(writer, @lower.node_id(output))
+    @encode.key(writer, "sources")
+    @encode.begin_object(writer)
+    for index in 0..<@pipeline.input_count(pipeline) {
+      guard @pipeline.input_at(pipeline, index) is Some((name, carrier)) else {
+        return Err(Encoding)
+      }
+      if @carrier.relation_rows(carrier) is None {
+        return Err(UnsupportedCarrier)
+      }
+      @encode.key(writer, name)
+      @encode.begin_object(writer)
+      @encode.key(writer, "sort")
+      @encode.string_value(writer, "relation")
+      @encode.end_object(writer)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "steps")
+    @lower.emit_sequence_steps(sequence, writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "aoa-pipeline/0.1")
+    @encode.end_object(writer)
+    let raw = @encode.finish(writer)
+    guard parse_plan_identity_value(raw, max_wire_bytes, max_nodes, max_depth)
+      is Some(body) else {
+      return Err(Encoding)
+    }
+    Ok(@canonical.stringify_value(body, max_wire_bytes, max_nodes, max_depth))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
 pub(all) enum ClientValuesPipelineIssue {
   MissingTask
   Sequence(@lower.SequenceIssue)

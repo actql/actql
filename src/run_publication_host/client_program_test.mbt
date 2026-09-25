@@ -646,6 +646,10 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     pipeline, "{\"output\":\"values_0\",\"sources\":{},\"steps\":[{\"id\":\"values_0\",\"in\":[],\"op\":\"REL.values\",\"params\":{\"rows\":[{\"id\":1},{\"id\":2}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"number\"}}}}],\"version\":\"aoa-pipeline/0.1\"}",
   )
+  assert_eq(
+    emit_prepared_client_task_pipeline(prepared, 0, aoa_limits, 10000, 1000, 20).unwrap(),
+    pipeline,
+  )
   let aoa = issue_prepared_client_values_aoa_identity(
     prepared, 0, aoa_limits, 10000, 1000, 20,
   ).unwrap()

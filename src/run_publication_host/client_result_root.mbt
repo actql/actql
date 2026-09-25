@@ -15,6 +15,7 @@ pub(all) enum ClientDirectResultRootIssue {
   InvalidLimits
   MissingResult
   Fragment(ClientValuesFragmentIssue)
+  TaskFragment(ClientTaskFragmentIssue)
   ResultPlan(ClientResultPlanIssue)
   RequiresResultTransformation
   Encoding
@@ -66,6 +67,76 @@ pub fn issue_prepared_client_direct_values_result_root(
     return Err(InvalidLimits)
   }
   let graph = value.graph
+  guard @strategy.graph_result_task(graph, result) is Some(task) else {
+    return Err(MissingResult)
+  }
+  let fragment = match
+    issue_prepared_client_values_fragment(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(fragment) => fragment
+    Err(issue) => return Err(Fragment(issue))
+  }
+  issue_prepared_client_direct_result_root_for_output(
+    value,
+    result,
+    client_values_fragment_node_id(fragment),
+    client_values_fragment_node_id(fragment),
+    client_values_fragment_output_contract_cid(fragment),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Bind a checked Result to any checked task output with no remaining
+/// projection or ordering operation.
+pub fn issue_prepared_client_direct_task_result_root(
+  value : PreparedClientProgram,
+  result : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  guard @strategy.graph_result_task(value.graph, result) is Some(task) else {
+    return Err(MissingResult)
+  }
+  let fragment = match
+    issue_prepared_client_task_fragment(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(fragment) => fragment
+    Err(issue) => return Err(TaskFragment(issue))
+  }
+  issue_prepared_client_direct_result_root_for_output(
+    value,
+    result,
+    client_task_fragment_node_id(fragment),
+    client_task_fragment_output_port(fragment),
+    client_task_fragment_output_contract_cid(fragment),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_prepared_client_direct_result_root_for_output(
+  value : PreparedClientProgram,
+  result : Int,
+  output_node_id : String,
+  output_port : String,
+  output_contract_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue] {
+  let graph = value.graph
   guard @strategy.graph_result_task(graph, result) is Some(task) &&
     @strategy.graph_result_occurrence(graph, result) is Some(occurrence) else {
     return Err(MissingResult)
@@ -101,13 +172,6 @@ pub fn issue_prepared_client_direct_values_result_root(
       return Err(RequiresResultTransformation)
     }
   }
-  let fragment = match
-    issue_prepared_client_values_fragment(
-      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(fragment) => fragment
-    Err(issue) => return Err(Fragment(issue))
-  }
   let plan = match
     issue_prepared_client_result_plan(
       value, result, max_wire_bytes, max_nodes, max_depth,
@@ -115,12 +179,11 @@ pub fn issue_prepared_client_direct_values_result_root(
     Ok(plan) => plan
     Err(issue) => return Err(ResultPlan(issue))
   }
-  if client_values_fragment_output_contract_cid(fragment) !=
-    client_result_plan_row_contract_cid(plan) {
+  if output_contract_cid != client_result_plan_row_contract_cid(plan) {
     return Err(RequiresResultTransformation)
   }
   let result_name = client_result_plan_name(plan)
-  let node_id = client_values_fragment_node_id(fragment)
+  let node_id = output_node_id
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -148,7 +211,7 @@ pub fn issue_prepared_client_direct_values_result_root(
   @encode.key(writer, "port") catch {
     _ => return Err(Encoding)
   }
-  @encode.string_value(writer, node_id) catch {
+  @encode.string_value(writer, output_port) catch {
     _ => return Err(Encoding)
   }
   @encode.end_object(writer) catch {
@@ -169,7 +232,7 @@ pub fn issue_prepared_client_direct_values_result_root(
     result_name,
     result_plan_cid: client_result_plan_cid(plan),
     node_id,
-    port: node_id,
+    port: output_port,
     row_contract_cid: client_result_plan_row_contract_cid(plan),
   })
 }

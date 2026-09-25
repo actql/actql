@@ -38,6 +38,10 @@ pub fn admit_prepared_client_result_plan(PreparedClientProgram, Int, String, Int
 
 pub fn admit_prepared_client_run_publication(PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
+pub fn admit_prepared_client_task_fragment(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentAdmissionIssue]
+
+pub fn admit_prepared_client_task_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphAdmissionIssue]
+
 pub fn admit_prepared_client_values_aoa_identity(PreparedClientProgram, Int, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[Unit, ClientValuesAoAAdmissionIssue]
 
 pub fn admit_prepared_client_values_compilation(PreparedClientProgram, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientValuesCompilation, ClientValuesCompilationAdmissionIssue]
@@ -120,6 +124,18 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_task_fragment_logical_cid(ClientTaskFragmentNode) -> String
+
+pub fn client_task_fragment_node_id(ClientTaskFragmentNode) -> String
+
+pub fn client_task_fragment_output_contract_cid(ClientTaskFragmentNode) -> String
+
+pub fn client_task_fragment_output_port(ClientTaskFragmentNode) -> String
+
+pub fn client_task_fragment_wire(ClientTaskFragmentNode) -> String
+
+pub fn client_task_plan_graph_wire(ClientTaskPlanGraph) -> String
+
 pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
 pub fn client_values_aoa_identity_wire(ClientValuesAoAIdentity) -> String
@@ -176,11 +192,15 @@ pub fn emit_prepared_client_stage_semantics(PreparedClientProgram, Int, Int, Int
 
 pub fn emit_prepared_client_task_aoa_steps(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskAoAStepsIssue]
 
+pub fn emit_prepared_client_task_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientTaskPipelineIssue]
+
 pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesPipelineIssue]
 
 pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
+
+pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
@@ -193,6 +213,10 @@ pub fn issue_prepared_client_publication_witnesses(PreparedClientProgram, Int, I
 pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue]
 
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
+
+pub fn issue_prepared_client_task_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
+
+pub fn issue_prepared_client_task_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
 
 pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue]
 
@@ -293,6 +317,7 @@ pub(all) enum ClientDirectResultRootIssue {
   InvalidLimits
   MissingResult
   Fragment(ClientValuesFragmentIssue)
+  TaskFragment(ClientTaskFragmentIssue)
   ResultPlan(ClientResultPlanIssue)
   RequiresResultTransformation
   Encoding
@@ -513,6 +538,56 @@ pub(all) enum ClientRunStartIssue {
 pub(all) enum ClientTaskAoAStepsIssue {
   MissingTask
   Sequence(@lowering_relation.SequenceIssue)
+  Encoding
+}
+
+pub(all) enum ClientTaskFragmentAdmissionIssue {
+  Issue(ClientTaskFragmentIssue)
+  MismatchedNode
+}
+
+pub(all) enum ClientTaskFragmentIssue {
+  InvalidLimits
+  Pipeline(ClientTaskPipelineIssue)
+  MissingTask
+  MissingOutput
+  UnsupportedCarrier
+  UnrepresentableContract
+  Encoding
+}
+
+pub struct ClientTaskFragmentNode {
+  wire : String
+  node_id : String
+  output_port : String
+  logical_cid : String
+  output_contract_cid : String
+}
+
+pub(all) enum ClientTaskPipelineIssue {
+  MissingTask
+  MissingOutput
+  UnsupportedCarrier
+  Sequence(@lowering_relation.SequenceIssue)
+  Encoding
+}
+
+pub struct ClientTaskPlanGraph {
+  wire : String
+}
+
+pub(all) enum ClientTaskPlanGraphAdmissionIssue {
+  Issue(ClientTaskPlanGraphIssue)
+  MismatchedGraph
+}
+
+pub(all) enum ClientTaskPlanGraphIssue {
+  InvalidLimits
+  UnsupportedGraph
+  Fragment(ClientTaskFragmentIssue)
+  Root(ClientDirectResultRootIssue)
+  InvalidEdge
+  ContractMismatch
   Encoding
 }
 
