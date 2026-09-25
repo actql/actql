@@ -1311,7 +1311,7 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_false(@strategy.captured_task_completed(run, 0))
   assert_true(@strategy.captured_task_target(run, 0) is Some(_))
   let registry = @connector.prepare_capability_registry(
-    [{ name: "local", acquisition: false, fixed_compute: true, }],
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
     1,
     100,
   ).unwrap()

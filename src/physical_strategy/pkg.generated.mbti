@@ -303,13 +303,9 @@ pub fn next_captured_task(CapturedDAG) -> Int?
 
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
-pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
-
-pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
+pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
-
-pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
@@ -322,6 +318,10 @@ pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedR
 pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedResultOutputSet, RunIssue]
 
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
+
+pub fn prepare_bounded_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry) -> Result[StrategyChoiceSet, SearchIssue]
 
 pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTable]) -> Result[T, RunIssue]) -> Result[T, RunIssue]
 

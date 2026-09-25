@@ -324,7 +324,9 @@ pub fn prepare_checked_dag(
   if @checked.checked_program_has_effects(program) {
     return Err(EffectGraphOwnerRequired)
   }
-  prepare_checked_dag_owned(program, owners, max_tasks, max_work)
+  prepare_checked_dag_owned(
+    program, owners, max_tasks, max_work, source_free_root~,
+  )
 }
 
 ///|
@@ -335,6 +337,7 @@ fn prepare_checked_dag_owned(
   owners : Array[@lower.BoundPrepared],
   max_tasks : Int,
   max_work : Int,
+  source_free_root? : Bool = false,
 ) -> Result[CheckedDAG, GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
