@@ -344,6 +344,61 @@ export function openEffectLedger({
         moon.clientProgramEffectPreviewLedgerIdentity(captured),
         members, maxWork);
     },
+    // After whole-set apply admission, retain every exact row intent before
+    // the first physical send. A prepared head is still unattempted; this
+    // atomic batch does not claim a dispatch or authorize a retry.
+    prepareSetIntents(admittedPreview, members, maxWork) {
+      ledger.frontierFromDurableHeads(admittedPreview, members, maxWork);
+      const claims = members.flatMap(member => member.claims);
+      const locators = claims.map(claim =>
+        control.logicalItemLocatorCid(claim.locator));
+      for (let retry = 0; retry < 8; retry++) {
+        const snapshot = physical.currentSnapshot(locators);
+        const operations = [];
+        for (let index = 0; index < claims.length; index++) {
+          const claim = claims[index];
+          const stored = validateStored(snapshot[index]);
+          if (stored !== undefined &&
+              !control.ledgerEntryMatchesBasis(stored.entry, claim.basis)) {
+            fail('EffectLedgerIntentConflict');
+          }
+          const action = control.recoveryActionFromEntry(
+            claim.locator, claim.intentFingerprintCid, claim.key,
+            claim.canonicalRequestCid, stored?.entry, false);
+          if (action === 0) {
+            const prepared = control.issuePreparedLedgerEntry(
+              claim.basis, maxEntryBytes, maxNodes, maxDepth);
+            if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
+                !control.ledgerEntryFollows(undefined, prepared)) {
+              fail('EffectLedgerIntentConflict');
+            }
+            operations.push({
+              logicalRequestScopeCid: scopeCid,
+              logicalItemLocatorCid: locators[index],
+              expectedRevision: 0, expectedEntryCid: null,
+              entries: [{entryCid: control.ledgerEntryCid(prepared),
+                entryJson: control.ledgerEntryWire(prepared)}],
+            });
+          } else if (action < 1 || action > 7) {
+            fail('EffectLedgerIntentConflict');
+          }
+        }
+        if (operations.length === 0) return 0;
+        if (physical.appendBatch(operations).created) {
+          return operations.length;
+        }
+      }
+      fail('EffectLedgerClaimContention');
+    },
+    prepareCapturedSetIntents(captured, members, maxWork) {
+      if (typeof moon.clientProgramEffectPreviewLedgerIdentity !==
+          'function' || !captured) {
+        fail('InvalidCapturedEffectProgress');
+      }
+      return ledger.prepareSetIntents(
+        moon.clientProgramEffectPreviewLedgerIdentity(captured),
+        members, maxWork);
+    },
     // Reconstruct only already-recorded claims after process loss. MoonBit
     // binds every locator, key and immutable basis to the admitted Preview;
     // SQLite supplies one atomic head snapshot. This is evidence read, not

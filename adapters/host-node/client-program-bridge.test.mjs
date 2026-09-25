@@ -2081,8 +2081,9 @@ test('owned update Plan matches approved rows and rejects altered intent',
         }), {code: 'EffectApplyDidNotAdvance'});
         for (const member of progressMembers) {
           for (const claim of member.claims) {
-            assert.equal(firstProgress.current(
-              effect.logicalItemLocatorCid(claim.locator)), undefined);
+            assert.equal(effect.ledgerEntryStateCode(
+              firstProgress.currentAdmitted(
+                effect.logicalItemLocatorCid(claim.locator))), 0);
           }
         }
         await assert.rejects(applyCapturedEffectSet({
@@ -3342,6 +3343,10 @@ test(`two-member captured Effect Run ${
         }), {code: 'MoonBitHostFailure'});
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
+        for (const claim of members.flatMap(member => member.claims)) {
+          assert.equal(ledger.current(effect.logicalItemLocatorCid(
+            claim.locator)), undefined);
+        }
         if (physical === 'salesforce-schema-drift') {
           assert.deepEqual(sites.map(site => site.seen.filter(item =>
             item.path.endsWith('/describe')).length), [2, 2]);
@@ -3367,6 +3372,13 @@ test(`two-member captured Effect Run ${
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
       const dispatchRow = async ({memberIndex, rowIndex, claim}) => {
           sent.push([memberIndex, rowIndex]);
+          if (sent.length === 1) {
+            for (const pending of members.flatMap(member => member.claims)) {
+              assert.equal(effect.ledgerEntryStateCode(
+                ledger.currentAdmitted(effect.logicalItemLocatorCid(
+                  pending.locator))), 0);
+            }
+          }
           if (siteRun) {
             const site = sites[memberIndex];
             if (collectionMode && memberIndex === 0) {

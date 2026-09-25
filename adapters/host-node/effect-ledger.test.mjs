@@ -185,6 +185,42 @@ function admittedProgressFixture(firstPolicy = 'continue') {
   return {admitted, members: claims.map(rows => ({claims: rows})), claims};
 }
 
+test('whole-set intents are durable and atomic before any dispatch',
+  async t => {
+    const root = await fixture(t);
+    const {admitted, members, claims} = admittedProgressFixture();
+    const limited = openEffectLedger({moon, root, authorityScopeCid,
+      callerRequestId: 'request-1', maxEntryBytes: 4096,
+      maxStoredBytes: 1500});
+    assert.throws(() => limited.prepareSetIntents(admitted, members, 100),
+      {code: 'EffectLedgerCapacityExceeded'});
+    for (const claim of claims.flat()) {
+      assert.equal(limited.current(effect.logicalItemLocatorCid(
+        claim.locator)), undefined);
+    }
+    limited.close();
+    const ledger = open(root);
+    assert.equal(ledger.prepareSetIntents(admitted, members, 100), 3);
+    for (const claim of claims.flat()) {
+      const head = ledger.currentAdmitted(effect.logicalItemLocatorCid(
+        claim.locator));
+      assert.equal(effect.ledgerEntryStateCode(head), 0);
+    }
+    ledger.close();
+    const restarted = open(root);
+    t.after(() => restarted.close());
+    assert.equal(restarted.prepareSetIntents(admitted, members, 100), 0);
+    const foreign = members.map((member, index) => index === 1
+      ? {claims: [{...member.claims[0], canonicalRequestCid: cid('e')}]}
+      : member);
+    assert.throws(() => restarted.prepareSetIntents(admitted, foreign, 100),
+      {code: 'EffectProgressBindingMismatch'});
+    for (const claim of claims.flat()) {
+      assert.equal(effect.ledgerEntryStateCode(restarted.currentAdmitted(
+        effect.logicalItemLocatorCid(claim.locator))), 0);
+    }
+  });
+
 test('saved response issues one exact terminal row Receipt before Ledger head',
   async t => {
     const root = await fixture(t);

@@ -15,6 +15,7 @@ export async function applyCapturedEffectSet({
 }) {
   if (!moon || !capturedInputs || !suppliedPreflight || !ledger ||
       typeof ledger.frontierFromCapturedHeads !== 'function' ||
+      typeof ledger.prepareCapturedSetIntents !== 'function' ||
       !Array.isArray(members) || members.length === 0 ||
       typeof dispatchRow !== 'function' ||
       (refreshGuardObservations !== undefined &&
@@ -73,6 +74,8 @@ export async function applyCapturedEffectSet({
   if (noReadyRows) {
     return Object.freeze({dispatched: 0, frontier: initialFrontier});
   }
+  ledger.prepareCapturedSetIntents(
+    capturedInputs, ownedMembers, maxFrontierWork);
   let dispatched = 0;
   for (;;) {
     signal?.throwIfAborted();
