@@ -72,6 +72,76 @@ fn accumulate_comparison_demand(
 }
 
 ///|
+/// Canonical per-value facts of one complete operand column.
+priv struct ComparisonDemandFacts {
+  rows : Int
+  bytes : Int
+  nodes : Int
+  null_rows : Int
+  value_bytes_bound : Int
+  depth : Int
+}
+
+///|
+/// The exact result of `accumulate_comparison_demand` over every operand of
+/// `facts` in order, applied to a fresh `state`: one work unit per operand plus
+/// one for the RHS (measured once, after operands only when rows exist), the
+/// same bytes and nodes, and the same null rule. Returns `false` without any
+/// change whenever some step of that fold could fail, because only the ordered
+/// fold can locate the first failing operand.
+fn apply_comparison_demand_facts(
+  state : ComparisonDemand,
+  budget : NativeValueBudget,
+  facts : ComparisonDemandFacts,
+  rhs : ParameterValue,
+) -> Bool {
+  guard state.rows == 0 &&
+    state.field_bytes == 0L &&
+    state.rhs_bytes is None &&
+    state.null_rows == 0 &&
+    facts.rows >= 0 &&
+    facts.bytes >= 0 &&
+    facts.nodes >= 0 &&
+    facts.null_rows >= 0 &&
+    facts.null_rows <= facts.rows else {
+    return false
+  }
+  if facts.rows == 0 {
+    // The ordered fold measures nothing and demands no RHS for no operands.
+    return true
+  }
+  if facts.value_bytes_bound > budget.guards.max_value_bytes ||
+    facts.depth > budget.depth ||
+    facts.rows >= budget.work ||
+    facts.bytes > budget.bytes ||
+    facts.nodes > budget.nodes {
+    return false
+  }
+  let remaining : NativeValueBudget = {
+    guards: budget.guards,
+    work: budget.work - facts.rows,
+    bytes: budget.bytes - facts.bytes,
+    nodes: budget.nodes - facts.nodes,
+    depth: budget.depth,
+  }
+  guard measure_demand_scalar(remaining, rhs) is Ok(rhs_bytes) else {
+    return false
+  }
+  budget.work = remaining.work
+  budget.bytes = remaining.bytes
+  budget.nodes = remaining.nodes
+  state.rows = facts.rows
+  state.field_bytes = facts.bytes.to_int64()
+  state.rhs_bytes = Some(rhs_bytes)
+  state.null_rows = if rhs is Null || rhs is Admitted(@admitted.Null) {
+    facts.rows
+  } else {
+    facts.null_rows
+  }
+  true
+}
+
+///|
 fn finish_comparison_demand(
   state : ComparisonDemand,
   true_rows : Int,

@@ -30,6 +30,7 @@ pub fn prepare_fixed_import_reused_demand_physical(
   metadata_work : Int,
 ) -> Result[PhysicalResult, FixedImportStreamIssue] {
   guard stream.values_reused &&
+    !stream.demand_facts_reused &&
     stream.demand is Some(demand) &&
     stream.demand_physical is None &&
     demand.state.rows == 0 else {
@@ -68,22 +69,20 @@ pub fn prepare_fixed_import_reused_demand_physical(
 ///|
 /// Discharge a new comparison demand from the canonical per-value facts of the
 /// same reused immutable material, instead of reading its one column again.
-/// This is the scanned rule's exact result: every operand is measured in the
-/// material's canonical encoding, the RHS once, and the same work, bytes and
-/// nodes are charged. When any limit could fail, the first failing operand must
-/// be located, so this returns `false` without change and the ordered scan runs.
+/// The result is the ordered scan's exact state (see
+/// `apply_comparison_demand_facts`). Once discharged, including for an empty
+/// read, neither a second discharge nor the ordered scan can be started.
 pub fn reuse_fixed_import_demand_measurement(
   stream : FixedImportStream,
 ) -> Bool {
   guard stream.values_reused &&
+    !stream.demand_facts_reused &&
     stream.demand is Some(demand) &&
     demand.issue is None &&
     demand.verified is None &&
     !demand.consumed &&
     stream.demand_physical is None &&
-    stream.demand_read_rows == 0 &&
-    demand.state.rows == 0 &&
-    demand.state.rhs_bytes is None else {
+    stream.demand_read_rows == 0 else {
     return false
   }
   guard @execution.retained_producer_scan_column_measurement(
@@ -94,41 +93,22 @@ pub fn reuse_fixed_import_demand_measurement(
     facts.rows == stream.rows else {
     return false
   }
-  let budget = demand.budget
-  if facts.rows == 0 {
-    // The scanned rule measures nothing and demands no RHS for an empty read.
-    return true
-  }
-  // One work unit per operand plus one for the RHS, as in the ordered scan.
-  if facts.value_bytes_bound > budget.guards.max_value_bytes ||
-    facts.depth > budget.depth ||
-    facts.rows >= budget.work ||
-    facts.bytes > budget.bytes ||
-    facts.nodes > budget.nodes {
+  if !apply_comparison_demand_facts(
+      demand.state,
+      demand.budget,
+      {
+        rows: facts.rows,
+        bytes: facts.bytes,
+        nodes: facts.nodes,
+        null_rows: facts.null_rows,
+        value_bytes_bound: facts.value_bytes_bound,
+        depth: facts.depth,
+      },
+      demand.rhs,
+    ) {
     return false
   }
-  let remaining : NativeValueBudget = {
-    guards: budget.guards,
-    work: budget.work - facts.rows,
-    bytes: budget.bytes - facts.bytes,
-    nodes: budget.nodes - facts.nodes,
-    depth: budget.depth,
-  }
-  guard measure_demand_scalar(remaining, demand.rhs) is Ok(rhs_bytes) else {
-    return false
-  }
-  budget.work = remaining.work
-  budget.bytes = remaining.bytes
-  budget.nodes = remaining.nodes
-  demand.state.rows = facts.rows
-  demand.state.field_bytes = facts.bytes.to_int64()
-  demand.state.rhs_bytes = Some(rhs_bytes)
-  demand.state.null_rows = if demand.rhs is Null ||
-    demand.rhs is Admitted(@admitted.Null) {
-    facts.rows
-  } else {
-    facts.null_rows
-  }
+  stream.demand_facts_reused = true
   stream.demand_read_rows = stream.rows
   true
 }

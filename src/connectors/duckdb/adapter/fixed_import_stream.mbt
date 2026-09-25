@@ -10,6 +10,8 @@ struct FixedImportStream {
   mut values_reused : Bool
   mut demand_physical : PhysicalResult?
   mut demand_read_rows : Int
+  // The demand was discharged from reused per-value facts, not scanned.
+  mut demand_facts_reused : Bool
 }
 
 ///|
@@ -125,6 +127,7 @@ pub fn prepare_fixed_import_stream(
     values_reused: false,
     demand_physical: None,
     demand_read_rows: 0,
+    demand_facts_reused: false,
   })
   .map_err(issue => Content(issue))
 }
