@@ -1313,6 +1313,13 @@ the public state does not require a new state name.
 | `preparing`, `running`, `resuming` | `succeeded`, `failed`, `needs_reconciliation` | The continuation completed or failed; admission, publication, and Effect aggregation conditions determine the destination ([Capture, execution, and replay](#capture-and-replay), [Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `needs_reconciliation`, `succeeded`, `failed` | A valid reconciliation receipt extended the sealed member history and all member outcomes were aggregated ([Outcomes and reconciliation](#reconciliation)). |
 
+<!-- requirement-block: run-states.a-resumed-continuation-must-not-return-to-running -->
+A resumed continuation MUST NOT return to `running`: it remains `resuming`
+while it executes and until it exits to `waiting_checkpoint`, `succeeded`,
+`failed`, `needs_reconciliation` or `cancelled`. That exit transition is the
+resumed Run transition that completes the claimed resume intent. No additional
+state is introduced.
+
 <!-- requirement-block: run-states.a-transition-must-not-dispatch-a-continuation-across-an-unresolved run-states.a-terminal-state-must-not-transition-to-another-state -->
 A transition MUST NOT dispatch a continuation across an unresolved Checkpoint.
 A terminal state MUST NOT
@@ -1413,7 +1420,8 @@ resumed Effect dispatch.
 An expired or superseded resume claimant MUST NOT release, fail, complete, or
 otherwise alter a resume intent or its Run. A resumed Run transition and
 resume-intent completion MUST occur in the same transaction; the portable store
-does not expose intent-only successful completion.
+does not expose intent-only successful completion. The resumed Run transition
+is the Run's exit from `resuming` ([Run states and transitions](#run-states)).
 
 The Effect Set proposal and commit boundary follow [Effect declarations](language.md#effects) and [Effect preview, approval, and application](#effect-application). When a delegated
 decision is deferred, the complete Effect Set Preview is the sealed artifact of the

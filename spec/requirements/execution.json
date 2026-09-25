@@ -1114,6 +1114,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/run-states.a-resumed-continuation-must-not-return-to-running",
+      "statement_sha256": "a97769f724728d5c806a542eb29d5daf6348a8aad8b15fd76c16f1b7e79fa573",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "run-states",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/run-states.a-transition-must-not-dispatch-a-continuation-across-an-unresolved",
       "statement_sha256": "c45b955e7cb7a0bbd78ea8fa0c4b1e998f41d3b005086aaa10e89cad3f7171ae",
       "status": "pending",
