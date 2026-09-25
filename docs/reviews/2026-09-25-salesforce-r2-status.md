@@ -19,7 +19,7 @@ retained data. The same path must report partial failure and unknown honestly.
 | --- | --- |
 | The public Program/Client ingress still rejects nonempty Effects. Connect the checked Effect Program and captured input owner to whole-set Preview, current authority, target guards, overlap admission, and one apply permit before the first write. | A normal two-member Program reaches apply; stale or overlapping sets send zero local HTTPS requests and consume no write credential. |
 | The Host has durable row custody and a MoonBit frontier, but no standard multi-member caller drives its Salesforce Site operations from that admitted owner. Connect the captured rows to exact physical requests and retain each member's `halt` or `continue` progress across restart. | Both members have multiple rows; an independent member continues when the other halts, known rows are never resent, unknown remains unresolved without new evidence, and send counts and order match the durable ledger. |
-| Two-member publication now joins credentialed local Salesforce Site writes to the installed Host. Connect the same owner and authorized Result delivery through the ordinary Client Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
+| The installed Host now joins a two-member, multi-row Program to credentialed local Salesforce Site writes, durable outcomes, and publication. Connect the same owner and authorized Result delivery through the ordinary Client Run. | The Host fixture covers claim, saved-response, terminal-row, and index-commit reply loss without reapplying known writes. It also covers halt/continue, unknown and Collections partial failure. The public Client and independent Result authorization remain open. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
 The Distribution owner owns the public Client ingress, attach/status,
@@ -54,6 +54,9 @@ publication, delivery, and cleanup. The shared publication coordinator now
 accepts an issued set Receipt tied to its exact Ledger and Preview. This
 component connection does not satisfy SF-G1: the publication fixture has
 only one member and does not execute Salesforce HTTP writes.
+
+### Earlier incremental evidence
+
 The completed computation now retains its exact Result export owner,
 retention inventory, and Effect-source Artifact contracts. Its final-chain
 preparation rejects a copied computation or foreign Preview. This closes a
@@ -71,8 +74,25 @@ whole-set apply admission, real Salesforce I/O, the multi-member fault
 matrix, or the public Client submit/delivery path required by SF-G1.
 The Effectful commit test also reconciles a lost Store acknowledgement without
 reissuing the set, while private holding tests retain one prepared ciphertext
-across failed commit retry. Provider-linked multi-member publication remains
-required.
+across failed commit retry. Provider-linked multi-member publication was still
+required at that point.
+
+### Newer installed Host fault matrix
+
+The installed Host's checked two-member Program gained
+restart/fault cases around a durable dispatch claim, saved raw HTTP response,
+and terminal row admission. The saved response is projected after Ledger
+reopen without another write or write credential use; a terminal row is not
+resent after reopen. A possibly dispatched row remains unknown, while an
+independent member proceeds under `halt`; under `continue`, the later row of
+the same member also proceeds without resending the unknown row. A local
+Collections-shaped HTTPS response with one failed and one successful row
+produces `partial_failure` after Ledger reopen; the successful row is not
+resent and the independent member completes. Unknown and partial failure
+cannot enter successful Run publication. Their private Preview and both
+Effect-source holdings remain owned until explicit retirement, which removes
+the physical bytes. These are local Site and installed Host regressions, not
+public Client submission or live Salesforce evidence.
 The checked two-member Host fixture now leaves one member's first row in
 possible-dispatch state, reopens the Ledger, and sends both rows of the other
 member through a local HTTP endpoint. MoonBit's captured frontier keeps the
@@ -116,7 +136,11 @@ four durable row Outcomes, no resend after Ledger reopen, the final chain,
 Store read through a test authorization callback, and final physical
 reclamation. The local resource is not a live Salesforce org. The caller
 remains an installed Host fixture, not public Client submit or its authorization
-service, and the partial/unknown fault matrix is still open.
+service; the partial/unknown fault matrix was open at that point.
+
+The paragraph above records that earlier increment. The local fault matrix
+is now exercised by the newer Host tests, but the public Client seam and
+live-org validation remain open.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
@@ -136,8 +160,8 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Run the same declared metadata projection against the isolated org; confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures | Connect every operation to the checked multi-member Program and prove preview freshness before any write. Real-org writes remain unauthorized and untested. |
-| Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, partial outcome, shared response custody, rollback projection, target identity and operation authority | Prove standard Effect member semantics and response-loss recovery in one Run; validate actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
-| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, four credentialed local HTTPS Site writes and durable rows, final chain, lost index acknowledgement, Store read via test authorization callback and retirement; simulated response control remains | Exercise halt/continue and unknown/restart in this joined path, then install the public Client ingress and Result authorization with the Distribution owner. |
+| Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, rollback projection, target identity and operation authority. `client-program-bridge.test.mjs` now includes a two-row Collections partial failure in the checked two-member Host Run, with Ledger reopen and no resend. | Verify Collections response-loss recovery and actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
+| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, four credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, Store read via test authorization callback and retirement; saved-response/terminal/claim fault cases, halt/continue, unknown and partial failure; simulated response control remains | Install the public Client ingress and independent Result authorization with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
 write scope have not been supplied. No existing Smooth Cloud connection is
