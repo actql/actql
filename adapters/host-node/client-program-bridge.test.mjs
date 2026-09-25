@@ -1831,14 +1831,22 @@ test('owned update Plan matches approved rows and rejects altered intent',
         projection = cid('a'), authority = cid('e'), policy = cid('a'),
         validity = cid('a'), issuer = cid('a'), authentication = cid('a'),
         issuerKind = 'policy', decision = 'allow',
+        requirePartialApplication = false,
       } = {}) => checked(
         moon.clientProgramCheckEffectRiskAcceptanceBody(
           previewInputs, body, projection, authority,
           policy, validity, issuer, authentication,
-          issuerKind, decision));
+          issuerKind, decision, requirePartialApplication));
       assert.doesNotThrow(() => checkRisk(risk));
-      assert.throws(() => checkRisk(admittedRisk(riskFor(
-        ['effect_scope_approved']))), {code: 'MoonBitHostFailure'});
+      assert.doesNotThrow(() => checkRisk(risk,
+        {requirePartialApplication: true}));
+      // D2.multi-delegate-deferred: two members, [effect_scope_approved]
+      // alone is admissible unless the Host policy requires the risk claim.
+      const scopeOnlyRisk = admittedRisk(riskFor(['effect_scope_approved']));
+      assert.doesNotThrow(() => checkRisk(scopeOnlyRisk));
+      // D2.host-required-claim: the Host-declared requirement is enforced.
+      assert.throws(() => checkRisk(scopeOnlyRisk,
+        {requirePartialApplication: true}), {code: 'MoonBitHostFailure'});
       assert.throws(() => checkRisk(admittedRisk(riskFor(
         ['partial_application_accepted']))), {code: 'MoonBitHostFailure'});
       for (const field of ['projection', 'authority', 'policy', 'validity',
@@ -1964,10 +1972,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
         observedRows = guardRows,
         guardVersions = guardRows.map(() => cid('6')),
         routes = selectedRoutes, riskBody = risk,
+        requirePartialApplication = false,
         keys = preview.keys} = {}) => {
         const result = moon.clientProgramCheckEffectApplyPreflight(
           previewInputs, proofs, sources, contracts, capabilities,
-          authorities, observedRows, guardVersions, routes, riskBody,
+          authorities, observedRows, guardVersions, routes,
+          riskBody ?? undefined, requirePartialApplication,
           cid('a'), cid('e'), cid('a'), cid('a'), cid('a'), cid('a'),
           'policy', 'allow', requestScope, keys, 2, 4, 4, 100);
         return checked(result);
@@ -2039,8 +2049,20 @@ test('owned update Plan matches approved rows and rejects altered intent',
         {code: 'MoonBitHostFailure'});
       assert.throws(() => preflight({routes: [selectedRoutes[0]]}),
         {code: 'MoonBitHostFailure'});
+      // D2.multi-allow / D2.no-contract-floor: an account allow carries no
+      // risk body and the two-member set passes whole-set preflight.
+      // `null` means the Host holds no risk body (passed as absent).
+      assert.doesNotThrow(() => preflight({riskBody: null}));
+      assert.doesNotThrow(() => preflight({riskBody: scopeOnlyRisk}));
+      // D2.host-required-claim: only a Host-declared policy requires it.
+      assert.throws(() => preflight({riskBody: null,
+        requirePartialApplication: true}), {code: 'MoonBitHostFailure'});
+      assert.throws(() => preflight({riskBody: scopeOnlyRisk,
+        requirePartialApplication: true}), {code: 'MoonBitHostFailure'});
+      assert.doesNotThrow(() => preflight({requirePartialApplication: true}));
       assert.throws(() => preflight({riskBody: admittedRisk(riskFor(
-        ['effect_scope_approved']))}), {code: 'MoonBitHostFailure'});
+        ['effect_scope_approved'], cid('f')))}),
+      {code: 'MoonBitHostFailure'});
       assert.throws(() => preflight({keys: preview.keys.slice(0, 1)}),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => checked(moon.clientProgramCheckEffectPlanProofs(
@@ -3297,21 +3319,6 @@ test(`two-member captured Effect Run ${
         preview.authoringCid, requestScope, preview.keys,
         publicationLimits.maxWireBytes, publicationLimits.maxNodes,
         publicationLimits.maxDepth);
-      const riskBody = {
-        version: 'actql-effect-risk-acceptance/0.1',
-        issuer_kind: 'policy', issuer_evidence_cid: cid('a'),
-        policy_cid: cid('a'), decision: 'allow',
-        effect_preview_cid: body.effect_preview_cid,
-        review_projection_cid: cid('a'), authority_scope_cid: cid('e'),
-        validity_evidence_cid: cid('a'),
-        claims: ['effect_scope_approved', 'partial_application_accepted'],
-        authentication_evidence_cid: cid('a'),
-      };
-      const risk = checked(moon.clientProgramAdmitEffectRiskAcceptanceBody(
-        canonicalJson({...riskBody,
-          self_cid: `sha256:${createHash('sha256')
-            .update(canonicalJson(riskBody)).digest('hex')}`}),
-        8192, 256, 12));
       const members = body.effects.map((member, memberIndex) => ({
         claims: member.changes.map((change, rowIndex) => {
           const key = preview.keys[memberIndex][rowIndex];
@@ -3359,7 +3366,9 @@ test(`two-member captured Effect Run ${
         authorities: [cid('e'), cid('e')],
         observedRows, guardVersions: writeKind === 'create' ? [] :
           previewGuardVersions?.flat() ?? observedRows.map(() => cid('6')),
-        routes: [route, route], risk,
+        // D2.multi-allow: an account allow commits the two-member set
+        // after whole-set preflight without a fabricated risk claim.
+        routes: [route, route], risk: undefined,
         reviewProjectionCid: cid('a'),
         authorityScopeCid: cid('e'), policyCid: cid('a'),
         validityCid: cid('a'), issuerCid: cid('a'),

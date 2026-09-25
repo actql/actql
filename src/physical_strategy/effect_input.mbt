@@ -459,6 +459,8 @@ pub(all) enum CapturedEffectRiskIssue {
 /// The risk body must name this exact live Preview. The Host authenticates
 /// issuer, policy, validity, and reviewer authority before this comparison;
 /// neither the transported body nor this check is a physical send permit.
+/// `require_partial_application` is the Host-declared delegated-decision
+/// policy, never derived from the member count.
 pub fn check_captured_effect_risk_acceptance_body(
   value : CapturedEffectPreviewInputs,
   body : @effect.EffectRiskAcceptanceBody,
@@ -470,6 +472,7 @@ pub fn check_captured_effect_risk_acceptance_body(
   authentication_evidence_cid : String,
   issuer_kind : String,
   decision : String,
+  require_partial_application : Bool,
 ) -> Result[Unit, CapturedEffectRiskIssue] {
   if !value.inputs.live {
     return Err(NotReady)
@@ -491,6 +494,7 @@ pub fn check_captured_effect_risk_acceptance_body(
     authentication_evidence_cid,
     issuer_kind,
     decision,
+    require_partial_application,
   ).map_err(issue => Risk(issue))
 }
 

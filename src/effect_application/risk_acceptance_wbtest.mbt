@@ -101,7 +101,7 @@ test "risk acceptance binds canonical body and exact private Preview" {
   let risk = admit_effect_risk_acceptance_body(risk_wire, 8192, 256, 12).unwrap()
   assert_true(
     check_effect_risk_acceptance_body(
-      preview, risk, a, a, a, a, a, a, "policy", "allow",
+      preview, risk, a, a, a, a, a, a, "policy", "allow", false,
     )
     is Ok(_),
   )
@@ -117,18 +117,19 @@ test "risk acceptance binds canonical body and exact private Preview" {
       a,
       "policy",
       "allow",
+      false,
     )
     is Err(ForeignReviewProjection),
   )
   assert_true(
     check_effect_risk_acceptance_body(
-      preview, risk, a, a, a, a, a, a, "human", "allow",
+      preview, risk, a, a, a, a, a, a, "human", "allow", false,
     )
     is Err(ForeignIssuerKind),
   )
   assert_true(
     check_effect_risk_acceptance_body(
-      preview, risk, a, a, a, a, a, a, "policy", "approved",
+      preview, risk, a, a, a, a, a, a, "policy", "approved", false,
     )
     is Err(ForeignDecision),
   )
@@ -155,5 +156,64 @@ test "risk acceptance binds canonical body and exact private Preview" {
       12,
     )
     is Err(InvalidShape),
+  )
+}
+
+///|
+test "partial application acceptance is required only by Host-declared policy" {
+  let a = preview_footprint_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(a, "risk-policy-request", 32).unwrap()
+  let (preview_wire, _) = preview_apply_test_wire(scope, "halt")
+  let preview = @publication.admit_effect_preview_identity(
+    preview_wire, a, authoring, 8192, 256, 12,
+  ).unwrap()
+  let subject = @publication.effect_preview_semantic_identity(preview)
+  let scope_only = admit_effect_risk_acceptance_body(
+    risk_test_wire(subject, "[\"effect_scope_approved\"]"),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let with_partial = admit_effect_risk_acceptance_body(
+    risk_test_wire(
+      subject, "[\"effect_scope_approved\",\"partial_application_accepted\"]",
+    ),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let partial_only = admit_effect_risk_acceptance_body(
+    risk_test_wire(subject, "[\"partial_application_accepted\"]"),
+    8192,
+    256,
+    12,
+  ).unwrap()
+  // No Host policy: the scope claim alone is admissible.
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, scope_only, a, a, a, a, a, a, "policy", "allow", false,
+    )
+    is Ok(_),
+  )
+  // Host-declared requirement: a body without the claim is not accepted.
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, scope_only, a, a, a, a, a, a, "policy", "allow", true,
+    )
+    is Err(MissingPartialAcceptance),
+  )
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, with_partial, a, a, a, a, a, a, "policy", "allow", true,
+    )
+    is Ok(_),
+  )
+  // The scope approval stays mandatory whenever a body is used.
+  assert_true(
+    check_effect_risk_acceptance_body(
+      preview, partial_only, a, a, a, a, a, a, "policy", "allow", true,
+    )
+    is Err(MissingScopeAcceptance),
   )
 }

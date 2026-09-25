@@ -173,6 +173,11 @@ pub fn effect_risk_acceptance_unsigned_payload_cid(
 /// The Host must authenticate the issuer and evidence, check policy, expiry,
 /// and current authority before passing those facts. This is not an apply
 /// permit and must never be the sole gate before a physical mutation.
+///
+/// `require_partial_application` is the Host's declared policy for the
+/// delegated decision that produced this body. Effect Set member count alone
+/// never requires `partial_application_accepted`; when the Host policy
+/// declares it, a body without the claim is not an accepted delegation.
 pub fn check_effect_risk_acceptance_body(
   preview : @publication.EffectPreviewIdentity,
   body : EffectRiskAcceptanceBody,
@@ -184,6 +189,7 @@ pub fn check_effect_risk_acceptance_body(
   authentication_evidence_cid : String,
   issuer_kind : String,
   decision : String,
+  require_partial_application : Bool,
 ) -> Result[Unit, EffectRiskAcceptanceIssue] {
   if body.effect_preview_cid !=
     @publication.effect_preview_semantic_identity(preview) {
@@ -216,8 +222,7 @@ pub fn check_effect_risk_acceptance_body(
   if !body.scope_approved {
     return Err(MissingScopeAcceptance)
   }
-  if @publication.effect_preview_member_count(preview) > 1 &&
-    !body.partial_application_accepted {
+  if require_partial_application && !body.partial_application_accepted {
     return Err(MissingPartialAcceptance)
   }
   Ok(())

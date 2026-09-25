@@ -14,6 +14,13 @@ pub(all) enum CapturedEffectApplyPreflightIssue {
 /// The Host must authenticate current observations, reviewer authority, and
 /// payload custody before calling this function. A successful check is not a
 /// mutation permit, a durable claim, or evidence that an HTTP request was sent.
+///
+/// `risk` is the Host-authenticated risk-acceptance body, when the Host has
+/// one. It is required only when `require_partial_application` records that
+/// the Host's declared policy for its delegated decision requires
+/// `partial_application_accepted`; an account allow or a delegated permit
+/// without that policy supplies none and none is fabricated. A supplied body
+/// is always bound to this exact Preview and must approve its scope.
 pub fn check_captured_effect_apply_preflight(
   preview : CapturedEffectPreviewInputs,
   proofs : Array[CapturedEffectPlanProof],
@@ -23,7 +30,8 @@ pub fn check_captured_effect_apply_preflight(
   authority_scope_cids : Array[String],
   guards : Array[@effect.EffectTargetVersionObservation],
   routes : Array[@effect.EffectApplyCapabilityObservation],
-  risk : @effect.EffectRiskAcceptanceBody,
+  risk : @effect.EffectRiskAcceptanceBody?,
+  require_partial_application : Bool,
   review_projection_cid : String,
   risk_authority_scope_cid : String,
   policy_cid : String,
@@ -58,6 +66,7 @@ pub fn check_captured_effect_apply_preflight(
     guards,
     routes,
     risk,
+    require_partial_application,
     review_projection_cid,
     risk_authority_scope_cid,
     policy_cid,
@@ -89,7 +98,8 @@ pub fn check_effect_preview_apply_semantics(
   authority_scope_cids : Array[String],
   guards : Array[@effect.EffectTargetVersionObservation],
   routes : Array[@effect.EffectApplyCapabilityObservation],
-  risk : @effect.EffectRiskAcceptanceBody,
+  risk : @effect.EffectRiskAcceptanceBody?,
+  require_partial_application : Bool,
   review_projection_cid : String,
   risk_authority_scope_cid : String,
   policy_cid : String,
@@ -129,15 +139,26 @@ pub fn check_effect_preview_apply_semantics(
     Err(issue) =>
       return Err(CapturedEffectApplyPreflightIssue::Capability(Current(issue)))
   }
-  match
-    @effect.check_effect_risk_acceptance_body(
-      identity, risk, review_projection_cid, risk_authority_scope_cid, policy_cid,
-      validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid, issuer_kind,
-      decision,
-    ) {
-    Ok(_) => ()
-    Err(issue) =>
-      return Err(CapturedEffectApplyPreflightIssue::Risk(Risk(issue)))
+  match risk {
+    Some(body) =>
+      match
+        @effect.check_effect_risk_acceptance_body(
+          identity, body, review_projection_cid, risk_authority_scope_cid, policy_cid,
+          validity_evidence_cid, issuer_evidence_cid, authentication_evidence_cid,
+          issuer_kind, decision, require_partial_application,
+        ) {
+        Ok(_) => ()
+        Err(issue) =>
+          return Err(CapturedEffectApplyPreflightIssue::Risk(Risk(issue)))
+      }
+    None =>
+      if require_partial_application {
+        return Err(
+          CapturedEffectApplyPreflightIssue::Risk(
+            Risk(@effect.EffectRiskAcceptanceIssue::MissingPartialAcceptance),
+          ),
+        )
+      }
   }
   match
     check_effect_preview_apply_keys(

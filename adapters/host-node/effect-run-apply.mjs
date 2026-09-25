@@ -85,6 +85,9 @@ export async function applyCapturedEffectSet({
   if (totalRows === 0 || totalRows > 100_000) {
     fail('InvalidCapturedEffectApply');
   }
+  // Risk acceptance is Host policy, not a member-count floor: a body is
+  // passed only when the Host holds one, and `partial_application_accepted`
+  // is required only when the Host's delegated-decision policy declares it.
   signal?.throwIfAborted();
   const control = runtimeCore(moon).effectApplicationControl;
   const initialFrontier = ledger.frontierFromCapturedHeads(
@@ -92,13 +95,20 @@ export async function applyCapturedEffectSet({
   const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
   const current = noReadyRows ? preflight :
     ownPreflight(await refreshPreflight({signal, preflight}));
+  if (current.requirePartialApplication !== undefined &&
+      typeof current.requirePartialApplication !== 'boolean') {
+    fail('InvalidCapturedEffectApply');
+  }
+  const requirePartialApplication =
+    current.requirePartialApplication === true;
   signal?.throwIfAborted();
   checked(moon.clientProgramCheckEffectApplyPreflight(
     capturedInputs, current.proofs, current.sources,
     current.contracts, current.capabilities, current.authorities,
     current.observedRows, current.guardVersions,
     current.routes,
-    current.risk, current.reviewProjectionCid,
+    current.risk ?? undefined, requirePartialApplication,
+    current.reviewProjectionCid,
     current.authorityScopeCid, current.policyCid,
     current.validityCid, current.issuerCid,
     current.authenticationCid, current.issuerKind,
@@ -181,12 +191,18 @@ export async function applyRecoveredEffectSet({
       control.logicalRequestScopeCid(requestScope)) {
     fail('EffectRecoveredRequestScopeChanged');
   }
+  if (preflight.requirePartialApplication !== undefined &&
+      typeof preflight.requirePartialApplication !== 'boolean') {
+    fail('InvalidRecoveredEffectApply');
+  }
   signal?.throwIfAborted();
   checked(moon.clientProgramCheckRecoveredEffectApplySemantics(
     admittedPreview, preflight.sources, preflight.contracts,
     preflight.capabilities, preflight.authorities,
     preflight.observedRows, preflight.guardVersions, preflight.routes,
-    preflight.risk, preflight.reviewProjectionCid,
+    preflight.risk ?? undefined,
+    preflight.requirePartialApplication === true,
+    preflight.reviewProjectionCid,
     preflight.authorityScopeCid, preflight.policyCid,
     preflight.validityCid, preflight.issuerCid,
     preflight.authenticationCid, preflight.issuerKind,
