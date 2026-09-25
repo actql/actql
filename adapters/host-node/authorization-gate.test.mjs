@@ -181,12 +181,36 @@ test('decision failures are not rejections and dispatch nothing', async () => {
     await gate.authorize('acquisition', scope, {subjectCid});
     assert.equal(gate.counters().hostDecisionCalls, 2, label);
   }
+  // Local delegate default: no decision function and no durable answer path
+  // stops before the operation as not configured, never a reject.
   const unanswerable = await fixtureAuthorization(delegateEntries);
   const decision = await unanswerable.authorize('acquisition', scope,
     {subjectCid});
-  assert.equal(decision.action, 'failure');
-  assert.equal(decision.reason, 'unavailable');
+  assert.equal(decision.action, 'unsupported');
+  assert.equal(decision.reason, 'decision_function_not_configured');
+  assert.equal(unanswerable.counters().hostRejections, 0);
+  assert.equal(unanswerable.counters().protectedDispatches, 0);
+  await assert.rejects(
+    requireAuthorizedDispatch(unanswerable, 'acquisition', scope, {subjectCid}),
+    {code: 'ExecutionAuthorizationDeferralUnsupported',
+      runtimeCode: 'ACTQL_E_DELEGATION_UNAVAILABLE'},
+  );
 });
+
+test('without a decision function a durable journal waits in a Checkpoint',
+  async t => {
+    const root = await workspace(t);
+    const deferral = await sqliteDeferral(root);
+    t.after(() => deferral.journal.close());
+    const gate = await fixtureAuthorization(delegateEntries, {deferral});
+    const decision = await gate.authorize('acquisition', scope, {subjectCid});
+    assert.equal(decision.action, 'waiting');
+    assert.equal(gate.counters().hostDecisionCalls, 0);
+    assert.equal(gate.counters().checkpointsPersisted, 1);
+    assert.equal(gate.counters().protectedDispatches, 0);
+    assert.equal(deferral.journal.listPending()[0].checkpointCid,
+      decision.checkpoint.checkpointCid);
+  });
 
 test('defer persists a durable Checkpoint before waiting', async t => {
   const root = await workspace(t);

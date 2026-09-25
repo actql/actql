@@ -47,12 +47,35 @@ const ERROR_CODES = Object.freeze({
   unsupported: 'ExecutionAuthorizationDeferralUnsupported',
 });
 
+// Runtime error codes (phase `admission`) pinned by Execution, Account
+// authorization routing. A persisted wait has none: it is not an error end.
+const ACCOUNT_DENY_CODES = Object.freeze({
+  explicit: 'ACTQL_E_ACCOUNT_DENIED',
+  no_match: 'ACTQL_E_ACCOUNT_NO_MATCH',
+  configuration_missing: 'ACTQL_E_ACCOUNT_CONFIG_INVALID',
+});
+
+export function authorizationRuntimeCode(decision) {
+  switch (decision?.action) {
+    case 'deny':
+      return decision.basis === 'rejected_by_host'
+        ? 'ACTQL_E_DELEGATION_REJECTED'
+        : ACCOUNT_DENY_CODES[decision.reason] ?? 'ACTQL_E_ACCOUNT_DENIED';
+    case 'failure':
+    case 'unsupported':
+      return 'ACTQL_E_DELEGATION_UNAVAILABLE';
+    default:
+      return undefined;
+  }
+}
+
 export class ExecutionAuthorizationError extends Error {
   constructor(decision) {
     const code = ERROR_CODES[decision?.action] ??
       'ExecutionAuthorizationInvalidDecision';
     super(code);
     this.code = code;
+    this.runtimeCode = authorizationRuntimeCode(decision);
     this.authorization = decision;
   }
 }
@@ -195,16 +218,23 @@ export function createAuthorizationGate({
       issue: state.issue,
     });
   }
+  const durable = checkedDeferral(deferral);
+  // Without a decision function the durable journal's reviewer authorities
+  // are the only answering authorities of a deferred subject.
+  const answering = decide === undefined && answeringAuthorities.length === 0 &&
+    durable !== undefined
+    ? durable.authorities.map(authority => authority.reviewerId)
+    : answeringAuthorities;
   const core = Object.freeze({
     moon,
     account,
     accountId: state.state === 'admitted' ? state.account_id : undefined,
     configurationCid: missing ? undefined : configurationCid,
     decide,
-    answeringAuthorities: Object.freeze([...answeringAuthorities]),
+    answeringAuthorities: Object.freeze([...answering]),
     requiredClaims: Object.freeze([...requiredClaims]),
     decisionTimeoutMs,
-    deferral: checkedDeferral(deferral),
+    deferral: durable,
     protectedSites: new Set(protectedSites),
     counts: Object.fromEntries(COUNTERS.map(name => [name, 0])),
     // Exact-scope reuse: keyed by the full subject under this configuration.
@@ -282,12 +312,15 @@ function gateFor(core, context) {
         },
       };
       // Durable commit happens before any waiting claim is made.
-      persisted = deferral.journal.persistCheckpoint({
+      // A preparation Checkpoint precedes its Run and names no prior Run
+      // status; a Host `describe` may bind the current resume context.
+      persisted = await deferral.journal.persistCheckpoint({
         body,
-        priorStatus: described.priorStatus ?? 'running',
+        priorStatus: 'priorStatus' in described ? described.priorStatus
+          : 'running',
         declaredResults: described.declaredResults,
         authorities: deferral.authorities,
-        binding: deferral.binding,
+        binding: described.binding ?? deferral.binding,
       });
     } catch (error) {
       return frozenDecision({...base, action: 'failure',
@@ -299,7 +332,9 @@ function gateFor(core, context) {
         checkpointCid: persisted.checkpointCid,
         checkpointId: persisted.checkpointId,
         runId: persisted.runId,
+        prepareAttemptId: persisted.prepareAttemptId ?? null,
         runState: persisted.runState,
+        preparation: persisted.preparation,
       })});
   }
 
@@ -329,9 +364,13 @@ function gateFor(core, context) {
           ? runtimeDecision : undefined});
     }
     const withEntry = {...base, entryId: outcome.entry_id, basis: 'delegate'};
-    if (core.decide === undefined) {
-      return frozenDecision({...withEntry, action: 'failure',
-        reason: 'unavailable', detail: 'NoHostDecisionFunction'});
+    // Local delegate default: without a Host decision function, wait in a
+    // Checkpoint only when durable storage and a later answer path exist;
+    // otherwise stop before the protected operation as not configured. This
+    // is neither a rejection nor a non-durable wait.
+    if (core.decide === undefined && core.deferral === undefined) {
+      return frozenDecision({...withEntry, action: 'unsupported',
+        reason: 'decision_function_not_configured'});
     }
     const request = moon.executionAuthorizationPrepare(
       evaluation, core.configurationCid, boundary, subjectCid ?? '',
@@ -351,7 +390,11 @@ function gateFor(core, context) {
       requiredClaims: Object.freeze([...bound.required_claims]),
     });
     signal?.throwIfAborted();
-    const answer = await askHost(view, signal);
+    // No decision function: the durable journal and its answer path are the
+    // Host's decision route, so the bound subject is deferred as is.
+    const answer = core.decide === undefined
+      ? {kind: 'defer', subject: SUBJECT_FIELDS.map(name => view.subject[name])}
+      : await askHost(view, signal);
     const runtimeDecision = moon.executionAuthorizationAnswer(
       request,
       answer.kind,
