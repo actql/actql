@@ -339,6 +339,13 @@ function gateFor(core, context) {
       return frozenDecision({...base, action: 'failure',
         reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
     }
+    // A Host-required claim no deferred approval evidence profile can
+    // establish can never be admitted at resume: refuse before capture,
+    // before any Checkpoint is persisted and before any reviewer is asked.
+    if (!representableClaims(view.requiredClaims)) {
+      return frozenDecision({...base, action: 'failure',
+        reason: 'adapter_error', detail: 'RequiredClaimUnrepresentable'});
+    }
     // Two-phase boundary (preparation): the decision was made on the request
     // subject before any capture; only now, on the defer path, the Host
     // captures its inputs and seals the reviewed artifact (the prepared
@@ -368,6 +375,11 @@ function gateFor(core, context) {
           reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
       }
       const kind = described?.body?.kind ?? CHECKPOINT_KIND[base.boundary];
+      // ... and exactly for the evidence profile of this Checkpoint kind.
+      if (!representableClaims(view.requiredClaims, kind)) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'RequiredClaimUnrepresentable'});
+      }
       const phase = base.boundary === 'effect_commit' ? 'commit' : 'preflight';
       const body = {
         version: 'actql-execution-checkpoint/0.1',
@@ -753,6 +765,15 @@ const REPRESENTABLE_CLAIMS = Object.freeze({
     'partial_application_accepted']),
   other: Object.freeze(['invocation_scope_approved']),
 });
+
+// Whether every required claim is representable by the approval evidence
+// profile of `kind` or, with no kind, by any deferred profile.
+function representableClaims(claims, kind) {
+  const profiles = kind === undefined ? Object.values(REPRESENTABLE_CLAIMS)
+    : [REPRESENTABLE_CLAIMS[kind] ?? REPRESENTABLE_CLAIMS.other];
+  const representable = new Set(profiles.flat());
+  return [...claims].every(claim => representable.has(claim));
+}
 
 const heldClaim = resumption => {
   const held = resumption?.claim;

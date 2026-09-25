@@ -725,20 +725,76 @@ test('review probe: stale, fabricated, expired and unapproved resumes refuse',
       claim: {runId: fabricated.waiting.checkpoint.runId}}, resolution});
     assert.equal(never.action, 'failure');
     assert.equal(never.detail, 'ResumeNotClaimed');
-    // unapproved_claim
-    const unapproved = await clockedGate(t,
-      {requiredClaims: ['host-required-risk']});
-    const approval = await unapproved.deferral.answer(
-      unapproved.checkpointCid, 'approved');
-    assert.equal(JSON.parse(approval.verifiedResolutionWire).approval_evidence
-      .compatibility_approval.claim, 'invocation_scope_approved');
-    const risk = await unapproved.resume({claim: unapproved.claim('owner')});
+    // unapproved_claim: a Host-required claim no deferred evidence profile
+    // can establish is refused when the decision defers, before any
+    // Checkpoint exists, so no reviewer is asked to approve it.
+    const root = await workspace(t);
+    const durable = await sqliteDeferral(root, {now: () => T0});
+    t.after(() => durable.journal.close());
+    const unapproved = await fixtureAuthorization(delegateEntries,
+      {deferral: durable, requiredClaims: ['host-required-risk']});
+    const risk = await unapproved.authorize('acquisition', scope,
+      {subjectCid});
     assert.equal(risk.action, 'failure');
     assert.equal(risk.detail, 'RequiredClaimUnrepresentable');
-    for (const gate of [superseded, expired, fabricated, unapproved]) {
+    assert.equal(unapproved.counters().checkpointsPersisted, 0);
+    assert.equal(durable.journal.listPending().length, 0);
+    for (const gate of [superseded, expired, fabricated]) {
       assert.equal(gate.gate.counters().resumedDecisions, 0);
       assert.equal(gate.gate.counters().protectedDispatches, 0);
     }
+    assert.equal(unapproved.counters().protectedDispatches, 0);
+  });
+
+test('an unrepresentable required claim is refused at defer and at resume',
+  async t => {
+    // Defer: the Effect Set profile cannot establish a run-scope claim, and
+    // no profile establishes an arbitrary Host claim. Nothing is persisted.
+    for (const [boundary, target, entries, claims] of [
+      ['acquisition', scope, delegateEntries, ['host-required-risk']],
+      ['acquisition', scope, delegateEntries, ['effect_scope_approved']],
+      ['effect_commit', effectScope, effectEntries,
+        ['invocation_scope_approved']],
+    ]) {
+      const root = await workspace(t);
+      const durable = await sqliteDeferral(root, {now: () => T0});
+      t.after(() => durable.journal.close());
+      const gate = await fixtureAuthorization(entries,
+        {deferral: durable, requiredClaims: claims});
+      const refused = await gate.authorize(boundary, target, {subjectCid});
+      assert.equal(refused.action, 'failure', claims.join());
+      assert.equal(refused.detail, 'RequiredClaimUnrepresentable');
+      assert.equal(gate.counters().checkpointsPersisted, 0);
+    }
+    // Resume keeps the check as defense: a Checkpoint whose bound requested
+    // claims no profile can establish (persisted outside this gate) still
+    // admits nothing.
+    const root = await workspace(t);
+    const clock = {ms: T0};
+    const durable = await sqliteDeferral(root, {now: () => clock.ms});
+    t.after(() => durable.journal.close());
+    const injected = {...durable, journal: Object.freeze({
+      ...Object.fromEntries(Object.entries(durable.journal)),
+      persistCheckpoint: args => durable.journal.persistCheckpoint({...args,
+        requestedClaims: ['host-required-risk']}),
+    })};
+    const deferring = await fixtureAuthorization(delegateEntries,
+      {deferral: injected});
+    const waiting = await deferring.authorize('acquisition', scope,
+      {subjectCid});
+    assert.equal(waiting.action, 'waiting');
+    assert.deepEqual(durable.journal.inspect(waiting.checkpoint.checkpointCid)
+      .requestedClaims, ['host-required-risk']);
+    await durable.answer(waiting.checkpoint.checkpointCid, 'approved');
+    const resuming = await fixtureAuthorization(delegateEntries,
+      {deferral: durable, requiredClaims: ['host-required-risk']});
+    const claim = durable.journal.claimResume(waiting.checkpoint.runId,
+      {claimant: 'owner', leaseMs: 60_000, binding: durable.binding});
+    const risk = await resuming.resume('acquisition', scope,
+      {subjectCid, resumption: {claim}});
+    assert.equal(risk.action, 'failure');
+    assert.equal(risk.detail, 'RequiredClaimUnrepresentable');
+    assert.equal(resuming.counters().protectedDispatches, 0);
   });
 
 test('resume admits only the live claim of the current resume intent',
@@ -891,12 +947,8 @@ test('Effect resume claims: missing, different, exact and optional partial',
     const absent = await missing.resume({claim: missing.claim('o')});
     assert.equal(absent.action, 'failure');
     assert.equal(absent.detail, 'RequiredClaimNotEstablished');
-    // A claim of another evidence profile is different, not satisfied.
-    const different = await effect(
-      {requiredClaims: ['invocation_scope_approved']});
-    await different.deferral.answer(different.checkpointCid, 'approved');
-    assert.equal((await different.resume({claim: different.claim('o')}))
-      .detail, 'RequiredClaimUnrepresentable');
+    // A claim of another evidence profile is different, not satisfied: it
+    // is refused when the Effect Set decision defers (see the defer test).
   });
 
 test('immediate answers must supply exactly the Host-required claims',
