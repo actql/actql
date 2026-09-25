@@ -6,7 +6,7 @@ import {createProcessCompletionCustody} from '../../../../host-node/completion-c
 import {snapshotProcessLimits} from '../../../../host-node/process-accounting.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
 import {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
-import {prepareExampleTaskManifestInThread} from './task-manifest.mjs';
+import {prepareExampleTaskManifestInThread, snapshotTaskManifestInput} from './task-manifest.mjs';
 
 // The worker can prepare its checked Program while the controller derives the
 // independent task manifest. No Store operation is available until the two
@@ -41,7 +41,9 @@ export async function createManagedExampleHost(limits) {
     usage: host.usage,
     async run(supplied, options, signal) {
       // Snapshot before the first await. No module name, verifier or executable
-      // crosses this entry; the worker assembly is fixed below.
+      // crosses this entry; the worker assembly is fixed below. Oversized or
+      // mistyped manifest documents are refused before any clone or thread.
+      const manifestInput = snapshotTaskManifestInput(supplied);
       const input = structuredClone(supplied);
       if (!options || Object.keys(options).sort().join(',') !== 'childLimits,run') {
         throw new TypeError('InvalidManagedExampleOptions');
@@ -111,7 +113,7 @@ export async function createManagedExampleHost(limits) {
         const parentPreparation = (async () => {
           // Deriving the checked manifest is part of the preparation cost. It
           // runs off this event loop so the child starts and prepares meanwhile.
-          const tasks = await prepareExampleTaskManifestInThread(input, signal);
+          const tasks = await prepareExampleTaskManifestInThread(manifestInput, signal);
           phases.parentPreparationMs = performance.now() - parentStarted;
           return tasks;
         })();

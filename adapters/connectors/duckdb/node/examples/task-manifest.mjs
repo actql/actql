@@ -7,41 +7,87 @@ import {snapshotDataProfile} from './data-profile.mjs';
 const root = new URL('../../../../../', import.meta.url);
 const manifestUrl = new URL(
   '_build/js/release/build/physical_task_manifest_example/physical_task_manifest_example.js', root);
+const threadUrl = new URL('./task-manifest-thread.mjs', import.meta.url);
 
-export async function prepareExampleTaskManifest({programText, environmentText,
-  environmentCid, parameterText, dataProfile}) {
-  const data = snapshotDataProfile(dataProfile);
+// The example's existing per-document acceptance limit (file reads and the
+// MoonBit source parser use the same bound). Not a new policy value.
+const maxDocumentBytes = 1000000;
+
+function boundedDocument(value) {
+  // UTF-8 never has fewer bytes than UTF-16 code units, so the length check
+  // rejects oversized text before any byte scan or copy.
+  if (typeof value !== 'string' || value.length > maxDocumentBytes ||
+      Buffer.byteLength(value, 'utf8') > maxDocumentBytes) {
+    throw new TypeError('InvalidTaskManifestDocument');
+  }
+  return value;
+}
+
+// Type and size admission for the manifest documents. Callers run this before
+// cloning the supplied input or starting a thread; the returned strings are the
+// only document values used afterwards.
+export function snapshotTaskManifestInput(input) {
+  if (input === null || typeof input !== 'object') throw new TypeError('InvalidTaskManifestInput');
+  const {programText, environmentText, environmentCid, parameterText, dataProfile} = input;
+  return Object.freeze({
+    programText: boundedDocument(programText),
+    environmentText: boundedDocument(environmentText),
+    environmentCid: boundedDocument(environmentCid),
+    parameterText: boundedDocument(parameterText),
+    dataProfile: snapshotDataProfile(dataProfile),
+  });
+}
+
+export async function prepareExampleTaskManifest(input) {
+  const {programText, environmentText, environmentCid, parameterText, dataProfile} =
+    snapshotTaskManifestInput(input);
   const app = await import(manifestUrl);
   const args = [programText, environmentText, environmentCid, parameterText];
-  return checked(data ? app.applicationTaskManifest(...args, data)
+  return checked(dataProfile ? app.applicationTaskManifest(...args, dataProfile)
     : app.applicationTaskManifestDefault(...args));
 }
 
-// Derivation is synchronous checker work. A thread keeps the controller's event
-// loop free to start and drive the child while the manifest is derived. Only
-// the plain task identities cross back; the caller still validates them.
-export function prepareExampleTaskManifestInThread(input, signal) {
-  const {programText, environmentText, environmentCid, parameterText, dataProfile} = input;
-  const payload = {programText, environmentText, environmentCid, parameterText,
-    dataProfile: snapshotDataProfile(dataProfile)};
+const spawnThread = payload => new Worker(threadUrl, {workerData: payload});
+
+// Derivation is synchronous checker work. A short-lived thread keeps the
+// controller's event loop free to start and drive the child meanwhile. The
+// returned promise settles only after the thread has exited, exactly once,
+// with the first outcome among message, error, exit and abort. A failure to
+// stop is reported together with that outcome, never dropped.
+export function prepareExampleTaskManifestInThread(input, signal, {spawn = spawnThread} = {}) {
+  const payload = snapshotTaskManifestInput(input);
+  signal?.throwIfAborted();
+  const worker = spawn(payload);
   return new Promise((resolve, reject) => {
-    signal?.throwIfAborted();
-    const worker = new Worker(new URL('./task-manifest-thread.mjs', import.meta.url),
-      {workerData: payload});
-    let settled = false;
-    const finish = (settle, value) => {
-      if (settled) return;
-      settled = true;
+    let settling = false;
+    const exited = new Promise(done => worker.once('exit', done));
+    const abort = () => finish({error: signal.reason});
+    const finish = async outcome => {
+      if (settling) return;
+      settling = true;
       signal?.removeEventListener('abort', abort);
-      void worker.terminate();
-      settle(value);
+      let stopFailure;
+      try {
+        await worker.terminate();
+        await exited;
+      } catch (error) {
+        stopFailure = error;
+      }
+      if (stopFailure !== undefined) {
+        reject(new AggregateError(
+          'error' in outcome ? [outcome.error, stopFailure] : [stopFailure],
+          'ControllerTaskManifestThreadStopFailed'));
+      } else if ('error' in outcome) {
+        reject(outcome.error);
+      } else {
+        resolve(outcome.value);
+      }
     };
-    const abort = () => finish(reject, signal.reason);
     signal?.addEventListener('abort', abort, {once: true});
-    worker.once('message', message => message?.ok === true
-      ? finish(resolve, message.tasks)
-      : finish(reject, new Error('ControllerTaskManifestFailed', {cause: message?.error})));
-    worker.once('error', error => finish(reject, error));
-    worker.once('exit', code => finish(reject, new Error(`ControllerTaskManifestExited:${code}`)));
+    worker.once('message', message => finish(message?.ok === true
+      ? {value: message.tasks}
+      : {error: new Error('ControllerTaskManifestFailed', {cause: message?.error})}));
+    worker.once('error', error => finish({error}));
+    worker.once('exit', code => finish({error: new Error(`ControllerTaskManifestExited:${code}`)}));
   });
 }
