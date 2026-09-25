@@ -82,6 +82,8 @@ jobs:
         run: npm run check:distribution-client
       - name: Test portable Run Host compilation package
         run: npm run check:run-host-core
+      - name: Test packed Local runtime assets
+        run: npm run check:local-node-assets
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Test Node-free native storage publication and control

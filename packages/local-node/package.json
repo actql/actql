@@ -1,0 +1,11 @@
+{
+  "name": "@actql/local-node",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "exports": {
+    "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
+  },
+  "files": ["_build/js/release/build", "README.md"]
+}
