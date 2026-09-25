@@ -145,6 +145,23 @@ test('checked acquired source and downstream task emit their input ports',
       moon.clientProgramAdmitTaskPlanGraph(prepared, graphWire))), graphWire);
     assert.throws(() => checked(moon.clientProgramAdmitTaskPlanGraph(
       prepared, graphWire.replace('task_0', 'task_7'))));
+    const executable = JSON.parse(moon.clientProgramTaskExecutablePlanWire(
+      checked(moon.clientProgramIssueTaskExecutablePlan(prepared))));
+    assert.deepEqual(executable.nodes, graph.nodes);
+    assert.deepEqual(executable.data_edges, graph.data_edges);
+    assert.deepEqual(executable.root_refs, graph.root_refs);
+    const compilation = checked(
+      moon.clientProgramCompileLocalTasks(prepared));
+    assert.deepEqual(JSON.parse(
+      moon.clientProgramTaskCompilationPlanWire(compilation)), executable);
+    const template = JSON.parse(
+      moon.clientProgramTaskCompilationTemplateWire(compilation));
+    const compiledPlan = JSON.parse(
+      moon.clientProgramTaskCompilationCompiledPlanWire(compilation));
+    assert.equal(template.program_definition_cid,
+      executable.execution_material.program_definition_cid);
+    assert.equal(compiledPlan.executable_plan_cid,
+      executable.executable_plan_cid);
     assert.throws(() => checked(
       moon.clientProgramTaskPipelineWire(prepared, 4)));
   });

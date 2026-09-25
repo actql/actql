@@ -231,6 +231,24 @@ pub fn open_prepared_source_free_client_run(
 }
 
 ///|
+/// Open the same checked task lifecycle over one verified acquired source.
+/// The physical adapter retains the capture; this does not issue a Run or
+/// authorize an external read.
+pub fn open_prepared_captured_client_run(
+  value : PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  limits : @resources.LedgerLimits,
+) -> Result[@strategy.CapturedDAG, ClientRunOpenIssue] {
+  let ledger = match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Ledger(issue))
+  }
+  @strategy.open_captured_dag(value.graph, source, ledger).map_err(issue => {
+    Run(issue)
+  })
+}
+
+///|
 pub fn prepared_client_result_count(value : PreparedClientProgram) -> Int {
   @strategy.graph_result_count(value.graph)
 }
@@ -550,6 +568,44 @@ pub fn issue_prepared_client_values_output_schema(
     Ok(identity) => Ok(identity)
     Err(issue) => Err(Identity(issue))
   }
+}
+
+///|
+pub(all) enum ClientTaskOutputSchemaIssue {
+  Fragment(ClientTaskFragmentIssue)
+  MissingCheckedOutput
+  Identity(@execution.RelationSchemaIdentityIssue)
+}
+
+///|
+pub fn issue_prepared_client_task_output_schema(
+  value : PreparedClientProgram,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@execution.RelationSchemaIdentity, ClientTaskOutputSchemaIssue] {
+  match
+    issue_prepared_client_task_fragment(
+      value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Fragment(issue))
+  }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    @lower.node_at(
+      @lower.bound_preparation(owner),
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))) - 1,
+    )
+    is Some(node) else {
+    return Err(MissingCheckedOutput)
+  }
+  @execution.identify_relation_schema(
+    @lower.node_output_schema(node),
+    schema_limits,
+  ).map_err(issue => Identity(issue))
 }
 
 ///|

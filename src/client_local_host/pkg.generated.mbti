@@ -4,6 +4,7 @@ package "actql/actql/client_local_host"
 import {
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_strategy",
   "actql/actql/run_publication_host",
@@ -16,6 +17,8 @@ pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@phy
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue
+
+pub fn open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 

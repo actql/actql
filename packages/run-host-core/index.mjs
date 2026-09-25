@@ -3,6 +3,7 @@ import * as owner from './dist/client_values_host_abi.js';
 const environments = new WeakMap();
 const preparations = new WeakMap();
 const compilations = new WeakMap();
+const taskCompilations = new WeakMap();
 const requests = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
@@ -114,6 +115,27 @@ export function compileValues(prepared) {
   return handle(compilations, {value, prepared}, 'values-compilation');
 }
 
+export function compileTasks(prepared) {
+  const value = checked(owner.clientValuesHostCompileTasks(
+    requireHandle(preparations, prepared)), 'RunHostTaskCompilationRejected');
+  return handle(taskCompilations, {value, prepared}, 'task-compilation');
+}
+
+export function privateTaskCompilationWires(compilation) {
+  const {value} = requireHandle(taskCompilations, compilation);
+  return Object.freeze({
+    executablePlan: owner.clientValuesHostTaskPlanWire(value),
+    factManifest: owner.clientValuesHostTaskFactManifestWire(value),
+    boundTemplate: owner.clientValuesHostTaskTemplateWire(value),
+    compiledPlan: owner.clientValuesHostTaskCompiledPlanWire(value),
+  });
+}
+
+export function taskResultNames(compilation) {
+  const {value} = requireHandle(taskCompilations, compilation);
+  return Object.freeze([...owner.clientValuesHostTaskResultNames(value)]);
+}
+
 export function privateCompilationWires(compilation) {
   const {value} = requireHandle(compilations, compilation);
   return Object.freeze({
@@ -160,6 +182,28 @@ export function resultDefinitions(prepared, compilation) {
   }));
 }
 
+export function taskResultDefinitions(prepared, compilation) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const fields = checked(owner.clientValuesHostTaskResultDefinitions(
+    requireHandle(preparations, prepared), compiled.value),
+  'RunHostResultInventoryRejected');
+  const names = owner.clientValuesHostTaskResultNames(compiled.value);
+  if (!Array.isArray(fields) || fields.length !== names.length * 3 ||
+      !fields.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostResultInventory');
+  }
+  return Object.freeze(names.map((name, index) => {
+    if (fields[index * 3] !== name) {
+      throw new Error('InvalidRunHostResultInventory');
+    }
+    return Object.freeze({name, cid: fields[index * 3 + 1],
+      wire: fields[index * 3 + 2]});
+  }));
+}
+
 export function resultSchema(prepared, compilation) {
   const compiled = requireHandle(compilations, compilation);
   if (compiled.prepared !== prepared) {
@@ -167,6 +211,30 @@ export function resultSchema(prepared, compilation) {
   }
   const facts = checked(owner.clientValuesHostResultSchema(
     requireHandle(preparations, prepared)),
+  'RunHostResultSchemaRejected');
+  if (!Array.isArray(facts) || facts.length < 2 ||
+      !facts.every(value => typeof value === 'string') ||
+      !/^sha256:[0-9a-f]{64}$/u.test(facts[0])) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  const fields = Object.freeze(facts.slice(2));
+  if (Object.keys(JSON.parse(facts[1])).join('\0') !==
+      fields.join('\0')) {
+    throw new Error('InvalidRunHostResultSchema');
+  }
+  return Object.freeze({cid: facts[0], wire: facts[1], fields});
+}
+
+export function taskResultSchema(prepared, compilation, resultName) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared || typeof resultName !== 'string') {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const names = owner.clientValuesHostTaskResultNames(compiled.value);
+  const result = names.indexOf(resultName);
+  if (result < 0) throw new RangeError('UnknownRunHostResult');
+  const facts = checked(owner.clientValuesHostTaskResultSchema(
+    requireHandle(preparations, prepared), result),
   'RunHostResultSchemaRejected');
   if (!Array.isArray(facts) || facts.length < 2 ||
       !facts.every(value => typeof value === 'string') ||
@@ -319,6 +387,49 @@ export function issueAllowedRun(prepared, compilation, {
   });
 }
 
+export function issueAllowedTaskRun(prepared, compilation, {
+  executionContextCid, hostPolicyCid, expiresAt,
+}) {
+  if ([executionContextCid, hostPolicyCid, expiresAt]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const issued = checked(owner.clientValuesHostIssueAllowedTaskRun(
+    requireHandle(preparations, prepared), compiled.value,
+    executionContextCid, hostPolicyCid, expiresAt),
+  'RunHostAdmissionRejected');
+  return Object.freeze({
+    admission: handle(admissions, {
+      value: owner.clientValuesHostAllowedRunAdmission(issued), prepared,
+    }, 'run-admission'),
+    preparedInvocationWire:
+      owner.clientValuesHostAllowedRunPreparedWire(issued),
+    authorizationWire:
+      owner.clientValuesHostAllowedRunAuthorizationWire(issued),
+  });
+}
+
+export function admitTaskRun(prepared, compilation,
+  preparedInvocationWire, authorizationWire) {
+  if ([preparedInvocationWire, authorizationWire]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const compiled = requireHandle(taskCompilations, compilation);
+  if (compiled.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const value = checked(owner.clientValuesHostAdmitTaskRun(
+    requireHandle(preparations, prepared), compiled.value,
+    preparedInvocationWire, authorizationWire),
+  'RunHostAdmissionRejected');
+  return handle(admissions, {value, prepared}, 'run-admission');
+}
+
 export function issueRunDefinition(admission, scopeId, runId,
   inputArtifactSetCid, createdAt, validUntil) {
   if ([scopeId, runId, inputArtifactSetCid, createdAt, validUntil]
@@ -347,6 +458,38 @@ export function issueSourceFreeRunDefinition(prepared, compilation,
     requireHandle(preparations, prepared), compiled.value, admitted.value,
     scopeId, runId, createdAt, validUntil),
   'RunHostSourceFreeDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
+export function issueTaskRunDefinition(prepared, compilation,
+  admission, scopeId, runId, createdAt, validUntil) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if ([scopeId, runId, createdAt, validUntil]
+    .some(value => typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostDefinition');
+  }
+  const value = checked(owner.clientValuesHostIssueTaskRunDefinition(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    scopeId, runId, createdAt, validUntil),
+  'RunHostTaskDefinitionRejected');
+  return handle(definitions, value, 'run-definition');
+}
+
+export function admitTaskRunDefinition(prepared, compilation, admission,
+  wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const value = checked(owner.clientValuesHostAdmitTaskRunDefinition(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    wire), 'RunHostTaskDefinitionRejected');
   return handle(definitions, value, 'run-definition');
 }
 

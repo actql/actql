@@ -1,6 +1,7 @@
 declare const environmentBrand: unique symbol;
 declare const preparedBrand: unique symbol;
 declare const compilationBrand: unique symbol;
+declare const taskCompilationBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
 declare const definitionBrand: unique symbol;
@@ -36,6 +37,10 @@ export interface PreparedProgram {
 
 export interface ValuesCompilation {
   readonly [compilationBrand]: true;
+}
+
+export interface TaskCompilation {
+  readonly [taskCompilationBrand]: true;
 }
 
 export interface RequestIdentity {
@@ -243,6 +248,16 @@ export function admitEnvironment(body: string, evidenceBundleCid: string,
 export function prepare(document: string, format: 'json' | 'yaml',
   environment: CheckEnvironment, parametersWire?: string): PreparedProgram;
 export function compileValues(prepared: PreparedProgram): ValuesCompilation;
+export function compileTasks(prepared: PreparedProgram): TaskCompilation;
+export function privateTaskCompilationWires(
+  compilation: TaskCompilation): PrivateCompilationWires;
+export function taskResultNames(compilation: TaskCompilation): readonly string[];
+export function taskResultDefinitions(prepared: PreparedProgram,
+  compilation: TaskCompilation): readonly Readonly<{
+  name: string;
+  cid: string;
+  wire: string;
+}>[];
 export function privateCompilationWires(
   compilation: ValuesCompilation): PrivateCompilationWires;
 /** Exact identity of the checked Compiled Plan, not publication authority. */
@@ -262,6 +277,12 @@ export function resultDefinitions(prepared: PreparedProgram,
 /** Checked output schema for this Values compilation, not a read grant. */
 export function resultSchema(prepared: PreparedProgram,
   compilation: ValuesCompilation): Readonly<{
+    cid: string;
+    wire: string;
+    fields: readonly string[];
+  }>;
+export function taskResultSchema(prepared: PreparedProgram,
+  compilation: TaskCompilation, resultName: string): Readonly<{
     cid: string;
     wire: string;
     fields: readonly string[];
@@ -297,6 +318,19 @@ export function issueAllowedRun(prepared: PreparedProgram,
     preparedInvocationWire: string;
     authorizationWire: string;
   }>;
+export function issueAllowedTaskRun(prepared: PreparedProgram,
+  compilation: TaskCompilation, policy: Readonly<{
+    executionContextCid: string;
+    hostPolicyCid: string;
+    expiresAt: string;
+  }>): Readonly<{
+    admission: RunAdmission;
+    preparedInvocationWire: string;
+    authorizationWire: string;
+  }>;
+export function admitTaskRun(prepared: PreparedProgram,
+  compilation: TaskCompilation, preparedInvocationWire: string,
+  authorizationWire: string): RunAdmission;
 export function issueRunDefinition(admission: RunAdmission, scopeId: string,
   runId: string, inputArtifactSetCid: string, createdAt: string,
   validUntil: string): RunDefinition;
@@ -304,6 +338,12 @@ export function issueRunDefinition(admission: RunAdmission, scopeId: string,
 export function issueSourceFreeRunDefinition(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission, scopeId: string,
   runId: string, createdAt: string, validUntil: string): RunDefinition;
+export function issueTaskRunDefinition(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission, scopeId: string,
+  runId: string, createdAt: string, validUntil: string): RunDefinition;
+export function admitTaskRunDefinition(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  wire: string): RunDefinition;
 export function privateRunDefinition(definition: RunDefinition): Readonly<{
   wire: string;
   cid: string;

@@ -1013,6 +1013,118 @@ pub fn client_program_compile_local_values(
 }
 
 ///|
+pub(all) enum ClientProgramTaskPlanBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Plan(@publication_host.ClientValuesExecutablePlanIssue)
+}
+
+///|
+#export_name("clientProgramIssueTaskExecutablePlan")
+pub fn client_program_issue_task_executable_plan(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientTaskExecutablePlan,
+  ClientProgramTaskPlanBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_task_executable_plan(
+    prepared,
+    manifests,
+    client_local_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Plan(issue))
+}
+
+///|
+#export_name("clientProgramTaskExecutablePlanWire")
+pub fn client_program_task_executable_plan_wire(
+  value : @publication_host.ClientTaskExecutablePlan,
+) -> String {
+  @publication_host.client_task_executable_plan_wire(value)
+}
+
+///|
+pub(all) enum ClientProgramTaskCompilationBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Compilation(@publication_host.ClientTaskCompilationIssue)
+}
+
+///|
+#export_name("clientProgramCompileLocalTasks")
+pub fn client_program_compile_local_tasks(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientProgramTaskCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_task_compilation(
+    prepared,
+    manifests,
+    client_local_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
+#export_name("clientProgramTaskCompilationPlanWire")
+pub fn client_program_task_compilation_plan_wire(
+  value : @publication_host.ClientTaskCompilation,
+) -> String {
+  @publication_host.client_task_executable_plan_wire(
+    @publication_host.client_task_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientProgramTaskCompilationTemplateWire")
+pub fn client_program_task_compilation_template_wire(
+  value : @publication_host.ClientTaskCompilation,
+) -> String {
+  @publication.run_evidence_value_json(
+    @publication_host.client_task_compilation_template(value),
+  )
+}
+
+///|
+#export_name("clientProgramTaskCompilationCompiledPlanWire")
+pub fn client_program_task_compilation_compiled_plan_wire(
+  value : @publication_host.ClientTaskCompilation,
+) -> String {
+  @publication.publication_contract_json(
+    @publication_host.client_task_compilation_compiled_plan(value),
+  )
+}
+
+///|
 /// Host-internal projection of one checked task's AoA pipeline. It does not
 /// authorize source acquisition or stand in for a complete Executable Plan.
 #export_name("clientProgramTaskPipelineWire")
@@ -1375,6 +1487,36 @@ pub fn client_program_open_source_free_local_host(
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   @client_local_host.open_source_free_local_host(
     prepared,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+  )
+}
+
+///|
+/// The Local compute owner consumes a verified source from the installed
+/// physical acquisition adapter, preserving the checked Program graph.
+#export_name("clientProgramOpenCapturedLocalHost")
+pub fn client_program_open_captured_local_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  @client_local_host.open_captured_local_host(
+    prepared,
+    source,
     registry_body,
     values_body,
     fixed_ms,

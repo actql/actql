@@ -26,7 +26,11 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
-  admitSourceFreeRequestFields, admitRun, compileValues,
+  admitSourceFreeRequestFields, admitRun, compileValues, compileTasks,
+  privateTaskCompilationWires, taskResultNames,
+  taskResultDefinitions, taskResultSchema,
+  issueAllowedTaskRun, admitTaskRun, issueTaskRunDefinition,
+  admitTaskRunDefinition,
   checkRunBinding, issueAllowedRun, issueRunDefinition,
   issueSourceFreeRunDefinition, prepare, prepareRequest,
   issueSourceFreeDispatch,
@@ -51,6 +55,62 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('checked acquired Program issues and re-admits its task Run', () => {
+  const source = readFileSync(new URL(
+    '../../src/query_integration/query_amount_catalog_wbtest.mbt',
+    import.meta.url), 'utf8');
+  const catalog = source.slice(source.indexOf(
+    'fn query_amount_nullable_catalog')).match(
+    /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+  assert.ok(catalog);
+  const environment = admitEnvironment(JSON.parse(catalog[1]),
+    catalog[2], {rela: true});
+  const document = readFileSync(new URL(
+    '../../adapters/connectors/duckdb/node/examples/program.json',
+    import.meta.url), 'utf8');
+  const parameters = readFileSync(new URL(
+    '../../adapters/connectors/duckdb/node/examples/parameters.json',
+    import.meta.url), 'utf8');
+  const prepared = prepare(document, 'json', environment, parameters);
+  const compilation = compileTasks(prepared);
+  assert.deepEqual(taskResultNames(compilation), ['b', 'c']);
+  const definitions = taskResultDefinitions(prepared, compilation);
+  assert.deepEqual(definitions.map(item => item.name), ['b', 'c']);
+  assert.notEqual(definitions[0].cid, definitions[1].cid);
+  assert.deepEqual(taskResultSchema(prepared, compilation, 'b').fields,
+    ['id']);
+  assert.deepEqual(taskResultSchema(prepared, compilation, 'c').fields,
+    ['id']);
+  const wires = privateTaskCompilationWires(compilation);
+  const plan = JSON.parse(wires.executablePlan);
+  assert.equal(plan.nodes.length, 4);
+  assert.equal(plan.data_edges.length, 3);
+  assert.deepEqual(plan.root_refs.map(root => root.name), ['b', 'c']);
+  const allowed = issueAllowedTaskRun(prepared, compilation, {
+    executionContextCid: `sha256:${'a'.repeat(64)}`,
+    hostPolicyCid: `sha256:${'b'.repeat(64)}`,
+    expiresAt: '2026-10-01T00:00:00.000Z',
+  });
+  const definition = issueTaskRunDefinition(prepared, compilation,
+    allowed.admission, 'task-scope', 'task-run',
+    '2026-09-26T00:00:00.000Z', '2026-09-27T00:00:00.000Z');
+  const wire = privateRunDefinition(definition).wire;
+  const restoredAdmission = admitTaskRun(prepared, compilation,
+    allowed.preparedInvocationWire, allowed.authorizationWire);
+  assert.equal(privateRunDefinition(admitTaskRunDefinition(prepared,
+    compilation, restoredAdmission, wire)).wire, wire);
+  assert.equal(privateRunDefinition(admitTaskRunDefinition(prepared,
+    compilation, allowed.admission, wire)).wire, wire);
+  const changed = prepare(document, 'json', environment,
+    JSON.stringify({minimum: 7}));
+  assert.throws(() => admitTaskRunDefinition(changed, compileTasks(changed),
+    issueAllowedTaskRun(changed, compileTasks(changed), {
+      executionContextCid: `sha256:${'a'.repeat(64)}`,
+      hostPolicyCid: `sha256:${'b'.repeat(64)}`,
+      expiresAt: '2026-10-01T00:00:00.000Z',
+    }).admission, wire), {code: 'RunHostTaskDefinitionRejected'});
+});
 
 test('portable delivery control keeps progress and serializer opaque', () => {
   const control = openResultDeliveryControl();

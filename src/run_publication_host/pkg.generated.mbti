@@ -4,6 +4,7 @@ package "actql/actql/run_publication_host"
 import {
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
@@ -55,6 +56,8 @@ pub fn admit_prepared_client_values_fragment(PreparedClientProgram, Int, String,
 pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphAdmissionIssue]
 
 pub fn admit_source_free_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
+
+pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
 
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
@@ -124,6 +127,20 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_task_compilation_compiled_plan(ClientTaskCompilation) -> @run_publication.PublicationContract
+
+pub fn client_task_compilation_plan(ClientTaskCompilation) -> ClientTaskExecutablePlan
+
+pub fn client_task_compilation_result_names(ClientTaskCompilation) -> Array[String]
+
+pub fn client_task_compilation_template(ClientTaskCompilation) -> @run_publication.RunEvidenceValue
+
+pub fn client_task_executable_plan_cid(ClientTaskExecutablePlan) -> String
+
+pub fn client_task_executable_plan_fact_manifest_wire(ClientTaskExecutablePlan) -> String
+
+pub fn client_task_executable_plan_wire(ClientTaskExecutablePlan) -> String
+
 pub fn client_task_fragment_logical_cid(ClientTaskFragmentNode) -> String
 
 pub fn client_task_fragment_node_id(ClientTaskFragmentNode) -> String
@@ -135,6 +152,10 @@ pub fn client_task_fragment_output_port(ClientTaskFragmentNode) -> String
 pub fn client_task_fragment_wire(ClientTaskFragmentNode) -> String
 
 pub fn client_task_plan_graph_wire(ClientTaskPlanGraph) -> String
+
+pub fn client_task_run_binding_definition_cid(ClientTaskRunBinding) -> String
+
+pub fn client_task_run_binding_result_names(ClientTaskRunBinding) -> Array[String]
 
 pub fn client_values_aoa_identity_cid(ClientValuesAoAIdentity) -> String
 
@@ -214,7 +235,17 @@ pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, I
 
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
 
+pub fn issue_prepared_client_task_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientTaskBoundTemplateIssue]
+
+pub fn issue_prepared_client_task_compilation(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
+
+pub fn issue_prepared_client_task_executable_plan(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientTaskExecutablePlan, ClientValuesExecutablePlanIssue]
+
+pub fn issue_prepared_client_task_execution_material(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
+
 pub fn issue_prepared_client_task_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
+
+pub fn issue_prepared_client_task_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientTaskOutputSchemaIssue]
 
 pub fn issue_prepared_client_task_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
 
@@ -233,6 +264,8 @@ pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @l
 pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue]
 
 pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
+
+pub fn open_prepared_captured_client_run(PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
@@ -342,6 +375,7 @@ pub(all) enum ClientExecutionMaterialAdmissionIssue {
 pub(all) enum ClientExecutionMaterialIssue {
   InvalidLimits
   Template(ClientBoundTemplateIssue)
+  TaskTemplate(ClientTaskBoundTemplateIssue)
   Bindings(ClientEmptyInvocationBindingsIssue)
   Program(ClientIdentityMaterialIssue)
   ResultPlan(ClientResultPlanIssue)
@@ -541,6 +575,32 @@ pub(all) enum ClientTaskAoAStepsIssue {
   Encoding
 }
 
+pub(all) enum ClientTaskBoundTemplateIssue {
+  Graph(ClientTaskPlanGraphIssue)
+  OpaqueBindings(ClientEmptyInvocationBindingsIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub struct ClientTaskCompilation {
+  plan : ClientTaskExecutablePlan
+  template : @run_publication.RunEvidenceValue
+  compiled_plan : @run_publication.PublicationContract
+  result_names : Array[String]
+}
+
+pub(all) enum ClientTaskCompilationIssue {
+  Plan(ClientValuesExecutablePlanIssue)
+  Material(ClientExecutionMaterialIssue)
+  Graph(ClientTaskPlanGraphIssue)
+  Template(@run_publication.RunEvidenceValueIssue)
+  CompiledPlan(@run_publication.PublicationContractIssue)
+  Encoding
+}
+
+pub struct ClientTaskExecutablePlan {
+  plan : ClientValuesExecutablePlan
+}
+
 pub(all) enum ClientTaskFragmentAdmissionIssue {
   Issue(ClientTaskFragmentIssue)
   MismatchedNode
@@ -562,6 +622,12 @@ pub struct ClientTaskFragmentNode {
   output_port : String
   logical_cid : String
   output_contract_cid : String
+}
+
+pub(all) enum ClientTaskOutputSchemaIssue {
+  Fragment(ClientTaskFragmentIssue)
+  MissingCheckedOutput
+  Identity(@execution_relation.RelationSchemaIdentityIssue)
 }
 
 pub(all) enum ClientTaskPipelineIssue {
@@ -589,6 +655,16 @@ pub(all) enum ClientTaskPlanGraphIssue {
   InvalidEdge
   ContractMismatch
   Encoding
+}
+
+pub struct ClientTaskRunBinding {
+  run_definition_cid : String
+  result_names : Array[String]
+}
+
+pub(all) enum ClientTaskRunBindingIssue {
+  ForeignRun
+  UnsupportedProgram
 }
 
 pub(all) enum ClientTaskSequenceIssue {
@@ -660,6 +736,7 @@ pub(all) enum ClientValuesExecutablePlanAdmissionIssue {
 pub(all) enum ClientValuesExecutablePlanIssue {
   InvalidLimits
   Graph(ClientValuesPlanGraphIssue)
+  TaskGraph(ClientTaskPlanGraphIssue)
   Material(ClientExecutionMaterialIssue)
   Facts(ClientPublicationPlanFactIssue)
   Witnesses(ClientPublicationWitnessIssue)

@@ -29,6 +29,10 @@ pub fn client_values_host_admit_source_free_request_identity(String, String, Str
 
 pub fn client_values_host_admit_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeAdmissionIssue]
 
+pub fn client_values_host_admit_task_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
+
+pub fn client_values_host_admit_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskAdmissionIssue]
+
 pub fn client_values_host_allowed_run_admission(ClientValuesHostAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_values_host_allowed_run_authorization_wire(ClientValuesHostAllowedRun) -> String
@@ -46,6 +50,8 @@ pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.Dura
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
+
+pub fn client_values_host_compile_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientValuesHostTaskCompilationIssue]
 
 pub fn client_values_host_compiled_plan_cid(@run_publication_host.ClientValuesCompilation) -> String
 
@@ -85,6 +91,8 @@ pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], I
 
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
+pub fn client_values_host_issue_allowed_task_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
+
 pub fn client_values_host_issue_checked_values_result_occurrence_evidence(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.PublicationContract, String, String, String, String, String, String, Int, Int, Int) -> Result[@run_publication.ResultOrderingEvidence, ClientValuesHostCheckedOccurrenceIssue]
 
 pub fn client_values_host_issue_complete_result_artifact(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.ResultOrderingEvidence, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.ResultArtifactIssuanceIssue]
@@ -122,6 +130,8 @@ pub fn client_values_host_issue_source_free_invocation(@run_publication_host.Cli
 pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
 pub fn client_values_host_issue_succeeded_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Array[String], Array[String], Array[String], Array[String]) -> String?
+
+pub fn client_values_host_issue_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskDefinitionIssue]
 
 pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool) -> String?
 
@@ -237,6 +247,20 @@ pub fn client_values_host_seal_run_evidence_value(String, String, Int, Int, Int)
 
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
+pub fn client_values_host_task_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
+
+pub fn client_values_host_task_fact_manifest_wire(@run_publication_host.ClientTaskCompilation) -> String
+
+pub fn client_values_host_task_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
+
+pub fn client_values_host_task_result_definitions(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]
+
+pub fn client_values_host_task_result_names(@run_publication_host.ClientTaskCompilation) -> Array[String]
+
+pub fn client_values_host_task_result_schema(@run_publication_host.PreparedClientProgram, Int) -> Result[Array[String], ClientValuesHostTaskResultSchemaIssue]
+
+pub fn client_values_host_task_template_wire(@run_publication_host.ClientTaskCompilation) -> String
+
 pub fn client_values_host_template_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_trusted_clock_not_before(String?, String) -> Bool
@@ -303,6 +327,27 @@ pub(all) enum ClientValuesHostSourceFreeAdmissionIssue {
 pub(all) enum ClientValuesHostSourceFreeDefinitionIssue {
   Definition(@run_publication.RunPublicationAdmissionIssue)
   Binding(@run_publication_host.ClientValuesRunBindingIssue)
+}
+
+pub(all) enum ClientValuesHostTaskAdmissionIssue {
+  Contract(@run_publication.PublicationContractIssue)
+  Binding(@run_publication_host.ClientTaskRunBindingIssue)
+}
+
+pub(all) enum ClientValuesHostTaskCompilationIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Compilation(@run_publication_host.ClientTaskCompilationIssue)
+}
+
+pub(all) enum ClientValuesHostTaskDefinitionIssue {
+  Definition(@run_publication.RunPublicationAdmissionIssue)
+  Binding(@run_publication_host.ClientTaskRunBindingIssue)
+}
+
+pub(all) enum ClientValuesHostTaskResultSchemaIssue {
+  MissingResult
+  Root(@run_publication_host.ClientDirectResultRootIssue)
+  Schema(@run_publication_host.ClientTaskOutputSchemaIssue)
 }
 
 // Type aliases

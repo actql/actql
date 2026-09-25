@@ -2,6 +2,7 @@
 pub(all) enum ClientExecutionMaterialIssue {
   InvalidLimits
   Template(ClientBoundTemplateIssue)
+  TaskTemplate(ClientTaskBoundTemplateIssue)
   Bindings(ClientEmptyInvocationBindingsIssue)
   Program(ClientIdentityMaterialIssue)
   ResultPlan(ClientResultPlanIssue)
@@ -67,6 +68,44 @@ pub fn issue_prepared_client_values_execution_material(
     Ok(template) => template
     Err(issue) => return Err(Template(issue))
   }
+  issue_prepared_client_execution_material_with_template(
+    value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+pub fn issue_prepared_client_task_execution_material(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let template = match
+    issue_prepared_client_task_bound_template(
+      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(template) => template
+    Err(issue) => return Err(TaskTemplate(issue))
+  }
+  issue_prepared_client_execution_material_with_template(
+    value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_prepared_client_execution_material_with_template(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  template : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
       value, max_wire_bytes, max_nodes, max_depth,

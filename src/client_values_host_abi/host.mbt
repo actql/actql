@@ -135,6 +135,88 @@ pub fn client_values_host_compile(
 }
 
 ///|
+pub(all) enum ClientValuesHostTaskCompilationIssue {
+  Manifests(@host.ClientCompilationManifestIssue)
+  Compilation(@host.ClientTaskCompilationIssue)
+}
+
+///|
+#export_name("clientValuesHostCompileTasks")
+pub fn client_values_host_compile_tasks(
+  prepared : @host.PreparedClientProgram,
+) -> Result[@host.ClientTaskCompilation, ClientValuesHostTaskCompilationIssue] {
+  let manifests = match
+    @host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(manifests) => manifests
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @host.issue_prepared_client_task_compilation(
+    prepared,
+    manifests,
+    @host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
+#export_name("clientValuesHostTaskPlanWire")
+pub fn client_values_host_task_plan_wire(
+  value : @host.ClientTaskCompilation,
+) -> String {
+  @host.client_task_executable_plan_wire(
+    @host.client_task_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskFactManifestWire")
+pub fn client_values_host_task_fact_manifest_wire(
+  value : @host.ClientTaskCompilation,
+) -> String {
+  @host.client_task_executable_plan_fact_manifest_wire(
+    @host.client_task_compilation_plan(value),
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskTemplateWire")
+pub fn client_values_host_task_template_wire(
+  value : @host.ClientTaskCompilation,
+) -> String {
+  @publication.run_evidence_value_json(
+    @host.client_task_compilation_template(value),
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskCompiledPlanWire")
+pub fn client_values_host_task_compiled_plan_wire(
+  value : @host.ClientTaskCompilation,
+) -> String {
+  @publication.publication_contract_json(
+    @host.client_task_compilation_compiled_plan(value),
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskResultNames")
+pub fn client_values_host_task_result_names(
+  value : @host.ClientTaskCompilation,
+) -> Array[String] {
+  @host.client_task_compilation_result_names(value)
+}
+
+///|
 #export_name("clientValuesHostPlanWire")
 pub fn client_values_host_plan_wire(
   value : @host.ClientValuesCompilation,
@@ -296,6 +378,63 @@ pub fn client_values_host_result_schema(
 }
 
 ///|
+pub(all) enum ClientValuesHostTaskResultSchemaIssue {
+  MissingResult
+  Root(@host.ClientDirectResultRootIssue)
+  Schema(@host.ClientTaskOutputSchemaIssue)
+}
+
+///|
+#export_name("clientValuesHostTaskResultSchema")
+pub fn client_values_host_task_result_schema(
+  prepared : @host.PreparedClientProgram,
+  result : Int,
+) -> Result[Array[String], ClientValuesHostTaskResultSchemaIssue] {
+  let graph = @host.prepared_client_graph(prepared)
+  guard @strategy.graph_result_task(graph, result) is Some(task) else {
+    return Err(MissingResult)
+  }
+  match
+    @host.issue_prepared_client_direct_task_result_root(
+      prepared,
+      result,
+      @host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Root(issue))
+  }
+  let schema = match
+    @host.issue_prepared_client_task_output_schema(
+      prepared,
+      task,
+      @host.client_standard_values_sequence_limits(),
+      {
+        max_fields: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(schema) => schema
+    Err(issue) => return Err(Schema(issue))
+  }
+  let facts = [
+    @execution.relation_schema_cid(schema),
+    @execution.relation_schema_wire(schema),
+  ]
+  for field in @execution.relation_schema_field_names(schema) {
+    facts.push(field)
+  }
+  Ok(facts)
+}
+
+///|
 /// The complete checked Result inventory for the single Values task. The
 /// flattened triples are name, CID and canonical body in declaration order.
 /// These identities do not authorize publication or payload access.
@@ -320,6 +459,58 @@ pub fn client_values_host_result_definitions(
   }
   let definitions : Array[String] = []
   for index = 0; index < names.length(); index = index + 1 {
+    let name = match
+      @publication.checked_publication_inventory_name(inventory, index) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let cid = match
+      @publication.checked_publication_inventory_definition_cid(
+        inventory, index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let wire = match
+      @publication.checked_publication_inventory_definition_json(
+        inventory, index,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    definitions.push(name)
+    definitions.push(cid)
+    definitions.push(wire)
+  }
+  Ok(definitions)
+}
+
+///|
+#export_name("clientValuesHostTaskResultDefinitions")
+pub fn client_values_host_task_result_definitions(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+) -> Result[Array[String], @publication.PublicationInventoryIssue] {
+  let names = @host.client_task_compilation_result_names(compilation)
+  let graph = @host.prepared_client_graph(prepared)
+  let tasks : Array[Int] = []
+  for index in 0..<names.length() {
+    guard @strategy.graph_result_task(graph, index) is Some(task) else {
+      return Err(@publication.PublicationInventoryIssue::InvalidTask(index))
+    }
+    tasks.push(task)
+  }
+  let inventory = match
+    @publication.prepare_checked_publication_inventory(
+      @host.prepared_client_identity(prepared).program_definition_cid,
+      names,
+      tasks,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let definitions : Array[String] = []
+  for index in 0..<names.length() {
     let name = match
       @publication.checked_publication_inventory_name(inventory, index) {
       Ok(value) => value
@@ -629,6 +820,39 @@ pub fn client_values_host_issue_allowed_run(
 ) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
   let template = @host.client_values_compilation_template(compilation)
   let plan = @host.client_values_compilation_compiled_plan(compilation)
+  client_values_host_issue_allowed_run_with_compilation(
+    prepared, template, plan, execution_context_cid, host_policy_cid, expires_at,
+  )
+}
+
+///|
+#export_name("clientValuesHostIssueAllowedTaskRun")
+pub fn client_values_host_issue_allowed_task_run(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
+  client_values_host_issue_allowed_run_with_compilation(
+    prepared,
+    @host.client_task_compilation_template(compilation),
+    @host.client_task_compilation_compiled_plan(compilation),
+    execution_context_cid,
+    host_policy_cid,
+    expires_at,
+  )
+}
+
+///|
+fn client_values_host_issue_allowed_run_with_compilation(
+  prepared : @host.PreparedClientProgram,
+  template : @publication.RunEvidenceValue,
+  plan : @publication.PublicationContract,
+  execution_context_cid : String,
+  host_policy_cid : String,
+  expires_at : String,
+) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue] {
   let prepared_value = match
     @publication.seal_run_evidence_value(
       "prepared_invocation",
@@ -749,6 +973,40 @@ pub fn client_values_host_admit_run(
 }
 
 ///|
+#export_name("clientValuesHostAdmitTaskRun")
+pub fn client_values_host_admit_task_run(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  prepared_invocation_wire : String,
+  authorization_wire : String,
+) -> Result[
+  @publication.RunPublicationAdmission,
+  ClientValuesHostRunAdmissionIssue,
+] {
+  let admitted_prepared = match
+    @publication.admit_run_evidence_value(
+      "prepared_invocation", prepared_invocation_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Prepared(issue))
+  }
+  let admitted_authorization = match
+    @publication.admit_run_evidence_value(
+      "run_authorization", authorization_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Authorization(issue))
+  }
+  @host.admit_prepared_client_run_publication(
+    prepared,
+    @host.client_task_compilation_template(compilation),
+    admitted_prepared,
+    admitted_authorization,
+    @host.client_task_compilation_compiled_plan(compilation),
+  ).map_err(issue => Binding(issue))
+}
+
+///|
 /// The issued Definition remains private Host material until atomically bound
 /// to one retained request. A Definition CID alone grants no start authority.
 #export_name("clientValuesHostIssueRunDefinition")
@@ -815,6 +1073,49 @@ pub fn client_values_host_issue_source_free_run_definition(
 }
 
 ///|
+pub(all) enum ClientValuesHostTaskDefinitionIssue {
+  Definition(@publication.RunPublicationAdmissionIssue)
+  Binding(@host.ClientTaskRunBindingIssue)
+}
+
+///|
+/// Later provider capture is distinct from the empty Run-start Artifact set.
+#export_name("clientValuesHostIssueTaskRunDefinition")
+pub fn client_values_host_issue_task_run_definition(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+) -> Result[
+  @publication.PublicationContract,
+  ClientValuesHostTaskDefinitionIssue,
+] {
+  let definition = match
+    @publication.issue_run_definition(
+      admission,
+      scope_id,
+      run_id,
+      @publication.empty_initial_input_artifact_set_cid(),
+      created_at,
+      valid_until,
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Definition(issue))
+  }
+  match
+    @host.bind_client_task_run(prepared, compilation, admission, definition) {
+    Ok(_) => Ok(definition)
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
 #export_name("clientValuesHostRunDefinitionWire")
 pub fn client_values_host_run_definition_wire(
   definition : @publication.PublicationContract,
@@ -873,6 +1174,37 @@ pub fn client_values_host_admit_source_free_run_definition(
     @host.bind_source_free_client_values_run(
       prepared, compilation, admission, definition,
     ) {
+    Ok(_) => Ok(definition)
+    Err(issue) => Err(Binding(issue))
+  }
+}
+
+///|
+pub(all) enum ClientValuesHostTaskAdmissionIssue {
+  Contract(@publication.PublicationContractIssue)
+  Binding(@host.ClientTaskRunBindingIssue)
+}
+
+///|
+#export_name("clientValuesHostAdmitTaskRunDefinition")
+pub fn client_values_host_admit_task_run_definition(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  wire : String,
+) -> Result[
+  @publication.PublicationContract,
+  ClientValuesHostTaskAdmissionIssue,
+] {
+  let definition = match
+    @publication.admit_publication_contract(
+      "run_definition", wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Contract(issue))
+  }
+  match
+    @host.bind_client_task_run(prepared, compilation, admission, definition) {
     Ok(_) => Ok(definition)
     Err(issue) => Err(Binding(issue))
   }
@@ -966,8 +1298,16 @@ pub fn client_values_host_issue_succeeded_run_state_wire(
   }
   match
     @publication.issue_succeeded_run_state_wire(
-      run_id, observed_at, @host.client_values_compilation_result_names(compilation),
-      names, states, reasons, result_observed_at, 100000, 10000, 64,
+      run_id,
+      observed_at,
+      @host.client_values_compilation_result_names(compilation),
+      names,
+      states,
+      reasons,
+      result_observed_at,
+      100000,
+      10000,
+      64,
     ) {
     Ok(wire) => Some(wire)
     Err(_) => None
@@ -1005,9 +1345,7 @@ pub fn client_values_host_project_committed_result_read_wire(
     Ok(value) => value
     Err(_) => return None
   }
-  let writer = @encode.writer(100000, 10000, 64) catch {
-    _ => return None
-  }
+  let writer = @encode.writer(100000, 10000, 64) catch { _ => return None }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "byte_count")
@@ -1048,9 +1386,7 @@ pub fn client_values_host_project_committed_result_read_wire(
   } catch {
     _ => return None
   }
-  Some(@encode.finish(writer) catch {
-    _ => return None
-  })
+  Some(@encode.finish(writer) catch { _ => return None })
 }
 
 ///|
@@ -1529,9 +1865,9 @@ pub fn client_values_host_validate_effect_free_publication_commit(
   max_depth : Int,
 ) -> Result[Unit, @publication.PublicationCommitIssue] {
   @publication.validate_effect_free_publication_commit_with_result_evidence(
-    run_definition, invocation, definitions, artifacts, derivations,
-    orderings, retentions, bindings, manifest, receipt, captured_run, request,
-    attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    bindings, manifest, receipt, captured_run, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth,
   )
 }
 

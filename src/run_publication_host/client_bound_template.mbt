@@ -7,6 +7,60 @@ pub(all) enum ClientBoundTemplateIssue {
 }
 
 ///|
+pub(all) enum ClientTaskBoundTemplateIssue {
+  Graph(ClientTaskPlanGraphIssue)
+  OpaqueBindings(ClientEmptyInvocationBindingsIssue)
+  Evidence(@publication.RunEvidenceValueIssue)
+}
+
+///|
+/// Bind an arbitrary checked Effect-free task graph with no opaque
+/// declarations. Physical source evidence is supplied by the Observation Set
+/// after capture; this template does not authorize a provider read.
+pub fn issue_prepared_client_task_bound_template(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientTaskBoundTemplateIssue] {
+  match
+    issue_prepared_client_task_plan_graph(
+      value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Graph(issue))
+  }
+  let bindings = match
+    issue_prepared_client_empty_invocation_bindings(
+      value, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(bindings) => bindings
+    Err(issue) => return Err(OpaqueBindings(issue))
+  }
+  let identity = prepared_client_identity(value)
+  let body = "{\"version\":\"actql-bound-invocation-template/0.1\"," +
+    "\"program_definition_cid\":\"" +
+    identity.program_definition_cid +
+    "\",\"parameter_values_cid\":\"" +
+    identity.parameter_values_cid +
+    "\",\"invocation_bindings_cid\":\"" +
+    @publication.run_evidence_value_identity(bindings) +
+    "\",\"check_environment_cid\":\"" +
+    prepared_client_check_environment_cid(value) +
+    "\",\"grammar_manifest_cid\":\"" +
+    manifests.grammar_manifest_cid +
+    "\",\"required_profile_contracts\":[]," +
+    "\"barrier_contract_manifest_cid\":\"" +
+    manifests.barrier_contract_manifest_cid +
+    "\",\"source_evidence\":\"unbound\"}"
+  @publication.seal_run_evidence_value(
+    "bound_invocation_template", body, max_wire_bytes, max_nodes, max_depth,
+  ).map_err(issue => Evidence(issue))
+}
+
+///|
 /// Issue the source-free Bound Invocation Template from one checked Program.
 /// This covers one Values-rooted task without opaque bindings or required
 /// profiles.

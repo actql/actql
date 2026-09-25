@@ -2,6 +2,7 @@
 pub(all) enum ClientValuesExecutablePlanIssue {
   InvalidLimits
   Graph(ClientValuesPlanGraphIssue)
+  TaskGraph(ClientTaskPlanGraphIssue)
   Material(ClientExecutionMaterialIssue)
   Facts(ClientPublicationPlanFactIssue)
   Witnesses(ClientPublicationWitnessIssue)
@@ -23,6 +24,32 @@ pub struct ClientValuesExecutablePlan {
   cid : String
   fact_manifest_wire : String
   fact_manifest_cid : String
+}
+
+///|
+pub struct ClientTaskExecutablePlan {
+  plan : ClientValuesExecutablePlan
+}
+
+///|
+pub fn client_task_executable_plan_wire(
+  value : ClientTaskExecutablePlan,
+) -> String {
+  value.plan.wire
+}
+
+///|
+pub fn client_task_executable_plan_cid(
+  value : ClientTaskExecutablePlan,
+) -> String {
+  value.plan.cid
+}
+
+///|
+pub fn client_task_executable_plan_fact_manifest_wire(
+  value : ClientTaskExecutablePlan,
+) -> String {
+  value.plan.fact_manifest_wire
 }
 
 ///|
@@ -119,6 +146,76 @@ pub fn issue_prepared_client_values_executable_plan(
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
   }
+  issue_prepared_client_executable_plan_with_parts(
+    value,
+    graph.wire,
+    material.wire,
+    max_facts,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Seal checked multi-task graph material into the same Executable Plan
+/// contract. The resulting Plan still needs source capture, Host policy and
+/// Run admission before any provider I/O.
+pub fn issue_prepared_client_task_executable_plan(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskExecutablePlan, ClientValuesExecutablePlanIssue] {
+  if max_facts <= 0 ||
+    max_witnesses <= 0 ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let graph = match
+    issue_prepared_client_task_plan_graph(
+      value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(graph) => graph
+    Err(issue) => return Err(TaskGraph(issue))
+  }
+  let material = match
+    issue_prepared_client_task_execution_material(
+      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(material) => material
+    Err(issue) => return Err(Material(issue))
+  }
+  issue_prepared_client_executable_plan_with_parts(
+    value,
+    graph.wire,
+    material.wire,
+    max_facts,
+    max_witnesses,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ).map(plan => { plan, })
+}
+
+///|
+fn issue_prepared_client_executable_plan_with_parts(
+  value : PreparedClientProgram,
+  graph_wire : String,
+  material_wire : String,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
   let facts = match
     issue_prepared_client_publication_plan_facts(
       value, max_facts, max_wire_bytes, max_nodes, max_depth,
@@ -159,20 +256,14 @@ pub fn issue_prepared_client_values_executable_plan(
     return Err(Encoding)
   }
   guard parse_plan_identity_value(
-      graph.wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      graph_wire, max_wire_bytes, max_nodes, max_depth,
     )
     is Some(graph_value) &&
     @canonical.object_field(graph_value, "nodes") is Some(nodes) &&
     @canonical.object_field(graph_value, "data_edges") is Some(edges) &&
     @canonical.object_field(graph_value, "root_refs") is Some(roots) &&
     parse_plan_identity_value(
-      material.wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      material_wire, max_wire_bytes, max_nodes, max_depth,
     )
     is Some(material_value) else {
     return Err(Encoding)

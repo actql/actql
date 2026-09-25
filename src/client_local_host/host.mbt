@@ -24,6 +24,62 @@ pub fn open_source_free_local_host(
   fragment_body? : String? = None,
   ordered_body? : String? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+  )
+}
+
+///|
+/// The same installed compute Host can receive a verified physical capture.
+/// The caller must retain the acquisition owner through the last consumer.
+pub fn open_captured_local_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    Some(source),
+    registry_body,
+    values_body,
+    fixed_ms,
+    per_row_ms,
+    per_wire_byte_ms,
+    per_pair_ms,
+    fragment_body~,
+    ordered_body~,
+  )
+}
+
+///|
+fn open_checked_local_host(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource?,
+  registry_body : String,
+  values_body : String,
+  fixed_ms : Int64,
+  per_row_ms : Int64,
+  per_wire_byte_ms : Int64,
+  per_pair_ms : Int64,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
     fixed_ms < 0L ||
@@ -92,15 +148,23 @@ pub fn open_source_free_local_host(
       }
     }
   }
-  let run = match
-    @publication_host.open_prepared_source_free_client_run(prepared, {
-      planning_work: 100000,
-      attempts: 10,
-      holdings: 10,
-      transfer_bytes: 500000L,
-      retained_bytes: 200000000L,
-      execution_bytes: 268435456L,
-    }) {
+  let limits : @resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 500000L,
+    retained_bytes: 200000000L,
+    execution_bytes: 268435456L,
+  }
+  let opened = match source {
+    None =>
+      @publication_host.open_prepared_source_free_client_run(prepared, limits)
+    Some(captured) =>
+      @publication_host.open_prepared_captured_client_run(
+        prepared, captured, limits,
+      )
+  }
+  let run = match opened {
     Ok(value) => value
     Err(_) => return None
   }
