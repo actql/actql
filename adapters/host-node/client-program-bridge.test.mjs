@@ -2303,6 +2303,13 @@ test('owned update Plan matches approved rows and rejects altered intent',
         assert.deepEqual(seenRequests, progressMembers[1].claims.map(
           claim => ({method: 'PATCH', path: claim.requestPath,
             body: claim.requestBody})));
+        const settled = await applyCapturedEffectSet({
+          ...applyOptions, ledger: resumedProgress,
+          authorization: undefined, refreshPreflight: undefined,
+          dispatchRow: () => assert.fail('settled or unknown row resent'),
+        });
+        assert.equal(settled.status, 'applied');
+        assert.equal(settled.dispatched, 0);
         const issued = await issueAuthorizedEffectSetReceipt({
           ledger: resumedProgress, preview: applyPreview,
           commonMoon: moon, authorizeEvidenceRead: async () => true,

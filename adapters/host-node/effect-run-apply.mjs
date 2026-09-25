@@ -219,7 +219,8 @@ export async function applyCapturedEffectSet({
       typeof ledger.prepareCapturedSetIntents !== 'function' ||
       !Array.isArray(members) || members.length === 0 ||
       typeof dispatchRow !== 'function' ||
-      typeof refreshPreflight !== 'function' ||
+      (refreshPreflight !== undefined &&
+        typeof refreshPreflight !== 'function') ||
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1) {
     fail('InvalidCapturedEffectApply');
   }
@@ -234,7 +235,6 @@ export async function applyCapturedEffectSet({
   if (totalRows === 0 || totalRows > 100_000) {
     fail('InvalidCapturedEffectApply');
   }
-  const commit = checkedAuthorization(authorization, ownedMembers.length);
   // Risk acceptance is Host policy, not a member-count floor: a body is
   // passed only when the Host holds one, and `partial_application_accepted`
   // is required only when the Host's delegated-decision policy declares it.
@@ -243,6 +243,13 @@ export async function applyCapturedEffectSet({
   const initialFrontier = ledger.frontierFromCapturedHeads(
     capturedInputs, ownedMembers, maxFrontierWork);
   const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
+  // Historical progress needs no new mutation authority when every row is
+  // already terminal or uncertain. Evidence viewing remains separately gated.
+  if (!noReadyRows && typeof refreshPreflight !== 'function') {
+    fail('InvalidCapturedEffectApply');
+  }
+  const commit = noReadyRows ? undefined :
+    checkedAuthorization(authorization, ownedMembers.length);
   const subjectCid = sealedSubject(moon, capturedInputs, ownedMembers.length);
   let readDecisions = Object.freeze([]);
   if (!noReadyRows) {
