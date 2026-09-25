@@ -3,6 +3,7 @@ node_modules/
 __pycache__/
 _build/
 packages/local-node/adapters/
+packages/local-node/spec/
 .artifacts/
 target/
 .toolchains/

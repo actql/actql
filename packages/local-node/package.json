@@ -15,5 +15,5 @@
   "exports": {
     "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
   },
-  "files": ["_build/js/release/build", "adapters", "README.md"]
+  "files": ["_build/js/release/build", "adapters", "spec", "README.md"]
 }

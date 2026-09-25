@@ -65,3 +65,18 @@ const walk = (directory, prefix = '') => {
   }
 };
 walk(join(destination, 'adapters'));
+for (const path of [
+  'spec/dependencies/aoa-pipeline-registry.json',
+  'spec/contracts/actql-aoa.json',
+]) {
+  const bytes = readFileSync(join(root, path));
+  const output = join(destination, path);
+  if (process.argv.includes('--check')) {
+    if (!readFileSync(output).equals(bytes)) {
+      throw new Error(`StaleLocalNodeContract:${path}`);
+    }
+  } else {
+    mkdirSync(join(output, '..'), {recursive: true});
+    writeFileSync(output, bytes);
+  }
+}

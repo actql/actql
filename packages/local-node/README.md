@@ -7,6 +7,9 @@ provider. `@actql/node` must not depend on or advertise this artifact until
 the Host composition and ordinary Program acceptance are installed and
 tested from a clean package.
 
-The bundles and adapters are built from checked OSS source and checked for
-freshness. Their package paths preserve the runtime URLs used by the Node
-adapters. The lightweight `@actql/sdk` does not depend on this artifact.
+The bundles, adapters and pinned execution contracts are built from checked
+OSS source and checked for freshness. Their package paths preserve the
+runtime URLs used by the Node adapters. A clean installation executes a
+checked source-free Values Program with network access disabled; Result
+publication remains outside the packed smoke path. The lightweight
+`@actql/sdk` does not depend on this artifact.
