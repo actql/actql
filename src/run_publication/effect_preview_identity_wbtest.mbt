@@ -118,6 +118,75 @@ fn preview_identity_test_wire(
 }
 
 ///|
+test "Preview authoring seals row, member, set and late dispatch bindings" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let template = preview_identity_test_wire(
+    run,
+    authoring,
+    preview_identity_test_cid("4"),
+    "001000000000001",
+    a,
+    a,
+  )
+  let (semantic_wire, semantic) = author_effect_preview_semantic_wire(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_semantic_identity(semantic),
+    "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
+  )
+  assert_eq(
+    effect_preview_row_key(semantic, 0, 0),
+    effect_preview_row_identity(semantic, 0, 0),
+  )
+  let final_wire = complete_effect_preview_dispatch_keys(
+    semantic_wire,
+    [[preview_identity_test_cid("4")]],
+    run,
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let final_identity = admit_effect_preview_identity(
+    final_wire, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_semantic_identity(final_identity),
+    effect_preview_semantic_identity(semantic),
+  )
+  assert_eq(
+    effect_preview_row_key(final_identity, 0, 0),
+    Some(preview_identity_test_cid("4")),
+  )
+  assert_true(
+    complete_effect_preview_dispatch_keys(
+      semantic_wire,
+      [[]],
+      run,
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidMember),
+  )
+  assert_true(
+    author_effect_preview_semantic_wire(
+      template,
+      preview_identity_test_cid("c"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(RunBindingMismatch),
+  )
+}
+
+///|
 test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" {
   let a = preview_identity_test_cid("a")
   let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"

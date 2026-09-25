@@ -57,6 +57,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
+pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
+
 pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physical_strategy.CapturedEffectInputs, @run_publication.PublicationContract, Int, String, String, ClientEffectPreviewInputLimits) -> Result[@physical_strategy.CapturedEffectPreviewInputs, ClientEffectPreviewInputIssue]
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
@@ -1629,6 +1631,13 @@ pub(all) enum ClientEffectPlanStreamIssue {
   Import(ClientEffectManagedInputIssue)
   Export(@execution_relation.CompletedExportIssue)
 }
+
+pub(all) enum ClientEffectPreviewAuthorIssue {
+  Preview(@run_publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect_application.EffectIdentityIssue)
+  Keys(@effect_application.EffectPreviewApplyIdentityIssue)
+  CapacityExceeded
+} derive(@debug.Debug)
 
 pub(all) enum ClientEffectPreviewInputIssue {
   Identity(@run_publication.EffectPreviewIdentityIssue)

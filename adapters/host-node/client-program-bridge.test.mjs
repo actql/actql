@@ -321,6 +321,15 @@ function effectInputPreview(prepared, evidence, definition, invocation,
           20000, 1000, 20));
     }
   }
+  if (scope !== undefined) {
+    const authored = checked(moon.clientProgramAuthorEffectPreview(
+      canonicalJson(preview), preview.run_identity_cid,
+      authoring.authoring_context_cid, scope, 20000, 1000, 20,
+      memberIds.length, approvedValues.length * memberIds.length,
+      128, 8, 3));
+    return {wire: authored._0,
+      authoringCid: authoring.authoring_context_cid, keys: authored._1};
+  }
   if (approvedValues.length > 0) {
     const rowsByMember = checked(moon.strategyEffectPreviewRowIdentities(
       canonicalJson(preview), 20000, 1000, 20));
@@ -1345,6 +1354,19 @@ test('owned update Plan matches approved rows and rejects altered intent',
         targets, memberIds, memberIds.map((_, index) =>
           cid(String(index))), requestScope);
       const preview = previewFor([1, 2]);
+      const alternateScope = checked(moon.strategyEffectLogicalRequestScope(
+        cid('e'), 'two-effect-request-alternate', 128));
+      const alternatePreview = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        sourcePayloads[0].summary.artifact.identity, 'update', [1, 2],
+        [1, 2], memberIds, memberIds.map((_, index) =>
+          cid(String(index))), alternateScope);
+      assert.equal(JSON.parse(preview.wire).effect_preview_cid,
+        JSON.parse(alternatePreview.wire).effect_preview_cid);
+      assert.notEqual(JSON.parse(preview.wire).effects[0].changes[0]
+        .row_idempotency_key,
+      JSON.parse(alternatePreview.wire).effects[0].changes[0]
+        .row_idempotency_key);
       const runDefinitionContract = control.admit('run_definition',
         moon.strategyPublicationContractJson(definition),
         publicationLimits);
