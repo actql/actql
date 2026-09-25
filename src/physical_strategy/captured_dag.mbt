@@ -284,12 +284,7 @@ pub fn open_captured_effect_run_dag(
     return Err(UnsupportedGraph)
   }
   let captured = match
-    open_checked_dag(
-      checked.computation.graph,
-      Some(source),
-      ledger,
-      supplied,
-    ) {
+    open_checked_dag(checked.computation.graph, Some(source), ledger, supplied) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

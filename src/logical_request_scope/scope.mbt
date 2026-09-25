@@ -110,9 +110,10 @@ pub fn prepare_scope_cid(
   caller_request_id : String,
   max_caller_bytes : Int,
 ) -> Result[String, LogicalRequestScopeIssue] {
-  match prepare_logical_request_scope(
-    authority_scope_cid, caller_request_id, max_caller_bytes,
-  ) {
+  match
+    prepare_logical_request_scope(
+      authority_scope_cid, caller_request_id, max_caller_bytes,
+    ) {
     Ok(scope) => Ok(logical_request_scope_cid(scope))
     Err(issue) => Err(issue)
   }
