@@ -121,13 +121,24 @@ const preparedSource = owner.clientProgramPreparationReady(
 assert(preparedSource);
 const physical = await import('./node_modules/@actql/local-node/adapters/' +
   'host-node/captured-duckdb-source.mjs');
+const account = await import('./node_modules/@actql/local-node/adapters/' +
+  'host-node/local-account-config.mjs');
+const databasePath = new URL('./source.duckdb', import.meta.url).pathname;
+const authorization = await account.createLocalAuthorizationGate({
+  accountConfiguration: account.sourceReadAccountConfiguration({
+    connection: 'local-database', resource: databasePath,
+  }),
+  principal: 'local-user',
+});
 const captured = await physical.openCapturedDuckDBSource({
   moon: owner, preparedProgram: preparedSource, registry, values,
   fragment: JSON.stringify(contract.execution_contracts[
     'ACTQL.expression_fragment/0.1']),
   ordered: JSON.stringify(contract.execution_contracts[
     'REL.derive.ordered']),
-  database: new URL('./source.duckdb', import.meta.url).pathname,
+  database: databasePath,
+  sourceAccess: {authorization, connection: 'local-database',
+    resource: databasePath},
   schema: 'main', table: 'records',
   transportLimits: {maxRows: 100, maxCells: 1000,
     maxTransportBytes: 100000, maxSqlBytes: 10000,

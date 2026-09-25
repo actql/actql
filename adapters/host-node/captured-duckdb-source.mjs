@@ -17,7 +17,7 @@ const contractFiles = [
 
 export async function openCapturedDuckDBSource({moon, preparedProgram,
   registry, values, fragment, ordered, database, schema, table,
-  transportLimits, signal}) {
+  sourceAccess, transportLimits, signal}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || typeof registry !== 'string' ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
@@ -53,7 +53,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     readFile(new URL(name, contractRoot), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
     requirement, schema, table, ...contracts));
-  const grant = await authorizeLocalDatabase(database);
+  const grant = await authorizeLocalDatabase(database, sourceAccess);
   const capture = await runNativeHostQuery(grant, acquisition,
     transportLimits, signal);
   try {

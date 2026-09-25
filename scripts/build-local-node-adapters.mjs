@@ -9,6 +9,7 @@ const entries = [
   'adapters/host-node/entry.mjs',
   'adapters/host-node/embedded-local.mjs',
   'adapters/host-node/captured-duckdb-source.mjs',
+  'adapters/host-node/local-account-config.mjs',
   'adapters/host-node/in-process-client.mjs',
   'adapters/host-node/client-request-journal.mjs',
   'adapters/host-node/client-request-lookup.mjs',

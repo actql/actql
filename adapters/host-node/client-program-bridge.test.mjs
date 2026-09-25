@@ -28,6 +28,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission} from './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import {fixtureSourceAccess} from './authorization-fixture.mjs';
 import {admitSourceInputLogical} from
   '../../scripts/source-input-logical-contract.mjs';
 
@@ -166,6 +167,7 @@ test('checked acquired source and downstream task emit their input ports',
           'ACTQL.expression_fragment/0.1']),
         ordered: JSON.stringify(aoa.execution_contracts[
           'REL.derive.ordered']), database: path,
+        sourceAccess: fixtureSourceAccess,
         schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
