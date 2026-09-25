@@ -216,8 +216,11 @@ The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
 must retain the handle from the callback installed by
 `installNodeClientEffectProgramPreparation` and connect it to the existing
-`runCapturedEffectComputation`, `applyCapturedEffectSet`, and
-`publishCompletedEffectfulRun` owners. The required integration test starts at
+`runCapturedEffectComputation` and installed
+`completeCapturedEffectRun`/`completeRecoveredEffectRun` owners. The latter
+join `applyCapturedEffectSet`, issued row/Set evidence, and
+`publishCompletedEffectfulRun` without a new scheduler. The required
+integration test starts at
 the public SDK `submit`, not by calling those Host operations separately.
 
 Completed locally, not a remaining connection: given an exact private Preview
@@ -296,7 +299,8 @@ unverified; local product-path and fault-injection work can proceed.
 The concrete Distribution seam is the existing `prepareSubmit`/`submit`
 installation: accept the same checked Effect Program and captured Run owner
 used by `runCapturedEffectComputation`, then delegate authorized apply to the
-Host's MoonBit-preflight/frontier and Site writer path. The public
+Host's `completeCapturedEffectRun`/`completeRecoveredEffectRun` boundary,
+which uses the MoonBit-preflight/frontier and Site writer path. The public
 attach/status/reconcile and Result reader must report that Run's durable
 known and unknown facts without creating another Client-side Effect scheduler.
 This branch will supply the completed Host/Site operation and its tests; the
