@@ -17,10 +17,18 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The public Program/Client ingress still rejects nonempty Effects. Connect the checked Effect Program and captured input owner to whole-set Preview, current authority, target guards, overlap admission, and one apply permit before the first write. | A normal two-member Program reaches apply; stale or overlapping sets send zero local HTTPS requests and consume no write credential. |
-| The Host has durable row custody and a MoonBit frontier, but no standard multi-member caller drives its Salesforce Site operations from that admitted owner. Connect the captured rows to exact physical requests and retain each member's `halt` or `continue` progress across restart. | Both members have multiple rows; an independent member continues when the other halts, known rows are never resent, unknown remains unresolved without new evidence, and send counts and order match the durable ledger. |
-| The installed Host now joins a two-member, multi-row Program to credentialed local Salesforce Site writes, durable outcomes, and publication. Connect the same owner through public Client `submit` and expose its known or unknown Run state. | The Host fixture covers claim, saved-response, terminal-row, and index-commit reply loss without reapplying known writes. It also covers halt/continue, unknown and Collections partial failure. After Store reopen, the existing SDK can attach, inspect success, and read `answer` with an authorized delivery attempt. Public Effectful submit and unknown-state reporting remain open. |
+| The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
+
+Completed locally, not a remaining connection: `applyCapturedEffectSet`
+drives the admitted two-member, multi-row owner through the MoonBit frontier,
+credentialed Salesforce-shaped Site operations, durable row custody, and
+`publishCompletedEffectfulRun`. The Host regressions cover halt/continue,
+unknown without resend, Collections partial failure, claim and saved-response
+faults, and lost publication-index acknowledgement. After Store reopen, the
+installed SDK can attach, inspect committed success, and read `answer` through
+an authorized delivery attempt. These tests do not constitute public
+Effectful `submit`, live Salesforce validation, or same-SHA Linux CI.
 
 The Distribution owner owns the public Client ingress, attach/status,
 authorized Result reader, and package-facing contract. This branch owns the
@@ -295,14 +303,14 @@ for the exact captured owner.
 These are local tests, not a same-SHA Linux CI run or a live Salesforce org
 test. No live org credentials or write authorization were supplied.
 
-## Still open
+## Historical implementation log
 
-R2-G1 remains a completion condition: connect the checked/captured inputs,
-whole-set Preview and apply admission, durable claims, physical writes,
-reconciliation, and final publication through one ordinary multi-member
-Effectful Run. The current standard Host regression stops at owned input
-export; it does not prove the mutation or final Receipt path. Local HTTPS
-no-send cases still need top-level coverage.
+The entries below record intermediate states and tests at earlier increments;
+they are not a current remaining-work list. The table at the top is the live
+status. In particular, the installed Host now reaches physical writes, final
+Receipts, publication, authorized Result read, and holding retirement. R2-G1
+remains open for public Effectful `submit` and unknown-state reporting, not
+for a missing standard Host caller.
 
 The checked Effect preparation now exposes a private per-member Plan CID so
 the eventual Preview can bind the exact static Plan without reauthoring it in
