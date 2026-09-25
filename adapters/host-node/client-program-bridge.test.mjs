@@ -2155,11 +2155,13 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-overlap', 'salesforce-stale-target',
   'salesforce-schema-drift',
   'salesforce-unknown', 'salesforce-lost-http-reply',
+  'salesforce-rate-limit',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
+    physical === 'salesforce-rate-limit' ||
     physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
     physical === 'salesforce-overlap' ||
@@ -2180,6 +2182,7 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const loseHttpReply = physical.endsWith('lost-http-reply');
+    const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
       loseHttpReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
@@ -2360,6 +2363,7 @@ test(`two-member captured Effect Run ${
           orgId: index === 0 || overlappingMembers ? '00D000000000001EAA'
             : '00D000000000002EAA',
           loseWriteReplyOnce: loseHttpReply && index === 0,
+          rateLimitWriteOnce: rateLimitWrite && index === 0,
           collectionPartial: collectionPartial && index === 0,
           writeOperation: writeKind,
         }))) : undefined;
@@ -3048,6 +3052,12 @@ test(`two-member captured Effect Run ${
               } : undefined,
             });
             assert.equal(received.claimed, true);
+            if (rateLimitWrite && memberIndex === 0 && rowIndex === 0) {
+              assert.equal(received.physical.kind, 'provider-response');
+              assert.equal(received.physical.observation.statusCode, 403);
+              assert.equal(received.terminal, undefined);
+              return;
+            }
             assert.equal(received.terminal.created, true);
             if (terminalFaultPending && memberIndex === 0 && rowIndex === 0) {
               terminalFaultPending = false;
@@ -3174,6 +3184,45 @@ test(`two-member captured Effect Run ${
           await sourcePayload.prepared.release();
         }
       };
+      if (rateLimitWrite) {
+        const first = await applyCapturedEffectSet({...applyOptions,
+          dispatchRow});
+        assert.equal(first.dispatched, 3);
+        assert.deepEqual(sent, [[0, 0], [1, 0], [1, 1]]);
+        assert.equal(sites[0].seen.filter(item =>
+          item.method === 'PATCH').length, 1);
+        ledger.close();
+        ledger = openLedger();
+        const savedLimitReply = ledger.readClaimedResponse(
+          members[0].claims[0]);
+        assert.equal(savedLimitReply.statusCode, 403);
+        assert.equal(JSON.parse(savedLimitReply.responseBytes.toString('utf8'))
+          [0].errorCode, 'REQUEST_LIMIT_EXCEEDED');
+        const noReplay = await applyCapturedEffectSet({
+          ...applyOptions, ledger,
+          refreshGuardObservations: () =>
+            assert.fail('rate-limited replay refreshed current Site'),
+          dispatchRow: () => assert.fail('rate-limited row resent'),
+        });
+        assert.equal(noReplay.dispatched, 0);
+        const uncertainSet = await issueAuthorizedEffectSetReceipt({
+          ledger, preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
+          members: members.map(member => ({
+            rowOwners: member.claims.map(claim => ({claim})),
+            replayed: true,
+          })), limits: publicationLimits,
+        });
+        assert.equal(JSON.parse(uncertainSet.set.wire).status,
+          'unknown_outcome');
+        assert.deepEqual(JSON.parse(uncertainSet.set.wire).effects.map(
+          member => member.state), ['unknown', 'applied']);
+        await rejectPublicationAndRetire(uncertainSet,
+          'EffectfulRunNeedsReconciliation',
+          'rate-limited-two-effects-attempt');
+        return;
+      }
       if (unknownAfterClaim) {
         const initial = applyCapturedEffectSet({...applyOptions,
           dispatchRow});
