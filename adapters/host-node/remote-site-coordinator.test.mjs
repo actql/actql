@@ -859,11 +859,12 @@ test('remote output egress is authorized before durable output and I/O',
     );
     assert.equal(outputs, 0);
 
+    // Canonical account configuration orders entries by entry_id.
     const egress = await fixtureAuthorization([
-      ...remoteEntries('allow'),
       accountEntry('egress-site-b', 'allow', {
         connection: 'site-b', operation: 'transfer',
       }),
+      ...remoteEntries('allow'),
     ]);
     const permitted = createRemoteSiteCoordinator({
       authorization: egress,

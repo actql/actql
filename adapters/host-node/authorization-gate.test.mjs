@@ -58,7 +58,7 @@ test('allow dispatches with zero Host calls and zero Checkpoints', async () => {
     evaluations: 1, hostDecisionCalls: 0, checkpointsPersisted: 0,
     protectedDispatches: 1, deniedBeforeDispatch: 0, decisionFailures: 0,
     unsupportedDefers: 0, hostRejections: 0, reusedDecisions: 0,
-    coveredOperations: 0,
+    coveredOperations: 0, resumedDecisions: 0,
   });
 });
 
@@ -227,7 +227,10 @@ test('defer persists a durable Checkpoint before waiting', async t => {
   assert.equal(pending.length, 1);
   assert.equal(pending[0].checkpointCid, decision.checkpoint.checkpointCid);
   assert.equal(pending[0].kind, 'read_access');
-  assert.equal(pending[0].requiredArtifact.cid, subjectCid);
+  // The gate binds the exact decision subject as the reviewed artifact.
+  assert.equal(pending[0].requiredArtifact.cid,
+    decision.checkpoint.subjectBindingCid);
+  assert.notEqual(pending[0].requiredArtifact.cid, subjectCid);
   assert.equal(
     deferral.journal.getRunState(decision.checkpoint.runId).status,
     'waiting_checkpoint',
@@ -235,6 +238,96 @@ test('defer persists a durable Checkpoint before waiting', async t => {
   assert.equal(gate.counters().checkpointsPersisted, 1);
   assert.equal(gate.counters().protectedDispatches, 0);
 });
+
+async function deferredGate(t, entries = delegateEntries) {
+  const root = await workspace(t);
+  const deferral = await sqliteDeferral(root);
+  t.after(() => deferral.journal.close());
+  let calls = 0;
+  const gate = await fixtureAuthorization(entries, {
+    decide: view => { calls++; return {decision: 'defer', subject: view.subject}; },
+    answeringAuthorities: ['reviewer'],
+    deferral,
+  });
+  const waiting = await gate.authorize('acquisition', scope, {subjectCid});
+  assert.equal(waiting.action, 'waiting');
+  return {deferral, gate, waiting, calls: () => calls};
+}
+
+function claimResume(deferral, waiting, claimant = 'owner-a') {
+  return deferral.journal.claimResume(waiting.checkpoint.runId,
+    {claimant, leaseMs: 60_000, binding: deferral.binding});
+}
+
+test('resume dispatches only from a committed approval for the exact subject',
+  async t => {
+    const {deferral, gate, waiting, calls} = await deferredGate(t);
+    const resolution = await deferral.answer(
+      waiting.checkpoint.checkpointCid, 'approved');
+    assert.equal(resolution.decision, 'approved');
+    const claim = claimResume(deferral, waiting);
+    assert.equal(claim.action, 'claimed');
+    const resumption = {claim, resolution};
+    // Another resource, boundary or subject is not the approved subject.
+    for (const [boundary, changed, subject] of [
+      ['acquisition', {...scope, resource: 'items'}, subjectCid],
+      ['transfer', scope, subjectCid],
+      ['acquisition', scope, `sha256:${'6'.repeat(64)}`],
+    ]) {
+      const other = await gate.resume(boundary, changed,
+        {subjectCid: subject, resumption});
+      assert.equal(other.action, 'failure');
+      assert.equal(other.detail, 'ResolutionSubjectMismatch');
+    }
+    const decision = await gate.resume('acquisition', scope,
+      {subjectCid, resumption});
+    assert.equal(decision.action, 'dispatch');
+    assert.equal(decision.basis, 'resumed');
+    assert.equal(decision.authority, 'reviewer');
+    assert.equal(decision.checkpointCid, waiting.checkpoint.checkpointCid);
+    assert.equal(decision.resolutionCid, resolution.resolutionCid);
+    // Resumption asks no new Host decision.
+    assert.equal(calls(), 1);
+    assert.equal(gate.counters().resumedDecisions, 1);
+    // A resume without a claimed intent is not a committed approval.
+    const unclaimed = await gate.resume('acquisition', scope,
+      {subjectCid, resumption: {claim: {action: 'busy'}, resolution}});
+    assert.equal(unclaimed.action, 'failure');
+    assert.equal(unclaimed.detail, 'ResumeNotClaimed');
+  });
+
+test('a rejected Checkpoint has no resume and a later deny still denies',
+  async t => {
+    const rejected = await deferredGate(t);
+    const resolution = await rejected.deferral.answer(
+      rejected.waiting.checkpoint.checkpointCid, 'rejected');
+    assert.equal(resolution.decision, 'rejected');
+    assert.throws(() => claimResume(rejected.deferral, rejected.waiting),
+      {code: 'ResumeIntentNotFound'});
+    const forged = await rejected.gate.resume('acquisition', scope, {
+      subjectCid,
+      resumption: {claim: {action: 'claimed',
+        checkpointCid: rejected.waiting.checkpoint.checkpointCid,
+        claim: {runId: rejected.waiting.checkpoint.runId}},
+      resolution: {...resolution, decision: 'approved'}},
+    });
+    assert.equal(forged.action, 'failure');
+    assert.equal(forged.detail, 'RunNotResuming');
+
+    // Approved while waiting, but the account now denies the tuple.
+    const approved = await deferredGate(t);
+    const committed = await approved.deferral.answer(
+      approved.waiting.checkpoint.checkpointCid, 'approved');
+    const claim = claimResume(approved.deferral, approved.waiting);
+    const denying = await fixtureAuthorization([accountEntry(
+      'review-warehouse', 'deny', {connection: 'warehouse'})], {
+      deferral: approved.deferral,
+    });
+    const denied = await denying.resume('acquisition', scope,
+      {subjectCid, resumption: {claim, resolution: committed}});
+    assert.equal(denied.action, 'deny');
+    assert.equal(denied.basis, 'account');
+  });
 
 test('defer without a durable journal and answer path is unsupported',
   async t => {

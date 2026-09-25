@@ -198,6 +198,9 @@ let standardGateway;
 let remoteSiteControl;
 let outboundPolls = 0;
 let placementPolicyAttempts = 0;
+// Push dispatches this server received, as observed by the server (read by
+// the native run-owner authorization test through /remote/received).
+let remoteDispatchesReceived = 0;
 let nativeTransferCid;
 let nativeTransferChunks = 0;
 let nativeTransferManifest = [];
@@ -367,6 +370,7 @@ try {
           '/probe',
           '/generic-post-empty',
           '/remote/dispatch',
+          '/remote/received',
           '/remote/query',
           '/remote/foreign',
           '/outbound/poll',
@@ -382,6 +386,13 @@ try {
         ]
           .includes(request.url))) {
       response.writeHead(404).end();
+      return;
+    }
+    if (request.url === '/remote/dispatch') remoteDispatchesReceived++;
+    if (request.url === '/remote/received') {
+      request.resume();
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({dispatch: remoteDispatchesReceived}));
       return;
     }
     const chunks = [];

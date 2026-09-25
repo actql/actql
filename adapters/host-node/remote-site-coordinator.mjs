@@ -384,11 +384,26 @@ export function createRemoteSiteCoordinator({
       runDefinitionCid: body.run_definition_cid,
     });
   };
-  const requireDispatch = async (boundary, scope, subjectCid, signal) => {
-    const decision = await authorization.authorize(boundary, scope, {
-      subjectCid,
-      signal,
-    });
+  // `resumption` continues a deferred dispatch from its committed Resolution
+  // (the gate's `resume`); it is still decided for this exact scope.
+  const requireDispatch = async (
+    boundary,
+    scope,
+    subjectCid,
+    signal,
+    resumption,
+  ) => {
+    if (resumption !== undefined &&
+        typeof authorization.resume !== 'function') {
+      fail('RemoteCoordinatorResumeUnavailable');
+    }
+    const decision = resumption === undefined
+      ? await authorization.authorize(boundary, scope, {subjectCid, signal})
+      : await authorization.resume(boundary, scope, {
+        subjectCid,
+        signal,
+        resumption,
+      });
     if (decision.action !== 'dispatch') {
       throw new ExecutionAuthorizationError(decision);
     }
@@ -406,7 +421,7 @@ export function createRemoteSiteCoordinator({
         connection: facts.site,
         resource: facts.registration,
         operation: 'dispatch',
-      }, facts.runDefinitionCid, request.signal);
+      }, facts.runDefinitionCid, request.signal, request.resumption);
       const admission = control.prepareCoordinatorIntent(
         journal,
         request.dispatch,

@@ -5,8 +5,10 @@
 // runtime's `executionAuthorization*` exports. This adapter owns only trusted
 // Host context, the optional embedded decision function, the optional durable
 // Checkpoint journal, an exact-scope decision cache and cheap counters. It
-// performs no network I/O, hashes no data and never reads Program input: the
-// principal and authorization context come from the Host that installs it.
+// performs no network I/O and never reads Program input: the principal and
+// authorization context come from the Host that installs it. The only digest
+// it computes is the subject binding of a deferred decision (below), over the
+// ten-field decision subject projection, never over data.
 
 export const AUTHORIZATION_BOUNDARIES = Object.freeze([
   'preparation', 'acquisition', 'activation', 'transfer', 'effect_commit',
@@ -37,7 +39,7 @@ const COUNTERS = Object.freeze([
   'evaluations', 'hostDecisionCalls', 'checkpointsPersisted',
   'protectedDispatches', 'deniedBeforeDispatch', 'decisionFailures',
   'unsupportedDefers', 'hostRejections', 'reusedDecisions',
-  'coveredOperations',
+  'coveredOperations', 'resumedDecisions',
 ]);
 
 const ERROR_CODES = Object.freeze({
@@ -99,6 +101,21 @@ function checkedScope(scope) {
 
 function frozenDecision(fields) {
   return Object.freeze(fields);
+}
+
+// Subject binding of a deferred decision: SHA-256 over the canonical JSON of
+// the ten-field decision subject projection (all members are strings; keys
+// sorted; ECMAScript string serialization is the canonical string form). The
+// gate writes it as the Checkpoint's required artifact, so a committed
+// approval names exactly one account entry, principal, connection, resource,
+// operation, boundary, subject and context.
+async function subjectBindingCid(subject) {
+  const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
+    `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
+  const digest = await globalThis.crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(body));
+  return `sha256:${Array.from(new Uint8Array(digest),
+    byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function subjectFields(subject) {
@@ -294,7 +311,9 @@ function gateFor(core, context) {
         reason: 'checkpoint_journal_not_configured'});
     }
     let persisted;
+    let bindingCid;
     try {
+      bindingCid = await subjectBindingCid(view.subject);
       const described = await deferral.describe(view);
       const kind = described?.body?.kind ?? CHECKPOINT_KIND[base.boundary];
       const phase = base.boundary === 'effect_commit' ? 'commit' : 'preflight';
@@ -306,9 +325,12 @@ function gateFor(core, context) {
           ? ['effect_scope_approved'] : ['invocation_scope_approved'],
         reason_code: 'delegated_decision_deferred',
         ...described.body,
+        // The reviewed artifact of an authorization deferral is the exact
+        // decision subject; the gate owns this binding, not `describe`.
         required_artifact: {
           artifact_type: ARTIFACT_TYPE[kind],
           ...described.body?.required_artifact,
+          artifact_cid: bindingCid,
         },
       };
       // Durable commit happens before any waiting claim is made.
@@ -335,7 +357,127 @@ function gateFor(core, context) {
         prepareAttemptId: persisted.prepareAttemptId ?? null,
         runState: persisted.runState,
         preparation: persisted.preparation,
+        subjectBindingCid: bindingCid,
       })});
+  }
+
+  // Resume check for one committed Resolution. Only the journal's committed
+  // rows count: a claimed resume intent (which exists only for an approved
+  // Resolution), the resolved Checkpoint carrying that Resolution, and a Run
+  // still `resuming`. Returns the Checkpoint and reviewer authority, or a
+  // failure detail.
+  function committedApproval(resumption) {
+    const journal = core.deferral.journal;
+    const claimed = resumption?.claim;
+    const resolution = resumption?.resolution;
+    if (claimed?.action !== 'claimed' || !text(claimed.checkpointCid) ||
+        !text(claimed.claim?.runId) || resolution?.decision !== 'approved' ||
+        !text(resolution.resolutionCid) ||
+        typeof resolution.verifiedResolutionWire !== 'string') {
+      return {detail: 'ResumeNotClaimed'};
+    }
+    if (typeof journal.inspect !== 'function' ||
+        typeof journal.getRunState !== 'function') {
+      return {detail: 'ResumeJournalUnavailable'};
+    }
+    const checkpoint = journal.inspect(claimed.checkpointCid);
+    if (checkpoint === undefined || checkpoint.closure !== 'resolved' ||
+        checkpoint.resolutionCid !== resolution.resolutionCid ||
+        checkpoint.runId !== claimed.claim.runId) {
+      return {detail: 'ResolutionNotCommitted'};
+    }
+    if (journal.getRunState(checkpoint.runId)?.status !== 'resuming') {
+      return {detail: 'RunNotResuming'};
+    }
+    let verified;
+    try { verified = JSON.parse(resolution.verifiedResolutionWire); }
+    catch { return {detail: 'ResolutionNotCommitted'}; }
+    if (verified?.resolution?.checkpoint_cid !== checkpoint.checkpointCid ||
+        verified.resolution.decision !== 'approved' ||
+        !text(verified.verified_reviewer_id)) {
+      return {detail: 'ResolutionNotCommitted'};
+    }
+    return {checkpoint, authority: verified.verified_reviewer_id};
+  }
+
+  async function evaluateResumed(boundary, tuple, subjectCid, resumption) {
+    const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
+    count('evaluations');
+    if (core.moon === undefined) {
+      return frozenDecision({...base, action: 'deny', basis: 'account',
+        reason: 'configuration_missing'});
+    }
+    const moon = core.moon;
+    // The account is evaluated again for the current tuple: a deny added
+    // while the Run waited still denies; an allow needs no Resolution.
+    const evaluation = moon.executionAuthorizationEvaluate(
+      core.account, tuple.principal, tuple.connection, tuple.resource,
+      tuple.operation,
+    );
+    const outcome = JSON.parse(
+      moon.executionAuthorizationEvaluationJson(evaluation));
+    if (outcome.outcome !== 'delegate') {
+      const runtimeDecision = moon.executionAuthorizationEvaluationAction(
+        evaluation);
+      const projected = JSON.parse(
+        moon.executionAuthorizationDecisionJson(runtimeDecision));
+      return frozenDecision({...base, action: projected.action,
+        basis: projected.basis, reason: projected.reason ?? undefined,
+        entryId: outcome.entry_id,
+        runtimeDecision: projected.action === 'dispatch'
+          ? runtimeDecision : undefined});
+    }
+    const withEntry = {...base, entryId: outcome.entry_id, basis: 'resumed'};
+    if (core.deferral === undefined) {
+      return frozenDecision({...withEntry, action: 'unsupported',
+        reason: 'checkpoint_journal_not_configured'});
+    }
+    const request = moon.executionAuthorizationPrepare(
+      evaluation, core.configurationCid, boundary, subjectCid ?? '',
+      context.contextCid, [...core.answeringAuthorities],
+      [...core.requiredClaims],
+    );
+    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request));
+    if (bound.ok !== true) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: bound.issue});
+    }
+    let approval;
+    try { approval = committedApproval(resumption); }
+    catch (error) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: 'ResolutionNotCommitted', error});
+    }
+    if (approval.detail !== undefined) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: approval.detail});
+    }
+    // The approval covers only the subject bound at defer time: another
+    // Site, registration, boundary, subject, context or entry is not it.
+    if (approval.checkpoint.requiredArtifact.cid !==
+        await subjectBindingCid(bound.subject)) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: 'ResolutionSubjectMismatch'});
+    }
+    // The committed approval is admitted as the Host permit for the bound
+    // request, so the runtime still checks subject, authority and claims.
+    const subject = SUBJECT_FIELDS.map(name => bound.subject[name]);
+    const runtimeDecision = moon.executionAuthorizationAnswer(request,
+      'permit', subject, approval.authority, [...core.requiredClaims], '');
+    const projected = JSON.parse(
+      moon.executionAuthorizationDecisionJson(runtimeDecision));
+    if (projected.action !== 'dispatch') {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: projected.reason ?? 'malformed_answer',
+        detail: projected.detail ?? projected.issue ?? undefined});
+    }
+    count('resumedDecisions');
+    return frozenDecision({...withEntry, action: 'dispatch',
+      authority: projected.authority,
+      claims: Object.freeze([...projected.claims]),
+      checkpointCid: approval.checkpoint.checkpointCid,
+      resolutionCid: approval.checkpoint.resolutionCid,
+      runtimeDecision});
   }
 
   async function evaluate(boundary, tuple, subjectCid, signal) {
@@ -467,6 +609,31 @@ function gateFor(core, context) {
         core.cache.set(key, decision);
       }
       return record(decision);
+    },
+
+    // Continue a deferred boundary from its committed Resolution. The
+    // `resumption` is {claim, resolution}: the Checkpoint journal's
+    // claimResume result and its committed submitResolution result. The
+    // account is evaluated again for the current scope; the committed
+    // approval then authorizes only the exact decision subject its Checkpoint
+    // bound. No Host decision is asked and nothing is cached.
+    async resume(boundary, scope, {subjectCid, signal, resumption} = {}) {
+      if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
+        fail('InvalidAuthorizationBoundary');
+      }
+      checkedScope(scope);
+      if (subjectCid !== undefined && typeof subjectCid !== 'string') {
+        fail('InvalidAuthorizationSubject');
+      }
+      signal?.throwIfAborted();
+      const tuple = Object.freeze({
+        principal: context.principal,
+        connection: scope.connection,
+        resource: scope.resource,
+        operation: scope.operation,
+      });
+      return record(await evaluateResumed(boundary, tuple, subjectCid,
+        resumption));
     },
 
     // Explicit no-protected-scope coverage for pure compute over captured
