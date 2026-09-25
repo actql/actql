@@ -115,11 +115,15 @@ pub fn salesforce_managed_query_next_path(@host.ManagedQuery) -> String? raise S
 
 pub fn salesforce_managed_query_row_count(@host.ManagedQuery) -> Int64
 
+pub fn salesforce_observed_preview_row_fields(@catalog.TargetPreviewRow) -> Array[String]
+
 pub fn salesforce_prepare_catalog_observation(@catalog.CatalogSync, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String?], Array[String?], Int) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_continue_write_collection(Array[String], Array[@catalog.WriteBody], Array[Int], Array[String], Array[Int], String, Int, Int, Int, Int, Int, Int) -> @catalog.WriteCollectionRequest raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_managed_query(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64, @execution_relation.ManagedOutputValues) -> @host.ManagedQuery raise SalesforceCatalogBridgeIssue
+
+pub fn salesforce_prepare_observed_preview_row(@catalog.SingleWriteRequest, @catalog.TargetObservation, Int) -> @catalog.TargetPreviewRow raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Array[String], Int) -> @catalog.ReadProjection raise SalesforceCatalogBridgeIssue
 
