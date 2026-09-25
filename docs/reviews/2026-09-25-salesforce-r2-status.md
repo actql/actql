@@ -223,7 +223,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Capability and product entry | Local evidence | Remaining gate |
 | --- | --- | --- |
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Run the same declared metadata projection against the isolated org; confirm actual field and write constraints. |
-| Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
+| Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use on both raw and managed paths, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner. The managed path also rejects a foreign continuation and does not append a fresh query after locator failure. | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `client-program-bridge.test.mjs` runs each operation as a separate checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. A lost create reply remains unknown after Ledger reopen without resending POST. | Verify current target and Preview freshness against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
 | Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
 | Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
@@ -260,8 +260,10 @@ outcomes without resending, then derive member/set and final Run receipts
 through durable publication. The fault matrix must cover boundaries around
 physical dispatch, raw response, typed outcome, and final commit. The tests
 must assert that stale or overlapping work sends zero writes and that an
-independent member proceeds when another member halts. The current component
-fixtures below do not constitute that product-path proof.
+independent member proceeds when another member halts. The component fixtures
+below did not establish that proof by themselves. The installed Host fault
+matrix above now covers the Host/Site portion; public Effectful submit and
+live-org evidence remain open.
 
 ## Coordinate and execution boundary
 
