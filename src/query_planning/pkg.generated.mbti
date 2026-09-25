@@ -115,9 +115,13 @@ pub fn query_requirement_site(QueryRequirement) -> (String, String)
 
 pub fn query_requirement_source(QueryRequirement) -> (String, String)
 
+pub fn query_requirement_source_evidence_facts(QueryRequirement) -> QuerySourceEvidenceFacts?
+
 pub fn query_requirement_usage(QueryRequirement) -> (Int, Int, Int)
 
 pub fn query_scan_scope(QueryRequirement, QueryMaterialBudget) -> String raise @encode_core.EncodeFailure
+
+pub fn query_source_evidence_fact_values(QuerySourceEvidenceFacts) -> Array[String]
 
 pub fn query_two_receipt_contract_cid(QueryTwoReceiptContract) -> String
 
@@ -304,6 +308,15 @@ pub(all) struct QueryRetentionLimits {
   received_wire_bytes : Int
   retained_wire_bytes : Int
   measurement : @execution_relation.RowWireLimits
+}
+
+pub struct QuerySourceEvidenceFacts {
+  source_ref : String
+  source_contract_cid : String
+  carrier_schema_contract_cid : String
+  source_data_policy_cid : String
+  data_classification : String
+  source_view_contract_cid : String
 }
 
 type QueryTwoReceiptContract

@@ -13,6 +13,8 @@ import {
 // Values
 pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]
 
+pub fn client_values_host_admit_completed_source_observation(String, String, String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.SourceInputObservationIssue]
+
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
 pub fn client_values_host_admit_request_identity(String, String, String, String, String, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
@@ -130,6 +132,8 @@ pub fn client_values_host_issue_source_free_invocation(@run_publication_host.Cli
 pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
 pub fn client_values_host_issue_succeeded_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Array[String], Array[String], Array[String], Array[String]) -> String?
+
+pub fn client_values_host_issue_task_invocation(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[Array[String], @run_publication.RunEvidenceValueIssue]
 
 pub fn client_values_host_issue_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskDefinitionIssue]
 
