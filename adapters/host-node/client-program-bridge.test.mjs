@@ -382,6 +382,14 @@ test('internal Client bridge retains Effect closure without public apply',
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
+    const localInvocation = checked(
+      moon.clientProgramIssueSourceFreeLocalEffectInvocation(
+        prepared, 0, 4096, 64, 8));
+    const localInvocationBody = JSON.parse(
+      moon.clientProgramLocalEffectInvocationJson(localInvocation));
+    assert.equal(localInvocationBody.self_cid,
+      moon.clientProgramLocalEffectInvocationCid(localInvocation));
+    assert.equal(localInvocationBody.observation_cids.length, 0);
     assert.equal(moon.clientProgramEffectPreparationIssue(outcome), undefined);
     assert.equal(moon.clientProgramPrepareEffectFree(
       document, 'json', environment), undefined);
@@ -621,6 +629,12 @@ test('admitted source-free Effect Run computes through the installed Host',
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
+    const semanticInvocation = checked(
+      moon.clientProgramIssueSourceFreeLocalEffectInvocation(
+        prepared, 0, 4096, 64, 8));
+    assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
+      semanticInvocation)).self_cid,
+      moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
     const evidence = publicationEvidence(
       moon.clientProgramEffectDefinitionCid(prepared),
       effectParametersCid(prepared),
@@ -663,6 +677,8 @@ test('admitted source-free Effect Run computes through the installed Host',
       }), 100000, 10000, 64));
     const invocation = checked(moon.strategyIssueRunInvocation(
       evidence[0], observation, 100000, 10000, 64));
+    assert.notEqual(moon.clientProgramLocalEffectInvocationCid(
+      semanticInvocation), moon.strategyPublicationContractIdentity(invocation));
     const bound = moon.clientProgramBindEffectRun(
       prepared, admission, definition);
     assert.ok(bound);
@@ -2212,6 +2228,12 @@ test(`two-member captured Effect Run ${
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
     assert.ok(prepared,
       moon.clientProgramEffectPreparationIssueCode(outcome));
+    const semanticInvocation = checked(
+      moon.clientProgramIssueSourceFreeLocalEffectInvocation(
+        prepared, 0, 4096, 64, 8));
+    assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
+      semanticInvocation)).self_cid,
+      moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
     const evidence = publicationEvidence(
       moon.clientProgramEffectDefinitionCid(prepared),
       effectParametersCid(prepared),

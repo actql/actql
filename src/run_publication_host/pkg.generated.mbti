@@ -56,6 +56,12 @@ pub fn client_direct_result_root_row_contract_cid(ClientDirectResultRoot) -> Str
 
 pub fn client_direct_result_root_wire(ClientDirectResultRoot) -> String
 
+pub fn client_effect_local_invocation_cid(ClientEffectLocalInvocation) -> String
+
+pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> String
+
+pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
+
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
 pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array[String]
@@ -147,6 +153,8 @@ pub fn issue_prepared_client_values_aoa_identity(PreparedClientProgram, Int, @lo
 pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
+
+pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
@@ -249,6 +257,14 @@ pub(all) struct ClientEffectComputationLimits {
   max_mapping_work : Int
   effects : @stage_results.EffectStaticCandidateLimits
 }
+
+type ClientEffectLocalInvocation
+
+pub(all) enum ClientEffectLocalInvocationIssue {
+  MissingUnit
+  NotSourceFree
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientEffectRunIssue {
   Admission(@program_check.EffectProgramRunIssue)

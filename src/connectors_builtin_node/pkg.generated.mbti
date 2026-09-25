@@ -232,11 +232,17 @@ pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientResultRowContractIdentity, @run_publication_host.ClientResultRowContractIssue]
 
+pub fn client_program_issue_source_free_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
+
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy.CapturedEffectRunDAG
 
 pub fn client_program_local_effect_host_runtime(ClientLocalEffectHost) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
+pub fn client_program_local_effect_invocation_cid(@run_publication_host.ClientEffectLocalInvocation) -> String
+
+pub fn client_program_local_effect_invocation_json(@run_publication_host.ClientEffectLocalInvocation) -> String
 
 pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 
