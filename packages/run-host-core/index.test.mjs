@@ -30,6 +30,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   resultDefinitions, resultSchema,
   issueSourceFreeInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire,
+  resultReadAvailability,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
@@ -307,6 +308,13 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     {code: 'RunHostResultArtifactRejected'});
     const manifest = issueResultManifest(run, invocation, [definition],
       [artifact], limits);
+    assert.equal(resultReadAvailability(manifest, 'answer', retention,
+      '2026-09-18T00:30:00.000Z'), 'available');
+    assert.equal(resultReadAvailability(manifest, 'answer', retention,
+      '2026-09-18T01:30:00.000Z'), 'retention_expired');
+    assert.throws(() => resultReadAvailability(manifest, 'foreign',
+      retention, '2026-09-18T00:30:00.000Z'),
+    {code: 'RunHostAvailabilityRejected'});
     validatePublicationChain(run, invocation, [definition], [artifact],
       manifest, limits);
     assert.equal(JSON.parse(manifest.wire).results.answer

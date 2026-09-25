@@ -975,6 +975,20 @@ pub fn client_values_host_issue_succeeded_run_state_wire(
 }
 
 ///|
+/// Retention is an admitted public contract, not an adapter clock rule.
+#export_name("clientValuesHostResultReadAvailability")
+pub fn client_values_host_result_read_availability(
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  retention : @publication.PublicationContract,
+  observed_at : String,
+) -> Result[String, @publication.DeliveryIssuanceIssue] {
+  @publication.result_read_availability(
+    manifest, result_name, retention, observed_at,
+  )
+}
+
+///|
 pub(all) enum ClientValuesHostDispatchIssue {
   Binding(@host.ClientValuesRunBindingIssue)
   Dispatch(@host.ClientValuesDispatchIssue)

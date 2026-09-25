@@ -195,6 +195,10 @@ export function issueSucceededRunStateWire(prepared: PreparedProgram,
       'policy_unavailable' | 'integrity_failed' | 'not_published' |
       'store_query_failed' | 'clock_uncertain' | 'verification_pending';
     observedAt: string}>[]): string;
+/** Admission of the current clock against the pinned Result retention. */
+export function resultReadAvailability(manifest: PublicationContract,
+  resultName: string, retention: PublicationContract,
+  observedAt: string): 'available' | 'retention_expired' | 'delete_due';
 export function admitRunDefinition(wire: string): RunDefinition;
 /** Re-admit the same checked source-free Run without changing its input set. */
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,

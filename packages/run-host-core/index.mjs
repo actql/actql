@@ -368,6 +368,16 @@ export function issueSucceededRunStateWire(prepared, compilation,
   return wire;
 }
 
+export function resultReadAvailability(manifest, resultName, retention,
+  observedAt) {
+  if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
+    throw new TypeError('InvalidRunHostAvailabilityObservation');
+  }
+  return checked(owner.clientValuesHostResultReadAvailability(
+    publicationToken(manifest), resultName, publicationToken(retention),
+    observedAt), 'RunHostAvailabilityRejected');
+}
+
 export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),
