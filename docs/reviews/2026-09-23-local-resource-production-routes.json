@@ -1341,6 +1341,13 @@
           "fixture": "bounded row windows preserve ascending memberships at quantum one"
         },
         {
+          "role": "row_window_exact_output_boundary",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window rejects only an unrepresentable output boundary"
+        },
+        {
           "role": "row_window_bounded_cancel_cleanup",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

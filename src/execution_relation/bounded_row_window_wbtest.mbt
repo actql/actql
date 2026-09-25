@@ -295,3 +295,26 @@ test "bounded row window preserves empty output and exact large boundaries" {
   assert_true(large_done)
   assert_true(cleanup_bounded_row_window(large).unwrap())
 }
+
+///|
+test "bounded row window rejects only an unrepresentable output boundary" {
+  let (_, execution, source) = bounded_row_window_fixture(
+    "[{\"at\":9007199254740992,\"id\":1}]",
+    window="{\"kind\":\"sliding\",\"time\":\"at\",\"size\":8,\"step\":1}",
+    max_rows=8,
+  )
+  let mut failed = false
+  for _ in 0..<100 {
+    if !failed {
+      match advance_bounded_row_window(execution, 1).unwrap() {
+        BoundedRowWindowContinue(..) => ()
+        BoundedRowWindowFailed(Rows(WindowArithmetic(0)), ..) => failed = true
+        _ => fail("unrepresentable row-window boundary was accepted")
+      }
+    }
+  }
+  assert_true(failed)
+  assert_true(completed_output_available(source))
+  assert_true(cleanup_bounded_row_window(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
