@@ -2448,6 +2448,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-prepared-intent-restart',
   'salesforce-process-prepared-intent-restart',
   'salesforce-process-unknown-restart',
+  'salesforce-process-saved-response-restart',
   'salesforce-terminal-store-restart',
   'salesforce-terminal-process-publication',
   'salesforce-unknown-continue']) {
@@ -2477,7 +2478,10 @@ test(`two-member captured Effect Run ${
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
     const processUnknownIntent =
       physical === 'salesforce-process-unknown-restart';
+    const processSavedResponse =
+      physical === 'salesforce-process-saved-response-restart';
     const processPreparedIntent = processUnknownIntent ||
+      processSavedResponse ||
       physical === 'salesforce-process-prepared-intent-restart';
     const restartPreparedIntent = processPreparedIntent ||
       physical === 'salesforce-prepared-intent-restart';
@@ -3457,19 +3461,26 @@ test(`two-member captured Effect Run ${
           assert.equal(sites.flatMap(site => site.seen).filter(item =>
             item.method === 'PATCH').length, 0);
         }
-        if (processUnknownIntent) {
+        if (processUnknownIntent || processSavedResponse) {
           const lost = await runChildWithLiveSite(
             './fixtures/recover-effect-outcomes.mjs',
-            {...childInput, recoveryPass: 'lost-reply'});
+            {...childInput, recoveryPass: 'first',
+              ...(processSavedResponse
+                ? {faultAfterSavedResponse: true} : {})});
           assert.notEqual(lost.status, 0);
+          if (processSavedResponse) {
+            assert.match(lost.stderr, /LostAfterSavedSalesforceResponse/);
+          }
           assert.deepEqual(sites.map(site => site.seen.filter(item =>
             item.method === 'PATCH').length), [1, 0]);
         }
         const child = processPreparedIntent
           ? await runChildWithLiveSite(
             './fixtures/recover-effect-outcomes.mjs',
-            {...childInput, ...(processUnknownIntent
-              ? {recoveryPass: 'reconcile'} : {})})
+            {...childInput, ...(processUnknownIntent || processSavedResponse
+              ? {recoveryPass: 'second',
+                ...(processSavedResponse
+                  ? {reconcileSavedResponse: true} : {})} : {})})
           : spawnSync(process.execPath, [fileURLToPath(new URL(
             './fixtures/recover-effect-outcomes.mjs', import.meta.url,
           ))], {input: JSON.stringify(childInput), encoding: 'utf8',
@@ -3496,7 +3507,10 @@ test(`two-member captured Effect Run ${
         assert.equal(fresh.setStatus, processUnknownIntent
           ? 'unknown_outcome' : processPreparedIntent ? 'applied' : null);
         assert.equal(fresh.dispatched, processUnknownIntent ? 2 :
+          processSavedResponse ? 3 :
           processPreparedIntent ? 4 : null);
+        assert.equal(fresh.reconciledResponse, processSavedResponse
+          ? true : null);
         assert.equal(fresh.setReceiptCid === null, !processPreparedIntent);
         if (processUnknownIntent) {
           processUnknownSetCid = fresh.setReceiptCid;

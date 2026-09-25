@@ -156,6 +156,12 @@ again sends no row, formal publication rejects the uncertain Set, and private
 holdings are retired explicitly. The fixture still supplies example capability
 and approval references; this is not public Effectful submit or a live
 Salesforce org validation.
+Another fresh-process fault case stops after the first HTTP response is
+durably saved but before its row Outcome is committed. A separate evidence-read
+path re-admits the exact saved dispatch and response, then projects and commits
+that row without a write grant, secret resolution, or another HTTP request.
+Recovered apply sends only the remaining three rows, issues an applied Set
+Receipt, and completes the existing publication/read/retirement path.
 
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked

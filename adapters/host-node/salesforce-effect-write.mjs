@@ -322,6 +322,58 @@ export async function captureClaimedSalesforceSingleResponse({
     ownership: Object.freeze({action: captured.ownership.action})});
 }
 
+const admitSalesforceSingleEffectRow = ({
+  commonMoon,
+  admittedPreview,
+  memberIndex,
+  rowIndex,
+  rowPreviewCid,
+  claim,
+  moon,
+  request,
+  maxRequestIdentityBytes = 4096,
+}) => {
+  if (!commonMoon || !admittedPreview || !moon || !request || !claim ||
+      !Number.isSafeInteger(memberIndex) ||
+      !Number.isSafeInteger(rowIndex) ||
+      typeof rowPreviewCid !== 'string') {
+    fail('InvalidSalesforceEffectRowBinding');
+  }
+  if (!checked(moon.salesforceSingleWriteRequestMatchesPreviewFootprint(
+      admittedPreview, memberIndex, rowIndex, request,
+      maxRequestIdentityBytes))) {
+    fail('ForeignSalesforceEffectFootprint');
+  }
+  const ownedClaim = snapshotEffectDispatchClaim(claim);
+  runtimeCore(commonMoon).effectApplicationControl.admitMemberRow(
+    admittedPreview, memberIndex, rowIndex,
+    moon.salesforceSingleWriteRequestEffectKind(request), ownedClaim.scope,
+    rowPreviewCid, ownedClaim.locator, ownedClaim.key);
+  return ownedClaim;
+};
+
+const settleSalesforceSingleEffectResponse = ({
+  ledger, claim, admittedPreview, memberIndex, rowIndex,
+  moon, request, observed, limits, maxRequestIdentityBytes,
+}) => {
+  if (observed?.kind !== 'typed-success-response') return undefined;
+  const projection = checked(moon.salesforceProjectSingleEffectOutcome(
+    admittedPreview, memberIndex, rowIndex, request, observed.response,
+    maxRequestIdentityBytes, limits.maxResponseBytes, limits.maxNodes,
+    limits.maxDepth));
+  const outcome = ledger.recordAdmittedRowOutcome({
+    claim, preview: admittedPreview, memberIndex,
+    previewRowIndex: rowIndex,
+    outcomeWire: moon.salesforceWriteEffectOutcomeWire(projection),
+  });
+  const terminal = ledger.commitAdmittedRowOutcome({
+    claim, preview: admittedPreview, memberIndex,
+    previewRowIndex: rowIndex,
+  });
+  return Object.freeze({outcomeReceipt: outcome.receipt,
+    terminal: terminal.transition});
+};
+
 // Bind one physical REST request to the admitted member and row before the
 // low-level custody path can claim a possible-dispatch fact.
 export async function captureSalesforceSingleEffectWrite({
@@ -336,22 +388,10 @@ export async function captureSalesforceSingleEffectWrite({
   authorizeEvidenceRead,
   ...physical
 }) {
-  if (!commonMoon || !admittedPreview || !moon || !request || !claim ||
-      !Number.isSafeInteger(memberIndex) ||
-      !Number.isSafeInteger(rowIndex) ||
-      typeof rowPreviewCid !== 'string') {
-    fail('InvalidSalesforceEffectRowBinding');
-  }
-  if (!checked(moon.salesforceSingleWriteRequestMatchesPreviewFootprint(
-      admittedPreview, memberIndex, rowIndex, request,
-      physical.maxRequestIdentityBytes ?? 4096))) {
-    fail('ForeignSalesforceEffectFootprint');
-  }
-  const ownedClaim = snapshotEffectDispatchClaim(claim);
-  runtimeCore(commonMoon).effectApplicationControl.admitMemberRow(
-    admittedPreview, memberIndex, rowIndex,
-    moon.salesforceSingleWriteRequestEffectKind(request), ownedClaim.scope,
-    rowPreviewCid, ownedClaim.locator, ownedClaim.key);
+  const ownedClaim = admitSalesforceSingleEffectRow({commonMoon,
+    admittedPreview, memberIndex, rowIndex, rowPreviewCid, claim, moon,
+    request, maxRequestIdentityBytes:
+      physical.maxRequestIdentityBytes ?? 4096});
   const projectionLimits = ownInvocationLimits(physical.limits);
   const resourceOrigin = physical.authorization?.scope?.resourceOrigin;
   const captured = await captureClaimedSalesforceSingleResponse({
@@ -370,23 +410,39 @@ export async function captureSalesforceSingleEffectWrite({
     result = Object.freeze({...result, recovered: recovery.recovered});
   }
   const observed = result.claimed ? result.physical : result.recovered;
-  if (observed?.kind !== 'typed-success-response') return result;
-  const projection = checked(moon.salesforceProjectSingleEffectOutcome(
-    admittedPreview, memberIndex, rowIndex, request, observed.response,
-    physical.maxRequestIdentityBytes ?? 4096,
-    projectionLimits.maxResponseBytes, projectionLimits.maxNodes,
-    projectionLimits.maxDepth));
-  const outcome = physical.ledger.recordAdmittedRowOutcome({
-    claim: ownedClaim, preview: admittedPreview, memberIndex,
-    previewRowIndex: rowIndex,
-    outcomeWire: moon.salesforceWriteEffectOutcomeWire(projection),
+  const settled = settleSalesforceSingleEffectResponse({
+    ledger: physical.ledger, claim: ownedClaim, admittedPreview,
+    memberIndex, rowIndex, moon, request, observed,
+    limits: projectionLimits,
+    maxRequestIdentityBytes: physical.maxRequestIdentityBytes ?? 4096,
   });
-  const terminal = physical.ledger.commitAdmittedRowOutcome({
-    claim: ownedClaim, preview: admittedPreview, memberIndex,
-    previewRowIndex: rowIndex,
+  return settled === undefined ? result : Object.freeze({...result,
+    ...settled});
+}
+
+// Re-admit an already saved HTTP response without a mutation grant, current
+// Catalog refresh, secret resolution, or another physical send. The evidence
+// view must authorize the exact immutable dispatch before projection.
+export async function reconcileStoredSalesforceSingleEffectWrite({
+  ledger, commonMoon, admittedPreview, memberIndex, rowIndex,
+  rowPreviewCid, claim, moon, request, resourceOrigin,
+  authorizeEvidenceRead, limits, maxRequestIdentityBytes = 4096,
+}) {
+  const ownedClaim = admitSalesforceSingleEffectRow({commonMoon,
+    admittedPreview, memberIndex, rowIndex, rowPreviewCid, claim, moon,
+    request, maxRequestIdentityBytes});
+  const ownedLimits = ownInvocationLimits(limits);
+  const recovery = await recoverStoredSalesforceSingleResponse({
+    ledger, claim: ownedClaim, commonMoon, moon, request, resourceOrigin,
+    authorizeEvidenceRead, limits: ownedLimits,
+    maxRequestIdentityBytes,
   });
-  return Object.freeze({...result, outcomeReceipt: outcome.receipt,
-    terminal: terminal.transition});
+  const settled = settleSalesforceSingleEffectResponse({
+    ledger, claim: ownedClaim, admittedPreview, memberIndex, rowIndex,
+    moon, request, observed: recovery.recovered, limits: ownedLimits,
+    maxRequestIdentityBytes,
+  });
+  return Object.freeze({...recovery, ...(settled ?? {})});
 }
 
 // The admitted Preview fixes the member's ordered row identities, logical

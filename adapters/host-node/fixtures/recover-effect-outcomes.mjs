@@ -1,5 +1,6 @@
 // Recover Effect claims and optionally resume or publish in a fresh process.
 // This uses the real Store and SQLite Ledger.
+import assert from 'node:assert/strict';
 import {createPublicKey} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import * as moon from
@@ -17,7 +18,8 @@ import {issueAuthorizedEffectSetReceipt} from
   '../effect-response-recovery.mjs';
 import {recoverCapturedSalesforceSingleRequests} from
   '../salesforce-effect-write.mjs';
-import {captureSalesforceSingleEffectWrite} from
+import {captureSalesforceSingleEffectWrite,
+  reconcileStoredSalesforceSingleEffectWrite} from
   '../salesforce-effect-write.mjs';
 import {applyRecoveredEffectSet} from '../effect-run-apply.mjs';
 import {syncSalesforceCatalog} from
@@ -123,6 +125,7 @@ try {
       maxRetainedBytes: input.salesforceRecovery.maxRetainedBytes,
     }) : undefined;
   let dispatched = null;
+  let reconciledResponse = null;
   if (input.applyPrepared === true) {
     if (!recoveredSalesforce ||
         !Array.isArray(input.salesforceRecovery.sites) ||
@@ -138,6 +141,41 @@ try {
     const riskBody = JSON.parse(input.riskWire);
     const risk = checked(moon.clientProgramAdmitEffectRiskAcceptanceBody(
       input.riskWire, 8192, 256, 12));
+    if (input.reconcileSavedResponse === true) {
+      const usesBefore = activeSites.map(site => site.journal.recover().length);
+      const recoveryOptions = {
+        ledger, commonMoon: moon, admittedPreview,
+        memberIndex: 0, rowIndex: 0,
+        rowPreviewCid: previewBody.effects[0].changes[0].row_preview_cid,
+        claim: recorded.members[0].claims[0], moon: salesforceMoon,
+        request: recoveredSalesforce.requests[0][0],
+        resourceOrigin: activeSites[0].origin,
+        authorizeEvidenceRead: async () => true,
+        limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+          maxNodes: 32, maxDepth: 5},
+      };
+      await assert.rejects(
+        reconcileStoredSalesforceSingleEffectWrite({
+          ...recoveryOptions, authorizeEvidenceRead: async () => false,
+        }), {code: 'EffectEvidenceAccessDenied'});
+      await assert.rejects(
+        reconcileStoredSalesforceSingleEffectWrite({
+          ...recoveryOptions,
+          resourceOrigin: `${activeSites[0].origin}/foreign`,
+        }), {code: 'ForeignSalesforceEffectResponse'});
+      const settled = await reconcileStoredSalesforceSingleEffectWrite(
+        recoveryOptions);
+      const repeated = await reconcileStoredSalesforceSingleEffectWrite(
+        recoveryOptions);
+      if (!settled.terminal?.created ||
+          repeated.outcomeReceipt?.identity !==
+            settled.outcomeReceipt?.identity ||
+          activeSites.some((site, index) =>
+            site.journal.recover().length !== usesBefore[index])) {
+        throw new Error('PreparedEffectResponseNotReconciled');
+      }
+      reconciledResponse = true;
+    }
     let currentCatalogs;
     const applied = await applyRecoveredEffectSet({
       moon, store, publicationControl: control,
@@ -211,8 +249,16 @@ try {
       },
       dispatchRow: async ({memberIndex, rowIndex, claim}) => {
         const site = activeSites[memberIndex];
+        const physicalLedger = input.faultAfterSavedResponse === true &&
+          memberIndex === 0 && rowIndex === 0 ? Object.freeze({
+            ...ledger,
+            recordResponse(observation) {
+              ledger.recordResponse(observation);
+              throw new Error('LostAfterSavedSalesforceResponse');
+            },
+          }) : ledger;
         const received = await captureSalesforceSingleEffectWrite({
-          ledger, commonMoon: moon, admittedPreview,
+          ledger: physicalLedger, commonMoon: moon, admittedPreview,
           memberIndex, rowIndex,
           rowPreviewCid: previewBody.effects[memberIndex]
             .changes[rowIndex].row_preview_cid,
@@ -280,6 +326,7 @@ try {
     recoveredCatalogCids: recoveredSalesforce?.catalogs.map(catalog =>
       salesforceMoon.salesforceCatalogObservationCid(catalog)) ?? null,
     dispatched,
+    reconciledResponse,
     setReceiptCid: issued?.set.identity ?? null,
     setStatus: issued === undefined ? null : JSON.parse(issued.set.wire).status,
     rowCounts: recorded.members.map(member => member.claims.length),
