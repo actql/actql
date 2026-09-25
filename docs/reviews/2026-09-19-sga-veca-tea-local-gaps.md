@@ -57,6 +57,21 @@ observe stop, and reclaim their owners. This removes a stale evidence-name
 failure only. The ordinary whole-sequence cross-join entrypoint and the
 providerless synchronous lane remain unassured.
 
+### Count input measurement review disposition
+
+The P1 input-cell finding in the review of `5a6f1763` is closed by
+`748606525` and its follow-up regressions `fd9a73e65` and `559ed50cb`.
+`ChargeInput` now retains a stepped measurement cursor in the bounded
+count state. Each nested element or bounded text chunk consumes a resume
+step; the input's total node, text, and work charges remain unchanged.
+Quantum-one fixtures cover cancellation inside an unused 256-element
+array and a long unused text cell, exact and one-short limits, and cursor
+cleanup. The normal managed Host also runs the nested-input count through
+two consumers and tests cancellation before publication. On this HEAD,
+the count kernel's 10 tests and managed group's 19 tests passed on each
+of JS, Wasm, and native. This does not close the separate synchronous
+long-text output-key admission or the providerless fallback listed above.
+
 ### Dependencies and owners
 
 - Local owns the bounded kernel connections, exact route bindings, resource
