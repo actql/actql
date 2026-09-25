@@ -7,6 +7,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {issuedEffectSetReceiptWires} from
+  '../host-common/effect-receipt-custody.mjs';
 import {canonicalJson} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
@@ -328,6 +330,15 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
     });
     assert.equal(issuedSet.members[0].identity, memberReceipt.identity);
     assert.equal(issuedSet.members.length, 2);
+    assert.equal(issuedEffectSetReceiptWires(
+      issuedSet, restarted, admitted,
+    ).setWire, issuedSet.set.wire);
+    assert.throws(() => issuedEffectSetReceiptWires(
+      {...issuedSet}, restarted, admitted,
+    ), {code: 'EffectSetReceiptEvidenceNotOwned'});
+    assert.throws(() => issuedEffectSetReceiptWires(
+      issuedSet, ledger, admitted,
+    ), {code: 'EffectSetReceiptEvidenceNotOwned'});
     assert.equal(JSON.parse(issuedSet.set.wire).status, 'partial_failure');
     assert.deepEqual(JSON.parse(issuedSet.set.wire).effects
       .map(member => member.state), ['failed', 'unattempted']);

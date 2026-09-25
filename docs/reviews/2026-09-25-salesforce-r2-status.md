@@ -1,5 +1,20 @@
 # Salesforce Effect review R2 status
 
+## Latest completion gates
+
+The follow-up review at `b3aecf969` is tracked as two open gates. SF-G1
+requires an ordinary checked, multi-member, multi-row Program to carry its
+exact Effect inputs through authorized apply, restart reconciliation,
+publication, delivery, and cleanup. The shared publication coordinator now
+accepts an issued set Receipt tied to its exact Ledger and Preview. This
+component connection does not satisfy SF-G1: the current publication fixture
+still assembles a synthetic set and does not execute physical writes.
+
+SF-G2 requires a capability-to-evidence matrix for every advertised
+Salesforce read, metadata, and write operation, followed by isolated-org
+validation when credentials and write scope are authorized. Local tests are
+not live-org evidence. Neither gate is closed by Receipt or Store tests.
+
 Review baseline: `15904a32f31573a86a3507253f3eaa1b010adf78`.
 Prior implementation and verification baseline:
 `40ef6ad720e93b98c2c42e6f7ec0bb170682f135`.

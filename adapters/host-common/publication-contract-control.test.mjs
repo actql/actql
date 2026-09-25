@@ -9,7 +9,10 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
-import {publishEffectFreeRun} from './run-publication.mjs';
+import {publishEffectFreeRun, publishEffectfulRun} from
+  './run-publication.mjs';
+import {retainIssuedEffectSetReceipt} from
+  './effect-receipt-custody.mjs';
 import {publishCompletedEffectFreeRun} from
   './completed-run-publication.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
@@ -1060,6 +1063,9 @@ test('portable control validates Receipt and Captured Run references',
   const issuedSet = control.issueEffectSetApplyReceiptFromMembers(
     preview, [memberReceipt], [false], limits);
   assert.equal(issuedSet.identity, setReceipt.identity);
+  assert.equal(control.effectSetReceiptRunDisposition(preview, {
+    setWire: issuedSet.wire, memberWires: [memberReceipt.wire],
+  }, limits), 0);
   assert.throws(() => control.issueEffectSetApplyReceiptFromMembers(
     preview, [memberReceipt], [], limits), {code: 'MoonBitHostFailure'});
   const finalChain = {
@@ -1454,13 +1460,56 @@ test('portable control validates Receipt and Captured Run references',
     authorityScopeCid: cid('d'),
     runDefinitionCid: run.identity,
   }), undefined);
-  const effectfulCommitted = await effectfulStore.commitEffectfulIndex(
-    effectfulPreparation, effectfulRequired,
-  );
+  const effectfulFixtureLedger = Object.freeze({});
+  const effectfulPublication = {
+    store: effectfulStore,
+    control,
+    chain: effectfulEvidence,
+    preview,
+    ledger: effectfulFixtureLedger,
+    issuedSet: retainIssuedEffectSetReceipt({
+      set: setReceipt, members: [memberReceipt],
+      ledger: effectfulFixtureLedger, preview,
+    }),
+    effectSources: [source],
+    sourceArtifacts: [sourceArtifact],
+    request: {
+      tenantId: 'tenant-a',
+      authorityScopeCid: cid('d'),
+      publicationPolicyCid: cid('e'),
+      publicationTargetCid: cid('f'),
+      requestedAt: '2026-09-18T00:00:00.000Z',
+    },
+    attempt: {
+      attemptId: 'attempt-1',
+      fenceCid: cid('0'),
+      externalIdempotencyKey: undefined,
+      startedAt: '2026-09-18T00:00:01.000Z',
+    },
+    limits,
+    now: () => '2026-09-18T00:00:02.000Z',
+    signal: undefined,
+  };
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication, sourceArtifacts: [],
+  }), {code: 'InvalidEffectfulRunPublicationEvidence'});
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication,
+    issuedSet: {...effectfulPublication.issuedSet},
+  }), {code: 'EffectSetReceiptEvidenceNotOwned'});
+  await assert.rejects(publishEffectfulRun({
+    ...effectfulPublication, ledger: Object.freeze({}),
+  }), {code: 'EffectSetReceiptEvidenceNotOwned'});
+  assert.equal(await effectfulStore.inspectCommittedIndex({
+    tenantId: 'tenant-a',
+    authorityScopeCid: cid('d'),
+    runDefinitionCid: run.identity,
+  }), undefined);
+  const effectfulCommitted = await publishEffectfulRun(effectfulPublication);
   assert.equal(effectfulCommitted.committed, true);
-  const effectfulReplay = await effectfulStore.commitEffectfulIndex(
-    effectfulPreparation, effectfulRequired,
-  );
+  assert.equal(effectfulCommitted.state, 'succeeded');
+  assert.equal(effectfulCommitted.index.identity, effectfulIndex.identity);
+  const effectfulReplay = await publishEffectfulRun(effectfulPublication);
   assert.equal(effectfulReplay.idempotent, true);
   const effectfulKey = {
     tenantId: 'tenant-a',
