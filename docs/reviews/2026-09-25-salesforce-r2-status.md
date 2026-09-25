@@ -1,5 +1,14 @@
 # Salesforce Effect review R2 status
 
+## Current completion unit
+
+| Required view | Current boundary |
+| --- | --- |
+| User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
+| Remaining implementation and acceptance | Persist the exact local Effect-source Artifact inventory and Manifest in Captured Run, resolve typed scope/policy/authority/retention evidence, and re-admit that chain at apply and restart. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
+| Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
+
 ## OSS main integration baseline
 
 The pre-update branch head is retained at
@@ -77,6 +86,11 @@ Node bridge no longer supplies the only export-ownership check. Direct
 execution-package tests reject a different named Result or equal-value
 occurrence, and the Host test rejects a different live export and a released
 receipt without another row scan or hash.
+Before acquiring a physical Effect-source holding, the standard Host now
+checks the local Manifest and opaque Artifact against the exact checked
+input owner and the Run-bound source's logical CID, schema, row count,
+data policy, and retention. Shared consumers must have the same checked
+Result view; an equal value or copied wrapper is not enough.
 The private Effect-source Artifact remains separate Run-bound custody evidence.
 The local Artifact and its witnesses are not yet retained in a durable exact
 Effect-source inventory, and
