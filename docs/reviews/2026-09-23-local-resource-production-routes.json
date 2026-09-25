@@ -2238,6 +2238,20 @@
           "fixture": "bounded count stops inside an unused nested input value"
         },
         {
+          "role": "count_nested_input_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels count inside unused nested input"
+        },
+        {
+          "role": "count_nested_input_host_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed count with unused nested input reaches two consumers"
+        },
+        {
           "role": "count_nested_value_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

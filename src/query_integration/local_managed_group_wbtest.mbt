@@ -570,6 +570,7 @@ fn run_local_managed_group_case(
     variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
+  let large_payload = variant == "global_counts_payload"
   @local_driver.configure_local_retained_inputs(
     installed,
     {
@@ -577,12 +578,16 @@ fn run_local_managed_group_case(
       values: limits.local_execution.rows.input_values,
       wire: {
         ..retained_attempt_wire_limits(),
-        max_bytes: if expanded {
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
           512
         } else {
           100
         },
-        max_nodes: if expanded {
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
           100
         } else {
           20
@@ -599,12 +604,16 @@ fn run_local_managed_group_case(
         },
       },
       row: {
-        max_bytes: if expanded {
+        max_bytes: if large_payload {
+          2048
+        } else if expanded {
           1000
         } else {
           100
         },
-        max_nodes: if expanded {
+        max_nodes: if large_payload {
+          512
+        } else if expanded {
           100
         } else {
           20
@@ -614,13 +623,17 @@ fn run_local_managed_group_case(
         } else {
           4
         },
-        max_text_bytes: if expanded {
+        max_text_bytes: if large_payload {
+          2048
+        } else if expanded {
           1000
         } else {
           100
         },
       },
-      max_batch_bytes: if expanded {
+      max_batch_bytes: if large_payload {
+        2048
+      } else if expanded {
         512
       } else {
         64
@@ -664,6 +677,7 @@ fn run_local_managed_group_case(
   let group_live = Ref(true)
   let bounded_global = variant == "empty_global" ||
     variant == "global_counts" ||
+    variant == "global_counts_payload" ||
     variant == "keyed" ||
     variant == "compound" ||
     variant == "empty_keyed" ||
@@ -805,7 +819,20 @@ test "Local managed bounded global count distinguishes null fields" {
 }
 
 ///|
-fn assert_standard_host_cancels_bounded_count(variant : String) -> Unit raise {
+test "Local managed count with unused nested input reaches two consumers" {
+  run_local_managed_group_case(
+    "global_counts_payload",
+    [local_count_payload_row()],
+    ["{\"n\":1,\"present\":1}"],
+    ["{\"present\":1,\"n\":1}"],
+  )
+}
+
+///|
+fn assert_standard_host_cancels_bounded_count(
+  variant : String,
+  before_cancel? : Int = 1,
+) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
     local_values_group_variant=variant,
@@ -826,9 +853,42 @@ fn assert_standard_host_cancels_bounded_count(variant : String) -> Unit raise {
     {
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
-      wire: retained_attempt_wire_limits(),
-      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
-      max_batch_bytes: 256,
+      wire: {
+        ..retained_attempt_wire_limits(),
+        max_bytes: if variant == "global_counts_payload" {
+          2048
+        } else {
+          256
+        },
+        max_nodes: if variant == "global_counts_payload" {
+          512
+        } else {
+          20
+        },
+      },
+      row: {
+        max_bytes: if variant == "global_counts_payload" {
+          2048
+        } else {
+          100
+        },
+        max_nodes: if variant == "global_counts_payload" {
+          512
+        } else {
+          20
+        },
+        max_depth: 4,
+        max_text_bytes: if variant == "global_counts_payload" {
+          2048
+        } else {
+          100
+        },
+      },
+      max_batch_bytes: if variant == "global_counts_payload" {
+        2048
+      } else {
+        256
+      },
     },
     None,
   ).unwrap()
@@ -850,9 +910,11 @@ fn assert_standard_host_cancels_bounded_count(variant : String) -> Unit raise {
     [local_managed_test_rows(value_ops)],
     require_provider=true,
   )
-  let first = (operations.advance)(1).unwrap()
-  assert_false(first.complete)
-  assert_eq(first.work, 1L)
+  for _ in 0..<before_cancel {
+    let next = (operations.advance)(1).unwrap()
+    assert_false(next.complete)
+    assert_eq(next.work, 1L)
+  }
   assert_true((operations.request_cancel)())
   assert_true((operations.advance)(1) is Err(_))
   assert_true((operations.execution_stopped)())
@@ -887,6 +949,16 @@ test "standard Host cancels global count after bounded work" {
 ///|
 test "standard Host cancels keyed count after bounded work" {
   assert_standard_host_cancels_bounded_count("keyed")
+}
+
+///|
+test "standard Host cancels count inside unused nested input" {
+  // Metadata and row entry take fewer than 80 steps; the 256 array elements
+  // leave this request inside value measurement rather than row counting.
+  assert_standard_host_cancels_bounded_count(
+    "global_counts_payload",
+    before_cancel=80,
+  )
 }
 
 ///|

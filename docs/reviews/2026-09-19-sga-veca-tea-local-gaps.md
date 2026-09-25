@@ -154,8 +154,11 @@ selected chain's workspace boundary, not other ordinary group shapes.
 The count input scan now resumes inside nested arrays, objects, and long
 text rather than treating a whole cell as one non-interruptible step.
 An unused 256-element array has exact and one-short value-budget fixtures,
-an in-measurement stop/cleanup fixture, and a delivered standard Host timer
-case. A 4,096-byte unused text cell also has quantum-one, exact/one-short,
+an in-measurement stop/cleanup fixture, and a managed Host case that cancels
+after positive work inside the array without publishing a result. Its
+successful path reaches two downstream Computes and independent release.
+The existing scalar count case also has a delivered standard Host timer
+test. A 4,096-byte unused text cell has quantum-one, exact/one-short,
 and in-measurement stop/cleanup fixtures. Structured group keys are rejected
 by the formal `KeyComparable` check, but a long text group key can still be
 scanned synchronously by `checked_ordered_output_value` and again by

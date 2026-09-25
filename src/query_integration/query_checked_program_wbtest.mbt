@@ -1434,6 +1434,11 @@ fn local_select_qualified_program() -> String {
 }
 
 ///|
+fn local_count_payload_row() -> String {
+  "{\"id\":1,\"payload\":[" + Array::make(256, "1").join(",") + "]}"
+}
+
+///|
 fn local_values_group_program(variant : String) -> String {
   let (schema, rows, by, aggregates, input_fields, fields, reversed) = match
     variant {
@@ -1464,6 +1469,16 @@ fn local_values_group_program(variant : String) -> String {
         "{\"id\":{\"type\":\"number\",\"nullable\":true}}", "[{\"id\":null},{\"id\":1},{\"id\":1}]",
         "[]", "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
         "[\"id\"]", "[\"n\",\"present\"]", "[\"present\",\"n\"]",
+      )
+    "global_counts_payload" =>
+      (
+        "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}",
+        "[" + local_count_payload_row() + "]",
+        "[]",
+        "{\"n\":{\"fn\":\"count\"},\"present\":{\"fn\":\"count\",\"field\":\"id\"}}",
+        "[\"id\",\"payload\"]",
+        "[\"n\",\"present\"]",
+        "[\"present\",\"n\"]",
       )
     "counts" =>
       (

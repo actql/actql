@@ -75,6 +75,18 @@ test('global count assurance requires its bounded product path and proofs', () =
     const group = routes.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'group');
     group.boundary_tests = group.boundary_tests.filter(item =>
+      item.role !== 'count_nested_input_host_cancel_cleanup');
+  }), /RelA group: count_nested_input_host_cancel_cleanup fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.boundary_tests = group.boundary_tests.filter(item =>
+      item.role !== 'count_nested_input_host_two_consumers');
+  }), /RelA group: count_nested_input_host_two_consumers fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.boundary_tests = group.boundary_tests.filter(item =>
       item.role !== 'keyed_count_same_stage_workspace_exact_one_short');
   }), /RelA group: keyed_count_same_stage_workspace_exact_one_short fixture is missing/u);
   assert.match(run(undefined, routes => {
