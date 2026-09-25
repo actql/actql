@@ -22,6 +22,7 @@ fn wide_search_registry() -> @connector.CapabilityRegistry {
       name: "candidate-" + index.to_string(),
       acquisition: false,
       fixed_compute: true,
+      effect: false,
     }),
     5,
     100,
