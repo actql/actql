@@ -1391,8 +1391,17 @@ a new review artifact under the old approval. Before dispatch after a delayed
 Resolution, it MUST revalidate the bound authorization-context and
 environment-binding CIDs. Artifact availability and exact target freshness are
 then revalidated at their existing provider-access and Effect-commit boundaries.
-If those facts changed, the Checkpoint is invalidated or the Run fails; the Host
-does not weaken or reinterpret the old approval.
+
+<!-- requirement-block: checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation -->
+If a bound authorization-context or environment-binding CID no longer
+revalidates, the Host MUST NOT dispatch the continuation. A Run-unit
+continuation then exits `resuming` to `failed`, or to `needs_reconciliation`
+when earlier Effect outcomes remain unknown, with runtime error phase
+`admission` and `terminal_error.code` `ACTQL_E_RESUME_REVALIDATION_FAILED`;
+that exit completes the resume intent atomically. A preparation continuation
+ends without creating a Run. The Host does not weaken or reinterpret the old
+approval, and a changed artifact or target found at a later boundary uses that
+boundary's existing failure.
 
 <!-- requirement-block: checkpoints.every-path-backed-run-input-and-model-replay-bundle-must-be-captured -->
 Every path-backed Run input and model-replay bundle MUST be captured as an

@@ -9342,6 +9342,17 @@
       }
     },
     {
+      "requirement_id": "actql.execution/checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation",
+      "statement_sha256": "676a7b4c361874fd2c9841080fe525c47d213031ff4a8d0a36f7354026da0871",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/checkpoints.every-path-backed-run-input-and-model-replay-bundle-must-be-captured",
       "statement_sha256": "21e2dace4064adad39a1a400c465cc586a0148eb43345e53996f117f196ba757",
       "status": "pending",
