@@ -3808,6 +3808,12 @@ test(`two-member captured Effect Run ${
         assert.equal(child.status, 0, child.stderr);
         const fresh = JSON.parse(child.stdout);
         assert.equal(fresh.capturedRunCid, computation.capturedRun.identity);
+        assert.deepEqual(fresh.localInventory,
+          JSON.parse(computation.capturedRun.wire)
+            .effect_source_local_inventory);
+        assert.deepEqual(fresh.effectIdentities,
+          JSON.parse(preview.wire).effects.map(
+            member => member.effect_identity_cid));
         assert.equal(fresh.setStatus, 'applied');
         assert.deepEqual(fresh.rowCounts, [2, 2]);
         freshProcessSetCid = fresh.setReceiptCid;

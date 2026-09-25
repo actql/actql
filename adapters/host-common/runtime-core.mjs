@@ -2181,6 +2181,13 @@ function publicationControl(moon) {
       }
       return admitted;
     },
+    effectComputationPreviewWire(preview) {
+      const wire = computationPreviewWires.get(preview);
+      if (wire === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return wire;
+    },
     effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
       const ownedPreview = computationPreviewTokens.get(preview);
       if (ownedPreview === undefined) {

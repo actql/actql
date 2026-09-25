@@ -55,6 +55,11 @@ try {
   });
   const answer = {
     capturedRunCid: recovered.computation.capturedRun.identity,
+    localInventory: JSON.parse(recovered.computation.capturedRun.wire)
+      .effect_source_local_inventory,
+    effectIdentities: JSON.parse(control.effectComputationPreviewWire(
+      recovered.preview)).effects.map(
+      member => member.effect_identity_cid),
     setReceiptCid: issued.set.identity,
     setStatus: JSON.parse(issued.set.wire).status,
     rowCounts: recorded.members.map(member => member.claims.length),

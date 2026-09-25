@@ -119,6 +119,12 @@ Site. Missing or foreign heads fail, and a frontier with sendable rows is not
 returned as read-only recovery. This closes process isolation for recorded
 row evidence, not the public ingress or the interrupted apply owner when a
 row had no durable head.
+The same probe compares the recovered local Effect-source inventory and each
+Preview member's Effect identity with the pre-restart owners. Re-admission of
+the captured chain precedes that comparison; the check does not re-export or
+re-hash the Result rows. Current mutation authority and unrecorded-row apply
+recovery remain separate open work.
+
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
 input owner and the Run-bound source's logical CID, schema, row count,
