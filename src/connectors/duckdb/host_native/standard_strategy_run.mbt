@@ -15,6 +15,8 @@ struct NativeStandardStrategyRun {
   database_path : String
   retained_profile : NativeStrategyRetainedOutputProfile?
   resident_environments : Array[NativeResidentEnvironment]
+  mut resident_fault : NativeResidentFault?
+  mut resident_task_demand_bytes : Int64
   mut accepting : Bool
   mut complete : Bool
   mut dispatch_stopped : Bool
@@ -29,6 +31,14 @@ pub(all) struct NativeStandardResidentObservation {
   imports : Int
   imported_rows : Int
   borrowed_inputs : Int
+  /// Environments excluded from reuse because a transaction end was not
+  /// confirmed; they are released only by destruction at Run release.
+  unconfirmed_environments : Int
+  /// Native allowance of each environment's most recent import attempt (the
+  /// largest across environments), as presented to `begin_resident_transfer`.
+  import_scratch_bytes : Int64
+  /// Last resident task's whole execution demand checked against its envelope.
+  task_demand_bytes : Int64
   temporary_views : Int64
   tables : Int64
 } derive(Eq, Debug)
@@ -143,6 +153,8 @@ pub fn open_native_standard_strategy_run(
     database_path,
     retained_profile,
     resident_environments: [],
+    resident_fault: None,
+    resident_task_demand_bytes: 0L,
     accepting: true,
     complete: false,
     dispatch_stopped: false,
@@ -296,35 +308,42 @@ pub fn execute_next_native_standard_strategy_task(
     run.stop_dispatch()
     return Err(InvalidSelection)
   }
-  // Residency is the portable strategy's selection for this exact task. The
-  // environment and every missing input table are established before the
-  // selected dispatch is taken, as on the Node Host.
-  let resident = match @duckdb_standard_host.dispatch_resource_binding(task) {
-    None => None
-    Some(binding) =>
-      match prepare_native_resident_environment(run, task_index, binding) {
-        Ok(env) =>
-          match import_native_resident_inputs(run, env, task_index) {
-            Ok(_) => Some(env)
-            Err(issue) => {
-              run.accepting = false
-              run.stop_dispatch()
-              return Err(issue)
-            }
-          }
-        Err(issue) => {
-          run.accepting = false
-          run.stop_dispatch()
-          return Err(issue)
-        }
-      }
-  }
   let setup = match @duckdb_standard_host.take_native_dispatch(task) {
     Ok(value) => value
     Err(issue) => {
       run.accepting = false
       run.stop_dispatch()
       return Err(Dispatch(issue))
+    }
+  }
+  // Residency is the portable strategy's selection for this exact task. The
+  // environment is provisioned under its own reservation; the task's whole
+  // execution demand is then admitted against its envelope before any input
+  // is imported or any native work for the task starts.
+  let resident = match @duckdb_standard_host.dispatch_resource_binding(task) {
+    None => None
+    Some(binding) => {
+      let prepared = match
+        prepare_native_resident_environment(run, task_index, binding) {
+        Ok(env) =>
+          match native_resident_task_allowance(run, setup, task_index) {
+            Ok(bytes) =>
+              match import_native_resident_inputs(run, env, task_index) {
+                Ok(_) => Ok((env, bytes))
+                Err(issue) => Err(issue)
+              }
+            Err(issue) => Err(issue)
+          }
+        Err(issue) => Err(issue)
+      }
+      match prepared {
+        Ok(value) => Some(value)
+        Err(issue) => {
+          run.accepting = false
+          run.stop_dispatch()
+          return Err(issue)
+        }
+      }
     }
   }
   let additional_retained_source = fn(input) {
@@ -335,7 +354,7 @@ pub fn execute_next_native_standard_strategy_task(
     }
     None
   }
-  if resident is Some(env) {
+  if resident is Some((env, execution_bytes)) {
     let executed = match
       borrow_native_resident_inputs(run, env, setup, task_index) {
       Err(issue) => Err(issue)
@@ -346,10 +365,7 @@ pub fn execute_next_native_standard_strategy_task(
           env.database.unwrap(),
           run.import_limits,
           run.transfer_bytes,
-          native_resident_scratch_bytes(
-            run.import_limits,
-            @duckdb_driver.configured_strategy_compute_transport(setup).max_bytes,
-          ),
+          execution_bytes,
           retained_profile?=run.retained_profile,
           additional_retained_source~,
           resident=binding,
@@ -661,7 +677,9 @@ fn prepare_native_resident_environment(
   for env in run.resident_environments {
     if !env.released &&
       native_resident_environment_binding_matches(env, binding) {
-      if env.database_closed || env.database is None {
+      // A database whose last transaction end was not confirmed is never
+      // borrowed again; it waits for destruction at Run release.
+      if env.database_closed || env.database is None || env.unconfirmed {
         return Err(InvalidSelection)
       }
       return Ok(env)
@@ -682,6 +700,8 @@ fn prepare_native_resident_environment(
     imports: 0,
     imported_rows: 0,
     borrowed_inputs: 0,
+    unconfirmed: false,
+    import_scratch_bytes: 0L,
   }
   run.resident_environments.push(env)
   // An in-memory database: resident tables are run-private and are never
@@ -789,14 +809,74 @@ fn borrow_native_resident_inputs(
       names,
       run.import_limits.max_sql_bytes,
     ) {
-    Ok(borrowed) =>
+    Ok(borrowed) => {
+      let fault = run.resident_fault
+      run.resident_fault = None
       Ok({
         environment: env,
         inputs: borrowed,
         max_sql_bytes: run.import_limits.max_sql_bytes,
+        row_bytes: native_resident_row_bytes(run),
+        fault,
       })
+    }
     Err(issue) => Err(DuckDB(Start(Strategy(issue))))
   }
+}
+
+///|
+/// Frame bound of any retained holding a resident task may re-read. The task
+/// enforces it at use because its reservation is sized from it.
+fn native_resident_row_bytes(run : NativeStandardStrategyRun) -> Int {
+  match run.retained_profile {
+    Some(profile) => profile.max_batch_bytes
+    None => 1
+  }
+}
+
+///|
+/// Size the task's native allowance and admit the task's whole execution
+/// demand (native allowance, the connector's receiver scratch, and the shared
+/// engine reservation) against its selected envelope before any import or
+/// native work. Common admission repeats the same check at start.
+fn native_resident_task_allowance(
+  run : NativeStandardStrategyRun,
+  setup : @duckdb_driver.StrategyComputeHostConfiguration,
+  task : Int,
+) -> Result[Int64, NativeStandardStrategyRunIssue] {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
+  guard @duckdb_standard_host.dispatch_resident_inputs(run.dispatch, task)
+    is Some(inputs) &&
+    @duckdb_driver.configured_compute_plan(
+      @duckdb_driver.configured_strategy_compute_configuration(setup),
+    )
+    is Some(plan) else {
+    return Err(InvalidSelection)
+  }
+  let retained = match
+    @duckdb_driver.configured_strategy_output_file_bytes(setup) {
+    Some(bytes) => bytes > 0L
+    None => false
+  }
+  guard native_resident_task_scratch_bytes(
+      run.import_limits,
+      inputs.length(),
+      @resources.ledger_limits(@strategy.captured_dag_ledger(graph)).holdings,
+      @duckdb.fixed_query_parameter_count(@duckdb.fixed_compute_query(plan)),
+      run.retained_profile.map(profile => profile.max_batch_bytes),
+    )
+    is Some(native) &&
+    @duckdb_driver.configured_strategy_scratch_capacity(setup, retained~)
+    is Some(receiver) &&
+    @strategy.strategy_task_envelope(graph, task) is Some(envelope) else {
+    return Err(InvalidSelection)
+  }
+  let demand = native + receiver + run.database_memory_bytes
+  run.resident_task_demand_bytes = demand
+  if demand > envelope.execution_bytes {
+    return Err(DuckDB(Start(Strategy(Physical(InvalidCharge)))))
+  }
+  Ok(native)
 }
 
 ///|
@@ -852,6 +932,13 @@ pub fn native_standard_strategy_run_resident_observation(
     imports,
     imported_rows,
     borrowed_inputs,
+    unconfirmed_environments: run.resident_environments
+    .filter(env => env.unconfirmed)
+    .length(),
+    import_scratch_bytes: run.resident_environments.fold(init=0L, (bytes, env) => {
+      Int64::max(bytes, env.import_scratch_bytes)
+    }),
+    task_demand_bytes: run.resident_task_demand_bytes,
     temporary_views,
     tables,
   }

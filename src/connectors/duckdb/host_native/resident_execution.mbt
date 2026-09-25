@@ -14,6 +14,20 @@ priv struct NativeResidentEnvironment {
   mut imports : Int
   mut imported_rows : Int
   mut borrowed_inputs : Int
+  /// A task or import on this database ended without a confirmed rollback or
+  /// commit. Its state is unknown, so no later task may borrow it; only its
+  /// destruction at Run release confirms the stop.
+  mut unconfirmed : Bool
+  /// Allowance of the most recent import attempt (admitted or rejected).
+  mut import_scratch_bytes : Int64
+}
+
+///|
+/// A one-shot transaction-end failure for the next resident task. It exists
+/// only so tests can observe the Host's handling of an unconfirmed stop.
+priv enum NativeResidentFault {
+  Rollback
+  CommitAndRollback
 }
 
 ///|
@@ -23,6 +37,11 @@ priv struct NativeResidentTaskBinding {
   environment : NativeResidentEnvironment
   inputs : @duckdb_driver.DuckDBResidentInputs
   max_sql_bytes : Int
+  /// Frame bound of any retained holding this task may re-read; enforced at
+  /// use because the task reservation was sized from it.
+  row_bytes : Int
+  /// Whitebox-only seam; see `fail_next_native_resident_transaction_end`.
+  fault : NativeResidentFault?
 }
 
 ///|
@@ -30,16 +49,120 @@ priv struct NativeResidentTaskBinding {
 const NATIVE_RESIDENT_COMMAND_BYTES : Int = 4096
 
 ///|
-/// Native Host scratch outside the engine budget: SQL text copies, one bound
-/// parameter batch and decoded transport/storage frames. The engine budget is
-/// the environment's separate shared reservation and is not charged per task.
-fn native_resident_scratch_bytes(
+/// Per boxed value or container entry: the same entry convention the portable
+/// DuckDB capacity calculations (`duckdb_task_retention_capacity`) use.
+const NATIVE_RESIDENT_ENTRY_BYTES : Int64 = 256L
+
+///|
+/// One native retained-holding read: the reader's chunk (at most 64 KiB and at
+/// most one frame), the row-frame decoder's partial frame, and the current
+/// row's text held as a MoonBit string (at most 2 bytes per UTF-8 byte).
+fn native_resident_storage_read_bytes(row_bytes : Int) -> Int64 {
+  Int::min(65536, row_bytes).to_int64() +
+  row_bytes.to_int64() +
+  row_bytes.to_int64() * 2L
+}
+
+///|
+/// Reservation ceiling for the native Host's own allocations while importing
+/// one producer into a resident environment. It is a safe upper bound, not a
+/// performance estimate, and is admitted by `begin_resident_transfer` before
+/// any statement is compiled or any native work starts. `row_bytes` is the
+/// frame bound of the producer's retained holding (`retained`), or for a
+/// cell-backed producer the bound of one bound value. Engine memory is the
+/// environment's separate shared reservation and is never counted here.
+pub fn native_resident_import_scratch_bytes(
   limits : NativeComputeImportLimits,
-  frame_bytes : Int,
-) -> Int64 {
-  limits.max_sql_bytes.to_int64() * 4L +
-  limits.max_parameters.to_int64() * 256L +
-  frame_bytes.to_int64() * 8L
+  rows : Int,
+  columns : Int,
+  row_bytes : Int,
+  retained : Bool,
+) -> Int64? {
+  if rows < 0 ||
+    columns < 1 ||
+    row_bytes < 1 ||
+    limits.max_sql_bytes < 0 ||
+    limits.max_batch_rows < 1 ||
+    limits.max_parameters < columns {
+    return None
+  }
+  let sql = limits.max_sql_bytes.to_int64()
+  // The batch bound handed to the statement compiler.
+  let batch_rows = Int::min(
+    rows,
+    Int::min(limits.max_batch_rows, limits.max_parameters / columns),
+  ).to_int64()
+  let row = row_bytes.to_int64()
+  // CREATE, batch INSERT and tail INSERT stay live for the whole import as
+  // MoonBit strings (2 bytes per admitted UTF-8 byte each), plus the UTF-8
+  // copy the adapter hands DuckDB for the one executing statement.
+  let statements = sql * 7L
+  // One pending parameter batch: its boxed values.
+  let containers = batch_rows * columns.to_int64() * NATIVE_RESIDENT_ENTRY_BYTES
+  // Text decoded from the pending batch's rows (each row came from one frame
+  // of at most `row_bytes` UTF-8 bytes); cell-backed values share storage.
+  let payload = if retained { batch_rows * row * 2L } else { 0L }
+  // UTF-8 copy of the one value being bound; a value never exceeds the frame
+  // that carries it.
+  let binding = row
+  let storage = if retained {
+    native_resident_storage_read_bytes(row_bytes)
+  } else {
+    0L
+  }
+  Some(statements + containers + payload + binding + storage)
+}
+
+///|
+/// Reservation ceiling for the native Host's own allocations in one resident
+/// task, admitted with the task's common reservation before its transaction
+/// starts. Transport frame decoding and receiver admission are not counted:
+/// the portable `duckdb_stream_scratch_capacity`/`duckdb_task_scratch_capacity`
+/// term already charges the same frames to this reservation. Engine memory is
+/// the environment's shared reservation.
+pub fn native_resident_task_scratch_bytes(
+  limits : NativeComputeImportLimits,
+  inputs : Int,
+  max_tables : Int,
+  query_parameters : Int,
+  retained_row_bytes : Int?,
+) -> Int64? {
+  if inputs < 0 ||
+    max_tables < 0 ||
+    query_parameters < 0 ||
+    limits.max_sql_bytes < 0 {
+    return None
+  }
+  let sql = limits.max_sql_bytes.to_int64()
+  // Retained until the transaction ends: one DROP VIEW per input and the
+  // cleanup DROP TABLE for each table the portable cleanup may retire (at most
+  // the environment's table slots), 2 bytes per UTF-8 byte each. At a time:
+  // one scan/demand statement (2) and the executing UTF-8 copy (1).
+  let statements = (inputs.to_int64() * 2L + max_tables.to_int64() * 2L + 3L) *
+    sql
+  // Bound parameters of the result CREATE; the values stay the fixed query's.
+  let parameters = query_parameters.to_int64() * NATIVE_RESIDENT_ENTRY_BYTES
+  // Fallback re-verification of one retained input from its holding.
+  let storage = match retained_row_bytes {
+    Some(row_bytes) if row_bytes > 0 =>
+      native_resident_storage_read_bytes(row_bytes)
+    Some(_) => return None
+    None => 0L
+  }
+  Some(statements + parameters + storage)
+}
+
+///|
+/// Whitebox test seam: make the next resident task transaction on this Run
+/// report a failed rollback (and, with `commit`, first a failed commit) so the
+/// Host's unconfirmed-stop handling can be exercised against real DuckDB. The
+/// real rollback still runs; only its confirmation is withheld.
+#internal(test_seam, "whitebox fault seam for resident transaction ends")
+pub fn fail_next_native_resident_transaction_end(
+  run : NativeStandardStrategyRun,
+  commit : Bool,
+) -> Unit {
+  run.resident_fault = Some(if commit { CommitAndRollback } else { Rollback })
 }
 
 ///|
@@ -200,7 +323,9 @@ fn verify_native_resident_input(
   guard retained_source is Some(resolve) && resolve(input) is Some(source) else {
     return Err(RuntimeState)
   }
-  if source.max_batch_bytes > runtime.transport.max_bytes {
+  // The task reservation was sized from `binding.row_bytes`.
+  if source.max_batch_bytes > runtime.transport.max_bytes ||
+    source.max_batch_bytes > binding.row_bytes {
     return Err(InvalidLimits)
   }
   let read = @duckdb_driver.resident_inputs_read_plans(binding.inputs).get(port)
@@ -482,27 +607,43 @@ fn execute_native_resident_transaction(
         }
     }
   }
-  if failure is Some(primary) {
-    let rollback = match database.rollback_transaction() {
+  // The real rollback always runs; the whitebox seam only withholds its
+  // confirmation so an unconfirmed stop can be exercised.
+  let rollback_task = fn() {
+    let observed = match database.rollback_transaction() {
       Ok(_) => None
       Err(issue) => Some(issue)
     }
-    // A confirmed rollback ends this task's transaction, views and tables.
-    // Otherwise the shared database's destruction must confirm the stop.
-    runtime.physical_active = rollback is Some(_)
-    let settlement = dispose_native_strategy_task(runtime)
-    return Err({ primary: Physical(primary), rollback, settlement, })
-  }
-  match database.commit_transaction() {
-    Err(issue) => {
-      let rollback = match database.rollback_transaction() {
-        Ok(_) => None
-        Err(cleanup) => Some(cleanup)
-      }
-      runtime.physical_active = rollback is Some(_)
-      let settlement = dispose_native_strategy_task(runtime)
-      return Err({ primary: Physical(Runtime(issue)), rollback, settlement, })
+    match (observed, binding.fault) {
+      (None, Some(_)) =>
+        Some(@native_duckdb.Query("injected rollback failure (test seam)"))
+      _ => observed
     }
+  }
+  // A confirmed rollback ends this task's transaction, views and tables.
+  // Otherwise the task keeps its reservation, the database is not reused, and
+  // only its destruction at Run release confirms the stop.
+  let end_failed = fn(
+    primary : NativeStrategyComputeIssue,
+    rollback : @native_duckdb.NativeDuckDBIssue?,
+  ) {
+    runtime.physical_active = rollback is Some(_)
+    if rollback is Some(_) {
+      binding.environment.unconfirmed = true
+    }
+    let settlement = dispose_native_strategy_task(runtime)
+    Err({ primary, rollback, settlement, })
+  }
+  if failure is Some(primary) {
+    return end_failed(Physical(primary), rollback_task())
+  }
+  let committed = match binding.fault {
+    Some(CommitAndRollback) =>
+      Err(@native_duckdb.Query("injected commit failure (test seam)"))
+    _ => database.commit_transaction()
+  }
+  match committed {
+    Err(issue) => return end_failed(Physical(Runtime(issue)), rollback_task())
     Ok(_) => ()
   }
   // Task completion is separate from the database lifetime: the committed
@@ -601,6 +742,59 @@ fn import_native_resident_table(
   if rows > limits.max_cells / columns {
     return cancel(Physical(ImportCells))
   }
+  // Only lookups happen before the reservation: the exact holding and its
+  // frame bound, which sizes the allowance.
+  let storage = @duckdb.resident_import_storage(imported)
+  let source = match @execution.producer_storage_retained_material(storage) {
+    None => None
+    Some(_) =>
+      match resolve(storage) {
+        Some(source) if source.max_batch_bytes > 0 &&
+          source.max_batch_bytes <= source.wire.max_bytes &&
+          source.max_batch_bytes <= frame_bytes => Some(source)
+        Some(_) => return cancel(Physical(InvalidLimits))
+        None => return cancel(Physical(RuntimeState))
+      }
+  }
+  let scratch = match
+    native_resident_import_scratch_bytes(
+      limits,
+      rows,
+      columns,
+      source.map(value => value.max_batch_bytes).unwrap_or(frame_bytes),
+      source is Some(_),
+    ) {
+    Some(value) => value
+    None => return cancel(Physical(InvalidLimits))
+  }
+  env.import_scratch_bytes = scratch
+  let transfer = match
+    @strategy.begin_resident_transfer(graph, handle, transfer_bytes, scratch) {
+    Ok(value) => value
+    Err(issue) => return cancel(Strategy(issue))
+  }
+  let reader_open = Ref(false)
+  let fail = fn(
+    primary : NativeComputeExecutionIssue,
+    rollback : @native_duckdb.NativeDuckDBIssue?,
+    started : Bool,
+  ) {
+    @strategy.abort_resident_transfer(graph, transfer) |> ignore
+    let confirmed = !started || (rollback is None && !reader_open.val)
+    if !confirmed {
+      env.unconfirmed = true
+    }
+    let settlement = match
+      @strategy.settle_resident_transfer(graph, transfer, confirmed) {
+      Ok(_) => None
+      Err(issue) => Some(issue)
+    }
+    if !confirmed || settlement is Some(_) {
+      env.unsettled_transfers.push(transfer)
+    }
+    Err(Execution({ primary: Physical(primary), rollback, settlement, }))
+  }
+  // Statements are compiled only under the admitted reservation.
   let (batch_rows, batch_sql) = if rows == 0 {
     (0, "")
   } else {
@@ -615,7 +809,7 @@ fn import_native_resident_table(
         limits.max_sql_bytes,
       ) {
       Ok(value) => value
-      Err(issue) => return cancel(Physical(Query(issue)))
+      Err(issue) => return fail(Query(issue), None, false)
     }
   }
   let tail_rows = if batch_rows == 0 { 0 } else { rows % batch_rows }
@@ -630,46 +824,9 @@ fn import_native_resident_table(
         limits.max_sql_bytes,
       ) {
       Ok((actual, sql)) if actual == tail_rows => sql
-      Ok(_) => return cancel(Physical(RuntimeState))
-      Err(issue) => return cancel(Physical(Query(issue)))
+      Ok(_) => return fail(RuntimeState, None, false)
+      Err(issue) => return fail(Query(issue), None, false)
     }
-  }
-  let storage = @duckdb.resident_import_storage(imported)
-  let source = match @execution.producer_storage_retained_material(storage) {
-    None => None
-    Some(_) =>
-      match resolve(storage) {
-        Some(source) => Some(source)
-        None => return cancel(Physical(RuntimeState))
-      }
-  }
-  let transfer = match
-    @strategy.begin_resident_transfer(
-      graph,
-      handle,
-      transfer_bytes,
-      native_resident_scratch_bytes(limits, frame_bytes),
-    ) {
-    Ok(value) => value
-    Err(issue) => return cancel(Strategy(issue))
-  }
-  let reader_open = Ref(false)
-  let fail = fn(
-    primary : NativeComputeExecutionIssue,
-    rollback : @native_duckdb.NativeDuckDBIssue?,
-    started : Bool,
-  ) {
-    @strategy.abort_resident_transfer(graph, transfer) |> ignore
-    let confirmed = !started || (rollback is None && !reader_open.val)
-    let settlement = match
-      @strategy.settle_resident_transfer(graph, transfer, confirmed) {
-      Ok(_) => None
-      Err(issue) => Some(issue)
-    }
-    if !confirmed || settlement is Some(_) {
-      env.unsettled_transfers.push(transfer)
-    }
-    Err(Execution({ primary: Physical(primary), rollback, settlement, }))
   }
   match database.begin_transaction() {
     Err(issue) => return fail(Runtime(issue), None, false)

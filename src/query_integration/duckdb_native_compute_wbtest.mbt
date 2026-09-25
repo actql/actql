@@ -124,7 +124,7 @@ fn native_compute_strategy_selection(
 
 ///|
 test "native selected DuckDB seals independent output before completion" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) &&
+  guard native_duckdb_test_library() is Some(path) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
     return
   }
@@ -229,9 +229,7 @@ test "native selected DuckDB seals independent output before completion" {
 
 ///|
 test "native fixed Compute rolls back a failed physical transaction" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let input = duckdb_captured_input(filter="id > 2")
   let database = @native_duckdb.load_library(path)
     .unwrap()
@@ -260,9 +258,7 @@ test "native fixed Compute rolls back a failed physical transaction" {
 
 ///|
 test "native DuckDB executes portable fixed Compute without Node" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let input = duckdb_captured_input(filter="id > 2")
   let database = @native_duckdb.load_library(path)
     .unwrap()
@@ -289,9 +285,7 @@ test "native DuckDB executes portable fixed Compute without Node" {
 
 ///|
 test "native fixed Compute rejects import capacity before execution" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let input = duckdb_captured_input(filter="id > 2")
   let database = @native_duckdb.load_library(path)
     .unwrap()
@@ -310,9 +304,7 @@ test "native fixed Compute rejects import capacity before execution" {
 
 ///|
 test "standard dispatcher completes native fixed Compute without Node" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let revision = native_compute_strategy_selection(run, registry)
@@ -413,9 +405,7 @@ test "standard dispatcher completes native fixed Compute without Node" {
 
 ///|
 test "native DuckDB memory denial releases the common execution reservation" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let revision = native_compute_strategy_selection(run, registry)

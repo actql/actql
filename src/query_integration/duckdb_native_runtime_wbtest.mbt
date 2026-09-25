@@ -59,9 +59,7 @@ fn native_runtime_setup(
 
 ///|
 test "native DuckDB executes the portable acquisition Host without Node" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let library = @native_duckdb.load_library(path).unwrap()
   let database = library
     .open_database(@native_duckdb.restricted_open_limits(134217728L))
@@ -90,9 +88,7 @@ test "native DuckDB executes the portable acquisition Host without Node" {
 
 ///|
 test "native acquisition failure rolls back before releasing its Host attempt" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(path) else { return }
   let database = @native_duckdb.load_library(path)
     .unwrap()
     .open_database(@native_duckdb.restricted_open_limits(134217728L))

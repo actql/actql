@@ -709,8 +709,7 @@ test "standard Local output reaches the durable native publication commit" {
 
 ///|
 test "standard DuckDB output reaches the durable native publication commit" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY")
-    is Some(duckdb_library_path) else {
+  guard native_duckdb_test_library() is Some(duckdb_library_path) else {
     return
   }
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
@@ -731,8 +730,7 @@ test "standard DuckDB output reaches the durable native publication commit" {
 
 ///|
 test "retained native DuckDB result reaches formal publication and delivery" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY")
-    is Some(duckdb_library_path) &&
+  guard native_duckdb_test_library() is Some(duckdb_library_path) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(sqlite_library_path) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) &&
@@ -828,7 +826,7 @@ test "native Local file creation failure retains the common attempt owner" {
 
 ///|
 test "native DuckDB file failure prevents completion and retains cleanup owner" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
+  guard native_duckdb_test_library() is Some(library) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
     is Some(retained_root) else {
     return
@@ -859,7 +857,7 @@ test "native DuckDB file failure prevents completion and retains cleanup owner" 
 
 ///|
 test "native standard Host reads each retained DuckDB input from a fresh file" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
+  guard native_duckdb_test_library() is Some(library) &&
     @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
     return
   }
@@ -977,9 +975,7 @@ fn assert_native_remote_standard_output(
 
 ///|
 test "native Remote Site executes registered Local and DuckDB tasks" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(duckdb_path) else {
-    return
-  }
+  guard native_duckdb_test_library() is Some(duckdb_path) else { return }
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")
     is Some(sqlite_path) else {
     return

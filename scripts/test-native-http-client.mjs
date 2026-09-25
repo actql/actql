@@ -112,6 +112,10 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
   `node-bindings-${process.platform}-${process.arch}`,
   process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so',
 );
+// This dedicated runner owns the native DuckDB prerequisites: a missing
+// library is a failure here, not a silently skipped native test.
+assert(existsSync(nativeTestDuckDBLibrary),
+  `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
 const multiBundleStoreRoot = join(root, 'multi-bundle-store');
 const sqliteRoot = join(root, 'sqlite');
 const standardRoot = join(root, 'standard');
@@ -1103,6 +1107,8 @@ try {
     ACTQL_TEST_NATIVE_STORE_ROOT: storeRoot,
     ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: retainedTaskRoot,
     ACTQL_TEST_DUCKDB_LIBRARY: nativeTestDuckDBLibrary,
+    // Native DuckDB tests fail instead of skipping when a variable is missing.
+    ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1',
     ACTQL_TEST_NATIVE_MULTI_STORE_ROOT: multiBundleStoreRoot,
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: standardRoot,
     ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT: transferStandardRoot,

@@ -48,9 +48,15 @@ pub fn execute_native_strategy_compute_task(NativeStrategyComputeRun, @driver.St
 
 pub fn execute_next_native_standard_strategy_task(NativeStandardStrategyRun) -> Result[NativeStandardStrategyTaskCompletion?, NativeStandardStrategyRunIssue]
 
+pub fn fail_next_native_resident_transaction_end(NativeStandardStrategyRun, Bool) -> Unit
+
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
+
+pub fn native_resident_import_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Bool) -> Int64?
+
+pub fn native_resident_task_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Int?) -> Int64?
 
 pub fn native_standard_strategy_run_complete(NativeStandardStrategyRun) -> Bool
 
@@ -171,6 +177,9 @@ pub(all) struct NativeStandardResidentObservation {
   imports : Int
   imported_rows : Int
   borrowed_inputs : Int
+  unconfirmed_environments : Int
+  import_scratch_bytes : Int64
+  task_demand_bytes : Int64
   temporary_views : Int64
   tables : Int64
 } derive(Eq, @debug.Debug)

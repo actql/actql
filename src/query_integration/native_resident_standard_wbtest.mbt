@@ -1,4 +1,35 @@
 ///|
+/// Native DuckDB tests may skip in an ordinary `moon test`, but a dedicated
+/// runner that sets ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS=1 must supply every
+/// prerequisite: a missing one is a failure there, never a silent skip.
+fn native_duckdb_test_variable(name : String) -> String? {
+  match @env.get_env_var(name) {
+    Some(value) if value != "" => Some(value)
+    _ =>
+      if @env.get_env_var("ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS") == Some("1") {
+        abort("required native DuckDB test prerequisite missing: " + name)
+      } else {
+        None
+      }
+  }
+}
+
+///|
+fn native_duckdb_test_library() -> String? {
+  native_duckdb_test_variable("ACTQL_TEST_DUCKDB_LIBRARY")
+}
+
+///|
+fn native_resident_test_prerequisites() -> (String, String)? {
+  guard native_duckdb_test_library() is Some(library) &&
+    native_duckdb_test_variable("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
+    is Some(retained_root) else {
+    return None
+  }
+  Some((library, retained_root))
+}
+
+///|
 fn native_resident_wire() -> @execution.RowWireLimits {
   {
     max_columns: 10,
@@ -18,6 +49,8 @@ fn prepare_native_resident_run(
   retained_root : String,
   max_file_bytes? : Int64 = 100000L,
   import_limits? : @native_host.NativeComputeImportLimits = native_compute_import_limits(),
+  import_scratch_bytes? : Int64 = 2000000L,
+  task_execution_bytes? : Int64 = 134217728L,
 ) -> (
   @strategy.CapturedDAG,
   @native_host.NativeStandardStrategyRun,
@@ -67,7 +100,7 @@ fn prepare_native_resident_run(
     native_capacity: {
       transfer_bytes: 100000L,
       retained_bytes: 4000000L,
-      execution_bytes: 134217728L,
+      execution_bytes: task_execution_bytes,
     },
     output_rows_per_mille: Some(1000),
   })
@@ -97,7 +130,7 @@ fn prepare_native_resident_run(
     Array::make(count + 1, @strategy.ResidentImportEstimate::{
       work: shared(1L),
       transfer_bytes: 100000L,
-      scratch_bytes: 2000000L,
+      scratch_bytes: import_scratch_bytes,
       table_bytes: 4000000L,
     }),
   ).unwrap()
@@ -166,9 +199,7 @@ fn assert_native_resident_ledger_released(
 
 ///|
 test "native resident Host shares one database and imports each producer once" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
-    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
-    is Some(retained_root) else {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
     return
   }
   let (captured, owner, issuer) = prepare_native_resident_run(
@@ -238,9 +269,7 @@ test "native resident Host shares one database and imports each producer once" {
 
 ///|
 test "native resident task failure keeps the environment owner until release" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
-    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
-    is Some(retained_root) else {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
     return
   }
   // The committed source table exists; the task's holding cannot be sealed.
@@ -280,9 +309,7 @@ test "native resident task failure keeps the environment owner until release" {
 
 ///|
 test "native resident import rejection returns its table and environment" {
-  guard @env.get_env_var("ACTQL_TEST_DUCKDB_LIBRARY") is Some(library) &&
-    @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT")
-    is Some(retained_root) else {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
     return
   }
   let (captured, owner, issuer) = prepare_native_resident_run(
@@ -302,6 +329,204 @@ test "native resident import rejection returns its table and environment" {
   assert_eq(observed.tables, 0L)
   assert_eq(@native_host.native_standard_strategy_run_task_count(owner), 0)
   assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+/// Run task 1 once with ample ceilings and return the native import allowance
+/// and the task's whole execution demand that the Host computed for it.
+fn observe_native_resident_ceilings(
+  library : String,
+  retained_root : String,
+) -> (Int64, Int64) raise {
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library, retained_root,
+  )
+  ignore(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    .unwrap()
+    .unwrap(),
+  )
+  let observed = @native_host.native_standard_strategy_run_resident_observation(
+    owner,
+  )
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+  assert_true(observed.import_scratch_bytes > 0L)
+  assert_true(observed.task_demand_bytes > 67108864L)
+  (observed.import_scratch_bytes, observed.task_demand_bytes)
+}
+
+///|
+/// A resident ceiling one unit short must reject before its covered
+/// allocation: no table, import, transaction or task owner exists, and
+/// release leaves nothing in the ledger.
+fn assert_native_resident_rejected_before_work(
+  captured : @strategy.CapturedDAG,
+  owner : @native_host.NativeStandardStrategyRun,
+  issuer : @mock.MockQueryIssuer,
+) -> Unit raise {
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    is Err(DuckDB(Start(Strategy(Physical(InvalidCharge))))),
+  )
+  let observed = @native_host.native_standard_strategy_run_resident_observation(
+    owner,
+  )
+  assert_eq(observed.imports, 0)
+  assert_eq(observed.tables, 0L)
+  assert_eq(observed.temporary_views, 0L)
+  assert_eq(@native_host.native_standard_strategy_run_task_count(owner), 0)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(captured))
+  assert_eq(usage.reserved_transfer_bytes, 0L)
+  assert_eq(usage.transferred_bytes, 0L)
+  // Only the provisioned environment itself remains until final release.
+  assert_eq(usage.reserved_execution_bytes, 67108864L)
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "native resident import allowance is admitted exactly before any import" {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
+    return
+  }
+  let (import_scratch, _) = observe_native_resident_ceilings(
+    library, retained_root,
+  )
+  // Exactly enough: the import is admitted and completes.
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library,
+    retained_root,
+    import_scratch_bytes=import_scratch,
+  )
+  ignore(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    .unwrap()
+    .unwrap(),
+  )
+  assert_eq(
+    @native_host.native_standard_strategy_run_resident_observation(owner).imports,
+    1,
+  )
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+  // One byte short: rejected before any statement is compiled.
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library,
+    retained_root,
+    import_scratch_bytes=import_scratch - 1L,
+  )
+  assert_native_resident_rejected_before_work(captured, owner, issuer)
+}
+
+///|
+test "native resident task demand is admitted exactly before any import" {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
+    return
+  }
+  let (_, demand) = observe_native_resident_ceilings(library, retained_root)
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library,
+    retained_root,
+    task_execution_bytes=demand,
+  )
+  ignore(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    .unwrap()
+    .unwrap(),
+  )
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library,
+    retained_root,
+    task_execution_bytes=demand - 1L,
+  )
+  assert_native_resident_rejected_before_work(captured, owner, issuer)
+}
+
+///|
+test "native resident unconfirmed rollback keeps its owner and is never reused" {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
+    return
+  }
+  // A real task failure (the holding cannot be sealed) whose rollback end is
+  // then withheld by the whitebox seam.
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library,
+    retained_root,
+    max_file_bytes=1L,
+  )
+  @native_host.fail_next_native_resident_transaction_end(owner, false)
+  guard @native_host.execute_next_native_standard_strategy_task(owner)
+    is Err(DuckDB(Execution(failure))) else {
+    fail("resident failure was not reported as an execution failure")
+  }
+  // Both the original failure and the rollback failure are preserved.
+  assert_true(failure.primary is Physical(RetainedFile(_)))
+  assert_true(failure.rollback is Some(_))
+  assert_false(@strategy.captured_task_completed(captured, 1))
+  let observed = @native_host.native_standard_strategy_run_resident_observation(
+    owner,
+  )
+  assert_eq(observed.unconfirmed_environments, 1)
+  assert_eq(observed.imports, 1)
+  // The task's own reservation remains beside the environment's.
+  let ledger = @strategy.captured_dag_ledger(captured)
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes > 67108864L,
+  )
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    is Err(Closed),
+  )
+  // Destroying the database confirms the stop; retries never re-execute.
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_eq(@native_host.native_standard_strategy_run_task_count(owner), 1)
+  assert_false(@strategy.captured_task_completed(captured, 1))
+  assert_native_resident_ledger_released(captured)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "native resident unconfirmed commit keeps completed work and blocks reuse" {
+  guard native_resident_test_prerequisites() is Some((library, retained_root)) else {
+    return
+  }
+  let (captured, owner, issuer) = prepare_native_resident_run(
+    library, retained_root,
+  )
+  let first = @native_host.execute_next_native_standard_strategy_task(owner)
+    .unwrap()
+    .unwrap()
+  assert_eq(first.task, 1)
+  @native_host.fail_next_native_resident_transaction_end(owner, true)
+  guard @native_host.execute_next_native_standard_strategy_task(owner)
+    is Err(DuckDB(Execution(failure))) else {
+    fail("injected commit failure was not reported")
+  }
+  assert_true(failure.primary is Physical(Runtime(_)))
+  assert_true(failure.rollback is Some(_))
+  assert_true(@strategy.captured_task_completed(captured, 1))
+  assert_false(@strategy.captured_task_completed(captured, 2))
+  let observed = @native_host.native_standard_strategy_run_resident_observation(
+    owner,
+  )
+  assert_eq(observed.unconfirmed_environments, 1)
+  assert_eq(observed.imports, 1)
+  assert_true(
+    @native_host.execute_next_native_standard_strategy_task(owner)
+    is Err(Closed),
+  )
+  assert_true(@native_host.close_native_standard_strategy_run(owner).unwrap())
+  assert_eq(@native_host.native_standard_strategy_run_task_count(owner), 2)
   assert_native_resident_ledger_released(captured)
   @mock.close_mock_query_issuer(issuer)
 }
