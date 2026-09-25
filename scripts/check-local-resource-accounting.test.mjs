@@ -1916,7 +1916,7 @@ test('resource gate keeps assertion work proofs variant-specific', () => {
         },
       },
     };
-  }), /RelA assert_rows: selected_entrypoint needs both assertion resource variants/);
+  }), /RelA assert_rows: selected_entrypoint needs both resource variants/);
 });
 
 test('resource completion rejects every unassured operation', () => {
@@ -2669,5 +2669,5 @@ test('resource gate rejects assertions without ordinary bounded evidence', () =>
     const assertion = value.routes.find(entry => entry.family === 'RelA' &&
       entry.operation === 'assert_rows');
     delete assertion.resource_assurance.ordinary_entrypoint.variants.where;
-  }), /RelA assert_rows: ordinary_entrypoint needs both assertion resource variants/);
+  }), /RelA assert_rows: ordinary_entrypoint needs both resource variants/);
 });
