@@ -10,6 +10,12 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet} from './effect-run-apply.mjs';
+import {captureSalesforceSingleEffectWrite} from
+  './salesforce-effect-write.mjs';
+import {openSalesforceEffectSiteFixture} from
+  '../site-node/salesforce-effect-site.fixture.mjs';
+import * as salesforceMoon from
+  '../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -99,7 +105,8 @@ async function checkedFixture() {
 
 async function effectFixture({splitSource = false,
   splitEffectSource = 'consumer', writeKind = 'create',
-  memberIds = ['save']} = {}) {
+  memberIds = ['save'], target = 'connector://crm/account',
+  mappingRef = 'mapping:crm.account.v1', sourceIds} = {}) {
   const [documentBody, environmentBody] = await Promise.all([
     readFile(new URL('values.json', fixture), 'utf8'),
     readFile(new URL('values.environment.json', fixture), 'utf8'),
@@ -107,9 +114,9 @@ async function effectFixture({splitSource = false,
   const targetSchema = {
     additional_properties: false,
     fields: {
-      Id: {nullable: false, type: writeKind === 'create' ?
+      Id: {nullable: false, type: sourceIds || writeKind === 'create' ?
         'string' : 'number'},
-      Name: {nullable: true, type: 'number'},
+      Name: {nullable: true, type: sourceIds ? 'string' : 'number'},
     },
     nullable: false,
     type: 'object',
@@ -118,7 +125,7 @@ async function effectFixture({splitSource = false,
     connector_manifest_cid: cid('a'),
     conversions: [],
     mapping_contract_cid: '',
-    mapping_ref: 'mapping:crm.account.v1',
+    mapping_ref: mappingRef,
     minimum_approval: 'none',
     permission_rules: [{
       effect_kind: writeKind, permissions: ['scope:' + writeKind],
@@ -131,7 +138,7 @@ async function effectFixture({splitSource = false,
     resource_identity_cid: cid('b'),
     row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1',
-    target_ref: 'connector://crm/account',
+    target_ref: target,
     target_schema: targetSchema,
     target_schema_identity: `sha256:${createHash('sha256')
       .update(JSON.stringify(targetSchema)).digest('hex')}`,
@@ -160,10 +167,14 @@ async function effectFixture({splitSource = false,
   );
   assert.ok(environment);
   const document = JSON.parse(documentBody);
+  if (sourceIds) {
+    document.stages[0].steps[0].values.schema.id.type = 'string';
+    document.stages[0].steps[0].values.rows = sourceIds.map(id => ({id}));
+  }
   const write = writeKind === 'create'
-    ? {target: 'connector://crm/account', mapping: mapping.mapping_ref,
+    ? {target, mapping: mapping.mapping_ref,
       from: {result: 'rows'}}
-    : {target: 'connector://crm/account', mapping: mapping.mapping_ref,
+    : {target, mapping: mapping.mapping_ref,
       from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}};
   const effects = Object.fromEntries(memberIds.map(id =>
@@ -214,7 +225,9 @@ function effectInputPreview(prepared, evidence, definition, invocation,
   approvedValues = [], targetRows = approvedValues.map((_, index) =>
     index + 1), memberIds = ['save'],
   memberBoundaries = memberIds.map((_, index) => cid(String(index))),
-  scope) {
+  scope, {target = 'connector://crm/account',
+    mapping = 'mapping:crm.account.v1', resourceKind = 'Account',
+    footprints} = {}) {
   const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
   const authoring = {
     version: 'actql-authoring-context/0.1',
@@ -236,27 +249,31 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     model_invocation_evidence_cids: [], model_response_artifact_cids: [],
     effects: memberIds.map((effectId, memberIndex) => ({
       effect_id: effectId, effect_kind: writeKind,
-      target: 'connector://crm/account', mapping: 'mapping:crm.account.v1',
+      target, mapping,
       resolved_mapping_contract_cid: mappingCid,
       effect_identity_cid: cid(String(memberIndex + 1)),
       source_result: 'rows',
       result_artifact_cid: artifactCid, preview_strength: 'full_diff',
       source_binding_cid: cid('c'), capability_evidence_cid: cid('d'),
       authority_scope_cid: cid('e'),
-      write_footprint: {
+      write_footprint: footprints?.[memberIndex] ?? {
         kind: 'collection', resource_identity_scheme_cid: cid('f'),
         provider_namespace: 'salesforce',
         provider_boundary_cid: memberBoundaries[memberIndex],
-        resource_kind: 'Account', provider_object_identity_cids: [],
+        resource_kind: resourceKind, provider_object_identity_cids: [],
       },
       count: approvedValues.length, max_items: 2,
       required_permissions: ['write'],
       approval: 'none', on_item_failure: 'halt',
       changes: approvedValues.map((value, index) => ({
         target_row_identity: targetRows[index],
-        target_guard: {state: 'version', version_cid: cid('6')},
+        target_guard: writeKind === 'create'
+          ? {state: 'not_applicable'}
+          : {state: 'version', version_cid: cid('6')},
         intended_changes: {state: 'present', value: {Name: value}},
-        before: {state: 'present', value: {Name: 0}},
+        before: writeKind === 'create' ? {state: 'absent'}
+          : {state: 'present', value: {Name: typeof value === 'string'
+            ? 'before' : 0}},
         after: {state: 'present', value: {Name: value}},
         row_preview_cid: cid('1'), row_idempotency_key: cid('8'),
       })),
@@ -2023,11 +2040,19 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   }
 }
 
-test('two-member captured Effect Run publishes after all rows settle',
+for (const physical of ['simulated', 'salesforce']) {
+test(`two-member captured Effect Run publishes after all rows settle (${physical})`,
   async t => {
     const memberIds = ['save', 'save_again'];
+    const siteRun = physical === 'salesforce';
+    const sourceIds = siteRun
+      ? ['001000000000001', '001000000000002'] : undefined;
+    const target = siteRun ? 'connector://salesforce/Test_Record__c'
+      : 'connector://crm/account';
+    const mappingRef = siteRun ? 'mapping:salesforce.test-record.v1'
+      : 'mapping:crm.account.v1';
     const {document, environment, mappingCid} = await effectFixture({
-      writeKind: 'update', memberIds,
+      writeKind: 'update', memberIds, target, mappingRef, sourceIds,
     });
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
@@ -2140,13 +2165,63 @@ test('two-member captured Effect Run publishes after all rows settle',
         contractLimits: publicationLimits,
       });
       const effect = runtimeCore(moon).effectApplicationControl;
+      const sites = siteRun ? await Promise.all(memberIds.map((_, index) =>
+        openSalesforceEffectSiteFixture(t, {
+          commonMoon: moon, salesforceMoon,
+          runInvocationCid: runInvocation.identity,
+          dispatchRequestCid: cid('c'),
+          orgId: index === 0 ? '00D000000000001EAA'
+            : '00D000000000002EAA',
+        }))) : undefined;
+      const siteProjections = sites?.map(site => {
+        const binding = site.write.scope;
+        return checked(salesforceMoon.salesforcePrepareWriteProjection(
+          site.catalog.observation,
+          binding.tenant, binding.principal, binding.environment,
+          'connection-revision-a', site.orgId,
+          binding.siteKey, binding.siteGeneration,
+          binding.connectorRegistration, binding.connectorRevision,
+          binding.resourceOrigin, binding.runInvocationCid,
+          binding.dispatchRequestCid, 'catalog-sync-a',
+          'Test_Record__c', 1, '', ['Name'], 2));
+      });
+      const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
+        sourceIds.map(value => {
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          siteProjections[memberIndex],
+          Buffer.from(JSON.stringify({Name: value})),
+          1024, 32, 5));
+        return checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+          body, 'v62.0', 1, value, 0, 256, 128, 1024));
+      })) : undefined;
+      const siteBoundaries = siteRun ? sites.map((_, memberIndex) => checked(
+        salesforceMoon.salesforceSingleWriteRequestBoundaryCid(
+          siteRequests[memberIndex][0], 4096))) : undefined;
+      const siteFootprints = siteRun ? sites.map((_, memberIndex) => {
+        const targets = siteRequests[memberIndex].map(request => checked(
+          salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
+            request, 4096)));
+        return {kind: 'exact_targets',
+          resource_identity_scheme_cid:
+            salesforceMoon.salesforceWriteTargetSchemeCid(targets[0]),
+          provider_namespace: 'salesforce',
+          provider_boundary_cid: siteBoundaries[memberIndex],
+          resource_kind: 'Test_Record__c',
+          provider_object_identity_cids: targets.map(target =>
+            salesforceMoon.salesforceWriteTargetObjectCid(target))};
+      }) : undefined;
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
       const preview = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
-        sourcePayload.summary.artifact.identity, 'update',
-        [1, 2], [1, 2], memberIds, [cid('0'), cid('1')],
-        requestScope);
+        sourcePayload.summary.artifact.identity,
+        'update',
+        siteRun ? sourceIds : [1, 2], siteRun ? sourceIds
+          : [1, 2], memberIds,
+        siteRun ? siteBoundaries : [cid('0'), cid('1')],
+        requestScope, {target, mapping: mappingRef,
+          resourceKind: siteRun ? 'Test_Record__c' : 'Account',
+          footprints: siteFootprints});
       const authoringContext = control.admitRunEvidence(
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -2170,7 +2245,7 @@ test('two-member captured Effect Run publishes after all rows settle',
           preview.authoringCid,
           moon.clientProgramEffectPreviewInputLimits(
             20000, 1000, 20, 1000, 100, 20000, 1000, 20,
-            2, 2, 100, 100)));
+            2, siteRun ? 4 : 2, 100, 100)));
       const planLimits = {maxFields: 10, maxWork: 100,
         maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
         maxUtf16Units: 20000};
@@ -2253,8 +2328,12 @@ test('two-member captured Effect Run publishes after all rows settle',
             canonicalJson(change.target_row_identity), 64, 128, 8, 3);
           const path = `/effect/${member.effect_id}/${rowIndex}`;
           const requestWire = canonicalJson({path, row: change.row_preview_cid});
-          const canonicalRequestCid = `sha256:${createHash('sha256')
-            .update(requestWire).digest('hex')}`;
+          const request = siteRequests?.[memberIndex]?.[rowIndex];
+          const canonicalRequestCid = siteRun ? checked(
+            salesforceMoon.salesforceSingleWriteRequestCid(
+              request, sites[memberIndex].origin, 4096)) :
+            `sha256:${createHash('sha256')
+              .update(requestWire).digest('hex')}`;
           const basis = effect.ledgerBasis(
             requestScope, locator, key, cid('6'),
             member.effect_member_preview_cid, change.row_preview_cid,
@@ -2294,10 +2373,43 @@ test('two-member captured Effect Run publishes after all rows settle',
       };
       const applyOptions = {moon, capturedInputs: previewInputs,
         preflight, ledger, members, maxFrontierWork: 64};
+      if (siteRun) {
+        const usesBefore = sites.map(site => site.journal.recover().length);
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions,
+          preflight: {...preflight,
+            guardVersions: observedRows.map(() => cid('9'))},
+          dispatchRow: () => assert.fail('stale row dispatched'),
+        }), {code: 'MoonBitHostFailure'});
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+          usesBefore);
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length, 0);
+      }
       const applied = await applyCapturedEffectSet({
         ...applyOptions,
         dispatchRow: async ({memberIndex, rowIndex, claim}) => {
           sent.push([memberIndex, rowIndex]);
+          if (siteRun) {
+            const site = sites[memberIndex];
+            const received = await captureSalesforceSingleEffectWrite({
+              ledger, commonMoon: moon, admittedPreview: applyPreview,
+              memberIndex, rowIndex,
+              rowPreviewCid: body.effects[memberIndex]
+                .changes[rowIndex].row_preview_cid,
+              claim, moon: salesforceMoon,
+              request: siteRequests[memberIndex][rowIndex],
+              currentObservation: site.catalog.observation,
+              authorization: {...site.write,
+                useId: `write-${memberIndex}-${rowIndex}`},
+              credential: site.credential,
+              limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+                maxNodes: 32, maxDepth: 5},
+            });
+            assert.equal(received.claimed, true);
+            assert.equal(received.terminal.created, true);
+            return;
+          }
           const response = await captureClaimedEffectResponse({
             ledger, claim, requestCid: claim.canonicalRequestCid,
             execute: async () => ({observation: {useCid: cid('4'),
@@ -2317,6 +2429,17 @@ test('two-member captured Effect Run publishes after all rows settle',
         },
       });
       assert.equal(applied.dispatched, 4);
+      if (siteRun) {
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length,
+          4);
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+          [4, 4]);
+        assert.deepEqual(sites.map(site => site.seen
+          .filter(item => item.method === 'PATCH')
+          .map(item => JSON.parse(item.body).Name)),
+        [sourceIds, sourceIds]);
+      }
       for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
         assert.deepEqual(sent.filter(item => item[0] === memberIndex)
           .map(item => item[1]), [0, 1]);
@@ -2367,6 +2490,11 @@ test('two-member captured Effect Run publishes after all rows settle',
         .effect_set_apply_receipt_cid, issuedSet.set.identity);
       assert.equal(commitCalls, 1);
       assert.equal(sent.length, 4);
+      if (siteRun) {
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length,
+          4);
+      }
       await releaseCompletedRunPreparedPayloads(storedResults, control);
       assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
       inputs = undefined;
@@ -2380,7 +2508,8 @@ test('two-member captured Effect Run publishes after all rows settle',
         storedResults.definitions[0].identity, () => true,
         chunk => chunks.push(Buffer.from(chunk)));
       assert.equal(Buffer.concat(chunks).toString('utf8'),
-        JSON.stringify([{id: 1}, {id: 2}]));
+        JSON.stringify(siteRun ? sourceIds.map(id => ({id}))
+          : [{id: 1}, {id: 2}]));
       assert.equal((await store.retireCommittedResult(key,
         storedResults.definitions[0].identity)).deleted, true);
       assert.equal((await store.retireCommittedPublicationMetadata(
@@ -2401,6 +2530,7 @@ test('two-member captured Effect Run publishes after all rows settle',
     }
     assert.equal(published, true);
   });
+}
 
 test('two Effect members hold one completed Result independently', async () => {
   await verifySharedEffectSource({splitSource: false, expectedTask: 0});

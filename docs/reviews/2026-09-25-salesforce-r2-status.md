@@ -19,7 +19,7 @@ retained data. The same path must report partial failure and unknown honestly.
 | --- | --- |
 | The public Program/Client ingress still rejects nonempty Effects. Connect the checked Effect Program and captured input owner to whole-set Preview, current authority, target guards, overlap admission, and one apply permit before the first write. | A normal two-member Program reaches apply; stale or overlapping sets send zero local HTTPS requests and consume no write credential. |
 | The Host has durable row custody and a MoonBit frontier, but no standard multi-member caller drives its Salesforce Site operations from that admitted owner. Connect the captured rows to exact physical requests and retain each member's `halt` or `continue` progress across restart. | Both members have multiple rows; an independent member continues when the other halts, known rows are never resent, unknown remains unresolved without new evidence, and send counts and order match the durable ledger. |
-| Two-member, simulated-response publication works through the installed Host. Connect Salesforce Site row outcomes and authorized Result delivery through the ordinary Client Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
+| Two-member publication now joins credentialed local Salesforce Site writes to the installed Host. Connect the same owner and authorized Result delivery through the ordinary Client Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
 The Distribution owner owns the public Client ingress, attach/status,
@@ -106,10 +106,17 @@ whole-set preflight, four durable row Outcomes, member/set Receipts, final
 Receipt and formal Store commit. An injected loss of the Store commit reply
 reconciles the exact index without another Effect dispatch; Store reopen then
 reads the public Result and retirement reclaims all physical bytes. Its
-physical responses are simulated, not Salesforce HTTP, and its caller is
-still an installed Host fixture rather than public Client submit. It closes
-the multi-member publication composition gap but not SF-G1's product entry,
-Salesforce I/O, partial failure and full fault matrix.
+simulated-response case remains as a control. A second case now sends the
+same captured Program's four update rows through the credentialed Salesforce
+Site adapter and a local HTTPS resource. The two independent members use
+distinct admitted org boundaries: the common footprint check correctly
+rejects two unproven collection footprints within one org. This Site case
+checks stale guards before any write or credential use, exact request bodies,
+four durable row Outcomes, no resend after Ledger reopen, the final chain,
+Store read through a test authorization callback, and final physical
+reclamation. The local resource is not a live Salesforce org. The caller
+remains an installed Host fixture, not public Client submit or its authorization
+service, and the partial/unknown fault matrix is still open.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
@@ -130,7 +137,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
 | Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures | Connect every operation to the checked multi-member Program and prove preview freshness before any write. Real-org writes remain unauthorized and untested. |
 | Same-member Collections continue and provider-atomic command: `captureSalesforceCollectionEffectWrite` | Same suite: row order, partial outcome, shared response custody, rollback projection, target identity and operation authority | Prove standard Effect member semantics and response-loss recovery in one Run; validate actual provider limits and rollback behavior in the isolated org. No cross-member atomicity is claimed. |
-| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, four durable rows, final chain, lost index acknowledgement, authorized Store read and retirement, currently with simulated physical responses | Replace simulated responses with the Salesforce Site writer in that same captured owner, exercise halt/continue and unknown/restart, and install the public Client ingress with the Distribution owner. |
+| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, four credentialed local HTTPS Site writes and durable rows, final chain, lost index acknowledgement, Store read via test authorization callback and retirement; simulated response control remains | Exercise halt/continue and unknown/restart in this joined path, then install the public Client ingress and Result authorization with the Distribution owner. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
 write scope have not been supplied. No existing Smooth Cloud connection is
