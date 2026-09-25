@@ -1570,7 +1570,9 @@ intentional duplicate rows.
 `effect_identity_cid` binds the local Unit Definition CID and local Invocation,
 Effect ID, canonical Effect semantics, the exact Result Artifact
 CID when a Result is consumed, and the resolved Mapping or Command Contract
-CID. Physical Run identity is excluded. Recovery across workers or physical
+CID. Distinct Effect IDs in one Preview therefore require distinct Effect
+identities; admission rejects a repeated `effect_identity_cid` across members.
+Physical Run identity is excluded. Recovery across workers or physical
 attempts reuses logical request scope and the original ledger Preview/key.
 Create/store rows use only `{content_cid, occurrence}` as row identity;
 there is no second ordinal identity. Two conforming
