@@ -1,5 +1,82 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current delivery unit and acceptance boundary
+
+Assessed at `53b650f6959b565b6dabeb8d0d11be43c7545694` against the
+current product code and the historical Local work order and progress review.
+This section describes the current delivery unit, not the whole original
+RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
+order, nullable-label, finite-average, VecA empty-side admission, TEA window
+progress, mixed Carrier/Relation splitting, bounded selected row execution,
+and registered family composition are present in this HEAD; their historical
+review findings are not reopened solely because the strict resource gate is
+red. The performance-improvement branch is not part of this unit.
+
+### What the user can do when this unit is complete
+
+An ordinary family-enabled Program can combine agreed RelA, SGA, VecA, TEA,
+and formal Bridge operations in one or more Stages. The standard Host can
+select and run every supported long-lived route with bounded progress,
+deliver an in-flight cancellation after positive work, observe stop, and
+reclaim unpublished output and borrowed input responsibilities. Successful
+results can feed two real downstream Computes, be independently released,
+and use existing Effect-free Named Result publication where applicable.
+No admissible long-running route silently enters synchronous computation.
+The strict resource-completion gate and required same-SHA target/CI checks
+prove these properties; a normal gate result or an operation count does not.
+
+### Remaining product work and its acceptance tests
+
+The strict gate currently rejects 29 RelA whole-sequence entrypoints, six
+additional selected RelA paths, two same-Stage binary paths, thirteen SGA
+entrypoints, `merge_rankings`, two VecA row expressions, and the providerless
+synchronous computation. These are route/evidence gaps, not 53 claims of
+incorrect values. Multiple rows below share one implementation but retain
+separate input bindings and route-specific evidence.
+
+| Ordinary entry and current limitation | Required connection and proof |
+| --- | --- |
+| A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
+| Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `top_k`, `top_k_by`, `row_window`, `unpivot`, `json_pick`, and `unnest`. |
+| Same-Stage `append` and `cross_join` and the direct-product Host path have bounded subpaths but incomplete full-route assurance. | Prove ordered input positions, incremental product/append work and overlapping storage at exact/one-short limits; deliver a Host timer after cross-join work and verify both child input leases and final reclaim. |
+| Standard SGA Graph programs reach thirteen registered entrypoints with partial operation-specific examples but no complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
+| Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
+
+The current `--require-boundary-complete` output is the finite acceptance
+list. Its 23 full-route and 49 path-scoped counts describe evidence, not
+overall feature completion. For every row, the release gate must fail if a
+required named fixture, suite result, exact production binding, or proof
+role is removed. The existing standard-Host successful composition tests
+are retained as controls, not substituted for in-flight or limit evidence.
+
+### Dependencies and owners
+
+- Local owns the bounded kernel connections, exact route bindings, resource
+  fixtures, stop/cleanup behavior, family-enabled product composition, and
+  this strict gate. It reuses the already integrated Engine accounting and
+  execution-control primitives; it does not create a second scheduler or
+  ledger.
+- Distribution owns the ordinary public Client/Run acceptance test. Local
+  supplies representative Program fixtures and verifies its standard Host
+  path; it does not rebuild the Client or claim Distribution's external
+  result before that owner executes it.
+- Engine owns any indispensable shared execution-control or accounting API
+  change. No new shared API is currently established as necessary; if one
+  becomes unavoidable, one owner must implement it with affected callers
+  and regressions in a separate shared commit.
+- The final integrated SHA needs push authorization and a successful Linux
+  CI run. Neither is evidenced by this local HEAD; local target success
+  cannot be reported as Linux CI success.
+
+### Existing plan outside this delivery unit
+
+This unit adds no new author-visible operation, frontend, optimizer,
+provider family, SDK/Cloud implementation, or speculative abstraction. It
+does not merge the separate performance-improvement branch. Those exclusions
+do not shrink the original Local-family goal: all agreed operations and
+formal variants remain in the normative inventory, while this delivery unit
+closes their ordinary execution, cancellation, resource and lifecycle paths.
+
 Baseline: `0886df5ab75ff77edcd68291470f487346fc1cc4`.
 
 This is a live implementation ledger, not a completion claim. The machine
