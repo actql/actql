@@ -29,7 +29,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The product Salesforce Host operation now fills update/upsert Preview row facts from exact typed requests and target observations, and MoonBit seals the row, member, set and dispatch-key chain. The installed Host fixture reobserves every target before the common whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. The surrounding semantic Preview template and checked Plan values are still assembled by the fixture, not one general Host authoring operation. | Derive the complete template and mapped values from the captured input and checked Program through a production Host caller, then bind the exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
+| The product Salesforce Host operation now fills update/upsert Preview row facts from exact typed requests and target observations, and MoonBit seals the row, member, set and dispatch-key chain. The installed Host fixture reobserves every target before the common whole-set preflight. A changed target rejects the set with zero writes and zero write-credential uses. Update/upsert selector and change values now come from the checked Mapping applied during the same captured Result export that creates the private source Artifact. The surrounding semantic Preview template is still fixture-assembled; create's mapped values still follow a fixture path, so there is not yet one general Host authoring operation. | Derive the complete template and create values from the captured input and checked Program through a production Host caller, then bind the exact observed rows before MoonBit authoring. Reject missing, changed, or foreign observations before the first write without rebuilding an approved Preview. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -50,7 +50,13 @@ inventory and its typed before-value projection are product Site operations.
 The product Host row assembler now replaces update/upsert target, guard,
 before, after, and intended-change fields from one exact typed request and
 observation; it rejects an observation from another request. The fixture still
-provides the surrounding semantic template and mapped values. Row-to-set
+provides the surrounding semantic template. For update/upsert, the selected
+checked Mapping now projects each canonical row of the same bounded Result
+export used to seal the private Effect-source Artifact. A shared export may
+feed another member only when MoonBit confirms the same live producer and
+checked Result view; the separate member identities and later Plan proofs
+remain intact. Create mapping is not yet connected to this proposal path.
+Row-to-set
 identity and dispatch-key sealing uses one MoonBit product operation; complete
 semantic body assembly is not yet a general Host authoring operation.
 A Store restart after durable index commit leaves a commit-unknown owner
