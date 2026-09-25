@@ -72,6 +72,15 @@ allow an authorized read, and release its last private and public holdings.
 The Host/Site tests below provide the physical fault cases, but they do not
 substitute for this public-Client test.
 
+Distribution rebase and Cloud handoff: `actql-cloud` is a separate repository
+and must not be rebased onto OSS main. After the Distribution OSS branch is
+rebased and verified, rebuild the public OSS package from that exact verified
+SHA. Update the Cloud tarball digest, lockfile and provenance from the rebuilt
+artifact, not by changing a SHA string alone. Preserve Cloud-owned changes,
+then run Cloud type checking and the affected Run, Site and Store tests. Record
+the verified OSS and Cloud SHAs together with the consumed artifact digest;
+neither Cloud package consumption nor Cloud tests are claimed by this branch.
+
 Outside this completion unit, but still part of the original broader plan,
 are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
 other distribution modes and frontends, and the separately managed performance
