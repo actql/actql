@@ -12,14 +12,26 @@ const preparedEffectSourceOwners = new WeakMap();
  */
 export async function exportPinnedEffectInput({
   moon, execution, inputs, memberIndex, limits, onChunk,
-  onReceipt,
+  onReceipt, onCanonicalRow, canonicalRowLimits,
   signal, advanceQuantum = 256,
 }) {
   if (typeof onChunk !== 'function' ||
       (onReceipt !== undefined && typeof onReceipt !== 'function') ||
+      (onCanonicalRow !== undefined &&
+        (typeof onCanonicalRow !== 'function' ||
+          !Number.isSafeInteger(canonicalRowLimits?.maxNodes) ||
+          canonicalRowLimits.maxNodes < 1 ||
+          !Number.isSafeInteger(canonicalRowLimits?.maxDepth) ||
+          canonicalRowLimits.maxDepth < 1 ||
+          !Number.isSafeInteger(canonicalRowLimits?.maxUtf16Units) ||
+          canonicalRowLimits.maxUtf16Units < 0)) ||
       !Number.isSafeInteger(advanceQuantum) || advanceQuantum <= 0) {
     throw new TypeError('InvalidEffectInputExport');
   }
+  const rowLimits = onCanonicalRow === undefined ? undefined :
+    Object.freeze({maxNodes: canonicalRowLimits.maxNodes,
+      maxDepth: canonicalRowLimits.maxDepth,
+      maxUtf16Units: canonicalRowLimits.maxUtf16Units});
   signal?.throwIfAborted();
   const input = moon.clientProgramEffectInputAt(inputs, memberIndex);
   if (input === undefined) {
@@ -53,9 +65,18 @@ export async function exportPinnedEffectInput({
     stream = checked(moon.clientProgramEffectInputExportReady(preparation));
     for (;;) {
       signal?.throwIfAborted();
-      const chunk = checked(moon.clientProgramEffectInputExportNext(stream));
-      if (chunk === undefined) break;
-      await onChunk(chunk);
+      if (onCanonicalRow === undefined) {
+        const chunk = checked(moon.clientProgramEffectInputExportNext(stream));
+        if (chunk === undefined) break;
+        await onChunk(chunk);
+      } else {
+        const row = checked(moon.clientProgramEffectInputExportNextCanonicalRow(
+          stream, rowLimits.maxNodes, rowLimits.maxDepth,
+          rowLimits.maxUtf16Units));
+        if (row === undefined) break;
+        await onCanonicalRow(row._0, row._2);
+        await onChunk(row._1);
+      }
     }
     signal?.throwIfAborted();
     const finished = checked(moon.clientProgramEffectInputExportFinish(stream));
@@ -91,22 +112,90 @@ export async function exportPinnedEffectInput({
 export async function preparePinnedEffectSourcePayload({
   moon, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
+  onProposalRow, proposalMemberIndexes, proposalLimits,
 }) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof control?.issueEffectSourceArtifactFromExport !== 'function' ||
       typeof sourceBindingCid !== 'string' ||
+      (proposalMemberIndexes !== undefined &&
+        (onProposalRow === undefined ||
+          !Array.isArray(proposalMemberIndexes) ||
+          proposalMemberIndexes.length === 0 ||
+          new Set(proposalMemberIndexes).size !==
+            proposalMemberIndexes.length ||
+          proposalMemberIndexes.some(index =>
+            !Number.isSafeInteger(index) || index < 0))) ||
+      (onProposalRow !== undefined &&
+        (typeof onProposalRow !== 'function' ||
+          !['maxFields', 'maxWork', 'maxBytes', 'maxNodes', 'maxDepth',
+            'maxUtf16Units'].every(key =>
+            Number.isSafeInteger(proposalLimits?.[key]) &&
+            proposalLimits[key] >= 0) ||
+          proposalLimits.maxBytes === 0 ||
+          proposalLimits.maxNodes === 0 ||
+          proposalLimits.maxDepth === 0)) ||
       !Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidEffectSourceStore');
   }
+  const proposalBounds = onProposalRow === undefined ? undefined :
+    Object.freeze({maxFields: proposalLimits.maxFields,
+      maxWork: proposalLimits.maxWork, maxBytes: proposalLimits.maxBytes,
+      maxNodes: proposalLimits.maxNodes, maxDepth: proposalLimits.maxDepth,
+      maxUtf16Units: proposalLimits.maxUtf16Units});
+  const proposalMembers = onProposalRow === undefined ? undefined :
+    Object.freeze([...(proposalMemberIndexes ?? [memberIndex])]);
+  if (proposalMembers?.some(index =>
+    moon.clientProgramEffectInputsShareView(inputs, memberIndex, index) !==
+      true)) {
+    throw new TypeError('ForeignEffectProposalSource');
+  }
   signal?.throwIfAborted();
-  const writer = store.createPreparedObjectWriter(maxBytes);
+  const proposalPlans = [];
+  try {
+    for (const index of proposalMembers ?? []) {
+      proposalPlans.push(checked(moon.clientProgramEffectProposalBegin(
+        inputs, index, proposalBounds.maxFields, proposalBounds.maxWork)));
+    }
+  } catch (error) {
+    for (const plan of proposalPlans) {
+      moon.clientProgramEffectProposalCancel(plan);
+    }
+    throw error;
+  }
+  let writer;
+  try {
+    writer = store.createPreparedObjectWriter(maxBytes);
+  } catch (error) {
+    for (const plan of proposalPlans) {
+      moon.clientProgramEffectProposalCancel(plan);
+    }
+    throw error;
+  }
   let sealed;
   let byteCount = 0;
   const digest = createHash('sha256');
   try {
     const summary = await exportPinnedEffectInput({
       moon, execution, inputs, memberIndex, limits, signal,
+      ...(onProposalRow === undefined ? {} : {
+        canonicalRowLimits: {maxNodes: proposalBounds.maxNodes,
+          maxDepth: proposalBounds.maxDepth,
+          maxUtf16Units: proposalBounds.maxUtf16Units},
+        onCanonicalRow: async (index, row) => {
+          for (const [planIndex, proposalMemberIndex] of
+            proposalMembers.entries()) {
+            const projected = checked(moon.clientProgramEffectProposalRow(
+              proposalPlans[planIndex], row, index,
+              proposalBounds.maxFields, proposalBounds.maxWork,
+              proposalBounds.maxBytes, proposalBounds.maxNodes,
+              proposalBounds.maxDepth));
+            await onProposalRow(proposalMemberIndex, index,
+              Object.freeze({selectorWire: projected._0,
+                changesWire: projected._1}));
+          }
+        },
+      }),
       onReceipt: (input, receipt) =>
         control.issueEffectSourceArtifactFromExport(
           input, receipt, invocation, retention, sourceBindingCid,
@@ -124,6 +213,10 @@ export async function preparePinnedEffectSourcePayload({
         byteCount += bytes;
       },
     });
+    for (const plan of proposalPlans) {
+      checked(moon.clientProgramEffectProposalFinish(plan,
+        summary.rowCount));
+    }
     const physicalCid = `sha256:${digest.digest('hex')}`;
     sealed = await writer.seal(physicalCid);
     if (sealed.cid !== physicalCid || sealed.bytes !== byteCount) {
@@ -181,6 +274,10 @@ export async function preparePinnedEffectSourcePayload({
       throw error;
     }
     throw failure;
+  } finally {
+    for (const plan of proposalPlans) {
+      moon.clientProgramEffectProposalCancel(plan);
+    }
   }
 }
 

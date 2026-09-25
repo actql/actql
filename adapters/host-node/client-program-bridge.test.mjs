@@ -772,6 +772,22 @@ test('admitted source-free Effect Run computes through the installed Host',
           beforeSource.reservedBytes);
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
+        await assert.rejects(preparePinnedEffectSourcePayload({
+          moon, execution, inputs, memberIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          store, maxBytes: outputLimits.maxWireBytes,
+          control, invocation: invocationContract, retention,
+          sourceBindingCid: cid('c'), contractLimits: publicationLimits,
+          proposalLimits: {maxFields: 10, maxWork: 100,
+            maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
+            maxUtf16Units: 20000},
+          onProposalRow() { throw new Error('ProposalConsumerStopped'); },
+        }), {message: 'ProposalConsumerStopped'});
+        assert.equal(store.status().reservedBytes,
+          beforeSource.reservedBytes);
+        assert.equal(store.status().storedBytes,
+          beforeSource.storedBytes);
         let sourceWriters = 0;
         let holdingCommits = 0;
         const sourceStore = {
@@ -2073,12 +2089,16 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
       assert.ok(first);
       assert.ok(second);
       assert.notEqual(first, second);
+      assert.equal(moon.clientProgramEffectInputsShareView(inputs, 0, 1),
+        true);
       assert.equal(moon.clientProgramEffectInputTask(first), expectedTask);
       assert.equal(moon.clientProgramEffectInputTask(second), expectedTask);
       assert.equal(moon.clientProgramCloseEffectSourcePort(inputs, 0), true);
       assert.equal(moon.clientProgramReleaseEffectInput(first), true);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), false);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 1), true);
+      assert.equal(moon.clientProgramEffectInputsShareView(inputs, 0, 1),
+        false);
       const chunks = [];
       const limits = moon.clientProgramEffectInputExportLimits(
         ...effectInputExportArgs(outputLimits));
@@ -2269,6 +2289,7 @@ test(`two-member captured Effect Run ${
       });
       assert.equal(storedResults.results[0].occurrence.name, 'answer');
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+      const proposedRows = memberIds.map(() => []);
       sourcePayload = await preparePinnedEffectSourcePayload({
         moon, execution, inputs, memberIndex: 0,
         limits: moon.clientProgramEffectInputExportLimits(
@@ -2277,7 +2298,26 @@ test(`two-member captured Effect Run ${
         invocation: runInvocation, retention,
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
+        ...(siteRun && writeKind !== 'create' ? {
+          proposalMemberIndexes: [0, 1],
+          proposalLimits: {maxFields: 10, maxWork: 100,
+            maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
+            maxUtf16Units: 20000},
+          onProposalRow(memberIndex, rowIndex, proposal) {
+            assert.equal(rowIndex, proposedRows[memberIndex].length);
+            proposedRows[memberIndex].push(proposal);
+          },
+        } : {}),
       });
+      if (siteRun && writeKind !== 'create') {
+        for (const rows of proposedRows) {
+          assert.deepEqual(rows.map(row => JSON.parse(row.selectorWire)),
+            sourceIds);
+          assert.deepEqual(rows.map(row =>
+            JSON.parse(row.changesWire).value),
+          sourceIds.map(Name => ({Name})));
+        }
+      }
       const effect = runtimeCore(moon).effectApplicationControl;
       const sites = siteRun ? await Promise.all(memberIds.map((_, index) =>
         openSalesforceEffectSiteFixture(t, {
@@ -2311,11 +2351,13 @@ test(`two-member captured Effect Run ${
           site.setTargetName(`observed-before-${index}`));
       }
       const siteBodies = siteRun ? memberIds.map((_, memberIndex) =>
-        sourceIds.map(value => checked(
+        sourceIds.map((value, rowIndex) => checked(
           salesforceMoon.salesforcePrepareWriteBody(
           siteProjections[memberIndex],
           Buffer.from(JSON.stringify(writeKind === 'create' ?
-            {Name: value, External_Key__c: value} : {Name: value})),
+            {Name: value, External_Key__c: value} :
+            JSON.parse(proposedRows[memberIndex][rowIndex].changesWire)
+              .value)),
           1024, 32, 5)))) : undefined;
       const siteRequests = siteRun ? memberIds.map((_, memberIndex) =>
         sourceIds.map((value, rowIndex) => {
@@ -2323,7 +2365,8 @@ test(`two-member captured Effect Run ${
           siteBodies[memberIndex][rowIndex], 'v62.0',
           writeKind === 'upsert' ? 2 :
             writeKind === 'create' ? 0 : 1,
-          writeKind === 'create' ? '' : value, 0,
+          writeKind === 'create' ? '' :
+            JSON.parse(proposedRows[memberIndex][rowIndex].selectorWire), 0,
           256, 128, 1024));
       })) : undefined;
       const siteBoundaries = siteRun ? sites.map((_, memberIndex) => checked(
@@ -2370,8 +2413,12 @@ test(`two-member captured Effect Run ${
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
         writeKind,
-        siteRun ? sourceIds : [1, 2], siteRun ? sourceIds
-          : [1, 2], memberIds,
+        siteRun && writeKind !== 'create' ? proposedRows[0].map(row =>
+          JSON.parse(row.changesWire).value.Name) :
+          siteRun ? sourceIds : [1, 2],
+        siteRun && writeKind !== 'create' ? proposedRows[0].map(row =>
+          JSON.parse(row.selectorWire)) :
+          siteRun ? sourceIds : [1, 2], memberIds,
         siteRun ? siteBoundaries : [cid('0'), cid('1')],
         requestScope, {target, mapping: mappingRef,
           resourceKind: siteRun ? 'Test_Record__c' : 'Account',
