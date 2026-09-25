@@ -124,6 +124,14 @@ path has separate assurance in the route ledger; keyed and non-count
 aggregates remain in the synchronous category. This is one closed path,
 not completion of the `group` operation or the strict gate.
 
+The existing checked task splitter also recognizes a zero-key count-only
+group after a same-Stage `values` step. The ordinary Node Host fixture now
+runs `values -> global count -> take` as five managed tasks, including two
+real consumers, and delivers timer cancellation after the count starts.
+The split does not apply to keyed, filtered, distinct, or expression
+aggregates. This same-Stage connection is not yet whole-operation resource
+assurance for `group`.
+
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.
 The selected watermark route now has fixed and prefix quantum-one fixtures,

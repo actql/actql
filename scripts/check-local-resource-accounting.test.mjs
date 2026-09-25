@@ -83,6 +83,17 @@ test('global count assurance requires its bounded product path and proofs', () =
     group.environment_tests = group.environment_tests.filter(item =>
       item.role !== 'global_count_host_two_consumers');
   }), /RelA group: global_count_host_two_consumers fixture is missing/u);
+  for (const role of [
+    'global_count_same_stage_two_consumers',
+    'global_count_same_stage_timer',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const group = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'group');
+      group.environment_tests = group.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA group: ${role} fixture is missing`, 'u'));
+  }
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {

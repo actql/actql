@@ -757,6 +757,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'global_count_host_two_consumers',
       'global_count_host_timer',
+      'global_count_same_stage_two_consumers',
+      'global_count_same_stage_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

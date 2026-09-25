@@ -2118,6 +2118,21 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "global-count-in-flight"
+        },
+        {
+          "role": "global_count_same_stage_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage global count/take",
+          "case": "sameStageGlobalCountProgram"
+        },
+        {
+          "role": "global_count_same_stage_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage-global-count-in-flight"
         }
       ],
       "path_assurance": {
