@@ -117,6 +117,15 @@ nor replaces the private source Artifact. Product export consumes this API in
 `preparePinnedEffectSourcePayload`; a foreign preparation fails before the
 Store writer is created. Public Client ingress remains Distribution-owned.
 
+Shared follow-up commit `61e5cfffd` changes the Artifact issuer input from
+three caller-authored CID strings to the exact admitted Run, Run Definition,
+Run Invocation, and ObservationSet. `preparePinnedEffectSourcePayload` now
+forwards these opaque owners as `localEvidenceContext`; the common MoonBit
+issuer checks the captured Run Definition and derives the local scope, data
+policy, and capture authority. Distribution must retain these owners through
+the checked Effect preparation path and must not recreate the former raw-CID
+bridge or a separate Effect identity issuer.
+
 The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`
 must retain the handle from the callback installed by
