@@ -102,6 +102,8 @@ pub fn issue_prepared_effect_ledger_entry(EffectLedgerBasis, Int, Int, Int) -> R
 
 pub fn logical_item_locator_cid(LogicalItemLocator) -> String
 
+pub fn logical_request_scope_authority(@logical_request_scope.LogicalRequestScope) -> String
+
 pub fn logical_request_scope_cid(@logical_request_scope.LogicalRequestScope) -> String
 
 pub fn prepare_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[EffectApplyCapabilityObservation, EffectApplyCapabilityIssue]

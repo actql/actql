@@ -202,6 +202,8 @@ pub fn client_program_effect_proposal_finish(@physical_strategy.CapturedEffectPr
 
 pub fn client_program_effect_proposal_row(@physical_strategy.CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), @physical_strategy.CapturedEffectProposalIssue]
 
+pub fn client_program_effect_request_authority(@logical_request_scope.LogicalRequestScope) -> String
+
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.EffectRiskAcceptanceBody) -> String
