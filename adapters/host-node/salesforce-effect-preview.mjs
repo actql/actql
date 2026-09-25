@@ -23,6 +23,8 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
   maxWireBytes, maxNodes, maxDepth, planLimits}) {
   if (typeof control?.effectSourceArtifactPreviewBinding !== 'function' ||
       typeof control?.issueSourceFreeLocalEffectIdentity !== 'function' ||
+      typeof control?.checkSourceFreeLocalEffectPreviewIdentities !==
+        'function' ||
       inputs === undefined ||
       !context?.runDefinition || !context?.runInvocation ||
       !context?.compiledPlan ||
@@ -37,6 +39,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
       version: 'actql-authoring-context/0.1',
       program_definition_cid: definitionCid, annotations: [],
     }), maxWireBytes, maxNodes, maxDepth));
+  const issuedIdentities = [];
   const draft = {
     version: 'actql-effect-preview/0.1', sensitivity: 'private',
     retention_class: 'authority-evidence', encryption_required: true,
@@ -80,6 +83,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
       const identity = control.issueSourceFreeLocalEffectIdentity(
         prepared, inputs, descriptor._0, member.localResultArtifact,
         {maxWork: planLimits.maxWork, maxWireBytes, maxNodes, maxDepth});
+      issuedIdentities.push(identity);
       return {
         effect_id: descriptor._1, effect_kind: descriptor._2,
         target: descriptor._3, mapping: descriptor._4,
@@ -117,8 +121,11 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
     }),
     executed: false, effect_preview_cid: pendingCid,
   };
-  return checked(moon.clientProgramCanonicalEffectPreviewDraft(
-    JSON.stringify(draft), maxWireBytes, maxNodes, maxDepth));
+  return Object.freeze({
+    wire: checked(moon.clientProgramCanonicalEffectPreviewDraft(
+      JSON.stringify(draft), maxWireBytes, maxNodes, maxDepth)),
+    identities: Object.freeze(issuedIdentities),
+  });
 }
 
 // Only Salesforce's typed request and target observation determine a row's
@@ -151,10 +158,13 @@ export function authorObservedSalesforceEffectPreview({
   }
   const requestAuthority = moon.clientProgramEffectRequestAuthority(
     requestScope);
+  let issuedIdentities;
   if (templateWire === undefined) {
-    templateWire = productPreviewDraft({moon, control, prepared, inputs,
+    const productDraft = productPreviewDraft({moon, control, prepared, inputs,
       context, members,
       maxWireBytes, maxNodes, maxDepth, planLimits});
+    templateWire = productDraft.wire;
+    issuedIdentities = productDraft.identities;
   }
   let template;
   try {
@@ -316,6 +326,12 @@ export function authorObservedSalesforceEffectPreview({
     template.authoring_context?.authoring_context_cid,
     requestScope, maxWireBytes, maxNodes, maxDepth, members.length,
     rowCount, maxKeyBytes, maxKeyNodes, maxKeyDepth));
+  if (issuedIdentities !== undefined) {
+    control.checkSourceFreeLocalEffectPreviewIdentities(
+      prepared, inputs, authored._0, template.run_identity_cid,
+      template.authoring_context.authoring_context_cid, issuedIdentities,
+      {maxWireBytes, maxNodes, maxDepth});
+  }
   return Object.freeze({wire: authored._0,
     authoringCid: template.authoring_context.authoring_context_cid,
     keys: authored._1,

@@ -2657,9 +2657,18 @@ test(`two-member captured Effect Run ${
         authorityScopeCid: cid('e'), requiredPermissions: ['write'],
         maxItems: 2, approval: 'none', previewStrength: 'full_diff',
       })) : undefined;
+      const issuedLocalIdentities = [];
+      const issuingControl = siteRun ? {
+        ...control,
+        issueSourceFreeLocalEffectIdentity(...args) {
+          const identity = control.issueSourceFreeLocalEffectIdentity(...args);
+          issuedLocalIdentities.push(identity);
+          return identity;
+        },
+      } : control;
       const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, control, prepared, inputs,
+          moon, salesforceMoon, control: issuingControl, prepared, inputs,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
             storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
@@ -2671,6 +2680,23 @@ test(`two-member captured Effect Run ${
         }) : previewDraft;
       if (siteRun) {
         const issuedMembers = JSON.parse(preview.wire).effects;
+        assert.equal(issuedLocalIdentities.length, 2);
+        assert.doesNotThrow(() =>
+          control.checkSourceFreeLocalEffectPreviewIdentities(
+            prepared, inputs, preview.wire,
+            definition.identity, preview.authoringCid,
+            issuedLocalIdentities, publicationLimits));
+        assert.throws(() =>
+          control.checkSourceFreeLocalEffectPreviewIdentities(
+            prepared, inputs, preview.wire,
+            definition.identity, preview.authoringCid,
+            issuedLocalIdentities.slice(0, 1), publicationLimits));
+        assert.throws(() =>
+          control.checkSourceFreeLocalEffectPreviewIdentities(
+            prepared, inputs, preview.wire,
+            definition.identity, preview.authoringCid,
+            [{...issuedLocalIdentities[0]}, issuedLocalIdentities[1]],
+            publicationLimits), {name: 'TypeError'});
         assert.notEqual(issuedMembers[0].effect_identity_cid,
           issuedMembers[1].effect_identity_cid);
         assert.notEqual(issuedMembers[0].effect_identity_cid,
@@ -3655,6 +3681,13 @@ test(`two-member captured Effect Run ${
       }
       await releaseCompletedRunPreparedPayloads(storedResults, control);
       assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+      if (siteRun) {
+        assert.throws(() =>
+          control.checkSourceFreeLocalEffectPreviewIdentities(
+            prepared, inputs, preview.wire, definition.identity,
+            preview.authoringCid, issuedLocalIdentities,
+            publicationLimits));
+      }
       inputs = undefined;
       ledger.close();
       ledger = undefined;
