@@ -39,6 +39,7 @@ const allowed = path => path.startsWith('src/connectors/reference_compute/') ||
 // It is a separate conformance composition, not part of the two-connector
 // product baseline. Keep the Local-only Workers assembly in that baseline.
 const omitted = new Set(['connectors_builtin', 'connectors_builtin_node',
+  'connectors_builtin_node_rela',
   'query_integration', 'connector_conformance',
   'workers_conformance', 'node_host_conformance', 'connectors_workers_async', 'connectors_workers_async_bridge']);
 cpSync(join(root, 'moon.mod'), join(isolated, 'moon.mod'));
