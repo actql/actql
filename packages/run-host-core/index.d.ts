@@ -179,6 +179,12 @@ export function privateRunDefinition(definition: RunDefinition): Readonly<{
   wire: string;
   cid: string;
 }>;
+/** Project the owner's unpublished Run state from retained physical facts. */
+export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, observedAt: string,
+  dispatchReserved: boolean,
+  preDispatchFailureConfirmed: boolean): string;
 export function admitRunDefinition(wire: string): RunDefinition;
 /** Re-admit the same checked source-free Run without changing its input set. */
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,

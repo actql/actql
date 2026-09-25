@@ -81,6 +81,8 @@ pub fn client_values_host_issue_source_free_invocation(@run_publication_host.Cli
 
 pub fn client_values_host_issue_source_free_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostSourceFreeDefinitionIssue]
 
+pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool) -> String?
+
 pub fn client_values_host_output_contract_cid(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_values_host_plan_node_id(@run_publication_host.ClientValuesCompilation) -> String

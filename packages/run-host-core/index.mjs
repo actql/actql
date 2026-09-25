@@ -314,6 +314,32 @@ export function privateRunDefinition(definition) {
   });
 }
 
+// The caller must retain the checked admission and the current physical
+// observation. A state wire is a projection, never Run or read authority.
+export function issueUnpublishedRunStateWire(prepared, compilation,
+  admission, definition, observedAt, dispatchReserved,
+  preDispatchFailureConfirmed) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof observedAt !== 'string' ||
+      typeof dispatchReserved !== 'boolean' ||
+      typeof preDispatchFailureConfirmed !== 'boolean') {
+    throw new TypeError('InvalidRunHostStateObservation');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const wire = owner.clientValuesHostIssueUnpublishedRunStateWire(
+    requireHandle(definitions, definition), compiled.value, observedAt,
+    dispatchReserved, preDispatchFailureConfirmed);
+  if (typeof wire !== 'string') {
+    throw Object.assign(new Error('RunHostStateProjectionRejected'),
+      {code: 'RunHostStateProjectionRejected'});
+  }
+  return wire;
+}
+
 export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),

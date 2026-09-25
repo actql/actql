@@ -905,6 +905,33 @@ pub fn client_values_host_check_run_binding(
 }
 
 ///|
+/// Project an accepted, unpublished Effect-free Run from the common state
+/// owner. The Host supplies durable dispatch observations after restoring the
+/// checked Run binding; this operation neither dispatches nor reads payload.
+#export_name("clientValuesHostIssueUnpublishedRunStateWire")
+pub fn client_values_host_issue_unpublished_run_state_wire(
+  definition : @publication.PublicationContract,
+  compilation : @host.ClientValuesCompilation,
+  observed_at : String,
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+) -> String? {
+  let run_id = match @publication.run_definition_run_id(definition) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let names = @host.client_values_compilation_result_names(compilation)
+  match
+    @publication.issue_effect_free_unpublished_run_state_wire(
+      run_id, observed_at, names, dispatch_reserved, pre_dispatch_failure_confirmed,
+      100000, 10000, 64,
+    ) {
+    Ok(wire) => Some(wire)
+    Err(_) => None
+  }
+}
+
+///|
 pub(all) enum ClientValuesHostDispatchIssue {
   Binding(@host.ClientValuesRunBindingIssue)
   Dispatch(@host.ClientValuesDispatchIssue)

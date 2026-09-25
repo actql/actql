@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {validRunState} from '../client-wire/index.mjs';
 import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
@@ -26,6 +27,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   executionShape,
   resultDefinitions, resultSchema,
   issueSourceFreeInvocation,
+  issueUnpublishedRunStateWire,
   prepareRunStart,
   prepareSourceFreeRequest,
   privateCompilationWires, compiledPlanCid,
@@ -731,6 +733,40 @@ test('checked Run issues one source-free Site dispatch identity', () => {
   assert.throws(() => issueSourceFreeDispatch(prepared, compilation,
     admission, foreignDefinition, request, selection),
   {code: 'RunHostDispatchRejected'});
+});
+
+test('accepted unpublished Run state uses the common owner', () => {
+  const environment = admitEnvironment(environmentWire, evidenceCid,
+    {rela: true});
+  const prepared = prepare(read('values.json'), 'json', environment);
+  const compilation = compileValues(prepared);
+  const admission = issueAllowedRun(prepared, compilation, {
+    executionContextCid: `sha256:${'b'.repeat(64)}`,
+    hostPolicyCid: `sha256:${'c'.repeat(64)}`,
+    expiresAt: '2099-01-01T00:00:00.000Z',
+  }).admission;
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    admission, 'site-scope', 'state-run', '2026-09-25T00:00:00.000Z',
+    '2027-01-01T00:00:00.000Z');
+  const at = '2026-09-25T00:00:01.000Z';
+  const projection = (reserved, failed) => JSON.parse(
+    issueUnpublishedRunStateWire(prepared, compilation, admission,
+      definition, at, reserved, failed));
+  const preparing = projection(false, false);
+  assert(validRunState(preparing));
+  assert.equal(preparing.run_id, 'state-run');
+  assert.equal(preparing.status, 'preparing');
+  assert.equal(preparing.result_availability.answer.reason, 'not_published');
+  assert.equal(projection(true, false).status, 'running');
+  assert.equal(projection(true, true).status, 'failed');
+  assert.throws(() => projection(false, true),
+    {code: 'RunHostStateProjectionRejected'});
+  assert.throws(() => issueUnpublishedRunStateWire(prepared, compilation,
+    admission, definition, 'invalid', false, false),
+  {code: 'RunHostStateProjectionRejected'});
+  assert.throws(() => issueUnpublishedRunStateWire(prepared, compilation,
+    admission, {}, at, false, false),
+  {name: 'TypeError', message: 'ForeignRunHostHandle'});
 });
 
 test('unresolved starting input cannot use the empty captured set', () => {
