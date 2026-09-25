@@ -263,6 +263,22 @@ pub fn finish_completed_result_relation_export_preparation(
 }
 
 ///|
+/// A completed receipt may be used as evidence for this checked preparation
+/// only when it came from the exact export stream owned by that preparation.
+pub fn completed_result_export_preparation_matches_receipt(
+  value : CompletedResultRelationExportPreparation,
+  receipt : CompletedRelationExportReceipt,
+) -> Bool {
+  guard value.closed &&
+    value.stream is Some(stream) &&
+    receipt.rows.source is Some(source) else {
+    return false
+  }
+  completed_output_available(source) &&
+  physical_equal(stream.export_identity, receipt.rows.export_identity)
+}
+
+///|
 fn prepare_completed_export(
   source : CompletedOutput,
   result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,

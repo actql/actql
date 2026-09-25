@@ -96,13 +96,37 @@ pub fn validate_result_occurrence_ordering_evidence(
   if definition.name != "result_definition" {
     return Err(WrongDefinition)
   }
+  validate_result_occurrence_ordering_for_producer(
+    definition.identity,
+    derivation,
+    ordering,
+    logical_value_cid,
+    result_schema_cid,
+    effective_data_policy_cid,
+  )
+}
+
+///|
+/// Check the acquisition witnesses against an exact local producer CID.
+/// Resolving that CID to a checked local Definition remains the caller's
+/// separate obligation.
+pub fn validate_result_occurrence_ordering_for_producer(
+  producer : String,
+  derivation : PublicationContract,
+  ordering : PublicationContract,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  effective_data_policy_cid : String,
+) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue] {
+  if !valid_cid(producer) {
+    return Err(WrongDefinition)
+  }
   if derivation.name != "derivation_evidence" {
     return Err(WrongDerivation)
   }
   if ordering.name != "ordering_evidence" {
     return Err(WrongOrdering)
   }
-  let producer = definition.identity
   if contract_string(derivation, "producer_contract_cid") != Some(producer) ||
     contract_string(ordering, "producer_contract_cid") != Some(producer) {
     return Err(ProducerMismatch)
@@ -194,17 +218,38 @@ pub fn validate_result_artifact_evidence(
   evidence : ResultOrderingEvidence,
   retention : PublicationContract,
 ) -> Result[Unit, ResultArtifactEvidenceIssue] {
+  if definition.name != "result_definition" {
+    return Err(ArtifactDefinitionMismatch)
+  }
+  validate_result_artifact_for_producer(
+    definition.identity,
+    artifact,
+    evidence,
+    retention,
+  )
+}
+
+///|
+fn validate_result_artifact_for_producer(
+  producer_cid : String,
+  artifact : PublicationContract,
+  evidence : ResultOrderingEvidence,
+  retention : PublicationContract,
+) -> Result[Unit, ResultArtifactEvidenceIssue] {
   if artifact.name != "result_artifact" {
     return Err(ArtifactWrongContract)
   }
-  if definition.name != "result_definition" {
+  if !valid_cid(producer_cid) {
     return Err(ArtifactDefinitionMismatch)
   }
   if retention.name != "result_retention_policy" {
     return Err(ArtifactRetentionMismatch)
   }
-  if contract_string(artifact, "result_definition_cid") !=
-    Some(definition.identity) {
+  if contract_string(artifact, "result_definition_cid") != Some(producer_cid) ||
+    contract_string(evidence.derivation, "producer_contract_cid") !=
+    Some(producer_cid) ||
+    contract_string(evidence.ordering, "producer_contract_cid") !=
+    Some(producer_cid) {
     return Err(ArtifactDefinitionMismatch)
   }
   if contract_string(artifact, "logical_result_cid") !=
@@ -298,6 +343,54 @@ pub fn issue_complete_result_artifact(
     retention.name != "result_retention_policy" {
     return Err(ArtifactIssuanceWrongContract)
   }
+  issue_complete_artifact_for_producer(
+    definition.identity,
+    invocation.identity,
+    evidence,
+    retention,
+    actual_row_count,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Issue the shared Artifact wire shape for a local semantic Result. Its two
+/// identities must be resolved to checked local Definition and Invocation
+/// owners before this value is accepted into a Stage inventory.
+pub fn issue_complete_local_result_artifact(
+  local_definition_cid : String,
+  local_invocation_cid : String,
+  evidence : ResultOrderingEvidence,
+  retention : PublicationContract,
+  actual_row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, ResultArtifactIssuanceIssue] {
+  if !valid_cid(local_definition_cid) ||
+    !valid_cid(local_invocation_cid) ||
+    retention.name != "result_retention_policy" {
+    return Err(ArtifactIssuanceWrongContract)
+  }
+  issue_complete_artifact_for_producer(
+    local_definition_cid, local_invocation_cid, evidence, retention, actual_row_count,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_complete_artifact_for_producer(
+  producer_cid : String,
+  invocation_cid : String,
+  evidence : ResultOrderingEvidence,
+  retention : PublicationContract,
+  actual_row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, ResultArtifactIssuanceIssue] {
   if actual_row_count < 0 {
     return Err(ArtifactIssuanceInvalidRows)
   }
@@ -311,8 +404,8 @@ pub fn issue_complete_result_artifact(
     _ => return Err(ArtifactIssuanceEncoding)
   }
   emit_complete_result_artifact_body(
-    definition.identity,
-    invocation.identity,
+    producer_cid,
+    invocation_cid,
     logical,
     schema,
     evidence.ordering.identity,
@@ -335,7 +428,9 @@ pub fn issue_complete_result_artifact(
     Err(issue) => return Err(ArtifactIssuanceContract(issue))
   }
   match
-    validate_result_artifact_evidence(definition, artifact, evidence, retention) {
+    validate_result_artifact_for_producer(
+      producer_cid, artifact, evidence, retention,
+    ) {
     Ok(_) => Ok(artifact)
     Err(issue) => Err(ArtifactIssuanceEvidence(issue))
   }

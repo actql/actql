@@ -128,6 +128,65 @@ pub fn issue_result_occurrence_evidence(
   if definition.name != "result_definition" {
     return Err(IssuanceWrongDefinition)
   }
+  issue_occurrence_evidence_for_producer(
+    definition.identity,
+    logical_value_cid,
+    result_schema_cid,
+    computation_contract_cid,
+    input_relation_cids,
+    scope_cid,
+    effective_data_policy_cid,
+    issuer_id,
+    authority_scope_cid,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Build evidence for a checked local Result producer. The caller must retain
+/// its typed local Definition and resolve the returned references in the
+/// local Stage registry; a producer CID alone is not execution evidence.
+pub fn issue_local_result_occurrence_evidence(
+  local_definition_cid : String,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  issuer_id : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue] {
+  if !valid_cid(local_definition_cid) {
+    return Err(IssuanceInvalidIdentity)
+  }
+  issue_occurrence_evidence_for_producer(
+    local_definition_cid, logical_value_cid, result_schema_cid, computation_contract_cid,
+    input_relation_cids, scope_cid, effective_data_policy_cid, issuer_id, authority_scope_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_occurrence_evidence_for_producer(
+  producer_cid : String,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  issuer_id : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue] {
   if issuer_id.is_empty() {
     return Err(IssuanceEmptyIssuer)
   }
@@ -148,15 +207,8 @@ pub fn issue_result_occurrence_evidence(
     _ => return Err(IssuanceEncoding)
   }
   emit_derivation_evidence_body(
-    definition.identity,
-    logical_value_cid,
-    result_schema_cid,
-    computation_contract_cid,
-    inputs,
-    scope_cid,
-    effective_data_policy_cid,
-    issuer_id,
-    authority_scope_cid,
+    producer_cid, logical_value_cid, result_schema_cid, computation_contract_cid,
+    inputs, scope_cid, effective_data_policy_cid, issuer_id, authority_scope_cid,
     derivation_writer,
   ) catch {
     _ => return Err(IssuanceEncoding)
@@ -175,7 +227,7 @@ pub fn issue_result_occurrence_evidence(
     _ => return Err(IssuanceEncoding)
   }
   emit_ordering_evidence_body(
-    definition.identity,
+    producer_cid,
     derivation.identity,
     ordering_writer,
   ) catch {
@@ -192,8 +244,8 @@ pub fn issue_result_occurrence_evidence(
     Err(issue) => return Err(IssuanceContract(issue))
   }
   match
-    validate_result_occurrence_ordering_evidence(
-      definition, derivation, ordering, logical_value_cid, result_schema_cid, effective_data_policy_cid,
+    validate_result_occurrence_ordering_for_producer(
+      producer_cid, derivation, ordering, logical_value_cid, result_schema_cid, effective_data_policy_cid,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(IssuanceEvidence(issue))

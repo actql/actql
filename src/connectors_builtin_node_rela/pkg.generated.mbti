@@ -213,6 +213,8 @@ pub fn client_program_effect_source_artifact_preview_binding(@run_publication.Pu
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_issue_captured_effect_input_local_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
+
 pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
@@ -237,6 +239,8 @@ pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedCl
 
 pub fn client_program_issue_source_free_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
+pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
 pub fn client_program_local_aoa_steps(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskAoAStepsIssue]
 
 pub fn client_program_local_effect_host_run(ClientLocalEffectHost) -> @physical_strategy.CapturedEffectRunDAG
@@ -247,9 +251,17 @@ pub fn client_program_local_effect_invocation_cid(@run_publication_host.ClientEf
 
 pub fn client_program_local_effect_invocation_json(@run_publication_host.ClientEffectLocalInvocation) -> String
 
+pub fn client_program_local_effect_result_artifact_cid(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_artifact_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
 pub fn client_program_local_effect_result_definition_cid(@run_publication_host.ClientEffectLocalResultDefinition) -> String
 
 pub fn client_program_local_effect_result_definition_json(@run_publication_host.ClientEffectLocalResultDefinition) -> String
+
+pub fn client_program_local_effect_result_derivation_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_ordering_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
 
 pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 
@@ -1609,6 +1621,11 @@ pub(all) suberror NodeHostFailure {
 }
 
 // Types and methods
+pub(all) enum ClientEffectLocalArtifactBridgeIssue {
+  ForeignExport
+  Issuance(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+} derive(Eq, @debug.Debug)
+
 type ClientEffectManagedInputImport
 
 pub(all) enum ClientEffectManagedInputIssue {

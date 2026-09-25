@@ -56,17 +56,29 @@ pub fn client_direct_result_root_row_contract_cid(ClientDirectResultRoot) -> Str
 
 pub fn client_direct_result_root_wire(ClientDirectResultRoot) -> String
 
+pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
+
+pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
+
 pub fn client_effect_local_invocation_cid(ClientEffectLocalInvocation) -> String
 
 pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> String
 
 pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
 
+pub fn client_effect_local_result_artifact_cid(ClientEffectLocalResultArtifact) -> String
+
+pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact) -> String
+
 pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
 
 pub fn client_effect_local_result_definition_json(ClientEffectLocalResultDefinition) -> String
 
 pub fn client_effect_local_result_definition_matches(ClientEffectLocalResultDefinition, PreparedClientEffectComputation, Int, String) -> Bool
+
+pub fn client_effect_local_result_derivation_json(ClientEffectLocalResultArtifact) -> String
+
+pub fn client_effect_local_result_ordering_json(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
 
@@ -166,7 +178,11 @@ pub fn issue_prepared_client_values_fragment(PreparedClientProgram, Int, @loweri
 
 pub fn issue_prepared_client_values_output_schema(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[@execution_relation.RelationSchemaIdentity, ClientValuesOutputSchemaIssue]
 
+pub fn issue_source_free_captured_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+
 pub fn issue_source_free_client_effect_local_invocation(PreparedClientEffectComputation, Int, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+
+pub fn issue_source_free_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, String, String, String, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
@@ -275,7 +291,20 @@ type ClientEffectLocalInvocation
 pub(all) enum ClientEffectLocalInvocationIssue {
   MissingUnit
   NotSourceFree
+  ForeignCapturedInput
+  MissingCapturedInput
   Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientEffectLocalResultArtifact
+
+pub(all) enum ClientEffectLocalResultArtifactIssue {
+  ForeignOwner
+  MissingInput
+  ForeignDefinition
+  ForeignInvocation
+  Evidence(@run_publication.ResultEvidenceIssuanceIssue)
+  Artifact(@run_publication.ResultArtifactIssuanceIssue)
 } derive(Eq, @debug.Debug)
 
 type ClientEffectLocalResultDefinition

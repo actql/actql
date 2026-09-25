@@ -180,3 +180,76 @@ test "complete Result Artifact is issued from bound evidence contracts" {
     is Err(ArtifactIssuancePolicyMismatch),
   )
 }
+
+///|
+test "local Result Artifact keeps local producer and Invocation separate" {
+  let local_definition = ordering_test_cid("1")
+  let local_invocation = ordering_test_cid("2")
+  let policy = ordering_test_cid("8")
+  let evidence = issue_local_result_occurrence_evidence(
+    local_definition,
+    ordering_test_cid("3"),
+    ordering_test_cid("4"),
+    ordering_test_cid("5"),
+    [],
+    ordering_test_cid("6"),
+    policy,
+    "common-host",
+    ordering_test_cid("7"),
+    8192,
+    64,
+    5,
+  ).unwrap()
+  let retention = seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    ordering_test_cid("9") +
+    "\",\"effective_data_policy_cid\":\"" +
+    policy +
+    "\",\"available_until\":\"2026-09-18T01:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    ordering_test_cid("a") +
+    "\",\"metadata_delete_by\":\"2026-09-18T04:00:00.000Z\"," +
+    "\"clock_contract_cid\":\"" +
+    ordering_test_cid("b") +
+    "\"}",
+    8192,
+    64,
+    5,
+  ).unwrap()
+  let artifact = issue_complete_local_result_artifact(
+    local_definition, local_invocation, evidence, retention, 3, 16384, 128, 5,
+  ).unwrap()
+  let wire = publication_contract_json(artifact)
+  assert_true(
+    wire.contains("\"result_definition_cid\":\"" + local_definition + "\""),
+  )
+  assert_true(wire.contains("\"invocation_cid\":\"" + local_invocation + "\""))
+  assert_true(
+    issue_complete_local_result_artifact(
+      ordering_test_cid("c"),
+      local_invocation,
+      evidence,
+      retention,
+      3,
+      16384,
+      128,
+      5,
+    )
+    is Err(ArtifactIssuanceEvidence(ArtifactDefinitionMismatch)),
+  )
+  assert_true(
+    validate_result_occurrence_ordering_evidence(
+      ordering_test_definition(),
+      result_ordering_derivation_contract(evidence),
+      result_ordering_evidence_contract(evidence),
+      ordering_test_cid("3"),
+      ordering_test_cid("4"),
+      policy,
+    )
+    is Err(ProducerMismatch),
+  )
+}

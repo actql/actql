@@ -2,6 +2,8 @@
 pub(all) enum ClientEffectLocalInvocationIssue {
   MissingUnit
   NotSourceFree
+  ForeignCapturedInput
+  MissingCapturedInput
   Encoding
 } derive(Eq, Debug)
 
@@ -105,6 +107,31 @@ pub fn issue_source_free_client_effect_local_invocation(
   }
   let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
   Ok({ owner, unit, unit_definition_cid, cid, wire, })
+}
+
+///|
+/// Resolve the Unit coordinate from the live checked Effect source pin.
+pub fn issue_source_free_captured_client_effect_local_invocation(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
+  if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
+    return Err(ForeignCapturedInput)
+  }
+  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+    return Err(MissingCapturedInput)
+  }
+  issue_source_free_client_effect_local_invocation(
+    owner,
+    @strategy.captured_effect_input_stage(input),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
 }
 
 ///|

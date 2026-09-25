@@ -419,6 +419,24 @@ pub fn client_program_issue_source_free_local_effect_invocation(
 }
 
 ///|
+#export_name("clientProgramIssueCapturedEffectInputLocalInvocation")
+pub fn client_program_issue_captured_effect_input_local_invocation(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  @publication_host.issue_source_free_captured_client_effect_local_invocation(
+    owner, inputs, member_index, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramLocalEffectInvocationCid")
 pub fn client_program_local_effect_invocation_cid(
   value : @publication_host.ClientEffectLocalInvocation,
@@ -488,6 +506,81 @@ pub fn client_program_local_effect_result_definition_json(
   value : @publication_host.ClientEffectLocalResultDefinition,
 ) -> String {
   @publication_host.client_effect_local_result_definition_json(value)
+}
+
+///|
+/// The checked source-free Unit, captured Result, and export receipt must
+/// remain paired. This does not grant publication or Effect mutation.
+pub(all) enum ClientEffectLocalArtifactBridgeIssue {
+  ForeignExport
+  Issuance(@publication_host.ClientEffectLocalResultArtifactIssue)
+} derive(Eq, Debug)
+
+///|
+#export_name("clientProgramIssueSourceFreeLocalEffectResultArtifact")
+pub fn client_program_issue_source_free_local_effect_result_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  ClientEffectLocalArtifactBridgeIssue,
+] {
+  guard importing.preparation is Some(preparation) &&
+    @execution.completed_result_export_preparation_matches_receipt(
+      preparation, receipt,
+    ) &&
+    @strategy.captured_effect_input_at(inputs, member_index) is Some(input) &&
+    physical_equal(importing.input, input) else {
+    return Err(ForeignExport)
+  }
+  @publication_host.issue_source_free_client_effect_local_result_artifact(
+    owner, inputs, member_index, definition, invocation, receipt, retention, scope_cid,
+    effective_data_policy_cid, authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
+  ).map_err(issue => Issuance(issue))
+}
+
+///|
+#export_name("clientProgramLocalEffectResultArtifactCid")
+pub fn client_program_local_effect_result_artifact_cid(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_artifact_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultArtifactJson")
+pub fn client_program_local_effect_result_artifact_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_artifact_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDerivationJson")
+pub fn client_program_local_effect_result_derivation_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_derivation_json(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultOrderingJson")
+pub fn client_program_local_effect_result_ordering_json(
+  value : @publication_host.ClientEffectLocalResultArtifact,
+) -> String {
+  @publication_host.client_effect_local_result_ordering_json(value)
 }
 
 ///|
@@ -2475,6 +2568,7 @@ struct ClientEffectManagedInputImport {
   output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
   limits : @publication_host.PublicationOutputExportLimits
+  mut preparation : @execution.CompletedResultRelationExportPreparation?
   mut open : Bool
 }
 
@@ -2551,7 +2645,7 @@ pub fn client_program_effect_managed_input_begin(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  Ok({ input, output, bridge, limits, open: true, })
+  Ok({ input, output, bridge, limits, preparation: None, open: true, })
 }
 
 ///|
@@ -2615,7 +2709,10 @@ pub fn client_program_effect_managed_input_finish(
       value.limits.schema,
       value.limits.max_batch_bytes,
     ) {
-    Ok(value) => Ok(value)
+    Ok(preparation) => {
+      value.preparation = Some(preparation)
+      Ok(preparation)
+    }
     Err(issue) => {
       @execution.close_managed_publication_bridge(value.bridge)
       Err(Export(issue))
@@ -2629,6 +2726,7 @@ pub fn client_program_effect_managed_input_cancel(
   value : ClientEffectManagedInputImport,
 ) -> Unit {
   value.open = false
+  value.preparation = None
   @execution.close_managed_publication_bridge(value.bridge)
 }
 

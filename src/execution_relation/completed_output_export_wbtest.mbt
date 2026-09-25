@@ -410,7 +410,41 @@ test "Named Result view preparation advances and cancels in bounded steps" {
     logical_relation_cid(completed_relation_export_identity(receipt)),
     "sha256:f690ca53202a4e4fd0736d14fb759522c904e416982f72d2dbbdbb7a63332fbb",
   )
+  assert_true(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
+  let other = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    64,
+  ).unwrap()
+  while true {
+    let (complete, _) = advance_completed_result_relation_export(other, 64).unwrap()
+    if complete {
+      break
+    }
+  }
+  let other_stream = finish_completed_result_relation_export_preparation(other).unwrap()
+  while next_completed_output_export(other_stream).unwrap() is Some(_) {
+
+  }
+  let (other_receipt, _) = finish_completed_relation_export(other_stream).unwrap()
+  assert_false(
+    completed_result_export_preparation_matches_receipt(
+      preparation, other_receipt,
+    ),
+  )
+  cancel_completed_relation_export_receipt(other_receipt)
   cancel_completed_relation_export_receipt(receipt)
+  assert_false(
+    completed_result_export_preparation_matches_receipt(preparation, receipt),
+  )
 
   let cancelled = start_completed_result_relation_export(
     source,

@@ -203,6 +203,8 @@ pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[Durabl
 
 pub fn finish_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
+pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
+
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
 pub fn issue_delivery_attempt(PublicationContract, PublicationContract, PublicationContract, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
@@ -226,6 +228,8 @@ pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, St
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
+
+pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
@@ -456,6 +460,8 @@ pub fn validate_result_artifact_evidence(PublicationContract, PublicationContrac
 pub fn validate_result_evidence_set(Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract]) -> Result[Unit, ResultEvidenceSetIssue]
 
 pub fn validate_result_occurrence_ordering_evidence(PublicationContract, PublicationContract, PublicationContract, String, String, String) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue]
+
+pub fn validate_result_occurrence_ordering_for_producer(String, PublicationContract, PublicationContract, String, String, String) -> Result[ResultOrderingEvidence, ResultOrderingEvidenceIssue]
 
 pub fn validate_result_schema_wire(String, String, Int, Int, Int) -> Result[Unit, DeliveryIssuanceIssue]
 
