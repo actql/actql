@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
+import {createServer} from 'node:https';
+import {userInfo} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -20,6 +22,19 @@ function run(command, args, cwd) {
       `${result.stdout}\n${result.stderr}`, {cause: result.error});
   }
   return result.stdout;
+}
+
+function runAsync(command, args, cwd, extraEnvironment = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {cwd,
+      env: {...environment, ...extraEnvironment}});
+    let output = '';
+    child.stdout.setEncoding('utf8').on('data', chunk => { output += chunk; });
+    child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
+    child.on('error', reject);
+    child.on('close', code => code === 0 ? resolve(output) :
+      reject(new Error(`${command} ${args.join(' ')} failed:\n${output}`)));
+  });
 }
 
 for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
@@ -58,6 +73,7 @@ import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
 
 const calls = [];
+const originalFetch = globalThis.fetch;
 globalThis.fetch = async (_url, init) => {
   const body = JSON.parse(init.body);
   calls.push(body.connection);
@@ -85,15 +101,19 @@ for (const selected of connected) {
   assert.equal(client.profile.owner, selected.owner ?? 'remote');
   client.close();
 }
-const installedLocal = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
-const execution = await installedLocal.aql(document, {format: 'json',
-  requestId: 'packed-standard-values'});
+async function runApplication(options, requestId) {
+  const client = await connect(options);
+  const execution = await client.aql(document, {format: 'json', requestId});
+  const rows = await execution.result('answer').all();
+  return {client, execution, rows};
+}
+const {client: installedLocal, execution, rows} = await runApplication(
+  {mode: 'local', owner: 'local', durability: 'durable'},
+  'packed-standard-values');
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
-assert.deepEqual(await execution.result('answer').all(),
-  [{id: 1}, {id: 2}]);
+assert.deepEqual(rows, [{id: 1}, {id: 2}]);
 await assert.rejects(execution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
 const reader = execution.result('answer').rows();
@@ -127,6 +147,44 @@ await assert.rejects(installedLocal.aql(document.replace('"id": 2',
   {code: 'ClientRequestIntentConflict'});
 installedLocal.close();
 assert.equal(calls.length, connected.length);
+globalThis.fetch = originalFetch;
+const {client: installedRemote, execution: remoteExecution,
+  rows: remoteRows} = await runApplication({mode: 'remote',
+  endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT, token: 'packed-test-token',
+  durability: 'durable'}, 'packed-remote-values');
+assert.deepEqual(remoteRows, rows);
+assert.equal((await remoteExecution.status()).status, 'succeeded');
+assert.deepEqual((await installedRemote.attach(remoteExecution.ref)).ref,
+  remoteExecution.ref);
+assert.deepEqual((await installedRemote.lookupRequest(
+  'packed-remote-values')).ref, remoteExecution.ref);
+await assert.rejects(remoteExecution.result('answer').all({maxRows: 1}),
+  {code: 'ResultRetainedLimit'});
+let remoteReplyLost = false;
+globalThis.fetch = async (url, options) => {
+  const reply = await originalFetch(url, options);
+  if (!remoteReplyLost && new URL(url).pathname.endsWith('/submit')) {
+    remoteReplyLost = true;
+    await reply.arrayBuffer();
+    throw new Error('RemoteAcceptanceReplyLost');
+  }
+  return reply;
+};
+try {
+  await assert.rejects(installedRemote.aql(document, {format: 'json',
+    requestId: 'packed-remote-lost-ack'}), error =>
+    error.code === 'SubmissionUnknown' &&
+    error.requestId === 'packed-remote-lost-ack');
+} finally { globalThis.fetch = originalFetch; }
+assert.equal(remoteReplyLost, true);
+const recoveredRemote = await installedRemote.lookupRequest(
+  'packed-remote-lost-ack');
+assert.equal(recoveredRemote.kind, 'found');
+const resumedRemote = await installedRemote.aql(document, {format: 'json',
+  requestId: 'packed-remote-lost-ack'});
+assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
+assert.deepEqual(await resumedRemote.result('answer').all(), rows);
+installedRemote.close();
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
   async perform(operation) {
     assert.equal(operation, 'connect');
@@ -142,7 +200,32 @@ assert.equal(local.profile.owner, 'local');
 assert.equal(calls.length, connected.length);
 local.close();
 `);
-run(process.execPath, ['smoke.mjs'], root);
+run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+  '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+  '-subj', '/CN=localhost',
+  '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], root);
+const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
+  'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
+const {openInstalledRemoteHttpHost} = await import(remoteModule);
+const remoteHost = await openInstalledRemoteHttpHost({
+  directory: join(root, 'remote-state'),
+  authenticate: header => header === 'Bearer packed-test-token'
+    ? userInfo().username : undefined,
+});
+const remoteServer = createServer({
+  key: await readFile(join(root, 'remote.key')),
+  cert: await readFile(join(root, 'remote.crt')),
+}, remoteHost.handler);
+await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+try {
+  const endpoint = `https://127.0.0.1:${remoteServer.address().port}/`;
+  await runAsync(process.execPath, ['smoke.mjs'], root, {
+    ACTQL_TEST_REMOTE_ENDPOINT: endpoint,
+    NODE_EXTRA_CA_CERTS: join(root, 'remote.crt'),
+  });
+} finally {
+  await new Promise(resolve => remoteServer.close(resolve));
+}
 await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
