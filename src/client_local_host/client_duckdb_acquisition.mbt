@@ -23,7 +23,7 @@ pub fn prepare_client_duckdb_acquisition(
   @duckdb_host.NativeHostConfiguration,
   ClientDuckDBAcquisitionIssue,
 ] {
-  if database_schema != "main" || table != "records" {
+  if database_schema.is_empty() || table.is_empty() {
     return Err(InvalidSource)
   }
   let query_contract = @identity.from_json(
