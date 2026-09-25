@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 54 with path-scoped work\/workspace evidence, 3 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 56 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -160,6 +160,7 @@ test('unpivot loses its bounded route when production evidence is removed', () =
     'unpivot_bounded_cancel_cleanup',
     'unpivot_bounded_workspace_exact_one_short',
     'unpivot_bounded_control_work_exact_one_short',
+    'unpivot_nonempty_work_workspace_exact_one_short',
     'unpivot_bounded_output_limit',
   ]) {
     assert.match(run(undefined, routes => {
@@ -167,7 +168,9 @@ test('unpivot loses its bounded route when production evidence is removed', () =
         entry.operation === 'unpivot');
       route.boundary_tests = route.boundary_tests.filter(item =>
         item.role !== role);
-    }), new RegExp(`RelA unpivot: ${role} fixture is missing`, 'u'));
+    }), role === 'unpivot_nonempty_work_workspace_exact_one_short'
+      ? /RelA unpivot: selected_entrypoint exact_limit lacks an executable fixture/u
+      : new RegExp(`RelA unpivot: ${role} fixture is missing`, 'u'));
   }
   for (const role of [
     'unpivot_standard_host_two_consumers',
@@ -194,6 +197,7 @@ test('unnest loses its bounded route when production evidence is removed', () =>
     'unnest_bounded_cancel_cleanup',
     'unnest_bounded_workspace_exact_one_short',
     'unnest_bounded_control_work_exact_one_short',
+    'unnest_nonempty_work_workspace_exact_one_short',
     'unnest_bounded_output_limit',
   ]) {
     assert.match(run(undefined, routes => {
@@ -201,7 +205,9 @@ test('unnest loses its bounded route when production evidence is removed', () =>
         entry.operation === 'unnest');
       route.boundary_tests = route.boundary_tests.filter(item =>
         item.role !== role);
-    }), new RegExp(`RelA unnest: ${role} fixture is missing`, 'u'));
+    }), role === 'unnest_nonempty_work_workspace_exact_one_short'
+      ? /RelA unnest: selected_entrypoint exact_limit lacks an executable fixture/u
+      : new RegExp(`RelA unnest: ${role} fixture is missing`, 'u'));
   }
   for (const role of [
     'unnest_standard_host_two_consumers',
@@ -551,7 +557,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 54 |',
+    '| Path-scoped work/workspace assurance | 56 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);

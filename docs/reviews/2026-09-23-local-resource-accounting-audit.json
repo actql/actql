@@ -25,6 +25,8 @@
     {"family": "RelA", "operation": "top_k_by", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "top_k_by", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "row_window", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "unpivot", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "unnest", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "values", "path": "zero_input_entrypoint"},
     {"family": "RelA", "operation": "cross_join", "path": "external_input_entrypoint"},
     {"family": "RelA", "operation": "append", "path": "external_input_entrypoint"},

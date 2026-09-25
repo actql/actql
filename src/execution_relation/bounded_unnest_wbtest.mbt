@@ -212,6 +212,46 @@ test "bounded unnest admits exact empty work and rejects one short" {
 }
 
 ///|
+test "bounded unnest admits exact nonempty work and workspace" {
+  // Input and output names cost 28 control units and eight live slots.
+  // One input row, two item occurrences, and eight output cells add
+  // 1 + 2 + 8 control units. One four-cell row overlaps metadata.
+  for
+    (work, entries, success) in [
+      (39, 12, true),
+      (38, 12, false),
+      (39, 11, false),
+    ] {
+    let (_, execution, source) = bounded_unnest_fixture(
+      "[{\"id\":1,\"items\":[2,null]}]",
+      max_rows=2,
+      max_work=work,
+      max_entries=entries,
+    )
+    let mut accepted = false
+    let mut terminal = false
+    for _ in 0..<100 {
+      if !terminal {
+        match advance_bounded_unnest(execution, 1).unwrap() {
+          BoundedUnnestContinue(..) => ()
+          BoundedUnnestComplete(output, ..) => {
+            assert_eq(completed_row_count(output), 2)
+            accepted = true
+            terminal = true
+          }
+          BoundedUnnestFailed(Rows(RowLimit), ..) => terminal = true
+          _ => fail("unexpected unnest resource result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(accepted, success)
+    assert_true(cleanup_bounded_unnest(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
 test "bounded unnest rejects output overflow incrementally" {
   let (_, execution, source) = bounded_unnest_fixture(
     "[{\"id\":1,\"items\":[2,null]}]",

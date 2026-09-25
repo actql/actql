@@ -219,6 +219,46 @@ test "bounded unpivot admits exact empty control work and rejects one short" {
 }
 
 ///|
+test "bounded unpivot admits exact nonempty work and workspace" {
+  // Metadata costs 47 control units and 18 live slots. One input row,
+  // three authored column occurrences, and twelve output cells add
+  // 1 + 3 + 12 control units. One four-cell row overlaps metadata.
+  for
+    (work, entries, success) in [
+      (63, 22, true),
+      (62, 22, false),
+      (63, 21, false),
+    ] {
+    let (_, execution, source) = bounded_unpivot_fixture(
+      "[{\"id\":1,\"jan\":10,\"feb\":20}]",
+      max_rows=3,
+      max_work=work,
+      max_entries=entries,
+    )
+    let mut accepted = false
+    let mut terminal = false
+    for _ in 0..<120 {
+      if !terminal {
+        match advance_bounded_unpivot(execution, 1).unwrap() {
+          BoundedUnpivotContinue(..) => ()
+          BoundedUnpivotComplete(output, ..) => {
+            assert_eq(completed_row_count(output), 3)
+            accepted = true
+            terminal = true
+          }
+          BoundedUnpivotFailed(Rows(RowLimit), ..) => terminal = true
+          _ => fail("unexpected unpivot resource result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_eq(accepted, success)
+    assert_true(cleanup_bounded_unpivot(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
 test "bounded unpivot enforces the output row ceiling incrementally" {
   let (_, execution, source) = bounded_unpivot_fixture(
     "[{\"id\":1,\"jan\":10,\"feb\":20}]",

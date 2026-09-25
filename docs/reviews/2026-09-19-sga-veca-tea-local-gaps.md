@@ -2,7 +2,7 @@
 
 ## Current delivery unit and acceptance boundary
 
-Assessed at product source commit `2460736acc05961df2188f53a19dc3e947955184` against the
+Assessed at product source commit `036b2a889087e93f51b13636d3fcb936020dd9c0` against the
 current product code and the historical Local work order and progress review.
 This section describes the current delivery unit, not the whole original
 RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
@@ -27,8 +27,8 @@ prove these properties; a normal gate result or an operation count does not.
 
 ### Remaining product work and its acceptance tests
 
-The strict gate currently rejects 29 RelA whole-sequence entrypoints, five
-additional selected RelA paths, two same-Stage binary paths, thirteen SGA
+The strict gate currently rejects 29 RelA whole-sequence entrypoints, one
+additional selected RelA path, two same-Stage binary paths, thirteen SGA
 entrypoints, `merge_rankings`, two VecA row expressions, and the providerless
 synchronous computation. These are route/evidence gaps, not claims of
 incorrect values. Multiple rows below share one implementation but retain
@@ -43,7 +43,7 @@ separate input bindings and route-specific evidence.
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 54 path-scoped counts describe evidence, not
+list. Its 23 full-route and 56 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -91,8 +91,8 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 54 |
-| Selected-only assurance | 3 |
+| Path-scoped work/workspace assurance | 56 |
+| Selected-only assurance | 5 |
 <!-- local-resource-accounting-summary:end -->
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
@@ -236,6 +236,11 @@ output succeeds even when intermediate coordinates exceed binary64, while an
 unrepresentable output boundary fails without exposing partial completion.
 Multi-step sequences that cannot select this provider still use the
 providerless synchronous path. The operation is not marked fully assured.
+The selected unpivot and unnest providers now have independent nonempty
+exact/one-short work and workspace fixtures. Their selected path claims
+also bind the existing standard Host timer cancellation and kernel cleanup
+fixtures. Their ordinary whole-sequence routes remain unassured; empty
+metadata boundaries alone are not used as proof of nonempty execution.
 The selected `unpivot` route likewise expands each authored column occurrence
 through a bounded managed session. Repeated columns remain repeated outputs.
 Three-target quantum-one fixtures cover ordered values, NULLs, exact/one-short
