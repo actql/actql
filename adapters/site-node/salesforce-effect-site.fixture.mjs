@@ -77,6 +77,24 @@ export async function openSalesforceEffectSiteFixture(t, {
       });
       return;
     }
+    if (request.method === 'PATCH' && request.url ===
+        `${prefix}composite/sobjects`) {
+      const chunks = [];
+      request.on('data', chunk => chunks.push(chunk));
+      request.on('end', () => {
+        observed.body = Buffer.concat(chunks).toString('utf8');
+        const batch = JSON.parse(observed.body);
+        assert.equal(batch.allOrNone, false);
+        assert.equal(batch.records.length, 2);
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify([
+          {id: null, success: false, errors: [{statusCode: 'INVALID_FIELD',
+            message: 'Rejected field', fields: ['Name']}]},
+          {id: '001000000000002', success: true, errors: []},
+        ]));
+      });
+      return;
+    }
     response.writeHead(404).end();
   });
   await new Promise((resolve, reject) => {
