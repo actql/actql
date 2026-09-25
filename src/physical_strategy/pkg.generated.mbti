@@ -110,9 +110,13 @@ pub fn captured_effect_input_occurrence(CapturedEffectInput) -> @execution_relat
 
 pub fn captured_effect_input_output(CapturedEffectInput) -> @execution_relation.CompletedOutput?
 
+pub fn captured_effect_input_stage(CapturedEffectInput) -> Int
+
 pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, CheckedEffectComputationDAG) -> Bool
 
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 

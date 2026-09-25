@@ -523,6 +523,16 @@ pub fn captured_effect_inputs_count(value : CapturedEffectInputs) -> Int {
 }
 
 ///|
+/// A captured input inventory may issue local semantic evidence only for the
+/// exact checked computation that created its physical source ports.
+pub fn captured_effect_inputs_match_computation(
+  value : CapturedEffectInputs,
+  computation : CheckedEffectComputationDAG,
+) -> Bool {
+  value.live && physical_equal(value.run.checked.computation, computation)
+}
+
+///|
 /// Revoke the ordinary output port only while this checked Effect consumer
 /// already owns its pin. The caller cannot close a producer merely by naming
 /// a task or member before custody has been acquired.
@@ -639,6 +649,11 @@ pub fn captured_effect_input_member_index(value : CapturedEffectInput) -> Int {
 /// Stage remains on the source occurrence and must not index physical output.
 pub fn captured_effect_input_task(value : CapturedEffectInput) -> Int {
   value.source.task
+}
+
+///|
+pub fn captured_effect_input_stage(value : CapturedEffectInput) -> Int {
+  value.source.stage
 }
 
 ///|

@@ -182,7 +182,12 @@ test "standard Client preparation retains source-free Effect closure" {
 test "checked source-free Effect owner issues its local Invocation" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
   ).unwrap()
   let issued = issue_source_free_client_effect_local_invocation(
     prepared, 0, 4096, 32, 8,
@@ -211,7 +216,12 @@ test "checked source-free Effect owner issues its local Invocation" {
   assert_true(client_effect_local_invocation_matches(issued, prepared, 0))
   assert_true(!client_effect_local_invocation_matches(issued, prepared, 1))
   let foreign = prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
   ).unwrap()
   let replayed = issue_source_free_client_effect_local_invocation(
     foreign, 0, 4096, 32, 8,
@@ -228,29 +238,136 @@ test "checked source-free Effect owner issues its local Invocation" {
 }
 
 ///|
+test "checked owner issues Unit-local Result Definition only for its Result" {
+  let (document, environment, limits) = client_effect_fixture()
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let issued = issue_client_effect_local_result_definition(
+    prepared, 0, "out", 4096, 16, 4,
+  ).unwrap()
+  let program = @checked.effect_program_static_checked_computation(
+    prepared_client_effect_computation_candidate(prepared),
+  )
+  let preimage = "{\"result_name\":\"out\",\"unit_definition_cid\":\"" +
+    @checked.unit_definition_cid(program, 0).unwrap() +
+    "\",\"version\":\"actql-local-result-definition/0.1\"}"
+  assert_eq(
+    client_effect_local_result_definition_cid(issued),
+    "sha256:" + @sha.hex(@utf8.encode(preimage)),
+  )
+  assert_true(
+    client_effect_local_result_definition_json(issued).contains(
+      "\"self_cid\":\"" +
+      client_effect_local_result_definition_cid(issued) +
+      "\"",
+    ),
+  )
+  assert_true(
+    client_effect_local_result_definition_matches(issued, prepared, 0, "out"),
+  )
+  assert_true(
+    !client_effect_local_result_definition_matches(issued, prepared, 1, "out"),
+  )
+  assert_true(
+    !client_effect_local_result_definition_matches(issued, prepared, 0, "other"),
+  )
+  assert_true(
+    issue_client_effect_local_result_definition(
+      prepared, 0, "other", 4096, 16, 4,
+    )
+    is Err(MissingResult),
+  )
+  assert_true(
+    issue_client_effect_local_result_definition(prepared, 1, "out", 4096, 16, 4)
+    is Err(MissingUnit),
+  )
+  let foreign = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    !client_effect_local_result_definition_matches(issued, foreign, 0, "out"),
+  )
+  let run_bound = @publication.prepare_result_definition(
+    prepared_client_effect_computation_definition_cid(prepared),
+    "out",
+  ).unwrap()
+  assert_true(
+    client_effect_local_result_definition_cid(issued) !=
+    @publication.result_definition_cid(run_bound),
+  )
+}
+
+///|
+test "same Result name in another checked Unit has another local definition" {
+  let (_, environment, limits) = client_effect_fixture()
+  let document =
+    #|{"version":"actql/0.1","id":"two-unit-effect","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":1}]},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}}},{"id":"other","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":2}]},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"source","result":"out"}}}}
+  let prepared = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let first = issue_client_effect_local_result_definition(
+    prepared, 0, "out", 4096, 16, 4,
+  ).unwrap()
+  let second = issue_client_effect_local_result_definition(
+    prepared, 1, "out", 4096, 16, 4,
+  ).unwrap()
+  assert_true(
+    client_effect_local_result_definition_cid(first) !=
+    client_effect_local_result_definition_cid(second),
+  )
+  assert_true(
+    !client_effect_local_result_definition_matches(first, prepared, 1, "out"),
+  )
+  assert_true(
+    client_effect_local_result_definition_matches(second, prepared, 1, "out"),
+  )
+}
+
+///|
 test "checked Effect member resolution retains the exact Stage and Mapping" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
   ).unwrap()
-  let descriptor = client_effect_member_descriptor(
-    prepared, 0, "save", 16,
-  ).unwrap()
+  let descriptor = client_effect_member_descriptor(prepared, 0, "save", 16).unwrap()
   assert_eq(descriptor.0, 0)
   assert_eq(descriptor.1, "save")
   assert_eq(descriptor.2, "create")
   assert_eq(descriptor.3, "connector://crm/account")
   assert_eq(descriptor.4, "mapping:crm.account.v1")
   assert_eq(descriptor.6, Some("out"))
-  assert_true(client_effect_member_descriptor(
-    prepared, 1, "save", 16,
-  ) is Err(InvalidMember))
-  assert_true(client_effect_member_descriptor(
-    prepared, 0, "foreign", 16,
-  ) is Err(InvalidMember))
-  assert_true(client_effect_member_descriptor(
-    prepared, 0, "save", 1,
-  ) is Err(WorkLimit))
+  assert_true(
+    client_effect_member_descriptor(prepared, 1, "save", 16)
+    is Err(InvalidMember),
+  )
+  assert_true(
+    client_effect_member_descriptor(prepared, 0, "foreign", 16)
+    is Err(InvalidMember),
+  )
+  assert_true(
+    client_effect_member_descriptor(prepared, 0, "save", 1) is Err(WorkLimit),
+  )
 }
 
 ///|

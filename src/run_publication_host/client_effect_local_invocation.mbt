@@ -61,15 +61,14 @@ pub fn issue_source_free_client_effect_local_invocation(
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
   )
-  guard @checked.unit_definition_cid(program, unit)
-    is Some(unit_definition_cid) &&
+  guard @checked.unit_definition_cid(program, unit) is Some(unit_definition_cid) &&
     @checked.unit_used_values_cid(program, unit) is Some(used_values_cid) &&
-    @checked.unit_contracts_cid(program, unit)
-    is Some(local_contracts_cid) &&
+    @checked.unit_contracts_cid(program, unit) is Some(local_contracts_cid) &&
     @checked.unit_pipeline(program, unit) is Some(pipeline) else {
     return Err(MissingUnit)
   }
-  if unit != 0 || @pipeline.input_count(pipeline) != 0 ||
+  if unit != 0 ||
+    @pipeline.input_count(pipeline) != 0 ||
     !@pipeline.starts_with_values(pipeline) ||
     @checked.unit_result_import_count(program, unit) != Some(0) ||
     @checked.unit_import_cid_count(program, unit) != Some(0) {
@@ -80,18 +79,30 @@ pub fn issue_source_free_client_effect_local_invocation(
     _ => return Err(Encoding)
   }
   emit_client_effect_local_invocation(
-    hash, unit_definition_cid, used_values_cid, local_contracts_cid,
-    policy_cid, None,
-  ) catch { _ => return Err(Encoding) }
+    hash,
+    unit_definition_cid,
+    used_values_cid,
+    local_contracts_cid,
+    policy_cid,
+    None,
+  ) catch {
+    _ => return Err(Encoding)
+  }
   let cid = "sha256:" +
     (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
   emit_client_effect_local_invocation(
-    writer, unit_definition_cid, used_values_cid, local_contracts_cid,
-    policy_cid, Some(cid),
-  ) catch { _ => return Err(Encoding) }
+    writer,
+    unit_definition_cid,
+    used_values_cid,
+    local_contracts_cid,
+    policy_cid,
+    Some(cid),
+  ) catch {
+    _ => return Err(Encoding)
+  }
   let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
   Ok({ owner, unit, unit_definition_cid, cid, wire, })
 }

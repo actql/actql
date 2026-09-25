@@ -55,8 +55,7 @@ pub fn client_effect_member_descriptor(
     )
     if @syntax.effect_header_stage(selected) ==
       @syntax.effect_header_stage(header) &&
-      @syntax.effect_header_id(selected) ==
-      @syntax.effect_header_id(header) {
+      @syntax.effect_header_id(selected) == @syntax.effect_header_id(header) {
       let mapping = @stage_results.effect_mapping_shape_contract(shape)
       return Ok(
         (

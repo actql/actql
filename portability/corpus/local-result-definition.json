@@ -1,0 +1,32 @@
+{
+  "version": "actql-local-result-definition-vectors/0.1",
+  "cases": [
+    {
+      "id": "source rows",
+      "preimage": {
+        "result_name": "rows",
+        "unit_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "version": "actql-local-result-definition/0.1"
+      },
+      "expected_cid": "sha256:7245c7ca8672981bca46e0fe19d170634311da792478caa037efc2e77631e36a"
+    },
+    {
+      "id": "different Result name",
+      "preimage": {
+        "result_name": "answer",
+        "unit_definition_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "version": "actql-local-result-definition/0.1"
+      },
+      "expected_cid": "sha256:16f46291b7eb3266653c0910d2b9186f64efa0804b90f6d9be29a04ff31b4581"
+    },
+    {
+      "id": "different Unit",
+      "preimage": {
+        "result_name": "rows",
+        "unit_definition_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "version": "actql-local-result-definition/0.1"
+      },
+      "expected_cid": "sha256:8db6647d397743aa933419393dd87168e07997ff935602d2351125f029bddec1"
+    }
+  ]
+}

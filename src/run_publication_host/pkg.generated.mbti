@@ -62,6 +62,12 @@ pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> Strin
 
 pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
 
+pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
+
+pub fn client_effect_local_result_definition_json(ClientEffectLocalResultDefinition) -> String
+
+pub fn client_effect_local_result_definition_matches(ClientEffectLocalResultDefinition, PreparedClientEffectComputation, Int, String) -> Bool
+
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -139,6 +145,10 @@ pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowerin
 pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
+
+pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
+
+pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
@@ -265,6 +275,17 @@ type ClientEffectLocalInvocation
 pub(all) enum ClientEffectLocalInvocationIssue {
   MissingUnit
   NotSourceFree
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientEffectLocalResultDefinition
+
+pub(all) enum ClientEffectLocalResultDefinitionIssue {
+  MissingUnit
+  MissingResult
+  NonCanonicalResultName
+  ForeignCapturedInput
+  MissingCapturedInput
   Encoding
 } derive(Eq, @debug.Debug)
 

@@ -213,9 +213,13 @@ pub fn client_program_effect_source_artifact_preview_binding(@run_publication.Pu
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_issue_captured_effect_input_local_result_definition(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
+
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
 pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEffectInput, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.EffectSourceArtifactIssue]
+
+pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
@@ -242,6 +246,10 @@ pub fn client_program_local_effect_host_runtime(ClientLocalEffectHost) -> @conne
 pub fn client_program_local_effect_invocation_cid(@run_publication_host.ClientEffectLocalInvocation) -> String
 
 pub fn client_program_local_effect_invocation_json(@run_publication_host.ClientEffectLocalInvocation) -> String
+
+pub fn client_program_local_effect_result_definition_cid(@run_publication_host.ClientEffectLocalResultDefinition) -> String
+
+pub fn client_program_local_effect_result_definition_json(@run_publication_host.ClientEffectLocalResultDefinition) -> String
 
 pub fn client_program_local_effect_source_count(ClientLocalEffectHost) -> Int
 

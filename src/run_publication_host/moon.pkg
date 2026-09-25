@@ -20,6 +20,7 @@ import {
   "actql/actql/capacity_derivation" @arithmetic,
   "actql/actql/source_value" @source,
   "actql/actql/canonical_json" @canonical,
+  "actql/actql/canonical_value",
   "actql/actql/value_contract" @contract,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/relation_schema" @schema,

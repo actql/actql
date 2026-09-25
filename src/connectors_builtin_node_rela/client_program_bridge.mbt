@@ -435,6 +435,62 @@ pub fn client_program_local_effect_invocation_json(
 }
 
 ///|
+/// A Stage Result is resolved inside its checked local Unit, never through
+/// the Program Result publication inventory.
+#export_name("clientProgramIssueLocalEffectResultDefinition")
+pub fn client_program_issue_local_effect_result_definition(
+  value : @publication_host.PreparedClientEffectComputation,
+  unit : Int,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultDefinition,
+  @publication_host.ClientEffectLocalResultDefinitionIssue,
+] {
+  @publication_host.issue_client_effect_local_result_definition(
+    value, unit, result_name, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Bind the definition to the exact captured Effect source pin used by the
+/// product input export, not to a copied Stage name.
+#export_name("clientProgramIssueCapturedEffectInputLocalResultDefinition")
+pub fn client_program_issue_captured_effect_input_local_result_definition(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultDefinition,
+  @publication_host.ClientEffectLocalResultDefinitionIssue,
+] {
+  @publication_host.issue_captured_client_effect_local_result_definition(
+    owner, inputs, member_index, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDefinitionCid")
+pub fn client_program_local_effect_result_definition_cid(
+  value : @publication_host.ClientEffectLocalResultDefinition,
+) -> String {
+  @publication_host.client_effect_local_result_definition_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultDefinitionJson")
+pub fn client_program_local_effect_result_definition_json(
+  value : @publication_host.ClientEffectLocalResultDefinition,
+) -> String {
+  @publication_host.client_effect_local_result_definition_json(value)
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,
