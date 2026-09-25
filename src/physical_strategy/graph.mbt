@@ -347,7 +347,7 @@ pub fn prepare_checked_dag(
     owners,
     max_tasks,
     max_work,
-    source_free_root=source_free_root,
+    source_free_root~,
   )
 }
 
