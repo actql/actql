@@ -49,6 +49,11 @@ overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
 are retained as controls, not substituted for in-flight or limit evidence.
+The strict gate now recognizes the existing direct and external cross-join
+Host timer cases: both request cancellation after positive pair progress,
+observe stop, and reclaim their owners. This removes a stale evidence-name
+failure only. The ordinary whole-sequence cross-join entrypoint and the
+providerless synchronous lane remain unassured.
 
 ### Dependencies and owners
 

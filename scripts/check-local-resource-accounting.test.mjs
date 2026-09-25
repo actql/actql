@@ -1803,9 +1803,12 @@ test('selected Relation provider has no synchronous row fallback', () => {
   assert.doesNotMatch(provider, /@execution\.execute_selected_relation_step\(/);
 });
 
-test('cross join pre-execution close is not in-flight evidence', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
+test('strict gate recognizes cross join after positive pair work', () => {
+  const result = run(undefined, undefined, ['--require-boundary-complete']);
+  assert.doesNotMatch(result,
     /RelA cross_join: in-flight Host cancellation evidence is missing/);
+  assert.match(result,
+    /RelA cross_join: entrypoint boundary assurance is missing/);
 });
 
 test('selected take needs both keyed and unkeyed resource branches', () => {
@@ -2259,6 +2262,21 @@ test('resource gate rejects cross join without delivered Host cancellation', () 
       item.role === 'external_product_node_timer_cancel_cleanup').fixture =
       'missing-external-cross-join-timer';
   }), /RelA cross_join: missing environment fixture/);
+});
+
+test('strict cross join gate retains both in-flight product paths', () => {
+  for (const role of [
+    'external_product_node_timer_cancel_cleanup',
+    'direct_product_node_timer_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, value => {
+      const join = value.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'cross_join');
+      join.environment_tests = join.environment_tests.filter(item =>
+        item.role !== role);
+    }, ['--require-boundary-complete']),
+    /RelA cross_join: in-flight Host cancellation evidence is missing/);
+  }
 });
 
 test('resource gate retains both distinct timer paths', () => {
