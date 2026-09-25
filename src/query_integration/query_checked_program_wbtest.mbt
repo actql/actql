@@ -7,6 +7,7 @@ fn query_checked_program_fixture(
   dag_count? : Bool = false,
   dag_count_filter_chain? : Bool = false,
   dag_window_filter_chain? : Bool = false,
+  dag_unpivot_filter_chain? : Bool = false,
   dag_collections? : Bool = false,
   dag_join? : Bool = false,
   self_join? : Bool = false,
@@ -497,6 +498,13 @@ fn query_checked_program_fixture(
     text.replace(
       old="{\"filter\":\"id > 2\"},{\"select\":[\"id\"],\"as\":\"out\"}",
       new="{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10},\"as\":\"windowed\"},{\"from\":\"windowed\",\"filter\":\"id > 0\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\"],\"as\":\"out\"}",
+    )
+  } else {
+    text
+  }
+  let text = if dag_unpivot_filter_chain {
+    (
+      #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"compute_a","inputs":{"x":{"result":{"stage":"a","result":"r"}}},"steps":[{"from":"x","unpivot":{"columns":["id"],"keep":[],"name_column":"metric","value_column":"value"},"as":"expanded"},{"from":"expanded","filter":"value > 2","as":"filtered"},{"from":"filtered","select":["value"],"as":"out"}],"results":{"r":{"from":"out","fields":["value"]}}},{"id":"compute_b","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["value"],"as":"out"}],"results":{"r":{"from":"out","fields":["value"]}}},{"id":"compute_c","inputs":{"x":{"result":{"stage":"compute_a","result":"r"}}},"steps":[{"select":["value"],"as":"out"}],"results":{"r":{"from":"out","fields":["value"]}}}],"results":{"b":{"from":{"stage":"compute_b","result":"r"}},"c":{"from":{"stage":"compute_c","result":"r"}}}}
     )
   } else {
     text

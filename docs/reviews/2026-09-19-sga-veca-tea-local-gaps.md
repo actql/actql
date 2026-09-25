@@ -157,7 +157,10 @@ The selected bounded chain now also accepts an unsplit `unpivot` step.
 A captured or retained Relation feeding `unpivot` → `filter` → `select`
 uses that route in the standard Host, with two downstream Computes; the
 captured-input fixture also delivers cancellation after positive work.
-The `unnest` shape and the complete resource boundary remain unproved.
+The three-target portable Host fixture checks the exact output values,
+quantum-one progress, independent consumer release, and cleanup for this
+captured chain. The `unnest` shape and task-wide exact/one-short work and
+workspace bounds remain unproved; the unpivot route is not marked complete.
 
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,

@@ -1753,6 +1753,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
           "fixture": "bounded unpivot admits exact nonempty work and workspace"
+        },
+        {
+          "role": "unpivot_captured_chain_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary captured Relation chains feed two bounded consumers"
+        },
+        {
+          "role": "unpivot_captured_chain_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary captured Relation chain cancels after bounded work"
         }
       ],
       "environment_tests": [
@@ -1778,6 +1792,29 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-unpivot-in-flight"
+        },
+        {
+          "role": "unpivot_captured_chain_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "captured Relation unpivot/filter chain",
+          "case": "capturedUnpivotChainProgram"
+        },
+        {
+          "role": "unpivot_retained_chain_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unpivot/filter",
+          "case": "capturedUnpivotChainProgram"
+        },
+        {
+          "role": "unpivot_captured_chain_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "captured-unpivot-chain-in-flight"
         }
       ],
       "path_assurance": {

@@ -569,10 +569,11 @@ test "ordinary Local filters resume within quantum" {
 
 ///|
 test "ordinary captured Relation chains feed two bounded consumers" {
-  for variant in ["filter", "count", "window"] {
+  for variant in ["filter", "count", "window", "unpivot"] {
     let expected = match variant {
       "count" => ["{\"id\":2}"]
       "window" => ["{\"id\":3}", "{\"id\":2}"]
+      "unpivot" => ["{\"value\":3}"]
       _ => ["{\"id\":3}"]
     }
     let (run, issuer) = captured_graph_fixture(
@@ -580,6 +581,7 @@ test "ordinary captured Relation chains feed two bounded consumers" {
       count=variant == "count",
       count_filter_chain=variant == "count",
       window_filter_chain=variant == "window",
+      unpivot_filter_chain=variant == "unpivot",
     )
     let graph = @strategy.captured_dag_graph(run)
     assert_eq(@strategy.graph_task_count(graph), 4)
@@ -710,8 +712,8 @@ test "ordinary captured Relation chains feed two bounded consumers" {
 }
 
 ///|
-test "ordinary captured Relation chain cancels after bounded work" {
-  let (run, issuer) = captured_graph_fixture()
+fn run_ordinary_captured_relation_chain_cancel(unpivot : Bool) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(unpivot_filter_chain=unpivot)
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(
@@ -768,6 +770,12 @@ test "ordinary captured Relation chain cancels after bounded work" {
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "ordinary captured Relation chain cancels after bounded work" {
+  run_ordinary_captured_relation_chain_cancel(false)
+  run_ordinary_captured_relation_chain_cancel(true)
 }
 
 ///|

@@ -222,6 +222,8 @@ test('unpivot loses its bounded route when production evidence is removed', () =
     'unpivot_bounded_control_work_exact_one_short',
     'unpivot_nonempty_work_workspace_exact_one_short',
     'unpivot_bounded_output_limit',
+    'unpivot_captured_chain_two_consumers',
+    'unpivot_captured_chain_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&
@@ -236,6 +238,9 @@ test('unpivot loses its bounded route when production evidence is removed', () =
     'unpivot_standard_host_two_consumers',
     'unpivot_same_stage_host_two_consumers',
     'unpivot_in_flight_host_timer',
+    'unpivot_captured_chain_host_two_consumers',
+    'unpivot_retained_chain_host_two_consumers',
+    'unpivot_captured_chain_in_flight_host_timer',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&

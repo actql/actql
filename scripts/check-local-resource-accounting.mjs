@@ -620,6 +620,8 @@ for (const [index, route] of routeEntries.entries()) {
       'unpivot_bounded_workspace_exact_one_short',
       'unpivot_bounded_control_work_exact_one_short',
       'unpivot_bounded_output_limit',
+      'unpivot_captured_chain_two_consumers',
+      'unpivot_captured_chain_cancel_cleanup',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -828,6 +830,9 @@ for (const [index, route] of routeEntries.entries()) {
       'unpivot_standard_host_two_consumers',
       'unpivot_same_stage_host_two_consumers',
       'unpivot_in_flight_host_timer',
+      'unpivot_captured_chain_host_two_consumers',
+      'unpivot_retained_chain_host_two_consumers',
+      'unpivot_captured_chain_in_flight_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
