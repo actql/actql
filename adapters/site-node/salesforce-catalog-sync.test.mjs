@@ -2538,6 +2538,62 @@ test('managed physical driver fills the real MoonBit output owner',
     ]);
   });
 
+test('managed output rejects a locator before excess HTTP and credential use',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceManagedQuery(queryRequest(setup, plan, {
+      moon: salesforceMoon,
+      values: salesforceConformance.salesforceSiteTestOutputValues(),
+      limits: {...queryLimits, maxPages: 1},
+    })), {code: 'MoonBitHostFailure'});
+    assert.deepEqual(setup.seen.filter(entry =>
+      entry.path?.includes('/query')).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+    ]);
+    assert.deepEqual(setup.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).map(entry => entry.useId),
+    ['query-initial']);
+  });
+
+test('managed output rejects a foreign continuation before credential use',
+  async t => {
+    const setup = await fixture(t);
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceManagedQuery(queryRequest(setup, plan, {
+      moon: salesforceMoon,
+      values: salesforceConformance.salesforceSiteTestOutputValues(),
+      authorizationForPage: async () => ({...setup.query,
+        useId: 'foreign-managed-continuation',
+        scope: {...setup.query.scope, siteGeneration: 5}}),
+    })), {code: 'InvalidSalesforceQueryAuthorization'});
+    assert.deepEqual(setup.seen.filter(entry =>
+      entry.path?.includes('/query')).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+    ]);
+    assert.deepEqual(setup.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).map(entry => entry.useId),
+    ['query-initial']);
+  });
+
+test('managed output cannot append a fresh query after locator failure',
+  async t => {
+    const setup = await fixture(t, {querySecondStatus: 503});
+    const plan = await queryProjection(setup);
+    await assert.rejects(readSalesforceManagedQuery(queryRequest(setup, plan, {
+      moon: salesforceMoon,
+      values: salesforceConformance.salesforceSiteTestOutputValues(),
+    })), {code: 'SalesforceQueryResourceRejected'});
+    assert.deepEqual(setup.seen.filter(entry =>
+      entry.path?.includes('/query')).map(entry => entry.path), [
+      '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account',
+      '/services/data/v62.0/query/01gABC-2000',
+    ]);
+    assert.deepEqual(setup.journal.recover().filter(entry =>
+      entry.useId.startsWith('query-')).map(entry => entry.useId),
+    ['query-initial', 'query-continuation']);
+  });
+
 test('managed physical driver rejects a wrong typed value before receipt',
   async t => {
     const setup = await fixture(t, {queryFirstResponse: JSON.stringify({
