@@ -1195,6 +1195,99 @@ pub fn client_program_task_plan_graph_wire(
 }
 
 ///|
+/// Expose the checked acquisition to the installed physical adapter without
+/// accepting caller-supplied source requests or a parallel Program graph.
+#export_name("clientProgramPrepareQueryAcquisition")
+pub fn client_program_prepare_query_acquisition(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+) -> Result[
+  @acquisition.QueryAcquisition,
+  @publication_host.ClientAcquisitionIssue,
+] {
+  @publication_host.prepare_client_query_acquisition(
+    prepared,
+    stage,
+    source_index,
+  )
+}
+
+///|
+#export_name("clientProgramQueryAcquisitionSourceIndex")
+pub fn client_program_query_acquisition_source_index(
+  acquisition : @acquisition.QueryAcquisition,
+) -> Int {
+  @acquisition.query_acquisition_source_index(acquisition)
+}
+
+///|
+#export_name("clientProgramPrepareLocalQueryRequirement")
+pub fn client_program_prepare_local_query_requirement(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @planning.QueryRequirement,
+  @client_local_host.ClientLocalQueryIssue,
+] {
+  @client_local_host.prepare_local_query_requirement(
+    prepared, stage, source_index, registry_body, values_body,
+    fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramQueryRequirementCid")
+pub fn client_program_query_requirement_cid(
+  requirement : @planning.QueryRequirement,
+) -> String {
+  @planning.query_requirement_cid(requirement)
+}
+
+///|
+#export_name("clientProgramPrepareDuckDBAcquisition")
+pub fn client_program_prepare_duckdb_acquisition(
+  requirement : @planning.QueryRequirement,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[
+  @duckdb_host.NativeHostConfiguration,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.prepare_client_duckdb_acquisition(
+    requirement,
+    "main",
+    "records",
+    query_contract_body,
+    evidence_contract_body,
+    two_receipt_contract_body,
+  )
+}
+
+///|
+#export_name("clientProgramCapturedSourceMatches")
+pub fn client_program_captured_source_matches(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+    return false
+  }
+  @query.captured_source_matches(
+    source,
+    @program_check.source_identity(@strategy.graph_program(graph)),
+    owner,
+  )
+}
+
+///|
 #export_name("clientProgramAdmitTaskPlanGraph")
 pub fn client_program_admit_task_plan_graph(
   prepared : @publication_host.PreparedClientProgram,

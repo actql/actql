@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
+import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from
@@ -25,6 +26,14 @@ import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
+import {authorizeLocalDatabase} from
+  '../connectors/duckdb/node/session.mjs';
+import {runNativeHostQuery} from
+  '../connectors/duckdb/node/host.mjs';
+
+const {DuckDBInstance} = createRequire(new URL(
+  '../connectors/duckdb/node/package.json', import.meta.url))(
+  '@duckdb/node-api');
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
 const scratch = new URL('../../_build/client-program-bridge-tests/', import.meta.url);
@@ -95,6 +104,99 @@ test('checked acquired source and downstream task emit their input ports',
     const prepared = moon.clientProgramPreparationReady(outcome);
     assert.ok(prepared,
       String(moon.clientProgramPreparationIssueCode(outcome)));
+    const acquisition = checked(
+      moon.clientProgramPrepareQueryAcquisition(prepared, 0, 0));
+    assert.equal(moon.clientProgramQueryAcquisitionSourceIndex(acquisition),
+      0);
+    assert.throws(() => checked(
+      moon.clientProgramPrepareQueryAcquisition(prepared, 0, 1)));
+    assert.throws(() => checked(
+      moon.clientProgramPrepareQueryAcquisition(prepared, 1, 0)));
+    assert.throws(() => checked(
+      moon.clientProgramPrepareQueryAcquisition(prepared, 4, 0)));
+    const [registry, contracts] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const aoa = JSON.parse(contracts);
+    const requirement = checked(
+      moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
+        registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        JSON.stringify(aoa.execution_contracts[
+          'ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    assert.match(moon.clientProgramQueryRequirementCid(requirement),
+      /^sha256:[0-9a-f]{64}$/u);
+    const [queryContract, evidenceContract, twoReceiptContract] =
+      await Promise.all([
+        'actql-query-acquisition.json',
+        'actql-query-process-evidence.json',
+        'actql-query-two-receipt.json',
+      ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
+        import.meta.url), 'utf8')));
+    const nativeSetup = checked(moon.clientProgramPrepareDuckDBAcquisition(
+      requirement, queryContract, evidenceContract, twoReceiptContract));
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'checked-source-'));
+    try {
+      const path = join(directory, 'records.duckdb');
+      const database = await DuckDBInstance.create(path);
+      const connection = await database.connect();
+      try {
+        await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+        await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),'
+          + '(2,20),(3,30)');
+      } finally {
+        connection.closeSync();
+        database.closeSync();
+      }
+      const acquired = await runNativeHostQuery(
+        await authorizeLocalDatabase(path), nativeSetup, {
+          maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
+          maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+          memoryBytes: 128 * 1024 * 1024, threads: 1,
+        });
+      try {
+        assert.equal(JSON.parse(acquired.document()).output.row_count, 3);
+        assert.equal(moon.clientProgramCapturedSourceMatches(prepared,
+          acquired.source()), true);
+        const localSetup = moon.clientProgramOpenCapturedLocalHost(prepared,
+          acquired.source(), registry,
+          JSON.stringify(aoa.execution_contracts['REL.values']),
+          1n, 0n, 0n, 0n,
+          JSON.stringify(aoa.execution_contracts[
+            'ACTQL.expression_fragment/0.1']),
+          JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+        assert.ok(localSetup);
+        const execution = await runCapturedStrategy(localSetup);
+        try {
+          assert.equal(execution.status, 'host-tasks-completed');
+          assert.deepEqual(execution.resultInventory.map(result =>
+            result.name), ['b', 'c']);
+          assert.equal(execution.completed.length, 3);
+          assert.deepEqual(execution.completed.map(value => value.task),
+            [1, 2, 3]);
+        } finally {
+          await execution.close();
+          assert.equal(execution.cleanupPending(), false);
+        }
+      } finally {
+        acquired.close();
+      }
+    } finally {
+      await rm(directory, {recursive: true, force: true});
+    }
+    assert.throws(() => checked(moon.clientProgramPrepareDuckDBAcquisition(
+      requirement, '{}', evidenceContract, twoReceiptContract)));
+    assert.throws(() => checked(
+      moon.clientProgramPrepareLocalQueryRequirement(prepared, 1, 0,
+        registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        JSON.stringify(aoa.execution_contracts[
+          'ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered']))));
     const acquired = JSON.parse(checked(
       moon.clientProgramTaskPipelineWire(prepared, 0)));
     const downstream = JSON.parse(checked(

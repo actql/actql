@@ -2,7 +2,9 @@
 package "actql/actql/connectors_builtin_node"
 
 import {
+  "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
   "actql/actql/effect_application",
@@ -18,6 +20,7 @@ import {
   "actql/actql/platform_native/remote_standard_host",
   "actql/actql/program_check",
   "actql/actql/publication_payload",
+  "actql/actql/query_planning",
   "actql/actql/remote_bundle",
   "actql/actql/remote_credential",
   "actql/actql/remote_site_protocol",
@@ -25,6 +28,7 @@ import {
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/source_value",
+  "actql/actql/sourceview_resolution",
 }
 
 // Values
@@ -53,6 +57,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
+
+pub fn client_program_captured_source_matches(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource) -> Bool
 
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
@@ -158,9 +164,15 @@ pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> Stri
 
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String) -> Result[@host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
+
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
 
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
@@ -179,6 +191,10 @@ pub fn client_program_publication_rows_limit_json(@run_publication_host.Prepared
 pub fn client_program_publication_witness_bodies(@run_publication_host.ClientPublicationWitnesses) -> Array[String]
 
 pub fn client_program_publication_witness_cids(@run_publication_host.ClientPublicationWitnesses) -> Array[String]
+
+pub fn client_program_query_acquisition_source_index(@sourceview_resolution.QueryAcquisition) -> Int
+
+pub fn client_program_query_requirement_cid(@query_planning.QueryRequirement) -> String
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 

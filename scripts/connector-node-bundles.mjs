@@ -221,6 +221,12 @@ if (existsSync(join(root, 'src', bridgePackage,
 // runtime dependency after generated connector aliases so their stable names
 // continue to match that adapter. Other generated bridge packages do not gain
 // the dependency.
+if (existsSync(join(root, 'src', bridgePackage,
+  'client_program_bridge.mbt'))) {
+  dependencies.set('actql/actql/sourceview_resolution', 'acquisition');
+  dependencies.set('actql/actql/query_planning', 'planning');
+  dependencies.set('actql/actql/connectors/duckdb/host', 'duckdb_host');
+}
 if (hasLocalCarrierBridge) {
   dependencies.set(
     'actql/actql/managed_carrier_runtime',
