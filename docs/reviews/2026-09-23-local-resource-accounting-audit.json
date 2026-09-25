@@ -60,6 +60,7 @@
     {"family": "VecA", "operation": "nearest", "path": "relation_entrypoint"},
     {"family": "VecA", "operation": "pool_vectors", "path": "entrypoint"},
     {"family": "VecA", "operation": "pool_vectors", "path": "relation_entrypoint"},
+    {"family": "VecA", "operation": "merge_rankings", "path": "entrypoint"},
     {"family": "VecAExpression", "operation": "vector_score", "path": "entrypoint"},
     {"family": "VecAExpression", "operation": "vector_concat", "path": "entrypoint"},
     {"family": "Bridge", "operation": "graph", "path": "entrypoint"},

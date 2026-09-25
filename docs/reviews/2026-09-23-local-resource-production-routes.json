@@ -5532,8 +5532,58 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "ranking detects an in-flight input loss before completion"
+        },
+        {
+          "role": "ranking_provider_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "registered ranking provider enforces exact work and workspace"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "ranking_rrf_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-ranking-rrf"
+        },
+        {
+          "role": "ranking_maximum_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-ranking-maximum"
+        },
+        {
+          "role": "ranking_weighted_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-ranking-weighted"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "ranking_provider_work_workspace_exact_one_short",
+          "one_short_limit": "ranking_provider_work_workspace_exact_one_short",
+          "in_flight_cancel": "ranking_rrf_host_in_flight_cancel",
+          "cleanup": "ranking_provider_work_workspace_exact_one_short"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "ranking_provider_work_workspace_exact_one_short",
+            "one_short_limit": "ranking_provider_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "ranking_provider_work_workspace_exact_one_short",
+            "one_short_limit": "ranking_provider_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

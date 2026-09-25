@@ -130,6 +130,7 @@ priv struct RankingState {
   mut output_field : Int
   mut output_values : Array[@value.CheckedValue]
   output_field_slots : Ref[Int]
+  mut control_work_remaining : Int
 }
 
 ///|
@@ -250,6 +251,7 @@ pub(all) enum RankingIssue {
   InvalidRankingPosition(Int, Int)
   ConflictingRankingTie(Int)
   RankingWorkspaceLimit
+  RankingWorkLimit
   RankingNumeric(@numeric.Issue)
   RankingKeyOrder(@value.KeyOrderIssue)
   RankingOutput(@execution.CaptureIssue)
@@ -1086,6 +1088,9 @@ fn ranking_step(
     if ranking_input_available(state) is Some(issue) {
       return @bounded.Failed(issue, progress, used)
     }
+    if used >= state.control_work_remaining {
+      return @bounded.Failed(RankingWorkLimit, progress, used)
+    }
     match state.phase {
       BeginRecord =>
         if state.input >= state.inputs.length() {
@@ -1362,6 +1367,7 @@ fn ranking_step(
       }
     }
   }
+  state.control_work_remaining -= used
   @bounded.Continue(progress, used)
 }
 
@@ -1428,6 +1434,7 @@ pub fn start_ranking(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[RankingExecution, RankingIssue] {
   start_ranking_inputs(
     control,
@@ -1440,6 +1447,7 @@ pub fn start_ranking(
     max_workspace_slots,
     max_entries,
     max_name_bytes,
+    control_work_limit~,
   )
 }
 
@@ -1455,11 +1463,14 @@ pub fn start_ranking_inputs(
   max_workspace_slots : Int,
   max_entries : Int,
   max_name_bytes : Int,
+  control_work_limit? : Int? = None,
 ) -> Result[RankingExecution, RankingIssue] {
+  let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if max_rows < 0 ||
     max_workspace_slots < 0 ||
     max_entries < 0 ||
     max_name_bytes < 0 ||
+    control_work_limit < 0 ||
     inputs.is_empty() {
     return Err(InvalidRankingLimits)
   }
@@ -1556,6 +1567,9 @@ pub fn start_ranking_inputs(
     workspace <= max_workspace_slots else {
     return Err(RankingWorkspaceLimit)
   }
+  if control_work_limit == 0 {
+    return Err(RankingWorkLimit)
+  }
   let output = match
     @execution.prepare_admitted_output(
       owner,
@@ -1648,6 +1662,7 @@ pub fn start_ranking_inputs(
     output_field: 0,
     output_values: [],
     output_field_slots,
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control,

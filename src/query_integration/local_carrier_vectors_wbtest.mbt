@@ -3979,6 +3979,218 @@ test "ranking bounds scratch and output assembly within quantum" {
 }
 
 ///|
+test "ranking producer path admits exact work and workspace" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let limits : @execution.ValueLimits = {
+    max_nodes: 1000,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  let exact = @local_veca.start_ranking(
+    @bounded.control(),
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    limits,
+    91,
+    1000,
+    10000,
+    control_work_limit=Some(153),
+  ).unwrap()
+  let mut exact_done = false
+  for _ in 0..<1000 {
+    if exact_done {
+      break
+    }
+    match @local_veca.advance_ranking(exact, 1).unwrap() {
+      @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+      @local_veca.RankingComplete(output, work~, ..) => {
+        assert_eq(work, 153L)
+        assert_eq(@execution.completed_row_count(output), 2)
+        exact_done = true
+      }
+      _ => fail("exact ranking boundary failed")
+    }
+  }
+  assert_true(exact_done)
+  assert_eq(@local_veca.cleanup_ranking(exact), Ok(true))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+  let one_short_work = @local_veca.start_ranking(
+    @bounded.control(),
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    limits,
+    91,
+    1000,
+    10000,
+    control_work_limit=Some(152),
+  ).unwrap()
+  let mut work_failed = false
+  for _ in 0..<1000 {
+    if work_failed {
+      break
+    }
+    match @local_veca.advance_ranking(one_short_work, 1).unwrap() {
+      @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+      @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
+        assert_eq(work, 152L)
+        work_failed = true
+      }
+      _ => fail("one-short ranking work was accepted")
+    }
+  }
+  assert_true(work_failed)
+  assert_eq(@local_veca.cleanup_ranking(one_short_work), Ok(true))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+  assert_true(
+    @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      limits,
+      90,
+      1000,
+      10000,
+    )
+    is Err(@local_veca.RankingWorkspaceLimit),
+  )
+}
+
+///|
+test "registered ranking provider enforces exact work and workspace" {
+  let left = direct_rrf_owner()
+  let right = direct_rrf_owner()
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(left, [
+    (1.0, 1.0, 1.0),
+    (1.0, 2.0, 2.0),
+  ])
+  let right_output = direct_ranking_output(right, [
+    (1.0, 3.0, 1.0),
+    (1.0, 4.0, 2.0),
+  ])
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  let generated = task_test_generated(owner)
+  let limits = dispatch_test_limits()
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  // Four three-field input rows cost 32 units; four stable sort passes cost
+  // 80; duplicate/rank validation costs 10; four two-input folds cost 16;
+  // four output visits, two four-field rows, and finalization cost 15.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+16) = 91 slots.
+  for
+    (work, slots, outcome) in [
+      (153, 91, "complete"),
+      (152, 91, "work"),
+      (153, 90, "workspace"),
+    ] {
+    let provider = @local_veca_provider.provider(
+      {
+        ..carrier_vectors_storage_limits(),
+        max_work: work,
+        max_workspace_slots: slots,
+      },
+      4096L,
+      capacity,
+    )
+    let execution = @local_connector.start_managed_provider(
+      provider, generated, inputs, 10, 1000,
+    ).unwrap()
+    let mut terminal = false
+    let mut charged = 0L
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => {
+          assert_true(work > 0L)
+          charged += work
+        }
+        @local_connector.Complete(output, work~, ..) => {
+          assert_eq(outcome, "complete")
+          charged += work
+          assert_eq(@execution.completed_row_count(output), 2)
+          terminal = true
+        }
+        @local_connector.Failed(_, work~, ..) => {
+          charged += work
+          assert_true(outcome != "complete")
+          terminal = true
+        }
+        _ => fail("ranking provider stopped unexpectedly")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(
+      charged,
+      if outcome == "workspace" {
+        0L
+      } else if outcome == "work" {
+        152L
+      } else {
+        153L
+      },
+    )
+    assert_true(@local_connector.managed_provider_stopped(execution))
+    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
 fn run_direct_nearest_provider(
   owner : @lower.BoundPrepared,
   inputs : Array[@local_connector.ManagedProviderInput],

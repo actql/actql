@@ -1067,6 +1067,7 @@ fn advance_execution(
             value.limits.max_workspace_slots,
             value.limits.max_workspace_slots,
             value.max_value_bytes,
+            control_work_limit=Some(value.limits.max_work),
           ) {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
