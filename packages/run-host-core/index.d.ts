@@ -8,6 +8,23 @@ declare const publicationBrand: unique symbol;
 declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
+declare const materialHoldsBrand: unique symbol;
+
+export interface ResultMaterialHolds {
+  readonly [materialHoldsBrand]: true;
+}
+
+/** An in-process owner value; only the canonical wire is durable. */
+export function beginResultMaterialHolds(bindingCid: string,
+  materialGenerationCid: string): ResultMaterialHolds;
+export function admitResultMaterialHolds(wire: string): ResultMaterialHolds;
+export function resultMaterialHoldsWire(value: ResultMaterialHolds): string;
+export function resultMaterialHoldsFacts(value: ResultMaterialHolds):
+  Readonly<{bindingCid: string; materialGenerationCid: string;
+    revision: number; reclaimable: boolean}>;
+export function prepareResultMaterialHoldsStep(value: ResultMaterialHolds,
+  operation: 'add_consumer' | 'release_consumer' | 'begin_reader' |
+    'end_reader' | 'stop_readers', identity: string): ResultMaterialHolds;
 
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;

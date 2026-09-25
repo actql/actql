@@ -10,6 +10,7 @@ const publicationContracts = new WeakMap();
 const runEvidences = new WeakMap();
 const resultOccurrences = new WeakMap();
 const capturedSnapshots = new WeakMap();
+const materialHolds = new WeakMap();
 const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',
   'calendar', 'textRank']);
 
@@ -32,6 +33,49 @@ function requireHandle(map, token) {
   const value = map.get(token);
   if (value === undefined) throw new TypeError('ForeignRunHostHandle');
   return value;
+}
+
+/** Shared Result-generation hold decisions; physical CAS stays in the Host. */
+export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {
+  return handle(materialHolds, deliveryResult(
+    'clientValuesHostBeginResultMaterialHolds', bindingCid,
+    materialGenerationCid), 'result-material-holds');
+}
+
+export function admitResultMaterialHolds(wire) {
+  if (typeof wire !== 'string') throw new TypeError('InvalidMaterialHoldsWire');
+  return handle(materialHolds, deliveryResult(
+    'clientValuesHostAdmitResultMaterialHolds', wire),
+  'result-material-holds');
+}
+
+export function resultMaterialHoldsWire(value) {
+  return deliveryResult('clientValuesHostResultMaterialHoldsWire',
+    requireHandle(materialHolds, value));
+}
+
+export function resultMaterialHoldsFacts(value) {
+  const ownerValue = requireHandle(materialHolds, value);
+  return Object.freeze({
+    bindingCid: owner.clientValuesHostResultMaterialHoldsBinding(ownerValue),
+    materialGenerationCid:
+      owner.clientValuesHostResultMaterialHoldsGeneration(ownerValue),
+    revision: owner.clientValuesHostResultMaterialHoldsRevision(ownerValue),
+    reclaimable:
+      owner.clientValuesHostResultMaterialHoldsReclaimable(ownerValue),
+  });
+}
+
+export function prepareResultMaterialHoldsStep(value, operation, identity) {
+  if (!['add_consumer', 'release_consumer', 'begin_reader',
+    'end_reader', 'stop_readers'].includes(operation) ||
+    typeof identity !== 'string') {
+    throw new TypeError('InvalidMaterialHoldsStep');
+  }
+  return handle(materialHolds, deliveryResult(
+    'clientValuesHostPrepareResultMaterialHoldsStep',
+    requireHandle(materialHolds, value), operation, identity),
+  'result-material-holds');
 }
 
 export function admitEnvironment(body, evidenceBundleCid, profiles) {

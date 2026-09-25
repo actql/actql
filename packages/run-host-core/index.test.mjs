@@ -20,6 +20,9 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueEffectFreeRunReceipt, admitCapturedResultSnapshot,
   issueSourceFreeCapturedRun,
   openResultDeliveryControl,
+  beginResultMaterialHolds, admitResultMaterialHolds,
+  resultMaterialHoldsWire, resultMaterialHoldsFacts,
+  prepareResultMaterialHoldsStep,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
@@ -912,4 +915,36 @@ test('unresolved starting input cannot use the empty captured set', () => {
   program.stages[0].inputs.required = 'relation';
   assert.throws(() => compileValues(prepare(JSON.stringify(program),
     'json', environment)), {code: 'RunHostPreparationRejected'});
+});
+
+test('Result generation holds retain two consumers and an active reader', () => {
+  const binding = `sha256:${'a'.repeat(64)}`;
+  const material = `sha256:${'b'.repeat(64)}`;
+  const second = `sha256:${'c'.repeat(64)}`;
+  const reader = `sha256:${'d'.repeat(64)}`;
+  const begin = beginResultMaterialHolds(binding, material);
+  const restored = admitResultMaterialHolds(resultMaterialHoldsWire(begin));
+  assert.deepEqual(resultMaterialHoldsFacts(restored), {
+    bindingCid: binding, materialGenerationCid: material,
+    revision: 0, reclaimable: false});
+  const two = prepareResultMaterialHoldsStep(restored,
+    'add_consumer', second);
+  const active = prepareResultMaterialHoldsStep(two,
+    'begin_reader', reader);
+  const one = prepareResultMaterialHoldsStep(active,
+    'release_consumer', binding);
+  const stopped = prepareResultMaterialHoldsStep(one,
+    'stop_readers', '');
+  assert.equal(resultMaterialHoldsFacts(stopped).reclaimable, false);
+  assert.throws(() => prepareResultMaterialHoldsStep(stopped,
+    'begin_reader', second), {code: 'RunHostDeliveryRejected'});
+  const released = prepareResultMaterialHoldsStep(stopped,
+    'release_consumer', second);
+  assert.equal(resultMaterialHoldsFacts(released).reclaimable, false);
+  const ended = prepareResultMaterialHoldsStep(released,
+    'end_reader', reader);
+  assert.equal(resultMaterialHoldsFacts(ended).reclaimable, true);
+  assert.equal(resultMaterialHoldsWire(
+    prepareResultMaterialHoldsStep(ended, 'end_reader', reader)),
+  resultMaterialHoldsWire(ended));
 });

@@ -6,6 +6,91 @@ pub(all) suberror ClientValuesHostDeliveryIssue {
 }
 
 ///|
+/// Internal durable Result-generation hold owner for installed Hosts. These
+/// handles are in-process; the Store persists canonical bodies before I/O.
+#export_name("clientValuesHostBeginResultMaterialHolds")
+pub fn client_values_host_begin_result_material_holds(
+  binding_cid : String,
+  material_generation_cid : String,
+) -> @publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue {
+  match
+    @publication.begin_result_material_holds(
+      binding_cid, material_generation_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostAdmitResultMaterialHolds")
+pub fn client_values_host_admit_result_material_holds(
+  wire : String,
+) -> @publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue {
+  match @publication.admit_result_material_holds(wire) {
+    Ok(value) => value
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostResultMaterialHoldsWire")
+pub fn client_values_host_result_material_holds_wire(
+  value : @publication.ResultMaterialHolds,
+) -> String raise ClientValuesHostDeliveryIssue {
+  match @publication.result_material_holds_wire(value) {
+    Ok(wire) => wire
+    Err(_) => raise Rejected
+  }
+}
+
+///|
+#export_name("clientValuesHostResultMaterialHoldsRevision")
+pub fn client_values_host_result_material_holds_revision(
+  value : @publication.ResultMaterialHolds,
+) -> Int {
+  @publication.result_material_holds_revision(value)
+}
+
+///|
+#export_name("clientValuesHostResultMaterialHoldsBinding")
+pub fn client_values_host_result_material_holds_binding(
+  value : @publication.ResultMaterialHolds,
+) -> String {
+  @publication.result_material_holds_binding(value)
+}
+
+///|
+#export_name("clientValuesHostResultMaterialHoldsGeneration")
+pub fn client_values_host_result_material_holds_generation(
+  value : @publication.ResultMaterialHolds,
+) -> String {
+  @publication.result_material_holds_generation(value)
+}
+
+///|
+#export_name("clientValuesHostResultMaterialHoldsReclaimable")
+pub fn client_values_host_result_material_holds_reclaimable(
+  value : @publication.ResultMaterialHolds,
+) -> Bool {
+  @publication.result_material_holds_reclaimable(value)
+}
+
+///|
+#export_name("clientValuesHostPrepareResultMaterialHoldsStep")
+pub fn client_values_host_prepare_result_material_holds_step(
+  value : @publication.ResultMaterialHolds,
+  operation : String,
+  identity : String,
+) -> @publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue {
+  match
+    @publication.prepare_result_material_holds_step(value, operation, identity) {
+    Ok(next) => next
+    Err(_) => raise Rejected
+  }
+}
+
+///|
 #export_name("clientValuesHostPublicationContractName")
 pub fn client_values_host_publication_contract_name(
   contract : @publication.PublicationContract,

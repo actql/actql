@@ -427,6 +427,7 @@ export async function deliverPublishedResult(options) {
         await write(control.finishResultDelivery(serializer));
       },
       control,
+      attempt.identity,
     );
     const finishedAt = trustedNow(now);
     await requireCurrentAuthorization(authorize, {
