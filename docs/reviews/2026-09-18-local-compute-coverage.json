@@ -2227,7 +2227,7 @@
             "fixtures": [
               "Local managed literal lag feeds two downstream Computes",
               "Local managed parameter lag feeds two downstream Computes",
-              "Local managed lag pre-execution cancellation rejects completion and reclaims"
+              "Local lag chain pre-execution values cancellation reclaims"
             ],
             "suite": "moon:query_integration",
             "targets": [

@@ -35,6 +35,7 @@ fn captured_graph_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_relation_chain? : Bool = false,
   local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
@@ -104,6 +105,7 @@ fn captured_graph_fixture(
     local_carrier_vectors_chain~,
     local_carrier_vectors_variant~,
     local_supplied_ranking_chain~,
+    local_supplied_relation_chain~,
     local_supplied_ranking_policy~,
     local_vector_expression_chain~,
     local_values_analytic_chain~,
@@ -2050,6 +2052,17 @@ fn local_supplied_ranking_schema_snapshots() -> String {
 }
 
 ///|
+/// Fixture owner: query_integration/local_managed_values_wbtest.mbt
+fn local_supplied_relation_program() -> String {
+  let program =
+    #|{"version":"actql/0.1","id":"supplied-relation","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"rows","inputs":{"x":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"label":{"type":"string","nullable":false}}}},"from":"x","steps":[{"filter":"id > 0","as":"positive"},{"from":"positive","sort":[{"id":"desc"}],"as":"ordered"},{"from":"ordered","take":1,"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["id","label"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"rows","result":"r"}}},"steps":[{"select":["label","id"],"as":"out"}],"results":{"r":{"from":"out","fields":["label","id"]}}}],"results":{"out":{"from":{"stage":"consumer_a","result":"r"}}}}
+  program.replace(
+    old="{\"filter\":\"id > 0\",\"as\":\"positive\"},{\"from\":\"positive\",\"sort\"",
+    new="{\"filter\":\"id > 0\",\"as\":\"positive\"},{\"from\":\"positive\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unique\"},{\"from\":\"unique\",\"sort\"",
+  )
+}
+
+///|
 /// Fixture owner: query_integration/local_time_series_wbtest.mbt
 fn local_time_series_program() -> String {
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
@@ -3500,6 +3513,7 @@ fn query_checked_program_fixture(
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
   local_supplied_ranking_chain? : Bool = false,
+  local_supplied_relation_chain? : Bool = false,
   local_supplied_ranking_policy? : String = "\"max\"",
   local_vector_expression_chain? : Bool = false,
   local_values_analytic_chain? : Bool = false,
@@ -3602,6 +3616,11 @@ fn query_checked_program_fixture(
   }
   let text = if local_supplied_ranking_chain {
     local_supplied_ranking_program(policy=local_supplied_ranking_policy)
+  } else {
+    text
+  }
+  let text = if local_supplied_relation_chain {
+    local_supplied_relation_program()
   } else {
     text
   }
