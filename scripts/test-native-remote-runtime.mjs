@@ -143,9 +143,17 @@ async function testValuesHttps(tls, environment, transferControl) {
       '/v1/ready', '{}', 'probe');
     assert.equal(probe.status, 404);
   }
+  // Build before the Cloud-owned Run is accepted. Its first durable alarm
+  // must not mistake a cold native link for an unavailable physical Site.
+  execFileSync(moon, ['test',
+    'src/query_integration/client_source_free_root_wbtest.mbt',
+    '--target', 'native', '--build-only'], {
+    cwd: repositoryRoot, env: environment, stdio: 'inherit',
+  });
   let destinationChild;
   let destinationExited;
   let externalDestinationOrigin;
+  let acceptedRunEnvironment = {};
   if (externalDestinationDriver !== undefined) {
     if (externalDriver === undefined ||
         !isAbsolute(externalDestinationDriver)) {
@@ -156,14 +164,17 @@ async function testValuesHttps(tls, environment, transferControl) {
       ['--experimental-strip-types', externalDestinationDriver], {
         cwd: process.env.ACTQL_TEST_NATIVE_VALUES_DESTINATION_CWD ??
           dirname(externalDestinationDriver),
-        env: {...process.env,
+        env: {...environment,
           ACTQL_TEST_NATIVE_VALUES_DESTINATION_READY_PATH: destinationReady,
+          ACTQL_TEST_NATIVE_VALUES_ACCEPTED_RUN_PATH:
+            join(root, 'accepted-run.json'),
           ACTQL_TEST_NATIVE_VALUES_DESTINATION_STATE_ROOT:
             join(root, 'cloud-destination'),
           ACTQL_TEST_NATIVE_VALUES_TLS_CA: join(root, 'ca.crt'),
           ACTQL_TEST_NATIVE_VALUES_TLS_SERVER_CERT: join(root, 'server.crt'),
           ACTQL_TEST_NATIVE_VALUES_TLS_SERVER_KEY: join(root, 'server.key'),
           ACTQL_TEST_NATIVE_VALUES_TLS_CERT: join(root, 'coordinator.crt'),
+          ACTQL_TEST_NATIVE_VALUES_TLS_KEY: join(root, 'coordinator.key'),
         },
         stdio: 'inherit',
       });
@@ -189,6 +200,22 @@ async function testValuesHttps(tls, environment, transferControl) {
           selected.pathname !== '/' || selected.search || selected.hash) {
         throw new Error('invalid external destination origin');
       }
+      const acceptedPath = join(root, 'accepted-run.json');
+      if (existsSync(acceptedPath)) {
+        const accepted = JSON.parse(await readFile(acceptedPath, 'utf8'));
+        const names = ['RUN_ID', 'CREATED_AT', 'VALID_UNTIL',
+          'RUN_DEFINITION_CID', 'DISPATCH_ID', 'DISPATCH_CID'];
+        if (accepted === null || typeof accepted !== 'object' ||
+            Array.isArray(accepted) ||
+            Object.keys(accepted).sort().join('\0') !==
+              names.toSorted().join('\0') ||
+            names.some(name => typeof accepted[name] !== 'string' ||
+              accepted[name].length === 0)) {
+          throw new Error('invalid accepted native Run handoff');
+        }
+        acceptedRunEnvironment = Object.fromEntries(names.map(name =>
+          [`ACTQL_TEST_NATIVE_VALUES_${name}`, accepted[name]]));
+      }
     } catch (error) {
       if (destinationChild.exitCode === null &&
           destinationChild.signalCode === null) {
@@ -198,19 +225,15 @@ async function testValuesHttps(tls, environment, transferControl) {
       throw error;
     }
   }
-  // Compile before starting the Site readiness clock. A cold native link can
-  // exceed the runtime startup allowance without indicating a Site failure.
-  execFileSync(moon, ['test',
-    'src/query_integration/client_source_free_root_wbtest.mbt',
-    '--target', 'native', '--build-only'], {
-    cwd: repositoryRoot, env: environment, stdio: 'inherit',
-  });
   const child = spawn(moon, [
     'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
     '--target', 'native',
   ], {cwd: repositoryRoot, env: destination === undefined &&
     externalDestinationOrigin === undefined ? environment : {
     ...environment,
+    ...acceptedRunEnvironment,
+    ...(Object.keys(acceptedRunEnvironment).length === 0 ? {} :
+      {ACTQL_TEST_NATIVE_VALUES_HTTP_REQUESTS: '16'}),
     ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN:
       destination?.origin ?? externalDestinationOrigin,
     ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_CERT:
