@@ -33,12 +33,20 @@ replay commits or cherry-pick the performance work. The branch then retained
 its WIP and continued Salesforce work. Neither `main` nor the other owners'
 worktrees were changed, and no push or merge was performed.
 
-The later local `main` is
+At the earlier rebase check, local `main` was
 `7dfd5bf78849ba341716935c1f1cc8b3405316d5`, which contains
 `ac3fbce57947a05db99289f52294fd6bd6017799`. It was already an
-ancestor of the Salesforce head at the latest rebase check, so the branch
-HEAD and its shared commit SHAs did not change. `origin/main` still points to
-`ac3fbce57947a05db99289f52294fd6bd6017799`.
+ancestor of the Salesforce head at that check, so the branch
+HEAD and its shared commit SHAs did not change. At that check, `origin/main`
+pointed to `ac3fbce57947a05db99289f52294fd6bd6017799`.
+
+The September 26 fetch confirmed `origin/main` at
+`826fc49188cc184f5a9bedcfcd2b49ad6ae3e658`, containing the reviewed D
+head `784280db7cec1d498aaab3cd396c308462c858fd`. It was already an
+ancestor of the Salesforce branch. Rebase made no changes and produced no
+conflicts. The D Effect connection, including the mandatory resume-admission
+guard, was already present on this branch; the corresponding handoff patch
+has the same stable patch ID. No D commit was cherry-picked again.
 
 ## Fixed completion unit at current HEAD
 
