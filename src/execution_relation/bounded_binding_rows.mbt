@@ -353,6 +353,8 @@ struct BoundedBindingRowsExecution {
 }
 
 ///|
+// This read-only probe is used by white-box cancellation tests.
+#warnings("-unused_value")
 fn bounded_binding_rows_comparison_state(
   value : BoundedBindingRowsExecution,
 ) -> (BoundedBindingRowsPhase, Int, Int) {
