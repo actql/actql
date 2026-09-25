@@ -2447,11 +2447,13 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-preapply-restart',
   'salesforce-prepared-intent-restart',
   'salesforce-process-prepared-intent-restart',
+  'salesforce-process-unknown-restart',
   'salesforce-terminal-store-restart',
   'salesforce-terminal-process-publication',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
+    physical === 'salesforce-process-unknown-restart' ||
     physical === 'salesforce-rate-limit' ||
     physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
@@ -2473,7 +2475,9 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
-    const processPreparedIntent =
+    const processUnknownIntent =
+      physical === 'salesforce-process-unknown-restart';
+    const processPreparedIntent = processUnknownIntent ||
       physical === 'salesforce-process-prepared-intent-restart';
     const restartPreparedIntent = processPreparedIntent ||
       physical === 'salesforce-prepared-intent-restart';
@@ -2482,7 +2486,8 @@ test(`two-member captured Effect Run ${
     const restartBeforeFinal =
       physical === 'salesforce-terminal-store-restart' ||
       processPublication;
-    const loseHttpReply = physical.endsWith('lost-http-reply');
+    const loseHttpReply = physical.endsWith('lost-http-reply') ||
+      processUnknownIntent;
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
       loseHttpReply;
@@ -3400,6 +3405,7 @@ test(`two-member captured Effect Run ${
         };
       }
       let recoveredApplyOptions;
+      let processUnknownSetCid;
       if (restartPreparedIntent) {
         assert.equal(ledger.prepareCapturedSetIntents(
           previewInputs, members, 64), 4);
@@ -3451,9 +3457,19 @@ test(`two-member captured Effect Run ${
           assert.equal(sites.flatMap(site => site.seen).filter(item =>
             item.method === 'PATCH').length, 0);
         }
+        if (processUnknownIntent) {
+          const lost = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, recoveryPass: 'lost-reply'});
+          assert.notEqual(lost.status, 0);
+          assert.deepEqual(sites.map(site => site.seen.filter(item =>
+            item.method === 'PATCH').length), [1, 0]);
+        }
         const child = processPreparedIntent
           ? await runChildWithLiveSite(
-            './fixtures/recover-effect-outcomes.mjs', childInput)
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, ...(processUnknownIntent
+              ? {recoveryPass: 'reconcile'} : {})})
           : spawnSync(process.execPath, [fileURLToPath(new URL(
             './fixtures/recover-effect-outcomes.mjs', import.meta.url,
           ))], {input: JSON.stringify(childInput), encoding: 'utf8',
@@ -3477,10 +3493,14 @@ test(`two-member captured Effect Run ${
             effect.dispatchKeyCid(key))));
         assert.deepEqual(fresh.recoveredCatalogCids,
           sites.map(site => site.catalog.observationCid));
-        assert.equal(fresh.setStatus,
-          processPreparedIntent ? 'applied' : null);
-        assert.equal(fresh.dispatched, processPreparedIntent ? 4 : null);
+        assert.equal(fresh.setStatus, processUnknownIntent
+          ? 'unknown_outcome' : processPreparedIntent ? 'applied' : null);
+        assert.equal(fresh.dispatched, processUnknownIntent ? 2 :
+          processPreparedIntent ? 4 : null);
         assert.equal(fresh.setReceiptCid === null, !processPreparedIntent);
+        if (processUnknownIntent) {
+          processUnknownSetCid = fresh.setReceiptCid;
+        }
         control = runtimeCore(moon).publicationControl;
         physicalStore = await openLocalPublicationStore(configuration, control);
         store = Object.freeze({...physicalStore,
@@ -3680,7 +3700,7 @@ test(`two-member captured Effect Run ${
         }), {code: 'MoonBitHostFailure'});
         assert.equal(sites.flatMap(site => site.seen).filter(item =>
           item.method === 'PATCH').length,
-        processPreparedIntent ? 4 : 0);
+        processUnknownIntent ? 3 : processPreparedIntent ? 4 : 0);
       }
       if (physical === 'salesforce-stale-target' ||
           physical === 'salesforce-schema-drift') {
@@ -3892,7 +3912,8 @@ test(`two-member captured Effect Run ${
         const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
           runDefinitionCid: runDefinition.identity};
         await assert.rejects(publishCompletedEffectfulRun({
-          execution, store, storedResults, control, computation,
+          execution: restartPreparedIntent ? null : execution,
+          store, storedResults, control, computation,
           preview: admittedPreview, ledger, issuedSet,
           request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
             publicationPolicyCid: cid('e'),
@@ -3925,6 +3946,36 @@ test(`two-member captured Effect Run ${
           await sourcePayload.prepared.release();
         }
       };
+      if (processUnknownIntent) {
+        const noReplay = await applyRecoveredEffectSet({
+          ...recoveredApplyOptions,
+          refreshPreflight: () =>
+            assert.fail('unknown process replay refreshed current Site'),
+          dispatchRow: () =>
+            assert.fail('unknown or known row resent after process restart'),
+        });
+        assert.equal(noReplay.dispatched, 0);
+        assert.deepEqual(sites.map(site => site.seen.filter(item =>
+          item.method === 'PATCH').length), [1, 2]);
+        const uncertainSet = await issueAuthorizedEffectSetReceipt({
+          ledger, preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
+          members: members.map(member => ({
+            rowOwners: member.claims.map(claim => ({claim})),
+            replayed: true,
+          })), limits: publicationLimits,
+        });
+        assert.equal(uncertainSet.set.identity, processUnknownSetCid);
+        assert.equal(JSON.parse(uncertainSet.set.wire).status,
+          'unknown_outcome');
+        assert.deepEqual(JSON.parse(uncertainSet.set.wire).effects.map(
+          member => member.state), ['unknown', 'applied']);
+        await rejectPublicationAndRetire(uncertainSet,
+          'EffectfulRunNeedsReconciliation',
+          'process-unknown-two-effects-attempt');
+        return;
+      }
       if (rateLimitWrite) {
         const first = await applyCapturedEffectSet({...applyOptions,
           dispatchRow});

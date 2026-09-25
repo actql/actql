@@ -1,5 +1,5 @@
-// Recover recorded Effect claims and optionally publish in a fresh process.
-// This uses the real Store and SQLite Ledger; it never opens a write Site.
+// Recover Effect claims and optionally resume or publish in a fresh process.
+// This uses the real Store and SQLite Ledger.
 import {createPublicKey} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import * as moon from
@@ -29,7 +29,7 @@ import {observeSalesforceTargetSet} from
 import {openSqliteCredentialJournal} from
   '../../site-node/sqlite-credential-journal.mjs';
 
-function restoreSiteConnection(connection, control) {
+function restoreSiteConnection(connection, control, usePrefix) {
   const journal = openSqliteCredentialJournal(connection.journalRoot, {
     credentialAuthorities: new Map([['credential-authority-a',
       new Map([['credential-key-a', createPublicKey(
@@ -50,10 +50,10 @@ function restoreSiteConnection(connection, control) {
   };
   return Object.freeze({journal, origin: connection.origin,
     orgId: connection.orgId,
-    list: authorization(connection.list, 'restart-catalog-list'),
-    describe: authorization(connection.describe, 'restart-describe'),
-    observe: authorization(connection.observe, 'restart-observe'),
-    write: authorization(connection.write, 'restart-write'),
+    list: authorization(connection.list, `${usePrefix}-catalog-list`),
+    describe: authorization(connection.describe, `${usePrefix}-describe`),
+    observe: authorization(connection.observe, `${usePrefix}-observe`),
+    write: authorization(connection.write, `${usePrefix}-write`),
     credential: Object.freeze({orgId: connection.orgId, control, journal,
       ca: Buffer.from(connection.caBase64, 'base64'),
       now: () => 1_999_999_999_999,
@@ -131,8 +131,10 @@ try {
       throw new Error('InvalidPreparedEffectSiteRecovery');
     }
     const credentialControl = core.remoteCredentialControl;
+    const usePrefix = input.recoveryPass === undefined ? 'restart' :
+      `restart-${input.recoveryPass}`;
     activeSites = input.salesforceRecovery.sites.map(connection =>
-      restoreSiteConnection(connection, credentialControl));
+      restoreSiteConnection(connection, credentialControl, usePrefix));
     const riskBody = JSON.parse(input.riskWire);
     const risk = checked(moon.clientProgramAdmitEffectRiskAcceptanceBody(
       input.riskWire, 8192, 256, 12));
@@ -173,7 +175,7 @@ try {
             requests: recoveredSalesforce.requests[memberIndex],
             currentCatalog: currentCatalogs[memberIndex],
             authorizationForRow: async rowIndex => ({...site.observe,
-              useId: `restart-observe-${rowIndex}`}),
+              useId: `${usePrefix}-observe-${rowIndex}`}),
             credential: site.credential,
             limits: {maxResponseBytes: 1024, maxNodes: 32,
               maxDepth: 5, maxIdentityBytes: 4096},
@@ -218,7 +220,7 @@ try {
           request: recoveredSalesforce.requests[memberIndex][rowIndex],
           currentObservation: currentCatalogs[memberIndex],
           authorization: {...site.write,
-            useId: `restart-write-${memberIndex}-${rowIndex}`},
+            useId: `${usePrefix}-write-${memberIndex}-${rowIndex}`},
           credential: site.credential,
           limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
             maxNodes: 32, maxDepth: 5},

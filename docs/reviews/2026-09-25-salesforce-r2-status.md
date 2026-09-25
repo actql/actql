@@ -148,9 +148,14 @@ the signed credential-use journal, refreshes the current Catalog and targets,
 and sends all four rows through the common recovered apply owner. A foreign
 trust key is rejected before any write. The parent reopens the terminal Ledger,
 issues the same final Effect Receipts, publishes and reads the Result, and
-retires its private and public holdings. The fixture still supplies example
-capability and approval references; this is not public Effectful submit or a
-live Salesforce org validation.
+retires its private and public holdings. A separate process-restart fault case
+loses the first write reply after the HTTPS Site receives the request. Another
+fresh process retains that row as unknown, sends only the two rows of the
+independent member, and issues an unknown Set Receipt. Reopening the Ledger
+again sends no row, formal publication rejects the uncertain Set, and private
+holdings are retired explicitly. The fixture still supplies example capability
+and approval references; this is not public Effectful submit or a live
+Salesforce org validation.
 
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
