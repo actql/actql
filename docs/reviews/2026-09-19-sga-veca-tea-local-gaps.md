@@ -29,7 +29,7 @@ prove these properties; a normal gate result or an operation count does not.
 ### Remaining product work and its acceptance tests
 
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
-ten SGA entrypoints, and the providerless synchronous computation.
+nine SGA entrypoints, and the providerless synchronous computation.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking
 paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
@@ -44,6 +44,26 @@ implementation while retaining separate input bindings and route evidence.
 | Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
 | Standard SGA Graph programs still have nine registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
+
+At `90f193102`, a temporary read-only diagnostic in the standard managed
+Host fixture observed the actual provider decision while running the JS
+unary, group, binary-input, and values suites. It was removed after the
+probe. The following are reachable synchronous fallback shapes, not inferred
+from operation names or from the complete prepared Stage alone:
+
+| Observed normal task | Missing bounded product connection |
+| --- | --- |
+| `REL.dedupeRows` and `REL.pivot` | Their selected task still has no bounded managed kernel. The existing synchronous evaluator runs before the independent bounded output copy. |
+| `REL.join` followed by `REL.select` in one task | The selected Relation chain cannot use a bounded join child; the entire task reaches the synchronous evaluator. |
+| General `REL.groupBy`, including `REL.assert_unique → REL.groupBy`, `REL.groupBy → REL.where`, and two successive groups | The count-only bounded provider does not cover these aggregate members. The combined tasks remain synchronous. |
+
+The binary-input and zero-input Values fixture suites showed no providerless
+task in this probe. A trial Values → filter → select Program is split into
+physical tasks; its complete prepared sequence must not be mistaken for one
+zero-input three-step task. This sample is not a complete reachability audit:
+the strict gate still rejects the generic fallback and the unassured routes
+above. A final route proof must come from persistent standard-Host fixtures
+with delivered cancellation, exact/one-short limits, and cleanup.
 
 The current `--require-boundary-complete` output is the finite acceptance
 list. Its 30 full-route and 67 path-scoped counts describe evidence, not
