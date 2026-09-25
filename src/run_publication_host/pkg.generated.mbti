@@ -48,6 +48,8 @@ pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_pub
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
+pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
+
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
 
 pub fn client_direct_result_root_plan_cid(ClientDirectResultRoot) -> String
@@ -301,6 +303,8 @@ pub(all) enum ClientEffectLocalIdentityIssue {
   MissingMember
   ForeignArtifact
   MissingMapping
+  ForeignPreview
+  MissingIdentity
   WorkLimit
   Encoding
 } derive(Eq, @debug.Debug)

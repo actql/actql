@@ -626,6 +626,25 @@ pub fn client_program_local_effect_identity_json(
 }
 
 ///|
+#export_name("clientProgramCheckSourceFreeLocalEffectPreviewIdentities")
+pub fn client_program_check_source_free_local_effect_preview_identities(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  identities : Array[@publication_host.ClientEffectLocalIdentity],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication_host.ClientEffectLocalIdentityIssue] {
+  @publication_host.check_source_free_client_effect_preview_identities(
+    owner, inputs, preview_wire, run_identity_cid, authoring_context_cid, identities,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,

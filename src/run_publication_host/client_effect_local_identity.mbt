@@ -4,6 +4,8 @@ pub(all) enum ClientEffectLocalIdentityIssue {
   MissingMember
   ForeignArtifact
   MissingMapping
+  ForeignPreview
+  MissingIdentity
   WorkLimit
   Encoding
 } derive(Eq, Debug)
@@ -171,4 +173,85 @@ pub fn client_effect_local_identity_matches(
   physical_equal(identity.owner, owner) &&
   identity.member_index == member_index &&
   physical_equal(identity.artifact, artifact)
+}
+
+///|
+/// Bind every Result-consuming Preview member to the identity issued by the
+/// exact checked computation and pinned local Result Artifact. Preview CID
+/// admission alone cannot establish that the claimed identity was issued.
+pub fn check_source_free_client_effect_preview_identities(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  preview_wire : String,
+  run_identity_cid : String,
+  authoring_context_cid : String,
+  identities : Array[ClientEffectLocalIdentity],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientEffectLocalIdentityIssue] {
+  if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
+    return Err(ForeignInput)
+  }
+  let preview = match
+    @publication.admit_effect_preview_identity(
+      preview_wire, run_identity_cid, authoring_context_cid, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignPreview)
+  }
+  if @publication.effect_preview_program_definition_cid(preview) !=
+    prepared_client_effect_computation_definition_cid(owner) ||
+    @publication.effect_preview_program_semantics_cid(preview) !=
+    prepared_client_effect_computation_semantics_cid(owner) ||
+    @publication.effect_preview_check_environment_cid(preview) !=
+    prepared_client_effect_computation_environment_cid(owner) {
+    return Err(ForeignPreview)
+  }
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  let by_effect_id : Map[String, ClientEffectLocalIdentity] = Map([])
+  for identity in identities {
+    guard @syntax.effect_header_at(headers, identity.member_index)
+      is Some(header) else {
+      return Err(ForeignPreview)
+    }
+    let effect_id = @syntax.effect_header_id(header)
+    if by_effect_id.contains(effect_id) ||
+      !physical_equal(identity.owner, owner) ||
+      !physical_equal(identity.artifact.inputs, inputs) ||
+      @strategy.captured_effect_input_at(inputs, identity.member_index) is None {
+      return Err(ForeignPreview)
+    }
+    by_effect_id[effect_id] = identity
+  }
+  let mut source_count = 0
+  for preview_index in 0..<@publication.effect_preview_member_count(preview) {
+    match
+      @publication.effect_preview_member_source_result(preview, preview_index) {
+      None => continue
+      Some(source_result) => {
+        source_count += 1
+        let effect_id = @publication.effect_preview_member_effect_id(
+          preview, preview_index,
+        ).unwrap()
+        let expected_cid = @publication.effect_preview_member_effect_identity_cid(
+          preview, preview_index,
+        ).unwrap()
+        guard by_effect_id.get(effect_id) is Some(identity) else {
+          return Err(MissingIdentity)
+        }
+        let header = @syntax.effect_header_at(headers, identity.member_index).unwrap()
+        if @syntax.effect_header_source_result(header) != Some(source_result) ||
+          identity.artifact.definition.result_name != source_result ||
+          identity.cid != expected_cid {
+          return Err(ForeignPreview)
+        }
+      }
+    }
+  }
+  if source_count != identities.length() {
+    return Err(MissingIdentity)
+  }
+  Ok(())
 }

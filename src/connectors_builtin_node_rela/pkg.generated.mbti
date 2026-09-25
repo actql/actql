@@ -85,6 +85,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
+
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]

@@ -127,6 +127,8 @@ pub fn effect_preview_member_count(EffectPreviewIdentity) -> Int
 
 pub fn effect_preview_member_effect_id(EffectPreviewIdentity, Int) -> String?
 
+pub fn effect_preview_member_effect_identity_cid(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_member_failure_policy(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_footprint(EffectPreviewIdentity, Int) -> EffectPreviewFootprintIdentity?
@@ -678,6 +680,7 @@ pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
+  member_effect_identity_cids : Array[String]
   member_effect_kinds : Array[String]
   member_source_binding_cids : Array[String]
   member_capability_evidence_cids : Array[String]

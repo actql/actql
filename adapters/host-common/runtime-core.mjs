@@ -1650,6 +1650,7 @@ function publicationControl(moon) {
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
   const localEffectArtifactTokens = new WeakMap();
+  const localEffectIdentityTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
@@ -1985,7 +1986,29 @@ function publicationControl(moon) {
         identity: moon.clientProgramLocalEffectIdentityCid(issued),
         wire: moon.clientProgramLocalEffectIdentityJson(issued),
       });
+      localEffectIdentityTokens.set(value, issued);
       return value;
+    },
+    checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
+      runIdentityCid, authoringContextCid, identities, limits) {
+      issuanceLimits(limits, 'local Effect Preview identities');
+      if (typeof wire !== 'string' ||
+          typeof runIdentityCid !== 'string' ||
+          typeof authoringContextCid !== 'string' ||
+          !Array.isArray(identities)) {
+        throw new TypeError('Invalid local Effect Preview identities');
+      }
+      const owned = identities.map(identity => {
+        const token = localEffectIdentityTokens.get(identity);
+        if (token === undefined) {
+          throw new TypeError('Foreign local Effect identity');
+        }
+        return token;
+      });
+      return checked(
+        moon.clientProgramCheckSourceFreeLocalEffectPreviewIdentities(
+          owner, inputs, wire, runIdentityCid, authoringContextCid, owned,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     effectSourceArtifactPreviewBinding(artifact, invocationCid, sourceResult,
       storeAuthorityCid) {

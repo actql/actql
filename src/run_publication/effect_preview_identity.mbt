@@ -23,6 +23,7 @@ pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
   member_effect_ids : Array[String]
+  member_effect_identity_cids : Array[String]
   member_effect_kinds : Array[String]
   member_source_binding_cids : Array[String]
   member_capability_evidence_cids : Array[String]
@@ -902,6 +903,7 @@ pub fn admit_effect_preview_identity(
   let cids = []
   let row_keys : Array[Array[String]] = []
   let member_effect_ids : Array[String] = []
+  let member_effect_identity_cids : Array[String] = []
   let member_effect_kinds : Array[String] = []
   let member_source_binding_cids : Array[String] = []
   let member_capability_evidence_cids : Array[String] = []
@@ -945,6 +947,7 @@ pub fn admit_effect_preview_identity(
     }
     seen_effect_identities[effect_identity] = true
     member_effect_ids.push(effect_id)
+    member_effect_identity_cids.push(effect_identity)
     let effect_kind = match @json.object_field(effect, "effect_kind") {
       Some(@json.String(value)) => value
       _ => return Err(InvalidMember)
@@ -1135,6 +1138,7 @@ pub fn admit_effect_preview_identity(
     semantic_cid: cid,
     member_cids: cids,
     member_effect_ids,
+    member_effect_identity_cids,
     member_effect_kinds,
     member_source_binding_cids,
     member_capability_evidence_cids,
@@ -1209,6 +1213,16 @@ pub fn effect_preview_member_effect_id(
   index : Int,
 ) -> String? {
   value.member_effect_ids.get(index)
+}
+
+///|
+/// The admitted semantic identity claimed by this Preview member. A caller
+/// must still bind it to an issued, checked local Effect occurrence.
+pub fn effect_preview_member_effect_identity_cid(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  value.member_effect_identity_cids.get(index)
 }
 
 ///|

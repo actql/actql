@@ -154,6 +154,10 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     final_wire, run, authoring, 8192, 256, 12,
   ).unwrap()
   assert_eq(
+    effect_preview_member_effect_identity_cid(final_identity, 0),
+    Some(preview_identity_test_cid("a")),
+  )
+  assert_eq(
     effect_preview_semantic_identity(final_identity),
     effect_preview_semantic_identity(semantic),
   )
