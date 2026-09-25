@@ -31,6 +31,16 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const requirement = checked(
     moon.clientProgramPrepareLocalQueryRequirement(preparedProgram, 0, 0,
       registry, values, fragment, ordered));
+  const checkedSource = Object.freeze({
+    requirementCid: moon.clientProgramQueryRequirementCid(requirement),
+    sourceRef: moon.clientProgramQueryRequirementSourceRef(requirement),
+    sourceContractCid:
+      moon.clientProgramQueryRequirementSourceContractCid(requirement),
+    inputContractCid:
+      moon.clientProgramQueryRequirementInputContractCid(requirement),
+    outputContractCid:
+      moon.clientProgramQueryRequirementOutputContractCid(requirement),
+  });
   const contracts = await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
@@ -49,7 +59,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       capture.source(), registry, values, 1n, 0n, 0n, 0n,
       fragment, ordered);
     if (setup === undefined) throw new Error('InstalledSourceHostUnavailable');
-    return Object.freeze({capture, identity, setup,
+    return Object.freeze({capture, identity, checkedSource, setup,
       close: () => capture.close()});
   } catch (cause) {
     capture.close();

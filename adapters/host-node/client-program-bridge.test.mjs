@@ -127,6 +127,11 @@ test('checked acquired source and downstream task emit their input ports',
         JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
     assert.match(moon.clientProgramQueryRequirementCid(requirement),
       /^sha256:[0-9a-f]{64}$/u);
+    assert.equal(moon.clientProgramQueryRequirementSourceRef(requirement),
+      'connector://crm/main/r#v');
+    assert.equal(
+      moon.clientProgramQueryRequirementSourceContractCid(requirement),
+      'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3');
     const [queryContract, evidenceContract, twoReceiptContract] =
       await Promise.all([
         'actql-query-acquisition.json',
@@ -166,6 +171,17 @@ test('checked acquired source and downstream task emit their input ports',
         }});
       const capturedSource = opened.capture.source();
       try {
+        assert.deepEqual(opened.checkedSource, {
+          requirementCid: moon.clientProgramQueryRequirementCid(requirement),
+          sourceRef: 'connector://crm/main/r#v',
+          sourceContractCid:
+            'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+          inputContractCid:
+            moon.clientProgramQueryRequirementInputContractCid(requirement),
+          outputContractCid:
+            moon.clientProgramQueryRequirementOutputContractCid(requirement),
+        });
+        assert.equal(Object.isFrozen(opened.checkedSource), true);
         assert.equal(JSON.parse(opened.capture.document()).output.row_count,
           3);
         assert.equal(moon.clientProgramCapturedSourceMatches(prepared,

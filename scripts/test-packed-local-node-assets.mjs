@@ -135,6 +135,12 @@ const captured = await physical.openCapturedDuckDBSource({
     memoryBytes: 128 * 1024 * 1024, threads: 1},
 });
 try {
+  assert.equal(captured.checkedSource.sourceRef,
+    'connector://crm/main/r#v');
+  assert.equal(captured.checkedSource.sourceContractCid,
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3');
+  assert.match(captured.checkedSource.requirementCid,
+    /^sha256:[0-9a-f]{64}$/u);
   assert.equal(owner.clientProgramCapturedSourceRowCount(
     captured.identity), 3);
   const sourceExecution = await host.runCapturedStrategy(captured.setup);
