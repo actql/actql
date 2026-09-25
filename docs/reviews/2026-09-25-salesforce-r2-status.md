@@ -47,7 +47,10 @@ total response bytes; over-limit inventories fail before credential use, and
 a 404 cannot become a version guard. A changed target is rejected by the common
 preflight before any write request or write credential use. The observation
 inventory and its typed before-value projection are product Site operations.
-The product Host row assembler now replaces update/upsert target, guard,
+The product Host resolves checked member facts by exact Stage and Effect ID,
+not by a guessed Program-global position. A member from another Stage or a
+reordered member cannot silently supply a Mapping or logical Plan. The row
+assembler now replaces update/upsert target, guard,
 before, after, and intended-change fields from one exact typed request and
 observation; it rejects an observation from another request. The fixture still
 provides the surrounding semantic template. For update/upsert, the selected
