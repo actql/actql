@@ -221,6 +221,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       syncOccurrence: sequence === 0 ? 'catalog-sync-a' :
         `catalog-sync-${sequence}`,
       maxObservationBytes: 10000,
+      retainResponses: sequence === 0,
+      maxRetainedBytes: sequence === 0 ? 30000 : 0,
       listAuthorization: {...currentList, useId: `list-use-${sequence}`},
       authorizationForDescribe: async name => ({...currentDescribe,
         useId: `describe-${name}-${sequence}`}),

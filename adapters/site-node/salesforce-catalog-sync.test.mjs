@@ -33,6 +33,8 @@ import {callHttpsCredentialResource} from
 import {signRemoteCredentialGrant} from
   './remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from './salesforce-catalog-sync.mjs';
+import {recoverRetainedSalesforceCatalog} from
+  './salesforce-catalog-recovery.mjs';
 import {createSalesforceCliSecretResolver} from './salesforce-cli-secret.mjs';
 import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
@@ -1084,6 +1086,49 @@ test('Host claim owns one local HTTPS write', async t => {
   assert.equal(repeated.terminal.created, false);
   assert.equal(setup.seen.filter(item => item.method === 'POST').length, 2);
 });
+
+test('retained Catalog responses restore only the exact typed observation',
+  async t => {
+    const setup = await fixture(t);
+    const live = await syncSalesforceCatalog(request(setup, {
+      retainResponses: true, maxRetainedBytes: 30000,
+    }));
+    const beforeRequests = setup.seen.length;
+    const beforeUses = setup.journal.recover().length;
+    const retained = JSON.parse(JSON.stringify(live.retainedResponses));
+    const restored = recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained,
+      expectedObservationCid: live.observationCid,
+      maxRetainedBytes: 30000,
+    });
+    assert.equal(restored.observationCid, live.observationCid);
+    assert.equal(salesforceMoon.salesforceCatalogObservationJson(
+      restored.observation), live.observationJson);
+    assert.equal(setup.seen.length, beforeRequests);
+    assert.equal(setup.journal.recover().length, beforeUses);
+    const wrongResponse = structuredClone(retained);
+    wrongResponse.describeBodyBase64[1] = Buffer.from(
+      '{"name":"Other","fields":[]}', 'utf8').toString('base64');
+    assert.throws(() => recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: wrongResponse,
+      expectedObservationCid: live.observationCid,
+      maxRetainedBytes: 30000,
+    }), {code: 'MoonBitHostFailure'});
+    const wrongBinding = structuredClone(retained);
+    wrongBinding.observationJson = wrongBinding.observationJson.replace(
+      '"tenant":"tenant-a"', '"tenant":"tenant-b"');
+    assert.throws(() => recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: wrongBinding,
+      expectedObservationCid: live.observationCid,
+      maxRetainedBytes: 30000,
+    }), {code: 'ForeignRetainedSalesforceCatalog'});
+    assert.throws(() => recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained,
+      expectedObservationCid: live.observationCid,
+      maxRetainedBytes: 1,
+    }), {code: 'InvalidRetainedSalesforceCatalog'});
+    assert.equal(setup.seen.length, beforeRequests);
+  });
 
 test('lost HTTPS reply remains uncertain across Effect ledger restart',
   async t => {

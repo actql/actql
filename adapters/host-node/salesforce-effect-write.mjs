@@ -15,6 +15,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {ownInvocationContext, ownInvocationLimits} from
   '../host-common/owned-invocation-context.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
+import {recoverRetainedSalesforceCatalog} from
+  '../site-node/salesforce-catalog-recovery.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -85,6 +87,84 @@ export function recoverPreparedSalesforceSingleRequests({
     }));
   });
   return Object.freeze({preview, requests: Object.freeze(requests)});
+}
+
+// Re-admit the original bounded Catalog projection from the encrypted Run
+// capture, then rebuild each exact prepared request from its Preview row and
+// durable claim. A fresh Catalog and mutation grant are still required before
+// sending any reconstructed request.
+export function recoverCapturedSalesforceSingleRequests({
+  moon, recovered, recorded, previewWire, runIdentityCid,
+  authoringContextCid, previewLimits, bodyLimits, requestLimits,
+  maxMembers, maxRows, maxRetainedBytes,
+}) {
+  if (!Array.isArray(recovered?.connectorRecovery) ||
+      !Array.isArray(recorded?.members) ||
+      recovered.connectorRecovery.length !== recorded.members.length ||
+      typeof previewWire !== 'string' ||
+      !Number.isSafeInteger(maxRetainedBytes) ||
+      maxRetainedBytes < 1) {
+    fail('InvalidSalesforceCapturedRequestRecovery');
+  }
+  let previewBody;
+  try { previewBody = JSON.parse(previewWire); }
+  catch { fail('InvalidSalesforceCapturedRequestRecovery'); }
+  if (!Array.isArray(previewBody.effects) ||
+      previewBody.effects.length !== recorded.members.length) {
+    fail('InvalidSalesforceCapturedRequestRecovery');
+  }
+  const catalogs = [];
+  const members = recovered.connectorRecovery.map((entry, memberIndex) => {
+    if (entry.memberIndex !== memberIndex ||
+        entry.kind !== 'salesforce-catalog' ||
+        typeof entry.wire !== 'string') {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    let profile;
+    try { profile = JSON.parse(entry.wire); }
+    catch { fail('InvalidSalesforceCapturedRequestRecovery'); }
+    const operation = new Map([
+      ['create', 0], ['update', 1], ['upsert', 2],
+    ]).get(profile.operation);
+    if (operation === undefined ||
+        previewBody.effects[memberIndex].effect_kind !== profile.operation ||
+        previewBody.effects[memberIndex].write_footprint?.resource_kind !==
+          profile.resourceName ||
+        typeof profile.apiVersion !== 'string' ||
+        typeof profile.resourceOrigin !== 'string' ||
+        typeof profile.externalTargetField !== 'string' ||
+        !Array.isArray(profile.fieldNames) ||
+        profile.fieldNames.length === 0 ||
+        !profile.fieldNames.every(name => typeof name === 'string')) {
+      fail('InvalidSalesforceCapturedRequestRecovery');
+    }
+    const catalog = recoverRetainedSalesforceCatalog({moon,
+      retained: profile.catalog,
+      expectedObservationCid: entry.observationCid,
+      maxRetainedBytes});
+    const binding = JSON.parse(profile.catalog.observationJson).binding;
+    if (binding.resource_origin !== profile.resourceOrigin ||
+        binding.run_invocation_cid !== previewBody.invocation_cid) {
+      fail('ForeignSalesforceCapturedRequestRecovery');
+    }
+    const projection = checked(moon.salesforcePrepareWriteProjection(
+      catalog.observation, binding.tenant, binding.principal,
+      binding.environment, binding.connection_revision, binding.org_id,
+      binding.site_key, binding.site_generation,
+      binding.connector_registration, binding.connector_revision,
+      binding.resource_origin, binding.run_invocation_cid,
+      binding.dispatch_request_cid, binding.sync_occurrence,
+      profile.resourceName, operation, profile.externalTargetField,
+      profile.fieldNames, profile.fieldNames.length));
+    catalogs.push(catalog.observation);
+    return Object.freeze({projection, apiVersion: profile.apiVersion,
+      resourceOrigin: profile.resourceOrigin,
+      claims: recorded.members[memberIndex].claims});
+  });
+  const result = recoverPreparedSalesforceSingleRequests({moon, previewWire,
+    runIdentityCid, authoringContextCid, members,
+    previewLimits, bodyLimits, requestLimits, maxMembers, maxRows});
+  return Object.freeze({...result, catalogs: Object.freeze(catalogs)});
 }
 
 // An authorized evidence read is not another mutation attempt. The Host

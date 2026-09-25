@@ -3,6 +3,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   Listing(@catalog.ListingIssue)
   Sync(@catalog.CatalogSyncIssue)
   Observation(@catalog.CatalogObservationIssue)
+  ObservationRecovery(@catalog.CatalogObservationRecoveryIssue)
   ReadProjection(@catalog.ReadProjectionIssue)
   WriteProjection(@catalog.WriteProjectionIssue)
   WriteBody(@catalog.WriteBodyIssue)
@@ -224,6 +225,91 @@ pub fn salesforce_prepare_catalog_observation(
     ) {
     Ok(value) => value
     Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
+/// Restore only the exact retained metadata observation. Current authority
+/// and a fresh Catalog recheck remain separate before any Effect dispatch.
+#export_name("salesforceRecoverCatalogObservation")
+pub fn salesforce_recover_catalog_observation(
+  expected_body : String,
+  listing_bytes : Bytes,
+  describe_bytes : Array[Bytes?],
+  outcomes : Array[Int],
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  list_use_cid : String,
+  describe_use_cids : Array[String?],
+  describe_response_sha256 : Array[String?],
+  max_list_bytes : Int,
+  max_list_nodes : Int,
+  max_list_depth : Int,
+  max_resources : Int,
+  max_selected : Int,
+  max_list_name_units : Int,
+  max_describe_bytes : Int,
+  max_describe_nodes : Int,
+  max_describe_depth : Int,
+  max_fields : Int,
+  max_describe_name_units : Int,
+  max_observation_bytes : Int,
+) -> @catalog.CatalogObservation raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.recover_catalog_observation(
+      expected_body,
+      listing_bytes,
+      describe_bytes,
+      outcomes,
+      binding,
+      list_use_cid,
+      describe_use_cids,
+      describe_response_sha256,
+      {
+        max_bytes: max_list_bytes,
+        max_nodes: max_list_nodes,
+        max_depth: max_list_depth,
+        max_resources,
+        max_selected,
+        max_name_units: max_list_name_units,
+      },
+      {
+        max_bytes: max_describe_bytes,
+        max_nodes: max_describe_nodes,
+        max_depth: max_describe_depth,
+        max_fields,
+        max_name_units: max_describe_name_units,
+      },
+      max_observation_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise ObservationRecovery(issue)
   }
 }
 

@@ -126,6 +126,8 @@ pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservati
 
 pub fn recheck_write_projection(WriteProjection, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
+pub fn recover_catalog_observation(String, Bytes, Array[Bytes?], Array[Int], CatalogObservationBinding, String, Array[String?], Array[String?], ListLimits, DescribeLimits, Int) -> Result[CatalogObservation, CatalogObservationRecoveryIssue]
+
 pub fn recover_single_write_request(WriteProjection, String, String, String, WriteBodyLimits, WriteRequestLimits) -> Result[SingleWriteRequest, RecoveredWriteRequestIssue]
 
 pub fn require_create_fields(ResourceMetadata, Array[String]) -> Result[Array[FieldMetadata], ResourceRequirementIssue]
@@ -293,6 +295,15 @@ pub(all) enum CatalogObservationIssue {
   ForeignBinding
   DescribeUnavailable(DescribeFailure)
   Resource(ResourceSelectionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CatalogObservationRecoveryIssue {
+  InvalidInventory
+  ResponseMismatch
+  ForeignObservation
+  Listing(ListingIssue)
+  Sync(CatalogSyncIssue)
+  Observation(CatalogObservationIssue)
 } derive(Eq, @debug.Debug)
 
 pub struct CatalogSync {

@@ -399,13 +399,14 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     'execution', 'store', 'storedResults', 'control', 'admission', 'runDefinition',
     'invocation', 'observation', 'normalizationJournal', 'authoringContext',
     'receiptEvidence', 'captureEvidence', 'preview', 'plans',
-    'effectSourceHoldings',
+    'effectSourceHoldings', 'connectorRecovery',
     'contractLimits',
   ])) fail('InvalidCompletedEffectfulComputationOptions');
   const {
     execution, store, storedResults, control, admission, runDefinition,
     invocation, observation, normalizationJournal, authoringContext,
     receiptEvidence, captureEvidence, preview, plans, effectSourceHoldings,
+    connectorRecovery,
     contractLimits,
   } = options;
   validateExecution(execution);
@@ -420,6 +421,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
       !Array.isArray(storedResults.artifacts) ||
       !Array.isArray(plans) ||
       !Array.isArray(effectSourceHoldings) ||
+      !Array.isArray(connectorRecovery) ||
       typeof store?.commitPhysicalHolding !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       !['capturedEffectSourceHoldingCid',
@@ -460,6 +462,26 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
         objects: Object.freeze(holding.record.objects.map(object =>
           Object.freeze({...object})))}),
     });
+  });
+  const ownedMemberIndices = new Set(ownedHoldings.map(
+    holding => holding.memberIndex));
+  const seenRecoveryMembers = new Set();
+  const ownedConnectorRecovery = connectorRecovery.map(entry => {
+    if (!exactKeys(entry, [
+      'memberIndex', 'kind', 'observationCid', 'wire',
+    ]) || !Number.isSafeInteger(entry.memberIndex) ||
+        entry.memberIndex < 0 ||
+        !ownedMemberIndices.has(entry.memberIndex) ||
+        seenRecoveryMembers.has(entry.memberIndex) ||
+        typeof entry.kind !== 'string' || entry.kind.length === 0 ||
+        entry.kind.length > 100 ||
+        typeof entry.observationCid !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(entry.observationCid) ||
+        typeof entry.wire !== 'string' || entry.wire.length === 0) {
+      fail('InvalidCompletedEffectConnectorRecovery');
+    }
+    seenRecoveryMembers.add(entry.memberIndex);
+    return Object.freeze({...entry});
   });
   for (const holding of ownedHoldings) {
     const source = holding.source;
@@ -567,6 +589,10 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     effect_source_artifacts: ownedHoldings.map(value => Object.freeze({
       member_index: value.memberIndex, artifact: value.artifact.wire,
     })),
+    connector_recovery: ownedConnectorRecovery.map(value => Object.freeze({
+      member_index: value.memberIndex, kind: value.kind,
+      observation_cid: value.observationCid, wire: value.wire,
+    })),
   });
   if (owner.captureRecordOwner === undefined) {
     owner.captureRecordWire = captureRecordWire;
@@ -648,13 +674,13 @@ export async function recoverCompletedEffectfulComputation(options) {
     'definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
     'durable_bindings', 'result_schemas', 'manifest',
     'computation_receipt', 'captured_run', 'preview',
-    'authoring_context', 'effect_source_artifacts',
+    'authoring_context', 'effect_source_artifacts', 'connector_recovery',
   ]) || captured.version !== 'actql-completed-effectful-capture/0.1' ||
       captured.store_authority_cid !== store.storeAuthorityCid ||
       captured.run_definition !== admittedRun.wire ||
       !['definitions', 'artifacts', 'derivations', 'orderings',
         'retentions', 'durable_bindings', 'result_schemas',
-        'effect_source_artifacts']
+        'effect_source_artifacts', 'connector_recovery']
         .every(name => Array.isArray(captured[name]))) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
@@ -701,6 +727,28 @@ export async function recoverCompletedEffectfulComputation(options) {
     }
     return Object.freeze({memberIndex: item.member_index,
       artifact: admit('effect_source_artifact', item.artifact)});
+  });
+  const sourceMemberIndices = new Set(sourceInventory.map(
+    source => source.memberIndex));
+  const seenConnectorMembers = new Set();
+  const connectorRecovery = captured.connector_recovery.map(item => {
+    if (!exactKeys(item, [
+      'member_index', 'kind', 'observation_cid', 'wire',
+    ]) || !Number.isSafeInteger(item.member_index) ||
+        item.member_index < 0 ||
+        !sourceMemberIndices.has(item.member_index) ||
+        seenConnectorMembers.has(item.member_index) ||
+        typeof item.kind !== 'string' || item.kind.length === 0 ||
+        item.kind.length > 100 ||
+        typeof item.observation_cid !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(item.observation_cid) ||
+        typeof item.wire !== 'string' || item.wire.length === 0) {
+      fail('InvalidCompletedEffectConnectorRecovery');
+    }
+    seenConnectorMembers.add(item.member_index);
+    return Object.freeze({memberIndex: item.member_index,
+      kind: item.kind, observationCid: item.observation_cid,
+      wire: item.wire});
   });
   if (!control.capturedEffectSourceRecoveryInventoryValid(
     preview, sourceInventory)) {
@@ -797,7 +845,7 @@ export async function recoverCompletedEffectfulComputation(options) {
     effectSourceHoldings: Object.freeze(sourceHoldings),
   }));
   return Object.freeze({execution: null, storedResults, computation,
-    preview});
+    preview, connectorRecovery: Object.freeze(connectorRecovery)});
 }
 
 // Derive the only final-chain inventory from the same completed Compute and

@@ -66,6 +66,8 @@ export async function syncSalesforceCatalog({
   credential,
   listLimits: requestedListLimits,
   describeLimits: requestedDescribeLimits,
+  retainResponses = false,
+  maxRetainedBytes = 0,
   callResource = callHttpsCredentialResource,
   signal,
 }) {
@@ -75,6 +77,9 @@ export async function syncSalesforceCatalog({
       !matchesSalesforceCredentialOrg(credential, orgId) ||
       typeof syncOccurrence !== 'string' || syncOccurrence.length === 0 ||
       !count(maxObservationBytes) || maxObservationBytes === 0 ||
+      typeof retainResponses !== 'boolean' ||
+      (retainResponses && (!count(maxRetainedBytes) ||
+        maxRetainedBytes === 0)) ||
       typeof authorizationForDescribe !== 'function' ||
       !credential || typeof callResource !== 'function') {
     fail('InvalidSalesforceCatalogSync');
@@ -97,7 +102,9 @@ export async function syncSalesforceCatalog({
   const listResponse = await scopedGet({
     authorization: context.authorization,
     path: prefix,
-    maxBytes: listLimits.maxBytes,
+    maxBytes: retainResponses
+      ? Math.min(listLimits.maxBytes, maxRetainedBytes)
+      : listLimits.maxBytes,
     credential: context.credential,
     callResource: context.callbacks.callResource,
     signal,
@@ -120,6 +127,9 @@ export async function syncSalesforceCatalog({
   ));
   const sync = moon.salesforceCatalogBegin(listing);
   const selectedNames = moon.salesforceCatalogResourceNames(listing);
+  const listBytes = retainResponses ? Buffer.from(listResponse.body) : undefined;
+  let retainedBytes = listBytes?.byteLength ?? 0;
+  const describeBodies = [];
   const describeUseCids = [];
   const describeResponseSha256 = [];
   let interruptionCode;
@@ -136,14 +146,21 @@ export async function syncSalesforceCatalog({
       const authorization = ownInvocationAuthorization(
         await context.callbacks.authorizationForDescribe(name));
       validateAuthorization(authorization, describeOperation, listScope);
+      const remaining = retainResponses
+        ? maxRetainedBytes - retainedBytes : describeLimits.maxBytes;
+      if (remaining < 1) fail('SalesforceCatalogRetainedLimit');
       const response = await scopedGet({
         authorization,
         path: `${prefix}${name}/describe`,
-        maxBytes: describeLimits.maxBytes,
+        maxBytes: Math.min(describeLimits.maxBytes, remaining),
         credential: context.credential,
         callResource: context.callbacks.callResource,
         signal,
       });
+      const responseBytes = retainResponses
+        ? Buffer.from(response.body) : undefined;
+      retainedBytes += responseBytes?.byteLength ?? 0;
+      describeBodies.push(responseBytes?.toString('base64') ?? null);
       describeUseCids.push(response.useCid);
       describeResponseSha256.push(
         moon.salesforceCatalogResponseSha256(response.body));
@@ -177,6 +194,7 @@ export async function syncSalesforceCatalog({
   while (describeUseCids.length < selectedNames.length) {
     describeUseCids.push(undefined);
     describeResponseSha256.push(undefined);
+    describeBodies.push(null);
   }
   const observation = checked(moon.salesforcePrepareCatalogObservation(
     sync,
@@ -211,5 +229,13 @@ export async function syncSalesforceCatalog({
     listUseCid: listResponse.useCid,
     describeUseCids: Object.freeze(describeUseCids),
     describeResponseSha256: Object.freeze(describeResponseSha256),
+    retainedResponses: retainResponses ? Object.freeze({
+      observationJson: moon.salesforceCatalogObservationJson(observation),
+      listBodyBase64: listBytes.toString('base64'),
+      describeBodyBase64: Object.freeze(describeBodies),
+      listLimits: Object.freeze({...listLimits}),
+      describeLimits: Object.freeze({...describeLimits}),
+      maxObservationBytes,
+    }) : undefined,
   });
 }

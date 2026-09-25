@@ -15,12 +15,15 @@ import {applyCapturedEffectSet, applyRecoveredEffectSet} from
   './effect-run-apply.mjs';
 import {captureSalesforceCollectionEffectWrite,
   captureSalesforceSingleEffectWrite,
-  recoverPreparedSalesforceSingleRequests} from
+  recoverPreparedSalesforceSingleRequests,
+  recoverCapturedSalesforceSingleRequests} from
   './salesforce-effect-write.mjs';
 import {authorObservedSalesforceEffectPreview} from
   './salesforce-effect-preview.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
+import {recoverRetainedSalesforceCatalog} from
+  '../site-node/salesforce-catalog-recovery.mjs';
 import {refreshSalesforceEffectWriteCatalogs} from
   '../site-node/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
@@ -1140,6 +1143,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           preview: admittedPreview,
           plans: [{name: 'save', wire: planChunks.join('')}],
           effectSourceHoldings: [sourceHolding],
+          connectorRecovery: [],
           contractLimits: publicationLimits,
         };
         await assert.rejects(issueCompletedEffectfulComputationEvidence({
@@ -1999,6 +2003,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         plans: [{name: memberIds[0], wire: chunks.join('')},
           {name: memberIds[1], wire: secondChunks.join('')}],
         effectSourceHoldings: sourceHoldings,
+        connectorRecovery: [],
         contractLimits: publicationLimits,
       });
       const captured = JSON.parse(computation.capturedRun.wire);
@@ -2657,10 +2662,11 @@ test(`two-member captured Effect Run ${
           collectionPartial: collectionPartial && index === 0,
           writeOperation: writeKind,
         }))) : undefined;
-      const prepareSiteProjection = site => {
+      const prepareSiteProjection = (site,
+        observationValue = site.catalog.observation) => {
         const binding = site.write.scope;
         return checked(salesforceMoon.salesforcePrepareWriteProjection(
-          site.catalog.observation,
+          observationValue,
           binding.tenant, binding.principal, binding.environment,
           'connection-revision-a', site.orgId,
           binding.siteKey, binding.siteGeneration,
@@ -2673,7 +2679,7 @@ test(`two-member captured Effect Run ${
           writeKind === 'create' ? ['Name', 'External_Key__c'] :
             ['Name'], 2));
       };
-      const siteProjections = sites?.map(prepareSiteProjection);
+      const siteProjections = sites?.map(site => prepareSiteProjection(site));
       if (siteRun && writeKind !== 'create') {
         sites.forEach((site, index) =>
           site.setTargetName(`observed-before-${index}`));
@@ -3136,6 +3142,20 @@ test(`two-member captured Effect Run ${
         preview: admittedPreview,
         plans: plans.map(({name, wire}) => ({name, wire})),
         effectSourceHoldings: [firstHolding, secondHolding],
+        connectorRecovery: siteRun ? sites.map((site, memberIndex) => ({
+          memberIndex, kind: 'salesforce-catalog',
+          observationCid: site.catalog.observationCid,
+          wire: JSON.stringify({
+            catalog: site.catalog.retainedResponses,
+            apiVersion: 'v62.0', resourceName: 'Test_Record__c',
+            operation: writeKind,
+            externalTargetField: writeKind === 'upsert'
+              ? 'External_Key__c' : '',
+            fieldNames: writeKind === 'create'
+              ? ['Name', 'External_Key__c'] : ['Name'],
+            resourceOrigin: site.origin,
+          }),
+        })) : [],
         contractLimits: publicationLimits,
       });
       assert.notEqual(control.effectComputationCaptureHoldingCid(
@@ -3388,6 +3408,12 @@ test(`two-member captured Effect Run ${
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
             prepared: true,
+            salesforceRecovery: {
+              bodyLimits: {maxBytes: 1024, maxNodes: 32, maxDepth: 5},
+              requestLimits: {maxPathBytes: 256, maxTargetBytes: 128,
+                maxBodyBytes: 1024},
+              maxRetainedBytes: 30000,
+            },
           }),
           encoding: 'utf8', timeout: 20_000,
         });
@@ -3404,6 +3430,8 @@ test(`two-member captured Effect Run ${
         assert.deepEqual(fresh.requestCids,
           members.map(member => member.claims.map(
             claim => claim.canonicalRequestCid)));
+        assert.deepEqual(fresh.recoveredCatalogCids,
+          sites.map(site => site.catalog.observationCid));
         assert.equal(fresh.setReceiptCid, null);
         control = runtimeCore(moon).publicationControl;
         physicalStore = await openLocalPublicationStore(configuration, control);
@@ -3440,13 +3468,26 @@ test(`two-member captured Effect Run ${
           preview.authoringCid, requestScope, preview.keys,
           publicationLimits.maxWireBytes, publicationLimits.maxNodes,
           publicationLimits.maxDepth);
+        assert.equal(completed.connectorRecovery.length, 2);
+        const originalCatalogs = completed.connectorRecovery.map(
+          (entry, index) => {
+            assert.equal(entry.memberIndex, index);
+            assert.equal(entry.kind, 'salesforce-catalog');
+            return recoverRetainedSalesforceCatalog({
+              moon: salesforceMoon,
+              retained: JSON.parse(entry.wire).catalog,
+              expectedObservationCid: entry.observationCid,
+              maxRetainedBytes: 30000,
+            }).observation;
+          });
         const recoveryRequestOptions = {
           moon: salesforceMoon,
           previewWire: control.effectComputationPreviewWire(admittedPreview),
           runIdentityCid: body.run_identity_cid,
           authoringContextCid: preview.authoringCid,
           members: sites.map((site, memberIndex) => ({
-            projection: prepareSiteProjection(site), apiVersion: 'v62.0',
+            projection: prepareSiteProjection(site,
+              originalCatalogs[memberIndex]), apiVersion: 'v62.0',
             resourceOrigin: site.origin,
             claims: recovered.members[memberIndex].claims,
           })),
@@ -3467,8 +3508,54 @@ test(`two-member captured Effect Run ${
             index === 0 ? {...member, claims: member.claims.slice(0, 1)} :
               member),
         }), {code: 'InvalidSalesforcePreparedRequestRecovery'});
-        const reconstructed = recoverPreparedSalesforceSingleRequests(
-          recoveryRequestOptions);
+        const reconstructed = recoverCapturedSalesforceSingleRequests({
+          moon: salesforceMoon, recovered: completed, recorded: recovered,
+          previewWire: recoveryRequestOptions.previewWire,
+          runIdentityCid: body.run_identity_cid,
+          authoringContextCid: preview.authoringCid,
+          previewLimits: publicationLimits,
+          bodyLimits: recoveryRequestOptions.bodyLimits,
+          requestLimits: recoveryRequestOptions.requestLimits,
+          maxMembers: 2, maxRows: 4, maxRetainedBytes: 30000,
+        });
+        assert.deepEqual(reconstructed.catalogs.map(catalog =>
+          salesforceMoon.salesforceCatalogObservationCid(catalog)),
+        sites.map(site => site.catalog.observationCid));
+        const foreignRecovery = completed.connectorRecovery.map(
+          (entry, index) => index === 0 ? {
+            ...entry, observationCid: sites[1].catalog.observationCid,
+          } : entry);
+        assert.throws(() => recoverCapturedSalesforceSingleRequests({
+          moon: salesforceMoon,
+          recovered: {...completed, connectorRecovery: foreignRecovery},
+          recorded: recovered,
+          previewWire: recoveryRequestOptions.previewWire,
+          runIdentityCid: body.run_identity_cid,
+          authoringContextCid: preview.authoringCid,
+          previewLimits: publicationLimits,
+          bodyLimits: recoveryRequestOptions.bodyLimits,
+          requestLimits: recoveryRequestOptions.requestLimits,
+          maxMembers: 2, maxRows: 4, maxRetainedBytes: 30000,
+        }), {code: 'ForeignRetainedSalesforceCatalog'});
+        const invalidOperationRecovery = completed.connectorRecovery.map(
+          (entry, index) => index === 0 ? {
+            ...entry, wire: JSON.stringify({
+              ...JSON.parse(entry.wire), operation: 'toString',
+            }),
+          } : entry);
+        assert.throws(() => recoverCapturedSalesforceSingleRequests({
+          moon: salesforceMoon,
+          recovered: {...completed,
+            connectorRecovery: invalidOperationRecovery},
+          recorded: recovered,
+          previewWire: recoveryRequestOptions.previewWire,
+          runIdentityCid: body.run_identity_cid,
+          authoringContextCid: preview.authoringCid,
+          previewLimits: publicationLimits,
+          bodyLimits: recoveryRequestOptions.bodyLimits,
+          requestLimits: recoveryRequestOptions.requestLimits,
+          maxMembers: 2, maxRows: 4, maxRetainedBytes: 30000,
+        }), {code: 'InvalidSalesforceCapturedRequestRecovery'});
         const recoveryPreview = reconstructed.preview;
         siteRequests = reconstructed.requests;
         sites.forEach((site, memberIndex) => {

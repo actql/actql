@@ -3,6 +3,8 @@
 import {readFileSync} from 'node:fs';
 import * as moon from
   '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import * as salesforceMoon from
+  '../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {publishCompletedEffectfulRun, recoverCompletedEffectfulComputation} from
   '../../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
@@ -11,6 +13,8 @@ import {openLocalPublicationStore} from
 import {openEffectLedger} from '../effect-ledger.mjs';
 import {issueAuthorizedEffectSetReceipt} from
   '../effect-response-recovery.mjs';
+import {recoverCapturedSalesforceSingleRequests} from
+  '../salesforce-effect-write.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 if (input.prepared === true && input.publish === true) {
@@ -50,6 +54,22 @@ try {
     programId: input.programId, nodeId: input.nodeId,
     maxRows: input.maxRows, maxWork: input.maxWork,
   });
+  const previewWire = control.effectComputationPreviewWire(
+    recovered.preview);
+  const previewBody = JSON.parse(previewWire);
+  const recoveredSalesforce = input.prepared === true &&
+    input.salesforceRecovery !== undefined
+    ? recoverCapturedSalesforceSingleRequests({
+      moon: salesforceMoon, recovered, recorded, previewWire,
+      runIdentityCid: previewBody.run_identity_cid,
+      authoringContextCid:
+        previewBody.authoring_context.authoring_context_cid,
+      previewLimits: input.limits,
+      bodyLimits: input.salesforceRecovery.bodyLimits,
+      requestLimits: input.salesforceRecovery.requestLimits,
+      maxMembers: recorded.members.length, maxRows: input.maxRows,
+      maxRetainedBytes: input.salesforceRecovery.maxRetainedBytes,
+    }) : undefined;
   const issued = input.prepared === true ? undefined :
     await issueAuthorizedEffectSetReceipt({
     ledger, preview: admittedPreview, publicationPreview: recovered.preview,
@@ -87,6 +107,8 @@ try {
     ]),
     requestCids: recorded.members.map(member => member.claims.map(
       claim => claim.canonicalRequestCid)),
+    recoveredCatalogCids: recoveredSalesforce?.catalogs.map(catalog =>
+      salesforceMoon.salesforceCatalogObservationCid(catalog)) ?? null,
     setReceiptCid: issued?.set.identity ?? null,
     setStatus: issued === undefined ? null : JSON.parse(issued.set.wire).status,
     rowCounts: recorded.members.map(member => member.claims.length),
