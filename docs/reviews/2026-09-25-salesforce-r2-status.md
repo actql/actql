@@ -17,7 +17,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The installed Host fixture authors its private Preview and supplies current target guards itself. The ordinary Salesforce path does not yet obtain the exact target observations under current Site authority and author that Preview from the captured input. Connect that Site observation and Preview construction to the existing captured owner before apply. | For update and upsert, observe every guarded target before the first write. A missing or changed observation rejects the whole set with zero write sends and zero write-credential uses; an approved Preview is never silently rebuilt from the new state. Check create's explicit not-applicable guard separately. |
+| The installed Host fixture authors its private Preview and supplies current target guards itself. The Site now obtains a bounded target GET under separate read authority and MoonBit binds a successful record response to its exact target, but the ordinary Salesforce path does not yet retain that observation, author the Preview from captured input, or obtain fresh whole-set guard evidence before apply. Connect those steps to the existing captured owner. | For update and upsert, author each guard from the authorized target observation, then reobserve every guarded target before the first write. A missing or changed observation rejects the whole set with zero write sends and zero write-credential uses; an approved Preview is never silently rebuilt from the new state. A 404 alone is not proof of absence, particularly for external-ID paths. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -75,7 +75,8 @@ substitute for this public-Client test.
 Outside this completion unit, but still part of the original broader plan,
 are new providers, Salesforce Bulk and unagreed APIs, Cloud OAuth operations,
 other distribution modes and frontends, and the separately managed performance
-branch. Moving these items outside this unit does not mark them complete.
+work now present in the rebased main. Moving these items outside this unit does
+not mark them complete.
 
 ## Latest completion gates
 

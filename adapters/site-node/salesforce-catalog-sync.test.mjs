@@ -38,6 +38,8 @@ import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
   './salesforce-query-read.mjs';
 import {writeSalesforceSingleRecord} from './salesforce-single-write.mjs';
+import {observeSalesforceSingleTarget} from
+  './salesforce-target-observation.mjs';
 import {writeSalesforceContinueCollection} from
   './salesforce-collection-write.mjs';
 
@@ -155,7 +157,9 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
     {id: 'a00123456789012', success: true, errors: []},
     {id: null, success: false, errors: [{statusCode: 'INVALID_FIELD',
       message: 'Rejected field', fields: ['External_Key__c']}]},
-  ])} = {}) {
+  ]), targetStatus = 200,
+  targetResponse = JSON.stringify({Id: 'a00123456789012',
+    External_Key__c: 'key-1'})} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-catalog-'));
   openssl(root, 'genrsa', '-out', 'ca.key', '2048');
   openssl(root, 'req', '-x509', '-new', '-key', 'ca.key', '-out',
@@ -193,6 +197,10 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
       '/services/data/v62.0/sobjects/Test_Record__c/describe') {
       response.writeHead(customStatus, {'content-type': 'application/json'});
       response.end(customResponse);
+    } else if (request.method === 'GET' && request.url ===
+      '/services/data/v62.0/sobjects/Test_Record__c/a00123456789012') {
+      response.writeHead(targetStatus, {'content-type': 'application/json'});
+      response.end(targetResponse);
     } else if (request.method === 'POST' && request.url ===
       '/services/data/v62.0/sobjects/Test_Record__c/') {
       const chunks = [];
@@ -284,8 +292,10 @@ async function fixture(t, {customStatus = 200, customResponse = customBody,
   const write = authorize('salesforce:record:create');
   const writeUpdate = authorize('salesforce:record:update');
   const writeUpsert = authorize('salesforce:record:upsert');
+  const observe = authorize('salesforce:record:observe');
   return {
-    seen, journal, list, describe, query, write, writeUpdate, writeUpsert, ca,
+    seen, journal, list, describe, query, write, writeUpdate, writeUpsert,
+    observe, ca,
     orgId,
     credential: {
       orgId,
@@ -546,6 +556,127 @@ test('Site sends one scoped Salesforce write and keeps response as observation',
       '/services/data/v62.0/sobjects/Test_Record__c/',
       '{"External_Key__c":"key-1"}',
     ]]);
+  });
+
+test('Site reads the exact prospective target with separate read authority',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = setup.list.scope;
+    const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+      catalog.observation,
+      binding.tenant, binding.principal, binding.environment,
+      'connection-revision-a', setup.orgId, binding.siteKey,
+      binding.siteGeneration, binding.connectorRegistration,
+      binding.connectorRevision, binding.resourceOrigin,
+      binding.runInvocationCid, binding.dispatchRequestCid,
+      'catalog-sync-a', 'Test_Record__c', 1, '',
+      ['External_Key__c'], 2));
+    const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+      projection, Buffer.from('{"External_Key__c":"changed"}'),
+      1024, 32, 5));
+    const update = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+      body, 'v62.0', 1, 'a00123456789012', 0, 256, 128, 1024));
+    const options = {
+      moon: salesforceMoon, request: update,
+      currentCatalog: catalog.observation,
+      authorization: {...setup.observe, useId: 'target-read'},
+      credential: setup.credential,
+      limits: {maxResponseBytes: 1024, maxNodes: 32,
+        maxDepth: 5, maxIdentityBytes: 1024},
+    };
+    await assert.rejects(observeSalesforceSingleTarget({
+      ...options, authorization: {...setup.observe,
+        useId: 'foreign-target-read',
+        scope: {...setup.observe.scope, siteGeneration: 5}},
+    }), {code: 'ForeignSalesforceTargetObservation'});
+    await assert.rejects(observeSalesforceSingleTarget({
+      ...options, authorization: {...setup.writeUpdate,
+        useId: 'write-grant-for-read'},
+    }), {code: 'ForeignSalesforceTargetObservation'});
+    assert.equal(setup.seen.filter(item => item.path?.endsWith(
+      '/a00123456789012')).length, 0);
+    const observed = await observeSalesforceSingleTarget(options);
+    assert.equal(observed.statusCode, 200);
+    assert.deepEqual(JSON.parse(observed.body), {
+      Id: 'a00123456789012', External_Key__c: 'key-1',
+    });
+    assert.match(observed.versionCid, /^sha256:[0-9a-f]{64}$/);
+    assert.equal(observed.versionCid,
+      salesforceMoon.salesforceTargetObservationVersionCid(observed.record));
+    const target = checked(
+      salesforceMoon.salesforceSingleWriteRequestTargetIdentity(
+        update, 1024));
+    assert.equal(observed.versionCid, `sha256:${createHash('sha256')
+      .update(canonicalJson({
+        object_cid: salesforceMoon.salesforceWriteTargetObjectCid(target),
+        response_sha256: createHash('sha256').update(observed.body)
+          .digest('hex'),
+        version: 'actql-salesforce-target-observation/0.1',
+      })).digest('hex')}`);
+    assert.equal(setup.journal.inspect(observed.useCid).outcome, 'succeeded');
+    assert.deepEqual(setup.seen.filter(item => item.path?.endsWith(
+      '/a00123456789012')).map(item => [item.method, item.path]), [[
+      'GET', '/services/data/v62.0/sobjects/Test_Record__c/a00123456789012',
+    ]]);
+    assert.equal(setup.seen.filter(item => item.method === 'PATCH').length, 0);
+  });
+
+test('target read cannot turn absence or a foreign record into a guard',
+  async t => {
+    for (const scenario of [
+      {targetStatus: 404, targetResponse: '[{"errorCode":"NOT_FOUND"}]',
+        expected: 'unresolved'},
+      {targetStatus: 200, targetResponse: JSON.stringify({
+        Id: 'a00123456789013', External_Key__c: 'key-1',
+      }), expected: 'foreign'},
+      {targetStatus: 200, targetResponse: JSON.stringify({
+        Id: 'a00123456789012',
+      }), expected: 'incomplete'},
+    ]) {
+      await t.test(scenario.expected, async child => {
+        const setup = await fixture(child, scenario);
+        const catalog = await syncSalesforceCatalog(request(setup));
+        const binding = setup.list.scope;
+        const projection = checked(
+          salesforceMoon.salesforcePrepareWriteProjection(
+            catalog.observation, binding.tenant, binding.principal,
+            binding.environment, 'connection-revision-a', setup.orgId,
+            binding.siteKey, binding.siteGeneration,
+            binding.connectorRegistration, binding.connectorRevision,
+            binding.resourceOrigin, binding.runInvocationCid,
+            binding.dispatchRequestCid, 'catalog-sync-a',
+            'Test_Record__c', 1, '', ['External_Key__c'], 2));
+        const body = checked(salesforceMoon.salesforcePrepareWriteBody(
+          projection, Buffer.from('{"External_Key__c":"changed"}'),
+          1024, 32, 5));
+        const update = checked(
+          salesforceMoon.salesforcePrepareSingleWriteRequest(
+            body, 'v62.0', 1, 'a00123456789012', 0, 256, 128, 1024));
+        const options = {
+          moon: salesforceMoon, request: update,
+          currentCatalog: catalog.observation,
+          authorization: {...setup.observe,
+            useId: `target-${scenario.expected}`},
+          credential: setup.credential,
+          limits: {maxResponseBytes: 1024, maxNodes: 32,
+            maxDepth: 5, maxIdentityBytes: 1024},
+        };
+        if (scenario.expected === 'unresolved') {
+          const observed = await observeSalesforceSingleTarget(options);
+          assert.equal(observed.statusCode, 404);
+          assert.equal(observed.record, undefined);
+          assert.equal(observed.versionCid, undefined);
+        } else {
+          await assert.rejects(observeSalesforceSingleTarget(options),
+            {code: 'MoonBitHostFailure'});
+        }
+        assert.equal(setup.seen.filter(item => item.method === 'GET' &&
+          item.path?.endsWith('/a00123456789012')).length, 1);
+        assert.equal(setup.seen.filter(item => item.method === 'PATCH').length,
+          0);
+      });
+    }
   });
 
 test('Salesforce request CID binds the exact HTTPS upsert request-target',

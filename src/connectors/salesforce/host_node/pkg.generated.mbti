@@ -125,6 +125,8 @@ pub fn salesforce_prepare_read_projection(@catalog.CatalogObservation, String, S
 
 pub fn salesforce_prepare_single_write_request(@catalog.WriteBody, String, Int, String, Int, Int, Int, Int) -> @catalog.SingleWriteRequest raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_prepare_target_observation(@catalog.SingleWriteRequest, Int, Bytes, Int, Int, Int, Int) -> @catalog.TargetObservation raise SalesforceCatalogBridgeIssue
+
 pub fn salesforce_prepare_write_body(@catalog.WriteProjection, Bytes, Int, Int, Int) -> @catalog.WriteBody raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_prepare_write_projection(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Int, String, Array[String], Int) -> @catalog.WriteProjection raise SalesforceCatalogBridgeIssue
@@ -197,6 +199,10 @@ pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteReque
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_target_observation_response_sha256(@catalog.TargetObservation) -> String
+
+pub fn salesforce_target_observation_version_cid(@catalog.TargetObservation) -> String
+
 pub fn salesforce_write_effect_outcome_response_sha256(@catalog.WriteRowEffectProjection) -> String
 
 pub fn salesforce_write_effect_outcome_row_cid(@catalog.WriteRowEffectProjection) -> String
@@ -218,6 +224,7 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteProjection(@catalog.WriteProjectionIssue)
   WriteBody(@catalog.WriteBodyIssue)
   WriteRequest(@catalog.WriteRequestIssue)
+  TargetObservation(@catalog.TargetObservationIssue)
   WriteSingleResponse(@catalog.WriteSingleResponseIssue)
   WriteCollectionRequest(@catalog.WriteCollectionRequestIssue)
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
