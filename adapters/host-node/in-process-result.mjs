@@ -1,0 +1,88 @@
+// Translate one authorized, owner-recorded JSONL delivery into typed Local
+// frames. The canonical serializer and delivery attempt stay in MoonBit.
+import {deliverAuthorizedResult} from './result-access.mjs';
+
+const terminator = Uint8Array.of(0x1e);
+
+export function authorizedLocalResultFrames(service, request, signal,
+  {maxRowBytes}) {
+  if (!Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1 ||
+      request === null || typeof request !== 'object' ||
+      signal === null || signal !== undefined &&
+        typeof signal.throwIfAborted !== 'function') {
+    throw new TypeError('InvalidLocalResultFrameRequest');
+  }
+  return Object.freeze({kind: 'rows', frames: Object.freeze({
+    async *[Symbol.asyncIterator]() {
+      const controller = new AbortController();
+      const abort = () => controller.abort(signal.reason);
+      signal?.addEventListener('abort', abort, {once: true});
+      if (signal?.aborted) abort();
+      const channel = new TransformStream(undefined,
+        {highWaterMark: 1, size: bytes => bytes.byteLength},
+        {highWaterMark: 1, size: bytes => bytes.byteLength});
+      const writer = channel.writable.getWriter();
+      const reader = channel.readable.getReader();
+      const outcome = deliverAuthorizedResult(service,
+        {...request, format: 'jsonl'}, {
+          async write(bytes) {
+            await writer.write(Uint8Array.from(bytes));
+            return {confirmedBytes: bytes.byteLength};
+          },
+          async finish() {
+            await writer.write(terminator);
+            await writer.close();
+            return {confirmed: true};
+          },
+        }, controller.signal).then(
+        () => ({ok: true}),
+        async error => {
+          try { await writer.abort(error); } catch {}
+          return {ok: false, error};
+        },
+      );
+      const decoder = new TextDecoder('utf-8', {fatal: true});
+      const encoder = new TextEncoder();
+      let pending = '';
+      let complete = false;
+      try {
+        while (true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          pending += decoder.decode(value, {stream: true});
+          let newline;
+          while ((newline = pending.indexOf('\n')) >= 0) {
+            const text = pending.slice(0, newline);
+            pending = pending.slice(newline + 1);
+            const byteLength = encoder.encode(text).byteLength;
+            if (!text || byteLength > maxRowBytes) {
+              throw new Error('InvalidLocalResultFrame');
+            }
+            const value = JSON.parse(text);
+            if (value === null || typeof value !== 'object' ||
+                Array.isArray(value)) {
+              throw new Error('InvalidLocalResultFrame');
+            }
+            yield Object.freeze({value, byteLength});
+          }
+          if (encoder.encode(pending).byteLength > maxRowBytes) {
+            throw new Error('InvalidLocalResultFrame');
+          }
+        }
+        pending += decoder.decode();
+        if (pending !== '\x1e') {
+          throw new Error('IncompleteLocalResultFrames');
+        }
+        complete = true;
+        // The Client's normal end is independent of durable Host receipt.
+        await outcome;
+      } finally {
+        signal?.removeEventListener('abort', abort);
+        if (!complete) controller.abort();
+        try { if (!complete) await reader.cancel(); } catch {}
+        reader.releaseLock();
+        await outcome;
+      }
+    },
+  })});
+}

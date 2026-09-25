@@ -22,6 +22,8 @@ import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
+import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 
 const fixture = new URL('../../packages/sdk/fixtures/', import.meta.url);
@@ -1521,6 +1523,61 @@ test('public Values submit computes and reads its real Local Result',
         }
         assert.equal(attempt.record.state, 'succeeded');
         client.close();
+        const localAttach = installNodeClientRunAttach({
+          journal: lookupJournal, requestControl: moon,
+          publicationControl: control,
+          authorizedScope: () => ({tenantId: 'tenant-a',
+            authorityScopeCid: cid('a')}),
+          authorizeRun: async ({ref: requested}) => {
+            await inspectAuthorizedRunState(stateService, {
+              indexKey: requested, principalId: 'principal-after-restart',
+              purpose: 'inspect',
+            });
+            return true;
+          },
+        });
+        const embedded = await connectInProcess({mode: 'local',
+          owner: 'local'}, createNodeInProcessClientHost({
+          authenticate: () => 'principal-after-restart',
+          authorizeConnection: ({connection, ref: requested}) =>
+            connection.mode === 'local' && connection.owner === 'local' &&
+            (requested === undefined || requested.tenantId === 'tenant-a'),
+          negotiate: () => ({
+            version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+            durability: 'durable', scopeRef: 'principal-after-restart',
+            capabilities: ['result-jsonl'],
+            limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+              maxRowRetainedValueBytes: 1024,
+              maxRetainedValueBytes: 4096, maxRows: 100,
+              maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+          }),
+          attach: localAttach, stateService, resultService: service,
+          maxRowBytes: 1024,
+        }));
+        try {
+          const localExecution = await embedded.attach(ref);
+          assert.equal((await localExecution.status()).status, 'succeeded');
+          const localRows = localExecution.result('answer').rows();
+          assert.deepEqual(await Array.fromAsync(localRows), expected);
+          assert.equal(localRows.state(), 'complete');
+          const localAttempt = await localExecution.result('answer')
+            .deliveryAttempt(localRows.attemptId);
+          assert.equal(localAttempt.kind, 'found');
+          assert.equal(localAttempt.record.state, 'succeeded');
+          const partial = localExecution.result('answer').rows();
+          const prefix = [];
+          for await (const row of partial) {
+            prefix.push(row);
+            break;
+          }
+          assert.deepEqual(prefix, [expected[0]]);
+          assert.equal(partial.state(), 'prefix');
+          const partialAttempt = await localExecution.result('answer')
+            .deliveryAttempt(partial.attemptId);
+          assert.equal(partialAttempt.kind, 'found');
+          assert.equal(partialAttempt.record.state, 'cancelled');
+          assert.equal((await localExecution.status()).status, 'succeeded');
+        } finally { embedded.close(); }
       } finally {
         await new Promise(resolve => server.close(resolve));
         lookupJournal.close();
