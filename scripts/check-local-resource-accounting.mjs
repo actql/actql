@@ -214,6 +214,7 @@ if (!Array.isArray(assuredPaths)) {
         'external_input_entrypoint',
         'same_stage_entrypoint',
         'zero_input_entrypoint',
+        'global_count_entrypoint',
         'relation_entrypoint',
         'view_entrypoint',
       ]
@@ -346,6 +347,11 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_entrypoint', route.zero_input_entrypoint,
     ]);
   }
+  if (route.global_count_entrypoint !== undefined) {
+    productionSources.push([
+      'global_count_entrypoint', route.global_count_entrypoint,
+    ]);
+  }
   if (route.relation_entrypoint !== undefined) {
     productionSources.push([
       'relation_entrypoint', route.relation_entrypoint,
@@ -423,6 +429,21 @@ for (const [index, route] of routeEntries.entries()) {
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
       fail(`${label}: bounded zero-input Values route lacks its production evidence`);
+    }
+  }
+  if (route.global_count_entrypoint !== undefined) {
+    if (route.family !== 'RelA' || route.operation !== 'group' ||
+      route.global_count_entrypoint.symbol !== 'global_count_provider') {
+      fail(`${label}: bounded global count path is misbound`);
+    }
+    for (const role of [
+      'global_count_work_workspace_exact_one_short',
+      'global_count_cancel_cleanup',
+      'global_count_two_consumers',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
     }
   }
   if (route.family === 'RelA' && route.operation === 'append') {
@@ -732,6 +753,16 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
   }
+  if (route.global_count_entrypoint !== undefined) {
+    for (const role of [
+      'global_count_host_two_consumers',
+      'global_count_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'watermark_rows') {
     for (const role of [
       'watermark_fixed_host_two_consumers',
@@ -872,6 +903,7 @@ for (const [index, route] of routeEntries.entries()) {
     ...(route.external_input_entrypoint ? ['external_input_entrypoint'] : []),
     ...(route.same_stage_entrypoint ? ['same_stage_entrypoint'] : []),
     ...(route.zero_input_entrypoint ? ['zero_input_entrypoint'] : []),
+    ...(route.global_count_entrypoint ? ['global_count_entrypoint'] : []),
     ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
     ...(route.view_entrypoint ? ['view_entrypoint'] : []),
   ];

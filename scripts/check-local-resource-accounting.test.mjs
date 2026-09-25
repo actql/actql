@@ -50,7 +50,39 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 56 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 57 with path-scoped work\/workspace evidence, 5 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('global count assurance requires its bounded product path and proofs', () => {
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    delete group.global_count_entrypoint;
+  }), /RelA group: assurance names an unregistered production path/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.boundary_tests = group.boundary_tests.filter(item =>
+      item.role !== 'global_count_work_workspace_exact_one_short');
+  }), /RelA group: global_count_entrypoint exact_limit lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.environment_tests = group.environment_tests.filter(item =>
+      item.role !== 'global_count_host_timer');
+  }), /RelA group: global_count_entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.boundary_tests = group.boundary_tests.filter(item =>
+      item.role !== 'global_count_two_consumers');
+  }), /RelA group: global_count_two_consumers fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const group = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'group');
+    group.environment_tests = group.environment_tests.filter(item =>
+      item.role !== 'global_count_host_two_consumers');
+  }), /RelA group: global_count_host_two_consumers fixture is missing/u);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -557,7 +589,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 56 |',
+    '| Path-scoped work/workspace assurance | 57 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);

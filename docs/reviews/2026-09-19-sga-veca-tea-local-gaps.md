@@ -2,8 +2,9 @@
 
 ## Current delivery unit and acceptance boundary
 
-Assessed at product source commit `036b2a889087e93f51b13636d3fcb936020dd9c0` against the
-current product code and the historical Local work order and progress review.
+Tracked on `feat/local-family-closure` against the current product source,
+the historical Local work order, and the progress reviews. A fixed release
+SHA is not yet recorded because the strict gate remains open.
 This section describes the current delivery unit, not the whole original
 RelA/SGA/VecA/TEA plan or a completion declaration. The earlier typed Graph
 order, nullable-label, finite-average, VecA empty-side admission, TEA window
@@ -91,9 +92,37 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 56 |
+| Path-scoped work/workspace assurance | 57 |
 | Selected-only assurance | 5 |
 <!-- local-resource-accounting-summary:end -->
+
+### Remaining path triage after the bounded global count slice
+
+The 48 unresolved path obligations below are paths, not 48 missing
+operations. They consist of 45 whole-operation entrypoints and three
+additional selected or same-Stage paths. The categories identify the next
+engineering action; they do not turn a registered route into proof of every
+formal variant.
+
+| Category | Paths | Product limitation and next proof |
+| --- | ---: | --- |
+| Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
+| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
+| Bounded product connection exists, route evidence is incomplete | 19 | Thirteen SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `graphs_equal`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, both VecA row expressions, selected `json_pick`, and same-Stage `append` and `cross_join` need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+
+The general providerless managed fallback is a cross-cutting synchronous
+hazard represented by the first two rows, not a 49th independent path. Its
+reachability must be removed or bounded for every admitted long-running
+sequence before the strict gate can pass.
+
+The zero-key count-only `group` shape now reaches
+`global_count_provider` from a normal Program. Quantum-one execution,
+NULL-sensitive `count(field)`, fixed exact/one-short work and workspace,
+two consumers with independent release, Node timer cancellation after
+positive work, nonpublication and cleanup have dedicated fixtures. The
+path has separate assurance in the route ledger; keyed and non-count
+aggregates remain in the synchronous category. This is one closed path,
+not completion of the `group` operation or the strict gate.
 
 Strict boundary completion remains red. A path-scoped fixture is not proof of
 all variants of its operation or of the providerless whole-sequence lane.

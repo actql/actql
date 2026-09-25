@@ -2069,6 +2069,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "global_count_entrypoint": {
+        "path": "src/connectors/local/global_count_provider.mbt",
+        "symbol": "global_count_provider"
+      },
       "boundary_tests": [
         {
           "role": "group_fixed_sequence_work_exact_one_short",
@@ -2076,8 +2080,66 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/group_rows_wbtest.mbt",
           "fixture": "direct group accepts exact shared work and rejects one-short execution"
+        },
+        {
+          "role": "global_count_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded global count admits exact work and workspace limits"
+        },
+        {
+          "role": "global_count_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "standard Host cancels global count after bounded work"
+        },
+        {
+          "role": "global_count_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_group_wbtest.mbt",
+          "fixture": "Local managed bounded global count distinguishes null fields"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "global_count_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "global count",
+          "case": "globalCountProgram"
+        },
+        {
+          "role": "global_count_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "global-count-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "global_count_entrypoint": {
+          "exact_limit": "global_count_work_workspace_exact_one_short",
+          "one_short_limit": "global_count_work_workspace_exact_one_short",
+          "in_flight_cancel": "global_count_host_timer",
+          "cleanup": "global_count_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "global_count_entrypoint": {
+          "work": {
+            "exact_limit": "global_count_work_workspace_exact_one_short",
+            "one_short_limit": "global_count_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "global_count_work_workspace_exact_one_short",
+            "one_short_limit": "global_count_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "rela",

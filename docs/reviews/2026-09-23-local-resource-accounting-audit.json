@@ -34,6 +34,7 @@
     {"family": "RelA", "operation": "distinct", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "lag", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "watermark_rows", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "group", "path": "global_count_entrypoint"},
     {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
     {"family": "SGA", "operation": "degree", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
