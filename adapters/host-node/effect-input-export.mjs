@@ -387,7 +387,8 @@ export async function commitPinnedEffectSourceHolding({
     // this member independent durable holding and retirement responsibility.
     await store.sharePhysicalHolding(shareFromHoldingCid, record);
   }
-  return Object.freeze({source, artifact: payload.summary.artifact,
+  return Object.freeze({source, memberIndex,
+    artifact: payload.summary.artifact,
     localResultDefinition: payload.localResultDefinition,
     localInvocation: payload.localInvocation,
     localResultArtifact: payload.localResultArtifact,

@@ -330,6 +330,7 @@ async function storeCompletedPayload(
           physical: schema.physical,
           created: schema.created,
         }),
+        physicalPrepared: sealedPhysical.prepared,
         prepared,
       }),
     });

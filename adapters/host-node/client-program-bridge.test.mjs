@@ -44,6 +44,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   prepareCompletedEffectfulPublication,
   publishCompletedEffectfulRun,
+  recoverCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads,
   storeCompletedRunResultSet} from
   '../host-common/completed-run-publication.mjs';
@@ -1139,7 +1140,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         };
         await assert.rejects(issueCompletedEffectfulComputationEvidence({
           ...captureOptions,
-          store: {storeAuthorityCid: store.storeAuthorityCid,
+          store: {...store,
             async commitPhysicalHolding() {
               throw new Error('EffectSourceSyncFailed');
             }},
@@ -1154,6 +1155,22 @@ test('admitted source-free Effect Run computes through the installed Host',
           effectSourceHoldings: [{...sourceHolding,
             artifact: {...sourceArtifact, identity: cid('9')}}],
         }), {code: 'InvalidCompletedEffectSourceHolding'});
+        let captureCommits = 0;
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          store: {...store,
+            async commitPhysicalHolding(...args) {
+              const committed = await store.commitPhysicalHolding(...args);
+              captureCommits++;
+              if (captureCommits === 2) {
+                throw new Error('LostCaptureHoldingCommitAck');
+              }
+              return committed;
+            }},
+        }), {message: 'LostCaptureHoldingCommitAck'});
+        assert.ok(await store.inspectPhysicalHolding(
+          control.effectComputationCaptureHoldingCid(
+            runDefinitionContract, store.storeAuthorityCid)));
         const computation = await issueCompletedEffectfulComputationEvidence(
           captureOptions);
         assert.equal(sourceWriters, 1);
@@ -2381,6 +2398,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-rate-limit',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
+  'salesforce-preapply-restart',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
@@ -2404,6 +2422,7 @@ test(`two-member captured Effect Run ${
     const restartAfterTerminal = physical === 'salesforce-terminal-restart';
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
+    const restartBeforeApply = physical === 'salesforce-preapply-restart';
     const loseHttpReply = physical.endsWith('lost-http-reply');
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
@@ -2484,7 +2503,7 @@ test(`two-member captured Effect Run ${
     const directory = await mkdtemp(join(scratch.pathname,
       'effect-two-published-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const control = runtimeCore(moon).publicationControl;
+    let control = runtimeCore(moon).publicationControl;
     const configuration = {
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -2995,7 +3014,7 @@ test(`two-member captured Effect Run ${
         'authoring_context',
         canonicalJson(JSON.parse(preview.wire).authoring_context),
         publicationLimits);
-      const admittedPreview = control.admitEffectComputationPreview(
+      let admittedPreview = control.admitEffectComputationPreview(
         preview.wire, runDefinition, authoringContext,
         publicationLimits);
       const firstHolding = await commitPinnedEffectSourceHolding({
@@ -3068,7 +3087,7 @@ test(`two-member captured Effect Run ${
           version: 'actql-normalization-journal/0.1',
           rule_catalog_cid: cid('1'), entries: [],
         }), publicationLimits);
-      const computation = await issueCompletedEffectfulComputationEvidence({
+      let computation = await issueCompletedEffectfulComputationEvidence({
         execution, store, storedResults, control,
         admission: runAdmission, runDefinition,
         invocation: runInvocation,
@@ -3084,6 +3103,60 @@ test(`two-member captured Effect Run ${
         effectSourceHoldings: [firstHolding, secondHolding],
         contractLimits: publicationLimits,
       });
+      assert.notEqual(control.effectComputationCaptureHoldingCid(
+        runDefinition, store.storeAuthorityCid),
+      control.effectComputationRecordHoldingCid(
+        runDefinition, store.storeAuthorityCid));
+      if (restartBeforeApply) {
+        const before = JSON.stringify(await store.inspectPhysicalHolding(
+          control.effectComputationCaptureHoldingCid(
+            runDefinition, store.storeAuthorityCid)));
+        const encrypted = [];
+        await store.consumePhysicalHolding(
+          control.effectComputationRecordHoldingCid(
+            runDefinition, store.storeAuthorityCid), 0,
+          chunk => encrypted.push(Buffer.from(chunk)));
+        assert.equal(Buffer.concat(encrypted).toString('utf8')
+          .includes('"captured_run"'), false);
+        for (const result of storedResults.results) {
+          if (result.prepared.status().pending) {
+            await result.prepared.release();
+          }
+        }
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+        await store.close();
+        control = runtimeCore(moon).publicationControl;
+        physicalStore = await openLocalPublicationStore(configuration, control);
+        store = Object.freeze({...physicalStore,
+          async commitEffectfulIndex(...args) {
+            commitCalls++;
+            const result = await physicalStore.commitEffectfulIndex(...args);
+            if (commitCalls === 1) {
+              throw new Error('LostEffectIndexCommitAck');
+            }
+            return result;
+          },
+        });
+        const recovered = await recoverCompletedEffectfulComputation({
+          store, control, runDefinition, contractLimits: publicationLimits,
+        });
+        await assert.rejects(recoverCompletedEffectfulComputation({
+          store: Object.freeze({...store, storeAuthorityCid: cid('8')}),
+          control, runDefinition, contractLimits: publicationLimits,
+        }), {code: 'CompletedEffectfulCaptureUnavailable'});
+        assert.equal(JSON.stringify(await store.inspectPhysicalHolding(
+          control.effectComputationCaptureHoldingCid(
+            runDefinition, store.storeAuthorityCid))), before);
+        assert.equal(recovered.computation.capturedRun.identity,
+          computation.capturedRun.identity);
+        assert.equal(recovered.storedResults.artifacts[0].identity,
+          storedResults.artifacts[0].identity);
+        storedResults = recovered.storedResults;
+        computation = recovered.computation;
+        admittedPreview = recovered.preview;
+      }
       const captured = JSON.parse(computation.capturedRun.wire);
       assert.deepEqual(Object.keys(captured.effect_context
         .effect_source_artifacts).sort(), memberIds);
@@ -3674,7 +3747,8 @@ test(`two-member captured Effect Run ${
       const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
-        execution, store, storedResults, control, computation,
+        execution: restartBeforeApply ? null : execution,
+        store, storedResults, control, computation,
         preview: admittedPreview, ledger, issuedSet,
         request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
           publicationPolicyCid: cid('e'),
