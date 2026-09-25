@@ -180,6 +180,13 @@ pub fn local_module_managed_provider(
   if managed_provider_accepts(relation, sequence) {
     return Some(relation)
   }
+  let row_window = row_window_provider(
+    installed.execution,
+    installed.measurement,
+  )
+  if managed_provider_accepts(row_window, sequence) {
+    return Some(row_window)
+  }
   let cross_join = cross_join_provider(
     installed.execution,
     installed.measurement,

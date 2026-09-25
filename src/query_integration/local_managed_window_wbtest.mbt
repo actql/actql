@@ -87,15 +87,30 @@ fn run_local_managed_window_case(
     None,
   ).unwrap()
 
-  let producer_live = Ref(true)
-  let (producer_ops, producer) = run_local_managed_test_task(
+  let values_live = Ref(true)
+  let (values_ops, values) = run_local_managed_test_task(
     installed,
     run,
     1,
     [],
     [],
     1,
+    values_live,
+    require_provider=true,
+    execution_quantum=1,
+  )
+  let values_rows = local_managed_test_rows(values_ops)
+  let producer_live = Ref(true)
+  let (producer_ops, producer) = run_local_managed_test_task(
+    installed,
+    run,
+    2,
+    [values],
+    [values_rows],
+    2,
     producer_live,
+    require_provider=true,
+    execution_quantum=1,
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, expected)
@@ -104,10 +119,10 @@ fn run_local_managed_window_case(
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    2,
+    3,
     [producer],
     [rows],
-    2,
+    3,
     first_live,
   )
   assert_eq(local_managed_test_rows(first_ops), expected)
@@ -116,10 +131,10 @@ fn run_local_managed_window_case(
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    4,
     [producer],
     [rows],
-    3,
+    4,
     second_live,
   )
   assert_eq(local_managed_test_rows(second_ops), reordered)
@@ -127,7 +142,7 @@ fn run_local_managed_window_case(
   assert_true(@execution.managed_completed_output_available(second))
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
+  @strategy.close_captured_task_output(run, 3)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -135,13 +150,17 @@ fn run_local_managed_window_case(
   assert_true(@execution.managed_completed_output_available(producer))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, 4)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
   producer_live.val = false
-  @strategy.close_captured_task_output(run, 1)
+  @strategy.close_captured_task_output(run, 2)
   (producer_ops.close)()
   (producer_ops.cleanup_refresh)() |> ignore
+  values_live.val = false
+  @strategy.close_captured_task_output(run, 1)
+  (values_ops.close)()
+  (values_ops.cleanup_refresh)() |> ignore
   @strategy.stop_captured_dag(run)
   @strategy.close_captured_task_output(run, 0)
   @strategy.refresh_captured_retention(run)

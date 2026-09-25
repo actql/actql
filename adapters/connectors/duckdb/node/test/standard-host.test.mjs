@@ -6660,6 +6660,8 @@ async function exerciseStrategyGraph(
       program: splitValuesDeriveProgram, cancelAtStart: 3},
     {name: 'split-values-take-in-flight',
       program: splitValuesTakeProgram, cancelAtStart: 3},
+    {name: 'split-values-row-window-in-flight',
+      program: fixedRowWindowProgram, cancelAtStart: 2},
     {name: 'split-values-assert-in-flight',
       program: splitValuesAssertProgram, cancelAtStart: 3},
     {name: 'split-values-unique-in-flight',
@@ -6675,11 +6677,16 @@ async function exerciseStrategyGraph(
   ]) {
     const valuesCancellationCase = {name: cancellationName};
     const cancellableValuesProgram = structuredClone(cancellationProgram);
+    const rowWindowCancellation = cancellationName ===
+      'split-values-row-window-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
-      stage => stage.id === 'values_a',
+      stage => stage.id === (rowWindowCancellation
+        ? 'window_values' : 'values_a'),
     );
     valuesStage.steps[0].values.rows = Array.from(
-      {length: 80}, (_, index) => ({id: index, label: `row${index}`}));
+      {length: 80}, (_, index) => rowWindowCancellation
+        ? {at: index, id: index}
+        : {id: index, label: `row${index}`});
     const valuesCancellationFixture = fixture.strategyFixtureCreate(
       ...args, JSON.stringify(cancellableValuesProgram),
     );
@@ -6731,7 +6738,8 @@ async function exerciseStrategyGraph(
                 }
                 return quantum => {
                   const stepQuantum = start === cancelAtStart &&
-                    cancellationName === 'split-values-take-in-flight'
+                    (cancellationName === 'split-values-take-in-flight' ||
+                      rowWindowCancellation)
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
