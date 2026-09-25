@@ -11,6 +11,7 @@ import {managedMemoryTransferContract} from
   '../store-local/managed-memory-transfer.mjs';
 import {createExecutionSiteControlFixture} from
   '../host-common/execution-site-control.fixture.mjs';
+import {accountEntry, fixtureAuthorization} from './authorization-fixture.mjs';
 
 const siteControl = createExecutionSiteControlFixture();
 
@@ -1396,4 +1397,59 @@ test('unconfirmed cleanup remains pending without destroying independently compl
   assert.equal(await result.cleanup(), true);
   assert.equal(result.cleanupPending(), false);
   assert.equal(result.output(1), 1);
+});
+
+test('a refused protected activation stops the Run before any start', async () => {
+  const registration = {};
+  for (const [entries, code] of [
+    [[], 'ExecutionAuthorizationDenied'],
+    [[accountEntry('site', 'delegate', {connection: 'in-process-default'})],
+      'ExecutionAuthorizationDecisionFailed'],
+  ]) {
+    const f = fixture([registration, registration]);
+    const grants = [];
+    f.core.requireActivation = () => {};
+    f.core.coverActivation = (_setup, index) => { grants.push(index); return true; };
+    let runs = 0;
+    const gate = await fixtureAuthorization(entries, {
+      protectedSites: ['in-process-default'],
+      decide: () => { throw new Error('DecisionServiceDown'); },
+      answeringAuthorities: ['reviewer'],
+    });
+    const result = await runInstalledStrategy(f.setup, f.core, [{
+      registration,
+      run() { runs++; f.complete.add(1); },
+    }], undefined, undefined, undefined, undefined, gate);
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.failure.code, code);
+    assert.equal(runs, 0);
+    assert.deepEqual(grants, []);
+    assert.equal(f.stopped(), 1);
+    assert.equal(result.completed.length, 0);
+    await result.close();
+  }
+});
+
+test('covered activations grant each task once with no evaluation', async () => {
+  const registration = {};
+  const f = fixture([registration, registration, registration]);
+  const grants = [];
+  let required = 0;
+  f.core.requireActivation = () => { required++; };
+  f.core.coverActivation = (_setup, index) => { grants.push(index); return true; };
+  const gate = await fixtureAuthorization([], {
+    decide: () => assert.fail('covered work asked the Host'),
+    answeringAuthorities: ['reviewer'],
+  });
+  let index = 0;
+  const result = await runInstalledStrategy(f.setup, f.core, [{
+    registration,
+    run() { f.complete.add(++index); },
+  }], undefined, undefined, undefined, undefined, gate);
+  assert.equal(result.status, 'host-tasks-completed');
+  assert.equal(required, 1);
+  assert.deepEqual(grants, [1, 2, 3]);
+  assert.equal(gate.counters().evaluations, 0);
+  assert.equal(gate.counters().coveredOperations, 3);
+  await result.close();
 });
