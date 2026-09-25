@@ -102,6 +102,10 @@ pub fn client_program_effect_apply_capability_idempotency_mode(@effect_applicati
 
 pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_application.EffectApplyCapabilityObservation) -> String
 
+pub fn client_program_effect_apply_member_count(@physical_strategy.CapturedEffectPreviewInputs) -> Int?
+
+pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffectPreviewInputs) -> String?
+
 pub fn client_program_effect_create_row_inventory(Array[String], Int, Int, Int, Int) -> Result[Array[(Int, String)], @run_publication.EffectPreviewIdentityIssue]
 
 pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClientEffectComputation) -> String

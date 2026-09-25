@@ -10,6 +10,8 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet} from './effect-run-apply.mjs';
+import {accountEntry, fixtureAuthorization} from
+  './authorization-fixture.mjs';
 import {captureSalesforceCollectionEffectWrite,
   captureSalesforceSingleEffectWrite} from
   './salesforce-effect-write.mjs';
@@ -1841,9 +1843,19 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.deepEqual(omittedChunks, []);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+      // Explicit Host account for this Effect commit: allow the Effect
+      // operation on the Host-derived connection/resource. No risk claim is
+      // fabricated.
+      const effectAuthorization = {
+        gate: await fixtureAuthorization([accountEntry('crm-effect',
+          'allow', {connection: 'crm', resource: 'Account',
+            operation: 'effect'})]),
+        scopes: [{connection: 'crm', resource: 'Account'},
+          {connection: 'crm', resource: 'Account'}],
+      };
       const applyOptions = {
         moon, capturedInputs: previewInputs, members: progressMembers,
-        maxFrontierWork: 64,
+        maxFrontierWork: 64, authorization: effectAuthorization,
         preflight: {
           proofs: [second.proof, verified.proof],
           sources: [cid('c'), cid('c')],
@@ -1865,6 +1877,19 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const firstProgress = openProgress();
       try {
         assert.deepEqual(ready(firstProgress), [[0, 0], [1, 0]]);
+        // Effect commit is protected: no Host gate, no dispatch.
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: firstProgress, authorization: undefined,
+          dispatchRow: () => assert.fail('unauthorized commit sent a row'),
+        }), {code: 'EffectApplyAuthorizationRequired'});
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: firstProgress,
+          authorization: {...effectAuthorization,
+            gate: await fixtureAuthorization([])},
+          dispatchRow: () => assert.fail('no-match commit sent a row'),
+        }), error => error.code === 'ExecutionAuthorizationDenied' &&
+          error.authorization.boundary === 'effect_commit' &&
+          error.authorization.tuple.operation === 'effect');
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, ledger: firstProgress,
           preflight: {...applyOptions.preflight,
@@ -2946,8 +2971,20 @@ test(`two-member captured Effect Run ${
         decision: 'allow', requestScope, keys: preview.keys,
         maxMembers: 2, maxRows: 4, maxFootprintWork: 4, maxWork: 100,
       };
+      // Host-derived Effect commit tuples: each member's connection and
+      // resource; the operation is the Effect class of the operation
+      // classification.
+      const commitScopes = memberIds.map((_, memberIndex) => siteRun
+        ? {connection: `salesforce:${sites[memberIndex].orgId}`,
+          resource: 'Test_Record__c'}
+        : {connection: 'crm', resource: 'Account'});
       const applyOptions = {moon, capturedInputs: previewInputs,
-        preflight, ledger, members, maxFrontierWork: 64};
+        preflight, ledger, members, maxFrontierWork: 64,
+        authorization: {
+          gate: await fixtureAuthorization([accountEntry('effect-allow',
+            'allow', {operation: 'effect'})]),
+          scopes: commitScopes,
+        }};
       const expectedCredentialUses = baseline => baseline.map(
         (count, index) => count + sites[index].seen.filter(item =>
           item.method === 'GET').length);

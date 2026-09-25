@@ -2247,6 +2247,25 @@ pub fn client_program_effect_create_row_inventory(
 }
 
 ///|
+/// Sealed Effect Set Preview identity of the live captured Preview: the
+/// decision subject the Host binds at the Effect commit boundary.
+#export_name("clientProgramEffectApplySubjectCid")
+pub fn client_program_effect_apply_subject_cid(
+  preview : @strategy.CapturedEffectPreviewInputs,
+) -> String? {
+  @strategy.captured_effect_preview_subject_cid(preview)
+}
+
+///|
+/// Member count of the live captured Preview.
+#export_name("clientProgramEffectApplyMemberCount")
+pub fn client_program_effect_apply_member_count(
+  preview : @strategy.CapturedEffectPreviewInputs,
+) -> Int? {
+  @strategy.captured_effect_preview_member_count(preview)
+}
+
+///|
 /// Check the complete semantic preflight on one captured Preview owner.
 /// The Host must independently authenticate all current facts and claim the
 /// physical send through its durable Effect ledger before any mutation.
