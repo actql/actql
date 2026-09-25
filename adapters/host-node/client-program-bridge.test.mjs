@@ -178,6 +178,13 @@ test('checked acquired source and downstream task emit their input ports',
           sourceRef: 'connector://crm/main/r#v',
           sourceContractCid:
             'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+          carrierSchemaContractCid:
+            'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+          sourceDataPolicyCid:
+            'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+          dataClassification: 'unknown',
+          sourceViewContractCid:
+            'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
           inputContractCid:
             moon.clientProgramQueryRequirementInputContractCid(requirement),
           outputContractCid:

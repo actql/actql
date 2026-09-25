@@ -1279,6 +1279,19 @@ pub fn client_program_query_requirement_output_contract_cid(
 }
 
 ///|
+/// The checked SourceView's contract and policy facts. Physical observation,
+/// capability and current authorization remain Host responsibilities.
+#export_name("clientProgramQueryRequirementSourceEvidenceFacts")
+pub fn client_program_query_requirement_source_evidence_facts(
+  requirement : @planning.QueryRequirement,
+) -> Result[Array[String], String] {
+  match @planning.query_requirement_source_evidence_facts(requirement) {
+    Some(facts) => Ok(@planning.query_source_evidence_fact_values(facts))
+    None => Err("CheckedSourceEvidenceFactsUnavailable")
+  }
+}
+
+///|
 #export_name("clientProgramPrepareDuckDBAcquisition")
 pub fn client_program_prepare_duckdb_acquisition(
   requirement : @planning.QueryRequirement,

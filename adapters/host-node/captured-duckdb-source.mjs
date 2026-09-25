@@ -31,11 +31,19 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const requirement = checked(
     moon.clientProgramPrepareLocalQueryRequirement(preparedProgram, 0, 0,
       registry, values, fragment, ordered));
+  const sourceFacts = checked(
+    moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
+  if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||
+      !sourceFacts.every(value => typeof value === 'string')) {
+    throw new Error('InstalledSourceEvidenceFactsUnavailable');
+  }
+  const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+    sourceDataPolicyCid, dataClassification, sourceViewContractCid] =
+    sourceFacts;
   const checkedSource = Object.freeze({
     requirementCid: moon.clientProgramQueryRequirementCid(requirement),
-    sourceRef: moon.clientProgramQueryRequirementSourceRef(requirement),
-    sourceContractCid:
-      moon.clientProgramQueryRequirementSourceContractCid(requirement),
+    sourceRef, sourceContractCid, carrierSchemaContractCid,
+    sourceDataPolicyCid, dataClassification, sourceViewContractCid,
     inputContractCid:
       moon.clientProgramQueryRequirementInputContractCid(requirement),
     outputContractCid:
