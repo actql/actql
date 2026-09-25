@@ -29,7 +29,7 @@ prove these properties; a normal gate result or an operation count does not.
 ### Remaining product work and its acceptance tests
 
 The strict gate still rejects unassured RelA whole-sequence entrypoints,
-twelve SGA entrypoints, and the providerless synchronous computation.
+ten SGA entrypoints, and the providerless synchronous computation.
 The selected top-k, binary same-Stage, VecA row-expression, and ranking
 paths now have separate evidence, but that does not certify an unrelated
 whole-sequence or formal variant. Multiple rows below share one
@@ -40,7 +40,7 @@ implementation while retaining separate input bindings and route evidence.
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
 | Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
-| Standard SGA Graph programs still have twelve registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
+| Standard SGA Graph programs still have ten registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
 
 The current `--require-boundary-complete` output is the finite acceptance
@@ -119,6 +119,12 @@ tests also check independent release and final ledger reclamation. This closes
 that captured-input chain shape, not either operation's whole production route:
 retained-only predecessor views still enter the existing synchronous import
 path, and other checked chains need their own reachability and boundary proof.
+The same bounded step-dispatch path now handles captured `group count` then
+`filter`/`select`, and fixed `row_window` then `filter`/`select` in one Stage.
+Their three-target portable fixtures exercise quantum-one execution and two
+consumers; the standard Node Host runs each chain and delivers timer
+cancellation. This closes these selected chain shapes without changing the
+20 connection, nine synchronous-body, or ten evidence-only whole-route gaps.
 Splitting every such predecessor changes task identity and port mapping across
 existing dispatch and retention paths; the remaining work is to connect the
 eligible checked shapes without losing those bindings. The `components`
@@ -127,10 +133,10 @@ positive operation work. It remains in the evidence category until the fused
 product path has exact and one-short task-wide work/workspace proofs; the
 empty-kernel boundary alone does not establish that scope.
 
-The captured-chain evidence is `ordinary captured Relation chain feeds two
+The captured-chain evidence is `ordinary captured Relation chains feed two
 bounded consumers` and `ordinary captured Relation chain cancels after bounded
 work` in `src/query_integration/local_managed_unary_wbtest.mbt`, plus the
-`captured Relation filter/select chain` and in-flight timer case in
+captured filter, count, and window chains and their in-flight timer cases in
 `adapters/connectors/duckdb/node/test/standard-host.test.mjs`. The portable
 fixture checks quantum-one work and ledger reclamation; the Node case checks
 the standard asynchronous cancellation delivery. Neither fixture proves a
