@@ -399,6 +399,247 @@ pub fn derive_effect_preview_row_identities(
 }
 
 ///|
+/// Emit the admitted Preview shape with MoonBit-derived row, member and set
+/// identities. A missing key inventory uses distinct row CIDs only as
+/// temporary placeholders; completion replaces them with dispatch keys.
+fn emit_authored_effect_preview(
+  preview : @json.CanonicalValue,
+  rows : Array[Array[String]],
+  member_cids : Array[String]?,
+  preview_cid : String?,
+  key_cids : Array[Array[String]]?,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, EffectPreviewIdentityIssue] {
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    for (name, child) in @json.object_fields(preview).unwrap() {
+      @encode.key(writer, name)
+      if name == "effect_preview_cid" && preview_cid is Some(cid) {
+        @encode.string_value(writer, cid)
+      } else if name == "effects" {
+        let members = match child {
+          @json.Array(items) => @json.array_values(items)
+          _ => return Err(InvalidMember)
+        }
+        if members.length() != rows.length() ||
+          member_cids
+          .map(values => values.length() != members.length())
+          .unwrap_or(false) ||
+          key_cids
+          .map(values => values.length() != members.length())
+          .unwrap_or(false) {
+          return Err(InvalidMember)
+        }
+        @encode.begin_array(writer)
+        for member_index in 0..<members.length() {
+          let effect = members[member_index]
+          let changes = match @json.object_field(effect, "changes") {
+            Some(@json.Array(items)) => @json.array_values(items)
+            _ => return Err(InvalidMember)
+          }
+          if changes.length() != rows[member_index].length() ||
+            key_cids
+            .map(values => values[member_index].length() != changes.length())
+            .unwrap_or(false) {
+            return Err(InvalidMember)
+          }
+          @encode.begin_object(writer)
+          for
+            (member_name, member_child) in @json.object_fields(effect).unwrap() {
+            @encode.key(writer, member_name)
+            if member_name == "effect_member_preview_cid" &&
+              member_cids is Some(cids) {
+              @encode.string_value(writer, cids[member_index])
+            } else if member_name == "row_order" {
+              @encode.begin_array(writer)
+              for row in rows[member_index] {
+                @encode.string_value(writer, row)
+              }
+              @encode.end_array(writer)
+            } else if member_name == "changes" {
+              @encode.begin_array(writer)
+              for row_index in 0..<changes.length() {
+                @encode.begin_object(writer)
+                for
+                  (change_name, change_child) in @json.object_fields(
+                    changes[row_index],
+                  ).unwrap() {
+                  @encode.key(writer, change_name)
+                  if change_name == "row_preview_cid" {
+                    @encode.string_value(writer, rows[member_index][row_index])
+                  } else if change_name == "row_idempotency_key" {
+                    let key = match key_cids {
+                      Some(values) => values[member_index][row_index]
+                      None => rows[member_index][row_index]
+                    }
+                    @encode.string_value(writer, key)
+                  } else {
+                    @json.emit_value(change_child, writer)
+                  }
+                }
+                @encode.end_object(writer)
+              }
+              @encode.end_array(writer)
+            } else {
+              @json.emit_value(member_child, writer)
+            }
+          }
+          @encode.end_object(writer)
+        }
+        @encode.end_array(writer)
+      } else {
+        @json.emit_value(child, writer)
+      }
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Seal the semantic row -> member -> set identity chain. Dispatch keys are
+/// excluded from that chain and must be completed before apply admission.
+pub fn author_effect_preview_semantic_wire(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+  let template = match
+    parse_effect_preview_shape(
+      template_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  let rows = match
+    derive_effect_preview_row_identities(
+      template_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let draft = match
+    emit_authored_effect_preview(
+      template,
+      rows,
+      None,
+      None,
+      None,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (preview_cid, member_cids) = match
+    derive_effect_preview_identities(
+      draft, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let wire = match
+    emit_authored_effect_preview(
+      template,
+      rows,
+      Some(member_cids),
+      Some(preview_cid),
+      None,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    admit_effect_preview_identity(
+      wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(identity) => Ok((wire, identity))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Complete only the non-semantic dispatch-key fields after the Preview CID
+/// is fixed. Re-admit the unchanged semantic chain before returning wire.
+pub fn complete_effect_preview_dispatch_keys(
+  semantic_wire : String,
+  key_cids : Array[Array[String]],
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, EffectPreviewIdentityIssue] {
+  let semantic = match
+    parse_effect_preview_shape(
+      semantic_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(PreviewShape(issue))
+  }
+  let identity = match
+    admit_effect_preview_identity(
+      semantic_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let rows : Array[Array[String]] = []
+  let members : Array[String] = []
+  for member_index in 0..<effect_preview_member_count(identity) {
+    let member_rows : Array[String] = []
+    for
+      row_index in 0..<effect_preview_row_count(identity, member_index).unwrap() {
+      member_rows.push(
+        effect_preview_row_identity(identity, member_index, row_index).unwrap(),
+      )
+    }
+    rows.push(member_rows)
+    members.push(
+      effect_preview_member_identity(identity, member_index).unwrap(),
+    )
+  }
+  let wire = match
+    emit_authored_effect_preview(
+      semantic,
+      rows,
+      Some(members),
+      Some(effect_preview_semantic_identity(identity)),
+      Some(key_cids),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    admit_effect_preview_identity(
+      wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok(wire)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 fn effect_member_row_inventory(
   preview : @json.CanonicalValue,
   effect : @json.CanonicalValue,

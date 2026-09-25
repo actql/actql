@@ -2069,6 +2069,98 @@ pub fn client_program_check_effect_preview_apply_keys(
 }
 
 ///|
+pub(all) enum ClientEffectPreviewAuthorIssue {
+  Preview(@publication.EffectPreviewIdentityIssue)
+  Dispatch(@effect.EffectIdentityIssue)
+  Keys(@effect.EffectPreviewApplyIdentityIssue)
+  CapacityExceeded
+} derive(Debug)
+
+///|
+/// Seal row, member and set identities before deriving non-semantic dispatch
+/// keys. This only authors a private Preview wire; checked Run binding,
+/// current authority and apply permission remain separate obligations.
+#export_name("clientProgramAuthorEffectPreview")
+pub fn client_program_author_effect_preview(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  request_scope : @effect.LogicalRequestScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_rows : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[
+  (String, Array[Array[@effect.EffectDispatchKey]]),
+  ClientEffectPreviewAuthorIssue,
+] {
+  let (semantic_wire, identity) = match
+    @publication.author_effect_preview_semantic_wire(
+      template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  let count = @publication.effect_preview_member_count(identity)
+  if max_members < 1 || max_rows < 1 || count > max_members {
+    return Err(CapacityExceeded)
+  }
+  let preview_cid = @publication.effect_preview_semantic_identity(identity)
+  let keys : Array[Array[@effect.EffectDispatchKey]] = []
+  let key_cids : Array[Array[String]] = []
+  let mut remaining = max_rows
+  for member_index in 0..<count {
+    let row_count = @publication.effect_preview_row_count(
+      identity, member_index,
+    ).unwrap()
+    if row_count > remaining {
+      return Err(CapacityExceeded)
+    }
+    remaining -= row_count
+    let member_keys : Array[@effect.EffectDispatchKey] = []
+    let member_key_cids : Array[String] = []
+    for row_index in 0..<row_count {
+      let correlation = @publication.effect_preview_row_correlation_wire(
+        identity, member_index, row_index,
+      ).unwrap()
+      let key = match
+        @effect.prepare_effect_dispatch_key(
+          request_scope, preview_cid, correlation, max_key_bytes, max_key_nodes,
+          max_key_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Dispatch(issue))
+      }
+      member_key_cids.push(@effect.effect_dispatch_key_cid(key))
+      member_keys.push(key)
+    }
+    keys.push(member_keys)
+    key_cids.push(member_key_cids)
+  }
+  let wire = match
+    @publication.complete_effect_preview_dispatch_keys(
+      semantic_wire, key_cids, expected_run_identity_cid, expected_authoring_context_cid,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  match
+    @effect.admit_effect_preview_apply_identity(
+      wire, expected_run_identity_cid, expected_authoring_context_cid, request_scope,
+      keys, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok((wire, keys))
+    Err(issue) => Err(Keys(issue))
+  }
+}
+
+///|
 /// Check the complete semantic preflight on one captured Preview owner.
 /// The Host must independently authenticate all current facts and claim the
 /// physical send through its durable Effect ledger before any mutation.
