@@ -11,18 +11,27 @@
 //   resume  <checkpoint|prepare-attempt> --config <host.json> [--claimant <id>] [--lease-ms <n>]
 //   status  <run|prepare-attempt|checkpoint> --config <host.json>
 //   cancel  <checkpoint|prepare-attempt> --config <host.json>
+//   retire  --config <host.json>
 //
 // Output is JSON on stdout. The CLI never prompts and never reads stdin: TTY
 // presence, EOF or a timeout cannot approve, reject or dispatch anything. A
 // deferred decision exits 0 with `waiting_checkpoint`. Exit 1 is a refused,
 // failed or partially answered command; exit 2 is an invalid command line.
+//
+// `init` also creates the private-evidence key (`state/private-evidence.key`,
+// owner-only). After a command that can end a continuation the CLI retires
+// the private evidence of continuations with no remaining need; waiting
+// evidence is kept. A deletion that fails stays owned and is reported under
+// `retention`; `retire` retries it.
 import {parseArgs} from 'node:util';
 import {initializeLocalHost, openLocalHost, readSigner} from './local-host.mjs';
 
 const usage = code => Object.assign(new Error(code), {code, usage: true});
 
 const COMMANDS = new Set(['init', 'run', 'list', 'inspect', 'approve', 'reject',
-  'resume', 'status', 'cancel']);
+  'resume', 'status', 'cancel', 'retire']);
+// Commands after which a continuation can have ended.
+const SETTLES = new Set(['run', 'list', 'approve', 'reject', 'resume', 'cancel']);
 
 async function main(argv) {
   const [command, ...rest] = argv;
@@ -84,66 +93,82 @@ async function main(argv) {
   }
   const host = await openLocalHost(values.config);
   try {
-    switch (command) {
-      case 'run': {
-        const output = await host.run({
-          database: values.database,
-          environment: values.environment,
-          environmentCid: values['environment-cid'],
-          program: values.program,
-          parameters: values.parameters,
-          schema: values.schema,
-          table: values.table,
-          nativeMilliseconds: values['native-ms'],
-          resident: values.resident,
-        });
-        return {exit: ['succeeded', 'waiting_checkpoint'].includes(output.status) ? 0 : 1,
-          output};
-      }
-      case 'list':
-        return {exit: 0, output: {pending: host.list()}};
-      case 'inspect': {
-        const output = host.inspect(one());
-        return {exit: output === undefined ? 1 : 0,
-          output: output ?? {status: 'not_found'}};
-      }
-      case 'status': {
-        const output = host.status(one());
-        return {exit: output === undefined ? 1 : 0,
-          output: output ?? {status: 'not_found'}};
-      }
-      case 'approve':
-      case 'reject': {
-        if (positionals.length === 0) throw usage('CheckpointReferenceRequired');
-        const results = await host.answer(positionals,
-          command === 'approve' ? 'approved' : 'rejected',
-          {signer, decidedAt: values['decided-at']});
-        const ok = results.every(item =>
-          item.status === 'committed' || item.status === 'duplicate');
-        return {exit: ok ? 0 : 1, output: {results}};
-      }
-      case 'cancel': {
-        const output = host.cancel(one());
-        return {exit: ['cancelled', 'duplicate'].includes(output.outcome) ? 0 : 1,
-          output};
-      }
-      case 'resume': {
-        // Test-only diagnostic: hold the claimed continuation before any
-        // work so a superseding claimant can be exercised across processes.
-        const hold = Number(process.env.ACTQL_EXAMPLE_HOLD_AFTER_CLAIM_MS ?? 0);
-        const output = await host.resume(one(), {
-          ...(values.claimant ? {claimant: values.claimant} : {}),
-          ...(leaseMs !== undefined ? {leaseMs} : {}),
-          holdAfterClaimMs: Number.isSafeInteger(hold) && hold > 0 ? hold : 0,
-        });
-        return {exit: ['succeeded', 'waiting_checkpoint', 'completed']
-          .includes(output.status) ? 0 : 1, output};
-      }
-      default:
-        throw usage('UnknownCommand');
-    }
+    const result = await dispatch(host, command, values, positionals, one,
+      signer, leaseMs);
+    if (!SETTLES.has(command)) return result;
+    let retention;
+    try { retention = await host.retire(); }
+    catch (error) { retention = {error: error.code ?? error.message}; }
+    return retention.error === undefined && retention.pending.length === 0
+      ? result : {...result, output: {...result.output, retention}};
   } finally {
-    host.close();
+    await host.close();
+  }
+}
+
+async function dispatch(host, command, values, positionals, one, signer, leaseMs) {
+  switch (command) {
+    case 'run': {
+      const output = await host.run({
+        database: values.database,
+        environment: values.environment,
+        environmentCid: values['environment-cid'],
+        program: values.program,
+        parameters: values.parameters,
+        schema: values.schema,
+        table: values.table,
+        nativeMilliseconds: values['native-ms'],
+        resident: values.resident,
+      });
+      return {exit: ['succeeded', 'waiting_checkpoint'].includes(output.status) ? 0 : 1,
+        output};
+    }
+    case 'list':
+      return {exit: 0, output: {pending: host.list()}};
+    case 'inspect': {
+      const output = host.inspect(one());
+      return {exit: output === undefined ? 1 : 0,
+        output: output ?? {status: 'not_found'}};
+    }
+    case 'status': {
+      const output = host.status(one());
+      return {exit: output === undefined ? 1 : 0,
+        output: output ?? {status: 'not_found'}};
+    }
+    case 'approve':
+    case 'reject': {
+      if (positionals.length === 0) throw usage('CheckpointReferenceRequired');
+      const results = await host.answer(positionals,
+        command === 'approve' ? 'approved' : 'rejected',
+        {signer, decidedAt: values['decided-at']});
+      const ok = results.every(item =>
+        item.status === 'committed' || item.status === 'duplicate');
+      return {exit: ok ? 0 : 1, output: {results}};
+    }
+    case 'cancel': {
+      const output = host.cancel(one());
+      return {exit: ['cancelled', 'duplicate'].includes(output.outcome) ? 0 : 1,
+        output};
+    }
+    case 'resume': {
+      // Test-only diagnostic: hold the claimed continuation before any
+      // work so a superseding claimant can be exercised across processes.
+      const hold = Number(process.env.ACTQL_EXAMPLE_HOLD_AFTER_CLAIM_MS ?? 0);
+      const output = await host.resume(one(), {
+        ...(values.claimant ? {claimant: values.claimant} : {}),
+        ...(leaseMs !== undefined ? {leaseMs} : {}),
+        holdAfterClaimMs: Number.isSafeInteger(hold) && hold > 0 ? hold : 0,
+      });
+      return {exit: ['succeeded', 'waiting_checkpoint', 'completed']
+        .includes(output.status) ? 0 : 1, output};
+    }
+    case 'retire': {
+      if (positionals.length > 0) throw usage('UnexpectedArgument');
+      const output = await host.retire();
+      return {exit: output.pending.length === 0 ? 0 : 1, output};
+    }
+    default:
+      throw usage('UnknownCommand');
   }
 }
 

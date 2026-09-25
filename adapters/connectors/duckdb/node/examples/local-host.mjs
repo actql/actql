@@ -11,20 +11,21 @@
 // are decided on the invocation request before any path is read, so a denial
 // reads and captures nothing. Only when a delegated preparation is deferred
 // does the Host capture the operator-supplied Program, Environment and
-// Parameter files as immutable content-addressed artifacts (caller-supplied
-// input, not a Connector read), record the exact prepared invocation and seal
-// the `run_scope` Checkpoint on it; its decision-subject binding still names
-// the request. No source (provider) I/O happens before the
-// Checkpoint: both preparation and acquisition Checkpoints precede capture of
-// source data, so a resumed continuation reads the source once, after its
-// approval. Resumption claims the fenced resume intent, revalidates the bound
-// authorization context and environment, reuses the captured bytes and the
-// approved decision subjects, creates the Run directly in `running` and runs
-// the same continuation.
+// Parameter files as immutable content-addressed private evidence
+// (caller-supplied input, not a Connector read), record the exact prepared
+// invocation and seal the `run_scope` Checkpoint on it; its decision-subject
+// binding still names the request. Private evidence is held encrypted through
+// the Host storage port (`local-continuation-evidence.mjs`) and retired only
+// when its continuation has no remaining need. No source (provider) I/O
+// happens before the Checkpoint: both preparation and acquisition
+// Checkpoints precede capture of source data, so a resumed continuation reads
+// the source once, after its approval. Resumption claims the fenced resume
+// intent, revalidates the bound authorization context and environment, reuses
+// the captured bytes and the approved decision subjects, creates the Run
+// directly in `running` and runs the same continuation.
 import {randomUUID, sign, verify, createPrivateKey, createPublicKey,
   generateKeyPairSync} from 'node:crypto';
-import {mkdir, open as openFile, readFile, realpath, rename, stat, writeFile}
-  from 'node:fs/promises';
+import {mkdir, readFile, realpath, stat, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {runExample} from './physical-strategy.mjs';
 import {openSqliteCheckpointJournal, loadCheckpointRuntime} from
@@ -39,6 +40,16 @@ import {
 } from '../../../../host-node/local-account-config.mjs';
 import {ExecutionAuthorizationError, decisionSubjectCid} from
   '../../../../host-common/authorization-gate.mjs';
+import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+import {
+  createPrivateEvidenceKey,
+  loadPrivateEvidenceKey,
+  openContinuationEvidence,
+} from '../../../../host-node/local-continuation-evidence.mjs';
+
+const storeRuntimeUrl = new URL(
+  '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url);
 
 const DECLARED_RESULTS = Object.freeze(['result']);
 const MAX_INPUT_BYTES = 1_000_000;
@@ -106,8 +117,9 @@ export async function loadHostConfig(path) {
 }
 
 // Create a minimal Local Host installation: Host attestation key, one
-// reviewer key pair and signer file, and the Host configuration. The account
-// configuration is referenced, never generated here.
+// reviewer key pair and signer file, the private-evidence key in the state
+// directory and the Host configuration. The account configuration is
+// referenced, never generated here.
 export async function initializeLocalHost({directory, accountConfig,
   reviewer = 'reviewer', principal = 'local-operator'}) {
   if (!IDENTIFIER.test(reviewer)) fail('InvalidReviewerId');
@@ -121,6 +133,7 @@ export async function initializeLocalHost({directory, accountConfig,
     hostKey: join(root, 'host-key.pem'),
     reviewerPublicKey: join(root, `${reviewer}.pub.pem`),
     signer: join(root, `${reviewer}.signer.json`),
+    privateEvidenceKey: undefined,
   };
   const create = (path, text) => writeFile(path, text, {flag: 'wx', mode: 0o600});
   await create(files.hostKey, pem(host.privateKey));
@@ -136,6 +149,7 @@ export async function initializeLocalHost({directory, accountConfig,
       public_key: `${reviewer}.pub.pem`}],
     host_key: {key_id: 'host-key', private_key: 'host-key.pem'},
   }, null, 2));
+  files.privateEvidenceKey = await createPrivateEvidenceKey(join(root, 'state'));
   return Object.freeze(files);
 }
 
@@ -144,19 +158,6 @@ async function boundedBytes(path) {
   const bytes = await readFile(path);
   if (bytes.length > MAX_INPUT_BYTES) fail('InputTooLarge');
   return bytes;
-}
-
-async function durableWrite(path, bytes) {
-  await mkdir(dirname(path), {recursive: true, mode: 0o700});
-  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
-  const handle = await openFile(temporary, 'wx', 0o600);
-  try {
-    await handle.writeFile(bytes);
-    await handle.sync();
-  } finally { await handle.close(); }
-  await rename(temporary, path);
-  const directory = await openFile(dirname(path), 'r');
-  try { await directory.sync(); } finally { await directory.close(); }
 }
 
 const sameSubject = (left, right) =>
@@ -184,6 +185,7 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
     ({keyId, reviewerId}));
   const reviewerIds = config.reviewers.map(item => item.reviewerId);
   const runtime = await loadCheckpointRuntime();
+  const privateKey = await loadPrivateEvidenceKey(state);
 
   // Current trusted context: the admitted configuration text/CID (if any),
   // the context CID and the bound authorization-context CID for resumption.
@@ -251,26 +253,20 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
     },
   });
 
-  // Content-addressed private artifacts: captured inputs and Host records.
-  const artifactPath = cid => join(state, 'artifacts', cid.slice('sha256:'.length));
-  async function putBytes(bytes) {
-    const cid = bytesCid(bytes);
-    try {
-      if (bytesCid(await readFile(artifactPath(cid))) === cid) return cid;
-    } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
-    await durableWrite(artifactPath(cid), bytes);
-    return cid;
-  }
-  async function getBytes(cid) {
-    const bytes = await readFile(artifactPath(cid));
-    if (bytesCid(bytes) !== cid) fail('ArtifactIntegrityFailed');
-    return bytes;
-  }
-  const putRecord = value => putBytes(Buffer.from(canonicalJson(value), 'utf8'));
-  const getRecord = async cid => JSON.parse((await getBytes(cid)).toString('utf8'));
-  const attemptIndex = id => join(state, 'attempts', `${id}.json`);
+  // Host storage port: captured inputs and Host records are encrypted
+  // private evidence in the Local Store, held per continuation.
+  const evidence = openContinuationEvidence({
+    stateDirectory: state,
+    ...privateKey,
+    contractControl: runtimeCore(await import(storeRuntimeUrl.href))
+      .publicationControl,
+    preparation(prepareAttemptId) {
+      const current = journal.getPreparation(prepareAttemptId);
+      if (current === undefined) return undefined;
+      return {status: current.status, runStatus: current.runId === null
+        ? undefined : journal.getRunState(current.runId)?.status};
+    },
+  });
 
   async function environmentBinding(request) {
     let source = null;
@@ -310,20 +306,18 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
     parameters_cid: bytesCid(Buffer.from(texts.parameterText, 'utf8')),
   });
 
-  // Store the captured input bytes, the request and the prepared invocation
-  // that binds them; returns the prepared invocation CID.
-  async function storeInvocation(request, requestCid, read) {
-    for (const text of [read.programText, read.environmentText,
-      read.parameterText]) {
-      await putBytes(Buffer.from(text, 'utf8'));
-    }
-    await putRecord(request);
-    return putRecord(invocationOf(request, requestCid, read));
-  }
+  // The private evidence of one prepared invocation: captured input bytes,
+  // the request and the prepared invocation that binds them.
+  const invocationEvidence = (request, read) => [
+    ...[read.programText, read.environmentText, read.parameterText]
+      .map(wire => ({name: 'captured_input', wire})),
+    {name: 'invocation_request', wire: canonicalJson(request)},
+  ];
 
   // Second phase of a deferred preparation: read the operator-supplied paths
   // once, capture them and seal the prepared invocation. Called by the gate
-  // only on the defer path, after the request subject was decided.
+  // only on the defer path, after the request subject was decided. The
+  // captured bytes are held by `describe`, before the Checkpoint commits.
   function sealerFor(request, requestCid, texts) {
     return async () => {
       const read = texts.current ?? {
@@ -332,15 +326,16 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
         parameterText: (await boundedBytes(request.parameters)).toString('utf8'),
       };
       texts.current = read;
-      return storeInvocation(request, requestCid, read);
+      return contentCid(invocationOf(request, requestCid, read));
     };
   }
 
   // The durable deferral of one prepare attempt. `describe` never reads a
-  // path: it stores the prepared invocation of the inputs already captured
-  // for this attempt, the review projection and continuation, and returns the
-  // Checkpoint body requiring that prepared invocation. The gate persists it
-  // through `journal` before reporting a wait.
+  // path: it holds the captured inputs, request and prepared invocation of
+  // this attempt, the review projection and the continuation (which records
+  // the exact evidence references, their holdings and the key id) as private
+  // evidence, and returns the Checkpoint body requiring that prepared
+  // invocation. The gate persists it through `journal` before reporting a wait.
   function deferralFor({prepareAttemptId, request, requestCid, texts,
     approved, binding, port}) {
     return {
@@ -350,26 +345,35 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       async describe(view) {
         const read = texts.current;
         if (read === undefined) fail('InputsNotCaptured');
-        const invocationCid = await storeInvocation(request, requestCid, read);
+        const invocation = invocationOf(request, requestCid, read);
+        const invocationCid = contentCid(invocation);
         const kind = view.boundary === 'preparation' ? 'run_scope' : 'read_access';
-        const reviewCid = await putRecord({
+        const review = {
           kind: 'local-example-review',
           boundary: view.boundary,
           tuple: plain(view.tuple),
           database: request.database,
           source: `${request.schema}.${request.table}`,
           invocation_cid: invocationCid,
-        });
-        const continuationCid = await putRecord({
+        };
+        const reviewCid = contentCid(review);
+        const items = [...invocationEvidence(request, read),
+          {name: 'prepared_invocation', wire: canonicalJson(invocation)},
+          {name: 'review_projection', wire: canonicalJson(review)}];
+        const continuation = {
           kind: 'local-example-continuation',
           prepare_attempt_id: prepareAttemptId,
           boundary: view.boundary,
           invocation_cid: invocationCid,
           delegated_subject: plain(view.subject),
           approved: approved.map(plain),
-        });
-        await durableWrite(attemptIndex(prepareAttemptId), Buffer.from(
-          canonicalJson({request_cid: requestCid}), 'utf8'));
+          // Exact evidence references, their holdings and key id.
+          evidence: items.map(({name, wire}) =>
+            evidence.reference(prepareAttemptId, name, wire)),
+        };
+        const continuationCid = contentCid(continuation);
+        await evidence.hold(prepareAttemptId, requestCid, [...items,
+          {name: 'continuation_record', wire: canonicalJson(continuation)}]);
         const created = now();
         return {
           priorStatus: undefined,
@@ -564,6 +568,9 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           return plain({status: 'failed', run_id: runId, code: error.code,
             counters: counts});
         }
+        // Evidence held for a Checkpoint that was never committed has no
+        // remaining need; a committed Checkpoint keeps it.
+        await evidence.abandon(prepareAttemptId);
         if (error instanceof ExecutionAuthorizationError) return refusal(error, counts);
         throw error;
       }
@@ -664,9 +671,9 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
         if (view?.prepareAttemptId == null) fail('PreparationNotFound');
         prepareAttemptId = view.prepareAttemptId;
       }
-      const index = JSON.parse(await readFile(attemptIndex(prepareAttemptId), 'utf8'));
-      const request = await getRecord(index.request_cid);
-      const requestCid = index.request_cid;
+      const held = await evidence.open(prepareAttemptId);
+      const requestCid = held.requestCid;
+      const request = await held.record('invocation_request', requestCid);
       if (contentCid(request) !== requestCid) fail('ArtifactIntegrityFailed');
       context = await currentContext();
       const binding = {
@@ -698,12 +705,16 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       let continuation;
       let texts;
       try {
-        continuation = await getRecord(claimed.continuationStateCid);
-        const invocation = await getRecord(continuation.invocation_cid);
+        continuation = await held.record('continuation_record',
+          claimed.continuationStateCid);
+        const invocation = await held.record('prepared_invocation',
+          continuation.invocation_cid);
+        const input = async cid =>
+          (await held.bytes('captured_input', cid)).toString('utf8');
         texts = {
-          programText: (await getBytes(invocation.program_cid)).toString('utf8'),
-          environmentText: (await getBytes(invocation.environment_text_cid)).toString('utf8'),
-          parameterText: (await getBytes(invocation.parameters_cid)).toString('utf8'),
+          programText: await input(invocation.program_cid),
+          environmentText: await input(invocation.environment_text_cid),
+          parameterText: await input(invocation.parameters_cid),
         };
         if (invocation.request_cid !== requestCid ||
             contentCid(invocationOf(request, requestCid, texts)) !==
@@ -804,7 +815,20 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       }
     },
 
-    close() { journal.close(); },
+    // Explicit permitted retirement: expire overdue Checkpoints, then release
+    // the holdings of every continuation with no remaining need. A failed
+    // deletion stays owned and pending; calling this again retries it.
+    async retire() {
+      journal.expire();
+      return plain(await evidence.settle());
+    },
+
+    // Closes the journal and releases the Store owner. Never deletes
+    // evidence: waiting continuations keep theirs.
+    close() {
+      journal.close();
+      return evidence.close();
+    },
   });
 }
 

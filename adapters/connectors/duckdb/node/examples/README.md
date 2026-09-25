@@ -326,14 +326,27 @@ node $cli reject <checkpoint> [<checkpoint> ...] --config host/host.json --signe
 node $cli resume <checkpoint|prepare-attempt> --config host/host.json [--claimant <id>] [--lease-ms <n>]
 node $cli status <run|prepare-attempt|checkpoint> --config host/host.json
 node $cli cancel <checkpoint|prepare-attempt> --config host/host.json
+node $cli retire --config host/host.json
 ```
 
 Output is JSON. The CLI never prompts or reads stdin, so a TTY, EOF or a
 timeout cannot approve, reject or dispatch. `list` and `inspect` return safe
 Checkpoint metadata only, never the review projection or captured inputs.
 Before the Checkpoint is persisted the Host captures the Program, Environment
-and Parameter files as private content-addressed artifacts; `resume` reads
-those bytes, not the original paths. Each `approve`/`reject` item is signed
+and Parameter files as private content-addressed evidence; `resume` reads
+those bytes, not the original paths. The captured inputs, request, prepared
+invocation, review projection and continuation record are encrypted objects
+in the Local Store (`state/private-store`) under the key that `init` creates
+in `state/private-evidence.key`; each continuation holds its own references,
+and continuations with identical evidence share the encrypted object through
+separate holdings. A different key is refused (`PrivateEvidenceKeyMismatch`)
+before any decryption; key rotation is not provided. Evidence is never
+deleted on close or by time. After a command that can end a continuation, the
+CLI retires the holdings of continuations with no remaining need (terminal
+Run exit, or a rejected, cancelled, expired or invalidated preparation); the
+request stays as the preparation's identity. A failed deletion remains owned,
+is reported under `retention`, and `retire --config host/host.json` retries it.
+Each `approve`/`reject` item is signed
 and admitted as the answer to its own Checkpoint, and the command reports a
 per-item result (`committed`, `duplicate`, `conflicting`, `expired`,
 `cancelled` or `invalid`); an invalid item does not affect the others.

@@ -15,6 +15,9 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { exampleAccountConfiguration } from '../examples/physical-strategy.mjs';
 import { openLocalHost } from '../examples/local-host.mjs';
 import { decisionSubjectCid } from '../../../../host-common/authorization-gate.mjs';
+import { runtimeCore } from '../../../../host-common/runtime-core.mjs';
+import { loadPrivateEvidenceKey, openContinuationEvidence } from
+  '../../../../host-node/local-continuation-evidence.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const cliPath = fileURLToPath(new URL('../examples/local-host-cli.mjs', import.meta.url));
@@ -95,14 +98,32 @@ async function fixture(t, { outcome = 'delegate' } = {}) {
   const runArgs = ['run', '--config', config, '--database', database,
     '--environment', files.environment, '--environment-cid', catalog[2],
     '--program', files.program, '--parameters', files.parameters];
-  const journalPath = join(directory, 'host/state/journal/checkpoint-journal.sqlite3');
-  const artifacts = join(directory, 'host/state/artifacts');
+  const state = join(directory, 'host/state');
+  const journalPath = join(state, 'journal/checkpoint-journal.sqlite3');
+  const holdings = join(state, 'private-store/physical-holdings');
+  // Private evidence is read back only through the encrypted Store.
+  const evidence = async attempt => {
+    const moon = await import(join(root,
+      '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
+    const port = openContinuationEvidence({ stateDirectory: state,
+      ...await loadPrivateEvidenceKey(state),
+      contractControl: runtimeCore(moon).publicationControl, preparation: () => undefined });
+    try { return await port.open(attempt); } finally { await port.close(); }
+  };
+  const onlyAttempt = () => {
+    const sqlite = new DatabaseSync(journalPath, { readOnly: true });
+    try {
+      return sqlite.prepare('SELECT prepare_attempt_id FROM checkpoints').get().prepare_attempt_id;
+    } finally { sqlite.close(); }
+  };
   return { directory, database, files, config, signer: init.json.signer, runArgs, journalPath,
-    environmentCid: catalog[2],
-    // Captured bytes in the Host artifact store, and how many are stored.
-    stored: cid => readFile(join(artifacts, cid.slice('sha256:'.length)), 'utf8'),
+    environmentCid: catalog[2], state, evidence,
+    // Captured bytes of the only prepare attempt, and how many private
+    // evidence holdings the Host Store keeps.
+    stored: async cid => (await (await evidence(onlyAttempt()))
+      .bytes('captured_input', cid)).toString('utf8'),
     async captured() {
-      try { return (await readdir(artifacts)).length; }
+      try { return (await readdir(holdings)).length; }
       catch (error) { if (error.code === 'ENOENT') return 0; throw error; }
     },
     // Committed journal rows, read independently of the Host processes.
@@ -123,23 +144,25 @@ async function fixture(t, { outcome = 'delegate' } = {}) {
     },
     // The sealed Checkpoint, its stored decision-subject binding and the
     // committed Resolution, with the continuation and invocation records it
-    // names from the Host artifact store.
+    // names from the Host's encrypted Store.
     async sealed() {
       const sqlite = new DatabaseSync(journalPath, { readOnly: true });
       let row;
       let resolution;
       try {
-        row = sqlite.prepare('SELECT checkpoint_wire, decision_subject_cid FROM checkpoints')
+        row = sqlite.prepare(
+          'SELECT checkpoint_wire, decision_subject_cid, prepare_attempt_id FROM checkpoints')
           .get();
         resolution = sqlite.prepare('SELECT verified_resolution_wire FROM resolutions').get();
       } finally { sqlite.close(); }
-      const artifact = async cid => JSON.parse(await readFile(join(directory,
-        'host/state/artifacts', cid.slice('sha256:'.length)), 'utf8'));
+      const held = await evidence(row.prepare_attempt_id);
       const checkpoint = JSON.parse(row.checkpoint_wire);
-      const continuation = await artifact(checkpoint.continuation_state_cid);
+      const continuation = await held.record('continuation_record',
+        checkpoint.continuation_state_cid);
       return { checkpoint, decisionSubjectCid: row.decision_subject_cid,
         verified: resolution && JSON.parse(resolution.verified_resolution_wire),
-        continuation, invocation: await artifact(continuation.invocation_cid) };
+        continuation, invocation: await held.record('prepared_invocation',
+          continuation.invocation_cid) };
     } };
 }
 
@@ -338,8 +361,15 @@ test('a superseded claimant cannot complete; a killed one leaves the intent to t
   assert.equal(winner.json.counters.continuation_starts, 1);
   const stale = await held.done;
   assert.equal(stale.code, 1);
-  assert.equal(stale.json.status, 'stale_claim');
-  assert.equal(stale.json.counters.provider_sessions, 0);
+  // The winner's terminal Run exit permits retiring the continuation's
+  // private evidence. D2 is refused as stale either at its fence or, when it
+  // wakes after that retirement, when it tries to end the continuation.
+  if (stale.json === undefined) {
+    assert.deepEqual(JSON.parse(stale.stderr), { error: 'ResumeClaimStale' });
+  } else {
+    assert.equal(stale.json.status, 'stale_claim');
+    assert.equal(stale.json.counters.provider_sessions, 0);
+  }
   const rows = input.rows();
   assert.equal(rows.runs, 1);
   assert.deepEqual(rows.intentRows, [{ state: 'completed', generation: 3,
@@ -448,7 +478,7 @@ test('an acquisition deferral after a Host permit resumes past the crossed bound
         ? { decision: 'permit', subject: view.subject, authority: 'application-policy' }
         : { decision: 'defer', subject: view.subject },
     });
-  } finally { host.close(); }
+  } finally { await host.close(); }
   assert.equal(waiting.status, 'waiting_checkpoint');
   assert.equal(waiting.checkpoint.kind, 'read_access');
   assert.equal(waiting.checkpoint.boundary, 'acquisition');
@@ -491,7 +521,7 @@ test('a preparation denial reads and captures no path-backed input', async t => 
     try {
       refused = await host.run(inputs(input), { decide,
         answeringAuthorities: decide === undefined ? undefined : ['application-policy'] });
-    } finally { host.close(); }
+    } finally { await host.close(); }
     assert.equal(refused.status, 'refused', label);
     assert.equal(refused.runtime_code, code, label);
     assert.equal(refused.boundary, 'preparation', label);
@@ -505,7 +535,7 @@ test('a preparation denial reads and captures no path-backed input', async t => 
   const input = await fixture(t);
   const host = await openLocalHost(input.config);
   let failed;
-  try { failed = await host.run(inputs(input)); } finally { host.close(); }
+  try { failed = await host.run(inputs(input)); } finally { await host.close(); }
   assert.equal(failed.status, 'refused');
   assert.equal(failed.runtime_code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
   assert.equal(failed.reason, 'adapter_error');
