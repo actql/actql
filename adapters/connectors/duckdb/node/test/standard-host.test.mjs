@@ -5554,6 +5554,15 @@ async function exerciseStrategyGraph(
     stage.steps[0].select = fields;
     stage.results.r.fields = fields;
   }
+  const nestedGlobalCountProgram = structuredClone(globalCountProgram);
+  const nestedCountValues = nestedGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_values',
+  );
+  nestedCountValues.steps[0].values.schema.payload = {
+    type: 'array', nullable: false,
+    items: {type: 'number', nullable: false},
+  };
+  nestedCountValues.results.r.fields = ['id', 'payload'];
   const sameStageGlobalCountProgram = structuredClone(globalCountProgram);
   const countValuesStage = sameStageGlobalCountProgram.stages.find(
     stage => stage.id === 'group_values',
@@ -7061,6 +7070,8 @@ async function exerciseStrategyGraph(
       program: fixedRowWindowProgram, cancelAtStart: 2},
     {name: 'global-count-in-flight',
       program: globalCountProgram, cancelAtStart: 2},
+    {name: 'nested-global-count-in-flight',
+      program: nestedGlobalCountProgram, cancelAtStart: 2},
     {name: 'group-count-in-flight',
       program: groupProgram, cancelAtStart: 2},
     {name: 'same-stage-global-count-in-flight',
@@ -7106,12 +7117,15 @@ async function exerciseStrategyGraph(
       'captured-unpivot-chain-in-flight';
     const nestUnwrapCancellation = cancellationName ===
       'nest-output-unnest-chain-in-flight';
+    const nestedCountCancellation = cancellationName ===
+      'nested-global-count-in-flight';
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
       'same-stage-global-count-in-flight';
     const globalCountCancellation = cancellationName ===
       'global-count-in-flight' ||
+      nestedCountCancellation ||
       cancellationName === 'group-count-in-flight' ||
       sameStageGlobalCountCancellation;
     const watermarkCancellation = cancellationName ===
@@ -7144,7 +7158,8 @@ async function exerciseStrategyGraph(
       const reshapeFilterChain = cancellationName ===
         'unpivot-filter-chain-in-flight' ||
         cancellationName === 'unnest-filter-chain-in-flight';
-      valuesStage.steps[0].values.rows = Array.from(
+      valuesStage.steps[0].values.rows = nestedCountCancellation
+        ? [{id: 1, payload: Array(512).fill(1)}] : Array.from(
       {length: reshapeFilterChain ? 24 : 80}, (_, index) => rowWindowCancellation
         ? {at: index, id: index}
         : lagCancellation
@@ -7173,6 +7188,7 @@ async function exerciseStrategyGraph(
     let valuesCancellationExecution;
     let valuesManagedStarts = 0;
     let valuesWorkObserved = false;
+    let nestedCountWork = 0n;
     let valuesCancellationDeliveredAt;
     let valuesStopObservedAt;
     valuesCancellation.signal.addEventListener('abort', () => {
@@ -7224,6 +7240,10 @@ async function exerciseStrategyGraph(
                     ? Math.min(quantum, 7) : quantum;
                   const result = operation.advance(stepQuantum);
                   const observation = checked(result);
+                  if (cancellationName === 'nested-global-count-in-flight' &&
+                      start === cancelAtStart) {
+                    nestedCountWork += observation.work;
+                  }
                   if (start === cancelAtStart) {
                     assert(observation.work <= BigInt(stepQuantum));
                   }
@@ -7231,6 +7251,8 @@ async function exerciseStrategyGraph(
                       observation?.complete === false &&
                       observation.work > 0n &&
                       (!watermarkCancellation || observation.progress > 0n) &&
+                      (cancellationName !== 'nested-global-count-in-flight' ||
+                        nestedCountWork >= 100n) &&
                       !valuesWorkObserved) {
                     valuesWorkObserved = true;
                     setTimeout(() => valuesCancellation.abort(), 0);

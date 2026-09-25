@@ -2,10 +2,19 @@
 fn bounded_global_count_fixture(
   rows : String,
   keyed? : Bool = false,
+  unused_payload? : Bool = false,
+  input_values? : ValueLimits = run_limits().input_values,
   max_work? : Int = 100,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
-  let source_text = "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":true}},\"rows\":" +
+  let schema = if unused_payload {
+    "{\"id\":{\"type\":\"number\",\"nullable\":true},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+  } else {
+    "{\"id\":{\"type\":\"number\",\"nullable\":true}}"
+  }
+  let source_text = "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]"
   let source_owner = bound_pipeline(source_text)
@@ -79,7 +88,7 @@ fn bounded_global_count_fixture(
     } else {
       1
     },
-    run_limits().input_values,
+    input_values,
     run_limits().output_values,
     max_work,
     100,
@@ -253,6 +262,97 @@ test "bounded keyed count admits exact work and workspace limits" {
     }
     assert_true(rejected)
     assert_true(cleanup_bounded_global_count(one_short).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+fn unused_count_payload_rows(count : Int) -> String {
+  let mut payload = "["
+  for index in 0..<count {
+    if index > 0 {
+      payload = payload + ","
+    }
+    payload = payload + "1"
+  }
+  "[{\"id\":1,\"payload\":" + payload + "]}]"
+}
+
+///|
+test "bounded count stops inside an unused nested input value" {
+  let (control, execution, source) = bounded_global_count_fixture(
+    unused_count_payload_rows(256),
+    unused_payload=true,
+    max_work=1000,
+    max_entries=1000,
+  )
+  let mut previous_work = 0L
+  for _ in 0..<100 {
+    match advance_bounded_global_count(execution, 1).unwrap() {
+      BoundedGlobalCountContinue(work~, ..) => {
+        assert_eq(work - previous_work, 1L)
+        previous_work = work
+      }
+      _ => fail("nested input finished before cancellation")
+    }
+  }
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded count preserves exact nested input value charges" {
+  // One row, id and array nodes, and 256 element nodes: 259 nodes.
+  // The id and payload names add 2 + 7 UTF-8 bytes, hence 268 work.
+  let exact : ValueLimits = {
+    ..run_limits().input_values,
+    max_nodes: 259,
+    max_text_bytes: 9,
+    max_work: 268,
+  }
+  for
+    (nodes, work, should_complete) in [
+      (259, 268, true),
+      (258, 268, false),
+      (259, 267, false),
+    ] {
+    let input_values : ValueLimits = {
+      ..exact,
+      max_nodes: nodes,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_global_count_fixture(
+      unused_count_payload_rows(256),
+      unused_payload=true,
+      input_values~,
+      max_work=1000,
+      max_entries=1000,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountComplete(output, ..) => {
+            assert_true(should_complete)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedGlobalCountFailed(InputLimit, ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("nested count ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
     assert_true(completed_output_available(source))
   }
 }

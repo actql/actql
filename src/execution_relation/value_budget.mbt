@@ -170,3 +170,244 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
   }
   true
 }
+
+///|
+priv enum SteppedMeasureFrame {
+  SteppedRead(@admitted.Value, Int)
+  SteppedScalar
+  SteppedText(String)
+  SteppedTextNext(String, Int)
+  SteppedArrayNext(@admitted.FrozenArray[@admitted.Value], Int, Int)
+  SteppedObjectNext(@admitted.FrozenArray[(String, @admitted.Value)], Int, Int)
+}
+
+///|
+priv struct SteppedValueMeasure {
+  frames : Array[SteppedMeasureFrame]
+  workspace : RowWorkspace
+  mut workspace_failed : Bool
+}
+
+///|
+priv enum SteppedMeasurePoll {
+  SteppedMeasureContinue
+  SteppedMeasureComplete
+  SteppedMeasureLimit
+  SteppedMeasureWorkspaceLimit
+}
+
+///|
+fn push_stepped_measure(
+  cursor : SteppedValueMeasure,
+  frame : SteppedMeasureFrame,
+) -> Bool {
+  if !reserve_slots(cursor.workspace, 1) {
+    cursor.workspace_failed = true
+    return false
+  }
+  cursor.frames.push(frame)
+  true
+}
+
+///|
+fn start_stepped_measure_result(
+  value : Value,
+  workspace : RowWorkspace,
+) -> SteppedValueMeasure? {
+  if !reserve_slots(workspace, 1) {
+    return None
+  }
+  let frame = match value {
+    Captured(value) => SteppedRead(value, 2)
+    Text(text) => SteppedText(text)
+    Null | Boolean(_) | Number(_) => SteppedScalar
+  }
+  Some({ frames: [frame], workspace, workspace_failed: false, })
+}
+
+///|
+fn clear_stepped_measure(cursor : SteppedValueMeasure) -> Unit {
+  release_slots(cursor.workspace, cursor.frames.length())
+  cursor.frames.clear()
+}
+
+///|
+fn step_stepped_measure_text(
+  cursor : SteppedValueMeasure,
+  text : String,
+  position : Int,
+  budget : ValueBudget,
+) -> Bool {
+  let mut index = position
+  let end = position + Int::min(64, text.length() - position)
+  while index < end {
+    let unit = text[index].to_int()
+    let mut units = 1
+    let width = if unit < 0x80 {
+      1
+    } else if unit < 0x800 {
+      2
+    } else if unit >= 0xd800 && unit <= 0xdbff {
+      if index + 1 >= text.length() {
+        return false
+      }
+      let trailing = text[index + 1].to_int()
+      if trailing < 0xdc00 || trailing > 0xdfff {
+        return false
+      }
+      units = 2
+      4
+    } else if unit >= 0xdc00 && unit <= 0xdfff {
+      return false
+    } else {
+      3
+    }
+    if width > budget.limits.max_text_bytes - budget.text ||
+      width > budget.limits.max_work - budget.work {
+      return false
+    }
+    budget.text += width
+    budget.work += width
+    index += units
+  }
+  index == text.length() ||
+  push_stepped_measure(cursor, SteppedTextNext(text, index))
+}
+
+///|
+fn step_stepped_measure_text_start(
+  cursor : SteppedValueMeasure,
+  text : String,
+  budget : ValueBudget,
+) -> Bool {
+  let available = Int::min(
+    budget.limits.max_text_bytes - budget.text,
+    budget.limits.max_work - budget.work,
+  )
+  if text.length() > available {
+    return false
+  }
+  if text.length() <= 64 {
+    charge_text(budget, text)
+  } else {
+    push_stepped_measure(cursor, SteppedTextNext(text, 0))
+  }
+}
+
+///|
+fn advance_stepped_measure_result(
+  cursor : SteppedValueMeasure,
+  budget : ValueBudget,
+) -> SteppedMeasurePoll {
+  guard cursor.frames.pop() is Some(frame) else {
+    return SteppedMeasureComplete
+  }
+  release_slots(cursor.workspace, 1)
+  let valid = match frame {
+    SteppedScalar => charge_node(budget, 2)
+    SteppedText(text) =>
+      charge_node(budget, 2) &&
+      step_stepped_measure_text_start(cursor, text, budget)
+    SteppedTextNext(text, index) =>
+      step_stepped_measure_text(cursor, text, index, budget)
+    SteppedRead(value, depth) => {
+      if !charge_node(budget, depth) {
+        return SteppedMeasureLimit
+      }
+      match value {
+        @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => true
+        @admitted.Text(text)
+        | @admitted.Date(text)
+        | @admitted.Timestamp(text) =>
+          step_stepped_measure_text_start(cursor, text, budget)
+        @admitted.Decimal(decimal) =>
+          step_stepped_measure_text_start(cursor, decimal.coefficient, budget)
+        @admitted.Array(items) => {
+          let count = @admitted.element_count(items)
+          count <= budget.limits.max_nodes - budget.nodes &&
+          (
+            count == 0 ||
+            (
+              depth < budget.limits.max_depth &&
+              push_stepped_measure(
+                cursor,
+                SteppedArrayNext(items, 0, depth + 1),
+              )
+            )
+          )
+        }
+        @admitted.Object(items) => {
+          let count = @admitted.element_count(items)
+          count <= budget.limits.max_nodes - budget.nodes &&
+          (
+            count == 0 ||
+            (
+              depth < budget.limits.max_depth &&
+              push_stepped_measure(
+                cursor,
+                SteppedObjectNext(items, 0, depth + 1),
+              )
+            )
+          )
+        }
+        @admitted.Vector(items) => {
+          let count = @admitted.element_count(items)
+          if count > budget.limits.max_nodes - budget.nodes ||
+            count > budget.limits.max_work - budget.work ||
+            (count > 0 && depth >= budget.limits.max_depth) {
+            false
+          } else {
+            budget.nodes += count
+            budget.work += count
+            true
+          }
+        }
+        @admitted.Reference(reference) =>
+          @admitted.reference_available(reference) &&
+          step_stepped_measure_text_start(
+            cursor,
+            @admitted.reference_wire(reference),
+            budget,
+          )
+      }
+    }
+    SteppedArrayNext(items, index, depth) =>
+      if @admitted.element_at(items, index) is Some(child) {
+        (
+          index + 1 >= @admitted.element_count(items) ||
+          push_stepped_measure(
+            cursor,
+            SteppedArrayNext(items, index + 1, depth),
+          )
+        ) &&
+        push_stepped_measure(cursor, SteppedRead(child, depth))
+      } else {
+        false
+      }
+    SteppedObjectNext(items, index, depth) =>
+      if @admitted.element_at(items, index) is Some((name, child)) {
+        (
+          index + 1 >= @admitted.element_count(items) ||
+          push_stepped_measure(
+            cursor,
+            SteppedObjectNext(items, index + 1, depth),
+          )
+        ) &&
+        push_stepped_measure(cursor, SteppedRead(child, depth)) &&
+        step_stepped_measure_text_start(cursor, name, budget)
+      } else {
+        false
+      }
+  }
+  if !valid {
+    if cursor.workspace_failed {
+      SteppedMeasureWorkspaceLimit
+    } else {
+      SteppedMeasureLimit
+    }
+  } else if cursor.frames.is_empty() {
+    SteppedMeasureComplete
+  } else {
+    SteppedMeasureContinue
+  }
+}

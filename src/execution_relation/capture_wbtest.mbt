@@ -98,3 +98,82 @@ test "nested value measurement preserves opaque business data and counts repeate
   assert_eq(@admitted.element_count(fields), 1)
   assert_true(measure(checked.value, 1, value_budget(limits).unwrap()))
 }
+
+///|
+test "stepped measurement preserves nested and long text charges" {
+  let mut text = ""
+  for _ in 0..<70 {
+    text = text + "a"
+  }
+  let expr = lowered("{\"literal\":{\"k\":[1,2],\"s\":\"" + text + "😀\"}}")
+  guard @lower.expression_body(expr) is @lower.Literal(checked) else {
+    fail("literal")
+  }
+  let limits = {
+    max_nodes: 20,
+    max_text_bytes: 200,
+    max_depth: 10,
+    max_work: 220,
+  }
+  let synchronous = value_budget(limits).unwrap()
+  assert_true(measure_result(Captured(checked.value), synchronous))
+  let stepped = value_budget(limits).unwrap()
+  let workspace = row_workspace(20)
+  let cursor = start_stepped_measure_result(Captured(checked.value), workspace).unwrap()
+  let mut done = false
+  let mut steps = 0
+  for _ in 0..<100 {
+    if !done {
+      steps += 1
+      match advance_stepped_measure_result(cursor, stepped) {
+        SteppedMeasureContinue => ()
+        SteppedMeasureComplete => done = true
+        SteppedMeasureLimit | SteppedMeasureWorkspaceLimit =>
+          fail("valid stepped measurement rejected")
+      }
+    }
+  }
+  assert_true(done && steps > 5)
+  clear_stepped_measure(cursor)
+  assert_eq(workspace.live, 0)
+  assert_eq(stepped.nodes, synchronous.nodes)
+  assert_eq(stepped.text, synchronous.text)
+  assert_eq(stepped.work, synchronous.work)
+}
+
+///|
+test "stepped measurement admits stack workspace before expansion" {
+  let expr = lowered("{\"literal\":[1,2]}")
+  guard @lower.expression_body(expr) is @lower.Literal(checked) else {
+    fail("literal")
+  }
+  let limits = { max_nodes: 3, max_text_bytes: 0, max_depth: 3, max_work: 3, }
+  for (entries, expected) in [(2, true), (1, false)] {
+    let workspace = row_workspace(entries)
+    let budget = value_budget(limits).unwrap()
+    let cursor = start_stepped_measure_result(
+      Captured(checked.value),
+      workspace,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<10 {
+      if !terminal {
+        match advance_stepped_measure_result(cursor, budget) {
+          SteppedMeasureContinue => ()
+          SteppedMeasureComplete => {
+            assert_true(expected)
+            terminal = true
+          }
+          SteppedMeasureWorkspaceLimit => {
+            assert_false(expected)
+            terminal = true
+          }
+          SteppedMeasureLimit => fail("value budget rejected")
+        }
+      }
+    }
+    assert_true(terminal)
+    clear_stepped_measure(cursor)
+    assert_eq(workspace.live, 0)
+  }
+}

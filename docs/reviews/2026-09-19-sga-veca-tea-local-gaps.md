@@ -142,6 +142,12 @@ within one task, with two downstream Computes and delivered cancellation.
 Its captured-task regression pins 91 charged steps, rejects a one-short
 work budget, and confirms failed-task reclamation. The selected chain's
 exact workspace boundary is still unproven.
+The count input scan now resumes inside nested arrays, objects, and long
+text rather than treating a whole cell as one non-interruptible step.
+An unused 256-element array has exact and one-short value-budget fixtures,
+an in-measurement stop/cleanup fixture, and a delivered standard Host timer
+case. These do not prove a bounded output recheck for every structured key;
+that separate output boundary remains to be audited.
 Other aggregate members and providerless whole-sequence group execution
 remain open.
 The `components` route has an independent one-node self-loop boundary:

@@ -117,6 +117,7 @@ priv struct BoundedGlobalCountState {
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
+  mut charge_measure : SteppedValueMeasure?
   mut row : Int
   mut group_start : Int
   mut representative : Int
@@ -204,6 +205,10 @@ fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
   state.counts = []
   state.output_columns = []
   state.checked_row = []
+  if state.charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.charge_measure = None
+  }
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
     state.rows.val = None
@@ -360,22 +365,40 @@ fn bounded_global_count_step(
           state.charge_open = true
           used += 1
         } else if state.charge_column < width {
-          guard global_count_input_cell(
-              state.input,
-              state.charge_row,
-              state.charge_column,
-            )
-            is Some(value) else {
-            return global_count_failure(InvalidExecution, progress, used)
+          if state.charge_measure is None {
+            guard global_count_input_cell(
+                state.input,
+                state.charge_row,
+                state.charge_column,
+              )
+              is Some(value) else {
+              return global_count_failure(InvalidExecution, progress, used)
+            }
+            if !charge_text(
+                state.input_values,
+                state.input_names[state.charge_column],
+              ) {
+              return global_count_failure(InputLimit, progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return global_count_failure(Rows(RowLimit), progress, used)
+            }
+            state.charge_measure = Some(cursor)
           }
-          if !charge_text(
-              state.input_values,
-              state.input_names[state.charge_column],
-            ) ||
-            !measure_result(value, state.input_values) {
-            return global_count_failure(InputLimit, progress, used)
+          let cursor = state.charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return global_count_failure(InputLimit, progress, used)
+            SteppedMeasureWorkspaceLimit =>
+              return global_count_failure(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.charge_measure = None
+              state.charge_column += 1
+            }
           }
-          state.charge_column += 1
           used += 1
         } else {
           state.charge_row += 1
@@ -727,6 +750,7 @@ fn start_bounded_global_count_with_input(
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
+    charge_measure: None,
     row: 0,
     group_start: -1,
     representative: -1,

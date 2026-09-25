@@ -2215,6 +2215,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
           "fixture": "ordinary keyed count chain admits exact work and one-short limits"
+        },
+        {
+          "role": "count_nested_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count stops inside an unused nested input value"
+        },
+        {
+          "role": "count_nested_value_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
+          "fixture": "bounded count preserves exact nested input value charges"
         }
       ],
       "environment_tests": [
@@ -2232,6 +2246,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "global-count-in-flight"
+        },
+        {
+          "role": "global_count_nested_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "nested-global-count-in-flight"
         },
         {
           "role": "global_count_same_stage_two_consumers",
