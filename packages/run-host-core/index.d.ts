@@ -199,6 +199,26 @@ export function issueSucceededRunStateWire(prepared: PreparedProgram,
 export function resultReadAvailability(manifest: PublicationContract,
   resultName: string, retention: PublicationContract,
   observedAt: string): 'available' | 'retention_expired' | 'delete_due';
+/** Select one committed Result and validate the complete binding inventory. */
+export function projectCommittedResultRead(index: PublicationContract,
+  manifest: PublicationContract, resultName: string,
+  bindings: readonly PublicationContract[]): Readonly<{
+    resultName: string;
+    resultArtifactCid: string;
+    resultDefinitionCid: string;
+    logicalResultCid: string;
+    resultSchemaCid: string;
+    orderingEvidenceCid: string;
+    effectiveRetentionPolicyCid: string;
+    durableResultBindingCid: string;
+    materialGenerationCid: string;
+    storeAuthorityCid: string;
+    codecContractCid: string;
+    resultFields: readonly string[];
+    rowCount: number;
+    byteCount: number;
+    physicalSha256: string;
+  }>;
 export function admitRunDefinition(wire: string): RunDefinition;
 /** Re-admit the same checked source-free Run without changing its input set. */
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,

@@ -378,6 +378,55 @@ export function resultReadAvailability(manifest, resultName, retention,
     observedAt), 'RunHostAvailabilityRejected');
 }
 
+// The common publication owner selects and checks every listed binding.
+// CIDs returned here identify physical custody; they grant no read access.
+export function projectCommittedResultRead(index, manifest, resultName,
+  bindings) {
+  if (typeof resultName !== 'string' || !Array.isArray(bindings)) {
+    throw new TypeError('InvalidRunHostResultSelection');
+  }
+  const wire = owner.clientValuesHostProjectCommittedResultReadWire(
+    publicationToken(index), publicationToken(manifest), resultName,
+    publicationItems(bindings));
+  if (typeof wire !== 'string') {
+    throw Object.assign(new Error('RunHostResultSelectionRejected'),
+      {code: 'RunHostResultSelectionRejected'});
+  }
+  const value = JSON.parse(wire);
+  const cid = value => typeof value === 'string' &&
+    /^sha256:[0-9a-f]{64}$/u.test(value);
+  if (value === null || typeof value !== 'object' ||
+      !['codec_contract_cid', 'durable_result_binding_cid',
+        'effective_retention_policy_cid', 'logical_result_cid',
+        'material_generation_cid', 'ordering_evidence_cid',
+        'result_artifact_cid', 'result_definition_cid',
+        'result_schema_cid', 'store_authority_cid'].every(key =>
+        cid(value[key])) ||
+      typeof value.physical_sha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/u.test(value.physical_sha256) ||
+      value.result_name !== resultName ||
+      !Array.isArray(value.result_fields) ||
+      !value.result_fields.every(field => typeof field === 'string') ||
+      !Number.isSafeInteger(value.row_count) || value.row_count < 0 ||
+      !Number.isSafeInteger(value.byte_count) || value.byte_count < 0) {
+    throw new Error('RunHostResultSelectionInvalid');
+  }
+  return Object.freeze({resultName: value.result_name,
+    resultArtifactCid: value.result_artifact_cid,
+    resultDefinitionCid: value.result_definition_cid,
+    logicalResultCid: value.logical_result_cid,
+    resultSchemaCid: value.result_schema_cid,
+    orderingEvidenceCid: value.ordering_evidence_cid,
+    effectiveRetentionPolicyCid: value.effective_retention_policy_cid,
+    durableResultBindingCid: value.durable_result_binding_cid,
+    materialGenerationCid: value.material_generation_cid,
+    storeAuthorityCid: value.store_authority_cid,
+    codecContractCid: value.codec_contract_cid,
+    resultFields: Object.freeze([...value.result_fields]),
+    rowCount: value.row_count, byteCount: value.byte_count,
+    physicalSha256: value.physical_sha256});
+}
+
 export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),

@@ -989,6 +989,71 @@ pub fn client_values_host_result_read_availability(
 }
 
 ///|
+/// Resolve the committed named Result through the portable publication
+/// owner. Store adapters use this projection to open one exact generation.
+#export_name("clientValuesHostProjectCommittedResultReadWire")
+pub fn client_values_host_project_committed_result_read_wire(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  bindings : Array[@publication.PublicationContract],
+) -> String? {
+  let selected = match
+    @publication.project_committed_result_read(
+      index, manifest, result_name, bindings,
+    ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let writer = @encode.writer(100000, 10000, 64) catch {
+    _ => return None
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "byte_count")
+    @encode.number_value(writer, selected.byte_count.to_double())
+    @encode.key(writer, "codec_contract_cid")
+    @encode.string_value(writer, selected.codec_contract_cid)
+    @encode.key(writer, "durable_result_binding_cid")
+    @encode.string_value(writer, selected.durable_result_binding_cid)
+    @encode.key(writer, "effective_retention_policy_cid")
+    @encode.string_value(writer, selected.effective_retention_policy_cid)
+    @encode.key(writer, "logical_result_cid")
+    @encode.string_value(writer, selected.logical_result_cid)
+    @encode.key(writer, "material_generation_cid")
+    @encode.string_value(writer, selected.material_generation_cid)
+    @encode.key(writer, "ordering_evidence_cid")
+    @encode.string_value(writer, selected.ordering_evidence_cid)
+    @encode.key(writer, "physical_sha256")
+    @encode.string_value(writer, selected.physical_sha256)
+    @encode.key(writer, "result_artifact_cid")
+    @encode.string_value(writer, selected.result_artifact_cid)
+    @encode.key(writer, "result_definition_cid")
+    @encode.string_value(writer, selected.result_definition_cid)
+    @encode.key(writer, "result_fields")
+    @encode.begin_array(writer)
+    for field in selected.result_fields {
+      @encode.string_value(writer, field)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "result_name")
+    @encode.string_value(writer, selected.result_name)
+    @encode.key(writer, "result_schema_cid")
+    @encode.string_value(writer, selected.result_schema_cid)
+    @encode.key(writer, "row_count")
+    @encode.number_value(writer, selected.row_count.to_double())
+    @encode.key(writer, "store_authority_cid")
+    @encode.string_value(writer, selected.store_authority_cid)
+    @encode.end_object(writer)
+  } catch {
+    _ => return None
+  }
+  Some(@encode.finish(writer) catch {
+    _ => return None
+  })
+}
+
+///|
 pub(all) enum ClientValuesHostDispatchIssue {
   Binding(@host.ClientValuesRunBindingIssue)
   Dispatch(@host.ClientValuesDispatchIssue)
