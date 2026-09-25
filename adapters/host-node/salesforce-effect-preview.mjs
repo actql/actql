@@ -19,10 +19,11 @@ const parseExactJson = wire => {
 
 const pendingCid = `sha256:${'0'.repeat(64)}`;
 
-function productPreviewDraft({moon, prepared, context, members,
+function productPreviewDraft({moon, control, prepared, context, members,
   maxWireBytes, maxNodes, maxDepth, planLimits}) {
-  if (!context?.runDefinition || !context?.runInvocation ||
-      !context?.compiledPlan || typeof context.resultArtifactCid !== 'string' ||
+  if (typeof control?.effectSourceArtifactPreviewBinding !== 'function' ||
+      !context?.runDefinition || !context?.runInvocation ||
+      !context?.compiledPlan ||
       context.modelDerived !== false ||
       !Array.isArray(members) || members.length === 0) {
     fail('InvalidSalesforceEffectPreviewContext');
@@ -54,7 +55,7 @@ function productPreviewDraft({moon, prepared, context, members,
           typeof member.effectId !== 'string' ||
           !Array.isArray(member.requests) ||
           typeof member.effectIdentityCid !== 'string' ||
-          typeof member.sourceBindingCid !== 'string' ||
+          !member.sourceArtifact ||
           typeof member.capabilityEvidenceCid !== 'string' ||
           typeof member.authorityScopeCid !== 'string' ||
           !Array.isArray(member.requiredPermissions) ||
@@ -66,6 +67,13 @@ function productPreviewDraft({moon, prepared, context, members,
       }
       const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
         prepared, member.stageIndex, member.effectId, planLimits.maxWork));
+      if (descriptor._6 === undefined) {
+        fail('MissingSalesforceEffectSourceResult');
+      }
+      const source = control.effectSourceArtifactPreviewBinding(
+        member.sourceArtifact,
+        moon.strategyPublicationContractIdentity(context.runInvocation),
+        descriptor._6);
       return {
         effect_id: descriptor._1, effect_kind: descriptor._2,
         target: descriptor._3, mapping: descriptor._4,
@@ -73,9 +81,9 @@ function productPreviewDraft({moon, prepared, context, members,
         effect_identity_cid: member.effectIdentityCid,
         ...(descriptor._6 === undefined ? {} :
           {source_result: descriptor._6}),
-        result_artifact_cid: context.resultArtifactCid,
+        result_artifact_cid: source._0,
         preview_strength: member.previewStrength,
-        source_binding_cid: member.sourceBindingCid,
+        source_binding_cid: source._1,
         capability_evidence_cid: member.capabilityEvidenceCid,
         authority_scope_cid: member.authorityScopeCid,
         write_footprint: {
@@ -111,7 +119,8 @@ function productPreviewDraft({moon, prepared, context, members,
 // target, guard, before, after, and intended changes. This authors no grant or
 // apply permit; the checked captured owner must still admit the whole Preview.
 export function authorObservedSalesforceEffectPreview({
-  moon, salesforceMoon, prepared, templateWire, context, requestScope, members,
+  moon, salesforceMoon, control, prepared, templateWire, context, requestScope,
+  members,
   maxWireBytes, maxNodes, maxDepth, maxRows, maxIdentityBytes,
   maxKeyBytes, maxKeyNodes, maxKeyDepth, planLimits,
 }) {
@@ -136,7 +145,7 @@ export function authorObservedSalesforceEffectPreview({
   const requestAuthority = moon.clientProgramEffectRequestAuthority(
     requestScope);
   if (templateWire === undefined) {
-    templateWire = productPreviewDraft({moon, prepared, context, members,
+    templateWire = productPreviewDraft({moon, control, prepared, context, members,
       maxWireBytes, maxNodes, maxDepth, planLimits});
   }
   let template;

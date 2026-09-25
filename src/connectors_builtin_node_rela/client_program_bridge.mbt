@@ -2156,6 +2156,20 @@ pub fn client_program_effect_request_authority(
 }
 
 ///|
+/// Derive the checked source Result's Preview binding from its issued
+/// Artifact, not from an unowned CID supplied to the Host adapter.
+#export_name("clientProgramEffectSourceArtifactPreviewBinding")
+pub fn client_program_effect_source_artifact_preview_binding(
+  artifact : @publication.PublicationContract,
+  invocation_cid : String,
+  source_result : String,
+) -> Result[(String, String), @publication.EffectSourceArtifactIssue] {
+  @publication.effect_source_artifact_preview_binding(
+    artifact, invocation_cid, source_result,
+  )
+}
+
+///|
 /// Seal row, member and set identities before deriving non-semantic dispatch
 /// keys. This only authors a private Preview wire; checked Run binding,
 /// current authority and apply permission remain separate obligations.

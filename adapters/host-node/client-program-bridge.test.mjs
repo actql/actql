@@ -2454,17 +2454,17 @@ test(`two-member captured Effect Run ${
         stageIndex: 0, effectId: memberIds[index], requests,
         observations: previewTargetObservations?.[index],
         effectIdentityCid: cid(String(index + 1)),
-        sourceBindingCid: cid('c'), capabilityEvidenceCid: cid('d'),
+        sourceArtifact: sourcePayload.summary.artifact,
+        capabilityEvidenceCid: cid('d'),
         authorityScopeCid: cid('e'), requiredPermissions: ['write'],
         maxItems: 2, approval: 'none', previewStrength: 'full_diff',
       })) : undefined;
       const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, prepared,
+          moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
-            modelDerived: false,
-            resultArtifactCid: sourcePayload.summary.artifact.identity},
+            modelDerived: false},
           requestScope, members: productMembers,
           maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2579,10 +2579,9 @@ test(`two-member captured Effect Run ${
       }
       if (physical === 'salesforce') {
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, prepared,
+          moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
-            compiledPlan: evidence[3], modelDerived: false,
-            resultArtifactCid: sourcePayload.summary.artifact.identity},
+            compiledPlan: evidence[3], modelDerived: false},
           requestScope,
           members: productMembers.map((member, index) => index === 0 ?
             {...member, authorityScopeCid: cid('9')} : member),
@@ -2591,6 +2590,31 @@ test(`two-member captured Effect Run ${
           maxKeyNodes: 8, maxKeyDepth: 3,
           planLimits: previewPlanLimits,
         }), {code: 'ForeignSalesforceEffectPreviewAuthority'});
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, control, prepared,
+          context: {runDefinition: definition, runInvocation: invocation,
+            compiledPlan: evidence[3], modelDerived: false},
+          requestScope,
+          members: productMembers.map((member, index) => index === 0 ?
+            {...member, sourceArtifact: storedResults.artifacts[0]} :
+            member),
+          maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        }), {code: 'MoonBitHostFailure'});
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, control, prepared,
+          context: {runDefinition: definition, runInvocation: invocation,
+            compiledPlan: evidence[3], modelDerived: false},
+          requestScope,
+          members: productMembers.map((member, index) => index === 0 ?
+            {...member, sourceArtifact: {...member.sourceArtifact}} : member),
+          maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        }), {message: 'Foreign publication contract'});
         const alteredTemplate = JSON.parse(previewDraft.wire);
         alteredTemplate.effects[0].changes[0].before =
           {state: 'present', value: {Name: 'fabricated-before'}};

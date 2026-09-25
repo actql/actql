@@ -193,6 +193,8 @@ pub fn effect_set_receipt_run_disposition(EffectPreviewIdentity, String, Array[S
 
 pub fn effect_source_artifact_holding_cid(PublicationContract, String, String, String) -> String?
 
+pub fn effect_source_artifact_preview_binding(PublicationContract, String, String) -> Result[(String, String), EffectSourceArtifactIssue]
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
