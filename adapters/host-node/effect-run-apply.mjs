@@ -116,15 +116,20 @@ async function authorizeEffectCommit(authorization, subjectCid, signal) {
     decisions.push(decision);
     if (decision.action !== 'dispatch') break;
   }
-  // A resumed dispatch carries the journal-authoritative admission; it is
-  // entered once, synchronously, immediately before the first protected
-  // send of this claim generation.
+  // Every resumed dispatch, account allow or delegated permit, carries the
+  // journal-authoritative admission; it is entered once, synchronously,
+  // immediately before the first protected send of this claim generation.
+  // A resumed commit without one sends nothing.
+  const admission = decisions.find(decision =>
+    decision.admission !== undefined)?.admission;
+  if (resumption !== undefined && admission === undefined &&
+      decisions.length > 0 &&
+      decisions.every(decision => decision.action === 'dispatch')) {
+    throw Object.assign(new Error('EffectApplyResumeAdmissionUnavailable'),
+      {code: 'EffectApplyResumeAdmissionUnavailable'});
+  }
   return Object.freeze({subjectCid, decisions: Object.freeze(decisions),
-    claim: resumption?.claim.claim,
-    // An account allow on resume dispatches without an admission; a
-    // resumed delegated permit carries one.
-    admission: decisions.find(decision =>
-      decision.admission !== undefined)?.admission});
+    claim: resumption?.claim.claim, admission});
 }
 
 // Durable identity of one Effect Set apply: the logical request and the

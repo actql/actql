@@ -3087,6 +3087,56 @@ async function verifyEffectCommitAuthorization(t, {
     }
   }
 
+  // (m) D-R5: the account now allows the commit tuple. An allow asks no
+  // approval but does not make the continuation anyone's to resume: a stale
+  // claim is refused, the changed configuration is refused, and a resumed
+  // dispatch decision without its admission sends nothing.
+  {
+    const run = await deferred({runId: 'commit-run-allow-resume'});
+    try {
+      run.clock.ms += 60_000;
+      await answerCommitCheckpoint(run.journal, run.checkpointCid,
+        'approved', run.clock);
+      const first = run.claim('worker-m1', 1_000);
+      run.clock.ms += 2_000;
+      const second = run.claim('worker-m2');
+      const allowGate = await fixtureAuthorization(allowAccount,
+        hostOptions('permit', {deferral: commitDeferral(run.journal,
+          run.clock, 'commit-run-allow-resume')}));
+      await assert.rejects(apply(run.ledger, allowGate,
+        () => assert.fail('stale claimant dispatched under allow'),
+        {resume: {claim: first}}),
+      error => error.code === 'ExecutionAuthorizationDecisionFailed' &&
+        error.authorization.detail === 'ResumeClaimStale');
+      await assert.rejects(apply(run.ledger, allowGate,
+        () => assert.fail('changed configuration dispatched'),
+        {resume: {claim: second}}),
+      error => error.code === 'ExecutionAuthorizationDecisionFailed' &&
+        error.authorization.detail === 'ResumeConfigurationChanged');
+      const gate = await run.gate();
+      const stripped = Object.freeze({...gate,
+        async resume(...args) {
+          const {admission, ...decision} = await gate.resume(...args);
+          assert.equal(typeof admission.enter, 'function');
+          return Object.freeze(decision);
+        }});
+      await assert.rejects(apply(run.ledger, stripped,
+        () => assert.fail('resumed commit without admission dispatched'),
+        {resume: {claim: second}}),
+      {code: 'EffectApplyResumeAdmissionUnavailable'});
+      counts.mAllow = {writes: provider.writes(run.writesBefore),
+        entries: ledgerEntryCount(run.ledgerRoot), calls: run.calls.length};
+      assert.deepEqual(counts.mAllow, {writes: 0, entries: 0, calls: 0});
+      // The unchanged configuration with the live claim dispatches once.
+      const current = await apply(run.ledger, gate, run.dispatch(),
+        {resume: {claim: second}});
+      assert.equal(current.dispatched, totalRows);
+    } finally {
+      run.ledger.close();
+      run.journal.close();
+    }
+  }
+
   // (l) The claim lapses after gate.resume and before the first write: the
   // synchronous admission entry at the send fences again at the Host trusted
   // time and refuses, so nothing is claimed in the ledger or sent. (An
