@@ -375,23 +375,27 @@ test('a superseded claimant cannot complete; a killed one leaves the intent to t
     claimant: 'claimant-e', outcome_status: 'run_created' }]);
 });
 
-test('a configuration changed to deny while waiting fails resume revalidation', async t => {
-  const input = await fixture(t);
-  const waiting = await waitingRun(input);
-  await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
-  await writeFile(input.files.account,
-    exampleAccountConfiguration({ database: input.database, outcome: 'deny' }));
-  const resumed = await cli(['resume', waiting.prepare_attempt_id, '--config', input.config]);
-  assert.equal(resumed.code, 1);
-  assert.equal(resumed.json.status, 'ended');
-  assert.equal(resumed.json.run_created, false);
-  assert.equal(resumed.json.terminal_error_code, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
-  assert.equal(resumed.json.counters.provider_sessions, 0);
-  assert.equal(resumed.json.counters.continuation_starts, 0);
-  const status = await cli(['status', waiting.prepare_attempt_id, '--config', input.config]);
-  assert.equal(status.json.preparation.endReason, 'revalidation_failed');
-  assert.equal(input.rows().runs, 0);
-});
+for (const outcome of ['deny', 'allow']) {
+  // D-R5: a configuration now allowing the tuple is still a changed
+  // configuration; it does not resume the waiting continuation.
+  test(`a configuration changed to ${outcome} while waiting fails resume revalidation`, async t => {
+    const input = await fixture(t);
+    const waiting = await waitingRun(input);
+    await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
+    await writeFile(input.files.account,
+      exampleAccountConfiguration({ database: input.database, outcome }));
+    const resumed = await cli(['resume', waiting.prepare_attempt_id, '--config', input.config]);
+    assert.equal(resumed.code, 1);
+    assert.equal(resumed.json.status, 'ended');
+    assert.equal(resumed.json.run_created, false);
+    assert.equal(resumed.json.terminal_error_code, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
+    assert.equal(resumed.json.counters.provider_sessions, 0);
+    assert.equal(resumed.json.counters.continuation_starts, 0);
+    const status = await cli(['status', waiting.prepare_attempt_id, '--config', input.config]);
+    assert.equal(status.json.preparation.endReason, 'revalidation_failed');
+    assert.equal(input.rows().runs, 0);
+  });
+}
 
 test('cancel while waiting ends the preparation with no resume intent', async t => {
   const input = await fixture(t);
@@ -498,6 +502,46 @@ test('an acquisition deferral after a Host permit resumes past the crossed bound
   assert.equal(resumed.json.counters.provider_sessions, 1);
   assert.equal(resumed.json.counters.continuation_starts, 1);
   assert.equal(input.rows().checkpoints, 1);
+});
+
+test('an earlier immediate permit is not reused over a current Host answer', async t => {
+  // The application permits preparation now and defers acquisition.
+  const input = await fixture(t);
+  const host = await openLocalHost(input.config);
+  let waiting;
+  try {
+    waiting = await host.run({ database: input.database, environment: input.files.environment,
+      environmentCid: input.environmentCid, program: input.files.program,
+      parameters: input.files.parameters }, {
+      answeringAuthorities: ['application-policy'],
+      decide: view => view.boundary === 'preparation'
+        ? { decision: 'permit', subject: view.subject, authority: 'application-policy' }
+        : { decision: 'defer', subject: view.subject },
+    });
+  } finally { await host.close(); }
+  assert.equal(waiting.status, 'waiting_checkpoint');
+  await cli(approveArgs(input, [waiting.checkpoint.checkpoint_id]));
+  // At resume the application's decision function is present and now
+  // rejects preparation: the earlier one-time permit authorizes no new
+  // provider I/O, even though the read itself was approved.
+  const asked = [];
+  const resuming = await openLocalHost(input.config);
+  let resumed;
+  try {
+    resumed = await resuming.resume(waiting.prepare_attempt_id, {
+      decide: view => {
+        asked.push(view.boundary);
+        return { decision: 'reject', subject: view.subject, authority: 'application-policy' };
+      },
+    });
+  } finally { await resuming.close(); }
+  assert.deepEqual(asked, ['preparation']);
+  assert.equal(resumed.status, 'ended');
+  assert.equal(resumed.end_reason, 'failed');
+  assert.equal(resumed.runtime_code, 'ACTQL_E_DELEGATION_REJECTED');
+  assert.equal(resumed.boundary, 'preparation');
+  assert.equal(resumed.counters.provider_sessions, 0);
+  assert.equal(input.rows().runs, 0);
 });
 
 test('a preparation denial reads and captures no path-backed input', async t => {
