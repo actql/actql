@@ -13,6 +13,15 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
 } derive(Debug)
 
 ///|
+pub(all) enum EffectSetApplyReceiptIssuanceIssue {
+  InvalidInventory
+  MemberReceipt(Int, EffectApplyReceiptBindingIssue)
+  Receipt(PublicationContractIssue)
+  References(EffectSetApplyReceiptBindingIssue)
+  Encoding
+} derive(Debug)
+
+///|
 fn effect_receipt_has_state(
   receipt : PublicationContract,
   state : String,
@@ -53,6 +62,134 @@ fn effect_receipt_member_state(receipt : PublicationContract) -> String {
     return "accepted"
   }
   "applied"
+}
+
+///|
+fn effect_set_receipt_status(receipts : Array[PublicationContract]) -> String {
+  let mut any_applied = false
+  let mut any_accepted = false
+  let mut any_unknown = false
+  let mut any_failed = false
+  for receipt in receipts {
+    any_applied = any_applied || effect_receipt_has_state(receipt, "applied")
+    any_accepted = any_accepted || effect_receipt_has_state(receipt, "accepted")
+    any_unknown = any_unknown || effect_receipt_has_state(receipt, "unknown")
+    any_failed = any_failed ||
+      effect_receipt_has_state(receipt, "failed") ||
+      effect_receipt_has_state(receipt, "unattempted") ||
+      effect_receipt_has_state(receipt, "rolled_back")
+  }
+  if any_unknown {
+    "unknown_outcome"
+  } else if any_failed {
+    if any_applied || any_accepted {
+      "partial_failure"
+    } else {
+      "failed"
+    }
+  } else if any_accepted {
+    "accepted"
+  } else {
+    "applied"
+  }
+}
+
+///|
+/// Issue the complete set Receipt from one receipt per exact Preview member.
+/// Replay observations are explicit physical facts; this function does not
+/// infer them from row outcomes or grant apply/publication authority.
+pub fn issue_effect_set_apply_receipt_from_members(
+  preview : EffectPreviewIdentity,
+  member_receipts : Array[PublicationContract],
+  replayed : Array[Bool],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectSetApplyReceiptIssuanceIssue] {
+  let count = effect_preview_member_count(preview)
+  if count < 1 ||
+    member_receipts.length() != count ||
+    replayed.length() != count {
+    return Err(InvalidInventory)
+  }
+  for index in 0..<count {
+    match
+      admit_effect_apply_receipt_for_member(
+        preview,
+        index,
+        member_receipts[index].wire,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(MemberReceipt(index, issue))
+    }
+  }
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-set-apply-receipt/0.1")
+    @encode.key(writer, "effect_preview_cid")
+    @encode.string_value(writer, effect_preview_semantic_identity(preview))
+    @encode.key(writer, "apply_policy")
+    @encode.string_value(writer, "attempt_all")
+    @encode.key(writer, "effects")
+    @encode.begin_array(writer)
+    for index in 0..<count {
+      @encode.begin_object(writer)
+      @encode.key(writer, "effect_id")
+      @encode.string_value(
+        writer,
+        effect_preview_member_effect_id(preview, index).unwrap(),
+      )
+      @encode.key(writer, "effect_member_preview_cid")
+      @encode.string_value(
+        writer,
+        effect_preview_member_identity(preview, index).unwrap(),
+      )
+      @encode.key(writer, "state")
+      @encode.string_value(
+        writer,
+        effect_receipt_member_state(member_receipts[index]),
+      )
+      @encode.key(writer, "replayed")
+      @encode.bool_value(writer, replayed[index])
+      @encode.key(writer, "member_receipt_cid")
+      @encode.string_value(writer, member_receipts[index].identity)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "status")
+    @encode.string_value(writer, effect_set_receipt_status(member_receipts))
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  let issued = match
+    seal_publication_contract(
+      "effect_set_apply_receipt", body, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Receipt(issue))
+  }
+  let wires = member_receipts.map(receipt => receipt.wire)
+  match
+    admit_effect_set_apply_receipt_references(
+      preview,
+      issued.wire,
+      wires,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => Ok(issued)
+    Err(issue) => Err(References(issue))
+  }
 }
 
 ///|
@@ -109,10 +246,6 @@ pub fn admit_effect_set_apply_receipt_references(
     return Err(MemberCountMismatch)
   }
   let seen : Map[String, Bool] = Map([])
-  let mut any_applied = false
-  let mut any_accepted = false
-  let mut any_unknown = false
-  let mut any_failed = false
   for position in 0..<effects.length() {
     let item = effects[position]
     let member_cid = match
@@ -149,30 +282,8 @@ pub fn admit_effect_set_apply_receipt_references(
     if state != effect_receipt_member_state(receipts[index]) {
       return Err(MemberStateMismatch(position))
     }
-    any_applied = any_applied ||
-      effect_receipt_has_state(receipts[index], "applied")
-    any_accepted = any_accepted ||
-      effect_receipt_has_state(receipts[index], "accepted")
-    any_unknown = any_unknown ||
-      effect_receipt_has_state(receipts[index], "unknown")
-    any_failed = any_failed ||
-      effect_receipt_has_state(receipts[index], "failed") ||
-      effect_receipt_has_state(receipts[index], "unattempted") ||
-      effect_receipt_has_state(receipts[index], "rolled_back")
   }
-  let expected_status = if any_unknown {
-    "unknown_outcome"
-  } else if any_failed {
-    if any_applied || any_accepted {
-      "partial_failure"
-    } else {
-      "failed"
-    }
-  } else if any_accepted {
-    "accepted"
-  } else {
-    "applied"
-  }
+  let expected_status = effect_set_receipt_status(receipts)
   if contract_string(set, "status") != Some(expected_status) {
     return Err(SetStatusMismatch)
   }

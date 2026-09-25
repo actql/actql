@@ -128,6 +128,14 @@ function effectApplicationControl(moon) {
         wire: moon.strategyPublicationContractJson(value),
       });
     },
+    issueSetReceiptFromMembers: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectSetApplyReceiptFromMembers(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+      });
+    },
     admitLedgerEntry: (...args) => checked(
       moon.strategyEffectAdmitLedgerEntry(...args),
     ),
@@ -2086,6 +2094,25 @@ function publicationControl(moon) {
         receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
         limits.maxDepth,
       )));
+    },
+    issueEffectSetApplyReceiptFromMembers(preview, members, replayed, limits) {
+      issuanceLimits(limits, 'Effect Set Apply Receipt');
+      if (!Array.isArray(members) ||
+          members.some(member => typeof member?.wire !== 'string') ||
+          !Array.isArray(replayed) ||
+          replayed.some(value => typeof value !== 'boolean')) {
+        throw new TypeError('Invalid Effect Set Apply Receipt request');
+      }
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return inspect(checked(
+        moon.strategyIssueEffectSetApplyReceiptFromMembers(
+          ownedPreview, members.map(member => member.wire), replayed,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+        ),
+      ));
     },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(

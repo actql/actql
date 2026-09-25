@@ -948,6 +948,33 @@ pub fn strategy_issue_effectful_final_run_receipt(
 }
 
 ///|
+#export_name("strategyIssueEffectSetApplyReceiptFromMembers")
+pub fn strategy_issue_effect_set_apply_receipt_from_members(
+  preview : @publication.EffectPreviewIdentity,
+  member_receipt_wires : Array[String],
+  replayed : Array[Bool],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let members : Array[@publication.PublicationContract] = []
+  for wire in member_receipt_wires {
+    match @publication.admit_publication_contract(
+      "effect_apply_receipt", wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+      Ok(value) => members.push(value)
+      Err(_) => raise InvalidCommand
+    }
+  }
+  match @publication.issue_effect_set_apply_receipt_from_members(
+    preview, members, replayed, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,
