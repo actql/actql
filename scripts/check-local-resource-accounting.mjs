@@ -537,6 +537,22 @@ for (const [index, route] of routeEntries.entries()) {
       }
     }
   }
+  if (route.family === 'RelA' && route.operation === 'unpivot') {
+    if (route.selected_entrypoint?.symbol !== 'unpivot_provider') {
+      fail(`${label}: bounded selected unpivot entrypoint is missing`);
+    }
+    for (const role of [
+      'unpivot_bounded_quantum_output',
+      'unpivot_bounded_cancel_cleanup',
+      'unpivot_bounded_workspace_exact_one_short',
+      'unpivot_bounded_control_work_exact_one_short',
+      'unpivot_bounded_output_limit',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   for (const operation of ['row_window', 'unpivot', 'unnest']) {
     if (route.family === 'RelA' && route.operation === operation) {
       const required = [`${operation}_input_index_pre_admission`];
@@ -680,6 +696,17 @@ for (const [index, route] of routeEntries.entries()) {
   if (route.family === 'RelA' && route.operation === 'top_k_by' &&
     !environmentRoles.has('ordinary_top_k_by_host_timer')) {
     fail(`${label}: delivered Host cancellation evidence is missing`);
+  }
+  if (route.family === 'RelA' && route.operation === 'unpivot') {
+    for (const role of [
+      'unpivot_standard_host_two_consumers',
+      'unpivot_same_stage_host_two_consumers',
+      'unpivot_in_flight_host_timer',
+    ]) {
+      if (!environmentRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
   }
   if (route.family === 'TEA' && route.operation === 'window_events') {
     for (const role of [

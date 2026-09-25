@@ -1492,6 +1492,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/unpivot_provider.mbt",
+        "symbol": "unpivot_provider"
+      },
       "boundary_tests": [
         {
           "role": "unpivot_fixed_sequence_work_exact_one_short",
@@ -1513,6 +1517,66 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/reshape_scale_wbtest.mbt",
           "fixture": "reshape admits input-name indices before field traversal"
+        },
+        {
+          "role": "unpivot_bounded_quantum_output",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot preserves repeated columns and ordered occurrences"
+        },
+        {
+          "role": "unpivot_bounded_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot cancels after output work without partial completion"
+        },
+        {
+          "role": "unpivot_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot admits exact empty metadata and rejects one short"
+        },
+        {
+          "role": "unpivot_bounded_control_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot admits exact empty control work and rejects one short"
+        },
+        {
+          "role": "unpivot_bounded_output_limit",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_unpivot_wbtest.mbt",
+          "fixture": "bounded unpivot enforces the output row ceiling incrementally"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "unpivot_standard_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unpivot",
+          "case": "unpivotProgram"
+        },
+        {
+          "role": "unpivot_same_stage_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "same-stage unpivot",
+          "case": "sameStageUnpivotProgram"
+        },
+        {
+          "role": "unpivot_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-unpivot-in-flight"
         }
       ]
     },

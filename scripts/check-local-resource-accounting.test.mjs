@@ -128,6 +128,40 @@ test('row window loses its bounded route when production evidence is removed', (
   }
 });
 
+test('unpivot loses its bounded route when production evidence is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'unpivot');
+    delete route.selected_entrypoint;
+  }), /RelA unpivot: bounded selected unpivot entrypoint is missing/u);
+  for (const role of [
+    'unpivot_bounded_quantum_output',
+    'unpivot_bounded_cancel_cleanup',
+    'unpivot_bounded_workspace_exact_one_short',
+    'unpivot_bounded_control_work_exact_one_short',
+    'unpivot_bounded_output_limit',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'unpivot');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA unpivot: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'unpivot_standard_host_two_consumers',
+    'unpivot_same_stage_host_two_consumers',
+    'unpivot_in_flight_host_timer',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'unpivot');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA unpivot: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('watermark loses its independent resource boundary with its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&

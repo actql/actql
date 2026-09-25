@@ -145,6 +145,15 @@ output succeeds even when intermediate coordinates exceed binary64, while an
 unrepresentable output boundary fails without exposing partial completion.
 Multi-step sequences that cannot select this provider still use the
 providerless synchronous path. The operation is not marked fully assured.
+The selected `unpivot` route likewise expands each authored column occurrence
+through a bounded managed session. Repeated columns remain repeated outputs.
+Three-target quantum-one fixtures cover ordered values, NULLs, exact/one-short
+empty metadata and control work, output ceilings, and cancellation after
+progress. The managed two-consumer and standard Host programs require the
+provider, including a same-Stage Values-to-Unpivot handoff; a Host timer
+exercises in-flight stop and cleanup. The providerless
+whole-sequence lane and long nested value checks remain unassured, so this
+route is not counted as fully bounded.
 The `lag` evaluator likewise reserves its output-name entries before copying
 the input names. An empty-input fixture derives eleven simultaneously live
 slots from the checked partition/order terms and schema widths, and rejects
