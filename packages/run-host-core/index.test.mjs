@@ -7,7 +7,8 @@ import {validRunState} from '../client-wire/index.mjs';
 import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
-  admitPublicationContract, admitRunEvidenceValue, validatePublicationChain,
+  admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
+  validatePublicationChain,
   validatePublicationRecordTransition,
   issueResultManifest,
   issueResultOccurrenceEvidence, issueCompleteResultArtifact,
@@ -407,6 +408,22 @@ test('portable Host package compiles the ordinary Values Program', () => {
     'sha256:26fbe956d369ada84612a9c93414c8c04bd20f3e11dccf3308f4b5e2a296658d');
   assert.throws(() => compileValues({kind: 'prepared-program'}),
     {name: 'TypeError', message: 'ForeignRunHostHandle'});
+});
+
+test('portable Host seals and admits exact Run evidence bodies', () => {
+  const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+  const body = {version: 'actql-normalization-journal/0.1',
+    rule_catalog_cid: `sha256:${'a'.repeat(64)}`, entries: []};
+  const sealed = sealRunEvidenceValue('normalization_journal',
+    JSON.stringify(body), limits);
+  assert.equal(sealed.cid, cid(body));
+  assert.equal(admitRunEvidenceValue('normalization_journal',
+    sealed.wire, limits).cid, sealed.cid);
+  assert.throws(() => sealRunEvidenceValue('normalization_journal',
+    sealed.wire, limits), {code: 'RunHostEvidenceRejected'});
+  assert.throws(() => sealRunEvidenceValue('normalization_journal',
+    JSON.stringify({...body, entries: [{unexpected: true}]}), limits),
+  {code: 'RunHostEvidenceRejected'});
 });
 
 test('checked Values Derivation binds the declared Result and Plan', () => {

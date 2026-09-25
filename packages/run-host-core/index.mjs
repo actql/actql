@@ -489,6 +489,16 @@ export function admitRunEvidenceValue(name, wire, limits) {
   'RunHostEvidenceRejected'));
 }
 
+export function sealRunEvidenceValue(name, bodyWire, limits) {
+  if (typeof name !== 'string' || typeof bodyWire !== 'string') {
+    throw new TypeError('InvalidRunHostEvidence');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return runEvidence(checked(owner.clientValuesHostSealRunEvidenceValue(
+    name, bodyWire, maxWireBytes, maxNodes, maxDepth),
+  'RunHostEvidenceRejected'));
+}
+
 // Canonical admission and chain decisions belong to the portable owner.
 // A contract handle is in-process only and conveys no publication authority.
 export function admitPublicationContract(name, wire, limits) {

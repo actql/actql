@@ -229,6 +229,9 @@ export function admitPublicationContract(name: string, wire: string,
   limits: PublicationLimits): PublicationContract;
 export function admitRunEvidenceValue(name: string, wire: string,
   limits: PublicationLimits): RunEvidence;
+/** Seal registered evidence without granting authority or publication. */
+export function sealRunEvidenceValue(name: string, bodyWire: string,
+  limits: PublicationLimits): RunEvidence;
 export function issueResultManifest(runDefinition: PublicationContract,
   invocation: PublicationContract,
   definitions: readonly PublicationContract[],

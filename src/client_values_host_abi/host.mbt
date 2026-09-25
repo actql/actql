@@ -436,6 +436,22 @@ pub fn client_values_host_admit_run_evidence_value(
 }
 
 ///|
+/// Seal a registered Run evidence body through the common owner. The body
+/// excludes its identity field; this does not authorize or publish a Run.
+#export_name("clientValuesHostSealRunEvidenceValue")
+pub fn client_values_host_seal_run_evidence_value(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, @publication.RunEvidenceValueIssue] {
+  @publication.seal_run_evidence_value(
+    name, body_wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientValuesHostRunEvidenceValueIdentity")
 pub fn client_values_host_run_evidence_value_identity(
   value : @publication.RunEvidenceValue,
