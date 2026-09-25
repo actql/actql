@@ -16,6 +16,7 @@ priv enum BoundedBindingRowsPhase {
   ChargeSortedRows
   ChargeTakeNames
   BeginRow
+  PickJson
   SnapshotRow
   EvaluateBindings
   EvaluatePredicate
@@ -279,6 +280,16 @@ priv struct BoundedBindingRowsState {
   input_ordinals : Map[String, Int]
   binding_ordinals : Map[String, Int]
   projection_ordinals : Map[String, Int]?
+  json_path : Array[String]?
+  json_source_column : Int
+  json_output_name : String
+  mut json_current : @admitted.Value?
+  mut json_picked : Value?
+  mut json_segment : Int
+  mut json_field : Int
+  mut json_name_offset : Int
+  mut json_name_open : Bool
+  mut json_name_matches : Bool
   take_range : (Int, Int)?
   partition_limit : Int64?
   partition_terms : Int
@@ -438,6 +449,8 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.snapshot = Map([])
   state.output_row = []
   state.checked_row = []
+  state.json_current = None
+  state.json_picked = None
   state.workspace.live = 0
   if !state.accepted.val {
     state.rows.val = None
@@ -1051,12 +1064,119 @@ fn bounded_binding_rows_step(
         state.output_row = []
         state.checked_row = []
         state.column = 0
-        state.phase = if state.projection_ordinals is Some(_) {
+        state.phase = if state.json_path is Some(_) {
+          PickJson
+        } else if state.projection_ordinals is Some(_) {
           BuildOutputRow
         } else {
           SnapshotRow
         }
         used += 1
+      }
+      PickJson => {
+        guard state.json_path is Some(path) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        if state.json_segment < 0 {
+          guard bounded_binding_input_cell(
+              state.input,
+              state.row,
+              state.json_source_column,
+            )
+            is Some(source) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.json_current = match source {
+            Null => None
+            Captured(value) => Some(value)
+            _ =>
+              return fail_bounded_binding_rows(
+                Rows(InvalidRows),
+                progress,
+                used,
+              )
+          }
+          state.json_segment = 0
+          used += 1
+          continue
+        }
+        if state.json_segment == path.length() {
+          state.json_picked = Some(
+            match state.json_current {
+              None => Null
+              Some(value) => capture(value)
+            },
+          )
+          state.column = 0
+          state.phase = BuildOutputRow
+          used += 1
+          continue
+        }
+        match state.json_current {
+          None | Some(@admitted.Null) => {
+            state.json_picked = Some(Null)
+            state.column = 0
+            state.phase = BuildOutputRow
+            used += 1
+          }
+          Some(@admitted.Object(fields)) => {
+            if state.json_field == @admitted.element_count(fields) {
+              return fail_bounded_binding_rows(
+                Rows(InvalidRows),
+                progress,
+                used,
+              )
+            }
+            guard @admitted.element_at(fields, state.json_field)
+              is Some((name, value)) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            if !state.json_name_open {
+              if !spend_control(state.control, 1) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.json_name_open = true
+              used += 1
+              continue
+            }
+            if state.json_name_offset < name.length() {
+              let offset = state.json_name_offset
+              let next = match
+                bounded_text_charge_step(state.control, name, offset) {
+                Ok(next) => next
+                Err(_) =>
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+              }
+              let segment = path[state.json_segment]
+              if next > segment.length() ||
+                name[offset] != segment[offset] ||
+                (next == offset + 2 && name[offset + 1] != segment[offset + 1]) {
+                state.json_name_matches = false
+              }
+              state.json_name_offset = next
+              used += 1
+              continue
+            }
+            if state.json_name_matches &&
+              name.length() == path[state.json_segment].length() {
+              state.json_current = Some(value)
+              state.json_segment += 1
+              state.json_field = 0
+            } else {
+              state.json_field += 1
+            }
+            state.json_name_offset = 0
+            state.json_name_open = false
+            state.json_name_matches = true
+            used += 1
+          }
+          Some(_) =>
+            return fail_bounded_binding_rows(Rows(InvalidRows), progress, used)
+        }
       }
       SnapshotRow => {
         if state.column == state.input_names.length() {
@@ -1250,7 +1370,12 @@ fn bounded_binding_rows_step(
             match projection.get(name) {
               Some(index) =>
                 bounded_binding_input_cell(state.input, source_row, index)
-              None => None
+              None =>
+                if name == state.json_output_name {
+                  state.json_picked
+                } else {
+                  None
+                }
             }
           None =>
             match state.binding_ordinals.get(name) {
@@ -1336,6 +1461,13 @@ fn bounded_binding_rows_step(
         state.slot_roots = []
         state.output_row = []
         state.checked_row = []
+        state.json_current = None
+        state.json_picked = None
+        state.json_segment = -1
+        state.json_field = 0
+        state.json_name_offset = 0
+        state.json_name_open = false
+        state.json_name_matches = true
         state.row += 1
         state.partition_checked = false
         state.phase = BeginRow
@@ -1500,6 +1632,7 @@ fn start_bounded_binding_rows_with_input(
     @lower.AssertAll(expression) =>
       ([], false, Some(expression), false, None, None)
     @lower.AssertUnique(_) => ([], false, None, false, None, None)
+    @lower.JsonPick(_, _, _) => ([], false, None, false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.DistinctRows => ([], false, None, false, None, None)
     @lower.StableSort(_) =>
@@ -1584,6 +1717,15 @@ fn start_bounded_binding_rows_with_input(
     @lower.AssertUnique(keys) => Some(keys)
     _ => None
   }
+  let json_pick = match body {
+    @lower.JsonPick(column, path, output) =>
+      Some((@schema.reference_name(column), path, output))
+    _ => None
+  }
+  if json_pick is Some((_, path, _)) &&
+    (path.is_empty() || output_width != input_width + 1) {
+    return Err(InvalidExecution)
+  }
   if unique_keys is Some(keys) && keys.is_empty() {
     return Err(InvalidExecution)
   }
@@ -1591,10 +1733,11 @@ fn start_bounded_binding_rows_with_input(
     !select_mode &&
     !distinct &&
     unique_keys is None &&
+    json_pick is None &&
     bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
-  if (select_mode || take_range is Some(_) || distinct) &&
+  if (select_mode || take_range is Some(_) || distinct || json_pick is Some(_)) &&
     !admit_metadata(output_width) {
     return Err(InvalidExecution)
   }
@@ -1617,7 +1760,11 @@ fn start_bounded_binding_rows_with_input(
       }
     }
   }
-  if !select_mode && !distinct && unique_keys is None && take_range is None {
+  if !select_mode &&
+    !distinct &&
+    unique_keys is None &&
+    take_range is None &&
+    json_pick is None {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(
@@ -1705,6 +1852,22 @@ fn start_bounded_binding_rows_with_input(
       }
       Some(projection)
     }
+    @lower.JsonPick(source, _, output) => {
+      let projection : Map[String, Int] = Map([])
+      let source_name = @schema.reference_name(source)
+      if input_ordinals.get(source_name) is None ||
+        input_ordinals.contains(output) ||
+        output_names[output_width - 1] != output {
+        return Err(InvalidExecution)
+      }
+      for name in input_names {
+        guard input_ordinals.get(name) is Some(index) else {
+          return Err(InvalidExecution)
+        }
+        projection[name] = index
+      }
+      Some(projection)
+    }
     _ => None
   }
   let output = match
@@ -1765,6 +1928,25 @@ fn start_bounded_binding_rows_with_input(
     input_ordinals,
     binding_ordinals,
     projection_ordinals,
+    json_path: match json_pick {
+      Some((_, path, _)) => Some(path)
+      None => None
+    },
+    json_source_column: match json_pick {
+      Some((source, _, _)) => input_ordinals.get(source).unwrap_or(-1)
+      None => -1
+    },
+    json_output_name: match json_pick {
+      Some((_, _, output)) => output
+      None => ""
+    },
+    json_current: None,
+    json_picked: None,
+    json_segment: -1,
+    json_field: 0,
+    json_name_offset: 0,
+    json_name_open: false,
+    json_name_matches: true,
     take_range,
     partition_limit,
     partition_terms,

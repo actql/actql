@@ -8,6 +8,7 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
     | @lower.SnapshotMap(_)
     | @lower.OrderedBindings(_)
     | @lower.Filter(_)
+    | @lower.JsonPick(_, _, _)
     | @lower.Select(_)
     | @lower.DistinctRows
     | @lower.StableSort(_)
