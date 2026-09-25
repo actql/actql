@@ -190,7 +190,14 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (cause instanceof ClientError) throw cause;
+        if (cause instanceof ClientError) {
+          if (operation === 'submit' && cause.code ===
+              'SubmissionUnknown') {
+            throw new ClientError('SubmissionUnknown', {...submitContext,
+              cause});
+          }
+          throw cause;
+        }
         if (operation === 'submit') {
           throw new ClientError('SubmissionUnknown', {...submitContext, cause});
         }

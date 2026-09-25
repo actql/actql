@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "engines": {"node": ">=22"},
-  "dependencies": {"@actql/sdk": "0.0.0-development"},
+  "dependencies": {
+    "@actql/local-node": "0.0.0-development",
+    "@actql/sdk": "0.0.0-development"
+  },
   "exports": {
     ".": {"types": "./index.d.ts", "default": "./index.mjs"}
   },

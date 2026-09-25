@@ -9,7 +9,8 @@ const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 const root = await mkdtemp(join(build, 'node-client-package-'));
 const cache = join(root, 'npm-cache');
-const environment = {...process.env, npm_config_cache: cache};
+const environment = {...process.env, npm_config_cache: cache,
+  ACTQL_LOCAL_STATE_DIR: join(root, 'local-state')};
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, env: environment,
@@ -21,20 +22,23 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-for (const name of ['client-wire', 'sdk', 'node']) {
+for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
+  'node']) {
   run('npm', ['pack', '--pack-destination', root, '--json'],
     join(repository, 'packages', name));
 }
 const sdk = join(root, 'actql-sdk-0.0.0-development.tgz');
 const node = join(root, 'actql-node-0.0.0-development.tgz');
 const wire = join(root, 'actql-client-wire-0.0.0-development.tgz');
+const runHost = join(root, 'actql-run-host-core-0.0.0-development.tgz');
+const local = join(root, 'actql-local-node-0.0.0-development.tgz');
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
-  wire, sdk, node],
+run('npm', ['install', '--ignore-scripts', '--no-save',
+  wire, sdk, runHost, local, node],
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
-  ['client-wire', 'node', 'sdk']);
+  ['client-wire', 'local-node', 'node', 'run-host-core', 'sdk']);
 for (const name of ['client-host.generated.js',
   'client-host.generated.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
@@ -44,9 +48,12 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }
+await writeFile(join(root, 'values.json'), await readFile(join(repository,
+  'packages/sdk/fixtures/values.json')));
 
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
+import {readFileSync, writeFileSync} from 'node:fs';
 import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
 
@@ -78,14 +85,33 @@ for (const selected of connected) {
   assert.equal(client.profile.owner, selected.owner ?? 'remote');
   client.close();
 }
-await assert.rejects(connect({mode: 'local', owner: 'local'}),
-  error => error instanceof ClientError &&
-    error.code === 'LocalProviderNotInstalled');
-await assert.rejects(connect({mode: 'hybrid', owner: 'local',
-  cloudConnectionRef: 'registered-cloud-a',
-  movementPolicyRef: 'movement-a'}),
-  error => error instanceof ClientError &&
-    error.code === 'LocalProviderNotInstalled');
+const installedLocal = await connect({mode: 'local', owner: 'local',
+  durability: 'durable'});
+const document = readFileSync('values.json', 'utf8');
+const execution = await installedLocal.aql(document, {format: 'json',
+  requestId: 'packed-standard-values'});
+assert.equal(execution.profile.durability, 'durable');
+assert.equal((await execution.status()).status, 'succeeded');
+assert.deepEqual(await execution.result('answer').all(),
+  [{id: 1}, {id: 2}]);
+await assert.rejects(execution.result('answer').all({maxRows: 1}),
+  {code: 'ResultRetainedLimit'});
+const reader = execution.result('answer').rows();
+assert.deepEqual(await Array.fromAsync(reader), [{id: 1}, {id: 2}]);
+assert.equal(reader.state(), 'complete');
+assert.equal((await execution.result('answer')
+  .deliveryAttempt(reader.attemptId)).kind, 'found');
+assert.deepEqual((await installedLocal.lookupRequest(
+  'packed-standard-values')).ref, execution.ref);
+assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
+  execution.ref);
+writeFileSync('run-ref.json', JSON.stringify(execution.ref));
+assert.deepEqual((await installedLocal.aql(document, {format: 'json',
+  requestId: 'packed-standard-values'})).ref, execution.ref);
+await assert.rejects(installedLocal.aql(document.replace('"id": 2',
+  '"id": 3'), {format: 'json', requestId: 'packed-standard-values'}),
+  {code: 'ClientRequestIntentConflict'});
+installedLocal.close();
 assert.equal(calls.length, connected.length);
 const local = await connectInProcess({mode: 'local', owner: 'local'}, {
   async perform(operation) {
@@ -103,6 +129,26 @@ assert.equal(calls.length, connected.length);
 local.close();
 `);
 run(process.execPath, ['smoke.mjs'], root);
+await writeFile(join(root, 'restart.mjs'), `
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {connect} from '@actql/node';
+globalThis.fetch = () => { throw new Error('NetworkOnLocalRestart'); };
+const client = await connect({mode: 'local', owner: 'local',
+  durability: 'durable'});
+const ref = JSON.parse(readFileSync('run-ref.json', 'utf8'));
+const attached = await client.attach(ref);
+assert.equal((await attached.status()).status, 'succeeded');
+assert.deepEqual(await attached.result('answer').all(),
+  [{id: 1}, {id: 2}]);
+assert.deepEqual((await client.lookupRequest('packed-standard-values')).ref,
+  ref);
+const repeated = await client.aql(readFileSync('values.json', 'utf8'),
+  {format: 'json', requestId: 'packed-standard-values'});
+assert.deepEqual(repeated.ref, ref);
+client.close();
+`);
+run(process.execPath, ['restart.mjs'], root);
 const browser = join(root, 'actql-sdk-browser.mjs');
 const browserMetadata = join(root, 'actql-sdk-browser-meta.json');
 run(join(repository, 'node_modules/.bin/esbuild'), [

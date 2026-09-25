@@ -7,6 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const destination = join(root, 'packages/local-node');
 const entries = [
   'adapters/host-node/entry.mjs',
+  'adapters/host-node/embedded-local.mjs',
   'adapters/host-node/in-process-client.mjs',
   'adapters/host-node/client-request-journal.mjs',
   'adapters/host-node/client-request-lookup.mjs',
@@ -30,6 +31,8 @@ if (sourcePaths.length < entries.length ||
 const replacements = new Map([
   ["'../../packages/client-wire/index.mjs'", "'@actql/client-wire'"],
   ["'../../packages/sdk/index.mjs'", "'@actql/sdk'"],
+  ["'../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'"],
+  ["'../../packages/run-host-core/index.mjs'", "'@actql/run-host-core'"],
 ]);
 const expected = new Set();
 for (const path of sourcePaths) {
@@ -68,6 +71,7 @@ walk(join(destination, 'adapters'));
 for (const path of [
   'spec/dependencies/aoa-pipeline-registry.json',
   'spec/contracts/actql-aoa.json',
+  'spec/local-check-environment.json',
 ]) {
   const bytes = readFileSync(join(root, path));
   const output = join(destination, path);

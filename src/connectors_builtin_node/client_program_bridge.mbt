@@ -283,6 +283,12 @@ pub fn client_program_request_identity(
 }
 
 ///|
+#export_name("clientProgramSourceFreeInputIntentCid")
+pub fn client_program_source_free_input_intent_cid() -> String {
+  @publication_host.source_free_caller_input_intent_cid()
+}
+
+///|
 /// The installed Local profile applies one bounded sequence definition to
 /// compiler material and the task that physically executes it.
 fn client_local_sequence_limits() -> @lower.SequenceLimits {
