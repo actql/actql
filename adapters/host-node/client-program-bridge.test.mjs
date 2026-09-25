@@ -13,7 +13,8 @@ import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet} from './effect-run-apply.mjs';
 import {captureSalesforceCollectionEffectWrite,
-  captureSalesforceSingleEffectWrite} from
+  captureSalesforceSingleEffectWrite,
+  recoverPreparedSalesforceSingleRequests} from
   './salesforce-effect-write.mjs';
 import {authorObservedSalesforceEffectPreview} from
   './salesforce-effect-preview.mjs';
@@ -2637,7 +2638,7 @@ test(`two-member captured Effect Run ${
           collectionPartial: collectionPartial && index === 0,
           writeOperation: writeKind,
         }))) : undefined;
-      const siteProjections = sites?.map(site => {
+      const prepareSiteProjection = site => {
         const binding = site.write.scope;
         return checked(salesforceMoon.salesforcePrepareWriteProjection(
           site.catalog.observation,
@@ -2652,7 +2653,8 @@ test(`two-member captured Effect Run ${
           writeKind === 'upsert' ? 'External_Key__c' : '',
           writeKind === 'create' ? ['Name', 'External_Key__c'] :
             ['Name'], 2));
-      });
+      };
+      const siteProjections = sites?.map(prepareSiteProjection);
       if (siteRun && writeKind !== 'create') {
         sites.forEach((site, index) =>
           site.setTargetName(`observed-before-${index}`));
@@ -3341,6 +3343,66 @@ test(`two-member captured Effect Run ${
         assert.equal(ledger.prepareCapturedSetIntents(
           previewInputs, members, 64), 4);
         ledger.close();
+        for (const result of storedResults.results) {
+          if (result.prepared.status().pending) {
+            await result.prepared.release();
+          }
+        }
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+        await store.close();
+        const child = spawnSync(process.execPath, [fileURLToPath(new URL(
+          './fixtures/recover-effect-outcomes.mjs', import.meta.url,
+        ))], {
+          input: JSON.stringify({
+            directory, storeAuthorityCid: configuration.storeAuthorityCid,
+            capacityBytes: configuration.capacityBytes,
+            maxObjectBytes: configuration.maxObjectBytes,
+            maxObjects: configuration.maxObjects,
+            maxContractNodes: configuration.maxContractNodes,
+            maxContractDepth: configuration.maxContractDepth,
+            runDefinitionWire: runDefinition.wire,
+            ledgerRoot, authorityScopeCid: cid('e'),
+            callerRequestId: 'complete-two-effects-request',
+            programId: 'program-1', nodeId: 'node-1',
+            maxRows: 4, maxWork: 100, limits: publicationLimits,
+            prepared: true,
+          }),
+          encoding: 'utf8', timeout: 20_000,
+        });
+        assert.equal(child.status, 0, child.stderr);
+        const fresh = JSON.parse(child.stdout);
+        assert.equal(fresh.capturedRunCid, computation.capturedRun.identity);
+        assert.deepEqual(fresh.localInventory,
+          JSON.parse(computation.capturedRun.wire)
+            .effect_source_local_inventory);
+        assert.deepEqual(fresh.effectIdentities,
+          JSON.parse(preview.wire).effects.map(
+            member => member.effect_identity_cid));
+        assert.deepEqual(fresh.readyRows, [[0, 0], [1, 0]]);
+        assert.deepEqual(fresh.requestCids,
+          members.map(member => member.claims.map(
+            claim => claim.canonicalRequestCid)));
+        assert.equal(fresh.setReceiptCid, null);
+        control = runtimeCore(moon).publicationControl;
+        physicalStore = await openLocalPublicationStore(configuration, control);
+        store = Object.freeze({...physicalStore,
+          async commitEffectfulIndex(...args) {
+            commitCalls++;
+            const result = await physicalStore.commitEffectfulIndex(...args);
+            if (commitCalls === 1) {
+              throw new Error('LostEffectIndexCommitAck');
+            }
+            return result;
+          },
+        });
+        const completed = await recoverCompletedEffectfulComputation({
+          store, control, runDefinition, contractLimits: publicationLimits,
+        });
+        storedResults = completed.storedResults;
+        computation = completed.computation;
+        admittedPreview = completed.preview;
         ledger = openLedger();
         const recovered = ledger.recoverClaimFacts({
           preview: applyPreview, scope: requestScope,
@@ -3352,6 +3414,68 @@ test(`two-member captured Effect Run ${
           claim => claim.canonicalRequestCid)),
         members.map(member => member.claims.map(
           claim => claim.canonicalRequestCid)));
+        applyPreview = effect.admitPreviewIdentity(
+          control.effectComputationPreviewWire(admittedPreview),
+          body.run_identity_cid,
+          preview.authoringCid, requestScope, preview.keys,
+          publicationLimits.maxWireBytes, publicationLimits.maxNodes,
+          publicationLimits.maxDepth);
+        const recoveryRequestOptions = {
+          moon: salesforceMoon,
+          previewWire: control.effectComputationPreviewWire(admittedPreview),
+          runIdentityCid: body.run_identity_cid,
+          authoringContextCid: preview.authoringCid,
+          members: sites.map((site, memberIndex) => ({
+            projection: prepareSiteProjection(site), apiVersion: 'v62.0',
+            resourceOrigin: site.origin,
+            claims: recovered.members[memberIndex].claims,
+          })),
+          previewLimits: publicationLimits,
+          bodyLimits: {maxBytes: 1024, maxNodes: 32, maxDepth: 5},
+          requestLimits: {maxPathBytes: 256, maxTargetBytes: 128,
+            maxBodyBytes: 1024},
+          maxMembers: 2, maxRows: 4,
+          maxIdentityBytes: 4096,
+        };
+        assert.throws(() => recoverPreparedSalesforceSingleRequests({
+          ...recoveryRequestOptions,
+          members: recoveryRequestOptions.members.slice(0, 1),
+        }), {code: 'InvalidSalesforcePreparedRequestRecovery'});
+        assert.throws(() => recoverPreparedSalesforceSingleRequests({
+          ...recoveryRequestOptions,
+          members: recoveryRequestOptions.members.map((member, index) =>
+            index === 0 ? {...member, claims: member.claims.slice(0, 1)} :
+              member),
+        }), {code: 'InvalidSalesforcePreparedRequestRecovery'});
+        const reconstructed = recoverPreparedSalesforceSingleRequests(
+          recoveryRequestOptions);
+        const recoveryPreview = reconstructed.preview;
+        siteRequests = reconstructed.requests;
+        sites.forEach((site, memberIndex) => {
+          recovered.members[memberIndex].claims.forEach((claim, rowIndex) => {
+            assert.equal(checked(salesforceMoon
+              .salesforceSingleWriteRequestMatchesPreviewFootprint(
+                recoveryPreview, memberIndex, rowIndex,
+                siteRequests[memberIndex][rowIndex], 4096)), true);
+            assert.equal(checked(
+              salesforceMoon.salesforceSingleWriteRequestCid(
+                siteRequests[memberIndex][rowIndex], site.origin, 4096)),
+            claim.canonicalRequestCid);
+          });
+        });
+        assert.throws(() => checked(
+          salesforceMoon.salesforceRecoverSingleWriteRequest(
+            recoveryPreview, 0, 0, prepareSiteProjection(sites[1]), 'v62.0',
+            1024, 32, 5, 256, 128, 1024, 4096,
+            sites[1].origin, recovered.members[0].claims[0]
+              .canonicalRequestCid)),
+        {code: 'MoonBitHostFailure'});
+        assert.throws(() => checked(
+          salesforceMoon.salesforceRecoverSingleWriteRequest(
+            recoveryPreview, 0, 0, prepareSiteProjection(sites[0]), 'v62.0',
+            1024, 32, 5, 256, 128, 1024, 4096,
+            sites[0].origin, cid('9'))),
+        {code: 'MoonBitHostFailure'});
         applyOptions.ledger = ledger;
         applyOptions.members = recovered.members;
         await assert.rejects(applyCapturedEffectSet({
@@ -3916,7 +4040,8 @@ test(`two-member captured Effect Run ${
       const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
-        execution: restartBeforeApply || restartBeforeFinal
+        execution: restartBeforeApply || restartPreparedIntent ||
+          restartBeforeFinal
           ? null : execution,
         store, storedResults, control, computation,
         preview: admittedPreview, ledger, issuedSet,

@@ -13,6 +13,9 @@ import {issueAuthorizedEffectSetReceipt} from
   '../effect-response-recovery.mjs';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
+if (input.prepared === true && input.publish === true) {
+  throw new Error('PreparedEffectCannotPublish');
+}
 const core = runtimeCore(moon);
 const control = core.publicationControl;
 const store = await openLocalPublicationStore({
@@ -40,19 +43,22 @@ try {
     input.authorityScopeCid, input.callerRequestId, 256);
   const admittedPreview = control.effectComputationPreviewLedgerIdentity(
     recovered.preview);
-  const recorded = ledger.recoverRecordedClaims({
+  const recorded = (input.prepared === true
+    ? ledger.recoverClaimFacts
+    : ledger.recoverRecordedClaims)({
     preview: admittedPreview, scope,
     programId: input.programId, nodeId: input.nodeId,
     maxRows: input.maxRows, maxWork: input.maxWork,
   });
-  const issued = await issueAuthorizedEffectSetReceipt({
+  const issued = input.prepared === true ? undefined :
+    await issueAuthorizedEffectSetReceipt({
     ledger, preview: admittedPreview, publicationPreview: recovered.preview,
     commonMoon: moon, authorizeEvidenceRead: async () => true,
     members: recorded.members.map(member => ({
       rowOwners: member.claims.map(claim => ({claim})), replayed: true,
     })),
     limits: input.limits,
-  });
+    });
   const publication = input.publish === true
     ? await publishCompletedEffectfulRun({
       execution: null, store, storedResults: recovered.storedResults,
@@ -72,8 +78,17 @@ try {
     effectIdentities: JSON.parse(control.effectComputationPreviewWire(
       recovered.preview)).effects.map(
       member => member.effect_identity_cid),
-    setReceiptCid: issued.set.identity,
-    setStatus: JSON.parse(issued.set.wire).status,
+    readyRows: Array.from({length: core.effectApplicationControl
+      .setFrontierReadyCount(recorded.frontier)}, (_, index) => [
+      core.effectApplicationControl.setFrontierReadyMember(
+        recorded.frontier, index),
+      core.effectApplicationControl.setFrontierReadyRow(
+        recorded.frontier, index),
+    ]),
+    requestCids: recorded.members.map(member => member.claims.map(
+      claim => claim.canonicalRequestCid)),
+    setReceiptCid: issued?.set.identity ?? null,
+    setStatus: issued === undefined ? null : JSON.parse(issued.set.wire).status,
     rowCounts: recorded.members.map(member => member.claims.length),
     publication: publication === undefined ? null : {
       state: publication.publication.state,

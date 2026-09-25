@@ -20,6 +20,73 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+// Rebuild provider request material from a recovered Preview and exact
+// prepared Ledger claims. This does not restore apply or credential authority.
+// The ordinary apply owner must repeat whole-set and current Site admission.
+export function recoverPreparedSalesforceSingleRequests({
+  moon, previewWire, runIdentityCid, authoringContextCid, members,
+  previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,
+  maxIdentityBytes = 4096,
+}) {
+  const positive = value => Number.isSafeInteger(value) && value > 0;
+  if (!moon || typeof previewWire !== 'string' ||
+      typeof runIdentityCid !== 'string' ||
+      typeof authoringContextCid !== 'string' ||
+      !Array.isArray(members) || members.length === 0 ||
+      !positive(maxMembers) || members.length > maxMembers ||
+      !positive(maxRows) || maxRows > 100_000 ||
+      !previewLimits || !bodyLimits || !requestLimits ||
+      !positive(previewLimits.maxWireBytes) ||
+      !positive(previewLimits.maxNodes) ||
+      !positive(previewLimits.maxDepth) ||
+      !positive(bodyLimits.maxBytes) ||
+      !positive(bodyLimits.maxNodes) ||
+      !positive(bodyLimits.maxDepth) ||
+      !positive(requestLimits.maxPathBytes) ||
+      !positive(requestLimits.maxTargetBytes) ||
+      !positive(requestLimits.maxBodyBytes) ||
+      !positive(maxIdentityBytes)) {
+    fail('InvalidSalesforcePreparedRequestRecovery');
+  }
+  let totalRows = 0;
+  for (const member of members) {
+    if (!member?.projection || typeof member.apiVersion !== 'string' ||
+        typeof member.resourceOrigin !== 'string' ||
+        !Array.isArray(member.claims) || member.claims.length === 0) {
+      fail('InvalidSalesforcePreparedRequestRecovery');
+    }
+    totalRows += member.claims.length;
+    if (totalRows > maxRows) fail('InvalidSalesforcePreparedRequestRecovery');
+  }
+  const preview = checked(moon.salesforceAdmitRecoveryPreview(
+    previewWire, runIdentityCid, authoringContextCid,
+    previewLimits.maxWireBytes, previewLimits.maxNodes,
+    previewLimits.maxDepth));
+  if (moon.salesforceRecoveryPreviewMemberCount(preview) !==
+      members.length) {
+    fail('InvalidSalesforcePreparedRequestRecovery');
+  }
+  const requests = members.map((member, memberIndex) => {
+    if (moon.salesforceRecoveryPreviewRowCount(preview, memberIndex) !==
+        member.claims.length) {
+      fail('InvalidSalesforcePreparedRequestRecovery');
+    }
+    return Object.freeze(member.claims.map((claim, rowIndex) => {
+      if (typeof claim?.canonicalRequestCid !== 'string') {
+        fail('InvalidSalesforcePreparedRequestRecovery');
+      }
+      return checked(moon.salesforceRecoverSingleWriteRequest(
+        preview, memberIndex, rowIndex, member.projection,
+        member.apiVersion, bodyLimits.maxBytes, bodyLimits.maxNodes,
+        bodyLimits.maxDepth, requestLimits.maxPathBytes,
+        requestLimits.maxTargetBytes, requestLimits.maxBodyBytes,
+        maxIdentityBytes, member.resourceOrigin,
+        claim.canonicalRequestCid));
+    }));
+  });
+  return Object.freeze({preview, requests: Object.freeze(requests)});
+}
+
 // An authorized evidence read is not another mutation attempt. The Host
 // supplies the current evidence-view decision; this adapter checks the exact
 // immutable request and stored claim, then only reprojects saved bytes.
