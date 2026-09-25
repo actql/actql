@@ -2072,6 +2072,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 for (const physical of ['simulated', 'salesforce',
   'salesforce-recovered', 'salesforce-terminal-restart',
   'salesforce-upsert', 'salesforce-create',
+  'salesforce-overlap',
   'salesforce-unknown', 'salesforce-lost-http-reply',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
@@ -2080,6 +2081,8 @@ test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
     physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
+    physical === 'salesforce-overlap'
+      ? 'rejects overlapping members before send' :
     physical === 'salesforce-collection-partial'
       ? 'retains partial failure outcomes' :
       'publishes after all rows settle'
@@ -2096,6 +2099,7 @@ test(`two-member captured Effect Run ${
     const collectionPartial = physical === 'salesforce-collection-partial';
     const collectionRecovered = physical === 'salesforce-collection-recovered';
     const collectionMode = collectionPartial || collectionRecovered;
+    const overlappingMembers = physical === 'salesforce-overlap';
     const writeKind = physical === 'salesforce-upsert' ? 'upsert' :
       physical.startsWith('salesforce-create') ? 'create' : 'update';
     const continueMembers = continueAfterUnknown || collectionMode
@@ -2282,6 +2286,9 @@ test(`two-member captured Effect Run ${
             targets.map(target => salesforceMoon.salesforceWriteTargetObjectCid(
               checked(target)))};
       }) : undefined;
+      if (overlappingMembers) {
+        siteFootprints[1] = siteFootprints[0];
+      }
       const requestScope = effect.logicalRequestScope(
         cid('e'), 'complete-two-effects-request', 128);
       const preview = effectInputPreview(
@@ -2311,6 +2318,28 @@ test(`two-member captured Effect Run ${
         shareFromHoldingCid: firstHolding.holdingCid,
       });
       assert.notEqual(firstHolding.holdingCid, secondHolding.holdingCid);
+      if (overlappingMembers) {
+        const usesBefore = sites.map(site => site.journal.recover().length);
+        assert.equal(moon.clientProgramBindEffectPreviewInputs(
+          owned, inputs, invocation, 0, preview.wire,
+          preview.authoringCid,
+          moon.clientProgramEffectPreviewInputLimits(
+            20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+            2, 4, 100, 100)).$tag, 0);
+        assert.deepEqual(sites.map(site => site.journal.recover().length),
+          usesBefore);
+        assert.equal(sites.flatMap(site => site.seen)
+          .filter(item => item.method === 'PATCH').length, 0);
+        for (const holdingCid of [firstHolding.holdingCid,
+          secondHolding.holdingCid]) {
+          assert.equal((await store.retirePhysicalHolding(holdingCid))
+            .deleted, true);
+        }
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+        return;
+      }
       const previewInputs = checked(
         moon.clientProgramBindEffectPreviewInputs(
           owned, inputs, invocation, 0, preview.wire,
