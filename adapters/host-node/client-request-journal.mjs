@@ -548,23 +548,43 @@ export function openClientRequestJournal(directory, {
     // The exact durable claim precedes the call that can start physical
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
-    reservePhysicalStart(ref) {
+    reservePhysicalStart(identity, {tenantId, ref, currentAuthorization},
+      requestControl, publicationControl) {
       ensureOpen();
-      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
-          !cid(ref?.runDefinitionCid)) {
+      if (!text(tenantId) || !text(ref?.tenantId) ||
+          !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
+          typeof currentAuthorization !== 'boolean' ||
+          typeof requestControl?.clientRunPhysicalStartAction !==
+            'function') {
         fail('InvalidClientRunPhysicalStart');
       }
+      const fields = checkedIdentity(identity, requestControl);
       database.exec('BEGIN IMMEDIATE');
       try {
-        const row = selectRef.get(ref.tenantId, ref.authorityScopeCid,
-          ref.runDefinitionCid);
-        if (row === undefined || row.dispatch_reserved !== 1) {
+        const row = select.get(fields.authorityScopeCid, fields.requestId);
+        if (row === undefined || row.tenant_id !== tenantId ||
+            ref.tenantId !== tenantId ||
+            ref.authorityScopeCid !== fields.authorityScopeCid ||
+            ref.runDefinitionCid !== row.run_definition_cid) {
           fail('ClientRunPhysicalStartDenied');
         }
-        if (row.pre_dispatch_failure_confirmed === 1 ||
-            row.physical_start_reserved !== 0) {
+        const retained = retainedIdentity(row, requestControl);
+        const definition = retainedRunDefinition(row, publicationControl,
+          maxRunDefinitionWireBytes);
+        const action = requestControl.clientRunPhysicalStartAction(
+          identity, retained, definition, row.run_definition_cid,
+          row.dispatch_reserved === 1,
+          row.pre_dispatch_failure_confirmed === 0 &&
+            row.physical_start_reserved === 0,
+          currentAuthorization);
+        if (action === 0) {
           database.exec('COMMIT');
           return false;
+        }
+        if (action !== 1) {
+          fail(action === 3 ? 'ClientRequestIntentConflict' :
+            action === 5 ? 'ClientRunPhysicalStartDenied' :
+            'ClientRequestJournalCorrupt');
         }
         if (reservePhysicalStart.run(ref.tenantId,
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {

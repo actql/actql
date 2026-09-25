@@ -54,6 +54,12 @@ function identity(fields = fixture) {
   );
 }
 
+function claimPhysicalStart(journal, ref, requested = identity(),
+  currentAuthorization = true) {
+  return journal.reservePhysicalStart(requested, {tenantId: 'tenant-a',
+    ref, currentAuthorization}, moon, publicationControl);
+}
+
 function hashCanonical(object) {
   return `sha256:${createHash('sha256').update(JSON.stringify(object))
     .digest('hex')}`;
@@ -270,7 +276,7 @@ test('only an exact reserved Run retains a confirmed pre-dispatch failure',
     assert.equal(retained.preDispatchFailureConfirmed, true);
     assert.equal(retained.physicalStartReserved, false);
     assert.equal(retained.revision, 2);
-    assert.equal(reopened.reservePhysicalStart(accepted.ref), false);
+    assert.equal(claimPhysicalStart(reopened, accepted.ref), false);
     assert.equal(reopened.reserveDispatch(identity(), {
       tenantId: 'tenant-a', currentAuthorization: true,
     }, moon, publicationControl).kind, 'reconcile');
@@ -291,11 +297,13 @@ test('a restarted Run can claim physical start once after a safe reservation',
     t.after(() => reopened.close());
     assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
       publicationControl).physicalStartReserved, false);
-    assert.throws(() => reopened.reservePhysicalStart({
+    assert.throws(() => claimPhysicalStart(reopened, {
       ...accepted.ref, tenantId: 'other-tenant',
     }), {code: 'ClientRunPhysicalStartDenied'});
-    assert.equal(reopened.reservePhysicalStart(accepted.ref), true);
-    assert.equal(reopened.reservePhysicalStart(accepted.ref), false);
+    assert.throws(() => claimPhysicalStart(reopened, accepted.ref,
+      identity(), false), {code: 'ClientRunPhysicalStartDenied'});
+    assert.equal(claimPhysicalStart(reopened, accepted.ref), true);
+    assert.equal(claimPhysicalStart(reopened, accepted.ref), false);
     assert.equal(reopened.lookupRunDefinition(accepted.ref, moon,
       publicationControl).physicalStartReserved, true);
     assert.throws(() => reopened.markPreDispatchFailure(accepted.ref),
@@ -541,7 +549,7 @@ test('legacy accepted Runs migrate as dispatch-uncertain, not unstarted',
     assert.equal(start.ref.runDefinitionCid, definition.identity);
     assert.equal(migrated.lookupRunDefinition(start.ref, moon,
       publicationControl).physicalStartReserved, undefined);
-    assert.equal(migrated.reservePhysicalStart(start.ref), false);
+    assert.equal(claimPhysicalStart(migrated, start.ref), false);
   });
 
 test('prior reserved Runs never migrate into a safe physical restart',
@@ -565,7 +573,7 @@ test('prior reserved Runs never migrate into a safe physical restart',
       publicationControl);
     assert.equal(retained.dispatchReserved, true);
     assert.equal(retained.physicalStartReserved, undefined);
-    assert.equal(migrated.reservePhysicalStart(accepted.ref), false);
+    assert.equal(claimPhysicalStart(migrated, accepted.ref), false);
     assert.throws(() => migrated.markPreDispatchFailure(accepted.ref),
       {code: 'ClientRunFailureObservationDenied'});
   });

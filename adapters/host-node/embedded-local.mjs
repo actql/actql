@@ -237,7 +237,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch) {
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
         active.physicalStartClaimAttempted = true;
-        if (!journal.reservePhysicalStart(accepted.ref)) return;
+        if (!journal.reservePhysicalStart(requested, {
+          tenantId, ref: accepted.ref,
+          currentAuthorization: hostConnection({principalId: actual,
+            connection, ref: accepted.ref}),
+        }, moon, control)) return;
         active.physicalStarted = true;
         const published = await runPublishedCapturedStrategy(setup,
           {store, plan});
