@@ -15,6 +15,7 @@ struct AdmittedAccountConfiguration {
   account_id : String
   bootstrap : BootstrapProfile?
   entries : Array[CompiledEntry]
+  configuration_cid : String
 }
 
 ///|
@@ -31,6 +32,13 @@ pub fn AdmittedAccountConfiguration::bootstrap_profile(
   self : AdmittedAccountConfiguration,
 ) -> BootstrapProfile? {
   self.bootstrap
+}
+
+///|
+pub fn AdmittedAccountConfiguration::configuration_cid(
+  self : AdmittedAccountConfiguration,
+) -> String {
+  self.configuration_cid
 }
 
 ///|
@@ -117,16 +125,43 @@ fn compile_box(
 }
 
 ///|
-fn compile_entry(entry : RawAccountEntry) -> CompiledEntry raise AdmissionStop {
+fn compile_entry(
+  entry : RawAccountEntry,
+) -> (CompiledEntry, CanonicalEntry) raise AdmissionStop {
   if entry.exclusions.length() > MAX_EXCLUSIONS_PER_ENTRY {
     raise AdmissionStop(TooManyExclusions(entry.entry_id))
   }
   let scope = compile_box(entry.entry_id, None, entry.scope)
-  let exclusions = []
+  let keyed : Array[(String, Region, SelectorBox)] = []
   for index, exclusion in entry.exclusions {
-    exclusions.push(compile_box(entry.entry_id, Some(index), exclusion))
+    let region = compile_box(entry.entry_id, Some(index), exclusion)
+    let text = match box_canonical_text(exclusion) {
+      Some(text) => text
+      None => raise AdmissionStop(CanonicalDocumentTooLarge)
+    }
+    keyed.push((text, region, exclusion))
   }
-  { entry_id: entry.entry_id, outcome: entry.outcome, scope, exclusions, }
+  // Exclusions are a set ordered by their tuples' canonical JSON text.
+  keyed.sort_by((left, right) => code_unit_compare(left.0, right.0))
+  for index in 1..<keyed.length() {
+    if keyed[index - 1].0 == keyed[index].0 {
+      raise AdmissionStop(DuplicateExclusion(entry.entry_id, index))
+    }
+  }
+  (
+    {
+      entry_id: entry.entry_id,
+      outcome: entry.outcome,
+      scope,
+      exclusions: keyed.map(item => item.1),
+    },
+    {
+      entry_id: entry.entry_id,
+      outcome: entry.outcome,
+      scope: entry.scope,
+      exclusions: keyed.map(item => item.2),
+    },
+  )
 }
 
 ///|
@@ -138,8 +173,12 @@ fn valid_bootstrap_profile(profile : BootstrapProfile) -> Bool {
 
 ///|
 /// Admit a configuration. Every entry must be well formed: non-empty unique
-/// entry ids, non-empty `any_of` sets of distinct non-empty values (any
-/// order), and bounded sizes. Any two entries with different outcomes whose
+/// entry ids, non-empty `any_of` sets of distinct non-empty values, distinct
+/// exclusions, NFC-normalized identifiers, and bounded sizes. A typed
+/// configuration may list entries, values and exclusions in any order; the
+/// admitted configuration is identified by the CID of its canonical document
+/// (`account_configuration_cid`). The JSON decoder additionally requires the
+/// canonical order on the wire. Any two entries with different outcomes whose
 /// effective scopes (scope minus exclusions) intersect are rejected with a
 /// witness tuple, independently of entry order or specificity; no entry is
 /// preferred over another. Entries with the same outcome may overlap:
@@ -168,18 +207,22 @@ fn admit_with_overlap_budget(
   if raw.entries.length() > MAX_ENTRIES {
     return Err(TooManyEntries(raw.entries.length()))
   }
-  let entries = []
+  if first_unnormalized(raw) is Some(path) {
+    return Err(NonNormalizedText(path))
+  }
+  let compiled : Array[(CompiledEntry, CanonicalEntry)] = []
   for index, entry in raw.entries {
     if !valid_name(entry.entry_id) {
       return Err(InvalidEntryId(index))
     }
-    entries.push(compile_entry(entry)) catch {
+    compiled.push(compile_entry(entry)) catch {
       AdmissionStop(issue) => return Err(issue)
     }
   }
-  entries.sort_by((left, right) => {
-    code_unit_compare(left.entry_id, right.entry_id)
+  compiled.sort_by((left, right) => {
+    code_unit_compare(left.0.entry_id, right.0.entry_id)
   })
+  let entries = compiled.map(item => item.0)
   for index in 1..<entries.length() {
     if entries[index - 1].entry_id == entries[index].entry_id {
       return Err(DuplicateEntryId(entries[index].entry_id))
@@ -224,7 +267,21 @@ fn admit_with_overlap_budget(
       }
     }
   }
-  Ok({ account_id: raw.account_id, bootstrap: raw.bootstrap, entries, })
+  let document = canonical_document(
+    raw.account_id,
+    raw.bootstrap,
+    compiled.map(item => item.1),
+  )
+  let configuration_cid = match document_cid(document) {
+    Some(cid) => cid
+    None => return Err(CanonicalDocumentTooLarge)
+  }
+  Ok({
+    account_id: raw.account_id,
+    bootstrap: raw.bootstrap,
+    entries,
+    configuration_cid,
+  })
 }
 
 ///|

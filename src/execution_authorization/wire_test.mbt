@@ -17,7 +17,8 @@ let wire_valid : String =
   #|                  "resource":{"any_of":["X","Y"]},"operation":{"all":true}}]},
   #|  {"entry_id":"system-deny","outcome":"deny",
   #|   "principal":{"all":true},"connection":{"all":true},
-  #|   "resource":{"any_of":["Y","X"]},"operation":{"all":true},"exclusions":[]}],
+  #|   "resource":{"any_of":["X","Y"]},
+  #|   "operation":{"any_of":["read","write"]},"exclusions":[]}],
   #| "bootstrap":{"profile_id":"local","profile_version":"0.1.0",
   #|   "profile_cid":"sha256:0000000000000000000000000000000000000000000000000000000000000000"}}
 
@@ -31,7 +32,8 @@ test "wire configuration decodes and admits" {
   assert_eq(raw.entries[0].outcome, Delegate)
   assert_eq(raw.entries[0].scope.resource, All)
   assert_eq(raw.entries[0].exclusions[0].resource, AnyOf(["X", "Y"]))
-  assert_eq(raw.entries[1].scope.resource, AnyOf(["Y", "X"]))
+  assert_eq(raw.entries[1].scope.resource, AnyOf(["X", "Y"]))
+  assert_eq(raw.entries[1].scope.operation, AnyOf(["read", "write"]))
   assert_eq(raw.bootstrap.map(profile => profile.profile_id), Some("local"))
   guard admit_account_configuration_json(wire_valid) is Ok(admitted) else {
     abort("admit")
@@ -40,7 +42,7 @@ test "wire configuration decodes and admits" {
     principal: "p",
     connection: "c",
     resource: "Y",
-    operation: "o",
+    operation: "read",
   }
   assert_true(
     evaluate_account(admitted, tuple) is Deny(Explicit("system-deny")),
@@ -87,8 +89,8 @@ test "wire shape violations are rejected with a path" {
   assert_eq(
     wire_issue(
       wire_valid.replace(
-        old="\"resource\":{\"any_of\":[\"Y\",\"X\"]}",
-        new="\"resource\":{\"any_of\":[\"Y\"],\"all\":true}",
+        old="\"operation\":{\"any_of\":[\"read\",\"write\"]}",
+        new="\"operation\":{\"any_of\":[\"read\"],\"all\":true}",
       ),
     ).kind,
     InvalidShape,
@@ -113,8 +115,10 @@ test "wire shape violations are rejected with a path" {
     { kind: InvalidShape, path: "$.bootstrap", },
   )
   assert_eq(
-    wire_issue(wire_valid.replace(old="[\"Y\",\"X\"]", new="[\"Y\",1]")),
-    { kind: InvalidShape, path: "$.entries[1].resource.any_of[1]", },
+    wire_issue(
+      wire_valid.replace(old="[\"read\",\"write\"]", new="[\"read\",1]"),
+    ),
+    { kind: InvalidShape, path: "$.entries[1].operation.any_of[1]", },
   )
 }
 
@@ -160,14 +164,14 @@ test "wire bounds are enforced before admission" {
 test "wire admission rejects malformed selectors" {
   assert_eq(
     admit_account_configuration_json(
-      wire_valid.replace(old="[\"Y\",\"X\"]", new="[]"),
+      wire_valid.replace(old="[\"read\",\"write\"]", new="[]"),
     ).map(_ => ()),
-    Err(EmptyAnyOf("system-deny", Scope(Resource))),
+    Err(EmptyAnyOf("system-deny", Scope(Operation))),
   )
   assert_eq(
     admit_account_configuration_json(
-      wire_valid.replace(old="[\"Y\",\"X\"]", new="[\"X\",\"X\"]"),
+      wire_valid.replace(old="[\"read\",\"write\"]", new="[\"read\",\"read\"]"),
     ).map(_ => ()),
-    Err(DuplicateSelectorValue("system-deny", Scope(Resource), "X")),
+    Err(DuplicateSelectorValue("system-deny", Scope(Operation), "read")),
   )
 }

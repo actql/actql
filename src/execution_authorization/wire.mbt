@@ -146,8 +146,10 @@ fn wire_bootstrap(cursor : @decode.Cursor) -> BootstrapProfile raise WireStop {
 ///|
 /// Decode the `actql-execution-account-config/0.1` wire shape. Input size,
 /// node count, depth, string sizes, entry count and exclusion count are
-/// bounded before any per-entry work. The result is not admitted; pass it to
-/// `admit_account_configuration`.
+/// bounded before any per-entry work. Entries, `any_of` values and exclusions
+/// must already be in canonical ascending order (`NonCanonicalOrder`
+/// otherwise); equal neighbours are reported by admission as duplicates. The
+/// result is not admitted; pass it to `admit_account_configuration`.
 pub fn decode_account_configuration_json(
   body : String,
 ) -> Result[RawAccountConfiguration, ConfigurationIssue] {
@@ -196,7 +198,11 @@ pub fn decode_account_configuration_json(
       None => None
       Some(value) => Some(wire_bootstrap(value))
     }
-    Ok({ account_id, entries, bootstrap, })
+    let raw : RawAccountConfiguration = { account_id, entries, bootstrap, }
+    match first_out_of_order(raw) {
+      Some(path) => Err(NonCanonicalOrder(path))
+      None => Ok(raw)
+    }
   } catch {
     WireStop(issue) => Err(MalformedWire(issue))
   }

@@ -57,7 +57,11 @@ fn random_configuration(rng : Rng) -> RawAccountConfiguration {
   for index in 0..<count {
     let exclusions = []
     for _ in 0..<rng.next(4) {
-      exclusions.push(random_box(rng))
+      // Exclusions are a set: a repeated tuple selection is not admitted.
+      let box = random_box(rng)
+      if !exclusions.contains(box) {
+        exclusions.push(box)
+      }
     }
     entries.push(RawAccountEntry::{
       entry_id: "e\{index}",

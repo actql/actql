@@ -6,7 +6,17 @@ import {
 }
 
 // Values
+pub const ACCOUNT_CONFIG_INVALID_CODE : String = "ACTQL_E_ACCOUNT_CONFIG_INVALID"
+
 pub const ACCOUNT_CONFIG_VERSION : String = "actql-execution-account-config/0.1"
+
+pub const ACCOUNT_DENIED_CODE : String = "ACTQL_E_ACCOUNT_DENIED"
+
+pub const ACCOUNT_NO_MATCH_CODE : String = "ACTQL_E_ACCOUNT_NO_MATCH"
+
+pub const DELEGATION_REJECTED_CODE : String = "ACTQL_E_DELEGATION_REJECTED"
+
+pub const DELEGATION_UNAVAILABLE_CODE : String = "ACTQL_E_DELEGATION_UNAVAILABLE"
 
 pub const MAX_CONFIG_INPUT_BYTES : Int = 1048576
 
@@ -20,6 +30,10 @@ pub const MAX_OVERLAP_WORK : Int = 32000000
 
 pub const MAX_SELECTOR_VALUES : Int = 256
 
+pub fn account_configuration_cid(AdmittedAccountConfiguration) -> String
+
+pub fn account_configuration_cid_json(String) -> Result[String, ConfigurationIssue]
+
 pub fn admit_account_configuration(RawAccountConfiguration) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]
 
 pub fn admit_account_configuration_json(String) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]
@@ -28,13 +42,23 @@ pub fn admit_host_answer(DecisionRequest, HostAnswer) -> Result[RuntimeAction, A
 
 pub fn bind_bootstrap_adoption(AdmittedAccountConfiguration, BootstrapAdoptionRecord) -> Result[BootstrappedConfiguration, BootstrapIssue]
 
+pub fn configuration_issue_error_code(ConfigurationIssue) -> String
+
+pub fn decision_failure_error_code(DecisionFailureReason) -> String
+
 pub fn decode_account_configuration_json(String) -> Result[RawAccountConfiguration, ConfigurationIssue]
+
+pub fn denial_error_code(Denial) -> String
+
+pub fn deny_reason_error_code(DenyReason) -> String
 
 pub fn evaluate_account(AdmittedAccountConfiguration, AccessTuple) -> AccountOutcome
 
 pub fn evaluate_account_state(AccountConfigurationState, AccessTuple) -> AccountOutcome
 
 pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, boundary~ : DecisionBoundary, subject_cid~ : String, context_cid~ : String, answering_authorities~ : Array[String], required_claims? : Array[String]) -> Result[DecisionRequest, RequestIssue]
+
+pub fn runtime_action_error_code(RuntimeAction) -> String?
 
 pub fn runtime_action_for(AccountOutcome) -> RuntimeAction?
 
@@ -62,6 +86,7 @@ pub enum AccountOutcome {
 type AdmittedAccountConfiguration
 pub fn AdmittedAccountConfiguration::account_id(Self) -> String
 pub fn AdmittedAccountConfiguration::bootstrap_profile(Self) -> BootstrapProfile?
+pub fn AdmittedAccountConfiguration::configuration_cid(Self) -> String
 pub fn AdmittedAccountConfiguration::entry_count(Self) -> Int
 
 pub(all) struct AnswerBinding {
@@ -115,6 +140,10 @@ pub(all) enum ConfigurationIssue {
   SelectorTooLarge(String, SelectorLocation)
   ConflictingOutcomes(OutcomeConflict)
   OverlapCheckBudgetExceeded(String, String)
+  NonCanonicalOrder(String)
+  NonNormalizedText(String)
+  DuplicateExclusion(String, Int)
+  CanonicalDocumentTooLarge
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ConfiguredOutcome {

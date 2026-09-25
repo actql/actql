@@ -170,6 +170,19 @@ pub(all) enum ConfigurationIssue {
   SelectorTooLarge(String, SelectorLocation)
   ConflictingOutcomes(OutcomeConflict)
   OverlapCheckBudgetExceeded(String, String)
+  /// A wire array is not in canonical ascending order; the path names the
+  /// first element that sorts before its predecessor.
+  NonCanonicalOrder(String)
+  /// An identifier of a typed configuration is not NFC/LF canonical text; the
+  /// path locates it in the configuration as given. (The JSON decoder admits
+  /// every wire string as canonical text, so wire values are compared,
+  /// ordered and identified in normalized form.)
+  NonNormalizedText(String)
+  /// Two exclusions of the entry denote the same tuple selection; the index
+  /// is that of the later one in canonical order.
+  DuplicateExclusion(String, Int)
+  /// The canonical document exceeds the canonical encoder bounds.
+  CanonicalDocumentTooLarge
 } derive(Eq, Debug)
 
 ///|
