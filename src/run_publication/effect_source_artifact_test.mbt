@@ -28,6 +28,7 @@ test "Effect source issuer binds checked export facts without public name" {
       artifact,
       publication_contract_identity(chain.invocation),
       "rows",
+      ordering_test_cid("d"),
     ).unwrap(),
     (publication_contract_identity(artifact), ordering_test_cid("a")),
   )
@@ -36,6 +37,7 @@ test "Effect source issuer binds checked export facts without public name" {
       artifact,
       publication_contract_identity(chain.invocation),
       "answer",
+      ordering_test_cid("d"),
     )
     is Err(EffectSourceWrongContract),
   )
@@ -44,6 +46,7 @@ test "Effect source issuer binds checked export facts without public name" {
       artifact,
       ordering_test_cid("f"),
       "rows",
+      ordering_test_cid("d"),
     )
     is Err(EffectSourceWrongContract),
   )
@@ -52,6 +55,16 @@ test "Effect source issuer binds checked export facts without public name" {
       chain.artifact,
       publication_contract_identity(chain.invocation),
       "rows",
+      ordering_test_cid("d"),
+    )
+    is Err(EffectSourceWrongContract),
+  )
+  assert_true(
+    effect_source_artifact_preview_binding(
+      artifact,
+      publication_contract_identity(chain.invocation),
+      "rows",
+      ordering_test_cid("f"),
     )
     is Err(EffectSourceWrongContract),
   )

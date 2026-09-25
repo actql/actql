@@ -2464,7 +2464,7 @@ test(`two-member captured Effect Run ${
           moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
             compiledPlan: evidence[3],
-            modelDerived: false},
+            storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
           requestScope, members: productMembers,
           maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2581,7 +2581,20 @@ test(`two-member captured Effect Run ${
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
-            compiledPlan: evidence[3], modelDerived: false},
+            compiledPlan: evidence[3], storeAuthorityCid: cid('9'),
+            modelDerived: false},
+          requestScope, members: productMembers,
+          maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        }), {code: 'MoonBitHostFailure'});
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, control, prepared,
+          context: {runDefinition: definition, runInvocation: invocation,
+            compiledPlan: evidence[3],
+            storeAuthorityCid: store.storeAuthorityCid,
+            modelDerived: false},
           requestScope,
           members: productMembers.map((member, index) => index === 0 ?
             {...member, authorityScopeCid: cid('9')} : member),
@@ -2593,7 +2606,8 @@ test(`two-member captured Effect Run ${
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
-            compiledPlan: evidence[3], modelDerived: false},
+            compiledPlan: evidence[3],
+            storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
           requestScope,
           members: productMembers.map((member, index) => index === 0 ?
             {...member, sourceArtifact: storedResults.artifacts[0]} :
@@ -2606,7 +2620,8 @@ test(`two-member captured Effect Run ${
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, control, prepared,
           context: {runDefinition: definition, runInvocation: invocation,
-            compiledPlan: evidence[3], modelDerived: false},
+            compiledPlan: evidence[3],
+            storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
           requestScope,
           members: productMembers.map((member, index) => index === 0 ?
             {...member, sourceArtifact: {...member.sourceArtifact}} : member),

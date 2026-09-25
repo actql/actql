@@ -209,7 +209,7 @@ pub fn client_program_effect_risk_unsigned_payload_cid(@effect_application.Effec
 
 pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
-pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
+pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
