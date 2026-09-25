@@ -1,9 +1,9 @@
-// Fresh-process probe for recorded Effect claims and final Set evidence.
-// It reads the real Store and SQLite Ledger; it never opens a write Site.
+// Recover recorded Effect claims and optionally publish in a fresh process.
+// This uses the real Store and SQLite Ledger; it never opens a write Site.
 import {readFileSync} from 'node:fs';
 import * as moon from
   '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {recoverCompletedEffectfulComputation} from
+import {publishCompletedEffectfulRun, recoverCompletedEffectfulComputation} from
   '../../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from
@@ -53,6 +53,18 @@ try {
     })),
     limits: input.limits,
   });
+  const publication = input.publish === true
+    ? await publishCompletedEffectfulRun({
+      execution: null, store, storedResults: recovered.storedResults,
+      control, computation: recovered.computation,
+      preview: recovered.preview, ledger, issuedSet: issued,
+      request: input.request,
+      attempt: {...input.attempt,
+        externalIdempotencyKey: input.attempt.externalIdempotencyKey},
+      contractLimits: input.limits,
+      now: () => input.publicationTime, signal: undefined,
+    })
+    : undefined;
   const answer = {
     capturedRunCid: recovered.computation.capturedRun.identity,
     localInventory: JSON.parse(recovered.computation.capturedRun.wire)
@@ -63,6 +75,10 @@ try {
     setReceiptCid: issued.set.identity,
     setStatus: JSON.parse(issued.set.wire).status,
     rowCounts: recorded.members.map(member => member.claims.length),
+    publication: publication === undefined ? null : {
+      state: publication.publication.state,
+      indexCid: publication.publication.index.identity,
+    },
   };
   for (const result of recovered.storedResults.results) {
     if (result.prepared.status().pending) {

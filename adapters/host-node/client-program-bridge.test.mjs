@@ -2403,6 +2403,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
   'salesforce-terminal-store-restart',
+  'salesforce-terminal-process-publication',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
@@ -2427,8 +2428,11 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
+    const processPublication =
+      physical === 'salesforce-terminal-process-publication';
     const restartBeforeFinal =
-      physical === 'salesforce-terminal-store-restart';
+      physical === 'salesforce-terminal-store-restart' ||
+      processPublication;
     const loseHttpReply = physical.endsWith('lost-http-reply');
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
@@ -2546,6 +2550,7 @@ test(`two-member captured Effect Run ${
     }
     let storedResults, inputs, sourcePayload, ledger;
     let published = false;
+    let testFailure;
     try {
       assert.equal(execution.status, 'host-tasks-completed');
       const runDefinition = control.admit('run_definition',
@@ -3776,7 +3781,19 @@ test(`two-member captured Effect Run ${
         dispatchRow: () => assert.fail('terminal row resent'),
       });
       assert.equal(replay.dispatched, 0);
+      const publicationRequest = {
+        tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+        publicationPolicyCid: cid('e'),
+        publicationTargetCid: cid('f'),
+        requestedAt: '2026-09-24T00:00:01.000Z',
+      };
+      const publicationAttempt = {
+        attemptId: 'complete-two-effects-attempt',
+        fenceCid: cid('0'), externalIdempotencyKey: undefined,
+        startedAt: '2026-09-24T00:00:02.000Z',
+      };
       let freshProcessSetCid;
+      let freshProcessIndexCid;
       if (restartBeforeFinal) {
         for (const result of storedResults.results) {
           if (result.prepared.status().pending) {
@@ -3802,6 +3819,9 @@ test(`two-member captured Effect Run ${
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
+            publish: processPublication,
+            request: publicationRequest, attempt: publicationAttempt,
+            publicationTime: '2026-09-24T00:00:03.000Z',
           }),
           encoding: 'utf8', timeout: 20_000,
         });
@@ -3829,6 +3849,12 @@ test(`two-member captured Effect Run ${
         assert.equal(fresh.setStatus, 'applied');
         assert.deepEqual(fresh.rowCounts, [2, 2]);
         freshProcessSetCid = fresh.setReceiptCid;
+        if (processPublication) {
+          assert.equal(fresh.publication.state, 'succeeded');
+          freshProcessIndexCid = fresh.publication.indexCid;
+        } else {
+          assert.equal(fresh.publication, null);
+        }
         const recovered = await recoverCompletedEffectfulComputation({
           store, control, runDefinition, contractLimits: publicationLimits,
         });
@@ -3866,13 +3892,8 @@ test(`two-member captured Effect Run ${
           ? null : execution,
         store, storedResults, control, computation,
         preview: admittedPreview, ledger, issuedSet,
-        request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
-          publicationPolicyCid: cid('e'),
-          publicationTargetCid: cid('f'),
-          requestedAt: '2026-09-24T00:00:01.000Z'},
-        attempt: {attemptId: 'complete-two-effects-attempt',
-          fenceCid: cid('0'), externalIdempotencyKey: undefined,
-          startedAt: '2026-09-24T00:00:02.000Z'},
+        request: publicationRequest,
+        attempt: publicationAttempt,
         contractLimits: publicationLimits,
         now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
       };
@@ -3903,13 +3924,17 @@ test(`two-member captured Effect Run ${
       assert.equal(result.publication.committed, false);
       assert.equal(result.publication.idempotent, true);
       assert.equal(result.publication.state, 'succeeded');
-      assert.equal(commitCalls, 1);
+      assert.equal(commitCalls, processPublication ? 0 : 1);
+      if (processPublication) {
+        assert.equal(result.publication.index.identity,
+          freshProcessIndexCid);
+      }
       const indexBody = JSON.parse(result.publication.index.wire);
       const finalReceipt = await store.readPublicationContract(
         indexBody.run_receipt_cid, 'run_receipt');
       assert.equal(JSON.parse(finalReceipt.wire)
         .effect_set_apply_receipt_cid, issuedSet.set.identity);
-      assert.equal(commitCalls, 1);
+      assert.equal(commitCalls, processPublication ? 0 : 1);
       assert.equal(sent.length, collectionRecovered ? 3 : 4);
       if (siteRun) {
         assert.equal(sites.flatMap(site => site.seen)
@@ -4037,13 +4062,20 @@ test(`two-member captured Effect Run ${
       }
       assert.equal(store.status().storedBytes, 0);
       published = true;
+    } catch (error) {
+      testFailure = error;
+      throw error;
     } finally {
       ledger?.close();
       if (inputs !== undefined) {
         moon.clientProgramReleaseEffectInputs(inputs);
       }
       if (storedResults !== undefined) {
-        await releaseCompletedRunPreparedPayloads(storedResults, control);
+        try {
+          await releaseCompletedRunPreparedPayloads(storedResults, control);
+        } catch (error) {
+          if (testFailure === undefined) throw error;
+        }
       }
       await store.close();
       await execution.close();

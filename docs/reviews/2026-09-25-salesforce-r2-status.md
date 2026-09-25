@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process can recover recorded row claims from the exact Preview and SQLite heads and issue the same Set Receipt without recomputing or resending. The parent Host then publishes; fresh-process publication is not yet proved. New apply calls persist all prepared row intents before the first send, but this read-only recovery is not a restored send owner. Re-admit current-use authority and exact physical requests for interrupted apply. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, process restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are captured and re-admitted with the physical source. The completed computation has independent durable payload custody and an encrypted recovery inventory. A fresh process recovers recorded row claims from the exact Preview and SQLite heads, issues the same Set Receipt, and commits formal publication without recomputing or resending. The parent Host reopens the committed index and reads the Result. New apply calls persist all prepared row intents before the first send, but this terminal recovery is not a restored send owner. Re-admit current-use authority and exact physical requests for interrupted apply. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, process restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
 | Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
 
@@ -109,8 +109,11 @@ process with its apply owner restored.
 The same two-member path also reopens the Store after all row outcomes are
 durable but before final Receipt issuance. It re-admits the captured chain,
 derives member and Set Receipts from the reopened Ledger, and publishes
-without dispatching another write. A future fresh-process test must prove
-that ordinary ingress selects this recovery path after a real process exit.
+without dispatching another write. A separate fresh-process variant now
+commits that publication in the child process; the parent reopens the Store,
+adopts the committed index without a second commit, reads the Result through
+the Client, and retires its holdings. Ordinary public ingress still needs to
+select this recovery path after a real process exit.
 An additional fresh-process probe now opens the actual encrypted Store and
 SQLite Ledger after all four rows were recorded. MoonBit reconstructs the
 exact claim bindings from the admitted Preview and immutable Ledger heads;
