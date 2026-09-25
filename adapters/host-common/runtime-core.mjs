@@ -2114,6 +2114,20 @@ function publicationControl(moon) {
         ),
       ));
     },
+    effectSetReceiptRunDisposition(preview, receipts, limits) {
+      issuanceLimits(limits, 'Effect Set Run disposition');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined ||
+          typeof receipts?.setWire !== 'string' ||
+          !Array.isArray(receipts.memberWires) ||
+          receipts.memberWires.some(wire => typeof wire !== 'string')) {
+        throw new TypeError('Invalid Effect Set Run disposition');
+      }
+      return checked(moon.strategyEffectSetReceiptRunDisposition(
+        ownedPreview, receipts.setWire, receipts.memberWires,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      ));
+    },
     recordTransition(previous, next, uncommittedConfirmed) {
       return moon.strategyPublicationRecordTransition(
         previous === undefined ? undefined : token(previous),

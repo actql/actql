@@ -289,3 +289,29 @@ pub fn admit_effect_set_apply_receipt_references(
   }
   Ok(set)
 }
+
+///|
+/// Derive the Run disposition from the complete admitted member inventory.
+/// A final public success commit requires code 0. Unknown (1) and failed (2)
+/// remain separate Run outcomes and cannot be relabeled by a Store write.
+pub fn effect_set_receipt_run_disposition(
+  preview : EffectPreviewIdentity,
+  set_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Int, EffectSetApplyReceiptBindingIssue] {
+  let set = match
+    admit_effect_set_apply_receipt_references(
+      preview, set_wire, member_receipt_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match contract_string(set, "status") {
+    Some("applied") | Some("accepted") => Ok(0)
+    Some("unknown_outcome") => Ok(1)
+    _ => Ok(2)
+  }
+}

@@ -975,6 +975,24 @@ pub fn strategy_issue_effect_set_apply_receipt_from_members(
 }
 
 ///|
+#export_name("strategyEffectSetReceiptRunDisposition")
+pub fn strategy_effect_set_receipt_run_disposition(
+  preview : @publication.EffectPreviewIdentity,
+  set_wire : String,
+  member_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int raise NodeHostFailure {
+  match @publication.effect_set_receipt_run_disposition(
+    preview, set_wire, member_wires, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyPublicationContractName")
 pub fn strategy_publication_contract_name(
   contract : @publication.PublicationContract,

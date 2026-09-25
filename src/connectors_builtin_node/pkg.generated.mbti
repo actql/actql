@@ -507,6 +507,8 @@ pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFr
 
 pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
 
+pub fn strategy_effect_set_receipt_run_disposition(@run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Int raise NodeHostFailure
+
 pub fn strategy_effectful_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
 pub fn strategy_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
