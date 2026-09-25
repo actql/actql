@@ -638,6 +638,7 @@ for (const [index, route] of routeEntries.entries()) {
       'unnest_bounded_workspace_exact_one_short',
       'unnest_bounded_control_work_exact_one_short',
       'unnest_bounded_output_limit',
+      'unnest_nested_chain_two_consumers',
     ]) {
       if (!boundaryRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);
@@ -844,6 +845,8 @@ for (const [index, route] of routeEntries.entries()) {
       'unnest_standard_host_two_consumers',
       'unnest_same_stage_host_two_consumers',
       'unnest_in_flight_host_timer',
+      'unnest_nested_chain_host_two_consumers',
+      'unnest_nested_chain_in_flight_host_timer',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

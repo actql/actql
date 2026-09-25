@@ -164,8 +164,16 @@ uses that route in the standard Host, with two downstream Computes; the
 captured-input fixture also delivers cancellation after positive work.
 The three-target portable Host fixture checks the exact output values,
 quantum-one progress, independent consumer release, and cleanup for this
-captured chain. The `unnest` shape and task-wide exact/one-short work and
-workspace bounds remain unproved; the unpivot route is not marked complete.
+captured chain. The selected bounded chain also accepts an unsplit `unnest`
+step. An ordinary `nest` result can feed `unnest` → `filter` → `select`
+without a source-level Stage split. Three-target managed tests check
+quantum-one progress, exact output values, two independent downstream
+Computes, and final reclamation. The standard Node Host exercises the same
+Program with two consumers and a timer-delivered cancellation after positive
+work in the unnest task. This proves the nested-input connection, not a bound
+on the preceding `nest` computation. Task-wide exact/one-short work and
+workspace bounds for either composed route remain unproved; neither whole
+route is marked complete.
 
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,

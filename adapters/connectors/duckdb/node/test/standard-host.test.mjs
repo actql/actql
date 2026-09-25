@@ -5250,6 +5250,27 @@ async function exerciseStrategyGraph(
       ? ['id', 'key', 'items']
       : ['items', 'id', 'key']}},
   })));
+  const nestUnwrapProgram = structuredClone(nestProgram);
+  const nestConsumerIndex = nestUnwrapProgram.stages.findIndex(stage =>
+    stage.id === 'nest_consumer_a');
+  nestUnwrapProgram.stages.splice(nestConsumerIndex, 0, {
+    id: 'unnested',
+    inputs: {x: {result: {stage: 'nested', result: 'r'}}},
+    steps: [
+      {from: 'x', unnest: {column: 'items', as: 'item', outer: false},
+        as: 'expanded'},
+      {from: 'expanded', filter: 'id > 1', as: 'filtered'},
+      {from: 'filtered', select: ['id', 'item'], as: 'out'},
+    ],
+    results: {r: {from: 'out', fields: ['id', 'item']}},
+  });
+  for (const consumer of nestUnwrapProgram.stages.filter(stage =>
+    stage.id.startsWith('nest_consumer_'))) {
+    consumer.inputs.x.result.stage = 'unnested';
+    consumer.steps[0].select = consumer.id.endsWith('_a')
+      ? ['id', 'item'] : ['item', 'id'];
+    consumer.results.r.fields = consumer.steps[0].select;
+  }
   const valuesVariantProgram = (schema, rows, fields, reversed) => {
     const variant = structuredClone(zeroInputProgram);
     variant.stages.splice(1, 3, {
@@ -6184,6 +6205,7 @@ async function exerciseStrategyGraph(
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
+    ['nest then unnest/filter', nestUnwrapProgram, [1, 2, 3, 4, 5, 6]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['global count', globalCountProgram, [1, 2, 3, 4]],
     ['same-stage global count/take', sameStageGlobalCountProgram,
@@ -6423,6 +6445,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [3, 4, 2, 2, 2],
           'bounded unnest and filter feed two actual computations',
+        );
+      }
+      if (name === 'nest then unnest/filter') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [4, 3, 4, 2, 2, 2],
+          'the unsplit bounded unnest chain feeds two real computations',
         );
       }
       if (name === 'nest') {
@@ -6996,6 +7025,8 @@ async function exerciseStrategyGraph(
       program: capturedWindowChainProgram, cancelAtStart: 1},
     {name: 'captured-unpivot-chain-in-flight',
       program: capturedUnpivotChainProgram, cancelAtStart: 1},
+    {name: 'nest-output-unnest-chain-in-flight',
+      program: nestUnwrapProgram, cancelAtStart: 4},
     {name: 'zero-input-values-in-flight', program: zeroInputProgram,
       cancelAtStart: 2},
     {name: 'split-values-in-flight', program: splitValuesProgram,
@@ -7050,6 +7081,8 @@ async function exerciseStrategyGraph(
       'captured-count-chain-in-flight' || cancellationName ===
       'captured-window-chain-in-flight' || cancellationName ===
       'captured-unpivot-chain-in-flight';
+    const nestUnwrapCancellation = cancellationName ===
+      'nest-output-unnest-chain-in-flight';
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
@@ -7082,7 +7115,7 @@ async function exerciseStrategyGraph(
               sameStageJsonFilterCancellation
               ? 'json_pick_values' : 'values_a'),
     );
-    if (!capturedRelationChainCancellation) {
+    if (!capturedRelationChainCancellation && !nestUnwrapCancellation) {
       const reshapeFilterChain = cancellationName ===
         'unpivot-filter-chain-in-flight' ||
         cancellationName === 'unnest-filter-chain-in-flight';
@@ -7153,7 +7186,8 @@ async function exerciseStrategyGraph(
                   return Reflect.get(operation, name, operationReceiver);
                 }
                 return quantum => {
-                  const stepQuantum = start === cancelAtStart &&
+                  const stepQuantum = nestUnwrapCancellation &&
+                    start === cancelAtStart ? 1 : start === cancelAtStart &&
                     (capturedRelationChainCancellation ||
                       cancellationName === 'split-values-take-in-flight' ||
                       rowWindowCancellation || globalCountCancellation ||

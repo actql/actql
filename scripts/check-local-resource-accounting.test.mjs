@@ -264,6 +264,7 @@ test('unnest loses its bounded route when production evidence is removed', () =>
     'unnest_bounded_control_work_exact_one_short',
     'unnest_nonempty_work_workspace_exact_one_short',
     'unnest_bounded_output_limit',
+    'unnest_nested_chain_two_consumers',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&
@@ -278,6 +279,8 @@ test('unnest loses its bounded route when production evidence is removed', () =>
     'unnest_standard_host_two_consumers',
     'unnest_same_stage_host_two_consumers',
     'unnest_in_flight_host_timer',
+    'unnest_nested_chain_host_two_consumers',
+    'unnest_nested_chain_in_flight_host_timer',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'RelA' &&

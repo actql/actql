@@ -2026,6 +2026,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_unnest_wbtest.mbt",
           "fixture": "bounded unnest admits exact nonempty work and workspace"
+        },
+        {
+          "role": "unnest_nested_chain_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_nest_wbtest.mbt",
+          "fixture": "nest output unnest filter feeds two bounded consumers"
         }
       ],
       "environment_tests": [
@@ -2051,6 +2058,21 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-unnest-in-flight"
+        },
+        {
+          "role": "unnest_nested_chain_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "nest then unnest/filter",
+          "case": "nestUnwrapProgram"
+        },
+        {
+          "role": "unnest_nested_chain_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "nest-output-unnest-chain-in-flight"
         }
       ],
       "path_assurance": {

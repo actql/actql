@@ -61,6 +61,7 @@ fn query_checked_program_fixture(
   local_values_asof_chain? : Bool = false,
   local_values_sequence_chain? : Bool = false,
   local_values_nest_chain? : Bool = false,
+  local_values_nest_unwrap_chain? : Bool = false,
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
@@ -399,7 +400,9 @@ fn query_checked_program_fixture(
   } else {
     text
   }
-  let text = if local_values_nest_chain {
+  let text = if local_values_nest_unwrap_chain {
+    local_values_nest_unwrap_program()
+  } else if local_values_nest_chain {
     local_values_nest_program()
   } else {
     text
@@ -1059,6 +1062,23 @@ fn linear_compute_program(count : Int) -> String raise {
 fn local_values_nest_program() -> String {
   (
     #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"parents","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true}},"rows":[{"id":1,"key":1},{"id":2,"key":1},{"id":3,"key":null},{"id":4,"key":2}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key"]}}},{"id":"children","inputs":{},"steps":[{"values":{"schema":{"child_id":{"type":"number","nullable":false},"key":{"type":"number","nullable":true},"value":{"type":"number","nullable":true}},"rows":[{"child_id":2,"key":1,"value":null},{"child_id":1,"key":1,"value":10},{"child_id":3,"key":null,"value":30}]},"as":"out"}],"results":{"r":{"from":"out","fields":["child_id","key","value"]}}},{"id":"nested","inputs":{"parents":{"result":{"stage":"parents","result":"r"}},"children":{"result":{"stage":"children","result":"r"}}},"steps":[{"from":"parents","nest":{"with":"children","on":[{"left":"key","right":"key"}],"into":"items","fields":[{"amount":"value"}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["id","key","items"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","key","items"]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"nested","result":"r"}}},"steps":[{"select":["items","id","key"],"as":"out"}],"results":{"r":{"from":"out","fields":["items","id","key"]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  )
+}
+
+///|
+fn local_values_nest_unwrap_program() -> String {
+  local_values_nest_program()
+  .replace(
+    old="},{\"id\":\"consumer_a\"",
+    new="},{\"id\":\"unnested\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"nested\",\"result\":\"r\"}}},\"steps\":[{\"from\":\"x\",\"unnest\":{\"column\":\"items\",\"as\":\"item\",\"outer\":false},\"as\":\"expanded\"},{\"from\":\"expanded\",\"filter\":\"id > 1\",\"as\":\"filtered\"},{\"from\":\"filtered\",\"select\":[\"id\",\"item\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"item\"]}}},{\"id\":\"consumer_a\"",
+  )
+  .replace(
+    old="{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"nested\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"key\",\"items\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"key\",\"items\"]}}}",
+    new="{\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"unnested\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"id\",\"item\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\",\"item\"]}}}",
+  )
+  .replace(
+    old="{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"nested\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"items\",\"id\",\"key\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"items\",\"id\",\"key\"]}}}",
+    new="{\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{\"stage\":\"unnested\",\"result\":\"r\"}}},\"steps\":[{\"select\":[\"item\",\"id\"],\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"item\",\"id\"]}}}",
   )
 }
 
