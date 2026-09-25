@@ -46,9 +46,22 @@ for (const name of ['values.json', 'values.environment.json']) {
   await writeFile(join(root, name), await readFile(join(repository,
     'packages/sdk/fixtures', name)));
 }
+for (const name of ['program.json', 'parameters.json']) {
+  await writeFile(join(root, name), await readFile(join(repository,
+    'adapters/connectors/duckdb/node/examples', name)));
+}
+const catalogSource = await readFile(join(repository,
+  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+const catalog = catalogSource.slice(catalogSource.indexOf(
+  'fn query_amount_nullable_catalog')).match(
+  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+assert(catalog);
+await writeFile(join(root, 'source.environment.json'),
+  JSON.parse(catalog[1]));
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
 globalThis.fetch = () => { throw new Error('NetworkOnPackedLocalRun'); };
 const owner = await import('@actql/local-node/runtime');
 assert.equal(typeof owner.clientProgramPrepareEffectFree, 'function');
@@ -83,6 +96,56 @@ try {
     ['answer']);
   assert.equal(executed.completed[0].outputRows, 2);
 } finally { await executed.close(); }
+const {DuckDBInstance} = createRequire(new URL(
+  './node_modules/@actql/local-node/package.json', import.meta.url))(
+  '@duckdb/node-api');
+const database = await DuckDBInstance.create('./source.duckdb');
+const connection = await database.connect();
+try {
+  await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+  await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),'
+    + '(2,20),(3,30)');
+} finally {
+  connection.closeSync();
+  database.closeSync();
+}
+const sourceWire = readFileSync('source.environment.json', 'utf8');
+const sourceEnvironment = owner.clientProgramCheckEnvironment(sourceWire,
+  JSON.parse(sourceWire).evidence_bundle_cid,
+  false, false, true, false, false, false, false);
+assert(sourceEnvironment);
+const preparedSource = owner.clientProgramPreparationReady(
+  owner.clientProgramPrepareEffectFreeWithParameters(
+    readFileSync('program.json', 'utf8'), 'json', sourceEnvironment,
+    readFileSync('parameters.json', 'utf8')));
+assert(preparedSource);
+const physical = await import('./node_modules/@actql/local-node/adapters/' +
+  'host-node/captured-duckdb-source.mjs');
+const captured = await physical.openCapturedDuckDBSource({
+  moon: owner, preparedProgram: preparedSource, registry, values,
+  fragment: JSON.stringify(contract.execution_contracts[
+    'ACTQL.expression_fragment/0.1']),
+  ordered: JSON.stringify(contract.execution_contracts[
+    'REL.derive.ordered']),
+  database: new URL('./source.duckdb', import.meta.url).pathname,
+  schema: 'main', table: 'records',
+  transportLimits: {maxRows: 100, maxCells: 1000,
+    maxTransportBytes: 100000, maxSqlBytes: 10000,
+    maxParameters: 10, maxColumns: 10,
+    memoryBytes: 128 * 1024 * 1024, threads: 1},
+});
+try {
+  assert.equal(owner.clientProgramCapturedSourceRowCount(
+    captured.identity), 3);
+  const sourceExecution = await host.runCapturedStrategy(captured.setup);
+  try {
+    assert.equal(sourceExecution.status, 'host-tasks-completed');
+    assert.deepEqual(sourceExecution.resultInventory.map(value =>
+      value.name), ['b', 'c']);
+    assert.deepEqual(sourceExecution.completed.map(value => value.task),
+      [1, 2, 3]);
+  } finally { await sourceExecution.close(); }
+} finally { captured.close(); }
 `);
 run(process.execPath, ['smoke.mjs'], root);
-console.log('packed Local Host computation passed');
+console.log('packed Local Host source-free and acquired computation passed');

@@ -27,10 +27,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission} from './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
-import {authorizeLocalDatabase} from
-  '../connectors/duckdb/node/session.mjs';
-import {runNativeHostQuery} from
-  '../connectors/duckdb/node/host.mjs';
+import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -155,20 +152,25 @@ test('checked acquired source and downstream task emit their input ports',
         connection.closeSync();
         database.closeSync();
       }
-      const acquired = await runNativeHostQuery(
-        await authorizeLocalDatabase(path), nativeSetup, {
+      const opened = await openCapturedDuckDBSource({moon,
+        preparedProgram: prepared, registry,
+        values: JSON.stringify(aoa.execution_contracts['REL.values']),
+        fragment: JSON.stringify(aoa.execution_contracts[
+          'ACTQL.expression_fragment/0.1']),
+        ordered: JSON.stringify(aoa.execution_contracts[
+          'REL.derive.ordered']), database: path,
+        schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
           memoryBytes: 128 * 1024 * 1024, threads: 1,
-        });
-      const capturedSource = acquired.source();
+        }});
+      const capturedSource = opened.capture.source();
       try {
-        assert.equal(JSON.parse(acquired.document()).output.row_count, 3);
+        assert.equal(JSON.parse(opened.capture.document()).output.row_count,
+          3);
         assert.equal(moon.clientProgramCapturedSourceMatches(prepared,
-          acquired.source()), true);
-        const observed = checked(
-          moon.clientProgramIdentifyCapturedSourceRelation(
-            acquired.source()));
+          opened.capture.source()), true);
+        const observed = opened.identity;
         assert.equal(moon.clientProgramCapturedSourceRowCount(observed), 3);
         assert.match(moon.clientProgramCapturedSourceLogicalCid(observed),
           /^sha256:[0-9a-f]{64}$/u);
@@ -176,20 +178,12 @@ test('checked acquired source and downstream task emit their input ports',
           /^sha256:[0-9a-f]{64}$/u);
         const repeated = checked(
           moon.clientProgramIdentifyCapturedSourceRelation(
-            acquired.source()));
+            opened.capture.source()));
         assert.equal(moon.clientProgramCapturedSourceLogicalCid(repeated),
           moon.clientProgramCapturedSourceLogicalCid(observed));
         assert.equal(moon.clientProgramCapturedSourceSchemaCid(repeated),
           moon.clientProgramCapturedSourceSchemaCid(observed));
-        const localSetup = moon.clientProgramOpenCapturedLocalHost(prepared,
-          acquired.source(), registry,
-          JSON.stringify(aoa.execution_contracts['REL.values']),
-          1n, 0n, 0n, 0n,
-          JSON.stringify(aoa.execution_contracts[
-            'ACTQL.expression_fragment/0.1']),
-          JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
-        assert.ok(localSetup);
-        const execution = await runCapturedStrategy(localSetup);
+        const execution = await runCapturedStrategy(opened.setup);
         try {
           assert.equal(execution.status, 'host-tasks-completed');
           assert.deepEqual(execution.resultInventory.map(result =>
@@ -202,7 +196,7 @@ test('checked acquired source and downstream task emit their input ports',
           assert.equal(execution.cleanupPending(), false);
         }
       } finally {
-        acquired.close();
+        opened.close();
         assert.throws(() => checked(
           moon.clientProgramIdentifyCapturedSourceRelation(capturedSource)));
       }

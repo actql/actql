@@ -8,6 +8,7 @@ const destination = join(root, 'packages/local-node');
 const entries = [
   'adapters/host-node/entry.mjs',
   'adapters/host-node/embedded-local.mjs',
+  'adapters/host-node/captured-duckdb-source.mjs',
   'adapters/host-node/in-process-client.mjs',
   'adapters/host-node/client-request-journal.mjs',
   'adapters/host-node/client-request-lookup.mjs',
@@ -72,6 +73,9 @@ for (const path of [
   'spec/dependencies/aoa-pipeline-registry.json',
   'spec/contracts/actql-aoa.json',
   'spec/local-check-environment.json',
+  'spec/contracts/actql-query-acquisition.json',
+  'spec/contracts/actql-query-process-evidence.json',
+  'spec/contracts/actql-query-two-receipt.json',
 ]) {
   const bytes = readFileSync(join(root, path));
   const output = join(destination, path);
