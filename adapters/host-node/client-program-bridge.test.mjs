@@ -2023,6 +2023,385 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   }
 }
 
+test('two-member captured Effect Run publishes after all rows settle',
+  async t => {
+    const memberIds = ['save', 'save_again'];
+    const {document, environment, mappingCid} = await effectFixture({
+      writeKind: 'update', memberIds,
+    });
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const prepared = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(prepared,
+      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const evidence = publicationEvidence(
+      moon.clientProgramEffectDefinitionCid(prepared),
+      effectParametersCid(prepared),
+      moon.clientProgramEffectSemanticsCid(prepared),
+      moon.clientProgramEffectEnvironmentCid(prepared));
+    const admission = moon.clientProgramAdmitEffectPublication(
+      prepared, ...evidence);
+    const definition = checked(moon.strategyIssueRunDefinition(
+      admission, 'tenant-a-scope', 'complete-two-effects', cid('c'),
+      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
+      100000, 10000, 64));
+    const observation = checked(moon.strategyRunEvidenceSeal(
+      'observation_set', JSON.stringify({
+        version: 'actql-observation-set/0.1',
+        invocation_template_cid: moon.strategyRunEvidenceIdentity(
+          evidence[0]),
+        source_evidence_cids: [], captured_input_artifact_cids: [],
+        consistency: 'no_external_sources', capture_started_at: null,
+        capture_completed_at: null,
+        replayability: {materialized: false, availability_evidence_cids: []},
+        data_policy_cid: cid('d'),
+      }), 100000, 10000, 64));
+    const invocation = checked(moon.strategyIssueRunInvocation(
+      evidence[0], observation, 100000, 10000, 64));
+    const bound = moon.clientProgramBindEffectRun(
+      prepared, admission, definition);
+    assert.ok(bound);
+    const [registry, contract] = await Promise.all([
+      readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
+        import.meta.url), 'utf8'),
+      readFile(new URL('../../spec/contracts/actql-aoa.json',
+        import.meta.url), 'utf8'),
+    ]);
+    const values = JSON.stringify(
+      JSON.parse(contract).execution_contracts['REL.values']);
+    const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
+      bound, registry, values, 1n, 0n, 0n, 0n);
+    assert.ok(owned);
+    const execution = await runCapturedEffectComputation(owned);
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-two-published-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const control = runtimeCore(moon).publicationControl;
+    const configuration = {
+      directory, storeAuthorityCid: cid('7'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: outputLimits.maxWireBytes,
+      maxObjects: 100, maxContractNodes: 10000,
+      maxContractDepth: 64, privateEvidenceKey: Buffer.alloc(32, 4),
+    };
+    const physicalStore = await openLocalPublicationStore(
+      configuration, control);
+    let commitCalls = 0;
+    let store = Object.freeze({...physicalStore,
+      async commitEffectfulIndex(...args) {
+        commitCalls++;
+        const result = await physicalStore.commitEffectfulIndex(...args);
+        if (commitCalls === 1) throw new Error('LostEffectIndexCommitAck');
+        return result;
+      },
+    });
+    let storedResults, inputs, sourcePayload, ledger;
+    let published = false;
+    try {
+      assert.equal(execution.status, 'host-tasks-completed');
+      const runDefinition = control.admit('run_definition',
+        moon.strategyPublicationContractJson(definition),
+        publicationLimits);
+      const runInvocation = control.admit('run_invocation',
+        moon.strategyPublicationContractJson(invocation),
+        publicationLimits);
+      const retention = control.seal('result_retention_policy',
+        JSON.stringify({
+          version: 'actql-result-retention-policy/0.1',
+          retention_contract_cid: cid('e'),
+          effective_data_policy_cid: cid('d'),
+          available_until: '2026-09-24T01:00:00.000Z',
+          delete_by: '2026-09-24T02:00:00.000Z',
+          extension_ceiling_at: '2026-09-24T03:00:00.000Z',
+          metadata_retention_policy_cid: cid('f'),
+          metadata_delete_by: '2026-09-24T04:00:00.000Z',
+          clock_contract_cid: cid('0'),
+        }), publicationLimits);
+      storedResults = await storeCompletedRunResultSet({
+        execution, store, control,
+        runDefinition, invocation: runInvocation,
+        results: [{retention, evidenceContext: {
+          computationContractCid: cid('2'), inputRelationCids: [],
+          scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'),
+          authorityScopeCid: cid('a'),
+        }}],
+        outputLimits, contractLimits: publicationLimits,
+      });
+      assert.equal(storedResults.results[0].occurrence.name, 'answer');
+      inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+      sourcePayload = await preparePinnedEffectSourcePayload({
+        moon, execution, inputs, memberIndex: 0,
+        limits: moon.clientProgramEffectInputExportLimits(
+          ...effectInputExportArgs(outputLimits)),
+        store, maxBytes: outputLimits.maxWireBytes, control,
+        invocation: runInvocation, retention,
+        sourceBindingCid: cid('c'),
+        contractLimits: publicationLimits,
+      });
+      const effect = runtimeCore(moon).effectApplicationControl;
+      const requestScope = effect.logicalRequestScope(
+        cid('e'), 'complete-two-effects-request', 128);
+      const preview = effectInputPreview(
+        prepared, evidence, definition, invocation, mappingCid,
+        sourcePayload.summary.artifact.identity, 'update',
+        [1, 2], [1, 2], memberIds, [cid('0'), cid('1')],
+        requestScope);
+      const authoringContext = control.admitRunEvidence(
+        'authoring_context',
+        canonicalJson(JSON.parse(preview.wire).authoring_context),
+        publicationLimits);
+      const admittedPreview = control.admitEffectComputationPreview(
+        preview.wire, runDefinition, authoringContext,
+        publicationLimits);
+      const firstHolding = await commitPinnedEffectSourceHolding({
+        payload: sourcePayload, store, control, preview: admittedPreview,
+        memberIndex: 0, invocation: runInvocation,
+      });
+      const secondHolding = await commitPinnedEffectSourceHolding({
+        payload: sourcePayload, store, control, preview: admittedPreview,
+        memberIndex: 1, invocation: runInvocation,
+        shareFromHoldingCid: firstHolding.holdingCid,
+      });
+      assert.notEqual(firstHolding.holdingCid, secondHolding.holdingCid);
+      const previewInputs = checked(
+        moon.clientProgramBindEffectPreviewInputs(
+          owned, inputs, invocation, 0, preview.wire,
+          preview.authoringCid,
+          moon.clientProgramEffectPreviewInputLimits(
+            20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+            2, 2, 100, 100)));
+      const planLimits = {maxFields: 10, maxWork: 100,
+        maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
+        maxUtf16Units: 20000};
+      const plans = [];
+      for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
+        const chunks = [];
+        const plan = await verifyPinnedEffectPlan({
+          moon, execution, previewInputs, previewIndex: memberIndex,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          planLimits, onChunk: chunk => { chunks.push(chunk); },
+        });
+        plans.push({name: memberIds[memberIndex], wire: chunks.join(''),
+          proof: plan.proof});
+      }
+      const runEvidence = evidence.slice(0, 3).map((value, index) =>
+        control.admitRunEvidence(
+          ['bound_invocation_template', 'prepared_invocation',
+            'run_authorization'][index],
+          moon.strategyRunEvidenceJson(value), publicationLimits));
+      const compiledPlan = control.admit('compiled_plan',
+        moon.strategyPublicationContractJson(evidence[3]),
+        publicationLimits);
+      const runAdmission = control.admitCheckedClientEffectRunPublication(
+        prepared, ...runEvidence, compiledPlan);
+      const normalizationJournal = control.sealRunEvidence(
+        'normalization_journal', JSON.stringify({
+          version: 'actql-normalization-journal/0.1',
+          rule_catalog_cid: cid('1'), entries: [],
+        }), publicationLimits);
+      const computation = await issueCompletedEffectfulComputationEvidence({
+        execution, store, storedResults, control,
+        admission: runAdmission, runDefinition,
+        invocation: runInvocation,
+        observation: control.admitRunEvidence('observation_set',
+          moon.strategyRunEvidenceJson(observation), publicationLimits),
+        normalizationJournal, authoringContext,
+        receiptEvidence: {bindings: [], sourceEvidence: [],
+          modelEvidence: [], barrierAttemptReceiptCids: []},
+        captureEvidence: {pendingSourceStateAdvances: [],
+          modelEvidence: []},
+        preview: admittedPreview,
+        plans: plans.map(({name, wire}) => ({name, wire})),
+        effectSourceHoldings: [firstHolding, secondHolding],
+        contractLimits: publicationLimits,
+      });
+      const captured = JSON.parse(computation.capturedRun.wire);
+      assert.deepEqual(Object.keys(captured.effect_context
+        .effect_source_artifacts).sort(), memberIds);
+      assert.deepEqual(Object.keys(captured.effect_context
+        .result_artifacts), ['answer']);
+      assert.equal(captured.effect_context.effect_source_artifacts.save
+        .source_result, 'rows');
+      const body = JSON.parse(preview.wire);
+      const applyPreview = effect.admitPreviewIdentity(
+        preview.wire, body.run_identity_cid,
+        preview.authoringCid, requestScope, preview.keys,
+        publicationLimits.maxWireBytes, publicationLimits.maxNodes,
+        publicationLimits.maxDepth);
+      const riskBody = {
+        version: 'actql-effect-risk-acceptance/0.1',
+        issuer_kind: 'policy', issuer_evidence_cid: cid('a'),
+        policy_cid: cid('a'), decision: 'allow',
+        effect_preview_cid: body.effect_preview_cid,
+        review_projection_cid: cid('a'), authority_scope_cid: cid('e'),
+        validity_evidence_cid: cid('a'),
+        claims: ['effect_scope_approved', 'partial_application_accepted'],
+        authentication_evidence_cid: cid('a'),
+      };
+      const risk = checked(moon.clientProgramAdmitEffectRiskAcceptanceBody(
+        canonicalJson({...riskBody,
+          self_cid: `sha256:${createHash('sha256')
+            .update(canonicalJson(riskBody)).digest('hex')}`}),
+        8192, 256, 12));
+      const members = body.effects.map((member, memberIndex) => ({
+        claims: member.changes.map((change, rowIndex) => {
+          const key = preview.keys[memberIndex][rowIndex];
+          const locator = effect.logicalItemLocator(
+            requestScope, 'program-1', 'node-1', member.effect_id,
+            canonicalJson(change.target_row_identity), 64, 128, 8, 3);
+          const path = `/effect/${member.effect_id}/${rowIndex}`;
+          const requestWire = canonicalJson({path, row: change.row_preview_cid});
+          const canonicalRequestCid = `sha256:${createHash('sha256')
+            .update(requestWire).digest('hex')}`;
+          const basis = effect.ledgerBasis(
+            requestScope, locator, key, cid('6'),
+            member.effect_member_preview_cid, change.row_preview_cid,
+            canonicalRequestCid, cid('0'), 'unavailable', cid('1'), cid('2'));
+          return {scope: requestScope, locator, key, basis,
+            intentFingerprintCid: change.row_preview_cid,
+            canonicalRequestCid, path};
+        }),
+      }));
+      const ledgerRoot = join(directory, 'effect-ledger');
+      await mkdir(ledgerRoot);
+      const openLedger = () => openEffectLedger({moon, root: ledgerRoot,
+        authorityScopeCid: cid('e'),
+        callerRequestId: 'complete-two-effects-request',
+        maxEntryBytes: 4096});
+      ledger = openLedger();
+      const observedRows = body.effects.flatMap(member =>
+        member.row_order);
+      const route = checked(
+        moon.clientProgramEffectApplyCapabilityFromCodes(
+          cid('d'), 0, 0, 0, true, true, 2, 1));
+      const sent = [];
+      const preflight = {
+        proofs: plans.map(plan => plan.proof),
+        sources: [cid('c'), cid('c')],
+        contracts: [mappingCid, mappingCid],
+        capabilities: [cid('d'), cid('d')],
+        authorities: [cid('e'), cid('e')],
+        observedRows, guardVersions: observedRows.map(() => cid('6')),
+        routes: [route, route], risk,
+        reviewProjectionCid: cid('a'),
+        authorityScopeCid: cid('e'), policyCid: cid('a'),
+        validityCid: cid('a'), issuerCid: cid('a'),
+        authenticationCid: cid('a'), issuerKind: 'policy',
+        decision: 'allow', requestScope, keys: preview.keys,
+        maxMembers: 2, maxRows: 4, maxFootprintWork: 4, maxWork: 100,
+      };
+      const applyOptions = {moon, capturedInputs: previewInputs,
+        preflight, ledger, members, maxFrontierWork: 64};
+      const applied = await applyCapturedEffectSet({
+        ...applyOptions,
+        dispatchRow: async ({memberIndex, rowIndex, claim}) => {
+          sent.push([memberIndex, rowIndex]);
+          const response = await captureClaimedEffectResponse({
+            ledger, claim, requestCid: claim.canonicalRequestCid,
+            execute: async () => ({observation: {useCid: cid('4'),
+              statusCode: 204, body: Buffer.alloc(0)}}),
+          });
+          assert.equal(response.claimed, true);
+          ledger.recordAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex,
+            previewRowIndex: rowIndex,
+            outcomeWire: canonicalJson({state: 'applied',
+              result: {record_id: `member-${memberIndex}-row-${rowIndex}`}}),
+          });
+          ledger.commitAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex,
+            previewRowIndex: rowIndex,
+          });
+        },
+      });
+      assert.equal(applied.dispatched, 4);
+      for (let memberIndex = 0; memberIndex < 2; memberIndex++) {
+        assert.deepEqual(sent.filter(item => item[0] === memberIndex)
+          .map(item => item[1]), [0, 1]);
+      }
+      ledger.close();
+      ledger = openLedger();
+      const replay = await applyCapturedEffectSet({
+        ...applyOptions, ledger,
+        dispatchRow: () => assert.fail('terminal row resent'),
+      });
+      assert.equal(replay.dispatched, 0);
+      const issuedSet = await issueAuthorizedEffectSetReceipt({
+        ledger, preview: applyPreview, commonMoon: moon,
+        authorizeEvidenceRead: async () => true,
+        publicationPreview: admittedPreview,
+        members: members.map(member => ({
+          rowOwners: member.claims.map(claim => ({claim})),
+          replayed: true,
+        })),
+        limits: publicationLimits,
+      });
+      assert.equal(issuedSet.members.length, 2);
+      assert.equal(JSON.parse(issuedSet.set.wire).status, 'applied');
+      const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+        runDefinitionCid: runDefinition.identity};
+      const publicationOptions = {
+        execution, store, storedResults, control, computation,
+        preview: admittedPreview, ledger, issuedSet,
+        request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+          publicationPolicyCid: cid('e'),
+          publicationTargetCid: cid('f'),
+          requestedAt: '2026-09-24T00:00:01.000Z'},
+        attempt: {attemptId: 'complete-two-effects-attempt',
+          fenceCid: cid('0'), externalIdempotencyKey: undefined,
+          startedAt: '2026-09-24T00:00:02.000Z'},
+        contractLimits: publicationLimits,
+        now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
+      };
+      const result = await publishCompletedEffectfulRun(publicationOptions);
+      assert.equal(result.publication.committed, false);
+      assert.equal(result.publication.idempotent, true);
+      assert.equal(result.publication.state, 'succeeded');
+      assert.equal(commitCalls, 1);
+      const indexBody = JSON.parse(result.publication.index.wire);
+      const finalReceipt = await store.readPublicationContract(
+        indexBody.run_receipt_cid, 'run_receipt');
+      assert.equal(JSON.parse(finalReceipt.wire)
+        .effect_set_apply_receipt_cid, issuedSet.set.identity);
+      assert.equal(commitCalls, 1);
+      assert.equal(sent.length, 4);
+      await releaseCompletedRunPreparedPayloads(storedResults, control);
+      assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+      inputs = undefined;
+      ledger.close();
+      ledger = undefined;
+      await store.close();
+      store = await openLocalPublicationStore(configuration, control);
+      assert.ok(await store.inspectCommittedIndex(key));
+      const chunks = [];
+      await store.consumeCommittedResult(key,
+        storedResults.definitions[0].identity, () => true,
+        chunk => chunks.push(Buffer.from(chunk)));
+      assert.equal(Buffer.concat(chunks).toString('utf8'),
+        JSON.stringify([{id: 1}, {id: 2}]));
+      assert.equal((await store.retireCommittedResult(key,
+        storedResults.definitions[0].identity)).deleted, true);
+      assert.equal((await store.retireCommittedPublicationMetadata(
+        key, '2026-09-24T00:00:04.000Z')).deleted, true);
+      assert.equal(store.status().storedBytes, 0);
+      published = true;
+    } finally {
+      ledger?.close();
+      if (inputs !== undefined) {
+        moon.clientProgramReleaseEffectInputs(inputs);
+      }
+      if (storedResults !== undefined) {
+        await releaseCompletedRunPreparedPayloads(storedResults, control);
+      }
+      await store.close();
+      await execution.close();
+      assert.equal(execution.cleanupPending(), false);
+    }
+    assert.equal(published, true);
+  });
+
 test('two Effect members hold one completed Result independently', async () => {
   await verifySharedEffectSource({splitSource: false, expectedTask: 0});
   await verifySharedEffectSource({splitSource: true, expectedTask: 4});

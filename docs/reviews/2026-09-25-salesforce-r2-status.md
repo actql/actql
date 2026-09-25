@@ -19,7 +19,7 @@ retained data. The same path must report partial failure and unknown honestly.
 | --- | --- |
 | The public Program/Client ingress still rejects nonempty Effects. Connect the checked Effect Program and captured input owner to whole-set Preview, current authority, target guards, overlap admission, and one apply permit before the first write. | A normal two-member Program reaches apply; stale or overlapping sets send zero local HTTPS requests and consume no write credential. |
 | The Host has durable row custody and a MoonBit frontier, but no standard multi-member caller drives its Salesforce Site operations from that admitted owner. Connect the captured rows to exact physical requests and retain each member's `halt` or `continue` progress across restart. | Both members have multiple rows; an independent member continues when the other halts, known rows are never resent, unknown remains unresolved without new evidence, and send counts and order match the durable ledger. |
-| One-member, simulated-response publication works. Connect the real multi-member row outcomes to member/set/final Receipts, formal Store commit, authorized Result delivery, and last-owner cleanup through the ordinary Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
+| Two-member, simulated-response publication works through the installed Host. Connect Salesforce Site row outcomes and authorized Result delivery through the ordinary Client Run. | Faults after dispatch claim, saved HTTP response, terminal row admission, and index commit are reconciled without reapplying writes. Distinct private Stage Result and public Program Result names survive; retained holdings are reclaimed only after their last use. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
 The Distribution owner owns the public Client ingress, attach/status,
@@ -88,8 +88,8 @@ keeps the private `rows` inventory distinct from the public `answer` Result.
 After Ledger reopen, its durable mixed known/unknown set cannot be published
 as a successful Run; the Preview and both source holdings remain available for
 reconciliation until explicitly retired. This closes an inventory and
-holding connection, not the ordinary apply caller, successful multi-member
-publication, or credentialed Salesforce request path.
+holding connection, not the ordinary apply caller, successful publication of
+that unknown Run, or credentialed Salesforce request path.
 The Host now has one captured-Effect apply driver that runs the existing
 MoonBit whole-set preflight before the first durable claim and takes each
 next row from the MoonBit frontier over real Ledger heads. Its two-member
@@ -100,6 +100,16 @@ response but before admitting that row's Outcome, confirms no resend, and
 advances the next row only after the saved row becomes terminal. The Site
 callback still uses a local HTTP fixture, and the public Client has not yet
 installed this driver or the Salesforce writer.
+A separate two-member, two-row-per-member checked Program now completes the
+same Host Compute, distinct private `rows` and public `answer` inventories,
+whole-set preflight, four durable row Outcomes, member/set Receipts, final
+Receipt and formal Store commit. An injected loss of the Store commit reply
+reconciles the exact index without another Effect dispatch; Store reopen then
+reads the public Result and retirement reclaims all physical bytes. Its
+physical responses are simulated, not Salesforce HTTP, and its caller is
+still an installed Host fixture rather than public Client submit. It closes
+the multi-member publication composition gap but not SF-G1's product entry,
+Salesforce I/O, partial failure and full fault matrix.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org
