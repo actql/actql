@@ -8,6 +8,9 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
+import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {issueAuthorizedEffectSetReceipt} from
+  './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
   preparePinnedEffectSourcePayload} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
@@ -33,8 +36,6 @@ import {issueCompletedEffectfulComputationEvidence,
 import {inspectAuthorizedRunState, installRunStateAuthority,
   installRunStateService} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {retainIssuedEffectSetReceipt} from
-  '../host-common/effect-receipt-custody.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 
@@ -520,7 +521,9 @@ test('Host admits and retains the exact checked Effect Run Definition',
 
 test('admitted source-free Effect Run computes through the installed Host',
   async t => {
-    const {document, environment, mappingCid} = await effectFixture();
+    const {document, environment, mappingCid} = await effectFixture({
+      writeKind: 'update',
+    });
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, 'json', environment, undefined, []);
     const prepared = moon.clientProgramEffectPreparationReady(outcome);
@@ -612,7 +615,7 @@ test('admitted source-free Effect Run computes through the installed Host',
       maxContractDepth: 64,
       privateEvidenceKey: Buffer.alloc(32, 4),
     }, control);
-    let storedResults, committedPublicationKey;
+    let storedResults, committedPublicationKey, effectLedger;
     try {
       assert.equal(execution.status, 'host-tasks-completed');
       assert.equal(execution.completed.length, 1);
@@ -733,9 +736,13 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(JSON.parse(storedResults.artifacts[0].wire)
           .result_definition_cid, storedResults.definitions[0].identity);
         assert.equal(storedResults.results[0].occurrence.name, 'answer');
+        const effect = runtimeCore(moon).effectApplicationControl;
+        const requestScope = effect.logicalRequestScope(
+          cid('e'), 'effect-compute-request', 128);
         const preview = effectInputPreview(
           prepared, evidence, definition, invocation, mappingCid,
-          sourceArtifact.identity);
+          sourceArtifact.identity, 'update', [1, 2], [1, 2],
+          ['save'], [cid('0')], requestScope);
         const authoringContext = control.admitRunEvidence(
           'authoring_context',
           canonicalJson(JSON.parse(preview.wire).authoring_context),
@@ -743,6 +750,23 @@ test('admitted source-free Effect Run computes through the installed Host',
         const admittedPreview = control.admitEffectComputationPreview(
           preview.wire, runDefinitionContract, authoringContext,
           publicationLimits);
+        const capturePreviewInputs = checked(
+          moon.clientProgramBindEffectPreviewInputs(
+            owned, inputs, invocation, 0, preview.wire,
+            preview.authoringCid,
+            moon.clientProgramEffectPreviewInputLimits(
+              20000, 1000, 20, 1000, 100, 20000, 1000, 20,
+              1, 2, 100, 100)));
+        const planChunks = [];
+        await verifyPinnedEffectPlan({
+          moon, execution, previewInputs: capturePreviewInputs,
+          previewIndex: 0,
+          limits: moon.clientProgramEffectInputExportLimits(
+            ...effectInputExportArgs(outputLimits)),
+          planLimits: {maxFields: 10, maxWork: 100, maxBytes: 20000,
+            maxNodes: 1000, maxDepth: 20, maxUtf16Units: 20000},
+          onChunk: chunk => { planChunks.push(chunk); },
+        });
         const commitSource = () => commitPinnedEffectSourceHolding({
           payload: sourcePayload, store: sourceStore, control,
           preview: admittedPreview,
@@ -782,7 +806,8 @@ test('admitted source-free Effect Run computes through the installed Host',
             modelEvidence: [], barrierAttemptReceiptCids: []},
           captureEvidence: {pendingSourceStateAdvances: [],
             modelEvidence: []},
-          preview: admittedPreview, plans: [],
+          preview: admittedPreview,
+          plans: [{name: 'save', wire: planChunks.join('')}],
           effectSourceHoldings: [sourceHolding],
           contractLimits: publicationLimits,
         };
@@ -885,7 +910,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           previewInputs, 0), input);
         assert.equal(checked(
           moon.clientProgramEffectPreviewPlanTerminal(
-            previewInputs, 0, 10, 100)), undefined);
+            previewInputs, 0, 10, 100)).operation, 'update');
         assert.throws(() => checked(
           moon.clientProgramEffectPreviewPlanTerminal(
             previewInputs, 0, -1, 100)),
@@ -894,9 +919,11 @@ test('admitted source-free Effect Run computes through the installed Host',
           moon.clientProgramEffectPreviewPlanTerminal(
             previewInputs, 1, 10, 100)),
         {code: 'MoonBitHostFailure'});
+        const previewRows = JSON.parse(preview.wire).effects[0].row_order;
         assert.doesNotThrow(() => checked(
           moon.clientProgramCheckEffectPreviewTargetGuards(
-            previewInputs, [], [], 0, 1)));
+            previewInputs, previewRows, previewRows.map(() => cid('6')),
+            2, 4)));
         assert.throws(() => checked(
           moon.clientProgramCheckEffectPreviewTargetGuards(
             previewInputs, [cid('1')], [], 1, 2)),
@@ -973,29 +1000,108 @@ test('admitted source-free Effect Run computes through the installed Host',
           chunk => storedChunks.push(Buffer.from(chunk)));
         assert.equal(Buffer.concat(storedChunks).toString('utf8'),
           chunks.join(''));
-        // This empty fixture Receipt tests Compute-to-Store provenance only;
-        // the physical multi-row apply path has separate acceptance gates.
         const previewBody = JSON.parse(preview.wire);
-        const memberReceipt = control.seal('effect_apply_receipt',
-          JSON.stringify({
-            version: 'actql-effect-apply-receipt/0.1',
-            run_identity_cid: previewBody.run_identity_cid,
-            effect_preview_cid: previewBody.effect_preview_cid,
-            effect_member_preview_cid:
-              previewBody.effects[0].effect_member_preview_cid,
-            rows: [], status: 'applied',
-          }), publicationLimits);
-        const setReceipt = control.issueEffectSetApplyReceiptFromMembers(
-          admittedPreview, [memberReceipt], [false], publicationLimits,
-        );
-        const fixtureLedger = Object.freeze({});
-        const issuedSet = retainIssuedEffectSetReceipt({
-          set: setReceipt, members: [memberReceipt],
-          ledger: fixtureLedger, preview: admittedPreview,
+        const applyPreview = effect.admitPreviewIdentity(
+          preview.wire, previewBody.run_identity_cid,
+          preview.authoringCid, requestScope, preview.keys,
+          publicationLimits.maxWireBytes, publicationLimits.maxNodes,
+          publicationLimits.maxDepth);
+        const ledgerRoot = join(directory, 'effect-ledger');
+        await mkdir(ledgerRoot);
+        effectLedger = openEffectLedger({moon, root: ledgerRoot,
+          authorityScopeCid: cid('e'),
+          callerRequestId: 'effect-compute-request',
+          maxEntryBytes: 4096});
+        const rowOwners = [];
+        let physicalSends = 0;
+        for (const [rowIndex, change] of
+          previewBody.effects[0].changes.entries()) {
+          const correlation = canonicalJson(change.target_row_identity);
+          const key = preview.keys[0][rowIndex];
+          const locator = effect.logicalItemLocator(
+            requestScope, 'program-1', 'node-1', 'save', correlation,
+            64, 128, 8, 3);
+          const requestWire = canonicalJson({operation: 'update',
+            row: change.row_preview_cid});
+          const canonicalRequestCid = `sha256:${createHash('sha256')
+            .update(requestWire).digest('hex')}`;
+          const basis = effect.ledgerBasis(
+            requestScope, locator, key, cid('6'),
+            previewBody.effects[0].effect_member_preview_cid,
+            change.row_preview_cid, canonicalRequestCid, cid('0'),
+            'unavailable', cid('1'), cid('2'));
+          const claim = {scope: requestScope, locator, key, basis,
+            intentFingerprintCid: change.row_preview_cid,
+            canonicalRequestCid};
+          const captured = await captureClaimedEffectResponse({
+            ledger: effectLedger, claim, requestCid: canonicalRequestCid,
+            execute: async () => {
+              physicalSends++;
+              return {observation: {useCid: cid('4'),
+                statusCode: 204, body: Buffer.alloc(0)}};
+            },
+          });
+          assert.equal(captured.claimed, true);
+          const recorded = effectLedger.recordAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex: 0,
+            previewRowIndex: rowIndex,
+            outcomeWire: canonicalJson({result: {
+              record_id: `row-${rowIndex + 1}`}, state: 'applied'}),
+          });
+          assert.equal(recorded.custody.created, true);
+          assert.equal(effectLedger.commitAdmittedRowOutcome({
+            claim, preview: applyPreview, memberIndex: 0,
+            previewRowIndex: rowIndex,
+          }).transition.created, true);
+          rowOwners.push({claim});
+        }
+        assert.equal(physicalSends, 2);
+        effectLedger.close();
+        effectLedger = openEffectLedger({moon, root: ledgerRoot,
+          authorityScopeCid: cid('e'),
+          callerRequestId: 'effect-compute-request',
+          maxEntryBytes: 4096});
+        for (const {claim} of rowOwners) {
+          const replay = await captureClaimedEffectResponse({
+            ledger: effectLedger, claim,
+            requestCid: claim.canonicalRequestCid,
+            execute: async () => { throw new Error('EffectResent'); },
+          });
+          assert.equal(replay.claimed, false);
+        }
+        assert.equal(physicalSends, 2);
+        await assert.rejects(issueAuthorizedEffectSetReceipt({
+          ledger: effectLedger, members: [{rowOwners, replayed: true}],
+          preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          limits: publicationLimits,
+          publicationPreview: admittedPreview,
+        }), {code: 'InvalidEffectSetReceiptEvidence'});
+        await assert.rejects(issueAuthorizedEffectSetReceipt({
+          ledger: effectLedger, members: [{rowOwners, replayed: true}],
+          preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          limits: publicationLimits,
+          publicationPreview: foreignAdmittedPreview,
+          publicationControl: control,
+        }), {code: 'MoonBitHostFailure'});
+        const issuedSet = await issueAuthorizedEffectSetReceipt({
+          ledger: effectLedger, members: [{rowOwners, replayed: true}],
+          preview: applyPreview, commonMoon: moon,
+          authorizeEvidenceRead: async () => true,
+          limits: publicationLimits,
+          publicationPreview: admittedPreview, publicationControl: control,
         });
+        assert.equal(issuedSet.members.length, 1);
+        const memberRows = JSON.parse(issuedSet.members[0].wire).rows;
+        assert.equal(memberRows.length, 2);
+        assert.deepEqual(memberRows.map(row => row.row_preview_cid),
+          previewBody.effects[0].row_order);
+        assert.equal(memberRows.every(row =>
+          typeof row.outcome_receipt_cid === 'string'), true);
         const publicationOptions = {
           execution, store, storedResults, control, computation,
-          preview: admittedPreview, ledger: fixtureLedger, issuedSet,
+          preview: admittedPreview, ledger: effectLedger, issuedSet,
           request: {
             tenantId: 'tenant-a', authorityScopeCid: cid('a'),
             publicationPolicyCid: cid('e'),
@@ -1012,6 +1118,11 @@ test('admitted source-free Effect Run computes through the installed Host',
           publicationOptions);
         assert.equal(published.publication.committed, true);
         assert.equal(published.publication.state, 'succeeded');
+        const indexBody = JSON.parse(published.publication.index.wire);
+        const finalReceipt = await store.readPublicationContract(
+          indexBody.run_receipt_cid, 'run_receipt');
+        assert.equal(JSON.parse(finalReceipt.wire)
+          .effect_set_apply_receipt_cid, issuedSet.set.identity);
         committedPublicationKey = {
           tenantId: 'tenant-a', authorityScopeCid: cid('a'),
           runDefinitionCid: runDefinitionContract.identity,
@@ -1021,6 +1132,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         const replay = await publishCompletedEffectfulRun(
           publicationOptions);
         assert.equal(replay.publication.idempotent, true);
+        assert.equal(physicalSends, 2);
       } finally {
         if (committedPublicationKey !== undefined) {
           assert.equal((await store.retireCommittedResult(
@@ -1051,6 +1163,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           previewInputs, [], [], 0, 1)),
       {code: 'MoonBitHostFailure'});
     } finally {
+      effectLedger?.close();
       if (storedResults !== undefined) {
         await releaseCompletedRunPreparedPayloads(storedResults, control);
         if (committedPublicationKey !== undefined) {
