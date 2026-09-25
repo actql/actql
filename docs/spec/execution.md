@@ -1410,6 +1410,16 @@ Resolution, it MUST revalidate the bound authorization-context and
 environment-binding CIDs. Artifact availability and exact target freshness are
 then revalidated at their existing provider-access and Effect-commit boundaries.
 
+<!-- requirement-block: checkpoints.every-resumed-protected-dispatch-must-pass-the-resume-admission-whatever-the-account-outcome checkpoints.an-account-allow-at-resume-must-not-admit-a-stale-superseded-or-unclaimed-continuation checkpoints.a-configuration-changed-while-waiting-must-not-admit-a-resumed-dispatch -->
+Every resumed protected dispatch MUST pass the same resume admission whatever
+the current account outcome of its tuple: the current live claim of the resume
+intent, the committed approval still valid at the Host trusted time, the
+admitted configuration CID the decision was deferred under, and at most one
+protected dispatch start per claim generation. An account `allow` at resume
+removes only the need for an approval of that tuple; it MUST NOT admit a stale,
+superseded or unclaimed continuation, and a configuration changed while the Run
+waited MUST NOT admit a resumed dispatch even when it now allows the tuple.
+
 <!-- requirement-block: checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation -->
 If a bound authorization-context or environment-binding CID no longer
 revalidates, the Host MUST NOT dispatch the continuation. A Run-unit

@@ -779,10 +779,10 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       };
       const port = {
         persistCheckpoint: ({body, authorities: reviewers, binding: bound,
-          decisionSubjectCid, requestedClaims}) =>
+          decisionSubjectCid, requestedClaims, configurationCid}) =>
           journal.completeResume(fence.claim, {checkpoint: {body,
             authorities: reviewers, binding: bound, decisionSubjectCid,
-            requestedClaims}}),
+            requestedClaims, configurationCid}}),
         submitResolution: item => journal.submitResolution(item),
       };
       // An approved subject is permitted only through the common resumed
@@ -790,21 +790,34 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       // Host trusted time and the claims its evidence established.
       let admission;
       let admissionRefusal;
+      const configurationCid = context.configuration?.configurationCid;
+      const admit = options => {
+        const admitted = admitResumedDispatch(journal, {claim: {
+          checkpointCid: claimed.checkpointCid, claim: fence.claim}},
+        {configurationCid, ...options});
+        if (admitted.detail !== undefined) {
+          admissionRefusal = admitted.detail;
+          fail(admitted.detail);
+        }
+        return admitted;
+      };
       const resumeDecide = view => {
         const match = approved.find(item => coverage(item, view.subject));
+        // An earlier immediate permit (no Checkpoint) was the Host's own
+        // answer for this attempt. When the Host supplies a decision
+        // function at resume it answers again, so a current reject or defer
+        // holds; without one only the same exact subject is reused.
+        if (match !== undefined && match.checkpoint_cid === undefined &&
+            decide !== undefined) {
+          return decide(view);
+        }
         if (match !== undefined) {
           try { earlierApprovalsCurrent(); }
           catch (error) {
             admissionRefusal = error.code;
             throw error;
           }
-          const admitted = admitResumedDispatch(journal, {claim: {
-            checkpointCid: claimed.checkpointCid, claim: fence.claim}},
-          {requiredClaims: view.requiredClaims});
-          if (admitted.detail !== undefined) {
-            admissionRefusal = admitted.detail;
-            fail(admitted.detail);
-          }
+          const admitted = admit({requiredClaims: view.requiredClaims});
           admission = admitted.admission;
           return {decision: 'permit', subject: view.subject,
             authority: match.actor, claims: [...admitted.claims]};
@@ -845,7 +858,10 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
               // claim generation may have started refuses the fresh start
               // (`PriorAdmissionUnresolved`): a provider session has no
               // durable identity to reconcile, so no second one starts.
-              admission?.enter();
+              // With every boundary now allowed there is no approval
+              // admission, but the same ownership admission still applies.
+              admission ??= admit({approvalClaims: false}).admission;
+              admission.enter();
             },
             // Preparation completed: the continuation creates its Run
             // directly in `running`, atomically with the intent completion.

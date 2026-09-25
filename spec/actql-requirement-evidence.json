@@ -9397,6 +9397,39 @@
       }
     },
     {
+      "requirement_id": "actql.execution/checkpoints.every-resumed-protected-dispatch-must-pass-the-resume-admission-whatever-the-account-outcome",
+      "statement_sha256": "a1ad3337d5dabbdac4311ee29bd4239d8ee5572a72de759870e6c61cc10cb4a0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/checkpoints.an-account-allow-at-resume-must-not-admit-a-stale-superseded-or-unclaimed-continuation",
+      "statement_sha256": "b09cca0b012005ec1bf5b6d8fee3cd7e83f9130c79579202de0ec0145535a0fa",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/checkpoints.a-configuration-changed-while-waiting-must-not-admit-a-resumed-dispatch",
+      "statement_sha256": "42769005bb36913195e273353a8bff3dc260bcc503feb223f6b1479c75c41dd2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation",
       "statement_sha256": "676a7b4c361874fd2c9841080fe525c47d213031ff4a8d0a36f7354026da0871",
       "status": "pending",
