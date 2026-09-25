@@ -12,7 +12,6 @@ import {
 } from '../host-common/authorization-gate.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
 import {
-  FIXTURE_CONFIGURATION_CID,
   FIXTURE_CONTEXT,
   accountConfiguration,
   accountEntry,
@@ -115,9 +114,30 @@ test('a rejected configuration fails installation instead of granting',
         accountEntry('allow-all', 'allow'),
         accountEntry('deny-orders', 'deny', {resource: 'orders'}),
       ]),
-      configurationCid: FIXTURE_CONFIGURATION_CID,
+      configurationCid: `sha256:${'c'.repeat(64)}`,
       context: FIXTURE_CONTEXT,
     }), {code: 'ExecutionAuthorizationConfigurationRejected'});
+  });
+
+test('the gate binds the admitted configuration CID, never a stale one',
+  async () => {
+    const runtime = await loadExecutionAuthorizationRuntime();
+    const configuration = accountConfiguration([
+      accountEntry('allow-all', 'allow')]);
+    const admitted = createAuthorizationGate({runtime, configuration,
+      context: FIXTURE_CONTEXT});
+    assert.match(admitted.configurationCid, /^sha256:[0-9a-f]{64}$/);
+    // A Host-supplied CID is a cross-check only: another configuration's
+    // CID (for example one read before the file changed) fails installation.
+    assert.equal(createAuthorizationGate({runtime, configuration,
+      configurationCid: admitted.configurationCid,
+      context: FIXTURE_CONTEXT}).configurationCid, admitted.configurationCid);
+    assert.throws(() => createAuthorizationGate({runtime, configuration,
+      configurationCid: `sha256:${'c'.repeat(64)}`,
+      context: FIXTURE_CONTEXT}), {code: 'AuthorizationConfigurationCidMismatch'});
+    const other = createAuthorizationGate({runtime, context: FIXTURE_CONTEXT,
+      configuration: accountConfiguration([accountEntry('deny-all', 'deny')])});
+    assert.notEqual(other.configurationCid, admitted.configurationCid);
   });
 
 test('delegate permit dispatches; reject is a recorded Host rejection',
@@ -136,7 +156,8 @@ test('delegate permit dispatches; reject is a recorded Host rejection',
     assert.equal(seen[0].subject.boundary, 'acquisition');
     assert.equal(seen[0].subject.subject_cid, subjectCid);
     assert.equal(seen[0].subject.context_cid, FIXTURE_CONTEXT.contextCid);
-    assert.equal(seen[0].subject.configuration_cid, FIXTURE_CONFIGURATION_CID);
+    assert.equal(seen[0].subject.configuration_cid,
+      permitting.configurationCid);
     assert.equal(permitting.counters().checkpointsPersisted, 0);
 
     const rejecting = await fixtureAuthorization(delegateEntries, {

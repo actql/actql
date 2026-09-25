@@ -125,6 +125,7 @@ pub fn execution_authorization_account_json(
       {
         "state": Json::string("admitted"),
         "account_id": Json::string(configuration.account_id()),
+        "configuration_cid": Json::string(configuration.configuration_cid()),
         "entry_count": Json::number(configuration.entry_count().to_double()),
       }
     Missing =>

@@ -132,6 +132,19 @@ function requestedClaimsJson(value) {
   return JSON.stringify([...value].sort());
 }
 
+// Account configuration CID the deferring gate evaluated the decision under,
+// bound next to the Checkpoint. A resume admits no dispatch under another
+// configuration, whatever the current account outcome. '' when the
+// Checkpoint was persisted without one (then no resume dispatch is admitted
+// by the gate).
+function configurationBinding(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value)) {
+    fail('InvalidConfigurationBinding');
+  }
+  return value;
+}
+
 // Safe inspection view: identities, the review subject reference, and the
 // non-restricted metadata sealed in the Checkpoint. No review projection
 // contents, evidence, or Host authority configuration are returned.
@@ -244,6 +257,7 @@ export function openSqliteCheckpointJournal(root, {
         binding_json TEXT NOT NULL,
         decision_subject_cid TEXT NOT NULL DEFAULT '',
         requested_claims_json TEXT NOT NULL DEFAULT '[]',
+        configuration_cid TEXT NOT NULL DEFAULT '',
         closure TEXT NOT NULL
           CHECK (closure IN ('open', 'resolved', 'expired', 'cancelled')),
         resolution_cid TEXT NOT NULL DEFAULT '',
@@ -301,6 +315,11 @@ export function openSqliteCheckpointJournal(root, {
       if (!columns.some(column => column.name === 'requested_claims_json')) {
         database.exec(`ALTER TABLE checkpoints ADD COLUMN
           requested_claims_json TEXT NOT NULL DEFAULT '[]'`);
+      }
+      // ... and the configuration binding, unbound.
+      if (!columns.some(column => column.name === 'configuration_cid')) {
+        database.exec(`ALTER TABLE checkpoints ADD COLUMN
+          configuration_cid TEXT NOT NULL DEFAULT ''`);
       }
       // A resume admission recorded before the start/reconcile distinction
       // is a fresh start with no recorded dispatch identity.
@@ -362,9 +381,9 @@ export function openSqliteCheckpointJournal(root, {
     insertCheckpoint: database.prepare(`
       INSERT INTO checkpoints (checkpoint_cid, checkpoint_id, run_id,
         prepare_attempt_id, checkpoint_wire, expires_at, authorities_json,
-        binding_json, decision_subject_cid, requested_claims_json, closure,
-        persisted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
+        binding_json, decision_subject_cid, requested_claims_json,
+        configuration_cid, closure, persisted_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`),
     closeCheckpoint: database.prepare(`
       UPDATE checkpoints SET closure = ?, resolution_cid = ?, closed_at = ?
       WHERE checkpoint_cid = ? AND closure = 'open'`),
@@ -483,11 +502,11 @@ export function openSqliteCheckpointJournal(root, {
   const isPreparation = sealed => sealed.subject_kind === 'prepare_attempt';
 
   function insertCheckpoint(sealed, authorities, binding, subject, claims,
-    at) {
+    configuration, at) {
     statements.insertCheckpoint.run(
       sealed.checkpoint_cid, sealed.checkpoint_id, sealed.run_id,
       sealed.prepare_attempt_id, sealed.checkpoint_wire, sealed.expires_at,
-      authorities, binding, subject, claims, at,
+      authorities, binding, subject, claims, configuration, at,
     );
   }
 
@@ -499,6 +518,7 @@ export function openSqliteCheckpointJournal(root, {
       bound: bindingJson(checkpoint.binding),
       subject: subjectBinding(checkpoint.decisionSubjectCid),
       claims: requestedClaimsJson(checkpoint.requestedClaims),
+      configuration: configurationBinding(checkpoint.configurationCid),
     };
   }
 
@@ -643,7 +663,7 @@ export function openSqliteCheckpointJournal(root, {
     // preparation Checkpoint creates no Run.
     persistCheckpoint({
       body, priorStatus, declaredResults, authorities, binding,
-      decisionSubjectCid, requestedClaims,
+      decisionSubjectCid, requestedClaims, configurationCid,
     }) {
       alive();
       const sealed = sealBody(body);
@@ -659,6 +679,7 @@ export function openSqliteCheckpointJournal(root, {
       const bound = bindingJson(binding);
       const subject = subjectBinding(decisionSubjectCid);
       const claims = requestedClaimsJson(requestedClaims);
+      const configuration = configurationBinding(configurationCid);
       const declared = declaredJson(declaredResults);
       const at = iso(now());
       transaction(database, () => {
@@ -668,7 +689,8 @@ export function openSqliteCheckpointJournal(root, {
               existing.authorities_json !== reviewers ||
               existing.binding_json !== bound ||
               existing.decision_subject_cid !== subject ||
-              existing.requested_claims_json !== claims) {
+              existing.requested_claims_json !== claims ||
+              existing.configuration_cid !== configuration) {
             fail('CheckpointConflict');
           }
           return;
@@ -692,7 +714,8 @@ export function openSqliteCheckpointJournal(root, {
               priorStatus), 'RunStateConflict');
           }
         }
-        insertCheckpoint(sealed, reviewers, bound, subject, claims, at);
+        insertCheckpoint(sealed, reviewers, bound, subject, claims,
+          configuration, at);
         fault('persistCheckpoint');
       });
       return waitingAfterCommit(sealed);
@@ -1421,7 +1444,7 @@ export function openSqliteCheckpointJournal(root, {
             fail('CheckpointConflict');
           }
           insertCheckpoint(next.sealed, next.reviewers, next.bound,
-            next.subject, next.claims, atIso);
+            next.subject, next.claims, next.configuration, atIso);
           checkpointCid = next.sealed.checkpoint_cid;
         }
         changed(statements.moveRun.run(target, atIso, checkpointCid,
@@ -1538,6 +1561,8 @@ export function openSqliteCheckpointJournal(root, {
         checkpoint.decision_subject_cid,
       requestedClaims: Object.freeze(
         JSON.parse(checkpoint.requested_claims_json)),
+      configurationCid: checkpoint.configuration_cid === '' ? null :
+        checkpoint.configuration_cid,
       observedClaims: Object.freeze([...approval.claims]),
       authority: approval.reviewer_id,
       approvalExpiresAt: approval.expires_at,
@@ -1597,7 +1622,7 @@ export function openSqliteCheckpointJournal(root, {
         }
         move('waiting_checkpoint', next.sealed.checkpoint_cid, '', '');
         insertCheckpoint(next.sealed, next.reviewers, next.bound, next.subject,
-          next.claims, atIso);
+          next.claims, next.configuration, atIso);
       } else if (run !== undefined) {
         // The approved preparation continuation creates the Run.
         if (statements.run.get(run.runId) !== undefined) {

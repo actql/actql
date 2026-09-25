@@ -27,7 +27,8 @@ const runtime = runtimeCore(moon);
 const control = runtime.remoteSiteControl;
 const transferControl = runtime.remoteTransferControl;
 const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
-const request = dispatchId => control.prepare({
+const request = (dispatchId, {connectorRegistration = 'local'} = {}) =>
+  control.prepare({
   coordinatorAuthority: 'coordinator-a',
   runDefinitionCid: cid('0'),
   taskKey: 'task-a',
@@ -36,7 +37,7 @@ const request = dispatchId => control.prepare({
   siteKey: 'site-a',
   siteGeneration: 1,
   runtimeBundleCid: cid('a'),
-  connectorRegistration: 'local',
+  connectorRegistration,
   connectorRevision: 'local/1',
   strategyRevision: 'strategy/1',
   inputBindingCid: cid('1'),
@@ -901,7 +902,8 @@ test('remote output egress is authorized before durable output and I/O',
 // through the gate's resume admission, entered synchronously after every
 // await and before the durable intent and the send. Counts are the product
 // send calls.
-async function resumedCoordinator(t, {now, send} = {}) {
+async function resumedCoordinator(t, {now, send,
+  entries = remoteEntries('delegate')} = {}) {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'coordinator-resume-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -910,7 +912,7 @@ async function resumedCoordinator(t, {now, send} = {}) {
   const clock = {ms: Date.parse('2026-09-25T10:00:00.000Z')};
   const deferral = await sqliteDeferral(journalRoot, {now: () => clock.ms});
   t.after(() => deferral.journal.close());
-  const gate = await fixtureAuthorization(remoteEntries('delegate'), {
+  const gate = await fixtureAuthorization(entries, {
     decide: view => ({decision: 'defer', subject: view.subject}),
     answeringAuthorities: ['reviewer'],
     deferral,
@@ -944,9 +946,9 @@ async function resumedCoordinator(t, {now, send} = {}) {
   catch (error) { waiting = error; }
   assert.equal(waiting?.code, 'ExecutionAuthorizationWaiting');
   const checkpoint = waiting.authorization.checkpoint;
-  const dispatch = async (dispatchId, resumption) => {
+  const dispatch = async (dispatchId, resumption, options) => {
     const before = sends.length;
-    const value = request(dispatchId);
+    const value = request(dispatchId, options);
     let error;
     try { await coordinator.dispatch({dispatch: value, resumption}); }
     catch (reason) { error = reason; }
@@ -954,7 +956,7 @@ async function resumedCoordinator(t, {now, send} = {}) {
       recorded: store.contains(value, control)};
   };
   return {
-    clock, deferral, gate, state, checkpoint, dispatch, sends,
+    clock, deferral, gate, state, checkpoint, dispatch, sends, store,
     claim: (claimant, leaseMs = 60_000) => deferral.journal.claimResume(
       checkpoint.runId, {claimant, leaseMs, binding: deferral.binding}),
   };
@@ -1111,3 +1113,135 @@ test('an entered resumed dispatch whose lease lapsed is reconciled, not restarte
     assert.equal(again.sends, 0);
     assert.equal(x.sends.length, 2);
   });
+
+// D-R5: an account allow on resume means no approval is needed for that
+// tuple, never that the continuation is anyone's to resume. The same
+// ownership admission (live claim, committed approval still valid,
+// unchanged configuration, single start per claim generation) applies.
+// The configuration defers `local` and allows `other` on the same Site, so
+// both are decided under one real configuration CID.
+const mixedEntries = () => [
+  accountEntry('remote-local', 'delegate', {connection: 'site-a',
+    resource: 'local', operation: 'write'}),
+  accountEntry('remote-other', 'allow', {connection: 'site-a',
+    resource: 'other', operation: 'write'}),
+];
+const allowed = {connectorRegistration: 'other'};
+
+test('an allowed resumed dispatch sends only for the live, valid claim',
+  async t => {
+    const x = await resumedCoordinator(t, {entries: mixedEntries()});
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+    // A fabricated claim, never taken from the journal.
+    refusedResume(await x.dispatch('allow-a', {claim: {action: 'claimed',
+      checkpointCid: x.checkpoint.checkpointCid,
+      claim: {runId: x.checkpoint.runId}}}, allowed), 'ResumeNotClaimed',
+    'fabricated');
+    refusedResume(await x.dispatch('allow-a', {claim: {action: 'claimed',
+      claim: {intentId: 'forged', claimant: 'coordinator-a',
+        generation: 1}}}, allowed), 'ResumeIntentNotFound', 'forged');
+    // Expired lease, then a superseded generation.
+    const first = x.claim('coordinator-a', 1000);
+    x.clock.ms += 1000;
+    refusedResume(await x.dispatch('allow-a', {claim: first}, allowed),
+      'ResumeClaimStale', 'expired');
+    const second = x.claim('coordinator-b');
+    refusedResume(await x.dispatch('allow-a', {claim: first}, allowed),
+      'ResumeClaimStale', 'superseded');
+    // The live claim sends exactly once, as an account allow.
+    const sent = await x.dispatch('allow-a', {claim: second}, allowed);
+    assert.equal(sent.error, undefined);
+    assert.equal(sent.sends, 1);
+    assert.equal(sent.recorded, true);
+    assert.equal(x.gate.counters().hostDecisionCalls, 1);
+    // The same claim generation cannot start a second protected dispatch.
+    refusedResume(await x.dispatch('allow-b', {claim: second}, allowed),
+      'ResumeAdmissionConsumed', 'second enter');
+    // A later claimant cannot restart it as a new dispatch either.
+    x.clock.ms += 60_000;
+    const third = x.claim('coordinator-c');
+    refusedResume(await x.dispatch('allow-c', {claim: third}, allowed),
+      'ReconciliationIdentityMismatch', 'restart');
+    assert.equal(x.sends.length, 1);
+  });
+
+test('an allowed resume refuses a handoff before the send and a lapsed approval',
+  async t => {
+    const x = await resumedCoordinator(t, {entries: mixedEntries()});
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved',
+      {approvalExpiresAt: '2026-09-25T12:00:00.000Z'});
+    const between = act => ({
+      authorize: (...args) => x.gate.authorize(...args),
+      async resume(...args) {
+        const decision = await x.gate.resume(...args);
+        assert.equal(decision.action, 'dispatch');
+        assert.equal(decision.basis, 'account_allow');
+        await new Promise(resolve => setImmediate(resolve));
+        act();
+        return decision;
+      },
+    });
+    const first = x.claim('coordinator-a', 1000);
+    let handed;
+    x.state.authorization = between(() => {
+      x.clock.ms += 1000;
+      handed = x.claim('coordinator-b', 86_400_000);
+    });
+    refusedResume(await x.dispatch('allow-handoff', {claim: first}, allowed),
+      'ResumeClaimStale', 'handoff');
+    assert.equal(handed.action, 'claimed');
+    // The approval's own permission lapses while the lease is live.
+    x.clock.ms = Date.parse('2026-09-25T12:00:00.000Z') - 1;
+    x.state.authorization = between(() => { x.clock.ms += 1; });
+    refusedResume(await x.dispatch('allow-handoff', {claim: handed}, allowed),
+      'ApprovalExpired', 'approval');
+    assert.equal(x.sends.length, 0);
+  });
+
+test('a configuration change while waiting refuses the resume, even to allow',
+  async t => {
+    const x = await resumedCoordinator(t);
+    await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+    const live = x.claim('coordinator-a');
+    // The tuple is now allowed by a different configuration (another real
+    // configuration CID): the continuation is not resumed under it.
+    const changed = await fixtureAuthorization(remoteEntries('allow'),
+      {deferral: x.deferral});
+    assert.notEqual(changed.configurationCid, x.gate.configurationCid);
+    x.state.authorization = changed;
+    refusedResume(await x.dispatch('changed', live),
+      'ResumeConfigurationChanged', 'allow');
+    // The same under a changed delegate configuration.
+    x.state.authorization = await fixtureAuthorization([
+      ...remoteEntries('delegate'),
+      accountEntry('unrelated', 'deny', {connection: 'site-z'})],
+    {deferral: x.deferral, answeringAuthorities: ['reviewer'],
+      decide: view => ({decision: 'defer', subject: view.subject})});
+    refusedResume(await x.dispatch('changed', live),
+      'ResumeConfigurationChanged', 'delegate');
+    // The unchanged configuration still resumes once with the live claim.
+    x.state.authorization = x.gate;
+    const sent = await x.dispatch('changed', live);
+    assert.equal(sent.error, undefined);
+    assert.equal(sent.sends, 1);
+    assert.equal(x.sends.length, 1);
+  });
+
+test('a resumed dispatch without its admission sends nothing', async t => {
+  const x = await resumedCoordinator(t, {entries: mixedEntries()});
+  await x.deferral.answer(x.checkpoint.checkpointCid, 'approved');
+  const live = x.claim('coordinator-a');
+  // An authorization that returns a resumed dispatch with no admission (as
+  // an allow did before D-R5) is refused before the durable intent.
+  x.state.authorization = {
+    authorize: (...args) => x.gate.authorize(...args),
+    async resume(...args) {
+      const {admission, ...decision} = await x.gate.resume(...args);
+      assert.equal(typeof admission.enter, 'function');
+      return Object.freeze(decision);
+    },
+  };
+  refusedResume(await x.dispatch('no-admission', live, allowed),
+    'ResumeAdmissionUnavailable', 'allow');
+  assert.equal(x.sends.length, 0);
+});

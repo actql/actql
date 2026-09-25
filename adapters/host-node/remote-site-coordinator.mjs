@@ -409,17 +409,15 @@ export function createRemoteSiteCoordinator({
     }
     return decision;
   };
-  // A decision taken from a committed approval (basis `resumed`) must carry
-  // its admission; an account allow needs no Resolution and has none.
-  // The admission records the durable dispatch identity. When an earlier
+  // Every resumed dispatch must carry its admission, whatever the account
+  // outcome: an allow needs no approval for the tuple but still resumes a
+  // continuation only through the live claim (called only with a
+  // `resumption`). The admission records the durable dispatch identity. When an earlier
   // claim generation already started a protected dispatch (its outcome is
   // unknown here), a fresh start is refused and the only path is physical
   // reconciliation: re-send that exact durable dispatch identity, which the
   // Site deduplicates. Another dispatch identity is refused before any send.
   const enterResumed = (decision, dispatchIdentity) => {
-    if (decision.admission === undefined && decision.basis !== 'resumed') {
-      return;
-    }
     if (typeof decision.admission?.enter !== 'function') {
       throw new ExecutionAuthorizationError(Object.freeze({...decision,
         action: 'failure', reason: 'adapter_error',

@@ -34,7 +34,6 @@ export function ensureCheckpointRuntime() {
   ensureReleaseBundle('checkpoint_runtime_node');
 }
 
-export const FIXTURE_CONFIGURATION_CID = `sha256:${'c'.repeat(64)}`;
 export const FIXTURE_CONTEXT = Object.freeze({
   principal: 'local-user',
   contextCid: `sha256:${'d'.repeat(64)}`,
@@ -76,8 +75,9 @@ export function accountConfiguration(entries, accountId = 'local-account') {
 export function fixtureAuthorization(entries, options = {}) {
   ensureAuthorizationRuntime();
   return createNodeAuthorizationGate({
+    // The gate takes the admitted configuration's own CID, so fixtures with
+    // different entries are different configurations.
     configuration: accountConfiguration(entries),
-    configurationCid: FIXTURE_CONFIGURATION_CID,
     context: FIXTURE_CONTEXT,
     ...options,
   });
