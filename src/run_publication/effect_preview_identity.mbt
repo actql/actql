@@ -551,6 +551,7 @@ pub fn derive_effect_preview_identities(
   }
   let cids = []
   let seen_effect_ids : Map[String, Bool] = Map([])
+  let seen_effect_identities : Map[String, Bool] = Map([])
   for index in 0..<members.length() {
     let effect = members[index]
     let effect_id = match @json.object_field(effect, "effect_id") {
@@ -561,6 +562,15 @@ pub fn derive_effect_preview_identities(
       return Err(InvalidMember)
     }
     seen_effect_ids[effect_id] = true
+    let effect_identity = match
+      @json.object_field(effect, "effect_identity_cid") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_identities.contains(effect_identity) {
+      return Err(InvalidMember)
+    }
+    seen_effect_identities[effect_identity] = true
     match
       effect_member_row_inventory(
         preview, effect, index, max_wire_bytes, max_nodes, max_depth,
@@ -620,6 +630,7 @@ pub fn admit_effect_preview_identity(
   let member_failure_policies : Array[String] = []
   let member_footprints : Array[EffectPreviewFootprintIdentity] = []
   let seen_effect_ids : Map[String, Bool] = Map([])
+  let seen_effect_identities : Map[String, Bool] = Map([])
   let row_cids : Array[Array[String]] = []
   let row_indices : Array[Map[String, Int]] = []
   let row_correlation_wires : Array[Array[String]] = []
@@ -640,6 +651,15 @@ pub fn admit_effect_preview_identity(
       return Err(InvalidMember)
     }
     seen_effect_ids[effect_id] = true
+    let effect_identity = match
+      @json.object_field(effect, "effect_identity_cid") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_identities.contains(effect_identity) {
+      return Err(InvalidMember)
+    }
+    seen_effect_identities[effect_identity] = true
     member_effect_ids.push(effect_id)
     let effect_kind = match @json.object_field(effect, "effect_kind") {
       Some(@json.String(value)) => value

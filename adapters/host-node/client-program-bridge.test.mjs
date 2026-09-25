@@ -1067,6 +1067,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
         targets, memberIds, memberIds.map((_, index) =>
           cid(String(index))), requestScope);
       const preview = previewFor([1, 2]);
+      const duplicateIdentity = JSON.parse(preview.wire);
+      duplicateIdentity.effects[1].effect_identity_cid =
+        duplicateIdentity.effects[0].effect_identity_cid;
+      assert.throws(() => checked(moon.strategyEffectPreviewIdentities(
+        canonicalJson(duplicateIdentity), 20000, 1000, 20)),
+      {code: 'MoonBitHostFailure'});
       const previewLimits = moon.clientProgramEffectPreviewInputLimits(
         20000, 1000, 20, 1000, 100, 20000, 1000, 20,
         2, 2, 100, 100);
@@ -1106,6 +1112,12 @@ test('owned update Plan matches approved rows and rejects altered intent',
         moon.clientProgramBindEffectPreviewInputs(
           owned, inputs, invocation, 0, conflicting.wire,
           conflicting.authoringCid, previewLimits)),
+      {code: 'MoonBitHostFailure'});
+      assert.throws(() => checked(
+        moon.clientProgramBindEffectPreviewInputs(
+          owned, inputs, invocation, 0,
+          canonicalJson(duplicateIdentity), preview.authoringCid,
+          previewLimits)),
       {code: 'MoonBitHostFailure'});
       const previewInputs = checked(
         moon.clientProgramBindEffectPreviewInputs(
