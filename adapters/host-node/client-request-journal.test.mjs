@@ -237,6 +237,28 @@ test('one durable Run dispatch reservation survives an unknown start',
       .revision, 1);
   });
 
+test('checked Result inventory stays with the durable Run', async t => {
+  const path = await directory(t);
+  const journal = openClientRequestJournal(path);
+  const definition = runDefinition('inventory-run');
+  const first = journal.acceptDefinition(identity(), {
+    tenantId: 'tenant-a', runDefinition: definition,
+    resultNames: ['answer'], lookupExpiresAt: expires,
+  }, moon, publicationControl);
+  assert.deepEqual(first.resultNames, ['answer']);
+  assert.throws(() => journal.acceptDefinition(identity(), {
+    tenantId: 'tenant-a', runDefinition: definition,
+    resultNames: ['different'], lookupExpiresAt: expires,
+  }, moon, publicationControl), {code: 'ClientRequestResultInventoryMismatch'});
+  journal.close();
+  const reopened = openClientRequestJournal(path);
+  t.after(() => reopened.close());
+  const retained = reopened.lookupRunDefinition(first.ref, moon,
+    publicationControl);
+  assert.deepEqual(retained.resultNames, ['answer']);
+  assert.equal(retained.dispatchReserved, false);
+});
+
 test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
   async t => {
     const path = await directory(t);

@@ -121,7 +121,7 @@ const columns = `authority_scope_cid, caller_request_id,
   logical_request_scope_cid, intent_fingerprint_cid,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
   tenant_id, run_definition_cid, run_definition_wire, revision,
-  lookup_expires_at`;
+  lookup_expires_at, result_names_json`;
 const selectColumns = `${columns}, dispatch_reserved`;
 
 export function openClientRequestJournal(directory, {
@@ -160,6 +160,7 @@ export function openClientRequestJournal(directory, {
         run_definition_wire TEXT,
         revision INTEGER NOT NULL CHECK (revision >= 0),
         lookup_expires_at TEXT NOT NULL,
+        result_names_json TEXT,
         dispatch_reserved INTEGER NOT NULL DEFAULT 0
           CHECK (dispatch_reserved IN (0, 1)),
         PRIMARY KEY (authority_scope_cid, caller_request_id)
@@ -170,6 +171,10 @@ export function openClientRequestJournal(directory, {
     if (!fields.some(field => field.name === 'run_definition_wire')) {
       database.exec('ALTER TABLE client_requests ADD COLUMN '
         + 'run_definition_wire TEXT');
+    }
+    if (!fields.some(field => field.name === 'result_names_json')) {
+      database.exec('ALTER TABLE client_requests ADD COLUMN '
+        + 'result_names_json TEXT');
     }
     if (!fields.some(field => field.name === 'dispatch_reserved')) {
       // An older journal may already have dispatched its accepted Runs.
@@ -203,14 +208,14 @@ export function openClientRequestJournal(directory, {
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
   const insert = database.prepare(`INSERT INTO client_requests (${columns})
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const reserve = database.prepare(`UPDATE client_requests
     SET dispatch_reserved = 1, revision = revision + 1
     WHERE authority_scope_cid = ? AND caller_request_id = ? AND
       dispatch_reserved = 0`);
 
   const acceptRecord = (identity, {tenantId, runDefinitionCid,
-    runDefinitionWire, revision = 0, lookupExpiresAt}, control) => {
+    runDefinitionWire, resultNames, revision = 0, lookupExpiresAt}, control) => {
     ensureOpen();
     if (!control || typeof control.clientRequestAdmitRecord !== 'function' ||
         typeof control.clientRequestRelation !== 'function') {
@@ -223,6 +228,11 @@ export function openClientRequestJournal(directory, {
             Buffer.byteLength(runDefinitionWire, 'utf8') >
               maxRunDefinitionWireBytes) ||
         !Number.isSafeInteger(revision) || revision < 0 ||
+        resultNames !== undefined && (!Array.isArray(resultNames) ||
+          resultNames.length === 0 || resultNames.length > 100 ||
+          resultNames.some(name => typeof name !== 'string' || !name) ||
+          new Set(resultNames).size !== resultNames.length ||
+          Buffer.byteLength(JSON.stringify(resultNames)) > 8192) ||
         !instant(lookupExpiresAt) ||
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
@@ -245,10 +255,17 @@ export function openClientRequestJournal(directory, {
             existing.run_definition_wire === null) {
           fail('ClientRequestDefinitionMissing');
         }
+        if (resultNames !== undefined &&
+            existing.result_names_json !== null &&
+            existing.result_names_json !== JSON.stringify(resultNames)) {
+          fail('ClientRequestResultInventoryMismatch');
+        }
         database.exec('COMMIT');
         return Object.freeze({inserted: false, ...admission(existing),
           ...(runDefinitionWire === undefined ? {} :
-            {runDefinitionWire: existing.run_definition_wire})});
+            {runDefinitionWire: existing.run_definition_wire}),
+          resultNames: existing.result_names_json === null ? undefined :
+            JSON.parse(existing.result_names_json)});
       }
       if (Number(count.get().n) >= maxRecords) {
         fail('ClientRequestJournalCapacity');
@@ -260,13 +277,15 @@ export function openClientRequestJournal(directory, {
         fields.logicalRequestScopeCid, fields.intentFingerprintCid,
         fields.programDefinitionCid, fields.parameterValuesCid,
         fields.callerInputIntentCid, tenantId, runDefinitionCid,
-        runDefinitionWire ?? null, revision, lookupExpiresAt);
+        runDefinitionWire ?? null, revision, lookupExpiresAt,
+        resultNames === undefined ? null : JSON.stringify(resultNames));
       database.exec('COMMIT');
       return Object.freeze({inserted: true, ref: Object.freeze({
         tenantId, authorityScopeCid: fields.authorityScopeCid,
         runDefinitionCid,
       }), durability: 'durable', revision, lookupExpiresAt,
-      ...(runDefinitionWire === undefined ? {} : {runDefinitionWire})});
+      ...(runDefinitionWire === undefined ? {} : {runDefinitionWire}),
+      resultNames});
     } catch (error) {
       try { database.exec('ROLLBACK'); }
       catch (rollback) {
@@ -312,20 +331,21 @@ export function openClientRequestJournal(directory, {
     // transaction as the request. The caller must have obtained it from the
     // shared Run issuer; re-admission here checks identity, not authority.
     // Reattachment never reissues this identity.
-    acceptDefinition(identity, {tenantId, runDefinition, revision = 0,
-      lookupExpiresAt}, requestControl, publicationControl) {
+    acceptDefinition(identity, {tenantId, runDefinition, resultNames,
+      revision = 0, lookupExpiresAt}, requestControl, publicationControl) {
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
       const accepted = acceptRecord(identity, {tenantId,
         runDefinitionCid: definition.identity,
         runDefinitionWire: definition.wire,
-        revision, lookupExpiresAt}, requestControl);
+        resultNames, revision, lookupExpiresAt}, requestControl);
       return Object.freeze({
         inserted: accepted.inserted,
         ref: accepted.ref,
         durability: accepted.durability,
         revision: accepted.revision,
         lookupExpiresAt: accepted.lookupExpiresAt,
+        resultNames: accepted.resultNames,
         runDefinition: retainedRunDefinition({
           run_definition_cid: accepted.ref.runDefinitionCid,
           run_definition_wire: accepted.runDefinitionWire,
@@ -343,6 +363,9 @@ export function openClientRequestJournal(directory, {
       return Object.freeze({...retained.found,
         runDefinition: retainedRunDefinition(
           retained.row, publicationControl, maxRunDefinitionWireBytes),
+        resultNames: retained.row.result_names_json === null ? undefined :
+          JSON.parse(retained.row.result_names_json),
+        dispatchReserved: retained.row.dispatch_reserved === 1,
       });
     },
     // Attach reads the original accepted Run Definition by its exact ref.
@@ -369,6 +392,9 @@ export function openClientRequestJournal(directory, {
       return Object.freeze({
         ref: accepted.ref, durability: accepted.durability,
         revision: accepted.revision,
+        resultNames: row.result_names_json === null ? undefined :
+          JSON.parse(row.result_names_json),
+        dispatchReserved: row.dispatch_reserved === 1,
         runDefinition: retainedRunDefinition(
           row, publicationControl, maxRunDefinitionWireBytes),
       });
@@ -397,6 +423,9 @@ export function openClientRequestJournal(directory, {
       return Object.freeze({...retained.found,
         runDefinition: retainedRunDefinition(
           retained.row, publicationControl, maxRunDefinitionWireBytes),
+        resultNames: retained.row.result_names_json === null ? undefined :
+          JSON.parse(retained.row.result_names_json),
+        dispatchReserved: retained.row.dispatch_reserved === 1,
       });
     },
     // Physical admit-or-lookup ordering for a checked request. The common
@@ -404,7 +433,7 @@ export function openClientRequestJournal(directory, {
     // the callback may issue authority but must not start Compute. A racing
     // issuer is discarded when the atomic insert finds an existing Run.
     async admitOrLookupDefinition(identity, {tenantId, lookupExpiresAt,
-      issueDefinition}, requestControl, publicationControl) {
+      issueDefinition, resultNames}, requestControl, publicationControl) {
       if (!text(tenantId) || !instant(lookupExpiresAt) ||
           Date.parse(lookupExpiresAt) <= Date.now() ||
           typeof issueDefinition !== 'function') {
@@ -417,7 +446,7 @@ export function openClientRequestJournal(directory, {
       }
       const runDefinition = await issueDefinition();
       return journal.acceptDefinition(identity, {tenantId, runDefinition,
-        lookupExpiresAt}, requestControl, publicationControl);
+        lookupExpiresAt, resultNames}, requestControl, publicationControl);
     },
     // One physical transaction applies the common MoonBit start decision.
     // A committed reservation records possible dispatch before any work. A
