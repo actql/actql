@@ -284,6 +284,7 @@ test('Host preflight checks guards across unordered Effect members', () => {
     member('first', 'row-a', cid('8'), cid('3')),
     member('second', 'row-b', cid('9'), cid('5')),
   ];
+  members[1].effect_identity_cid = cid('b');
   members[1].write_footprint.provider_object_identity_cids = [cid('2')];
   const preview = {
     version: 'actql-effect-preview/0.1', sensitivity: 'private',
