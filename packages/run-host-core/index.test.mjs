@@ -37,6 +37,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   executionShape,
   resultDefinitions, resultSchema,
   issueSourceFreeInvocation,
+  admitCompletedSourceObservation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire,
   resultReadAvailability,
   prepareRunStart,
@@ -55,6 +56,57 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('acquired observation binds the checked source and completed input',
+  () => {
+    const sourceContractCid = cid({source: 'checked'});
+    const authorityScopeCid = cid({scope: 'local'});
+    const other = cid({fixture: 'evidence'});
+    const sourceRef = 'connector://crm/main/r#v';
+    const limits = {maxWireBytes: 8192, maxNodes: 256, maxDepth: 16};
+    const ordering = {stable: false, keys: []};
+    const logical = sealRunEvidenceValue('source_input_logical',
+      JSON.stringify({version: 'actql-source-input-logical/0.1',
+        logical_relation_cid: other, relation_schema_cid: other,
+        source_contract_cid: sourceContractCid, completeness: 'complete',
+        ordering_evidence: ordering}), limits);
+    const evidence = sealRunEvidenceValue('source_evidence', JSON.stringify({
+      version: 'actql-source-evidence/0.1', source_ref: sourceRef,
+      input_logical_cid: logical.cid, source_contract_cid: sourceContractCid,
+      schema_evidence_cid: other, capability_evidence_cid: other,
+      authority_scope_cid: authorityScopeCid,
+      source_data_policy_cid: other, effective_data_policy_cid: other,
+      data_classification: 'internal', source_view_contract_cid: other,
+      output_carrier: 'relation', read_mode: 'snapshot',
+      observed_at: '2026-09-26T00:00:00.000Z', snapshot_ref: 'snapshot-1',
+      completeness: 'complete', ordering_evidence: ordering,
+      consistency_level: 'snapshot',
+    }), limits);
+    const facts = {sourceEvidenceWire: evidence.wire,
+      inputLogicalWire: logical.wire, sourceRef, sourceContractCid,
+      authorityScopeCid, limits};
+    assert.equal(admitCompletedSourceObservation(facts), evidence.cid);
+    assert.throws(() => admitCompletedSourceObservation({...facts,
+      sourceRef: 'connector://foreign'}),
+    {code: 'RunHostSourceObservationRejected'});
+    assert.throws(() => admitCompletedSourceObservation({...facts,
+      authorityScopeCid: other}),
+    {code: 'RunHostSourceObservationRejected'});
+    const foreignInput = sealRunEvidenceValue('source_input_logical',
+      JSON.stringify({...JSON.parse(logical.wire),
+        input_logical_cid: undefined,
+        logical_relation_cid: cid({rows: 'foreign'})}), limits);
+    assert.throws(() => admitCompletedSourceObservation({...facts,
+      inputLogicalWire: foreignInput.wire}),
+    {code: 'RunHostSourceObservationRejected'});
+    const partial = sealRunEvidenceValue('source_evidence', JSON.stringify({
+      ...JSON.parse(evidence.wire), source_evidence_cid: undefined,
+      completeness: 'partial',
+    }), limits);
+    assert.throws(() => admitCompletedSourceObservation({...facts,
+      sourceEvidenceWire: partial.wire}),
+    {code: 'RunHostSourceObservationRejected'});
+  });
 
 test('checked acquired Program issues and re-admits its task Run', () => {
   const source = readFileSync(new URL(

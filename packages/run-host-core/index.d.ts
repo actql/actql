@@ -408,6 +408,15 @@ export function issueSourceFreeInvocation(prepared: PreparedProgram,
     observation: RunEvidence;
     invocation: PublicationContract;
   }>;
+/** Bind observed source evidence to a completed captured input and scope. */
+export function admitCompletedSourceObservation(facts: Readonly<{
+  sourceEvidenceWire: string;
+  inputLogicalWire: string;
+  sourceRef: string;
+  sourceContractCid: string;
+  authorityScopeCid: string;
+  limits: PublicationLimits;
+}>): string;
 export interface ValuesSiteSelection {
   readonly taskAttempt: number;
   readonly dispatchId: string;

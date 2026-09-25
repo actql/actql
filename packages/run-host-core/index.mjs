@@ -691,6 +691,24 @@ export function issueSourceFreeInvocation(prepared, compilation, admission,
   return Object.freeze({observation, invocation});
 }
 
+// Source Evidence may enter an acquired task Run only when the admitted
+// logical input, checked source, and current Host scope agree. The Host still
+// owns authorization and the live capture; this identity grants neither.
+export function admitCompletedSourceObservation({sourceEvidenceWire,
+  inputLogicalWire, sourceRef, sourceContractCid, authorityScopeCid,
+  limits}) {
+  if ([sourceEvidenceWire, inputLogicalWire, sourceRef,
+    sourceContractCid, authorityScopeCid].some(value =>
+    typeof value !== 'string')) {
+    throw new TypeError('InvalidRunHostSourceObservation');
+  }
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  return checked(owner.clientValuesHostAdmitCompletedSourceObservation(
+    sourceEvidenceWire, inputLogicalWire, sourceRef, sourceContractCid,
+    authorityScopeCid, maxWireBytes, maxNodes, maxDepth),
+  'RunHostSourceObservationRejected');
+}
+
 const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
   'siteGeneration', 'runtimeBundleCid', 'connectorRegistration',
   'connectorRevision', 'strategyRevision', 'obligationsCid', 'budgetCid',

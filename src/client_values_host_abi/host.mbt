@@ -613,6 +613,43 @@ pub fn client_values_host_issue_source_free_invocation(
 }
 
 ///|
+/// Re-admit observed input wires in the common owner before a task Run may
+/// incorporate the source into its Observation Set. The Host supplies the
+/// checked source and current scope, not caller-controlled CID assertions.
+#export_name("clientValuesHostAdmitCompletedSourceObservation")
+pub fn client_values_host_admit_completed_source_observation(
+  source_evidence_wire : String,
+  input_logical_wire : String,
+  source_ref : String,
+  source_contract_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.SourceInputObservationIssue] {
+  let source = match
+    @publication.admit_run_evidence_value(
+      "source_evidence", source_evidence_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err(@publication.SourceInputObservationIssue::WrongContract)
+  }
+  let input = match
+    @publication.admit_run_evidence_value(
+      "source_input_logical", input_logical_wire, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) =>
+      return Err(@publication.SourceInputObservationIssue::WrongContract)
+  }
+  @publication.admit_completed_source_observation_binding(
+    source, input, source_ref, source_contract_cid, authority_scope_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientValuesHostAdmitRunEvidenceValue")
 pub fn client_values_host_admit_run_evidence_value(
   name : String,
