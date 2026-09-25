@@ -11,6 +11,6 @@
       "types": "./host-port.d.ts", "default": "./host-port.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "host-port.mjs",
+  "files": ["index.mjs", "index.d.ts", "checkpoints.mjs", "host-port.mjs",
     "host-port.d.ts", "README.md"]
 }

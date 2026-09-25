@@ -1,6 +1,6 @@
 import type {Client, ConnectionOptions, Durability} from '@actql/sdk';
 
-export {ClientError} from '@actql/sdk';
+export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
   ConfirmedProfile, ReadOptions, RequestLookup,
   DeliveryAttemptLookup} from '@actql/sdk';
