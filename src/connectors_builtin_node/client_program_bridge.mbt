@@ -590,6 +590,40 @@ pub fn client_program_local_effect_result_ordering_json(
 }
 
 ///|
+#export_name("clientProgramIssueLocalEffectResultManifest")
+pub fn client_program_issue_local_effect_result_manifest(
+  owner : @publication_host.PreparedClientEffectComputation,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalManifest,
+  @publication_host.ClientEffectLocalManifestIssue,
+] {
+  @publication_host.issue_client_effect_local_manifest(
+    owner, invocation, artifacts, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectResultManifestCid")
+pub fn client_program_local_effect_result_manifest_cid(
+  value : @publication_host.ClientEffectLocalManifest,
+) -> String {
+  @publication_host.client_effect_local_manifest_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectResultManifestJson")
+pub fn client_program_local_effect_result_manifest_json(
+  value : @publication_host.ClientEffectLocalManifest,
+) -> String {
+  @publication_host.client_effect_local_manifest_json(value)
+}
+
+///|
 #export_name("clientProgramIssueSourceFreeLocalEffectIdentity")
 pub fn client_program_issue_source_free_local_effect_identity(
   owner : @publication_host.PreparedClientEffectComputation,

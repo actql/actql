@@ -127,6 +127,7 @@ export async function preparePinnedEffectSourcePayload({
         contractLimits[key] > 0) ||
       typeof control?.issueEffectSourceArtifactFromExport !== 'function' ||
       typeof control?.issueSourceFreeLocalEffectResultArtifact !== 'function' ||
+      typeof control?.issueLocalEffectResultManifest !== 'function' ||
       typeof sourceBindingCid !== 'string' ||
       !['scopeCid', 'effectiveDataPolicyCid', 'authorityScopeCid'].every(
         key => /^sha256:[0-9a-f]{64}$/u.test(localEvidenceContext?.[key])) ||
@@ -261,6 +262,9 @@ export async function preparePinnedEffectSourcePayload({
       checked(moon.clientProgramEffectProposalFinish(plan,
         summary.rowCount));
     }
+    const localManifest = control.issueLocalEffectResultManifest(
+      checkedOwner, localInvocationToken, [localResultArtifact],
+      contractLimits);
     const physicalCid = `sha256:${digest.digest('hex')}`;
     sealed = await writer.seal(physicalCid);
     if (sealed.cid !== physicalCid || sealed.bytes !== byteCount) {
@@ -271,6 +275,7 @@ export async function preparePinnedEffectSourcePayload({
       localResultDefinition,
       localInvocation,
       localResultArtifact,
+      localManifest,
       physical: Object.freeze({cid: sealed.cid, bytes: sealed.bytes}),
       prepared: sealed.prepared,
     });

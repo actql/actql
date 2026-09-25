@@ -1651,6 +1651,7 @@ function publicationControl(moon) {
   const effectSourceTokens = new WeakMap();
   const localEffectArtifactTokens = new WeakMap();
   const localEffectIdentityTokens = new WeakMap();
+  const localEffectManifestTokens = new WeakMap();
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
@@ -1967,6 +1968,28 @@ function publicationControl(moon) {
         orderingWire: moon.clientProgramLocalEffectResultOrderingJson(issued),
       });
       localEffectArtifactTokens.set(value, issued);
+      return value;
+    },
+    issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
+      issuanceLimits(limits, 'local Effect Result Manifest');
+      if (!Array.isArray(artifacts) || artifacts.length === 0) {
+        throw new TypeError('Invalid local Effect Result Manifest');
+      }
+      const owned = artifacts.map(artifact => {
+        const token = localEffectArtifactTokens.get(artifact);
+        if (token === undefined) {
+          throw new TypeError('Foreign local Effect Result Artifact');
+        }
+        return token;
+      });
+      const issued = checked(moon.clientProgramIssueLocalEffectResultManifest(
+        owner, invocation, owned, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth));
+      const value = Object.freeze({
+        identity: moon.clientProgramLocalEffectResultManifestCid(issued),
+        wire: moon.clientProgramLocalEffectResultManifestJson(issued),
+      });
+      localEffectManifestTokens.set(value, issued);
       return value;
     },
     issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,

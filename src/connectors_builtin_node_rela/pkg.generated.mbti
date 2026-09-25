@@ -225,6 +225,8 @@ pub fn client_program_issue_effect_source_artifact(@physical_strategy.CapturedEf
 
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
+pub fn client_program_issue_local_effect_result_manifest(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalManifestIssue]
+
 pub fn client_program_issue_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesAoAIdentity, @run_publication_host.ClientValuesAoAIdentityIssue]
 
 pub fn client_program_issue_local_values_fragment(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
@@ -268,6 +270,10 @@ pub fn client_program_local_effect_result_definition_cid(@run_publication_host.C
 pub fn client_program_local_effect_result_definition_json(@run_publication_host.ClientEffectLocalResultDefinition) -> String
 
 pub fn client_program_local_effect_result_derivation_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
+
+pub fn client_program_local_effect_result_manifest_cid(@run_publication_host.ClientEffectLocalManifest) -> String
+
+pub fn client_program_local_effect_result_manifest_json(@run_publication_host.ClientEffectLocalManifest) -> String
 
 pub fn client_program_local_effect_result_ordering_json(@run_publication_host.ClientEffectLocalResultArtifact) -> String
 

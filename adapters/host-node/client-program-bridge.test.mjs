@@ -837,7 +837,9 @@ test('admitted source-free Effect Run computes through the installed Host',
           control: {issueEffectSourceArtifactFromExport() {
             throw new Error('SourceArtifactRejected');
           }, issueSourceFreeLocalEffectResultArtifact:
-            control.issueSourceFreeLocalEffectResultArtifact},
+            control.issueSourceFreeLocalEffectResultArtifact,
+          issueLocalEffectResultManifest:
+            control.issueLocalEffectResultManifest},
           invocation: invocationContract, retention,
           sourceBindingCid: cid('c'), contractLimits: publicationLimits,
           localEvidenceContext: {scopeCid: cid('3'),
@@ -985,6 +987,28 @@ test('admitted source-free Effect Run computes through the installed Host',
           sourcePayload.summary.schemaCid);
         assert.equal(localArtifact.actual_row_count,
           sourcePayload.summary.rowCount);
+        const localManifest = JSON.parse(sourcePayload.localManifest.wire);
+        assert.equal(localManifest.version,
+          'actql-local-result-manifest/0.1');
+        assert.equal(localManifest.self_cid,
+          sourcePayload.localManifest.identity);
+        assert.equal(localManifest.local_invocation_cid,
+          sourcePayload.localInvocation.identity);
+        assert.deepEqual(localManifest.results,
+          {rows: sourcePayload.localResultArtifact.identity});
+        const localManifestPreimage = {...localManifest};
+        delete localManifestPreimage.self_cid;
+        assert.equal(sourcePayload.localManifest.identity,
+          `sha256:${createHash('sha256')
+            .update(JSON.stringify(localManifestPreimage))
+            .digest('hex')}`);
+        assert.throws(() => control.issueLocalEffectResultManifest(
+          prepared, capturedInvocation, [], publicationLimits),
+        {name: 'TypeError'});
+        assert.throws(() => control.issueLocalEffectResultManifest(
+          foreignPrepared, capturedInvocation,
+          [sourcePayload.localResultArtifact], publicationLimits),
+        {code: 'MoonBitHostFailure'});
         const localIdentity = control.issueSourceFreeLocalEffectIdentity(
           prepared, inputs, 0, sourcePayload.localResultArtifact,
           {maxWork: 100, maxWireBytes: 4096, maxNodes: 100,

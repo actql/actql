@@ -54,9 +54,11 @@ identity from the opaque Artifact owner rather than a caller-supplied CID.
 The product Preview author now verifies the issued identities against all
 admitted Result-consuming Preview members in the common MoonBit owner. A
 missing or foreign opaque identity fails authoring; a semantic Preview CID
-alone is not accepted as proof of issuance. The next shared connection must
-retain and admit each issued local Result Artifact in the exact durable
-Effect-source inventory and recheck identity at apply and restart. The current
+alone is not accepted as proof of issuance. The source-free export now also
+issues a complete local Result Manifest from the checked Unit, exact local
+Invocation, and opaque local Artifact owner. That Manifest is not yet
+persisted in Captured Run. The next shared connection must retain and admit
+the exact local inventory and recheck identity at apply and restart. The current
 private Effect-source Artifact is Run-bound custody evidence and cannot be
 silently substituted for the local semantic Result Artifact. Foreign member,
 source, or Invocation evidence must fail before the first write. Units with
@@ -77,7 +79,7 @@ occurrence, and the Host test rejects a different live export and a released
 receipt without another row scan or hash.
 The private Effect-source Artifact remains separate Run-bound custody evidence.
 The local Artifact and its witnesses are not yet retained in a durable exact
-Effect-source inventory or admitted to the completed local Manifest, and
+Effect-source inventory, and
 supplied scope, policy, authority, and retention references still require
 typed resolution against the admitted Run before that admission can succeed.
 Units with imported or external observations still need their corresponding

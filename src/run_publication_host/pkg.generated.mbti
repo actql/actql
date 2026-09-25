@@ -74,6 +74,12 @@ pub fn client_effect_local_invocation_json(ClientEffectLocalInvocation) -> Strin
 
 pub fn client_effect_local_invocation_matches(ClientEffectLocalInvocation, PreparedClientEffectComputation, Int) -> Bool
 
+pub fn client_effect_local_manifest_cid(ClientEffectLocalManifest) -> String
+
+pub fn client_effect_local_manifest_json(ClientEffectLocalManifest) -> String
+
+pub fn client_effect_local_manifest_matches(ClientEffectLocalManifest, PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact]) -> Bool
+
 pub fn client_effect_local_result_artifact_cid(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact) -> String
@@ -167,6 +173,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
+
+pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
 
 pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
 
@@ -316,6 +324,17 @@ pub(all) enum ClientEffectLocalInvocationIssue {
   NotSourceFree
   ForeignCapturedInput
   MissingCapturedInput
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientEffectLocalManifest
+
+pub(all) enum ClientEffectLocalManifestIssue {
+  ForeignInvocation
+  MissingUnit
+  IncompleteResults
+  ForeignArtifact
+  DuplicateResult
   Encoding
 } derive(Eq, @debug.Debug)
 
