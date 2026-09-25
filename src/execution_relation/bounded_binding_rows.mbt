@@ -283,6 +283,18 @@ priv struct BoundedBindingRowsState {
   json_path : Array[String]?
   json_source_column : Int
   json_output_name : String
+  watermark : (
+    Int,
+    Bool,
+    @relation.LatePolicy,
+    @lower.PreparedWatermarkThreshold,
+  )?
+  mut watermark_times : Array[Double]
+  mut watermark_prefix_max : Double
+  mut watermark_has_prefix : Bool
+  mut watermark_checked : Bool
+  mut watermark_current : Double
+  mut watermark_late : Bool
   mut json_current : @admitted.Value?
   mut json_picked : Value?
   mut json_segment : Int
@@ -451,6 +463,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.checked_row = []
   state.json_current = None
   state.json_picked = None
+  state.watermark_times = []
   state.workspace.live = 0
   if !state.accepted.val {
     state.rows.val = None
@@ -698,6 +711,31 @@ fn bounded_binding_rows_step(
           state.charge_column += 1
           used += 1
         } else {
+          if state.watermark is Some((column, timestamp, _, _)) {
+            if !spend_control(state.control, 1) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            guard bounded_binding_input_cell(
+                state.input,
+                state.charge_row,
+                column,
+              )
+              is Some(value) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            let time = match
+              window_time_milliseconds(value, timestamp, state.control) {
+              Ok(time) => time
+              Err(issue) =>
+                return fail_bounded_binding_rows(
+                  Rows(window_time_row_issue(issue, state.charge_row)),
+                  progress,
+                  used,
+                )
+            }
+            state.watermark_times.push(time)
+            used += 1
+          }
           if state.take_range is Some(_) && !spend_control(state.control, 1) {
             return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
           }
@@ -988,6 +1026,47 @@ fn bounded_binding_rows_step(
         }
         if state.row == count {
           state.phase = FinishOutput
+          continue
+        }
+        if state.watermark is Some((_, _, policy, threshold)) &&
+          !state.watermark_checked {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          guard state.watermark_times.get(state.row) is Some(time) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          let watermark = match threshold {
+            @lower.FixedWatermark(value) => value
+            @lower.PrefixWatermark(skew, _) => {
+              if !state.watermark_has_prefix ||
+                time > state.watermark_prefix_max {
+                state.watermark_prefix_max = time
+                state.watermark_has_prefix = true
+              }
+              let value = state.watermark_prefix_max - skew.to_double()
+              if value.is_nan() || value.is_inf() {
+                return fail_bounded_binding_rows(
+                  Rows(WindowArithmetic(state.row)),
+                  progress,
+                  used,
+                )
+              }
+              if value == 0.0 {
+                0.0
+              } else {
+                value
+              }
+            }
+          }
+          state.watermark_current = watermark
+          state.watermark_late = time < watermark
+          if state.watermark_late && policy is @relation.DropLate {
+            state.row += 1
+          } else {
+            state.watermark_checked = true
+          }
+          used += 1
           continue
         }
         if state.partition_limit is Some(limit) && !state.partition_checked {
@@ -1373,6 +1452,16 @@ fn bounded_binding_rows_step(
               None =>
                 if name == state.json_output_name {
                   state.json_picked
+                } else if state.watermark is Some(_) {
+                  match name {
+                    "watermark_ms" => Some(Number(state.watermark_current))
+                    "watermark_late" => Some(Boolean(state.watermark_late))
+                    "watermark_decision" =>
+                      Some(
+                        Text(if state.watermark_late { "mark" } else { "keep" }),
+                      )
+                    _ => None
+                  }
                 } else {
                   None
                 }
@@ -1468,6 +1557,7 @@ fn bounded_binding_rows_step(
         state.json_name_offset = 0
         state.json_name_open = false
         state.json_name_matches = true
+        state.watermark_checked = false
         state.row += 1
         state.partition_checked = false
         state.phase = BeginRow
@@ -1491,6 +1581,10 @@ fn bounded_binding_rows_step(
         if state.sorted_indices is Some(_) {
           release_slots(state.workspace, count)
           state.sorted_indices = None
+        }
+        if state.watermark is Some(_) {
+          release_slots(state.workspace, state.watermark_times.length())
+          state.watermark_times = []
         }
         if state.distinct {
           release_slots(state.workspace, state.distinct_keep.length())
@@ -1633,6 +1727,7 @@ fn start_bounded_binding_rows_with_input(
       ([], false, Some(expression), false, None, None)
     @lower.AssertUnique(_) => ([], false, None, false, None, None)
     @lower.JsonPick(_, _, _) => ([], false, None, false, None, None)
+    @lower.Watermark(_, _, _, _) => ([], false, None, false, None, None)
     @lower.Select(_) => ([], false, None, true, None, None)
     @lower.DistinctRows => ([], false, None, false, None, None)
     @lower.StableSort(_) =>
@@ -1722,6 +1817,10 @@ fn start_bounded_binding_rows_with_input(
       Some((@schema.reference_name(column), path, output))
     _ => None
   }
+  let watermark_kind = body is @lower.Watermark(_, _, _, _)
+  if watermark_kind && output_width != input_width + 3 {
+    return Err(InvalidExecution)
+  }
   if json_pick is Some((_, path, _)) &&
     (path.is_empty() || output_width != input_width + 1) {
     return Err(InvalidExecution)
@@ -1734,10 +1833,17 @@ fn start_bounded_binding_rows_with_input(
     !distinct &&
     unique_keys is None &&
     json_pick is None &&
+    !watermark_kind &&
     bindings.length() != binding_count {
     return Err(InvalidExecution)
   }
-  if (select_mode || take_range is Some(_) || distinct || json_pick is Some(_)) &&
+  if (
+      select_mode ||
+      take_range is Some(_) ||
+      distinct ||
+      json_pick is Some(_) ||
+      watermark_kind
+    ) &&
     !admit_metadata(output_width) {
     return Err(InvalidExecution)
   }
@@ -1764,7 +1870,8 @@ fn start_bounded_binding_rows_with_input(
     !distinct &&
     unique_keys is None &&
     take_range is None &&
-    json_pick is None {
+    json_pick is None &&
+    !watermark_kind {
     guard logical is Some(logical) else { return Err(InvalidExecution) }
     match
       admit_logical_rows(
@@ -1787,6 +1894,15 @@ fn start_bounded_binding_rows_with_input(
       return Err(InvalidExecution)
     }
     input_ordinals[name] = index
+  }
+  let watermark = match body {
+    @lower.Watermark(time, timestamp, policy, threshold) => {
+      guard input_ordinals.get(@schema.reference_name(time)) is Some(column) else {
+        return Err(InvalidExecution)
+      }
+      Some((column, timestamp, policy, threshold))
+    }
+    _ => None
   }
   let binding_ordinals : Map[String, Int] = Map([])
   for index, binding in bindings {
@@ -1868,6 +1984,21 @@ fn start_bounded_binding_rows_with_input(
       }
       Some(projection)
     }
+    @lower.Watermark(_, _, _, _) => {
+      let projection : Map[String, Int] = Map([])
+      for name in input_names {
+        guard input_ordinals.get(name) is Some(index) else {
+          return Err(InvalidExecution)
+        }
+        projection[name] = index
+      }
+      if !output_names.contains("watermark_ms") ||
+        !output_names.contains("watermark_late") ||
+        !output_names.contains("watermark_decision") {
+        return Err(InvalidExecution)
+      }
+      Some(projection)
+    }
     _ => None
   }
   let output = match
@@ -1909,7 +2040,11 @@ fn start_bounded_binding_rows_with_input(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
-  if !reserve_slots(workspace, metadata_entries) {
+  if !reserve_slots(workspace, metadata_entries) ||
+    (
+      watermark_kind &&
+      !reserve_slots(workspace, bounded_binding_input_row_count(input))
+    ) {
     cancel_admitted_output(output) |> ignore
     return Err(Rows(RowLimit))
   }
@@ -1940,6 +2075,13 @@ fn start_bounded_binding_rows_with_input(
       Some((_, _, output)) => output
       None => ""
     },
+    watermark,
+    watermark_times: [],
+    watermark_prefix_max: 0.0,
+    watermark_has_prefix: false,
+    watermark_checked: false,
+    watermark_current: 0.0,
+    watermark_late: false,
     json_current: None,
     json_picked: None,
     json_segment: -1,

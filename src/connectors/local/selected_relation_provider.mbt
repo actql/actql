@@ -10,6 +10,7 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
     | @lower.Filter(_)
     | @lower.JsonPick(_, _, _)
     | @lower.Select(_)
+    | @lower.Watermark(_, _, _, _)
     | @lower.DistinctRows
     | @lower.StableSort(_)
     | @lower.TopK(_, _)

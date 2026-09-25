@@ -100,7 +100,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | TopK(_)
     | TopKBy(_)
     | Distinct(_) => true
-    RowWindow(_) | Unpivot(_) | Unnest(_) | JsonPick(_) => true
+    RowWindow(_) | Watermark(_) | Unpivot(_) | Unnest(_) | JsonPick(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
@@ -123,6 +123,7 @@ pub fn node_supports_bounded_managed_prefix(
     | (Values(_), Sort(_))
     | (Values(_), Limit(_))
     | (Values(_), RowWindow(_))
+    | (Values(_), Watermark(_))
     | (Values(_), Unpivot(_))
     | (Values(_), Unnest(_))
     | (Values(_), JsonPick(_))
@@ -178,6 +179,7 @@ pub fn node_accepts_managed_relation_view(
     | TopKBy(_)
     | Distinct(_)
     | RowWindow(_)
+    | Watermark(_)
     | JsonPick(_) => true
     Unpivot(_) | Unnest(_) => true
     AssertRows(_) =>
