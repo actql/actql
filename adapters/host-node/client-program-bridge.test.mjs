@@ -443,6 +443,26 @@ test('installed Effect preparation retains the checked Program owner',
     {code: 'ClientProgramUnsupported'});
   });
 
+test('checked Effect member resolution is Stage-scoped', async () => {
+  const fixture = await effectFixture({splitSource: true,
+    memberIds: ['late'], sourceIds: ['record-a', 'record-b']});
+  const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+    fixture.document, 'json', fixture.environment, undefined, []);
+  const prepared = moon.clientProgramEffectPreparationReady(outcome);
+  assert.ok(prepared,
+    moon.clientProgramEffectPreparationIssueCode(outcome));
+  const late = checked(moon.clientProgramEffectMemberDescriptor(
+    prepared, 2, 'late', 100));
+  assert.equal(late._0, 0);
+  assert.equal(late._1, 'late');
+  assert.equal(late._3, 'connector://crm/account');
+  assert.equal(late._5, fixture.mappingCid);
+  assert.throws(() => checked(moon.clientProgramEffectMemberDescriptor(
+    prepared, 0, 'late', 100)), {code: 'MoonBitHostFailure'});
+  assert.throws(() => checked(moon.clientProgramEffectMemberDescriptor(
+    prepared, 2, 'foreign', 100)), {code: 'MoonBitHostFailure'});
+});
+
 test('Effectful Client request identity binds checked intent before Run',
   async t => {
     const create = await effectFixture({writeKind: 'create'});
@@ -2437,7 +2457,7 @@ test(`two-member captured Effect Run ${
         ? authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
-            effectId: memberIds[index], requests,
+            stageIndex: 0, effectId: memberIds[index], requests,
             observations: previewTargetObservations?.[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2462,7 +2482,7 @@ test(`two-member captured Effect Run ${
           moon, salesforceMoon, prepared,
           templateWire: JSON.stringify(fabricated),
           requestScope, members: siteRequests.map((requests, index) => ({
-            effectId: memberIds[index], requests,
+            stageIndex: 0, effectId: memberIds[index], requests,
           })),
           maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2477,7 +2497,7 @@ test(`two-member captured Effect Run ${
                 '{"Name":9007199254740993}'},
             templateWire: previewDraft.wire, requestScope,
             members: siteRequests.map((requests, index) => ({
-              effectId: memberIds[index], requests,
+              stageIndex: 0, effectId: memberIds[index], requests,
             })),
             maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2530,7 +2550,7 @@ test(`two-member captured Effect Run ${
           moon, salesforceMoon, prepared,
           templateWire: JSON.stringify(alteredTemplate),
           requestScope, members: siteRequests.map((requests, index) => ({
-            effectId: memberIds[index], requests,
+            stageIndex: 0, effectId: memberIds[index], requests,
             observations: previewTargetObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2541,20 +2561,42 @@ test(`two-member captured Effect Run ${
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
+            stageIndex: 0,
             effectId: index === 0 ? 'foreign' : memberIds[index],
             requests, observations: previewTargetObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
           planLimits: previewPlanLimits,
+        }), {code: 'MoonBitHostFailure'});
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
+          requestScope, members: siteRequests.map((requests, index) => ({
+            stageIndex: 0, effectId: memberIds[1 - index], requests,
+            observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
         }), {code: 'ForeignSalesforceEffectPreviewMember'});
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
+          requestScope, members: siteRequests.map((requests, index) => ({
+            stageIndex: index === 0 ? 1 : 0,
+            effectId: memberIds[index], requests,
+            observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        }), {code: 'MoonBitHostFailure'});
         const foreignProgram = JSON.parse(previewDraft.wire);
         foreignProgram.program_definition_cid = cid('9');
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, prepared,
           templateWire: JSON.stringify(foreignProgram), requestScope,
           members: siteRequests.map((requests, index) => ({
-            effectId: memberIds[index], requests,
+            stageIndex: 0, effectId: memberIds[index], requests,
             observations: previewTargetObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
@@ -2567,7 +2609,7 @@ test(`two-member captured Effect Run ${
         assert.throws(() => authorObservedSalesforceEffectPreview({
           moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
-            effectId: memberIds[index], requests,
+            stageIndex: 0, effectId: memberIds[index], requests,
             observations: foreignObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
