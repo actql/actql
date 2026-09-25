@@ -49,6 +49,8 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
+pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String

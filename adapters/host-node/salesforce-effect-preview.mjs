@@ -17,19 +17,111 @@ const parseExactJson = wire => {
   return value;
 };
 
+const pendingCid = `sha256:${'0'.repeat(64)}`;
+
+function productPreviewDraft({moon, prepared, context, members,
+  maxWireBytes, maxNodes, maxDepth, planLimits}) {
+  if (!context?.runDefinition || !context?.runInvocation ||
+      !context?.compiledPlan || typeof context.resultArtifactCid !== 'string' ||
+      context.modelDerived !== false ||
+      !Array.isArray(members) || members.length === 0) {
+    fail('InvalidSalesforceEffectPreviewContext');
+  }
+  const definitionCid = moon.clientProgramEffectDefinitionCid(prepared);
+  const authoring = checked(moon.strategyRunEvidenceSeal(
+    'authoring_context', JSON.stringify({
+      version: 'actql-authoring-context/0.1',
+      program_definition_cid: definitionCid, annotations: [],
+    }), maxWireBytes, maxNodes, maxDepth));
+  const draft = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: moon.clientProgramEffectSemanticsCid(prepared),
+    program_definition_cid: definitionCid,
+    invocation_cid: moon.strategyPublicationContractIdentity(
+      context.runInvocation),
+    run_identity_cid: moon.strategyPublicationContractIdentity(
+      context.runDefinition),
+    compiled_plan_cid: moon.strategyPublicationContractIdentity(
+      context.compiledPlan),
+    check_environment_cid: moon.clientProgramEffectEnvironmentCid(prepared),
+    authoring_context: JSON.parse(moon.strategyRunEvidenceJson(authoring)),
+    barrier_provenance_cids: [], model_derived: false,
+    model_task_contract_cids: [], model_invocation_evidence_cids: [],
+    model_response_artifact_cids: [],
+    effects: members.map(member => {
+      if (!Number.isSafeInteger(member?.stageIndex) ||
+          typeof member.effectId !== 'string' ||
+          !Array.isArray(member.requests) ||
+          typeof member.effectIdentityCid !== 'string' ||
+          typeof member.sourceBindingCid !== 'string' ||
+          typeof member.capabilityEvidenceCid !== 'string' ||
+          typeof member.authorityScopeCid !== 'string' ||
+          !Array.isArray(member.requiredPermissions) ||
+          !Number.isSafeInteger(member.maxItems) ||
+          member.maxItems < member.requests.length ||
+          typeof member.approval !== 'string' ||
+          typeof member.previewStrength !== 'string') {
+        fail('InvalidSalesforceEffectPreviewContext');
+      }
+      const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+        prepared, member.stageIndex, member.effectId, planLimits.maxWork));
+      return {
+        effect_id: descriptor._1, effect_kind: descriptor._2,
+        target: descriptor._3, mapping: descriptor._4,
+        resolved_mapping_contract_cid: descriptor._5,
+        effect_identity_cid: member.effectIdentityCid,
+        ...(descriptor._6 === undefined ? {} :
+          {source_result: descriptor._6}),
+        result_artifact_cid: context.resultArtifactCid,
+        preview_strength: member.previewStrength,
+        source_binding_cid: member.sourceBindingCid,
+        capability_evidence_cid: member.capabilityEvidenceCid,
+        authority_scope_cid: member.authorityScopeCid,
+        write_footprint: {
+          kind: 'opaque', provider_boundary_cid: pendingCid,
+          provider_namespace: 'pending', resource_kind: 'pending',
+          resource_identity_scheme_cid: pendingCid,
+          provider_object_identity_cids: [],
+        },
+        count: member.requests.length, max_items: member.maxItems,
+        required_permissions: member.requiredPermissions,
+        approval: member.approval,
+        on_item_failure: descriptor._7,
+        changes: member.requests.map(() => ({
+          target_row_identity: 0,
+          target_guard: {state: 'not_applicable'},
+          intended_changes: {state: 'not_applicable'},
+          before: {state: 'not_applicable'},
+          after: {state: 'not_applicable'},
+          row_preview_cid: pendingCid,
+          row_idempotency_key: pendingCid,
+        })),
+        row_order: [], effect_member_preview_cid: pendingCid,
+        executed: false,
+      };
+    }),
+    executed: false, effect_preview_cid: pendingCid,
+  };
+  return checked(moon.clientProgramCanonicalEffectPreviewDraft(
+    JSON.stringify(draft), maxWireBytes, maxNodes, maxDepth));
+}
+
 // Only Salesforce's typed request and target observation determine a row's
 // target, guard, before, after, and intended changes. This authors no grant or
 // apply permit; the checked captured owner must still admit the whole Preview.
 export function authorObservedSalesforceEffectPreview({
-  moon, salesforceMoon, prepared, templateWire, requestScope, members,
+  moon, salesforceMoon, prepared, templateWire, context, requestScope, members,
   maxWireBytes, maxNodes, maxDepth, maxRows, maxIdentityBytes,
   maxKeyBytes, maxKeyNodes, maxKeyDepth, planLimits,
 }) {
   if (!moon || !salesforceMoon || !prepared || !requestScope ||
-      typeof templateWire !== 'string' ||
+      (typeof templateWire !== 'string' && context === undefined) ||
+      (typeof templateWire === 'string' && context !== undefined) ||
       !Number.isSafeInteger(maxWireBytes) || maxWireBytes < 1 ||
       maxWireBytes > 1_000_000 ||
-      Buffer.byteLength(templateWire, 'utf8') > maxWireBytes ||
+      (typeof templateWire === 'string' &&
+        Buffer.byteLength(templateWire, 'utf8') > maxWireBytes) ||
       !Number.isSafeInteger(maxRows) || maxRows < 1 ||
       maxRows > 100_000 ||
       !Array.isArray(members) || members.length === 0 ||
@@ -40,6 +132,10 @@ export function authorObservedSalesforceEffectPreview({
         .every(key => Number.isSafeInteger(planLimits[key]) &&
           planLimits[key] > 0)) {
     fail('InvalidSalesforceEffectPreviewAuthoring');
+  }
+  if (templateWire === undefined) {
+    templateWire = productPreviewDraft({moon, prepared, context, members,
+      maxWireBytes, maxNodes, maxDepth, planLimits});
   }
   let template;
   try {
@@ -187,10 +283,12 @@ export function authorObservedSalesforceEffectPreview({
       };
     }
   }
-  const authoredWire = JSON.stringify(template);
-  if (Buffer.byteLength(authoredWire, 'utf8') > maxWireBytes) {
+  const draftWire = JSON.stringify(template);
+  if (Buffer.byteLength(draftWire, 'utf8') > maxWireBytes) {
     fail('SalesforceEffectPreviewByteLimit');
   }
+  const authoredWire = checked(moon.clientProgramCanonicalEffectPreviewDraft(
+    draftWire, maxWireBytes, maxNodes, maxDepth));
   const authored = checked(moon.clientProgramAuthorEffectPreview(
     authoredWire, template.run_identity_cid,
     template.authoring_context?.authoring_context_cid,

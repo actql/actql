@@ -2169,6 +2169,21 @@ pub(all) enum ClientEffectPreviewAuthorIssue {
 } derive(Debug)
 
 ///|
+/// Canonicalize a schema-closed draft before MoonBit seals its identities.
+/// This is an encoding operation, not Preview or apply admission.
+#export_name("clientProgramCanonicalEffectPreviewDraft")
+pub fn client_program_canonical_effect_preview_draft(
+  wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @publication.PublicationContractIssue] {
+  @publication.canonical_effect_preview_draft_wire(
+    wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 /// Seal row, member and set identities before deriving non-semantic dispatch
 /// keys. This only authors a private Preview wire; checked Run binding,
 /// current authority and apply permission remain separate obligations.
