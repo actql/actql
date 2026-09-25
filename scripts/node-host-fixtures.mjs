@@ -8,7 +8,20 @@ import {packageImports} from './portable-core.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = readFileSync(join(root,'src/workers_conformance/fixture.generated.mbt'),'utf8');
 const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
-const imports = packageImports(readFileSync(join(root,'src/query_integration/moon.pkg'),'utf8'))
+const queryManifest = readFileSync(join(root,'src/query_integration/moon.pkg'),'utf8');
+const nativeOptions = `\noptions(
+  link: {
+    "native": {
+      "cc": "./scripts/native-cxx-link-driver.sh",
+      "stub-cc": "c++",
+      "cc-link-flags": "-lssl -lcrypto",
+    },
+  },
+)\n`;
+if (!queryManifest.endsWith(nativeOptions)) {
+  throw new Error('UnexpectedQueryIntegrationOptions');
+}
+const imports = packageImports(queryManifest.slice(0, -nativeOptions.length))
   .filter(x => aliases.has(x.alias)).map(x => [x.path,x.alias]);
 imports.push(['actql/actql/connectors_builtin','builtin'],['actql/actql/connector_conformance','conformance']);
 imports.push(
