@@ -131,7 +131,7 @@ const refused = (result, code, label) => {
 };
 
 const siteEntries = (outcome, connection = 'site-a') => [
-  accountEntry('remote-sites', outcome, {connection, operation: 'dispatch'}),
+  accountEntry('remote-sites', outcome, {connection, operation: 'write'}),
 ];
 const permit = view => ({decision: 'permit', subject: view.subject,
   authority: 'reviewer'});

@@ -39,7 +39,7 @@ fn authorization_configuration(
           principal: All,
           connection: AnyOf(["native-site"]),
           resource: All,
-          operation: AnyOf(["dispatch"]),
+          operation: AnyOf(["write"]),
         },
         exclusions: [],
       },
@@ -112,7 +112,7 @@ test "remote dispatch requires an evaluated dispatch authorization" {
     principal: "run-owner",
     connection: "native-site",
     resource: "local",
-    operation: "dispatch",
+    operation: "write",
   })
   assert_true(
     remote_dispatch_authorized(remote_dispatch_allow_action(request), request),
