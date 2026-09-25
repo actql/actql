@@ -6449,6 +6449,72 @@ async function exerciseStrategyGraph(
     assert.equal(zeroInputExecution.usage().heldBytes, 0n);
     assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
   }
+  const retainedManagedRoot = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/local-retained-managed-',
+  ));
+  const retainedManagedConfig = {
+    parentDirectory: retainedManagedRoot,
+    maxFrameBytes: 4096,
+    wire: {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 64,
+      max_columns: 10,
+      max_order_work: 10000,
+    },
+  };
+  try {
+    for (const [name, program, expectedRows] of [
+      ['filter/select', capturedRelationChainProgram, [2, 2, 2]],
+      ['count/filter', capturedCountChainProgram, [1, 1, 1]],
+    ]) {
+      const f = fixture.strategyFixtureAccounted(
+        fixture.strategyFixtureCreate(...args, JSON.stringify(program)),
+      );
+      const capture = await runRetainedStrategyNativeHostQuery(
+        grant,
+        fixture.strategyFixtureAcquisition(f),
+        fixture.strategyFixtureLedger(f),
+        suppliedLimits,
+        retainedManagedConfig,
+      );
+      let execution;
+      try {
+        assert.equal(fixture.strategyFixtureAttach(
+          f, capture.openDAG(fixture.strategyFixtureGraph(f)),
+        ), true);
+        execution = await runCapturedInternalStrategy(
+          fixture.strategyFixtureModuleSubset(f, 0),
+          {duckdb: new Proxy({}, {
+            get() { assert.fail('unused DuckDB settings accessed'); },
+          })},
+        );
+        assert.equal(execution.status, 'host-tasks-completed',
+          `${name}: ${String(execution.failure)}`);
+        assert.deepEqual(
+          execution.completed.map(item => item.realization),
+          ['local-managed', 'local-managed', 'local-managed'],
+          `${name}: retained capture and both consumers use bounded Local`,
+        );
+        assert.deepEqual(
+          execution.completed.map(item => item.outputRows),
+          expectedRows,
+        );
+      } finally {
+        await execution?.close();
+        capture.close();
+        await capture.cleanupHandle.retry();
+      }
+      assert.equal(execution.cleanupPending(), false);
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      assert.equal(capture.cleanupHandle.status().pending, false);
+    }
+    assert.deepEqual(await readdir(retainedManagedRoot), []);
+  } finally {
+    await rm(retainedManagedRoot, {recursive: true, force: true});
+  }
   for (const {name: cancellationName, program: cancellationProgram} of [
     {name: 'external-cross-join-in-flight', program: externalCrossJoinProgram},
     {name: 'external-cross-join-empty-right-admission',

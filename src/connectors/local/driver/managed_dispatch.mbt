@@ -113,6 +113,7 @@ pub(all) struct LocalManagedAdvance {
 ///|
 pub struct LocalManagedDispatchOperations[T] {
   inputs : Array[LocalManagedInputTransfer[T]]
+  retained_inputs : Array[LocalInputTransfer]
   execute : () -> Result[Unit, LocalDispatchIssue]
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
@@ -335,18 +336,13 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       }
     }
   }
-  // A retained-only captured output has no cell view for the bounded row
-  // provider. Leave it to the existing import path until that representation
-  // has an admitted bounded reader.
-  if relation_inputs.any(input => {
-      match input {
-        OrdinaryRelationInput(read) =>
-          !@execution.producer_read_has_cell_access(read)
-        ManagedRelationInput(_) | SuppliedRelationInput(_) => false
-      }
-    }) {
-    return Ok(None)
-  }
+  let retained_relation_input = relation_inputs.any(input => {
+    match input {
+      OrdinaryRelationInput(read) =>
+        !@execution.producer_read_has_cell_access(read)
+      ManagedRelationInput(_) | SuppliedRelationInput(_) => false
+    }
+  })
   guard @strategy.graph_task_owner(
       @strategy.captured_dag_graph(installed.run),
       task,
@@ -445,6 +441,12 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     installed.implementation,
     sequence,
   )
+  // A retained-only predecessor must finish its admitted import before an
+  // existing bounded provider can read cells. Never send it to the synchronous
+  // whole-sequence fallback as a managed candidate.
+  if retained_relation_input && provider is None {
+    return Ok(None)
+  }
   let base = match provider {
     Some(value) => @local.managed_provider_capacity(value, sequence)
     None =>
@@ -582,6 +584,7 @@ pub fn[T] start_local_managed_dispatch(
   let settled = Ref(false)
   let disposed = Ref(false)
   let bridges : Array[@execution.ManagedProducerBridge[T]] = []
+  let retained_imports : Array[@execution.CompletedOutputImport] = []
   let reads : Array[@execution.ProducerRead?] = []
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
@@ -685,7 +688,7 @@ pub fn[T] start_local_managed_dispatch(
               if @execution.producer_read_has_cell_access(read) {
                 reads.push(Some(read))
               } else {
-                return Err(@strategy.RunIssue::Compute(InputUnavailable))
+                reads.push(None)
               }
             ManagedRelationInput(input) => {
               let bridge = match
@@ -723,6 +726,9 @@ pub fn[T] start_local_managed_dispatch(
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
             }
+            for importer in retained_imports {
+              @execution.cancel_completed_output_import(importer) |> ignore
+            }
           },
           dispose: fn() {
             disposed.val = true
@@ -738,6 +744,9 @@ pub fn[T] start_local_managed_dispatch(
             }
             for bridge in bridges {
               @execution.close_managed_producer_bridge(bridge)
+            }
+            for importer in retained_imports {
+              @execution.cancel_completed_output_import(importer) |> ignore
             }
           },
           settled: fn() { settled.val = true },
@@ -851,6 +860,81 @@ pub fn[T] start_local_managed_dispatch(
           }
           Err(_) => Err(Configuration(InputUnavailable))
         }
+      },
+    })
+  }
+  let retained_transfers : Array[LocalInputTransfer] = []
+  for read_index, input in relation_inputs {
+    guard input is OrdinaryRelationInput(read) &&
+      !@execution.producer_read_has_cell_access(read) &&
+      @execution.producer_read_retained_material(read) is Some(material) else {
+      continue
+    }
+    let position = read_index
+    let importer : Ref[@execution.CompletedOutputImport?] = Ref(None)
+    retained_transfers.push({
+      material,
+      input: read,
+      frames: {
+        maxBytes: setup.imports.wire.max_bytes,
+        maxRows: setup.imports.max_rows,
+        maxRowBytes: setup.imports.row.max_bytes,
+        maxDepth: setup.imports.row.max_depth,
+        maxFrameBytes: setup.imports.max_batch_bytes,
+      },
+      begin: fn() {
+        guard live.val && importer.val is None else {
+          return Err(Configuration(InputUnavailable))
+        }
+        let prepared = match
+          @execution.prepare_producer_output_import(
+            read,
+            setup.imports.max_rows,
+            setup.imports.values,
+            setup.imports.wire,
+            setup.imports.max_batch_bytes,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        retained_imports.push(prepared)
+        importer.val = Some(prepared)
+        Ok(())
+      },
+      charge: bytes => {
+        @strategy.charge_task_execution_transfer(setup.run, execution, bytes).map_err(issue => {
+            Execution(Physical(issue))
+          },
+        )
+      },
+      append: row => {
+        guard importer.val is Some(active) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
+        @execution.append_completed_output_import_wire(
+          active,
+          row,
+          setup.imports.row,
+        ).map_err(_ => Configuration(InputUnavailable))
+      },
+      finish: fn() {
+        guard importer.val is Some(active) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
+        let output = match @execution.finish_completed_output_import(active) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        let rebound = match
+          @execution.rebind_producer_representation(read, output) {
+          Ok(value) => value
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        guard @execution.producer_read_has_cell_access(rebound) else {
+          return Err(Configuration(InputUnavailable))
+        }
+        reads[position] = Some(rebound)
+        Ok(())
       },
     })
   }
@@ -1058,6 +1142,7 @@ pub fn[T] start_local_managed_dispatch(
   }
   Ok({
     inputs: transfers,
+    retained_inputs: retained_transfers,
     execute: fn() {
       while !execution_finished.val {
         match advance(1024) {

@@ -161,6 +161,7 @@ type LocalManagedDispatchConfiguration[T]
 
 pub struct LocalManagedDispatchOperations[T] {
   inputs : Array[LocalManagedInputTransfer[T]]
+  retained_inputs : Array[LocalInputTransfer]
   execute : () -> Result[Unit, LocalDispatchIssue]
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool

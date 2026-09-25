@@ -96,6 +96,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
     async prepareNext(outputs) {
+      // This managed path returns an in-memory representation. A configured
+      // retained Store requires the established retained-output driver until
+      // managed finalization can publish the same physical holding contract.
+      if (createLease) return undefined;
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
       if (task < 0 || !Array.isArray(producers)) return undefined;
@@ -270,6 +274,14 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           : planManagedInputRows(resolved.materials);
         if (resolvedRowPlan === undefined) {
           throw new Error('UnsupportedManagedRowRepresentation');
+        }
+        const retainedTransfers = operations.retained_inputs ?? [];
+        if (!Array.isArray(retainedTransfers)) {
+          throw new Error('InvalidLocalManagedRetainedInputs');
+        }
+        for (const input of retainedTransfers) {
+          signal?.throwIfAborted();
+          await readLocalRetainedInput(moon, input, checked, signal);
         }
         let completed;
         await withManagedInputRows(

@@ -78,6 +78,12 @@ test('Local output seals exact content before completion and retains cleanup unt
   assert.equal(failure.cleanupHandle.status().pending, false);
 });
 
+test('retained Store configuration excludes the in-memory managed offer', async () => {
+  const f = fixture();
+  assert.equal(await f.entry.prepareNext(new Map()), undefined);
+  assert.equal(f.allocated(), false);
+});
+
 test('cancel during Local storage seal waits for the started work and never publishes', async () => {
   let release, entered;
   const arrived = new Promise(resolve => {entered = resolve;});

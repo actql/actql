@@ -3179,3 +3179,18 @@ structural-workspace fixture covers one admitted leaf. The original
 whole-sequence entrypoint remains synchronous, and nested value admission
 inside one output-cell step is not yet bounded. Neither the strict resource
 gate nor the overall Local closure is claimed by this selected-path change.
+
+An exact retained Acquisition Relation can now feed a registered bounded
+Relation provider through the normal Host. The selected attempt reserves a
+full-producer import, streams the admitted file through the existing typed
+reader, verifies the complete logical identity, and rebinds only that exact
+receiving port before the provider starts. The original retained holding stays
+owned until all consumers close. The Node standard Host runs both a
+filter/select chain and a count/filter chain from a real DuckDB retained
+capture through two downstream Computes, checks the output cardinalities,
+and reclaims Store and Run reservations. Independent value expectations for
+these kernels remain in the three-target MoonBit fixtures. A configured Store
+still selects the established file-producing path, since the managed provider
+currently returns an in-memory output. This closes the selected retained-input
+connection, not every providerless synchronous path or the strict
+operation-specific resource gate.
