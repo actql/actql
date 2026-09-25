@@ -24,13 +24,16 @@ function run(command, args, cwd) {
 
 run('npm', ['pack', '--pack-destination', installation, '--json'],
   join(repository, 'packages/run-host-core'));
+run('npm', ['pack', '--pack-destination', installation, '--json'],
+  join(repository, 'packages/client-wire'));
 await writeFile(join(installation, 'package.json'),
   '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
-  join(installation, 'actql-run-host-core-0.0.0-development.tgz')],
+  join(installation, 'actql-run-host-core-0.0.0-development.tgz'),
+  join(installation, 'actql-client-wire-0.0.0-development.tgz')],
 installation);
 assert.deepEqual(await readdir(join(installation, 'node_modules/@actql')),
-  ['run-host-core']);
+  ['client-wire', 'run-host-core']);
 for (const name of ['values.json', 'values.environment.json']) {
   await writeFile(join(installation, name),
     await readFile(join(repository, 'packages/sdk/fixtures', name)));
@@ -43,8 +46,14 @@ const {admitEnvironment, prepare, compileValues, compiledPlanCid,
   executionShape, privateCompilationWires,
   resultDefinitions, resultSchema, prepareSourceFreeRequest,
   requestFields, issueAllowedRun, issueRunDefinition,
-  issueSourceFreeInvocation, inspectCanonicalResultRows} =
+  issueSourceFreeInvocation, inspectCanonicalResultRows,
+  openResultDeliveryControl} =
   await import('@actql/run-host-core');
+const {installResultAccessAuthority} =
+  await import('@actql/run-host-core/result-access');
+assert.equal(typeof installResultAccessAuthority, 'function');
+assert.equal(openResultDeliveryControl()
+  .beginResultAccessProgress().kind, 'result-access-progress');
 const environmentWire = readFileSync('values.environment.json', 'utf8')
   .trimEnd();
 const environment = admitEnvironment(environmentWire,

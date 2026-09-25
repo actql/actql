@@ -9,7 +9,14 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
+    },
+    "./result-access": {
+      "types": "./result-access.d.ts",
+      "default": "./result-access.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "dist/client_values_host_abi.js"]
+  "dependencies": {"@actql/client-wire": "0.0.0-development"},
+  "files": ["index.mjs", "index.d.ts", "result-access.mjs",
+    "result-access.d.ts", "result-delivery.mjs",
+    "dist/client_values_host_abi.js"]
 }

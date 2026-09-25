@@ -19,6 +19,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   validateEffectFreePublicationCommit,
   issueEffectFreeRunReceipt, admitCapturedResultSnapshot,
   issueSourceFreeCapturedRun,
+  openResultDeliveryControl,
   projectPublicationSnapshot,
   publicationIndexScopeKey,
   inspectCanonicalResultRows,
@@ -47,6 +48,27 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('portable delivery control keeps progress and serializer opaque', () => {
+  const control = openResultDeliveryControl();
+  const limits = {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64};
+  const progress = control.beginResultAccessProgress();
+  assert.equal(control.resultAccessProgressAction(progress), 0);
+  assert.equal(control.recordResultAccessRequestAuthorization(progress,
+    true), true);
+  assert.equal(control.resultAccessProgressAction(progress), 1);
+  assert.throws(() => control.resultAccessProgressAction({}),
+    {name: 'TypeError', message: 'ForeignRunHostHandle'});
+  const schema = '{"id":{"nullable":false,"type":"number"}}';
+  const serializer = control.prepareResultDeliverySerializer('jsonl',
+    schema, ['id'], limits);
+  assert.equal(control.beginResultDelivery(serializer), '');
+  assert.equal(control.nextResultDeliveryRow(serializer, '{"id":1}'),
+    '{"id":1}\n');
+  assert.equal(control.finishResultDelivery(serializer), '');
+  assert.throws(() => control.finishResultDelivery({}),
+    {name: 'TypeError', message: 'ForeignRunHostHandle'});
+});
 
 test('captured completion requires owner-admitted handles', () => {
   const limits = {maxWireBytes: 4096, maxNodes: 128, maxDepth: 16};
@@ -308,6 +330,52 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     {code: 'RunHostResultArtifactRejected'});
     const manifest = issueResultManifest(run, invocation, [definition],
       [artifact], limits);
+    const readControl = openResultDeliveryControl();
+    const publicIndex = readControl.admit('public_index_entry', JSON.stringify({
+      version: 'actql-public-index-entry/0.1',
+      tenant_id: 'tenant-a', authority_scope_cid: fixed('d'),
+      run_definition_cid: run.cid, invocation_cid: invocation.cid,
+      result_manifest_cid: manifest.cid, run_receipt_cid: fixed('1'),
+      captured_run_cid: fixed('2'),
+      durable_result_binding_cids: [binding.cid],
+      publication_request_cid: fixed('8'),
+      publication_attempt_cid: fixed('9'),
+      committed_at: '2026-09-18T00:03:00.000Z',
+      public_index_entry_cid: cid({
+        version: 'actql-public-index-entry/0.1',
+        tenant_id: 'tenant-a', authority_scope_cid: fixed('d'),
+        run_definition_cid: run.cid, invocation_cid: invocation.cid,
+        result_manifest_cid: manifest.cid, run_receipt_cid: fixed('1'),
+        captured_run_cid: fixed('2'),
+        durable_result_binding_cids: [binding.cid],
+        publication_request_cid: fixed('8'),
+        publication_attempt_cid: fixed('9'),
+        committed_at: '2026-09-18T00:03:00.000Z',
+      }),
+    }), limits);
+    const readManifest = readControl.admit('result_manifest',
+      manifest.wire, limits);
+    const grant = readControl.issueResultReadGrant(publicIndex,
+      readManifest, {resultNames: ['answer'], formats: ['jsonl'],
+        principalId: 'reader', purpose: 'download',
+        dataCeilingCid: fixed('a'), maxBytes: 1024, maxUses: 1,
+        expiresAt: '2026-09-18T00:45:00.000Z',
+        authorizationContextCid: fixed('4'),
+        egressAdmissionCid: fixed('b')}, limits);
+    assert.equal(grant.name, 'result_read_grant');
+    assert.equal(readControl.resultReadGrantValidAt(grant,
+      '2026-09-18T00:30:00.000Z'), true);
+    const delivery = readControl.issueDeliveryAttempt(publicIndex,
+      readManifest, grant, {resultName: 'answer', format: 'jsonl',
+        attemptId: 'reader-1', requestedAt: '2026-09-18T00:31:00.000Z'},
+      limits);
+    assert.equal(delivery.name, 'delivery_attempt');
+    assert.equal(readControl.deliveryResultDefinitionCid(readManifest,
+      delivery), definition.cid);
+    assert.throws(() => readControl.issueDeliveryAttempt(publicIndex,
+      readManifest, grant, {resultName: 'foreign', format: 'jsonl',
+        attemptId: 'reader-2', requestedAt: '2026-09-18T00:31:00.000Z'},
+      limits), {code: 'RunHostDeliveryRejected'});
     assert.equal(resultReadAvailability(manifest, 'answer', retention,
       '2026-09-18T00:30:00.000Z'), 'available');
     assert.equal(resultReadAvailability(manifest, 'answer', retention,

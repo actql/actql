@@ -971,3 +971,186 @@ export function issueSourceFreeCapturedRun(runDefinition, invocation,
       maxWireBytes, maxNodes, maxDepth),
     'RunHostCapturedRunRejected'));
 }
+
+// The portable publication service consumes this shape. Each view keeps its
+// MoonBit handle in this instance; wire bytes and CIDs alone grant no access.
+const deliveryViews = new WeakMap();
+const accessProgress = new WeakMap();
+const deliverySerializers = new WeakMap();
+
+function deliveryCall(method, ...args) {
+  try { return owner[method](...args); }
+  catch (cause) {
+    throw Object.assign(new Error('RunHostDeliveryRejected', {cause}),
+      {code: 'RunHostDeliveryRejected'});
+  }
+}
+
+function deliveryResult(method, ...args) {
+  return checked(deliveryCall(method, ...args), 'RunHostDeliveryRejected');
+}
+
+function deliveryView(contract) {
+  const value = publicationToken(contract);
+  const view = Object.freeze({
+    name: owner.clientValuesHostPublicationContractName(value),
+    identityField:
+      owner.clientValuesHostPublicationContractIdentityField(value),
+    identity: contract.cid, wire: contract.wire,
+  });
+  deliveryViews.set(view, contract);
+  return view;
+}
+
+function deliveryToken(view) {
+  return publicationToken(deliveryContract(view));
+}
+
+function deliveryContract(view) {
+  const contract = deliveryViews.get(view);
+  if (contract === undefined) throw new TypeError('ForeignRunHostDelivery');
+  return contract;
+}
+
+function issuedDelivery(method, ...args) {
+  return deliveryView(publicationContract(deliveryResult(method, ...args)));
+}
+
+// This is a semantic port for the existing common Result access service.
+// The Host still supplies current authorization, trusted time, Store and sink.
+export function openResultDeliveryControl() {
+  const limitsOf = limits => {
+    const value = publicationLimits(limits);
+    return [value.maxWireBytes, value.maxNodes, value.maxDepth];
+  };
+  const progressToken = progress => requireHandle(accessProgress, progress);
+  const mark = (method, progress, value) =>
+    deliveryCall(method, progressToken(progress), value);
+  return Object.freeze({
+    admit(name, wire, limits) {
+      return deliveryView(admitPublicationContract(name, wire, limits));
+    },
+    beginResultAccessProgress() {
+      return handle(accessProgress,
+        owner.clientValuesHostBeginResultAccessProgress(),
+        'result-access-progress');
+    },
+    resultAccessProgressAction(progress) {
+      return owner.clientValuesHostResultAccessProgressAction(
+        progressToken(progress));
+    },
+    recordResultAccessRequestAuthorization(progress, value) {
+      return mark('clientValuesHostRecordResultAccessRequestAuthorization',
+        progress, value);
+    },
+    recordResultAccessResolution(progress, value) {
+      return mark('clientValuesHostRecordResultAccessResolution',
+        progress, value);
+    },
+    recordResultAccessInitialAvailability(progress, value) {
+      return mark('clientValuesHostRecordResultAccessInitialAvailability',
+        progress, value);
+    },
+    recordResultAccessReadAdmission(progress, value) {
+      return mark('clientValuesHostRecordResultAccessReadAdmission',
+        progress, value);
+    },
+    recordResultAccessGrant(progress, value) {
+      return mark('clientValuesHostRecordResultAccessGrant', progress, value);
+    },
+    resultReadRetentionPolicyCid(manifest, resultName) {
+      return deliveryResult('clientValuesHostResultReadRetentionPolicyCid',
+        deliveryToken(manifest), resultName);
+    },
+    resultReadDefinitionCid(manifest, resultName) {
+      return deliveryResult('clientValuesHostResultReadDefinitionCid',
+        deliveryToken(manifest), resultName);
+    },
+    resultReadAvailability(manifest, resultName, retention, observedAt) {
+      return resultReadAvailability(deliveryContract(manifest), resultName,
+        deliveryContract(retention), observedAt);
+    },
+    resultReadExtendedAvailability(manifest, resultName, retention,
+      extension, observedAt) {
+      return deliveryResult('clientValuesHostResultReadExtendedAvailability',
+        deliveryToken(manifest), resultName, deliveryToken(retention),
+        deliveryToken(extension), observedAt);
+    },
+    resultRetentionClockContractCid(retention) {
+      return deliveryResult('clientValuesHostResultRetentionClockContractCid',
+        deliveryToken(retention));
+    },
+    issueResultReadGrant(index, manifest, grant, limits) {
+      const bounds = limitsOf(limits);
+      return issuedDelivery('clientValuesHostIssueResultReadGrant',
+        deliveryToken(index), deliveryToken(manifest),
+        grant.resultNames, grant.formats, grant.principalId, grant.purpose,
+        grant.dataCeilingCid, grant.maxBytes, grant.maxUses,
+        grant.expiresAt, grant.authorizationContextCid,
+        grant.egressAdmissionCid, ...bounds);
+    },
+    resultReadGrantValidAt(grant, observedAt) {
+      return owner.clientValuesHostResultReadGrantValidAt(
+        deliveryToken(grant), observedAt);
+    },
+    resultReadGrantAllowsBytes(grant, count) {
+      return owner.clientValuesHostResultReadGrantAllowsBytes(
+        deliveryToken(grant), count);
+    },
+    issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
+      return issuedDelivery('clientValuesHostIssueDeliveryAttempt',
+        deliveryToken(index), deliveryToken(manifest), deliveryToken(grant),
+        attempt.resultName, attempt.format, attempt.attemptId,
+        attempt.requestedAt, ...limitsOf(limits));
+    },
+    deliveryResultDefinitionCid(manifest, attempt) {
+      return deliveryResult('clientValuesHostDeliveryResultDefinitionCid',
+        deliveryToken(manifest), deliveryToken(attempt));
+    },
+    issueResultDeliveryReceipt(index, manifest, grant, attempt,
+      delivered, limits) {
+      return issuedDelivery('clientValuesHostIssueResultDeliveryReceipt',
+        deliveryToken(index), deliveryToken(manifest), deliveryToken(grant),
+        deliveryToken(attempt), delivered.byteCount, delivered.sha256,
+        ...limitsOf(limits));
+    },
+    issueDeliveryRecord(attempt, previous, update, limits) {
+      return issuedDelivery('clientValuesHostIssueDeliveryRecord',
+        deliveryToken(attempt), previous === undefined ? undefined :
+          deliveryToken(previous), update.state,
+        update.confirmedByteCount, update.exposure,
+        update.possibleUnconfirmedMaxBytes, update.deliveredSha256,
+        update.receipt === undefined ? undefined :
+          deliveryToken(update.receipt), update.failureCid,
+        update.observedAt, update.cleanupOwnerCids, ...limitsOf(limits));
+    },
+    existingDeliveryAttemptAction(record) {
+      return owner.clientValuesHostExistingDeliveryAttemptAction(
+        record === undefined ? undefined : deliveryToken(record));
+    },
+    deliveryFailureTerminalAction(observed) {
+      return owner.clientValuesHostDeliveryFailureTerminalAction(observed);
+    },
+    deliveryRecordRetryAction(next, count) {
+      return owner.clientValuesHostDeliveryRecordRetryAction(next, count);
+    },
+    prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
+      const serializer = deliveryResult(
+        'clientValuesHostPrepareResultDeliverySerializer',
+        format, schemaWire, fields, ...limitsOf(limits));
+      return handle(deliverySerializers, serializer, 'result-serializer');
+    },
+    beginResultDelivery(serializer) {
+      return deliveryResult('clientValuesHostBeginResultDelivery',
+        requireHandle(deliverySerializers, serializer));
+    },
+    nextResultDeliveryRow(serializer, rowWire) {
+      return deliveryResult('clientValuesHostNextResultDeliveryRow',
+        requireHandle(deliverySerializers, serializer), rowWire);
+    },
+    finishResultDelivery(serializer) {
+      return deliveryResult('clientValuesHostFinishResultDelivery',
+        requireHandle(deliverySerializers, serializer));
+    },
+  });
+}

@@ -39,6 +39,94 @@ export interface PublicationContract {
   readonly wire: string;
 }
 
+export interface DeliveryContractView {
+  readonly name: string;
+  readonly identityField: string;
+  readonly identity: string;
+  readonly wire: string;
+}
+
+declare const resultAccessBrand: unique symbol;
+declare const resultSerializerBrand: unique symbol;
+export interface ResultAccessProgress {
+  readonly [resultAccessBrand]: true;
+}
+export interface ResultDeliverySerializer {
+  readonly [resultSerializerBrand]: true;
+}
+
+export interface ResultDeliveryControl {
+  admit(name: string, wire: string,
+    limits: PublicationLimits): DeliveryContractView;
+  beginResultAccessProgress(): ResultAccessProgress;
+  resultAccessProgressAction(progress: ResultAccessProgress): number;
+  recordResultAccessRequestAuthorization(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessResolution(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessInitialAvailability(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessReadAdmission(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  recordResultAccessGrant(progress: ResultAccessProgress,
+    value: boolean): boolean;
+  resultReadRetentionPolicyCid(manifest: DeliveryContractView,
+    resultName: string): string;
+  resultReadDefinitionCid(manifest: DeliveryContractView,
+    resultName: string): string;
+  resultReadAvailability(manifest: DeliveryContractView,
+    resultName: string, retention: DeliveryContractView,
+    observedAt: string): string;
+  resultReadExtendedAvailability(manifest: DeliveryContractView,
+    resultName: string, retention: DeliveryContractView,
+    extension: DeliveryContractView, observedAt: string): string;
+  resultRetentionClockContractCid(retention: DeliveryContractView): string;
+  issueResultReadGrant(index: DeliveryContractView,
+    manifest: DeliveryContractView, grant: Readonly<{
+      resultNames: readonly string[]; formats: readonly string[];
+      principalId: string; purpose: string; dataCeilingCid: string;
+      maxBytes: number; maxUses: number; expiresAt: string;
+      authorizationContextCid: string; egressAdmissionCid: string;
+    }>, limits: PublicationLimits): DeliveryContractView;
+  resultReadGrantValidAt(grant: DeliveryContractView,
+    observedAt: string): boolean;
+  resultReadGrantAllowsBytes(grant: DeliveryContractView,
+    count: number): boolean;
+  issueDeliveryAttempt(index: DeliveryContractView,
+    manifest: DeliveryContractView, grant: DeliveryContractView,
+    attempt: Readonly<{resultName: string; format: string;
+      attemptId: string; requestedAt: string}>,
+    limits: PublicationLimits): DeliveryContractView;
+  deliveryResultDefinitionCid(manifest: DeliveryContractView,
+    attempt: DeliveryContractView): string;
+  issueResultDeliveryReceipt(index: DeliveryContractView,
+    manifest: DeliveryContractView, grant: DeliveryContractView,
+    attempt: DeliveryContractView,
+    delivered: Readonly<{byteCount: number; sha256: string}>,
+    limits: PublicationLimits): DeliveryContractView;
+  issueDeliveryRecord(attempt: DeliveryContractView,
+    previous: DeliveryContractView | undefined,
+    update: Readonly<{state: string; confirmedByteCount: number;
+      exposure: string; possibleUnconfirmedMaxBytes?: number;
+      deliveredSha256?: string; receipt?: DeliveryContractView;
+      failureCid?: string; observedAt: string;
+      cleanupOwnerCids: readonly string[]}>,
+    limits: PublicationLimits): DeliveryContractView;
+  existingDeliveryAttemptAction(record?: DeliveryContractView): number;
+  deliveryFailureTerminalAction(observed: boolean): number;
+  deliveryRecordRetryAction(next: number, count: number): number;
+  prepareResultDeliverySerializer(format: string, schemaWire: string,
+    fields: readonly string[], limits: PublicationLimits):
+    ResultDeliverySerializer;
+  beginResultDelivery(serializer: ResultDeliverySerializer): string;
+  nextResultDeliveryRow(serializer: ResultDeliverySerializer,
+    rowWire: string): string;
+  finishResultDelivery(serializer: ResultDeliverySerializer): string;
+}
+
+/** MoonBit delivery decisions; Host policy and physical I/O are separate. */
+export function openResultDeliveryControl(): ResultDeliveryControl;
+
 export type PublicationIndexObservation =
   | Readonly<{kind: 'absent'}>
   | Readonly<{kind: 'unknown'}>
