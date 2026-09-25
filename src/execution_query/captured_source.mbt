@@ -36,6 +36,7 @@ pub(all) enum CapturedSourceIssue {
   Binding(@execution.ProducerBindingIssue)
   Completion(@execution.TrustedOutputIssue)
   Storage(@execution.ProducerReadIssue)
+  Export(@execution.CompletedExportIssue)
 }
 
 ///|
@@ -54,6 +55,33 @@ pub fn captured_source_storage(
     max_entries,
     max_name_bytes,
   ).map_err(issue => Storage(issue))
+}
+
+///|
+/// Export the exact observed Relation through the common bounded logical
+/// identity path. The restricted output preserves issuer liveness while the
+/// caller advances the export; this does not expose a raw completion handle.
+pub fn prepare_captured_source_relation_export(
+  source : CapturedInputSource,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[@execution.CompletedOutputExport, CapturedSourceIssue] {
+  if !(source.live)() {
+    return Err(Unavailable)
+  }
+  @execution.prepare_completed_relation_export(
+    @execution.restrict_completed_output(source.output, source.live),
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema_limits,
+    max_batch_bytes,
+  ).map_err(issue => Export(issue))
 }
 
 ///|

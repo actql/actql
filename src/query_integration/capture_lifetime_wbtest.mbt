@@ -86,6 +86,57 @@ test "broad pre-capture diagnostics carry no consumer handle and disappear on ab
 }
 
 ///|
+test "captured source logical export remains bound to issuer lifetime" {
+  let f = broad_issuer_fixture()
+  let attempt = broad_issued_attempt(f)
+  broad_issued_run(f, attempt)
+  let records = @duckdb_query.issue_duckdb_broad_records(
+    attempt, query_material_limits(),
+  ).unwrap()
+  let observation = @duckdb_query.capture_duckdb_broad_query(
+    f.issuer, attempt, records, query_capture_limits(),
+  ).unwrap()
+  let source = @duckdb_query.broad_captured_source(
+    f.issuer, attempt, observation,
+  ).unwrap()
+  let stream = @query.prepare_captured_source_relation_export(
+    source,
+    100,
+    run_limits().output_values,
+    row_wire_limits(),
+    row_wire_limits(),
+    { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+    128,
+  ).unwrap()
+  let body = StringBuilder()
+  while @execution.next_completed_output_export(stream).unwrap() is Some(part) {
+    body.write_string(part)
+  }
+  let (receipt, tail) = @execution.finish_completed_relation_export(stream).unwrap()
+  body.write_string(tail)
+  assert_eq(@execution.completed_relation_export_field_names(receipt), ["id"])
+  assert_eq(body.to_string(), "[{\"id\":3},{\"id\":2}]")
+  assert_true(
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(receipt),
+    ).has_prefix("sha256:"),
+  )
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  @duckdb_query.close_duckdb_query_issuer(f.issuer)
+  assert_true(
+    @query.prepare_captured_source_relation_export(
+      source,
+      100,
+      run_limits().output_values,
+      row_wire_limits(),
+      row_wire_limits(),
+      { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+      128,
+    ) is Err(Unavailable),
+  )
+}
+
+///|
 test "captured broad bindings retain issuer and exact transport liveness" {
   for
     (close_issuer, before_binding) in [

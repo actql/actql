@@ -35,6 +35,8 @@ pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.Se
 
 pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
 
+pub fn prepare_captured_source_relation_export(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedOutputExport, CapturedSourceIssue]
+
 pub fn prepare_query_sequence(@sourceview_resolution.QueryAcquisition, @execution_relation.GeneratedSequence, Int) -> Result[QuerySequence, QuerySequenceIssue]
 
 pub fn[P] prepare_trusted_capture_port(QuerySequence, @pipeline_check_context.ProgramSourceIdentity, (P) -> (@execution_relation.CompletedOutput, Int)?) -> Result[TrustedCapturePort[P], CapturedSourceIssue]
@@ -61,6 +63,7 @@ pub(all) enum CapturedSourceIssue {
   Binding(@execution_relation.ProducerBindingIssue)
   Completion(@execution_relation.TrustedOutputIssue)
   Storage(@execution_relation.ProducerReadIssue)
+  Export(@execution_relation.CompletedExportIssue)
 }
 
 pub struct CapturedSourceStatistics {
