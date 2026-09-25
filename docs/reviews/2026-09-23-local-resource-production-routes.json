@@ -5934,7 +5934,36 @@
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded binding rows cancel without publishing partial output"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "vector_score_host_in_flight_after_row",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-expression"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "vector_score_derive_work_workspace_exact_one_short",
+          "one_short_limit": "vector_score_derive_work_workspace_exact_one_short",
+          "in_flight_cancel": "vector_score_host_in_flight_after_row",
+          "cleanup": "vector_score_derive_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "vector_score_derive_work_workspace_exact_one_short",
+            "one_short_limit": "vector_score_derive_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "vector_score_derive_work_workspace_exact_one_short",
+            "one_short_limit": "vector_score_derive_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -5963,8 +5992,44 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/expression_wbtest.mbt",
           "fixture": "bounded expression execution reports progress and cancels private state"
+        },
+        {
+          "role": "vector_concat_derive_row_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded binding rows cancel without publishing partial output"
         }
-      ]
+      ],
+      "environment_tests": [
+        {
+          "role": "vector_concat_host_in_flight_after_row",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "vector-expression"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "vector_concat_derive_work_workspace_exact_one_short",
+          "one_short_limit": "vector_concat_derive_work_workspace_exact_one_short",
+          "in_flight_cancel": "vector_concat_host_in_flight_after_row",
+          "cleanup": "vector_concat_derive_row_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "vector_concat_derive_work_workspace_exact_one_short",
+            "one_short_limit": "vector_concat_derive_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "vector_concat_derive_work_workspace_exact_one_short",
+            "one_short_limit": "vector_concat_derive_work_workspace_exact_one_short"
+          }
+        }
+      }
     }
   ]
 }

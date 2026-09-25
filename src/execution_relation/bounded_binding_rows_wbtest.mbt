@@ -1283,12 +1283,18 @@ test "bounded binding rows cancel without publishing partial output" {
   let (control, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
   )
-  for i = 0; i < 15; i = i + 1 {
-    assert_true(
-      advance_bounded_binding_rows(execution, 1)
-      is Ok(BoundedBindingRowsContinue(..)),
-    )
+  let mut private_row_completed = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1) {
+      Ok(BoundedBindingRowsContinue(progress~, ..)) =>
+        if progress > 0L {
+          private_row_completed = true
+          break
+        }
+      _ => fail("vector expression completed before cancellation")
+    }
   }
+  assert_true(private_row_completed)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_binding_rows(execution, 1)

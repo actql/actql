@@ -90,15 +90,15 @@ and checked by `check:local-resource-accounting`.
 |---|---:|
 | Production routes | 68 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 24 |
-| Full route work/workspace assurance | 24 |
-| Path-scoped work/workspace assurance | 61 |
+| Four-role lifecycle assurance | 26 |
+| Full route work/workspace assurance | 26 |
+| Path-scoped work/workspace assurance | 63 |
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Remaining path triage after the bounded global count slice
 
-The 44 unresolved path obligations below are paths, not 44 missing
+The 42 unresolved path obligations below are paths, not 42 missing
 operations. They are whole-operation entrypoints. The categories identify the next
 engineering action; they do not turn a registered route into proof of every
 formal variant.
@@ -107,7 +107,7 @@ formal variant.
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
 | Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond the global count slice, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
-| Bounded product connection exists, route evidence is incomplete | 15 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`), VecA `merge_rankings`, and both VecA row expressions need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
+| Bounded product connection exists, route evidence is incomplete | 13 | Twelve SGA entrypoints (`match_nodes`, `match_edges`, `traverse`, `shortest_path`, `components`, `reach`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) and VecA `merge_rankings` need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 The general providerless managed fallback is a cross-cutting synchronous
 hazard represented by the first two rows, not a separate path. Its
@@ -118,7 +118,7 @@ The category counts follow the registered production routes. A separate
 cross-cutting audit remains: `bounded_binding_rows` calls synchronous nested
 value revalidation for one output cell during `CheckOutputRow`. Its maximum
 single-resume work for admitted nested values is not established by the row
-quantum alone. This does not add another operation to the 44 paths, but an
+quantum alone. This does not add another operation to the 42 paths, but an
 affected route must move from connection or evidence work to bounded-kernel
 work if its accepted value limit permits an excessive noninterruptible step.
 
@@ -3002,6 +3002,13 @@ active expression provider through an environment yield, stops without a
 completion, and returns held and reserved bytes to zero. This closes both
 VecA expression entries without treating vector filters or assertions as
 supported by the binding-only provider.
+The timer now waits for one complete private derive row, so both the score
+and concatenation have evaluated before the Host delivers abort. The portable
+cancellation fixture likewise stops after a private row rather than during
+input admission. Their shared two-expression fixture fixes independent exact
+and one-short work and workspace ceilings; the resource audit binds these
+proofs to both expression entrypoints. This does not certify expression use
+in unsupported filter or assertion placements.
 
 Each entry moves from missing to partial to complete only when its manifest
 evidence names existing fixtures, suites, targets, and recorded results. A

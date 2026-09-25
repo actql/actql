@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 24 with four-role boundary evidence, 24 with full work\/workspace assurance, 61 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 26 with four-role boundary evidence, 26 with full work\/workspace assurance, 63 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Graph equality route requires exact limits and delivered cancellation', () => {
@@ -654,7 +654,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 61 |',
+    '| Path-scoped work/workspace assurance | 63 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -1377,6 +1377,30 @@ test('same-stage cross join needs its provider and two consumers', () => {
       entry.operation === 'cross_join');
     cross.shared_proof_reuse = [];
   }), /RelA cross_join: external_product_work_exact_one_short is reused across production paths/u);
+});
+
+test('VecA row expressions retain bounded and delivered-cancel proofs', () => {
+  for (const operation of ['vector_score', 'vector_concat']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry =>
+        entry.family === 'VecAExpression' &&
+        entry.operation === operation);
+      route.environment_tests = [];
+    }), new RegExp(`VecAExpression ${operation}: entrypoint in_flight_cancel lacks an executable fixture`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry =>
+        entry.family === 'VecAExpression' &&
+        entry.operation === operation);
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== `${operation}_derive_work_workspace_exact_one_short`);
+    }), new RegExp(`VecAExpression ${operation}: entrypoint exact_limit lacks an executable fixture`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry =>
+        entry.family === 'VecAExpression' &&
+        entry.operation === operation);
+      delete route.resource_assurance.entrypoint;
+    }), new RegExp(`VecAExpression:${operation}:entrypoint: assured production claim lacks its exact route proofs`, 'u'));
+  }
 });
 
 test('binary receivers need their input admission fixtures', () => {

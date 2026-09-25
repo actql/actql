@@ -3593,6 +3593,7 @@ async function exerciseStrategyGraph(
     advanceQuantum: 1,
     constructionProgress: 0,
     cancelOnManagedStart: 2,
+    minimumCompletedRows: 1,
     fields: ['id', 'score', 'joined'],
   }, {
     name: 'vector-score',
@@ -4588,6 +4589,7 @@ async function exerciseStrategyGraph(
     let stopObservedAt;
     let managedStarts = 0;
     let fusedNearestBridgeRows = 0n;
+    const completedRowsByStart = new Map();
     const boundedValuesInputs = cancellationCase.family === 'interval' ||
       cancellationCase.family === 'asof';
     const constructionStarts = boundedValuesInputs ? [3, 4] : [2];
@@ -4685,6 +4687,10 @@ async function exerciseStrategyGraph(
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
                   advanceObservations.push({start, observation});
+                  const completedRows =
+                    (completedRowsByStart.get(start) ?? 0n) +
+                    (observation?.progress ?? 0n);
+                  completedRowsByStart.set(start, completedRows);
                   const nearestBridgesFinished =
                     !cancellationCase.fusedNearest ||
                     fusedNearestBridgeRows >= BigInt(cancellationCase.rows + 1);
@@ -4710,7 +4716,9 @@ async function exerciseStrategyGraph(
                   } else if (!cancellationCase.cancelDuringFinalization &&
                       cancellationCase.cancelOnManagedStart === start &&
                       nearestBridgesFinished && observation?.complete === false &&
-                      observation.work > 0n && !cancellationScheduled) {
+                      observation.work > 0n && !cancellationScheduled &&
+                      completedRows >= BigInt(
+                        cancellationCase.minimumCompletedRows ?? 0)) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
                     setTimeout(() => graphCancellation.abort(), 0);
@@ -4778,6 +4786,13 @@ async function exerciseStrategyGraph(
           failure: cancellationExecution.failure?.message,
         }, (_, value) => typeof value === 'bigint' ? value.toString() : value),
       );
+      if (cancellationCase.minimumCompletedRows !== undefined) {
+        assert(
+          (completedRowsByStart.get(cancellationCase.cancelOnManagedStart) ??
+            0n) >= BigInt(cancellationCase.minimumCompletedRows),
+          cancellationCase.name,
+        );
+      }
       if (cancellationCase.sortStress) {
         assert(selectedSortAdvances >=
           cancellationCase.cancelAfterSortAdvances);
