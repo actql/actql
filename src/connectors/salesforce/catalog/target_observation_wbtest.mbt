@@ -15,7 +15,10 @@ test "target observation binds the exact record before a guard exists" {
     "{\"Id\":\"001000000000001AAA\",\"Optional_Value__c\":\"old\"}",
   )
   let observed = prepare_target_observation(
-    update, 200, before, target_observation_test_limits(),
+    update,
+    200,
+    before,
+    target_observation_test_limits(),
   ).unwrap()
   assert_eq(target_observation_response_sha256(observed), @sha.hex(before))
   assert_true(target_observation_version_cid(observed).has_prefix("sha256:"))
@@ -42,7 +45,10 @@ test "target observation binds the exact record before a guard exists" {
   )
   assert_true(
     prepare_target_observation(
-      update, 404, before, target_observation_test_limits(),
+      update,
+      404,
+      before,
+      target_observation_test_limits(),
     )
     is Err(InvalidRecord),
   )
@@ -56,9 +62,10 @@ test "target observation binds the exact record before a guard exists" {
     is Err(InvalidRecord),
   )
   assert_true(
-    prepare_target_observation(
-      update, 200, before, { ..target_observation_test_limits(), max_bytes: 8, },
-    )
+    prepare_target_observation(update, 200, before, {
+      ..target_observation_test_limits(),
+      max_bytes: 8,
+    })
     is Err(CapacityExceeded),
   )
 }
@@ -75,7 +82,9 @@ test "external-ID target observation rejects a different provider row" {
     prepare_target_observation(
       upsert,
       200,
-      @utf8.encode("{\"Id\":\"001000000000001\",\"External_Key__c\":\"key-1\",\"Optional_Value__c\":\"old\"}"),
+      @utf8.encode(
+        "{\"Id\":\"001000000000001\",\"External_Key__c\":\"key-1\",\"Optional_Value__c\":\"old\"}",
+      ),
       target_observation_test_limits(),
     )
     is Ok(_),
@@ -84,7 +93,9 @@ test "external-ID target observation rejects a different provider row" {
     prepare_target_observation(
       upsert,
       200,
-      @utf8.encode("{\"Id\":\"001000000000001\",\"External_Key__c\":\"key-2\",\"Optional_Value__c\":\"old\"}"),
+      @utf8.encode(
+        "{\"Id\":\"001000000000001\",\"External_Key__c\":\"key-2\",\"Optional_Value__c\":\"old\"}",
+      ),
       target_observation_test_limits(),
     )
     is Err(ForeignTarget),
