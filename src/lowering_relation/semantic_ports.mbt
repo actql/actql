@@ -106,11 +106,36 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Unpivot(_)
     | Unnest(_)
     | JsonPick(_) => true
+    CountGroup(checked) => checked_bounded_global_count(checked)
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
     _ => false
   }
+}
+
+///|
+/// The selected global-count provider consumes only a zero-key count profile.
+/// Keep the split decision narrower than general group eligibility so an
+/// unsupported aggregate cannot enter a selected task without a provider.
+fn checked_bounded_global_count(checked : @relation.CheckedOperation) -> Bool {
+  guard @relation.group(checked) is Some(group) &&
+    @relation.group_keys(group).is_empty() else {
+    return false
+  }
+  for index in 0..<@relation.aggregate_count(group) {
+    guard @relation.aggregate_at(group, index) is Some(aggregate) &&
+      @relation.aggregate_function(aggregate) == @relation.Count &&
+      @relation.aggregate_filter(aggregate) is None &&
+      @relation.aggregate_distinct(aggregate) != Some(true) else {
+      return false
+    }
+    match @relation.aggregate_argument(aggregate) {
+      Rows | Field(_) => ()
+      Expression(_) => return false
+    }
+  }
+  true
 }
 
 ///|
@@ -133,6 +158,7 @@ pub fn node_supports_bounded_managed_prefix(
     | (Values(_), Unpivot(_))
     | (Values(_), Unnest(_))
     | (Values(_), JsonPick(_))
+    | (Values(_), CountGroup(_))
     | (CrossJoinRows(_), _) => true
     (Values(_), AssertRows(_)) =>
       operation(consumer) == "REL.assert_all" ||

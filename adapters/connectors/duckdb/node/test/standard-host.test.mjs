@@ -5438,6 +5438,21 @@ async function exerciseStrategyGraph(
     stage.steps[0].select = fields;
     stage.results.r.fields = fields;
   }
+  const sameStageGlobalCountProgram = structuredClone(globalCountProgram);
+  const countValuesStage = sameStageGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_values',
+  );
+  const sameStageCount = sameStageGlobalCountProgram.stages.find(
+    stage => stage.id === 'group_a',
+  );
+  sameStageCount.inputs = {};
+  sameStageCount.steps = [
+    {...countValuesStage.steps[0], as: 'source'},
+    {from: 'source', group: sameStageCount.steps[0].group, as: 'counted'},
+    {from: 'counted', take: 1, as: 'out'},
+  ];
+  sameStageGlobalCountProgram.stages = sameStageGlobalCountProgram.stages
+    .filter(stage => stage.id !== 'group_values');
   const watermarkProgram = (threshold, latePolicy) => {
     const variant = structuredClone(zeroInputProgram);
     const fields = [
@@ -6065,6 +6080,8 @@ async function exerciseStrategyGraph(
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['group count', groupProgram, [1, 2, 3, 4]],
     ['global count', globalCountProgram, [1, 2, 3, 4]],
+    ['same-stage global count/take', sameStageGlobalCountProgram,
+      [1, 2, 3, 4, 5]],
     ['fixed parameter watermark', fixedWatermarkProgram, [1, 2, 3, 4]],
     ['prefix watermark', prefixWatermarkProgram, [1, 2, 3, 4]],
     ['fixed parameter row window', fixedRowWindowProgram, [1, 2, 3, 4]],
@@ -6157,6 +6174,12 @@ async function exerciseStrategyGraph(
         assert.deepEqual(
           zeroInputExecution.completed.map(item => item.outputRows),
           [2, 2, 1, 1, 1],
+        );
+      }
+      if (name === 'same-stage global count/take') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [3, 1, 1, 1, 1],
         );
       }
       if (name === 'separate filter/sort/take Stage' ||
@@ -6762,6 +6785,8 @@ async function exerciseStrategyGraph(
       program: fixedRowWindowProgram, cancelAtStart: 2},
     {name: 'global-count-in-flight',
       program: globalCountProgram, cancelAtStart: 2},
+    {name: 'same-stage-global-count-in-flight',
+      program: sameStageGlobalCountProgram, cancelAtStart: 2},
     {name: 'split-values-fixed-watermark-in-flight',
       program: fixedWatermarkProgram, cancelAtStart: 2},
     {name: 'split-values-prefix-watermark-in-flight',
@@ -6793,8 +6818,10 @@ async function exerciseStrategyGraph(
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
+    const sameStageGlobalCountCancellation = cancellationName ===
+      'same-stage-global-count-in-flight';
     const globalCountCancellation = cancellationName ===
-      'global-count-in-flight';
+      'global-count-in-flight' || sameStageGlobalCountCancellation;
     const watermarkCancellation = cancellationName ===
       'split-values-fixed-watermark-in-flight' ||
       cancellationName === 'split-values-prefix-watermark-in-flight';
@@ -6808,7 +6835,8 @@ async function exerciseStrategyGraph(
     const sameStageJsonFilterCancellation = cancellationName ===
       'same-stage-json-pick-filter-in-flight';
     const valuesStage = cancellableValuesProgram.stages.find(
-      stage => stage.id === (globalCountCancellation
+      stage => stage.id === (sameStageGlobalCountCancellation
+        ? 'group_a' : globalCountCancellation
         ? 'group_values' : lagCancellation
         ? 'lagged' : rowWindowCancellation
         ? 'window_values' : watermarkCancellation
