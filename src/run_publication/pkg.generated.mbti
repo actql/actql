@@ -109,6 +109,10 @@ pub fn effect_apply_receipt_row_field(PublicationContract, String, String) -> St
 
 pub fn effect_apply_receipt_row_state(PublicationContract, String) -> String?
 
+pub fn effect_computation_capture_holding_cid(PublicationContract, String) -> String?
+
+pub fn effect_computation_record_holding_cid(PublicationContract, String) -> String?
+
 pub fn effect_preview_check_environment_cid(EffectPreviewIdentity) -> String
 
 pub fn effect_preview_footprint_kind(EffectPreviewFootprintIdentity) -> String

@@ -8,7 +8,8 @@ export function preparePrivatePublicationHolding(store, binding) {
   if (!store || typeof store.confirmPrivateEvidence !== 'function' ||
       typeof store.preparePrivateEvidence !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
-      !binding || binding.name !== 'effect_preview' ||
+      !binding || !['effect_preview', 'effect_capture']
+        .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||
       typeof binding.wire !== 'string') {

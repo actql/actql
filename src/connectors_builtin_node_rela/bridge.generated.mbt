@@ -1525,6 +1525,28 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyEffectfulComputationEvidenceChainValid")
+pub fn strategy_effectful_computation_evidence_chain_valid(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  computation_receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  @publication.validate_effectful_computation_evidence_chain(
+    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+  )
+  is Ok(_)
+}
+
+///|
 #export_name("strategyEffectFreePublicationCommitValid")
 pub fn strategy_effect_free_publication_commit_valid(
   run_definition : @publication.PublicationContract,
@@ -7483,6 +7505,36 @@ pub fn strategy_effect_preview_private_holding_cid(
   match
     @publication.effect_preview_private_holding_cid(
       preview, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectComputationCaptureHoldingCid")
+pub fn strategy_effect_computation_capture_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.effect_computation_capture_holding_cid(
+      run_definition, store_authority_cid,
+    ) {
+    Some(cid) => cid
+    None => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyEffectComputationRecordHoldingCid")
+pub fn strategy_effect_computation_record_holding_cid(
+  run_definition : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> String raise NodeHostFailure {
+  match
+    @publication.effect_computation_record_holding_cid(
+      run_definition, store_authority_cid,
     ) {
     Some(cid) => cid
     None => raise InvalidCommand

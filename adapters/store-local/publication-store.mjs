@@ -27,10 +27,11 @@ import {
 import {resolve} from 'node:path';
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
-// Physical holdings: Transfer material, Effect source exports, encrypted
-// publication evidence, and the Local Host's continuation evidence.
+// Physical holdings: Transfer material, Effect source/capture custody,
+// encrypted publication evidence, and Local continuation evidence.
 const physicalHoldingNamespaces = Object.freeze([
-  'remote-transfer', 'effect-source', 'publication-private',
+  'remote-transfer', 'effect-source', 'effect-capture',
+  'publication-private',
   'local-continuation-private',
 ]);
 const localContinuationEvidenceNames = Object.freeze([
@@ -2954,8 +2955,66 @@ export async function openLocalPublicationStore(
     for (const binding of chain.durableBindings) {
       await verifyDurableResultBinding(binding);
     }
+    let captureHoldingCid;
+    let captureRecordHoldingCid;
+    if (typeof contractControl.effectComputationCaptureHoldingCid ===
+        'function') {
+      const candidate = contractControl.effectComputationCaptureHoldingCid(
+        chain.runDefinition, configuration.storeAuthorityCid,
+      );
+      const holding = await inspectPhysicalHolding(candidate);
+      if (holding !== undefined) {
+        const expected = new Map();
+        for (const binding of chain.durableBindings) {
+          const body = parseContract(binding);
+          const prior = expected.get(body.material_generation_cid);
+          if (prior !== undefined && prior !== body.byte_count) {
+            fail('InvalidEffectfulCaptureHolding');
+          }
+          expected.set(body.material_generation_cid, body.byte_count);
+        }
+        if (holding.namespace !== 'effect-capture' ||
+            holding.manifest_cid !== chain.capturedRun.identity ||
+            holding.objects.length !== expected.size ||
+            holding.objects.some(object =>
+              expected.get(object.cid) !== object.byte_count)) {
+          fail('InvalidEffectfulCaptureHolding');
+        }
+        await commitPhysicalHolding(holding, []);
+        captureHoldingCid = candidate;
+      }
+    }
+    if (typeof contractControl.effectComputationRecordHoldingCid ===
+        'function') {
+      const candidate = contractControl.effectComputationRecordHoldingCid(
+        chain.runDefinition, configuration.storeAuthorityCid,
+      );
+      const holding = await inspectPhysicalHolding(candidate);
+      if (holding !== undefined) {
+        if (holding.namespace !== 'publication-private' ||
+            holding.manifest_cid !== chain.capturedRun.identity ||
+            holding.objects.length !== 1) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
+        let record;
+        try {
+          record = JSON.parse((await readPrivateEvidence(
+            'effect_capture', chain.capturedRun.identity, candidate,
+          )).toString('utf8'));
+        } catch (error) {
+          fail('InvalidEffectfulCaptureRecord', error);
+        }
+        if (record?.captured_run !== chain.capturedRun.wire ||
+            record?.run_definition !== chain.runDefinition.wire ||
+            record?.store_authority_cid !== configuration.storeAuthorityCid) {
+          fail('InvalidEffectfulCaptureRecord');
+        }
+        captureRecordHoldingCid = candidate;
+      }
+    }
     return Object.freeze({index: admittedIndex, finalReceipt,
       privateHoldingCid: privateBinding.holdingCid,
+      captureHoldingCid, captureRecordHoldingCid,
       effectSourceHoldingCids: Object.freeze([...seen]),
       publicContractCids: Object.freeze(publicContracts.map(contract =>
         contract.identity)),
@@ -3029,6 +3088,10 @@ export async function openLocalPublicationStore(
       physicalHoldingCids = [
         inspected.privateHoldingCid,
         ...inspected.effectSourceHoldingCids,
+        ...(inspected.captureHoldingCid === undefined ? [] :
+          [inspected.captureHoldingCid]),
+        ...(inspected.captureRecordHoldingCid === undefined ? [] :
+          [inspected.captureRecordHoldingCid]),
       ].sort();
     }
     const inventorySemanticCids = Object.freeze([...new Set([
@@ -3191,7 +3254,11 @@ export async function openLocalPublicationStore(
     }
     const inventory = await readMetadataInventory(inspected.index.identity);
     const expectedHoldings = [inspected.privateHoldingCid,
-      ...inspected.effectSourceHoldingCids].sort();
+      ...inspected.effectSourceHoldingCids,
+      ...(inspected.captureHoldingCid === undefined ? [] :
+        [inspected.captureHoldingCid]),
+      ...(inspected.captureRecordHoldingCid === undefined ? [] :
+        [inspected.captureRecordHoldingCid])].sort();
     if (inventory?.physical_holding_cids.join('\0') !==
         expectedHoldings.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
@@ -3890,8 +3957,15 @@ export async function openLocalPublicationStore(
     return verified;
   };
 
-  const commitPhysicalHolding = async (value, prepared) => {
+  const commitPhysicalHoldingInternal = async (
+    value, prepared, borrowedHoldingCids,
+  ) => {
     active();
+    if (!Array.isArray(borrowedHoldingCids) ||
+        new Set(borrowedHoldingCids).size !== borrowedHoldingCids.length ||
+        borrowedHoldingCids.some(cid => !cidPattern.test(cid))) {
+      fail('InvalidPublicationPhysicalHoldingOwner');
+    }
     const admitted = admitPhysicalHolding(value);
     const record = admitted.record;
     if (await readPhysicalHoldingDeletion(record.holding_cid) !== undefined) {
@@ -3923,19 +3997,41 @@ export async function openLocalPublicationStore(
     const supplied = new Map();
     for (const handle of prepared) {
       const owner = preparedObjectOwners.get(handle);
-      if (owner === undefined || supplied.has(owner.cid) ||
-          handle.status().pending !== true) {
+      if (owner === undefined || supplied.has(owner.cid)) {
         fail('InvalidPublicationPhysicalHoldingOwner');
       }
-      supplied.set(owner.cid, owner.bytes);
+      if (handle.status().pending === true) {
+        supplied.set(owner.cid, owner.bytes);
+      } else if (borrowedHoldingCids.length === 0) {
+        fail('InvalidPublicationPhysicalHoldingOwner');
+      }
     }
-    if (supplied.size !== expected.size) {
-      fail('InvalidPublicationPhysicalHoldingOwner');
+    const borrowed = new Map();
+    for (const holdingCid of borrowedHoldingCids) {
+      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+        fail('PublicationPhysicalHoldingRetiring');
+      }
+      const source = await readPhysicalHolding(holdingCid);
+      if (source === undefined) {
+        fail('PublicationPhysicalHoldingUnavailable');
+      }
+      await verifyPhysicalHoldingObjects(source);
+      for (const object of source.objects) {
+        if (expected.get(object.cid) === object.byte_count) {
+          borrowed.set(object.cid, object.byte_count);
+        }
+      }
+    }
+    if (borrowedHoldingCids.length !== 0) {
+      await syncDirectory(physicalHoldingsDirectory);
     }
     for (const [cid, bytes] of expected) {
-      if (supplied.get(cid) !== bytes) {
+      if (supplied.get(cid) !== bytes && borrowed.get(cid) !== bytes) {
         fail('InvalidPublicationPhysicalHoldingOwner');
       }
+    }
+    if ([...supplied].some(([cid, bytes]) => expected.get(cid) !== bytes)) {
+      fail('InvalidPublicationPhysicalHoldingOwner');
     }
     await verifyPhysicalHoldingObjects(record);
     try {
@@ -3958,13 +4054,21 @@ export async function openLocalPublicationStore(
     return Object.freeze({record, created: true});
   };
 
+  const commitPhysicalHolding = (value, prepared,
+    borrowedHoldingCids = []) => {
+    const operation = materialRetentionBusy.then(() =>
+      commitPhysicalHoldingInternal(value, prepared, borrowedHoldingCids));
+    materialRetentionBusy = operation.catch(() => {});
+    return operation;
+  };
+
   // Reconcile a private holding by exact admitted wire, then confirm its
   // directory durability. A visible link alone is not a committed holding.
   const confirmPrivateEvidence = async binding => {
     active();
     if (!exactKeys(binding, [
       'name', 'semanticCid', 'holdingCid', 'wire',
-    ]) || binding.name !== 'effect_preview' ||
+    ]) || !['effect_preview', 'effect_capture'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }

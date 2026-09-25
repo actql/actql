@@ -2938,6 +2938,58 @@ test('Effect source and other physical holdings release independently',
     assert.equal(reopened.status().storedBytes, 0);
   });
 
+test('capture holding borrows an exact allocation across manifest scopes',
+  async t => {
+    const setup = await fixture(t);
+    const shared = await preparePhysical(setup.store, 'shared rows');
+    const unique = await preparePhysical(setup.store, 'private output');
+    const source = physicalHolding(
+      digest('source custody'), digest('source manifest'),
+      [{cid: shared.cid, byte_count: shared.bytes}], 'effect-source');
+    await setup.store.commitPhysicalHolding(source, [shared.prepared]);
+    const capture = physicalHolding(
+      digest('capture custody'), digest('captured Run'), [
+        {cid: shared.cid, byte_count: shared.bytes},
+        {cid: unique.cid, byte_count: unique.bytes},
+      ], 'effect-capture');
+    await assert.rejects(setup.store.commitPhysicalHolding(
+      capture, [shared.prepared, unique.prepared],
+    ), code('InvalidPublicationPhysicalHoldingOwner'));
+    await setup.store.commitPhysicalHolding(
+      capture, [shared.prepared, unique.prepared], [source.holding_cid]);
+    assert.equal(unique.prepared.status().pending, false);
+    assert.equal((await setup.store.retirePhysicalHolding(
+      source.holding_cid)).deleted, true);
+    assert.equal(setup.store.status().storedBytes,
+      shared.bytes + unique.bytes);
+    const foreign = physicalHolding(
+      digest('foreign capture custody'), digest('foreign captured Run'),
+      [{cid: shared.cid, byte_count: shared.bytes}], 'effect-capture');
+    await assert.rejects(setup.store.commitPhysicalHolding(
+      foreign, [], [source.holding_cid],
+    ), code('PublicationPhysicalHoldingUnavailable'));
+    assert.equal(await setup.store.inspectPhysicalHolding(
+      foreign.holding_cid), undefined);
+    await setup.store.close();
+
+    const reopened = await openLocalPublicationStore(
+      setup.configuration, contractControl);
+    t.after(async () => { await reopened.close(); });
+    assert.deepEqual(await reopened.inspectPhysicalHolding(
+      capture.holding_cid), capture);
+    for (const [index, expected] of ['shared rows', 'private output']
+      .entries()) {
+      const chunks = [];
+      await reopened.consumePhysicalHolding(capture.holding_cid, index,
+        chunk => chunks.push(Buffer.from(chunk)));
+      assert.equal(Buffer.concat(chunks).toString('utf8'), expected);
+    }
+    assert.equal((await reopened.retirePhysicalHolding(
+      capture.holding_cid)).deleted, true);
+    assert.equal(reopened.status().storedBytes, 0);
+    assert.equal(reopened.status().objectCount, 0);
+  });
+
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');
   const writer = store.createPreparedObjectWriter(bytes.byteLength);

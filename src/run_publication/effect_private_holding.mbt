@@ -32,6 +32,63 @@ pub fn effect_preview_private_holding_cid(
 }
 
 ///|
+/// One Store custody key for the completed computation of a Run. The
+/// holding's manifest is the exact Captured Run CID; retrying this Run with
+/// different computation evidence conflicts rather than replacing bytes.
+pub fn effect_computation_capture_holding_cid(
+  run_definition : PublicationContract,
+  store_authority_cid : String,
+) -> String? {
+  if run_definition.name != "run_definition" ||
+    !valid_contract_cid(store_authority_cid) {
+    return None
+  }
+  let writer = @encode.hashing_writer(1024, 32, 2) catch { _ => return None }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, run_definition.identity)
+    @encode.key(writer, "store_authority_cid")
+    @encode.string_value(writer, store_authority_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-computation-holding/0.1")
+    @encode.end_object(writer)
+    let (digest, _, _) = @encode.finish_hash_usage(writer)
+    Some("sha256:" + digest)
+  } catch {
+    _ => None
+  }
+}
+
+///|
+/// The encrypted capture inventory has independent custody from its physical
+/// Result payloads. Both keys are scoped to the same exact Run and Store.
+pub fn effect_computation_record_holding_cid(
+  run_definition : PublicationContract,
+  store_authority_cid : String,
+) -> String? {
+  if run_definition.name != "run_definition" ||
+    !valid_contract_cid(store_authority_cid) {
+    return None
+  }
+  let writer = @encode.hashing_writer(1024, 32, 2) catch { _ => return None }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "run_definition_cid")
+    @encode.string_value(writer, run_definition.identity)
+    @encode.key(writer, "store_authority_cid")
+    @encode.string_value(writer, store_authority_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-effect-computation-record/0.1")
+    @encode.end_object(writer)
+    let (digest, _, _) = @encode.finish_hash_usage(writer)
+    Some("sha256:" + digest)
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// Independent Effect-source custody for one member and Run occurrence.
 /// A public Result and this private input may share immutable bytes, never
 /// the same holding or release responsibility.

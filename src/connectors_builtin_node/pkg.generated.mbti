@@ -193,6 +193,10 @@ pub fn strategy_effect_batch_rows_share_member(@effect_application.LogicalItemLo
 
 pub fn strategy_effect_collection_batch_admit(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, Array[String], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Int, Int) -> Bool raise NodeHostFailure
 
+pub fn strategy_effect_computation_capture_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
+pub fn strategy_effect_computation_record_holding_cid(@run_publication.PublicationContract, String) -> String raise NodeHostFailure
+
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
@@ -272,6 +276,8 @@ pub fn strategy_effect_set_frontier_ready_member(@effect_application.EffectSetFr
 pub fn strategy_effect_set_frontier_ready_row(@effect_application.EffectSetFrontier, Int) -> Int
 
 pub fn strategy_effect_set_receipt_run_disposition(@run_publication.EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Int raise NodeHostFailure
+
+pub fn strategy_effectful_computation_evidence_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, Int) -> Bool
 
 pub fn strategy_effectful_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, String, Array[String], String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 

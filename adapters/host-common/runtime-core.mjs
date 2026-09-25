@@ -2174,6 +2174,37 @@ function publicationControl(moon) {
         wire: computationPreviewWires.get(preview),
       });
     },
+    effectComputationCaptureHoldingCid(runDefinition, storeAuthorityCid) {
+      if (typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect computation capture holding');
+      }
+      return checked(moon.strategyEffectComputationCaptureHoldingCid(
+        token(runDefinition), storeAuthorityCid,
+      ));
+    },
+    effectComputationRecordHoldingCid(runDefinition, storeAuthorityCid) {
+      if (typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid Effect computation record holding');
+      }
+      return checked(moon.strategyEffectComputationRecordHoldingCid(
+        token(runDefinition), storeAuthorityCid,
+      ));
+    },
+    effectfulComputationEvidenceChainValid(chain, preview, limits) {
+      issuanceLimits(limits, 'Effectful computation evidence chain');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(chain?.definitions) ||
+          !Array.isArray(chain.artifacts)) {
+        throw new TypeError('Invalid Effectful computation evidence chain');
+      }
+      return moon.strategyEffectfulComputationEvidenceChainValid(
+        token(chain.runDefinition), token(chain.invocation),
+        chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt),
+        token(chain.capturedRun), ownedPreview,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
+      );
+    },
     issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
