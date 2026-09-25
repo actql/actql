@@ -1649,6 +1649,7 @@ function publicationControl(moon) {
   const admissionTokens = new WeakMap();
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
+  const localEffectSourceTokens = new WeakMap();
   const localEffectArtifactTokens = new WeakMap();
   const localEffectIdentityTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
@@ -1719,6 +1720,13 @@ function publicationControl(moon) {
     const result = effectSourceTokens.get(value);
     if (result === undefined) {
       throw new TypeError('Foreign captured Effect source artifact');
+    }
+    return result;
+  };
+  const localEffectSourceToken = value => {
+    const result = localEffectSourceTokens.get(value);
+    if (result === undefined) {
+      throw new TypeError('Foreign local Effect source evidence');
     }
     return result;
   };
@@ -2004,6 +2012,23 @@ function publicationControl(moon) {
         owner, inputs, memberIndex, ownedManifest, invocation,
         ownedArtifact, effectSourceToken(source));
     },
+    admitLocalEffectSourceEvidence(owner, inputs, memberIndex, manifest,
+      invocation, artifact, source, limits) {
+      issuanceLimits(limits, 'local Effect source evidence');
+      const ownedManifest = localEffectManifestTokens.get(manifest);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      if (ownedManifest === undefined || ownedArtifact === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign local Effect source evidence');
+      }
+      const issued = checked(moon.clientProgramAdmitLocalEffectSourceEvidence(
+        owner, inputs, memberIndex, ownedManifest, invocation,
+        ownedArtifact, effectSourceToken(source), limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({kind: 'captured-local-effect-source'});
+      localEffectSourceTokens.set(value, issued);
+      return value;
+    },
     issueSourceFreeLocalEffectIdentity(owner, inputs, memberIndex, artifact,
       limits) {
       issuanceLimits(limits, 'local Effect identity');
@@ -2155,6 +2180,7 @@ function publicationControl(moon) {
           !Array.isArray(chain.artifacts) ||
           !Array.isArray(evidence.snapshots) ||
           !Array.isArray(evidence.effectSources) ||
+          !Array.isArray(evidence.localEffectSources) ||
           !Array.isArray(evidence.pendingSourceStateAdvances) ||
           !Array.isArray(evidence.modelEvidence) ||
           !Array.isArray(plans) ||
@@ -2172,6 +2198,7 @@ function publicationControl(moon) {
         token(chain.manifest), token(chain.receipt),
         evidence.snapshots.map(snapshotToken),
         evidence.effectSources.map(effectSourceToken),
+        evidence.localEffectSources.map(localEffectSourceToken),
         evidence.pendingSourceStateAdvances.map(sourceAdvanceToken),
         evidenceToken(evidence.authoringContext),
         evidence.modelEvidence.map(evidenceToken), ownedPreview,

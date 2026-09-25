@@ -50,10 +50,23 @@ pub fn captured_effect_source_matches_result_facts(
   result : PublicationContract,
   result_name : String,
 ) -> Bool {
-  if source.artifact.name != "effect_source_artifact" ||
+  effect_source_contract_matches_result_facts(
+    source.artifact,
+    result,
+    result_name,
+  )
+}
+
+///|
+fn effect_source_contract_matches_result_facts(
+  physical : PublicationContract,
+  result : PublicationContract,
+  result_name : String,
+) -> Bool {
+  if physical.name != "effect_source_artifact" ||
     result.name != "result_artifact" ||
-    contract_string(source.artifact, "source_result") != Some(result_name) ||
-    contract_string(source.artifact, "actual_completeness") != Some("complete") ||
+    contract_string(physical, "source_result") != Some(result_name) ||
+    contract_string(physical, "actual_completeness") != Some("complete") ||
     contract_string(result, "actual_completeness") != Some("complete") {
     return false
   }
@@ -61,11 +74,11 @@ pub fn captured_effect_source_matches_result_facts(
     field in [
       "logical_result_cid", "result_schema_cid", "effective_data_policy_cid", "effective_retention_policy_cid",
     ] {
-    if contract_string(source.artifact, field) != contract_string(result, field) {
+    if contract_string(physical, field) != contract_string(result, field) {
       return false
     }
   }
-  contract_count(source.artifact, "actual_row_count") ==
+  contract_count(physical, "actual_row_count") ==
   contract_count(result, "actual_row_count")
 }
 
@@ -399,6 +412,7 @@ fn captured_model_evidence(
 fn seal_effect_context(
   snapshots : Array[CapturedResultSnapshot],
   sources : Array[CapturedEffectSourceArtifact],
+  local_sources : Array[CapturedLocalEffectSourceEvidence],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -465,6 +479,13 @@ fn seal_effect_context(
     for source in sources {
       @encode.key(writer, source.effect_id)
       @encode.string_value(writer, source.holding_cid)
+    }
+    @encode.end_object(writer)
+    @encode.key(writer, "effect_source_local_inventory")
+    @encode.begin_object(writer)
+    for source in local_sources {
+      @encode.key(writer, source.effect_id)
+      @json.emit_value(source.value, writer)
     }
     @encode.end_object(writer)
     @encode.key(writer, "model_invocation_evidence")
@@ -566,6 +587,7 @@ pub fn issue_effect_free_captured_run(
     receipt,
     snapshots,
     [],
+    [],
     advances,
     authoring,
     models,
@@ -590,6 +612,7 @@ pub fn issue_effectful_captured_run(
   receipt : PublicationContract,
   snapshots : Array[CapturedResultSnapshot],
   sources : Array[CapturedEffectSourceArtifact],
+  local_sources : Array[CapturedLocalEffectSourceEvidence],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -608,6 +631,7 @@ pub fn issue_effectful_captured_run(
     receipt,
     snapshots,
     sources,
+    local_sources,
     advances,
     authoring,
     models,
@@ -629,6 +653,7 @@ fn issue_captured_computation_run(
   receipt : PublicationContract,
   snapshots : Array[CapturedResultSnapshot],
   sources : Array[CapturedEffectSourceArtifact],
+  local_sources : Array[CapturedLocalEffectSourceEvidence],
   advances : Array[PendingSourceStateAdvance],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
@@ -679,6 +704,31 @@ fn issue_captured_computation_run(
   ordered_sources.sort_by((left, right) => {
     @canonical.compare_utf16(left.effect_id, right.effect_id)
   })
+  let ordered_local_sources = local_sources.copy()
+  ordered_local_sources.sort_by((left, right) => {
+    @canonical.compare_utf16(left.effect_id, right.effect_id)
+  })
+  if ordered_sources.length() != ordered_local_sources.length() {
+    return Err(
+      CaptureIssuanceInventoryMismatch("effect_source_local_inventory"),
+    )
+  }
+  for index in 0..<ordered_sources.length() {
+    if ordered_sources[index].effect_id !=
+      ordered_local_sources[index].effect_id ||
+      validate_captured_local_effect_source_value(
+        ordered_local_sources[index].value,
+        ordered_sources[index].artifact,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+      is Err(_) {
+      return Err(
+        CaptureIssuanceInventoryMismatch("effect_source_local_inventory"),
+      )
+    }
+  }
   let mut expected_source_count = 0
   match preview {
     None =>
@@ -748,8 +798,8 @@ fn issue_captured_computation_run(
   plans.sort_by(fn(left, right) { @canonical.compare_utf16(left.0, right.0) })
   let effect_context = match
     seal_effect_context(
-      ordered_snapshots, ordered_sources, advances, authoring, ordered_models, preview,
-      plans, max_wire_bytes, max_nodes, max_depth,
+      ordered_snapshots, ordered_sources, ordered_local_sources, advances, authoring,
+      ordered_models, preview, plans, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

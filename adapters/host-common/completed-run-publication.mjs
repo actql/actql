@@ -404,11 +404,13 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
   const ownedHoldings = effectSourceHoldings.map(holding => {
     if (!contract(holding?.artifact) ||
         holding.artifact.name !== 'effect_source_artifact' ||
+        holding.localEvidence?.kind !== 'captured-local-effect-source' ||
         !holding.record || !Array.isArray(holding.record.objects)) {
       fail('InvalidCompletedEffectSourceHolding');
     }
     return Object.freeze({
       source: holding.source,
+      localEvidence: holding.localEvidence,
       artifact: ownContract(control, holding.artifact, contractLimits,
         'InvalidCompletedEffectSourceHolding'),
       record: Object.freeze({...holding.record,
@@ -454,6 +456,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     authoringContext,
     modelEvidence: captureEvidence.modelEvidence,
     effectSources: ownedHoldings.map(value => value.source),
+    localEffectSources: ownedHoldings.map(value => value.localEvidence),
   }, preview, plans, contractLimits);
   const issued = Object.freeze({manifest, computationReceipt: receipt,
     capturedRun});

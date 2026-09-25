@@ -50,6 +50,95 @@ fn final_test_source(
 }
 
 ///|
+fn final_test_local_wire(body : String) -> String {
+  let value = captured_test_value(body)
+  let cid = @json.cid_value(value, 65536, 4096, 32) catch {
+    _ => abort("Invalid local test identity")
+  }
+  captured_test_wire(
+    @json.object_with_string_field(value, "self_cid", cid).unwrap(),
+  )
+}
+
+///|
+fn final_test_local_source(
+  chain : CapturedRunTestChain,
+  source : CapturedEffectSourceArtifact,
+) -> CapturedLocalEffectSourceEvidence {
+  let unit_cid = ordering_test_cid("1")
+  let definition = final_test_local_wire(
+    "{\"version\":\"actql-local-result-definition/0.1\"," +
+    "\"unit_definition_cid\":\"" +
+    unit_cid +
+    "\",\"result_name\":\"rows\"}",
+  )
+  let definition_cid = final_test_receipt_field(
+    captured_test_value(definition),
+    "self_cid",
+  )
+  let invocation = final_test_local_wire(
+    "{\"version\":\"actql-local-computation-semantics/0.1\"," +
+    "\"unit_definition_cid\":\"" +
+    unit_cid +
+    "\",\"used_values_cid\":\"" +
+    ordering_test_cid("2") +
+    "\",\"local_contracts_cid\":\"" +
+    ordering_test_cid("3") +
+    "\",\"observation_cids\":[],\"policy_cid\":\"" +
+    ordering_test_cid("e") +
+    "\"}",
+  )
+  let invocation_cid = final_test_receipt_field(
+    captured_test_value(invocation),
+    "self_cid",
+  )
+  let result = captured_test_value(publication_contract_json(chain.artifact))
+  let evidence = issue_local_result_occurrence_evidence(
+    definition_cid,
+    final_test_receipt_field(result, "logical_result_cid"),
+    final_test_receipt_field(result, "result_schema_cid"),
+    unit_cid,
+    [],
+    ordering_test_cid("b"),
+    final_test_receipt_field(result, "effective_data_policy_cid"),
+    "actql-common-host",
+    ordering_test_cid("c"),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let retention = manifest_test_retention(
+    final_test_receipt_field(result, "effective_data_policy_cid"),
+  )
+  let artifact = issue_complete_local_result_artifact(
+    definition_cid, invocation_cid, evidence, retention, 1, 65536, 4096, 32,
+  ).unwrap()
+  let manifest = final_test_local_wire(
+    "{\"version\":\"actql-local-result-manifest/0.1\"," +
+    "\"unit_definition_cid\":\"" +
+    unit_cid +
+    "\",\"local_invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"results\":{\"rows\":\"" +
+    publication_contract_identity(artifact) +
+    "\"}}",
+  )
+  admit_captured_local_effect_source(
+    source,
+    definition,
+    invocation,
+    manifest,
+    artifact,
+    result_ordering_derivation_contract(evidence),
+    result_ordering_evidence_contract(evidence),
+    retention,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+}
+
+///|
 fn final_test_preview_wire(
   chain : CapturedRunTestChain,
   member_cid : String,
@@ -241,6 +330,20 @@ fn final_test_captured_with_plan_inventory(
         ).unwrap() +
         "\"}",
     )
+    .replace(
+      old="\"effect_source_local_inventory\":{}",
+      new="\"effect_source_local_inventory\":{\"WriteOne\":" +
+        captured_local_effect_source_json(
+          final_test_local_source(
+            chain,
+            final_test_source(chain, final_test_preview(chain)),
+          ),
+          65536,
+          4096,
+          32,
+        ).unwrap() +
+        "}",
+    )
   let context_value = captured_test_value(context_body_wire)
   let context_cid = @json.cid_value(context_value, 65536, 4096, 32) catch {
     _ => abort("Invalid Effect Context identity")
@@ -268,6 +371,7 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     4096,
     32,
   ).unwrap()
+  let source = final_test_source(chain, final_test_preview(chain))
   issue_effectful_captured_run(
     chain.run,
     chain.invocation,
@@ -276,7 +380,8 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
     chain.manifest,
     chain.receipt,
     [snapshot],
-    [final_test_source(chain, final_test_preview(chain))],
+    [source],
+    [final_test_local_source(chain, source)],
     [],
     chain.authoring,
     chain.models,
@@ -305,6 +410,7 @@ test "Effectful capture issuer owns its exact Preview plan inventory" {
     plans : Array[(String, String)],
     identity : EffectPreviewIdentity,
   ) {
+    let source = final_test_source(chain, preview)
     issue_effectful_captured_run(
       chain.run,
       chain.invocation,
@@ -313,7 +419,8 @@ test "Effectful capture issuer owns its exact Preview plan inventory" {
       chain.manifest,
       chain.receipt,
       [snapshot],
-      [final_test_source(chain, preview)],
+      [source],
+      [final_test_local_source(chain, source)],
       [],
       chain.authoring,
       chain.models,
@@ -385,6 +492,41 @@ fn final_test_reseal_captured_context(
     4096,
     32,
   ).unwrap()
+}
+
+///|
+test "Effectful capture re-admits the exact local source inventory" {
+  let chain = captured_run_test_chain()
+  let captured = final_test_captured(chain)
+  let preview = final_test_preview(chain)
+  let (set_wire, member_wires, set_cid) = final_test_receipts(preview)
+  let check = fn(candidate : PublicationContract) {
+    admit_effectful_final_run_evidence_chain(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      chain.manifest,
+      chain.receipt,
+      candidate,
+      preview,
+      set_wire,
+      member_wires,
+      final_test_receipt_wire(chain.receipt, preview, set_cid, candidate),
+      65536,
+      4096,
+      32,
+    )
+  }
+  assert_true(check(captured) is Ok(_))
+  let foreign_name = final_test_reseal_captured_context(
+    captured, "\"result_name\":\"rows\"", "\"result_name\":\"foreign\"",
+  )
+  assert_true(check(foreign_name) is Err(_))
+  let foreign_member = final_test_reseal_captured_context(
+    captured, "\"effect_source_local_inventory\":{\"WriteOne\":", "\"effect_source_local_inventory\":{\"Foreign\":",
+  )
+  assert_true(check(foreign_member) is Err(_))
 }
 
 ///|

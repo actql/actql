@@ -1024,18 +1024,98 @@ test('portable control validates Receipt and Captured Run references',
     effectSources: [control.admitCapturedEffectSourceArtifact(
       preview, 0, invoked, sourceArtifact, cid('a'))],
     pendingSourceStateAdvances: [], authoringContext, modelEvidence: []};
-  const effectfulCaptured = control.issueEffectfulCapturedRun(
+  assert.throws(() => control.issueEffectfulCapturedRun(
     computationChain, computationEvidence, preview,
-    [{name: 'WriteOne', wire: '{}'}], limits);
+    [{name: 'WriteOne', wire: '{}'}], limits),
+  {name: 'TypeError', message: 'Invalid Effectful Captured Run request'});
+  const localDefinitionBody = {
+    version: 'actql-local-result-definition/0.1',
+    unit_definition_cid: cid('1'), result_name: 'rows',
+  };
+  const localDefinition = canonical({
+    ...localDefinitionBody,
+    self_cid: canonicalCid(localDefinitionBody),
+  });
+  const localInvocationBody = {
+    version: 'actql-local-computation-semantics/0.1',
+    unit_definition_cid: cid('1'), used_values_cid: cid('2'),
+    local_contracts_cid: cid('3'), observation_cids: [],
+    policy_cid: cid('a'),
+  };
+  const localInvocation = canonical({
+    ...localInvocationBody,
+    self_cid: canonicalCid(localInvocationBody),
+  });
+  const localDerivationBody = {...JSON.parse(derivation.wire),
+    producer_contract_cid: localDefinition.self_cid};
+  delete localDerivationBody[derivation.identityField];
+  const localDerivation = control.seal('derivation_evidence',
+    JSON.stringify(localDerivationBody), limits);
+  const localOrderingBody = {...JSON.parse(ordering.wire),
+    producer_contract_cid: localDefinition.self_cid,
+    witness_evidence: [{kind: 'derivation',
+      cid: localDerivation.identity}]};
+  delete localOrderingBody[ordering.identityField];
+  const localOrdering = control.seal('ordering_evidence',
+    JSON.stringify(localOrderingBody), limits);
+  const localArtifact = control.seal('result_artifact', JSON.stringify({
+    ...artifactBody,
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: localDefinition.self_cid,
+    invocation_cid: localInvocation.self_cid,
+    ordering_evidence_cid: localOrdering.identity,
+    provenance_evidence_cids: [localDerivation.identity],
+  }), limits);
+  const localManifestBody = {
+    version: 'actql-local-result-manifest/0.1',
+    unit_definition_cid: cid('1'),
+    local_invocation_cid: localInvocation.self_cid,
+    results: {rows: localArtifact.identity},
+  };
+  const localManifest = canonical({
+    ...localManifestBody,
+    self_cid: canonicalCid(localManifestBody),
+  });
+  const rawContract = value => checked(moon.strategyPublicationAdmit(
+    value.name, value.wire,
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const rawPreview = checked(moon.strategyAdmitEffectComputationPreview(
+    previewWire(), run.identity, authoringContext.identity,
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const rawSource = checked(moon.strategyAdmitCapturedEffectSourceArtifact(
+    rawPreview, 0, rawContract(invoked), rawContract(sourceArtifact), cid('a')));
+  const rawLocal = checked(moon.strategyAdmitCapturedLocalEffectSource(
+    rawSource, JSON.stringify(localDefinition),
+    JSON.stringify(localInvocation), JSON.stringify(localManifest),
+    rawContract(localArtifact), rawContract(localDerivation),
+    rawContract(localOrdering), rawContract(retention),
+    limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+  const issueDirect = plans => {
+    const rawCaptured = checked(moon.strategyIssueEffectfulCapturedRun(
+      rawContract(run), rawContract(invoked), [rawContract(definition)],
+      [rawContract(artifact)], rawContract(manifest), rawContract(receipt),
+      [checked(moon.strategyAdmitCapturedResultSnapshot(
+        rawContract(definition), rawContract(artifact),
+        JSON.stringify(resultRows), ['value'],
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth))],
+      [rawSource], [rawLocal], [],
+      checked(moon.strategyRunEvidenceAdmit('authoring_context',
+        authoringContext.wire, limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth)), [], rawPreview,
+      plans.map(value => value.name), plans.map(value => value.wire),
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    return control.admit('captured_run',
+      moon.strategyPublicationContractJson(rawCaptured), limits);
+  };
+  const effectfulCaptured = issueDirect([{name: 'WriteOne', wire: '{}'}]);
   assert.equal(effectfulCaptured.name, 'captured_run');
   assert.deepEqual(Object.keys(JSON.parse(effectfulCaptured.wire)
+    .effect_context.effect_source_local_inventory), ['WriteOne']);
+  assert.deepEqual(Object.keys(JSON.parse(effectfulCaptured.wire)
     .effect_context.effects), ['WriteOne']);
-  assert.throws(() => control.issueEffectfulCapturedRun(
-    computationChain, computationEvidence, preview, [], limits),
+  assert.throws(() => issueDirect([]),
   {code: 'MoonBitHostFailure'});
-  assert.throws(() => control.issueEffectfulCapturedRun(
-    computationChain, computationEvidence, preview,
-    [{name: 'Foreign', wire: '{}'}], limits),
+  assert.throws(() => issueDirect([{name: 'Foreign', wire: '{}'}]),
   {code: 'MoonBitHostFailure'});
   const memberReceipt = control.seal('effect_apply_receipt',
     JSON.stringify({

@@ -314,8 +314,11 @@ fn effect_context_preview_inventory_matches(
     is Some(source_artifacts) &&
     @json.object_field(context, "effect_source_holding_cids")
     is Some(source_holdings) &&
+    @json.object_field(context, "effect_source_local_inventory")
+    is Some(local_inventory) &&
     evidence_inventory_names(source_artifacts) is Some(source_names) &&
-    evidence_inventory_names(source_holdings) is Some(holding_names) else {
+    evidence_inventory_names(source_holdings) is Some(holding_names) &&
+    evidence_inventory_names(local_inventory) is Some(local_names) else {
     return false
   }
   let expected_source_names : Array[String] = []
@@ -369,10 +372,23 @@ fn effect_context_preview_inventory_matches(
         Some(holding_cid) else {
         return false
       }
+      guard @json.object_field(local_inventory, effect_id) is Some(local_source) &&
+        admitted_nested_local_contract(
+          source_artifacts, effect_id, "effect_source_artifact", max_wire_bytes,
+          max_nodes, max_depth,
+        )
+        is Some(physical) &&
+        validate_captured_local_effect_source_value(
+          local_source, physical, max_wire_bytes, max_nodes, max_depth,
+        )
+        is Ok(_) else {
+        return false
+      }
     }
   }
   same_names(source_names, expected_source_names) &&
-  same_names(holding_names, expected_source_names)
+  same_names(holding_names, expected_source_names) &&
+  same_names(local_names, expected_source_names)
 }
 
 ///|
@@ -624,6 +640,9 @@ fn validate_computation_run_evidence_chain(
         ) ||
         !evidence_empty_object(
           @json.object_field(effect_context, "effect_source_holding_cids"),
+        ) ||
+        !evidence_empty_object(
+          @json.object_field(effect_context, "effect_source_local_inventory"),
         ) ||
         !evidence_empty_object(
           @json.object_field(effect_context, "effect_plans"),

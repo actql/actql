@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | Persist the exact local Effect-source Artifact inventory and Manifest in Captured Run, resolve typed scope/policy/authority/retention evidence, and re-admit that chain at apply and restart. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
+| Remaining implementation and acceptance | The exact local Effect-source Artifact inventory and Manifest are now captured and re-admitted with the physical source. Resolve the remaining typed scope/policy/authority references and bind their current-use checks to apply and restart. Connect public `submit` to the existing Host owner. From that public entrypoint, test response loss at dispatch and response capture, restart, publication-commit loss, partial outcomes, and final cleanup. Match declared Salesforce Catalog/read/write capabilities to section 22.5 with local and authorized live-org evidence distinguished. |
 | Cross-owner dependency | Distribution owns the public Client `submit` and Run-status projection. It must call the existing checked Effect preparation and Host apply/publication owners, not create another Effect scheduler. This branch owns the common local Artifact/Manifest issuer, captured inventory, and Salesforce Site operations. An authorized Salesforce test org and secret-manager reference have not been supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. Closing this unit does not complete the original ten-Connector objective. |
 
@@ -45,7 +45,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The Salesforce Host assembles the Preview draft from typed Run contracts, checked member descriptors, exact source Artifacts, typed write requests, and target observations. The local Effect identity is now issued from the checked owner and exact local Result Artifact; the product Preview author checks every admitted member against those opaque identities. The ordinary local Host path does not take a fixture-authored template. Capability and authority evidence are still represented by example references in the Host fixture, and the local semantic Artifacts are not yet in Captured Run's durable inventory. | Resolve the remaining evidence references against the admitted Run and retain the exact local Artifact inventory for restart admission. Then bind that inventory to whole-set preflight and apply before any write. Current Catalog and target observations must still be refreshed before send; a 404 alone is not proof of absence. Public ingress remains Distribution-owned. |
+| The Salesforce Host assembles the Preview draft from typed Run contracts, checked member descriptors, exact source Artifacts, typed write requests, and target observations. The local Effect identity is issued from the checked owner and exact local Result Artifact; the product Preview author checks every admitted member against those opaque identities. The ordinary local Host path does not take a fixture-authored template. Captured Run now retains a separate local Stage Result inventory and re-admits it alongside the physical source. Capability and authority evidence are still represented by example references in the Host fixture. | Resolve the remaining evidence references against the admitted Run and bind current-use checks to whole-set preflight and apply before any write. Current Catalog and target observations must still be refreshed before send; a 404 alone is not proof of absence. Public ingress remains Distribution-owned. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -65,9 +65,10 @@ admitted Result-consuming Preview members in the common MoonBit owner. A
 missing or foreign opaque identity fails authoring; a semantic Preview CID
 alone is not accepted as proof of issuance. The source-free export now also
 issues a complete local Result Manifest from the checked Unit, exact local
-Invocation, and opaque local Artifact owner. That Manifest is not yet
-persisted in Captured Run. The next shared connection must retain and admit
-the exact local inventory and recheck identity at apply and restart. The current
+Invocation, and opaque local Artifact owner. Captured Run now persists this
+local inventory separately from Program Result publication and re-admits the
+local evidence against the exact physical source. Current-use authority at
+apply remains a separate check. The current
 private Effect-source Artifact is Run-bound custody evidence and cannot be
 silently substituted for the local semantic Result Artifact. Foreign member,
 source, or Invocation evidence must fail before the first write. Units with

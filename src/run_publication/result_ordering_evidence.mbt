@@ -230,6 +230,20 @@ pub fn validate_result_artifact_evidence(
 }
 
 ///|
+/// Re-admit a local Result Artifact using its typed semantic Definition CID.
+/// The checked Unit and exact local Definition are verified by the caller.
+pub fn validate_local_result_artifact_evidence(
+  definition_cid : String,
+  artifact : PublicationContract,
+  evidence : ResultOrderingEvidence,
+  retention : PublicationContract,
+) -> Result[Unit, ResultArtifactEvidenceIssue] {
+  validate_result_artifact_for_producer(
+    definition_cid, artifact, evidence, retention,
+  )
+}
+
+///|
 fn validate_result_artifact_for_producer(
   producer_cid : String,
   artifact : PublicationContract,

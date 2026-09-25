@@ -18,6 +18,29 @@ const resultNames = {
 };
 
 const clone = value => structuredClone(value);
+const stageSchemas = JSON.parse(readFileSync(
+  'spec/contracts/actql-stage-contracts.json', 'utf8')).schemas;
+const publicationSchemas = JSON.parse(readFileSync(
+  'spec/contracts/actql-run-publication.json', 'utf8')).schemas;
+
+function capturedLocalEffectSourceSchema() {
+  return {
+    type: 'object', additionalProperties: false,
+    required: [
+      'artifact', 'definition', 'derivation', 'invocation', 'manifest',
+      'ordering', 'retention',
+    ],
+    properties: {
+      artifact: clone(stageSchemas.local_result_artifact),
+      definition: clone(stageSchemas.local_result_definition),
+      derivation: {type: 'object'},
+      invocation: clone(stageSchemas.local_computation),
+      manifest: clone(stageSchemas.local_manifest),
+      ordering: {type: 'object'},
+      retention: clone(publicationSchemas.result_retention_policy),
+    },
+  };
+}
 
 export function resultArtifactSchema() {
   return {
@@ -395,7 +418,7 @@ export function correctedContracts(registry, cli) {
   const effectContext = next.artifact_schemas.captured_run
     .properties.effect_context;
   for (const field of ['effect_source_artifacts',
-    'effect_source_holding_cids']) {
+    'effect_source_holding_cids', 'effect_source_local_inventory']) {
     if (!effectContext.required.includes(field)) effectContext.required.push(field);
   }
   effectContext.properties.effect_source_artifacts = {
@@ -407,6 +430,11 @@ export function correctedContracts(registry, cli) {
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schemas[name] = replaceNested(schema, replacements);
   }
+  next.artifact_schemas.captured_run.properties.effect_context.properties
+    .effect_source_local_inventory = {
+      type: 'object',
+      additionalProperties: capturedLocalEffectSourceSchema(),
+    };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {
     next.artifact_schema_cids[name] = machineCid(schema);
   }

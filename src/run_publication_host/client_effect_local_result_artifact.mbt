@@ -19,6 +19,7 @@ struct ClientEffectLocalResultArtifact {
   invocation : ClientEffectLocalInvocation
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
+  retention : @publication.PublicationContract
 }
 
 ///|
@@ -114,7 +115,15 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Artifact(issue))
   }
-  Ok({ inputs, member_index, definition, invocation, evidence, artifact, })
+  Ok({
+    inputs,
+    member_index,
+    definition,
+    invocation,
+    evidence,
+    artifact,
+    retention,
+  })
 }
 
 ///|
@@ -176,16 +185,26 @@ pub fn client_effect_local_source_matches(
   artifact : ClientEffectLocalResultArtifact,
   source : @publication.CapturedEffectSourceArtifact,
 ) -> Bool {
+  let mut owns_artifact = false
+  for candidate in manifest.artifacts {
+    if physical_equal(candidate, artifact) {
+      owns_artifact = true
+    }
+  }
   if !physical_equal(artifact.inputs, inputs) ||
+    !owns_artifact ||
     !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
     !@strategy.captured_effect_inputs_share_view(
       inputs,
       artifact.member_index,
       member_index,
     ) ||
-    !client_effect_local_manifest_matches(manifest, owner, invocation, [
-      artifact,
-    ]) {
+    !client_effect_local_manifest_matches(
+      manifest,
+      owner,
+      invocation,
+      manifest.artifacts,
+    ) {
     return false
   }
   guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
@@ -206,5 +225,43 @@ pub fn client_effect_local_source_matches(
     source,
     artifact.artifact,
     name,
+  )
+}
+
+///|
+/// Seal local semantic evidence only through the checked source owner. The
+/// physical holding and current authority remain independent obligations.
+pub fn admit_client_effect_local_source_evidence(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : ClientEffectLocalManifest,
+  invocation : ClientEffectLocalInvocation,
+  artifact : ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.CapturedLocalEffectSourceEvidence,
+  @publication.CapturedLocalEffectSourceIssue,
+] {
+  if !client_effect_local_source_matches(
+      owner, inputs, member_index, manifest, invocation, artifact, source,
+    ) {
+    return Err(@publication.InvalidLocalReference("owner"))
+  }
+  @publication.admit_captured_local_effect_source(
+    source,
+    artifact.definition.wire,
+    invocation.wire,
+    manifest.wire,
+    artifact.artifact,
+    @publication.result_ordering_derivation_contract(artifact.evidence),
+    @publication.result_ordering_evidence_contract(artifact.evidence),
+    artifact.retention,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
   )
 }

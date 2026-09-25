@@ -775,6 +775,32 @@ pub fn strategy_captured_effect_source_holding_cid(
 }
 
 ///|
+/// Re-admit persisted local evidence at a trust boundary. This does not
+/// replace the checked Host owner required for first issuance.
+#export_name("strategyAdmitCapturedLocalEffectSource")
+pub fn strategy_admit_captured_local_effect_source(
+  source : @publication.CapturedEffectSourceArtifact,
+  definition_wire : String,
+  invocation_wire : String,
+  manifest_wire : String,
+  artifact : @publication.PublicationContract,
+  derivation : @publication.PublicationContract,
+  ordering : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedLocalEffectSourceEvidence raise NodeHostFailure {
+  match @publication.admit_captured_local_effect_source(
+    source, definition_wire, invocation_wire, manifest_wire, artifact,
+    derivation, ordering, retention, max_wire_bytes, max_nodes, max_depth,
+  ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyCapturedEffectSourceArtifactCid")
 pub fn strategy_captured_effect_source_artifact_cid(
   source : @publication.CapturedEffectSourceArtifact,
@@ -880,6 +906,7 @@ pub fn strategy_issue_effectful_captured_run(
   receipt : @publication.PublicationContract,
   snapshots : Array[@publication.CapturedResultSnapshot],
   sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
   advances : Array[@publication.PendingSourceStateAdvance],
   authoring : @publication.RunEvidenceValue,
   models : Array[@publication.RunEvidenceValue],
@@ -899,7 +926,7 @@ pub fn strategy_issue_effectful_captured_run(
   }
   match @publication.issue_effectful_captured_run(
     run_definition, invocation, definitions, artifacts, manifest, receipt,
-    snapshots, sources, advances, authoring, models, preview, plans,
+    snapshots, sources, local_sources, advances, authoring, models, preview, plans,
     max_wire_bytes, max_nodes, max_depth,
   ) {
     Ok(value) => value

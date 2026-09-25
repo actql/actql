@@ -281,6 +281,7 @@ export async function preparePinnedEffectSourcePayload({
     });
     preparedEffectSourceOwners.set(payload, Object.freeze({
       store, checkedOwner, inputs, memberIndex, localInvocationToken,
+      contractLimits: Object.freeze({...contractLimits}),
     }));
     return payload;
   } catch (failure) {
@@ -361,6 +362,10 @@ export async function commitPinnedEffectSourceHolding({
     owner.localInvocationToken, payload.localResultArtifact, source) !== true) {
     throw new TypeError('ForeignLocalEffectSource');
   }
+  const localEvidence = control.admitLocalEffectSourceEvidence(
+    owner.checkedOwner, owner.inputs, memberIndex, payload.localManifest,
+    owner.localInvocationToken, payload.localResultArtifact, source,
+    owner.contractLimits);
   const holdingCid = control.capturedEffectSourceHoldingCid(source);
   const record = Object.freeze({
     version: 'actql-local-physical-holding/0.1',
@@ -386,5 +391,6 @@ export async function commitPinnedEffectSourceHolding({
     localInvocation: payload.localInvocation,
     localResultArtifact: payload.localResultArtifact,
     localManifest: payload.localManifest,
+    localEvidence,
     holdingCid, record});
 }

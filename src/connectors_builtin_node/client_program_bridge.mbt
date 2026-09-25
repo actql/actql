@@ -640,6 +640,29 @@ pub fn client_program_local_effect_source_matches(
 }
 
 ///|
+#export_name("clientProgramAdmitLocalEffectSourceEvidence")
+pub fn client_program_admit_local_effect_source_evidence(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  manifest : @publication_host.ClientEffectLocalManifest,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  source : @publication.CapturedEffectSourceArtifact,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.CapturedLocalEffectSourceEvidence,
+  @publication.CapturedLocalEffectSourceIssue,
+] {
+  @publication_host.admit_client_effect_local_source_evidence(
+    owner, inputs, member_index, manifest, invocation, artifact, source, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramIssueSourceFreeLocalEffectIdentity")
 pub fn client_program_issue_source_free_local_effect_identity(
   owner : @publication_host.PreparedClientEffectComputation,

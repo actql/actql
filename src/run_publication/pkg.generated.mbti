@@ -9,6 +9,8 @@ import {
 // Values
 pub fn admit_captured_effect_source_artifact(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
 
+pub fn admit_captured_local_effect_source(CapturedEffectSourceArtifact, String, String, String, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[CapturedLocalEffectSourceEvidence, CapturedLocalEffectSourceIssue]
+
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
 
 pub fn admit_checked_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, String, String) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
@@ -58,6 +60,8 @@ pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> Strin
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 
 pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]
 
@@ -229,7 +233,7 @@ pub fn issue_effect_set_apply_receipt_from_members(EffectPreviewIdentity, Array[
 
 pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
 
-pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
 
@@ -457,6 +461,8 @@ pub fn validate_effectful_publication_commit(PublicationContract, PublicationCon
 
 pub fn validate_effectful_publication_commit_with_result_evidence(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[Unit, EffectfulPublicationCommitIssue]
 
+pub fn validate_local_result_artifact_evidence(String, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
+
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]
 
 pub fn validate_result_artifact_evidence(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract) -> Result[Unit, ResultArtifactEvidenceIssue]
@@ -477,6 +483,16 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 
 // Types and methods
 type CapturedEffectSourceArtifact
+
+type CapturedLocalEffectSourceEvidence
+
+pub(all) enum CapturedLocalEffectSourceIssue {
+  InvalidLocalContract(String)
+  InvalidLocalReference(String)
+  InvalidLocalResultEvidence
+  InvalidPhysicalSource
+  InvalidEncoding
+} derive(Eq, @debug.Debug)
 
 type CapturedResultSnapshot
 

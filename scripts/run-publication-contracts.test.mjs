@@ -14,6 +14,43 @@ import {
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
+test('independent local Effect source inventory binds its Stage Result', () => {
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  const stage = read('spec/contracts/actql-stage-contracts.json');
+  const context = registry.artifact_schemas.captured_run
+    .properties.effect_context;
+  assert.ok(context.required.includes('effect_source_local_inventory'));
+  const inventory = context.properties.effect_source_local_inventory;
+  assert.equal(inventory.type, 'object');
+  const entry = inventory.additionalProperties;
+  assert.equal(entry.additionalProperties, false);
+  assert.deepEqual(entry.required, [
+    'artifact', 'definition', 'derivation', 'invocation', 'manifest',
+    'ordering', 'retention',
+  ]);
+  for (const [field, schema] of [
+    ['definition', 'local_result_definition'],
+    ['invocation', 'local_computation'],
+    ['manifest', 'local_manifest'],
+    ['artifact', 'local_result_artifact'],
+  ]) {
+    assert.deepEqual(entry.properties[field], stage.schemas[schema]);
+  }
+  const definition = {
+    version: 'actql-local-result-definition/0.1',
+    unit_definition_cid: `sha256:${'1'.repeat(64)}`,
+    result_name: 'rows',
+  };
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  assert.equal(hash(definition),
+    'sha256:11f4499c12a3a321755c1d23e74a849f0c11c3e314ed19c660a6d7eb8d41bd7d');
+  assert.notEqual(hash({...definition, result_name: 'answer'}),
+    hash(definition));
+  assert.notEqual(hash({...definition,
+    unit_definition_cid: `sha256:${'2'.repeat(64)}`}), hash(definition));
+});
+
 test('independent multi-row Effect receipt 0.1 vector and closed inventory', () => {
   const cid = digit => `sha256:${digit.repeat(64)}`;
   const hash = body => `sha256:${createHash('sha256')
@@ -183,12 +220,18 @@ test('every Run-bound Result Artifact embedding uses the normative 12 fields', (
     'result_artifact_cid',
   ]);
   const registry = read('spec/contracts/actql-protocol-schemas.json');
-  const visit = value => {
+  const localArtifact = read('spec/contracts/actql-stage-contracts.json')
+    .schemas.local_result_artifact;
+  const visit = (value, path = []) => {
     if (!value || typeof value !== 'object') return;
     if (value.properties?.version?.const === 'actql-result-artifact/0.1') {
-      assert.deepEqual(value, artifact);
+      assert.deepEqual(value,
+        path.includes('effect_source_local_inventory') ?
+          localArtifact : artifact);
     }
-    for (const child of Object.values(value)) visit(child);
+    for (const [key, child] of Object.entries(value)) {
+      visit(child, [...path, key]);
+    }
   };
   visit(registry.artifact_schemas);
 });
@@ -272,7 +315,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:11f4930151996e513da6da627a101504ac0ff7aee1a9ae077219c126b39aab1c',
       captured_run:
-        'sha256:6395cccc33f41c6b20ccc6131bc58a3c1da1b21413a3d34f0b17eebef5e87b9a',
+        'sha256:ac57820dd589db489f000eb80ff95ec9c9a95fec5b233add853293ed9c1dbc53',
     },
   );
 });
