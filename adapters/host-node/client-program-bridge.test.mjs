@@ -1996,7 +1996,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
           moon.clientProgramEffectPreviewLedgerIdentity(previewInputs),
           sources, [mappingCid, mappingCid], [cid('d'), cid('d')],
           [cid('e'), cid('e')], observedRows, guardVersions,
-          selectedRoutes, risk, cid('a'), cid('e'), cid('a'), cid('a'),
+          selectedRoutes, risk ?? undefined, false,
+          cid('a'), cid('e'), cid('a'), cid('a'),
           cid('a'), cid('a'), 'policy', 'allow', requestScope, keys,
           2, 4, 4, 100));
       assert.doesNotThrow(() => recoveredPreflight());
@@ -2121,7 +2122,9 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const effectAuthorization = {
         gate: await fixtureAuthorization([accountEntry('crm-effect',
           'allow', {connection: 'crm', resource: 'Account',
-            operation: 'effect'})]),
+            operation: 'effect'}),
+        accountEntry('crm-target-read', 'allow', {connection: 'crm',
+          resource: 'Account', operation: 'read'})]),
         scopes: [{connection: 'crm', resource: 'Account'},
           {connection: 'crm', resource: 'Account'}],
       };
@@ -2159,7 +2162,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions, ledger: firstProgress,
           authorization: {...effectAuthorization,
-            gate: await fixtureAuthorization([])},
+            gate: await fixtureAuthorization([accountEntry('read-only',
+              'allow', {operation: 'read'})])},
           dispatchRow: () => assert.fail('no-match commit sent a row'),
         }), error => error.code === 'ExecutionAuthorizationDenied' &&
           error.authorization.boundary === 'effect_commit' &&
@@ -2661,6 +2665,10 @@ async function verifyEffectCommitAuthorization(t, {
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
   const delegateAccount = [accountEntry('crm-effect', 'delegate',
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
+  const commitGate = (entries, options) => fixtureAuthorization([
+    ...entries,
+    accountEntry('scenario-target-read', 'allow', {operation: 'read'}),
+  ], options);
   // The reviewer answering a deferred decision is one of the Host's
   // answering authorities; its committed approval is admitted as the permit.
   const hostOptions = (answer, extra = {}) => ({
@@ -2708,6 +2716,7 @@ async function verifyEffectCommitAuthorization(t, {
     applyCapturedEffectSet({moon, capturedInputs: previewInputs,
       preflight: {...preflight, ...extra.preflight}, ledger, members,
       maxFrontierWork: 64, dispatchRow, signal: undefined,
+      refreshPreflight: async ({preflight}) => preflight,
       authorization: {gate, scopes, resume: extra.resume}});
   const refused = (gate, code, check = () => true) => async () => {
     const {ledgerRoot} = await workspace();
@@ -2730,7 +2739,7 @@ async function verifyEffectCommitAuthorization(t, {
   {
     const {ledgerRoot} = await workspace();
     const ledger = openScenarioLedger(ledgerRoot);
-    const gate = await fixtureAuthorization(allowAccount);
+    const gate = await commitGate(allowAccount);
     const calls = [];
     const writesBefore = provider.mark();
     try {
@@ -2753,14 +2762,14 @@ async function verifyEffectCommitAuthorization(t, {
   }
 
   // (b) D2.account-deny: explicit deny and no-match dispatch nothing.
-  counts.b = await refused(await fixtureAuthorization([accountEntry(
+  counts.b = await refused(await commitGate([accountEntry(
     'crm-effect', 'deny', {connection: 'crm', resource: 'Account',
       operation: 'effect'})], hostOptions('permit')),
   'ExecutionAuthorizationDenied',
   error => error.authorization.boundary === 'effect_commit' &&
     error.authorization.basis === 'account' &&
     error.authorization.reason === 'explicit')();
-  counts.bNoMatch = await refused(await fixtureAuthorization([accountEntry(
+  counts.bNoMatch = await refused(await commitGate([accountEntry(
     'crm-read', 'allow', {operation: 'read'})]),
   'ExecutionAuthorizationDenied',
   error => error.authorization.reason === 'no_match')();
@@ -2769,7 +2778,7 @@ async function verifyEffectCommitAuthorization(t, {
   {
     const {ledgerRoot} = await workspace();
     const ledger = openScenarioLedger(ledgerRoot);
-    const gate = await fixtureAuthorization(delegateAccount,
+    const gate = await commitGate(delegateAccount,
       hostOptions('permit'));
     const calls = [];
     const writesBefore = provider.mark();
@@ -2788,14 +2797,14 @@ async function verifyEffectCommitAuthorization(t, {
   }
 
   // (d) Immediate reject: a recorded Host rejection, nothing dispatched.
-  counts.d = await refused(await fixtureAuthorization(delegateAccount,
+  counts.d = await refused(await commitGate(delegateAccount,
     hostOptions('reject')), 'ExecutionAuthorizationDenied',
   error => error.authorization.basis === 'rejected_by_host')();
 
   // (e) D2.host-required-claim: the Host policy requires
   // partial_application_accepted; a permit without it is not an accepted
   // delegation, and preflight alone also refuses a missing required claim.
-  counts.e = await refused(await fixtureAuthorization(delegateAccount,
+  counts.e = await refused(await commitGate(delegateAccount,
     hostOptions('permit',
       {requiredClaims: ['partial_application_accepted']})),
   'ExecutionAuthorizationDecisionFailed',
@@ -2805,7 +2814,7 @@ async function verifyEffectCommitAuthorization(t, {
     const ledger = openScenarioLedger(ledgerRoot);
     try {
       await assert.rejects(apply(ledger,
-        await fixtureAuthorization(allowAccount),
+        await commitGate(allowAccount),
         () => assert.fail('required claim missing but dispatched'),
         {preflight: {requirePartialApplication: true}}),
       {code: 'MoonBitHostFailure'});
@@ -2817,12 +2826,12 @@ async function verifyEffectCommitAuthorization(t, {
   }
 
   // D2.decision-failure: an unavailable Host answer is not a rejection.
-  counts.failure = await refused(await fixtureAuthorization(delegateAccount,
+  counts.failure = await refused(await commitGate(delegateAccount,
     {answeringAuthorities: ['host-policy'],
       decide: () => ({decision: 'unavailable'})}),
   'ExecutionAuthorizationDecisionFailed')();
   // Defer without a durable journal is unsupported, never a permit.
-  counts.unsupported = await refused(await fixtureAuthorization(
+  counts.unsupported = await refused(await commitGate(
     delegateAccount, hostOptions('defer')),
   'ExecutionAuthorizationDeferralUnsupported')();
   for (const name of ['b', 'bNoMatch', 'd', 'e', 'failure',
@@ -2834,7 +2843,7 @@ async function verifyEffectCommitAuthorization(t, {
   // restart, answer, restart, then resume through the journal claim.
   const deferred = async ({runId, requirements, loseReplyAt,
     requiredClaims = []}) => {
-    const deferGate = journal => fixtureAuthorization(delegateAccount,
+    const deferGate = journal => commitGate(delegateAccount,
       hostOptions('defer', {requiredClaims,
         deferral: commitDeferral(journal, clock, runId, requirements)}));
     const clock = {ms: Date.parse('2026-09-24T00:00:00.000Z')};
@@ -2852,7 +2861,7 @@ async function verifyEffectCommitAuthorization(t, {
     assert.equal(provider.writes(writesBefore), 0);
     assert.equal(ledgerEntryCount(ledgerRoot), 0);
     assert.equal(gate.counters().checkpointsPersisted, 1);
-    assert.equal(gate.counters().protectedDispatches, 0);
+        assert.equal(gate.counters().protectedDispatches, 1);
     assert.equal(journal.getRunState(runId).status, 'waiting_checkpoint');
     const [pending] = journal.listPending();
     assert.equal(pending.checkpointCid, waiting.checkpoint.checkpointCid);
@@ -2962,7 +2971,7 @@ async function verifyEffectCommitAuthorization(t, {
       assert.equal(settled.dispatched, 0);
       assert.deepEqual(run.claim('worker-f3'), {action: 'completed'});
       const replay = await apply(run.ledger,
-        await fixtureAuthorization(allowAccount),
+        await commitGate(allowAccount),
         () => assert.fail('terminal row resent'));
       assert.equal(replay.dispatched, 0);
       counts.f = {dispatched: applied.dispatched,
@@ -3034,7 +3043,7 @@ async function verifyEffectCommitAuthorization(t, {
     const ledger = openScenarioLedger(ledgerRoot);
     const writesBefore = provider.mark();
     try {
-      const gate = await fixtureAuthorization(delegateAccount,
+      const gate = await commitGate(delegateAccount,
         hostOptions('defer', {requiredClaims: ['invocation_scope_approved'],
           deferral: commitDeferral(journal, clock, 'commit-run-claim-bad')}));
       await assert.rejects(apply(ledger, gate,
@@ -3100,7 +3109,7 @@ async function verifyEffectCommitAuthorization(t, {
       const first = run.claim('worker-m1', 1_000);
       run.clock.ms += 2_000;
       const second = run.claim('worker-m2');
-      const allowGate = await fixtureAuthorization(allowAccount,
+      const allowGate = await commitGate(allowAccount,
         hostOptions('permit', {deferral: commitDeferral(run.journal,
           run.clock, 'commit-run-allow-resume')}));
       await assert.rejects(apply(run.ledger, allowGate,
@@ -3209,7 +3218,7 @@ async function verifyEffectCommitAuthorization(t, {
     assert.equal(run.calls.filter(([member, row]) =>
       member === lostMember && row === lostRow).length, 1);
     const noReplay = await apply(run.ledger,
-      await fixtureAuthorization(allowAccount),
+      await commitGate(allowAccount),
       () => assert.fail('unknown or terminal row resent'));
     assert.equal(noReplay.dispatched, 0);
     run.journal.completeResume(resumed.resume, {runStateWire: JSON.stringify({
@@ -3243,7 +3252,7 @@ async function verifyEffectCommitAuthorization(t, {
     const calls = [];
     const writesBefore = provider.mark();
     await assert.rejects(apply(ledger,
-      await fixtureAuthorization(allowAccount),
+      await commitGate(allowAccount),
       dispatcher(ledger, calls, {loseReplyAt: count => count === 2})));
     assert.equal(calls.length, 2);
     const entriesBefore = ledgerEntryCount(ledgerRoot);
@@ -3253,7 +3262,7 @@ async function verifyEffectCommitAuthorization(t, {
     const journal = await openCommitJournal(journalRoot, clock);
     try {
       const waiting = await apply(ledger,
-        await fixtureAuthorization(delegateAccount, hostOptions('defer', {
+        await commitGate(delegateAccount, hostOptions('defer', {
           deferral: commitDeferral(journal, clock, 'commit-run-h')})),
         dispatcher(ledger, calls));
       assert.equal(waiting.status, 'waiting');
@@ -3268,7 +3277,7 @@ async function verifyEffectCommitAuthorization(t, {
       assert.deepEqual(rejected.runState.runState.next_action,
         {kind: 'reconcile', effects: [memberIds[unknownMember]]});
       await assert.rejects(apply(ledger,
-        await fixtureAuthorization(delegateAccount, hostOptions('defer')),
+        await commitGate(delegateAccount, hostOptions('defer')),
         () => assert.fail('rejected commit sent a row'),
         {resume: {journal, runId: 'commit-run-h', claimant: 'worker-h',
           leaseMs: 60_000, binding: commitBinding, resolution: rejected}}),
@@ -4325,11 +4334,16 @@ test(`two-member captured Effect Run ${
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
             prepared: true, applyPrepared: processPreparedIntent,
-            ...(processPreparedIntent ? {riskWire: canonicalJson({
-              ...riskBody, self_cid: riskBody.self_cid ??
-                `sha256:${createHash('sha256')
-                  .update(canonicalJson(riskBody)).digest('hex')}`,
-            })} : {}),
+            preflightContext: {
+              review_projection_cid: preflight.reviewProjectionCid,
+              authority_scope_cid: preflight.authorityScopeCid,
+              policy_cid: preflight.policyCid,
+              validity_evidence_cid: preflight.validityCid,
+              issuer_evidence_cid: preflight.issuerCid,
+              authentication_evidence_cid: preflight.authenticationCid,
+              issuer_kind: preflight.issuerKind,
+              decision: preflight.decision,
+            },
             salesforceRecovery: {
               bodyLimits: {maxBytes: 1024, maxNodes: 32, maxDepth: 5},
               requestLimits: {maxPathBytes: 256, maxTargetBytes: 128,
@@ -4562,6 +4576,7 @@ test(`two-member captured Effect Run ${
           maxFrontierWork: 64, maxRecoveryWork: 100,
           keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
             maxWork: 100},
+          authorization: applyOptions.authorization,
           refreshPreflight: async ({signal}) => {
             const current = await applyOptions.refreshPreflight({signal,
               preflight});
@@ -4571,6 +4586,27 @@ test(`two-member captured Effect Run ${
           },
         };
         if (!processPreparedIntent) {
+          await assert.rejects(applyRecoveredEffectSet({
+            ...recoveredApplyOptions, authorization: undefined,
+            refreshPreflight: () =>
+              assert.fail('unauthorized recovery refreshed a target'),
+            dispatchRow: () =>
+              assert.fail('unauthorized recovery sent a row'),
+          }), {code: 'EffectApplyAuthorizationRequired'});
+          const deniedReads = await fixtureAuthorization([
+            accountEntry('recovered-effect-allow', 'allow',
+              {operation: 'effect'}),
+            accountEntry('recovered-read-deny', 'deny',
+              {operation: 'read'}),
+          ]);
+          await assert.rejects(applyRecoveredEffectSet({
+            ...recoveredApplyOptions,
+            authorization: {gate: deniedReads, scopes: commitScopes},
+            refreshPreflight: () =>
+              assert.fail('recovered read denial refreshed a target'),
+            dispatchRow: () =>
+              assert.fail('recovered read denial sent a row'),
+          }), {code: 'ExecutionAuthorizationDenied'});
           await assert.rejects(applyRecoveredEffectSet({
             ...recoveredApplyOptions,
             refreshPreflight: async ({signal}) => ({
@@ -4604,6 +4640,7 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen).filter(item =>
           item.method === 'PATCH').length,
         processUnknownIntent ? 3 : processPreparedIntent ? 4 : 0);
+        if (!processPreparedIntent && !processUnknownIntent) {
         // The guard refresh is a credentialed read of the Effect targets:
         // it is authorized at the acquisition boundary (operation read,
         // Effect target connection/resource, sealed Set Preview subject)
@@ -4624,6 +4661,9 @@ test(`two-member captured Effect Run ${
           const describesBefore = describeReads();
           const usesBefore = sites.map(site => site.journal.recover().length);
           const writesBefore = writes();
+          const ledgerHeadsBefore = members.flatMap(member => member.claims)
+            .filter(claim => ledger.current(effect.logicalItemLocatorCid(
+              claim.locator)) !== undefined).length;
           const gate = await fixtureAuthorization(entries);
           await assert.rejects(applyCapturedEffectSet({...applyOptions,
             authorization: {gate, scopes: commitScopes},
@@ -4639,7 +4679,7 @@ test(`two-member captured Effect Run ${
             writes: writes() - writesBefore,
             ledgerHeads: members.flatMap(member => member.claims).filter(
               claim => ledger.current(effect.logicalItemLocatorCid(
-                claim.locator)) !== undefined).length,
+                claim.locator)) !== undefined).length - ledgerHeadsBefore,
             counters: gate.counters(),
           };
         };
@@ -4685,6 +4725,7 @@ test(`two-member captured Effect Run ${
               evaluations: counters.evaluations,
               protectedDispatches: counters.protectedDispatches,
               deniedBeforeDispatch: counters.deniedBeforeDispatch}])))}`);
+        }
       }
       if (physical === 'salesforce-stale-target' ||
           physical === 'salesforce-schema-drift') {

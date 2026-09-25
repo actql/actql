@@ -297,14 +297,18 @@ export async function applyCapturedEffectSet({
   }
   const identity = effectSetApplyIdentity(control, current.requestScope,
     subjectCid);
-  ledger.prepareCapturedSetIntents(
-    capturedInputs, ownedMembers, maxFrontierWork);
   let entered;
+  let prepared = false;
   const result = await driveAdmittedFrontier({control, members: ownedMembers,
     maxFrontierWork, dispatchRow, signal,
     beforeDispatch: () => {
       if (authorized.admission !== undefined && entered === undefined) {
         entered = enterResumedAdmission(authorized.admission, identity);
+      }
+      if (!prepared) {
+        ledger.prepareCapturedSetIntents(
+          capturedInputs, ownedMembers, maxFrontierWork);
+        prepared = true;
       }
     },
     frontier: (members, maxWork) => ledger.frontierFromCapturedHeads(
@@ -317,14 +321,16 @@ export async function applyCapturedEffectSet({
 }
 
 // Continue only exact durable intents owned by the recovered captured Run.
-// Recovery confirms physical source holdings, refreshes current observations,
-// and uses the same MoonBit frontier and dispatch loop as the live path. A
-// prepared Ledger head alone is never permission for another physical call.
+// Recovery confirms physical source holdings, reauthorizes target reads and
+// the Effect commit, refreshes current observations, and uses the same
+// MoonBit frontier and dispatch loop as the live path. A prepared Ledger
+// head alone is never permission for another physical call.
 export async function applyRecoveredEffectSet({
   moon, store, publicationControl, computation, preview, ledger,
   requestScope, programId, nodeId, maxRows, maxFrontierWork,
   maxRecoveryWork, keyLimits,
   reconcileStoredResponses, refreshPreflight, dispatchRow, signal,
+  authorization,
 }) {
   if (!moon || !store || !publicationControl || !computation || !preview ||
       typeof ledger?.recoverClaimFacts !== 'function' ||
@@ -367,6 +373,18 @@ export async function applyRecoveredEffectSet({
   if (control.setFrontierReadyCount(initial) === 0) {
     return Object.freeze({dispatched: 0, frontier: initial});
   }
+  const commit = checkedAuthorization(authorization, recovered.members.length);
+  const subjectCid = publicationControl.effectComputationPreviewSemanticCid(
+    preview);
+  const readDecisions = await authorizeTargetReads(commit, subjectCid, signal);
+  const read = readDecisions.at(-1);
+  if (read?.action === 'waiting') {
+    return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
+      checkpoint: read.checkpoint, authorization: readDecisions});
+  }
+  if (read?.action !== 'dispatch') {
+    throw Object.assign(new ExecutionAuthorizationError(read), {subjectCid});
+  }
   const current = await refreshPreflight({signal});
   const keys = control.recoveredPreviewKeys(
     admittedPreview, requestScope, current?.maxMembers,
@@ -398,10 +416,31 @@ export async function applyRecoveredEffectSet({
     preflight.maxMembers, preflight.maxRows,
     preflight.maxFootprintWork, preflight.maxWork,
   ));
+  const authorized = await authorizeEffectCommit(commit, subjectCid, signal);
+  const last = authorized.decisions.at(-1);
+  if (last?.action === 'waiting') {
+    return Object.freeze({status: 'waiting', dispatched: 0, subjectCid,
+      checkpoint: last.checkpoint, authorization: authorized.decisions});
+  }
+  if (last?.action !== 'dispatch') {
+    throw Object.assign(new ExecutionAuthorizationError(last), {
+      subjectCid, resume: authorized.claim,
+    });
+  }
+  const identity = effectSetApplyIdentity(control, requestScope, subjectCid);
+  let entered;
   const result = await driveAdmittedFrontier({control,
     members: recovered.members, maxFrontierWork, dispatchRow, signal,
+    beforeDispatch: () => {
+      if (authorized.admission !== undefined && entered === undefined) {
+        entered = enterResumedAdmission(authorized.admission, identity);
+      }
+    },
     frontier: (members, maxWork) => ledger.frontierFromDurableHeads(
       admittedPreview, members, maxWork),
   });
-  return Object.freeze({...result, members: recovered.members});
+  return Object.freeze({...result, members: recovered.members, subjectCid,
+    identity, authorization: authorized.decisions,
+    readAuthorization: readDecisions, resume: authorized.claim,
+    admission: entered});
 }

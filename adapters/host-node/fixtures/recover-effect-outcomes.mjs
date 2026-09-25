@@ -22,6 +22,7 @@ import {captureSalesforceSingleEffectWrite,
   reconcileStoredSalesforceSingleEffectWrite} from
   '../salesforce-effect-write.mjs';
 import {applyRecoveredEffectSet} from '../effect-run-apply.mjs';
+import {allowAllAuthorization} from '../authorization-fixture.mjs';
 import {syncSalesforceCatalog} from
   '../../site-node/salesforce-catalog-sync.mjs';
 import {refreshSalesforceEffectWriteCatalogs} from
@@ -130,7 +131,9 @@ try {
     if (!recoveredSalesforce ||
         !Array.isArray(input.salesforceRecovery.sites) ||
         input.salesforceRecovery.sites.length !== recorded.members.length ||
-        typeof input.riskWire !== 'string') {
+        (input.riskWire !== undefined &&
+          typeof input.riskWire !== 'string') ||
+        !input.preflightContext) {
       throw new Error('InvalidPreparedEffectSiteRecovery');
     }
     const credentialControl = core.remoteCredentialControl;
@@ -138,9 +141,12 @@ try {
       `restart-${input.recoveryPass}`;
     activeSites = input.salesforceRecovery.sites.map(connection =>
       restoreSiteConnection(connection, credentialControl, usePrefix));
-    const riskBody = JSON.parse(input.riskWire);
-    const risk = checked(moon.clientProgramAdmitEffectRiskAcceptanceBody(
-      input.riskWire, 8192, 256, 12));
+    const riskBody = input.riskWire === undefined
+      ? undefined : JSON.parse(input.riskWire);
+    const risk = input.riskWire === undefined ? undefined : checked(
+      moon.clientProgramAdmitEffectRiskAcceptanceBody(
+        input.riskWire, 8192, 256, 12));
+    const preflightContext = riskBody ?? input.preflightContext;
     const reconcileStoredResponses = input.reconcileSavedResponse === true
       ? async ({members, preview}) => {
         const usesBefore = activeSites.map(site =>
@@ -188,6 +194,11 @@ try {
       maxRecoveryWork: input.maxWork,
       keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
         maxWork: input.maxWork},
+      authorization: {gate: await allowAllAuthorization(),
+        scopes: activeSites.map(site => ({
+          connection: `salesforce:${site.orgId}`,
+          resource: 'Test_Record__c',
+        }))},
       reconcileStoredResponses,
       refreshPreflight: async ({signal}) => {
         currentCatalogs = await refreshSalesforceEffectWriteCatalogs({
@@ -238,13 +249,14 @@ try {
             checked(moon.clientProgramEffectApplyCapabilityFromCodes(
               member.capability_evidence_cid, 0, 0, 0,
               true, true, 2, 1))),
-          risk, reviewProjectionCid: riskBody.review_projection_cid,
-          authorityScopeCid: riskBody.authority_scope_cid,
-          policyCid: riskBody.policy_cid,
-          validityCid: riskBody.validity_evidence_cid,
-          issuerCid: riskBody.issuer_evidence_cid,
-          authenticationCid: riskBody.authentication_evidence_cid,
-          issuerKind: riskBody.issuer_kind, decision: riskBody.decision,
+          risk, reviewProjectionCid: preflightContext.review_projection_cid,
+          authorityScopeCid: preflightContext.authority_scope_cid,
+          policyCid: preflightContext.policy_cid,
+          validityCid: preflightContext.validity_evidence_cid,
+          issuerCid: preflightContext.issuer_evidence_cid,
+          authenticationCid: preflightContext.authentication_evidence_cid,
+          issuerKind: preflightContext.issuer_kind,
+          decision: preflightContext.decision,
           requestScope: scope,
           maxMembers: effects.length, maxRows: input.maxRows,
           maxFootprintWork: input.maxRows, maxWork: input.maxWork,

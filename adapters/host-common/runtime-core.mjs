@@ -2183,6 +2183,13 @@ function publicationControl(moon) {
       }
       return admitted;
     },
+    effectComputationPreviewSemanticCid(preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) {
+        throw new TypeError('Foreign Effect computation Preview');
+      }
+      return moon.strategyEffectPreviewSemanticCid(admitted);
+    },
     effectComputationPreviewWire(preview) {
       const wire = computationPreviewWires.get(preview);
       if (wire === undefined) {

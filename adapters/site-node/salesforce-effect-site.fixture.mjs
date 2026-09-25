@@ -192,7 +192,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', resourceOrigin: origin,
     operation, runInvocationCid, taskAttempt: 2, dispatchRequestCid,
-    expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 10,
+    expiresUnixMilliseconds: 2_000_000_000_000n, maxUses: 32,
   });
   const authorize = operation => {
     const value = scope(operation);
