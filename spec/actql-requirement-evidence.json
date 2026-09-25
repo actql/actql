@@ -12367,6 +12367,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/resolution-admission.a-resolution-proof-must-sign-the-unsigned-resolution-cid",
+      "statement_sha256": "138f8b8088998f306e07a3c5ebc6adb85087b8ea1d7c7765db5d6f6b4ec1f0f4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/resolution-admission.a-host-attestation-must-sign-the-unsigned-verified-wrapper-cid",
+      "statement_sha256": "0c03f309277edeaf9be073a71f649ae2e5a7d68aaa2b5f7b9646269e44f2766b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/preview-row-state.for-every-preview-row-implementations-must-first-compute-row-preview-cid",
       "statement_sha256": "6216358dac4fee015b127a57da86352d90a22479d90740ca7a26a5fa096e0914",
       "status": "pending",

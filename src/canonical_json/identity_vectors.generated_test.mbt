@@ -245,6 +245,68 @@ test "execution account config empty-entries" {
 }
 
 ///|
+test "checkpoint resolution unsigned rejected-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_01\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"rejected\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 12, 1, 616)
+  assert_eq(@canonical_json.cid_value(value, 616, 12, 1), "sha256:6a19960b235f700f5a88bcb26f324ad21e7e48d279f15160444fe687f6013dd1")
+  assert_eq(@canonical_json.measure_value(value, 616, 12, 1), 616)
+}
+
+///|
+test "checkpoint resolution signed rejected-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_01\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"rejected\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"proof\":{\"scheme\":\"ed25519-v1\",\"key_id\":\"release-approver-2026\",\"signature\":\"u2GRgUDJiDrrjYPJiC1z1VVL0JgnG9s9da2xfZlnkrnp034TjxpT9+M+dhhcID03Wa3SpFs+ghI48FICfSr9BQ==\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 16, 2, 784)
+  assert_eq(@canonical_json.cid_value(value, 784, 16, 2), "sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01")
+  assert_eq(@canonical_json.measure_value(value, 784, 16, 2), 784)
+}
+
+///|
+test "checkpoint resolution unsigned approved-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_02\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"approved\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"approval_evidence_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 13, 1, 714)
+  assert_eq(@canonical_json.cid_value(value, 714, 13, 1), "sha256:89723546a31cf6fff1d4a48181904f04caef048c265d9c7c3b397376c307d69c")
+  assert_eq(@canonical_json.measure_value(value, 714, 13, 1), 714)
+}
+
+///|
+test "checkpoint resolution signed approved-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_02\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"approved\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"approval_evidence_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"proof\":{\"scheme\":\"ed25519-v1\",\"key_id\":\"release-approver-2026\",\"signature\":\"CN4lchabv4901/ihMpLCa8mxozQ1mA7KnTwWwRT5OW+VIjGN3n/afOQa6sqlCwL9AM0+X4sWoDj/wbvU46jtCA==\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 17, 2, 882)
+  assert_eq(@canonical_json.cid_value(value, 882, 17, 2), "sha256:a18d770f407dad444cf6caed36c179ca8e9079bd60a262bc31485640f7dc69b2")
+  assert_eq(@canonical_json.measure_value(value, 882, 17, 2), 882)
+}
+
+///|
+test "checkpoint resolution unsigned verified-rejected-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-verified-checkpoint-resolution/0.1\",\"resolution\":{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_01\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"rejected\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"proof\":{\"scheme\":\"ed25519-v1\",\"key_id\":\"release-approver-2026\",\"signature\":\"u2GRgUDJiDrrjYPJiC1z1VVL0JgnG9s9da2xfZlnkrnp034TjxpT9+M+dhhcID03Wa3SpFs+ghI48FICfSr9BQ==\"},\"resolution_cid\":\"sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01\"},\"authorization_evidence\":{\"version\":\"actql-checkpoint-resolution-authorization-ev",
+    "idence/0.1\",\"resolution_cid\":\"sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"authority_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"key_id\":\"release-approver-2026\"},\"authorization_evidence_cid\":\"sha256:40ae966ee3b9e4d23e69af86c7ff3b1f6c1f0020717e5709a628cd1a916bfd8e\",\"verified_by_policy_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"verified_reviewer_id\":\"release-approver\",\"authorization_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"requirements\":[\"effect_scope_approved\"],\"verified_at\":\"2026-09-25T00:00:01.000Z\"}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 32, 3, 1778)
+  assert_eq(@canonical_json.cid_value(value, 1778, 32, 3), "sha256:e0512b25d11bcd55332b5bfc43d70a3946b3f3ff12d43178be8b741f117790fe")
+  assert_eq(@canonical_json.measure_value(value, 1778, 32, 3), 1778)
+}
+
+///|
+test "checkpoint resolution signed verified-rejected-resolution" {
+  let input = @json.parse([
+    "{\"version\":\"actql-verified-checkpoint-resolution/0.1\",\"resolution\":{\"version\":\"actql-checkpoint-resolution/0.1\",\"resolution_id\":\"resolution_01\",\"checkpoint_id\":\"checkpoint_run_01_effect_commit\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"run_id\":\"run_01\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"decision\":\"rejected\",\"actor\":\"release-approver\",\"decided_at\":\"2026-09-25T00:00:00.000Z\",\"required_artifact_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"review_projection_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"proof\":{\"scheme\":\"ed25519-v1\",\"key_id\":\"release-approver-2026\",\"signature\":\"u2GRgUDJiDrrjYPJiC1z1VVL0JgnG9s9da2xfZlnkrnp034TjxpT9+M+dhhcID03Wa3SpFs+ghI48FICfSr9BQ==\"},\"resolution_cid\":\"sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01\"},\"authorization_evidence\":{\"version\":\"actql-checkpoint-resolution-authorization-ev",
+    "idence/0.1\",\"resolution_cid\":\"sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01\",\"checkpoint_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"authority_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"key_id\":\"release-approver-2026\"},\"authorization_evidence_cid\":\"sha256:40ae966ee3b9e4d23e69af86c7ff3b1f6c1f0020717e5709a628cd1a916bfd8e\",\"verified_by_policy_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"verified_reviewer_id\":\"release-approver\",\"authorization_context_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"requirements\":[\"effect_scope_approved\"],\"verified_at\":\"2026-09-25T00:00:01.000Z\",\"host_attestation\":{\"scheme\":\"ed25519-v1\",\"host_key_id\":\"local-host-2026\",\"signature\":\"v7ZuyzAP5NMapDS6VWDr4as8QHPe8Z+ODsmZik8aamVpAFwUERbSourgCEpGyKstQOM3iKmrpxkbHkU3mE2WAQ==\"}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 36, 3, 1956)
+  assert_eq(@canonical_json.cid_value(value, 1956, 36, 3), "sha256:564205f4319eb4d0d4b7768c676231e4730f09a61098c16c77e79fd003adc467")
+  assert_eq(@canonical_json.measure_value(value, 1956, 36, 3), 1956)
+}
+
+///|
 test "source state requirement first-stage" {
   let input = @json.parse([
     "{\"checkpoint_contract_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"initial_position\":\"explicit_state_required\",\"input_name\":\"rows\",\"mode\":\"changes\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"requirement\":\"required\",\"source_view_contract_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"version\":\"actql-source-state-requirement/0.1\",\"stage_id\":\"first\"}",

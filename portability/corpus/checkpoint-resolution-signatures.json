@@ -1,0 +1,122 @@
+{
+  "version": "actql-checkpoint-resolution-signature-vectors/0.1",
+  "notes": [
+    "CIDs were computed with Python json.dumps(sort_keys, compact)/hashlib and signatures with pyca/cryptography Ed25519 over the UTF-8 bytes of the unsigned CID text, independently of product code.",
+    "Test keys only: raw Ed25519 private seeds are bytes 0..31 (reviewer) and 32..63 (host)."
+  ],
+  "public_keys": {
+    "reviewer": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+    "host": "Kay64UG8yvCyLhqU000LxzYeUm0L/hLIl5S8kyKWbdc="
+  },
+  "cases": [
+    {
+      "id": "rejected-resolution",
+      "kind": "checkpoint_resolution",
+      "artifact": {
+        "version": "actql-checkpoint-resolution/0.1",
+        "resolution_id": "resolution_01",
+        "checkpoint_id": "checkpoint_run_01_effect_commit",
+        "checkpoint_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "run_id": "run_01",
+        "run_definition_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "decision": "rejected",
+        "actor": "release-approver",
+        "decided_at": "2026-09-25T00:00:00.000Z",
+        "required_artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "proof": {
+          "scheme": "ed25519-v1",
+          "key_id": "release-approver-2026",
+          "signature": "u2GRgUDJiDrrjYPJiC1z1VVL0JgnG9s9da2xfZlnkrnp034TjxpT9+M+dhhcID03Wa3SpFs+ghI48FICfSr9BQ=="
+        },
+        "resolution_cid": "sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01"
+      },
+      "signature_field": "proof",
+      "self_field": "resolution_cid",
+      "key": "reviewer",
+      "expected_unsigned_cid": "sha256:6a19960b235f700f5a88bcb26f324ad21e7e48d279f15160444fe687f6013dd1",
+      "expected_self_cid": "sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01"
+    },
+    {
+      "id": "approved-resolution",
+      "kind": "checkpoint_resolution",
+      "artifact": {
+        "version": "actql-checkpoint-resolution/0.1",
+        "resolution_id": "resolution_02",
+        "checkpoint_id": "checkpoint_run_01_effect_commit",
+        "checkpoint_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "run_id": "run_01",
+        "run_definition_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "decision": "approved",
+        "actor": "release-approver",
+        "decided_at": "2026-09-25T00:00:00.000Z",
+        "required_artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "approval_evidence_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "proof": {
+          "scheme": "ed25519-v1",
+          "key_id": "release-approver-2026",
+          "signature": "CN4lchabv4901/ihMpLCa8mxozQ1mA7KnTwWwRT5OW+VIjGN3n/afOQa6sqlCwL9AM0+X4sWoDj/wbvU46jtCA=="
+        },
+        "resolution_cid": "sha256:a18d770f407dad444cf6caed36c179ca8e9079bd60a262bc31485640f7dc69b2"
+      },
+      "signature_field": "proof",
+      "self_field": "resolution_cid",
+      "key": "reviewer",
+      "expected_unsigned_cid": "sha256:89723546a31cf6fff1d4a48181904f04caef048c265d9c7c3b397376c307d69c",
+      "expected_self_cid": "sha256:a18d770f407dad444cf6caed36c179ca8e9079bd60a262bc31485640f7dc69b2"
+    },
+    {
+      "id": "verified-rejected-resolution",
+      "kind": "verified_checkpoint_resolution",
+      "artifact": {
+        "version": "actql-verified-checkpoint-resolution/0.1",
+        "resolution": {
+          "version": "actql-checkpoint-resolution/0.1",
+          "resolution_id": "resolution_01",
+          "checkpoint_id": "checkpoint_run_01_effect_commit",
+          "checkpoint_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "run_id": "run_01",
+          "run_definition_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "decision": "rejected",
+          "actor": "release-approver",
+          "decided_at": "2026-09-25T00:00:00.000Z",
+          "required_artifact_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "review_projection_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "proof": {
+            "scheme": "ed25519-v1",
+            "key_id": "release-approver-2026",
+            "signature": "u2GRgUDJiDrrjYPJiC1z1VVL0JgnG9s9da2xfZlnkrnp034TjxpT9+M+dhhcID03Wa3SpFs+ghI48FICfSr9BQ=="
+          },
+          "resolution_cid": "sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01"
+        },
+        "authorization_evidence": {
+          "version": "actql-checkpoint-resolution-authorization-evidence/0.1",
+          "resolution_cid": "sha256:87396910af30eb9f314ff792ef4711502b02f7a38dae5c5e05ca693a74411d01",
+          "checkpoint_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "authority_context_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "key_id": "release-approver-2026"
+        },
+        "authorization_evidence_cid": "sha256:40ae966ee3b9e4d23e69af86c7ff3b1f6c1f0020717e5709a628cd1a916bfd8e",
+        "verified_by_policy_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "verified_reviewer_id": "release-approver",
+        "authorization_context_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "requirements": [
+          "effect_scope_approved"
+        ],
+        "verified_at": "2026-09-25T00:00:01.000Z",
+        "host_attestation": {
+          "scheme": "ed25519-v1",
+          "host_key_id": "local-host-2026",
+          "signature": "v7ZuyzAP5NMapDS6VWDr4as8QHPe8Z+ODsmZik8aamVpAFwUERbSourgCEpGyKstQOM3iKmrpxkbHkU3mE2WAQ=="
+        },
+        "verified_resolution_cid": "sha256:564205f4319eb4d0d4b7768c676231e4730f09a61098c16c77e79fd003adc467"
+      },
+      "signature_field": "host_attestation",
+      "self_field": "verified_resolution_cid",
+      "key": "host",
+      "expected_unsigned_cid": "sha256:e0512b25d11bcd55332b5bfc43d70a3946b3f3ff12d43178be8b741f117790fe",
+      "expected_self_cid": "sha256:564205f4319eb4d0d4b7768c676231e4730f09a61098c16c77e79fd003adc467"
+    }
+  ]
+}

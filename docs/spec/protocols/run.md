@@ -156,6 +156,22 @@ Every field in a Host-verified Resolution wrapper MUST identify the same
 authority decision: its Resolution CID, Checkpoint CID, authority-context CID,
 signer key ID, and reviewer identity cannot contradict one another.
 
+<!-- requirement-block: resolution-admission.a-resolution-proof-must-sign-the-unsigned-resolution-cid resolution-admission.a-host-attestation-must-sign-the-unsigned-verified-wrapper-cid -->
+Resolution identities follow the evidence-envelope convention of
+[Stage wire and immutable history](#stage-wire). `resolution_cid` is the CID of
+the complete Resolution without `resolution_cid`, so it includes `proof`.
+`proof.signature` MUST be the Ed25519 signature, in padded base64, over the
+UTF-8 bytes of the unsigned Resolution CID text, which is the CID of the
+Resolution without both `resolution_cid` and `proof`. Likewise,
+`verified_resolution_cid` is the CID of the complete verified wrapper without
+`verified_resolution_cid`, so it includes `host_attestation`.
+`host_attestation.signature` MUST be the Ed25519 signature, in the same
+encoding, over the UTF-8 bytes of the unsigned wrapper CID text, which is the
+CID of the wrapper without both `host_attestation` and
+`verified_resolution_cid`. The signed CID binds the artifact `version`, so a
+signature cannot be replayed as another artifact kind. `proof.key_id` and
+`host_attestation.host_key_id` select only Host-trusted keys.
+
 <a id="preview-row-state"></a>
 
 ### Private preview row state
