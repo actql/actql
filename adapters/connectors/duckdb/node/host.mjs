@@ -244,36 +244,38 @@ export async function importResidentStrategyInput(environment, producer, tableBy
             scalarTypes.some(type => !['DOUBLE', 'BOOLEAN', 'VARCHAR'].includes(type.id)))) {
           throw new DuckDBTransportError('InvalidScalarImportType');
         }
-        const frames = createMoonBitRetainedRowFrames(moon,
-          {maxBytes: wire.max_bytes, maxRows: count,
-            maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth}, row => {
-          if (scalarStaging) {
-            const source = JSON.parse(row);
-            if (source === null || Array.isArray(source) || typeof source !== 'object' ||
-                Object.keys(source).length !== columns) {
+        const frameLimits = {maxBytes: wire.max_bytes, maxRows: count,
+          maxRowBytes: maxFrameBytes, maxFrameBytes, maxDepth: decode.max_depth};
+        // Scalar staging takes every row framed from one bounded Store chunk at
+        // once: one standard JSON parse of those exact row texts, then one flush
+        // and cancellation point per chunk. The appender's own row/byte batch
+        // bound still limits buffered data; the typed copy check below and the
+        // MoonBit receipt comparison remain the acceptance boundary.
+        const frames = scalarStaging
+          ? createMoonBitRetainedRowFrames(moon, frameLimits, rowTexts => {
+            const sources = JSON.parse(`[${rowTexts.join(',')}]`);
+            if (sources.length !== rowTexts.length) {
               throw new DuckDBTransportError('InvalidScalarImportRow');
             }
-            const values = scalarNames.map((name, index) => {
-              if (!Object.hasOwn(source, name)) throw new DuckDBTransportError('InvalidScalarImportRow');
-              const value = source[name];
-              const type = scalarTypes[index];
-              if (value === null ||
-                  (type.id === 'DOUBLE' && typeof value === 'number' && Number.isFinite(value)) ||
-                  (type.id === 'BOOLEAN' && typeof value === 'boolean') ||
-                  (type.id === 'VARCHAR' && typeof value === 'string')) return value;
-              throw new DuckDBTransportError('InvalidScalarImportRow');
-            });
-            appender.appendScalars(values);
-            if (++appendedSinceFlush === (limits.maxChunkRows ?? 128)) {
-              appender.flush();
-              appendedSinceFlush = 0;
-              return yieldToHost().then(() => signal?.throwIfAborted());
+            for (const source of sources) {
+              if (source === null || Array.isArray(source) || typeof source !== 'object' ||
+                  Object.keys(source).length !== columns) {
+                throw new DuckDBTransportError('InvalidScalarImportRow');
+              }
+              appender.appendScalars(scalarNames.map(name => {
+                if (!Object.hasOwn(source, name)) {
+                  throw new DuckDBTransportError('InvalidScalarImportRow');
+                }
+                return source[name];
+              }));
             }
-            return;
-          }
-          const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
-          return append(parameters);
-        });
+            appender.flush();
+            return yieldToHost().then(() => signal?.throwIfAborted());
+          }, {batch: true})
+          : createMoonBitRetainedRowFrames(moon, frameLimits, row => {
+            const parameters = JSON.parse(checked(moon.residentImportStreamAppend(stream, row, decode)));
+            return append(parameters);
+          });
         try {
           storageReadUnconfirmed = true;
           const verified = await body.consume(async chunk => {

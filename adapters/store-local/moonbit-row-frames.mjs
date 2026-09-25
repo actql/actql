@@ -5,7 +5,9 @@ const integer = value => Number.isSafeInteger(value) && value >= 0;
 // Async environment bridge for the portable MoonBit row framer. The bridge
 // owns callback sequencing only; all structure, capacity, and terminal-state
 // decisions belong to the MoonBit parser.
-export function createMoonBitRetainedRowFrames(moon, limits, accept) {
+// `accept` receives each framed row. With `{batch: true}` it instead receives
+// the complete rows framed from one fed chunk, in order, as one array.
+export function createMoonBitRetainedRowFrames(moon, limits, accept, {batch = false} = {}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.retainedFramesPrepare !== 'function' ||
       typeof moon.retainedFramesFeed !== 'function' ||
@@ -48,10 +50,17 @@ export function createMoonBitRetainedRowFrames(moon, limits, accept) {
         if (!Array.isArray(rows) || rows.some(row => typeof row !== 'string')) {
           throw new TypeError('InvalidRetainedRowFrameResult');
         }
-        for (const row of rows) {
-          signal?.throwIfAborted();
-          const accepted = accept(row);
-          if (accepted && typeof accepted.then === 'function') await accepted;
+        if (batch) {
+          if (rows.length) {
+            const accepted = accept(rows);
+            if (accepted && typeof accepted.then === 'function') await accepted;
+          }
+        } else {
+          for (const row of rows) {
+            signal?.throwIfAborted();
+            const accepted = accept(row);
+            if (accepted && typeof accepted.then === 'function') await accepted;
+          }
         }
         signal?.throwIfAborted();
       } catch (error) {
