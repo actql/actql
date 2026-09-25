@@ -390,6 +390,20 @@ test('internal Client bridge retains Effect closure without public apply',
     assert.equal(localInvocationBody.self_cid,
       moon.clientProgramLocalEffectInvocationCid(localInvocation));
     assert.equal(localInvocationBody.observation_cids.length, 0);
+    const localResult = checked(
+      moon.clientProgramIssueLocalEffectResultDefinition(
+        prepared, 0, 'rows', 4096, 16, 4));
+    const localResultBody = JSON.parse(
+      moon.clientProgramLocalEffectResultDefinitionJson(localResult));
+    assert.equal(localResultBody.version,
+      'actql-local-result-definition/0.1');
+    assert.equal(localResultBody.result_name, 'rows');
+    assert.equal(localResultBody.self_cid,
+      moon.clientProgramLocalEffectResultDefinitionCid(localResult));
+    assert.equal('program_definition_cid' in localResultBody, false);
+    assert.equal('invocation_cid' in localResultBody, false);
+    assert.equal(moon.clientProgramIssueLocalEffectResultDefinition(
+      prepared, 0, 'other', 4096, 16, 4).$tag, 0);
     assert.equal(moon.clientProgramEffectPreparationIssue(outcome), undefined);
     assert.equal(moon.clientProgramPrepareEffectFree(
       document, 'json', environment), undefined);
@@ -788,9 +802,22 @@ test('admitted source-free Effect Run computes through the installed Host',
           owned, 1)), {code: 'MoonBitHostFailure'});
         const input = moon.clientProgramEffectInputAt(inputs, 0);
         assert.ok(input);
+        const capturedDefinition = checked(
+          moon.clientProgramIssueCapturedEffectInputLocalResultDefinition(
+            prepared, inputs, 0, 4096, 16, 4));
+        assert.equal(JSON.parse(moon.clientProgramLocalEffectResultDefinitionJson(
+          capturedDefinition)).result_name, 'rows');
+        const foreignPrepared = moon.clientProgramEffectPreparationReady(
+          moon.clientProgramPrepareEffectComputationWithParameters(
+            document, 'json', environment, undefined, []));
+        assert.ok(foreignPrepared);
+        assert.throws(() => checked(
+          moon.clientProgramIssueCapturedEffectInputLocalResultDefinition(
+            foreignPrepared, inputs, 0, 4096, 16, 4)),
+        {code: 'MoonBitHostFailure'});
         const beforeSource = store.status();
         await assert.rejects(preparePinnedEffectSourcePayload({
-          moon, execution, inputs, memberIndex: 0,
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 1, control, invocation: invocationContract,
@@ -801,7 +828,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           beforeSource.reservedBytes);
         assert.equal(store.status().objectCount, beforeSource.objectCount);
         await assert.rejects(preparePinnedEffectSourcePayload({
-          moon, execution, inputs, memberIndex: 0,
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: outputLimits.maxWireBytes,
@@ -815,7 +842,7 @@ test('admitted source-free Effect Run computes through the installed Host',
         assert.equal(store.status().storedBytes,
           beforeSource.storedBytes);
         await assert.rejects(preparePinnedEffectSourcePayload({
-          moon, execution, inputs, memberIndex: 0,
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: outputLimits.maxWireBytes,
@@ -848,7 +875,7 @@ test('admitted source-free Effect Run computes through the installed Host',
           },
         };
         sourcePayload = await preparePinnedEffectSourcePayload({
-          moon, execution, inputs, memberIndex: 0,
+          moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store: sourceStore, maxBytes: outputLimits.maxWireBytes,
@@ -857,6 +884,12 @@ test('admitted source-free Effect Run computes through the installed Host',
         });
         const sourceArtifact = sourcePayload.summary.artifact;
         assert.equal(JSON.parse(sourceArtifact.wire).source_result, 'rows');
+        assert.equal(JSON.parse(sourcePayload.localResultDefinition.wire)
+          .result_name, 'rows');
+        assert.equal(JSON.parse(sourcePayload.localResultDefinition.wire)
+          .self_cid, sourcePayload.localResultDefinition.identity);
+        assert.equal(JSON.parse(sourcePayload.localResultDefinition.wire)
+          .version, 'actql-local-result-definition/0.1');
         assert.equal(JSON.parse(storedResults.artifacts[0].wire)
           .result_definition_cid, storedResults.definitions[0].identity);
         assert.equal(storedResults.results[0].occurrence.name, 'answer');
@@ -1400,7 +1433,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         moon.strategyPublicationContractJson(invocation),
         publicationLimits);
       sourcePayloads.push(await preparePinnedEffectSourcePayload({
-        moon, execution, inputs, memberIndex: 0,
+        moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -2348,7 +2381,7 @@ test(`two-member captured Effect Run ${
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
       const proposedRows = memberIds.map(() => []);
       sourcePayload = await preparePinnedEffectSourcePayload({
-        moon, execution, inputs, memberIndex: 0,
+        moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,

@@ -58,12 +58,13 @@ source, or Invocation evidence must fail before the first write. Units with
 external observations still need their own completed observation owner and
 must not use the source-free issuer.
 
-The registered local Result Artifact currently points at the external
-Result-definition role, while the only product Result Definition contract is
-Run-bound to a Program Definition. The normative local projection explicitly
-excludes that Run-bound definition. The local definition's 0.1 schema and
-typed issuance therefore need a coordinated contract decision before the
-Effect identity can use the completed Stage Result without mislabeling it.
+The local Result Definition now has its own 0.1 schema, reference role,
+independent CID vectors, and checked-owner issuer. The captured Effect input
+export issues it from the exact live source pin before physical I/O. This
+does not yet issue the complete local Result Artifact: ordering, policy,
+retention, and provenance must still be resolved from authenticated completed
+Stage evidence. The private Effect-source Artifact remains Run-bound custody
+evidence and cannot be relabeled as that local semantic Artifact.
 
 The other shared handoff is public ingress, owned by Distribution:
 `createClientHttpHandler({prepareSubmit, submit, observeRun, reconcile})`

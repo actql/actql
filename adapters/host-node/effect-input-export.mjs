@@ -110,12 +110,18 @@ export async function exportPinnedEffectInput({
  * Neither sealing bytes nor this summary claims a completed Captured Run.
  */
 export async function preparePinnedEffectSourcePayload({
-  moon, execution, inputs, memberIndex, limits, store, maxBytes,
+  moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   onProposalRow, proposalMemberIndexes, proposalLimits,
 }) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
+      typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
+        'function' ||
+      checkedOwner === undefined ||
+      !['maxWireBytes', 'maxNodes', 'maxDepth'].every(key =>
+        Number.isSafeInteger(contractLimits?.[key]) &&
+        contractLimits[key] > 0) ||
       typeof control?.issueEffectSourceArtifactFromExport !== 'function' ||
       typeof sourceBindingCid !== 'string' ||
       (proposalMemberIndexes !== undefined &&
@@ -151,6 +157,16 @@ export async function preparePinnedEffectSourcePayload({
     throw new TypeError('ForeignEffectProposalSource');
   }
   signal?.throwIfAborted();
+  const localDefinition = checked(
+    moon.clientProgramIssueCapturedEffectInputLocalResultDefinition(
+      checkedOwner, inputs, memberIndex,
+      contractLimits.maxWireBytes, contractLimits.maxNodes,
+      contractLimits.maxDepth));
+  const localResultDefinition = Object.freeze({
+    identity: moon.clientProgramLocalEffectResultDefinitionCid(
+      localDefinition),
+    wire: moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
+  });
   const proposalPlans = [];
   try {
     for (const index of proposalMembers ?? []) {
@@ -224,6 +240,7 @@ export async function preparePinnedEffectSourcePayload({
     }
     const payload = Object.freeze({
       summary,
+      localResultDefinition,
       physical: Object.freeze({cid: sealed.cid, bytes: sealed.bytes}),
       prepared: sealed.prepared,
     });
