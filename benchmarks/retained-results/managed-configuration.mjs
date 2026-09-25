@@ -1,6 +1,8 @@
 // One setup contract for readiness and timing. This does not admit a task or
 // turn a supplied estimate into a measured execution cost.
 import {benchmarkEnvironment} from './environment.mjs';
+import {sourceReadAccountConfiguration} from
+  '../../adapters/host-node/local-account-config.mjs';
 import {workloads} from './fixtures.mjs';
 
 // Product selection shared by the Node managed product leg (retained-case)
@@ -28,7 +30,12 @@ export function managedCaseConfiguration(fixture, contracts, database, directory
     transfer_bytes: BigInt(3 * l.representationBytes + (taskCount + 1) * computeTransfer),
     retained_bytes: 1073741824n, execution_bytes: 4294967296n});
   const batchBytes = Math.min(l.batchBytes, l.representationBytes);
-  const input = Object.freeze({...contracts, database,
+  // Explicit execution account installed by this Host for the case: read
+  // exactly its source table. Passed as exact text to the managed worker.
+  const accountConfiguration = sourceReadAccountConfiguration({connection: database,
+    resource: 'main.records', accountId: 'example-application',
+    entryId: 'example-source'});
+  const input = Object.freeze({...contracts, database, accountConfiguration,
     environmentText: environment.text, environmentCid: environment.cid,
     programText: JSON.stringify(fixture.program()), parameterText: JSON.stringify({minimum: fixture.minimum}),
     nativeMilliseconds: '1', localImportWorkMilliseconds: '0', localExportWorkMilliseconds: '0',

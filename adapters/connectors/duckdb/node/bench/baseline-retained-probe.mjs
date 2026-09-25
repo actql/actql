@@ -12,6 +12,8 @@ import {retainedMatrix} from '../../../../../benchmarks/retained-results/fixture
 import {benchmarkEnvironment} from '../../../../../benchmarks/retained-results/environment.mjs';
 import {selectReadinessCases} from '../../../../../benchmarks/retained-results/selection.mjs';
 import {baselinePublicEntry} from './baseline-public-entry.mjs';
+import {sourceReadAccountConfiguration} from
+  '../../../../host-node/local-account-config.mjs';
 
 const baselineRoot = process.env.ACTQL_RETAINED_BASELINE_ROOT;
 if (!baselineRoot) throw Error('ACTQL_RETAINED_BASELINE_ROOT must name an independently verified baseline build');
@@ -43,14 +45,19 @@ for (const fixture of cases) {
     const program = join(directory, 'program.json');
     const environmentFile = join(directory, 'environment.json');
     const parameters = join(directory, 'parameters.json');
+    // Explicit execution account: read exactly the case's source table.
+    const accountConfig = join(directory, 'account-config.json');
     await Promise.all([
+      writeFile(accountConfig, sourceReadAccountConfiguration({connection: database,
+        resource: 'main.records', accountId: 'example-application',
+        entryId: 'example-source'})),
       writeFile(program, JSON.stringify(fixture.program())),
       writeFile(environmentFile, environment.text),
       writeFile(parameters, JSON.stringify({minimum: fixture.minimum})),
     ]);
     const expected = fixture.identity(); // Independent oracle is not timed work.
     const started = performance.now();
-    result = await runExample({database, program, environment: environmentFile,
+    result = await runExample({database, accountConfig, program, environment: environmentFile,
       environmentCid: environment.cid, parameters, nativeMilliseconds: '1',
       smallJoin: profile === 'small-join-envelope',
       receivedRows: Math.max(100, fixture.fields.length + fixture.rows + fixture.cardinalities.capture,

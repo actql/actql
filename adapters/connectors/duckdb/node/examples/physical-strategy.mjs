@@ -1,5 +1,4 @@
 import { readFile, stat } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -15,7 +14,8 @@ import { checked } from '../runtime-result.mjs';
 import {configureLocalProcessStore} from '../../../../local-node/retained-process.mjs';
 import {completionObserver} from '../../../../host-common/completion-observer.mjs';
 import {snapshotDataProfile} from './data-profile.mjs';
-import {createNodeAuthorizationGate} from '../../../../host-node/authorization.mjs';
+import {createLocalAuthorizationGate, sourceReadAccountConfiguration} from
+  '../../../../host-node/local-account-config.mjs';
 import {requireAuthorizedDispatch} from '../../../../host-common/authorization-gate.mjs';
 
 const root = new URL('../../../../../', import.meta.url);
@@ -40,31 +40,27 @@ export function exampleDatabaseMemoryBytes(
     ? Number(configured / 2n) : limits.memoryBytes;
 }
 
-// The example application's installed execution account: an explicit Local
-// profile that allows preparing and reading exactly its configured source
-// table, and nothing else. It is Host installation, never Program input, and
-// not a missing-configuration fallback. Pure compute over the captured input
-// needs no grant; a caller may install a different gate.
-export function exampleAuthorization({database, schema = 'main', table = 'records'}) {
-  const configuration = JSON.stringify({
-    version: 'actql-execution-account-config/0.1',
-    account_id: 'example-application',
-    entries: [{
-      entry_id: 'example-source',
-      outcome: 'allow',
-      principal: {all: true},
-      connection: {any_of: [database]},
-      resource: {any_of: [`${schema}.${table}`]},
-      operation: {any_of: ['read']},
-      exclusions: [],
-    }],
-  });
-  return createNodeAuthorizationGate({
-    configuration,
-    // Installation-time digest of the exact installed configuration text.
-    configurationCid: `sha256:${createHash('sha256').update(configuration).digest('hex')}`,
-    context: {principal: 'example-application', contextCid: `sha256:${'0'.repeat(64)}`},
-  });
+// Text of an explicit execution-account configuration that allows reading
+// exactly the example's source table (`outcome` may be `delegate` or `deny`).
+// It is a convenience for writing an operator-owned file; the example never
+// installs it by itself.
+export function exampleAccountConfiguration({database, schema = 'main',
+  table = 'records', outcome = 'allow', accountId = 'example-application'}) {
+  return sourceReadAccountConfiguration({connection: database,
+    resource: `${schema}.${table}`, outcome, accountId, entryId: 'example-source'});
+}
+
+// The installed execution account is explicit Host installation, never
+// Program input: a gate supplied by the embedding application, the
+// operator-selected configuration file `accountConfig`, or the exact
+// configuration text `accountConfiguration` a trusted parent Host passes to
+// its managed worker. With none, the Missing gate denies every protected
+// boundary (ACTQL_E_ACCOUNT_CONFIG_INVALID); there is no allow-all default.
+export function exampleAuthorization({authorization, accountConfig,
+  accountConfiguration, principal = 'example-application'} = {}) {
+  if (authorization !== undefined) return authorization;
+  return createLocalAuthorizationGate({accountConfig, accountConfiguration,
+    principal});
 }
 
 const exampleSourceScope = ({database, schema = 'main', table = 'records'}) =>
@@ -85,16 +81,28 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
   nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal,
-  authorization }, observer) {
+  authorization, accountConfig, accountConfiguration, invocation, continuation },
+  observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   if (typeof database !== 'string') throw new Error('Invalid example configuration');
   // Preparation boundary: authorized before any Program/Environment path read,
   // source capture or Run creation.
-  const gate = authorization ?? await exampleAuthorization({database, schema, table});
+  const gate = await exampleAuthorization({authorization, accountConfig,
+    accountConfiguration});
   await requireAuthorizedDispatch(gate, 'preparation',
-    {...exampleSourceScope({database, schema, table}), operation: 'read'}, {signal});
+    {...exampleSourceScope({database, schema, table}), operation: 'read'},
+    {signal, subjectCid: invocation?.requestCid});
+  // A resumed preparation continuation supplies the immutable bytes captured
+  // before its Checkpoint; it never rereads the mutable operator paths.
+  const captured = invocation?.texts;
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
+    captured !== undefined ? [captured.programText, captured.environmentText,
+      captured.parameterText, ...await Promise.all([
+        new URL('../contracts/adopted-relation.json', import.meta.url),
+        new URL('spec/contracts/actql-query-acquisition.json', root),
+        new URL('spec/contracts/actql-query-process-evidence.json', root),
+        new URL('spec/contracts/actql-query-two-receipt.json', root)].map(boundedText))] :
     await Promise.all([program, environment, parameters,
       new URL('../contracts/adopted-relation.json', import.meta.url),
       new URL('spec/contracts/actql-query-acquisition.json', root),
@@ -106,10 +114,16 @@ export async function runExample({ database, environment, environmentCid, progra
     acquisitionRetainedOutput, managedOutput,
     retainedWorkMilliseconds, localImportWorkMilliseconds,
     localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds,
-    localEligible, dataProfile, authorization: gate});
+    localEligible, dataProfile, authorization: gate,
+    acquisitionSubjectCid: invocation?.identify?.({programText, environmentText,
+      parameterText})});
+  // A resumed continuation re-proves its fence before provider I/O and
+  // creates its Run only once capture completed.
+  await continuation?.beforeAcquisition?.();
   const opened = await plan.open(signal);
   let execution;
   try {
+    await continuation?.beforeRun?.();
     execution = await runCapturedStrategy(opened.setup,
       {...opened.configurations, authorization: gate}, signal, observer);
     return Object.freeze({report: opened.describe(execution), execution, capture: opened.capture,
@@ -139,7 +153,8 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
   nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile,
-  authorization}, resourceLimits) {
+  authorization, accountConfig, accountConfiguration, acquisitionSubjectCid},
+  resourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -304,8 +319,10 @@ export async function prepareExampleText({database, environmentCid, programText,
     // the exact source scope; no provider session opens without a dispatch
     // decision for it.
     const grant = await authorizeLocalDatabase(database, {
-      authorization: authorization ?? await exampleAuthorization({database, schema, table}),
+      authorization: await exampleAuthorization({authorization, accountConfig,
+        accountConfiguration}),
       ...exampleSourceScope({database, schema, table}),
+      subjectCid: acquisitionSubjectCid,
     });
     signal?.throwIfAborted();
     const capture = acquisitionRetention
@@ -376,11 +393,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       parameters: { type: 'string' }, schema: { type: 'string', default: 'main' },
       table: { type: 'string', default: 'records' }, 'native-ms': { type: 'string', default: '5' },
       resident: { type: 'boolean', default: false },
+      // Operator-selected execution-account configuration. Without it every
+      // protected boundary is denied (ACTQL_E_ACCOUNT_CONFIG_INVALID).
+      'account-config': { type: 'string' },
     } });
     for (const key of ['database', 'environment', 'environment-cid', 'program', 'parameters']) {
       if (!values[key]) throw new Error(`Required --${key}`);
     }
-    result = await runExample({ ...values, environmentCid: values['environment-cid'], nativeMilliseconds: values['native-ms'] });
+    result = await runExample({ ...values, environmentCid: values['environment-cid'],
+      nativeMilliseconds: values['native-ms'], accountConfig: values['account-config'] });
     console.log(JSON.stringify(result.report, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
     if (result.execution.failure) {
       // Cleanup only: this cannot retry a query or turn failure into success.
@@ -389,6 +410,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       process.exitCode = 1;
     }
   } catch (error) {
+    if (error.runtimeCode) console.error(`${error.runtimeCode}: ${error.code}`);
     console.error(error);
     if (error.cleanupHandle?.status().pending) await error.cleanupHandle.retry();
     process.exitCode = 1;

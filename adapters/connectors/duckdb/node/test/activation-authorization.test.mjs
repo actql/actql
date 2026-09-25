@@ -6,7 +6,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { prepareExampleText, runExample } from '../examples/physical-strategy.mjs';
+import { exampleAccountConfiguration, prepareExampleText, runExample } from
+  '../examples/physical-strategy.mjs';
 import { checked } from '../runtime-result.mjs';
 import { runInstalledStrategy } from '../../../../host-common/strategy.mjs';
 import { runtimeCore } from '../../../../host-common/runtime-core.mjs';
@@ -201,7 +202,8 @@ test('the captured Run refuses every realization start that the Host did not gra
   for (const nativeMilliseconds of ['1', '20', '5']) {
     const plan = await prepareExampleText({ database: input.database,
       environmentCid: input.environmentCid, programText, environmentText, parameterText,
-      adoptedText, query, evidence, receipts, nativeMilliseconds });
+      adoptedText, query, evidence, receipts, nativeMilliseconds,
+      authorization: await fixtureAuthorization(entries(input)) });
     const opened = await plan.open();
     try {
       assert.equal(moon.strategyHostConfigureManagedIdentity(opened.setup, true, false, false, false), true);
@@ -234,4 +236,35 @@ test('preparation is authorized before any Program path read or source access', 
     error.authorization.reason === 'no_match');
   assert.equal(hostCalls, 0);
   assert.equal(gate.counters().evaluations, 1);
+});
+
+test('without an explicit account the example denies before any path read', async t => {
+  const input = await exampleInput(t);
+  // No gate and no configuration file: the Missing gate denies at preparation.
+  await assert.rejects(runExample({ ...input, program: join(input.directory, 'absent.json') }),
+    error => error.code === 'ExecutionAuthorizationDenied' &&
+      error.runtimeCode === 'ACTQL_E_ACCOUNT_CONFIG_INVALID' &&
+      error.authorization.boundary === 'preparation' &&
+      error.authorization.reason === 'configuration_missing');
+  // A selected but unreadable file fails installation with the same code.
+  await assert.rejects(runExample({ ...input, accountConfig: join(input.directory, 'absent.json') }),
+    error => error.code === 'ACTQL_E_ACCOUNT_CONFIG_INVALID');
+  // A plan opened without an account never opens the source.
+  const plan = await prepareExampleText({ database: input.database,
+    environmentCid: input.environmentCid,
+    programText: await readFile(input.program, 'utf8'),
+    environmentText: await readFile(input.environment, 'utf8'),
+    parameterText: await readFile(input.parameters, 'utf8'),
+    adoptedText: await readFile(join(root, 'adapters/connectors/duckdb/node/contracts/adopted-relation.json'), 'utf8'),
+    query: await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
+    evidence: await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
+    receipts: await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8') });
+  await assert.rejects(plan.open(), error => error.runtimeCode === 'ACTQL_E_ACCOUNT_CONFIG_INVALID' &&
+    error.authorization.boundary === 'acquisition');
+  // An explicit file allowing the source read runs the example.
+  const accountConfig = join(input.directory, 'account-config.json');
+  await writeFile(accountConfig, exampleAccountConfiguration({ database: input.database }));
+  const result = await runExample({ ...input, accountConfig });
+  try { assert.equal(result.report.status, 'host-tasks-completed'); }
+  finally { await result.close(); }
 });

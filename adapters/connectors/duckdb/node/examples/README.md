@@ -18,6 +18,7 @@ moon build --target js --release src/connectors_builtin_node
 moon build --target js --release src/physical_strategy_example
 node adapters/connectors/duckdb/node/examples/physical-strategy.mjs \
   --database /absolute/path/to/trusted.duckdb \
+  --account-config /absolute/path/to/account-config.json \
   --environment /absolute/path/to/check-environment.json \
   --environment-cid sha256:YOUR_EXPECTED_ENVIRONMENT_CID \
   --program adapters/connectors/duckdb/node/examples/program.json \
@@ -37,6 +38,16 @@ non-null number; all other known columns are also validated. The selected real
 table and declared schema must match. The example does not create a source DB,
 generate a Catalog, grant access based on Program text, or repair an invalid file.
 The path is an explicit Host binding to a trusted existing file opened read-only.
+
+`--account-config` names the operator's execution-account configuration, an
+`actql-execution-account-config/0.1` file. The example installs no account of
+its own: without this option, or with an unreadable or rejected file, the
+preparation boundary denies the run with `ACTQL_E_ACCOUNT_CONFIG_INVALID` before
+any Program, Parameter, Environment or source read. Preparation capture and
+source acquisition are evaluated as `read` of connection `<database path>` and
+resource `<schema>.<table>`; an entry allowing exactly that tuple is enough to
+run the example. `exampleAccountConfiguration({database})` returns the text of
+such a one-entry file for embedding applications that write their own.
 
 `prepareExampleText` exposes the same application preparation over bounded text
 documents. Its returned `open(signal)` performs source authorization/acquisition
@@ -314,6 +325,7 @@ it does not force every task onto resident DuckDB. For example:
 ```sh
 node adapters/connectors/duckdb/node/examples/physical-strategy.mjs \
   --database /absolute/path/to/trusted.duckdb \
+  --account-config /absolute/path/to/account-config.json \
   --environment /absolute/path/to/check-environment.json \
   --environment-cid sha256:YOUR_EXPECTED_ENVIRONMENT_CID \
   --program adapters/connectors/duckdb/node/examples/program.json \
