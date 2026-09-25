@@ -23,6 +23,38 @@ test "Effect source issuer binds checked export facts without public name" {
     )
   }
   let artifact = issue("rows", ordering_test_cid("a"), 1).unwrap()
+  assert_eq(
+    effect_source_artifact_preview_binding(
+      artifact,
+      publication_contract_identity(chain.invocation),
+      "rows",
+    ).unwrap(),
+    (publication_contract_identity(artifact), ordering_test_cid("a")),
+  )
+  assert_true(
+    effect_source_artifact_preview_binding(
+      artifact,
+      publication_contract_identity(chain.invocation),
+      "answer",
+    )
+    is Err(EffectSourceWrongContract),
+  )
+  assert_true(
+    effect_source_artifact_preview_binding(
+      artifact,
+      ordering_test_cid("f"),
+      "rows",
+    )
+    is Err(EffectSourceWrongContract),
+  )
+  assert_true(
+    effect_source_artifact_preview_binding(
+      chain.artifact,
+      publication_contract_identity(chain.invocation),
+      "rows",
+    )
+    is Err(EffectSourceWrongContract),
+  )
   assert_true(publication_contract_name(artifact) == "effect_source_artifact")
   assert_true(
     publication_contract_identity(artifact) ==

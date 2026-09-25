@@ -91,3 +91,25 @@ pub fn issue_effect_source_artifact(
     Err(issue) => Err(EffectSourceContract(issue))
   }
 }
+
+///|
+/// Recover the Preview binding only from the issued source Artifact for the
+/// exact Run Invocation and checked source Result. Store custody is a separate
+/// obligation and is not established by this projection.
+pub fn effect_source_artifact_preview_binding(
+  artifact : PublicationContract,
+  invocation_cid : String,
+  source_result : String,
+) -> Result[(String, String), EffectSourceArtifactIssue] {
+  if artifact.name != "effect_source_artifact" ||
+    !valid_contract_cid(invocation_cid) ||
+    contract_string(artifact, "invocation_cid") != Some(invocation_cid) ||
+    contract_string(artifact, "source_result") != Some(source_result) {
+    return Err(EffectSourceWrongContract)
+  }
+  guard contract_string(artifact, "source_binding_cid") is Some(binding) &&
+    valid_contract_cid(binding) else {
+    return Err(EffectSourceInvalidBinding)
+  }
+  Ok((artifact.identity, binding))
+}

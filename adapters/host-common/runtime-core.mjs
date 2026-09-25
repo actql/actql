@@ -1942,6 +1942,10 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth,
       )));
     },
+    effectSourceArtifactPreviewBinding(artifact, invocationCid, sourceResult) {
+      return checked(moon.clientProgramEffectSourceArtifactPreviewBinding(
+        token(artifact), invocationCid, sourceResult));
+    },
     capturedEffectSourceHoldingCid(source) {
       return moon.strategyCapturedEffectSourceHoldingCid(
         effectSourceToken(source));
