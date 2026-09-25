@@ -12,6 +12,13 @@ replay commits or cherry-pick the performance work. The branch then retained
 its WIP and continued Salesforce work. Neither `main` nor the other owners'
 worktrees were changed, and no push or merge was performed.
 
+The later local `main` is
+`7dfd5bf78849ba341716935c1f1cc8b3405316d5`, which contains
+`ac3fbce57947a05db99289f52294fd6bd6017799`. It was already an
+ancestor of the Salesforce head at the latest rebase check, so the branch
+HEAD and its shared commit SHAs did not change. `origin/main` still points to
+`ac3fbce57947a05db99289f52294fd6bd6017799`.
+
 ## Fixed completion unit at current HEAD
 
 This branch's current unit is an ordinary Program with at least two Salesforce
@@ -29,7 +36,7 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The Salesforce Host now assembles the Preview draft from typed Run contracts, checked member descriptors, the issued source Artifact, and exact typed write requests and target observations. MoonBit validates and canonicalizes the closed draft, derives physical footprint and create-row occurrence order, then seals row, member, set, and dispatch-key identities. The ordinary local Host success path no longer takes a fixture-authored template. Each member's authority CID must match the owned logical request scope. The source binding and Artifact identity are projected from the exact Host-owned Artifact, bound to the checked source Result, Run Invocation, and Store authority, rather than resupplied as Preview strings. Effect identity and capability/authority evidence authenticity and issuance remain open. | Connect those evidence issuers and the captured owner to this authoring call; prove foreign or stale evidence fails before a write. Reobserve existing targets before the common whole-set preflight. A 404 alone is not proof of absence. Keep create's not-applicable guard and canonical content-row order. |
+| The Salesforce Host now assembles the Preview draft from typed Run contracts, checked member descriptors, the issued source Artifact, and exact typed write requests and target observations. MoonBit validates and canonicalizes the closed draft, derives physical footprint and create-row occurrence order, then seals row, member, set, and dispatch-key identities. The ordinary local Host success path no longer takes a fixture-authored template. Each member's authority CID must match the owned logical request scope. The source binding and Artifact identity are projected from the exact Host-owned Artifact, bound to the checked source Result, Run Invocation, and Store authority, rather than resupplied as Preview strings. Effect identity and capability/authority evidence authenticity and issuance remain open. | Connect those evidence issuers and the captured owner to this authoring call; prove foreign or stale evidence fails before a write. Current target and Catalog observations must be refreshed before the common whole-set preflight; local Site regressions now cover both, but public ingress remains unconnected. A 404 alone is not proof of absence. Keep create's not-applicable guard and canonical content-row order. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
@@ -47,6 +54,11 @@ total response bytes; over-limit inventories fail before credential use, and
 a 404 cannot become a version guard. A changed target is rejected by the common
 preflight before any write request or write credential use. The observation
 inventory and its typed before-value projection are product Site operations.
+In the installed local Host path, the Site refreshes every selected member's
+Catalog through scoped HTTPS operations and rechecks all typed write requests
+with the existing MoonBit write projection. The same current observations are
+used by target reads and physical writes. A changed write permission in the second member
+rejects the entire set before any write request or write credential use.
 The product Host resolves checked member facts by exact Stage and Effect ID,
 not by a guessed Program-global position. A member from another Stage or a
 reordered member cannot silently supply a Mapping or logical Plan. The row

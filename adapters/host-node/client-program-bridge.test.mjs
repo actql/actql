@@ -17,6 +17,8 @@ import {authorObservedSalesforceEffectPreview} from
   './salesforce-effect-preview.mjs';
 import {openSalesforceEffectSiteFixture} from
   '../site-node/salesforce-effect-site.fixture.mjs';
+import {refreshSalesforceEffectWriteCatalogs} from
+  '../site-node/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
   '../site-node/salesforce-target-observation.mjs';
 import * as salesforceMoon from
@@ -2151,6 +2153,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-create-duplicates',
   'salesforce-publication-restart',
   'salesforce-overlap', 'salesforce-stale-target',
+  'salesforce-schema-drift',
   'salesforce-unknown', 'salesforce-lost-http-reply',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
@@ -2160,7 +2163,8 @@ test(`two-member captured Effect Run ${
     physical.endsWith('lost-http-reply')
     ? 'retains uncertain outcomes' :
     physical === 'salesforce-overlap' ||
-      physical === 'salesforce-stale-target'
+      physical === 'salesforce-stale-target' ||
+      physical === 'salesforce-schema-drift'
       ? 'rejects stale or overlapping members before send' :
     physical === 'salesforce-publication-restart'
       ? 'reconciles publication after Store restart' :
@@ -2415,12 +2419,13 @@ test(`two-member captured Effect Run ${
             targets.map(target => salesforceMoon.salesforceWriteTargetObjectCid(
               checked(target)))};
       }) : undefined;
+      let currentCatalogs = sites?.map(site => site.catalog.observation);
       let targetRead = 0;
       const observeCurrentTargets = ({signal} = {}) =>
         observeSalesforceTargetSet({moon: salesforceMoon,
           members: sites.map((site, memberIndex) => ({
             requests: siteRequests[memberIndex],
-            currentCatalog: site.catalog.observation,
+            currentCatalog: currentCatalogs[memberIndex],
             authorizationForRow: async () => ({...site.observe,
               useId: `target-read-${targetRead++}`}),
             credential: site.credential,
@@ -2905,9 +2910,7 @@ test(`two-member captured Effect Run ${
         preflight, ledger, members, maxFrontierWork: 64};
       const expectedCredentialUses = baseline => baseline.map(
         (count, index) => count + sites[index].seen.filter(item =>
-          item.method === 'GET' && item.path.startsWith(
-            '/services/data/v62.0/sobjects/Test_Record__c/') &&
-          !item.path.endsWith('/describe')).length);
+          item.method === 'GET').length);
       if (siteRun && writeKind !== 'create') {
         const usesBefore = sites.map(site => site.journal.recover().length);
         await assert.rejects(applyCapturedEffectSet({
@@ -2928,23 +2931,43 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
       }
-      if (siteRun && writeKind !== 'create') {
-        applyOptions.refreshGuardObservations = async ({signal}) => ({
-          observedRows,
-          guardVersions: (await observeCurrentTargets({signal}))
-            .flatMap(member => member.map(observed => observed.versionCid)),
-        });
+      if (siteRun) {
+        applyOptions.refreshGuardObservations = async ({signal}) => {
+          currentCatalogs = await refreshSalesforceEffectWriteCatalogs({
+            moon: salesforceMoon,
+            members: sites.map((site, index) => ({
+              requests: siteRequests[index],
+              collectionRequest: collectionMode && index === 0
+                ? collectionRequest : undefined,
+              refreshCatalog: site.refreshCatalog,
+            })), maxMembers: 2, maxRows: 4, signal,
+          });
+          return {observedRows,
+            guardVersions: writeKind === 'create' ? [] :
+              (await observeCurrentTargets({signal})).flatMap(member =>
+                member.map(observed => observed.versionCid))};
+        };
       }
-      if (physical === 'salesforce-stale-target') {
-        sites[0].setTargetName('changed-after-preview');
+      if (physical === 'salesforce-stale-target' ||
+          physical === 'salesforce-schema-drift') {
+        if (physical === 'salesforce-schema-drift') {
+          sites[1].setNameUpdateable(false);
+        }
+        if (physical === 'salesforce-stale-target') {
+          sites[0].setTargetName('changed-after-preview');
+        }
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions,
           dispatchRow: () => assert.fail('stale target dispatched'),
         }), {code: 'MoonBitHostFailure'});
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
+        if (physical === 'salesforce-schema-drift') {
+          assert.deepEqual(sites.map(site => site.seen.filter(item =>
+            item.path.endsWith('/describe')).length), [2, 2]);
+        }
         assert.deepEqual(sites.map(site => site.journal.recover().length),
-          expectedCredentialUses([2, 2]));
+          expectedCredentialUses([0, 0]));
         const privateHoldingCid = control.effectPrivateEvidenceBinding(
           admittedPreview, store.storeAuthorityCid).holdingCid;
         for (const holdingCid of [privateHoldingCid,
@@ -2982,7 +3005,7 @@ test(`two-member captured Effect Run ${
                 admittedPreview: applyPreview, memberIndex: 0,
                 firstRow: 0, commonMoon: moon, moon: salesforceMoon,
                 request: collectionRequest,
-                currentObservation: site.catalog.observation,
+                currentObservation: currentCatalogs[memberIndex],
                 authorization: {...site.write,
                   useId: 'partial-collection'},
                 credential: site.credential,
@@ -3014,7 +3037,7 @@ test(`two-member captured Effect Run ${
                 .changes[rowIndex].row_preview_cid,
               claim, moon: salesforceMoon,
               request: siteRequests[memberIndex][rowIndex],
-              currentObservation: site.catalog.observation,
+              currentObservation: currentCatalogs[memberIndex],
               authorization: {...site.write,
                 useId: `write-${memberIndex}-${rowIndex}`},
               credential: site.credential,
@@ -3111,7 +3134,7 @@ test(`two-member captured Effect Run ${
         assert.equal(sites[0].seen.filter(item =>
           item.method === 'PATCH').length, 1);
         assert.equal(sites[0].journal.recover().length,
-          expectedCredentialUses([3, 4])[0]);
+          expectedCredentialUses([1, 2])[0]);
       }
       const rejectPublicationAndRetire = async (issuedSet, code,
         attemptId) => {
@@ -3189,7 +3212,7 @@ test(`two-member captured Effect Run ${
             ? {Name: sourceIds[0], External_Key__c: sourceIds[0]}
             : {Name: sourceIds[0]});
           assert.deepEqual(sites.map(site => site.journal.recover().length),
-            expectedCredentialUses([3, 4]));
+            expectedCredentialUses([1, 2]));
         }
         const uncertainSet = await issueAuthorizedEffectSetReceipt({
           ledger, preview: applyPreview, commonMoon: moon,
@@ -3221,7 +3244,7 @@ test(`two-member captured Effect Run ${
         assert.deepEqual(sites.map(site => site.seen
           .filter(item => item.method === 'PATCH').length), [1, 2]);
         assert.deepEqual(sites.map(site => site.journal.recover().length),
-          expectedCredentialUses([3, 4]));
+          expectedCredentialUses([1, 2]));
         ledger.close();
         ledger = openLedger();
         const replay = await applyCapturedEffectSet({
@@ -3258,7 +3281,7 @@ test(`two-member captured Effect Run ${
           .filter(item => item.method === writeMethod).length),
         collectionRecovered ? [1, 2] : [2, 2]);
         assert.deepEqual(sites.map(site => site.journal.recover().length),
-          expectedCredentialUses(collectionRecovered ? [3, 4] : [4, 4]));
+          expectedCredentialUses(collectionRecovered ? [1, 2] : [2, 2]));
         if (collectionRecovered) {
           const sentBatch = JSON.parse(sites[0].seen.find(item =>
             item.method === 'PATCH').body);

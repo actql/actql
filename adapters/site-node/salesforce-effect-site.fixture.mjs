@@ -44,6 +44,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   const seen = [];
   let loseReply = loseWriteReplyOnce;
   let observedName = 'before';
+  let nameUpdateable = true;
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -67,7 +68,8 @@ export async function openSalesforceEffectSiteFixture(t, {
         createable: true, updateable: true, fields: [
           {name: 'Id', type: 'id', nillable: false},
           {name: 'Name', type: 'string', nillable: false,
-            defaultedOnCreate: false, createable: true, updateable: true},
+            defaultedOnCreate: false, createable: true,
+            updateable: nameUpdateable},
           {name: 'External_Key__c', type: 'string', externalId: true,
             unique: true, caseSensitive: true, nillable: false,
             defaultedOnCreate: false, createable: true,
@@ -191,20 +193,32 @@ export async function openSalesforceEffectSiteFixture(t, {
   const credential = {orgId, control, journal,
     resolveSecret: async () => 'test-only-secret', ca,
     now: () => 1_999_999_999_999};
-  const catalog = await syncSalesforceCatalog({
-    moon: salesforceMoon, apiVersion: 'v62.0',
-    connectionRevision: 'connection-revision-a', orgId,
-    syncOccurrence: 'catalog-sync-a', maxObservationBytes: 10000,
-    listAuthorization: {...list, useId: 'list-use'},
-    authorizationForDescribe: async name => ({...describe,
-      useId: `describe-${name}`}),
-    credential,
-    listLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
-      maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
-    describeLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
-      maxFields: 20, maxNameUnits: 1000},
-  });
+  let catalogSequence = 0;
+  const refreshCatalog = async ({signal} = {}) => {
+    const sequence = catalogSequence++;
+    const currentList = sequence === 0 ? list : authorize('salesforce:catalog:list');
+    const currentDescribe = sequence === 0 ? describe :
+      authorize('salesforce:catalog:describe');
+    return await syncSalesforceCatalog({
+      moon: salesforceMoon, apiVersion: 'v62.0',
+      connectionRevision: 'connection-revision-a', orgId,
+      syncOccurrence: sequence === 0 ? 'catalog-sync-a' :
+        `catalog-sync-${sequence}`,
+      maxObservationBytes: 10000,
+      listAuthorization: {...currentList, useId: `list-use-${sequence}`},
+      authorizationForDescribe: async name => ({...currentDescribe,
+        useId: `describe-${name}-${sequence}`}),
+      credential,
+      listLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
+        maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
+      describeLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
+        maxFields: 20, maxNameUnits: 1000}, signal,
+    });
+  };
+  const catalog = await refreshCatalog();
   assert.equal(catalog.status, 'complete');
   return {seen, journal, orgId, origin, catalog, observe, write, credential,
-    setTargetName(name) { observedName = name; }};
+    refreshCatalog,
+    setTargetName(name) { observedName = name; },
+    setNameUpdateable(value) { nameUpdateable = value; }};
 }
