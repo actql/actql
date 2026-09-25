@@ -629,13 +629,18 @@ test "ordinary captured Relation chains feed two bounded consumers" {
     let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
     assert_eq(operations.inputs.length(), 0)
     let mut polls = 0
+    let mut charged_work = 0L
     while polls < 1000 {
       polls += 1
       let observation = (operations.advance)(1).unwrap()
       assert_true(observation.work <= 1L)
+      charged_work += observation.work
       if observation.complete {
         break
       }
+    }
+    if variant == "keyed_count" {
+      assert_eq(charged_work, 91L)
     }
     assert_true(polls > 2 && polls < 1000)
     assert_eq(local_managed_test_rows(operations), expected)
@@ -711,6 +716,122 @@ test "ordinary captured Relation chains feed two bounded consumers" {
     assert_eq(usage.held_bytes, 0L)
     @mock.close_mock_query_issuer(issuer)
   }
+}
+
+///|
+fn assert_captured_keyed_count_chain_budget(
+  max_work : Int,
+  expected : String,
+) -> Unit raise {
+  let (run, issuer) = captured_graph_fixture(
+    count=true,
+    count_filter_chain=true,
+    keyed_count_filter_chain=true,
+  )
+  let registry = search_registry()
+  let defaults = dispatch_test_limits()
+  let execution : @execution.SequenceExecutionLimits = {
+    rows: defaults.local_execution.rows,
+    max_work,
+    max_frames: defaults.local_execution.max_frames,
+  }
+  let installed = @local_driver.prepare_local_dispatch_module(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    dispatch_test_generated(run),
+    execution,
+    defaults.guards,
+    defaults.candidate_work,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    {
+      max_rows: 100,
+      values: execution.rows.input_values,
+      wire: retained_attempt_wire_limits(),
+      row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
+      max_batch_bytes: 256,
+    },
+    None,
+  ).unwrap()
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      [@local_driver.local_managed_captured_relation_input()],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
+  let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  let mut done = false
+  let mut rejected = false
+  let mut charged_work = 0L
+  for _ in 0..<1000 {
+    if !done && !rejected {
+      match (operations.advance)(1) {
+        Ok(observation) => {
+          assert_true(observation.work <= 1L)
+          charged_work += observation.work
+          done = observation.complete
+        }
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.InputLimit)
+          )
+        ) => rejected = expected == "work"
+        Err(_) => fail("keyed count chain rejected with another issue")
+      }
+    }
+  }
+  if expected == "complete" {
+    assert_true(done && !rejected)
+    assert_eq(charged_work, 91L)
+    assert_eq(local_managed_test_rows(operations), ["{\"id\":2}", "{\"id\":3}"])
+    let live = Ref(true)
+    (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
+      live.val
+    }).unwrap()
+    while true {
+      if (operations.advance_finalization)(1).unwrap().complete {
+        break
+      }
+    }
+    (operations.settle)().unwrap()
+    let output = (operations.complete)(1, operations.storage_bytes, fn() {
+      live.val
+    }).unwrap()
+    assert_true(@execution.managed_completed_output_available(output))
+    live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (operations.close)()
+    (operations.cleanup_refresh)() |> ignore
+  } else {
+    assert_true(rejected && !done)
+    assert_true((operations.output_row)(0) is Err(_))
+    assert_false(@strategy.captured_task_completed(run, 1))
+    (operations.settle)().unwrap()
+    (operations.close)()
+    assert_true((operations.cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.held_bytes, 0L)
+  @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "ordinary keyed count chain admits exact work and one-short limits" {
+  assert_captured_keyed_count_chain_budget(91, "complete")
+  assert_captured_keyed_count_chain_budget(90, "work")
 }
 
 ///|

@@ -2208,6 +2208,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_managed_group_wbtest.mbt",
           "fixture": "Local managed group count orders nullable keys for two consumers"
+        },
+        {
+          "role": "keyed_count_same_stage_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "ordinary keyed count chain admits exact work and one-short limits"
         }
       ],
       "environment_tests": [

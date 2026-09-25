@@ -260,7 +260,7 @@ fn bounded_relation_chain_execution(
   let cancelled = Ref(false)
   let terminal = Ref(false)
   let reclaimed = Ref(false)
-  let cleanup_index = Ref(0)
+  let cleanup_index = Ref(-1)
   let start_next = fn() -> Result[Unit, @connector.FixedComputeIssue] {
     guard position.val > 0 &&
       position.val < count &&
@@ -347,7 +347,30 @@ fn bounded_relation_chain_execution(
             ),
           )
         }
-        let poll = match advance_managed_provider(active, quantum) {
+        if used.val >= execution.max_work.to_int64() {
+          // The exhausted budget must not authorize another compute step.
+          // Confirm the active child's stop before exposing the limit error;
+          // otherwise its private output remains owned by an active session.
+          cancel_managed_provider(active) |> ignore
+          match advance_managed_provider(active, 1) {
+            Ok(_) => ()
+            Err(_) => ()
+          }
+          if !managed_provider_stopped(active) {
+            return Ok(managed_provider_continue(0L, 1L))
+          }
+          terminal.val = true
+          return Ok(
+            managed_provider_failed(
+              @connector.Execution(@execution.InputLimit),
+              0L,
+              0L,
+            ),
+          )
+        }
+        let remaining = execution.max_work.to_int64() - used.val
+        let child_quantum = Int::min(quantum, remaining.to_int())
+        let poll = match advance_managed_provider(active, child_quantum) {
           Ok(value) => value
           Err(issue) => {
             terminal.val = true
@@ -371,7 +394,7 @@ fn bounded_relation_chain_execution(
           }
         }
         if work < 0L ||
-          work > quantum.to_int64() ||
+          work > child_quantum.to_int64() ||
           used.val > execution.max_work.to_int64() - work {
           terminal.val = true
           return Ok(
@@ -454,9 +477,14 @@ fn bounded_relation_chain_execution(
         if !terminal.val {
           return Ok(false)
         }
-        while cleanup_index.val < children.val.length() {
+        if cleanup_index.val < 0 {
+          cleanup_index.val = children.val.length() - 1
+        }
+        // A later step borrows its predecessor's private completion.
+        // Release those readers before asking the producer to reclaim it.
+        while cleanup_index.val >= 0 {
           match cleanup_managed_provider(children.val[cleanup_index.val]) {
-            Ok(true) => cleanup_index.val += 1
+            Ok(true) => cleanup_index.val -= 1
             Ok(false) => return Ok(false)
             Err(issue) => return Err(issue)
           }

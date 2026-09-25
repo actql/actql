@@ -139,7 +139,9 @@ canonical NULL/compound key order, empty input, two consumers, exact and
 one-short work/workspace limits, and in-flight cancellation are checked on
 that route. The selected chain now also runs keyed count, filter and select
 within one task, with two downstream Computes and delivered cancellation.
-This does not establish the chain's own exact work/workspace boundary.
+Its captured-task regression pins 91 charged steps, rejects a one-short
+work budget, and confirms failed-task reclamation. The selected chain's
+exact workspace boundary is still unproven.
 Other aggregate members and providerless whole-sequence group execution
 remain open.
 The `components` route has an independent one-node self-loop boundary:
