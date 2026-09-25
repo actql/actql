@@ -103,6 +103,11 @@ re-run Compute or grant write authority. The two-member Host regression
 reopens the real Store with a fresh publication control before apply, then
 publishes and reads the Result and retires all holdings. This is a Store
 restart boundary, not proof of a killed Host process or restored apply owner.
+The same two-member path also reopens the Store after all row outcomes are
+durable but before final Receipt issuance. It re-admits the captured chain,
+derives member and Set Receipts from the reopened Ledger, and publishes
+without dispatching another write. A future fresh-process test must prove
+that ordinary ingress selects this recovery path after a real process exit.
 Before acquiring a physical Effect-source holding, the standard Host now
 checks the local Manifest and opaque Artifact against the exact checked
 input owner and the Run-bound source's logical CID, schema, row count,

@@ -2399,6 +2399,7 @@ for (const physical of ['simulated', 'salesforce',
   'salesforce-create-lost-http-reply',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
+  'salesforce-terminal-store-restart',
   'salesforce-unknown-continue']) {
 test(`two-member captured Effect Run ${
   physical.startsWith('salesforce-unknown') ||
@@ -2423,6 +2424,8 @@ test(`two-member captured Effect Run ${
     const restartAfterPublication =
       physical === 'salesforce-publication-restart';
     const restartBeforeApply = physical === 'salesforce-preapply-restart';
+    const restartBeforeFinal =
+      physical === 'salesforce-terminal-store-restart';
     const loseHttpReply = physical.endsWith('lost-http-reply');
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
@@ -3176,7 +3179,7 @@ test(`two-member captured Effect Run ${
           body.effects[0].row_order, siteBodies[0], [1, 1],
           sourceIds, [0, 0], 'v62.0', 256, 128, 1024, 64, 6,
           200)) : undefined;
-      const applyPreview = effect.admitPreviewIdentity(
+      let applyPreview = effect.admitPreviewIdentity(
         preview.wire, body.run_identity_cid,
         preview.authoringCid, requestScope, preview.keys,
         publicationLimits.maxWireBytes, publicationLimits.maxNodes,
@@ -3729,6 +3732,40 @@ test(`two-member captured Effect Run ${
         dispatchRow: () => assert.fail('terminal row resent'),
       });
       assert.equal(replay.dispatched, 0);
+      if (restartBeforeFinal) {
+        for (const result of storedResults.results) {
+          if (result.prepared.status().pending) {
+            await result.prepared.release();
+          }
+        }
+        if (sourcePayload.prepared.status().pending) {
+          await sourcePayload.prepared.release();
+        }
+        await store.close();
+        control = runtimeCore(moon).publicationControl;
+        physicalStore = await openLocalPublicationStore(configuration, control);
+        store = Object.freeze({...physicalStore,
+          async commitEffectfulIndex(...args) {
+            commitCalls++;
+            const result = await physicalStore.commitEffectfulIndex(...args);
+            if (commitCalls === 1) {
+              throw new Error('LostEffectIndexCommitAck');
+            }
+            return result;
+          },
+        });
+        const recovered = await recoverCompletedEffectfulComputation({
+          store, control, runDefinition, contractLimits: publicationLimits,
+        });
+        storedResults = recovered.storedResults;
+        computation = recovered.computation;
+        admittedPreview = recovered.preview;
+        applyPreview = effect.admitPreviewIdentity(
+          preview.wire, body.run_identity_cid,
+          preview.authoringCid, requestScope, preview.keys,
+          publicationLimits.maxWireBytes, publicationLimits.maxNodes,
+          publicationLimits.maxDepth);
+      }
       const issuedSet = await issueAuthorizedEffectSetReceipt({
         ledger, preview: applyPreview, commonMoon: moon,
         authorizeEvidenceRead: async () => true,
@@ -3747,7 +3784,8 @@ test(`two-member captured Effect Run ${
       const key = {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
         runDefinitionCid: runDefinition.identity};
       const publicationOptions = {
-        execution: restartBeforeApply ? null : execution,
+        execution: restartBeforeApply || restartBeforeFinal
+          ? null : execution,
         store, storedResults, control, computation,
         preview: admittedPreview, ledger, issuedSet,
         request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
