@@ -409,3 +409,13 @@ test compares the issued Receipt with the independently sealed fixture and
 checks an unknown/unattempted partition. This does not yet issue the set
 Receipt from every member or connect the standard Effectful Run apply and
 publication path; R2-G1 remains open.
+
+The 0.1 Effect Set Receipt can now be issued by the common MoonBit owner from
+one exact member Receipt per Preview member. Its member and set states use the
+same aggregation rules as reference admission; member replay observations
+remain explicit because terminal row state alone cannot establish replay.
+The Node Host evidence path issues each member from saved SQLite facts before
+asking MoonBit to issue the set. A two-member restart fixture covers applied,
+unattempted, and mixed partial-failure aggregation. The issued set is not an
+apply permit or a durable final Run commit, and replay flags still require an
+authoritative standard Run caller. R2-G1 remains open.

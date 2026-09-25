@@ -14,6 +14,7 @@ import {captureClaimedEffectCollectionResponse,
   captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {checkAuthorizedEffectMemberReceiptRowPartition,
   issueAuthorizedEffectMemberReceipt,
+  issueAuthorizedEffectSetReceipt,
   readAuthorizedEffectTerminalOutcome} from
   './effect-response-recovery.mjs';
 
@@ -317,6 +318,19 @@ test('saved response issues one exact terminal row Receipt before Ledger head',
     });
     assert.equal(issuedMember.identity, memberReceipt.identity);
     assert.equal(issuedMember.wire, memberReceipt.wire);
+    const issuedSet = await issueAuthorizedEffectSetReceipt({
+      ledger: restarted, preview: admitted, commonMoon: moon,
+      authorizeEvidenceRead: async () => true,
+      members: claims.map(rows => ({
+        rowOwners: rows.map(item => ({claim: item})), replayed: false,
+      })),
+      limits: {maxWireBytes: 4096, maxNodes: 512, maxDepth: 16},
+    });
+    assert.equal(issuedSet.members[0].identity, memberReceipt.identity);
+    assert.equal(issuedSet.members.length, 2);
+    assert.equal(JSON.parse(issuedSet.set.wire).status, 'partial_failure');
+    assert.deepEqual(JSON.parse(issuedSet.set.wire).effects
+      .map(member => member.state), ['failed', 'unattempted']);
     const mutableClaim = {...claim};
     const mutableOwners = [{claim: mutableClaim}, {claim: other}];
     assert.equal(await checkAuthorizedEffectMemberReceiptRowPartition({
