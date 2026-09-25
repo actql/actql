@@ -35,6 +35,8 @@
     {"family": "RelA", "operation": "append", "path": "same_stage_entrypoint"},
     {"family": "RelA", "operation": "distinct", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "distinct", "path": "ordinary_entrypoint"},
+    {"family": "RelA", "operation": "dedupe_rows", "path": "selected_entrypoint"},
+    {"family": "RelA", "operation": "dedupe_rows", "path": "ordinary_entrypoint"},
     {"family": "RelA", "operation": "lag", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "watermark_rows", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "group", "path": "global_count_entrypoint"},

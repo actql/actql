@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 31 with four-role boundary evidence, 31 with full work\/workspace assurance, 68 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 31 with four-role boundary evidence, 31 with full work\/workspace assurance, 70 with path-scoped work\/workspace evidence, 6 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('Graph equality route requires exact limits and delivered cancellation', () => {
@@ -418,6 +418,22 @@ test('dedupe loses its independent resource boundary with its fixture', () => {
       entry.operation === 'dedupe_rows');
     route.boundary_tests = [];
   }), /RelA dedupe_rows: independent dedupe resource evidence is missing/u);
+});
+
+test('bounded dedupe assurance requires reached limits and Host cancellation', () => {
+  const dedupe = routes => routes.routes.find(entry =>
+    entry.family === 'RelA' && entry.operation === 'dedupe_rows');
+  assert.match(run(undefined, routes => {
+    dedupe(routes).boundary_tests = dedupe(routes).boundary_tests.filter(
+      item => item.role !== 'dedupe_bounded_work_workspace_exact_one_short',
+    );
+  }), /RelA dedupe_rows: selected_entrypoint exact_limit lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    dedupe(routes).environment_tests = [];
+  }), /RelA dedupe_rows: selected_entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    delete dedupe(routes).resource_assurance.ordinary_entrypoint;
+  }), /RelA:dedupe_rows:ordinary_entrypoint: assured production claim lacks its exact route proofs/u);
 });
 
 test('generated sequence operators reject missing fixed work evidence', () => {
@@ -790,7 +806,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 68 |',
+    '| Path-scoped work/workspace assurance | 70 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);

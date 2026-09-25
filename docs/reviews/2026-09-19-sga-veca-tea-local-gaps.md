@@ -53,7 +53,7 @@ from operation names or from the complete prepared Stage alone:
 
 | Observed normal task | Missing bounded product connection |
 | --- | --- |
-| `REL.dedupeRows` and `REL.pivot` | Their selected task still has no bounded managed kernel. The existing synchronous evaluator runs before the independent bounded output copy. |
+| `REL.dedupeRows` and `REL.pivot` | At the probe SHA, neither selected task had a bounded managed kernel; the synchronous evaluator ran before the independent bounded output copy. |
 | `REL.join` followed by `REL.select` in one task | The selected Relation chain cannot use a bounded join child; the entire task reaches the synchronous evaluator. |
 | General `REL.groupBy`, including `REL.assert_unique → REL.groupBy`, `REL.groupBy → REL.where`, and two successive groups | The count-only bounded provider does not cover these aggregate members. The combined tasks remain synchronous. |
 
@@ -65,8 +65,13 @@ the strict gate still rejects the generic fallback and the unassured routes
 above. A final route proof must come from persistent standard-Host fixtures
 with delivered cancellation, exact/one-short limits, and cleanup.
 
+The current selected and ordinary single-step `dedupe_rows` routes now use the
+bounded row provider. `pivot` and whole-sequence dedupe combinations still
+need a separate bounded connection; the historical probe is not current proof
+of a single-step dedupe fallback.
+
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 31 full-route and 68 path-scoped counts describe evidence, not
+list. Its 31 full-route and 70 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -196,7 +201,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 31 |
 | Full route work/workspace assurance | 31 |
-| Path-scoped work/workspace assurance | 68 |
+| Path-scoped work/workspace assurance | 70 |
 | Selected-only assurance | 6 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -210,7 +215,7 @@ formal variant.
 | Category | Paths | Product limitation and next proof |
 | --- | ---: | --- |
 | Bounded implementation exists, ordinary connection is incomplete | 20 | RelA `filter`, `select`, `rename`, `drop`, `derive`, `sort`, `take`, `top_k`, `top_k_by`, `row_window`, `lag`, `watermark_rows`, `unpivot`, `json_pick`, `unnest`, `distinct`, `assert_rows`, `append`, `values`, and `cross_join` retain an unassured whole-sequence route. Their selected, zero-input, or external-input bounded paths are not evidence that every ordinary sequence avoids the synchronous fallback. Connect the remaining checked shapes through the common selection and dispatch path, then prove exact inputs, limits, timer cancellation and cleanup there. |
-| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond count-only cases, `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Split the actual shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
+| Computation itself still needs bounded implementation | 9 | RelA `window_group`, `pivot`, `join`, `nest`, `group` beyond count-only cases, multi-step `dedupe_rows`, `except`, `intersect`, and `analytic` retain reachable whole-sequence synchronous computation. Single-step dedupe now has a bounded provider, but its whole-sequence entrypoint remains unassured. Split the remaining shared work phases into resumable steps before treating a bounded output copy as cancellation evidence. |
 | Bounded product connection exists, route evidence is incomplete | 8 | Eight SGA entrypoints (`traverse`, `shortest_path`, `graph_diff`, `graft_graph`, `union_graphs`, `subtract_graphs`, `apply_graph_delta`, `mean_graphs`) need their exact production bindings tied to independent work/workspace, delivered cancel and cleanup fixtures. If a formal shape misses the registered provider, move that shape to the connection category rather than borrowing the representative fixture. |
 
 An ordinary remote Relation predecessor is a concrete connection gap: its
@@ -449,10 +454,16 @@ limit rejects without publication. The existing standard Host timer fixture
 delivers in-flight cancellation, and the bounded cleanup test exercises the
 same state machine. This closes selected-route evidence only. The ordinary
 whole-sequence fallback remains in the connection category.
-The `dedupe_rows` route binds a separately derived empty keyed-input fixture
-with 29 control-work units and a twelve-slot peak. Exact limits succeed and
-one-short limits fail. This does not prove nonempty grouping, representative
-tie handling, or interruption of the synchronous whole-sequence evaluator.
+The `dedupe_rows` whole-sequence route retains its independently derived empty
+keyed-input fixture with 29 control-work units and a twelve-slot peak; that
+does not prove interruption of a synchronous multi-step evaluator. The
+selected and ordinary single-step routes now share a bounded row provider.
+Their nonempty fixture fixes typed nullable-key ordering, authored winners,
+and top-tie failure; another fixture fixes exact/one-short work and workspace
+limits. The standard Host delivers a timer cancellation after positive work,
+observes stop and cleanup, and the ordinary path feeds two downstream Computes.
+The unassured whole-sequence route remains a release gap.
+
 `top_k_by` now has a selected bounded Relation provider. It resolves the
 canonical partition prefix before its ranking terms, compares partition keys
 incrementally, and applies the per-partition count without publishing skipped

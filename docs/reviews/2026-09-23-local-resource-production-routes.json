@@ -2677,6 +2677,14 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
+      "ordinary_entrypoint": {
+        "path": "src/connectors/local/selected_relation_provider.mbt",
+        "symbol": "selected_binding_rows_execution"
+      },
       "boundary_tests": [
         {
           "role": "dedupe_empty_keyed_work_workspace_exact_one_short",
@@ -2684,6 +2692,103 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/dedupe_sequence_wbtest.mbt",
           "fixture": "empty keyed dedupe admits independently counted work and workspace"
+        },
+        {
+          "role": "dedupe_bounded_typed_winners",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded dedupe selects authored winners in typed key order"
+        },
+        {
+          "role": "dedupe_bounded_tie_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded dedupe rejects an unresolved authored top tie"
+        },
+        {
+          "role": "dedupe_bounded_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded dedupe cancels after progress without publishing output"
+        },
+        {
+          "role": "dedupe_bounded_work_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
+          "fixture": "bounded dedupe admits exact and one-short resource budgets"
+        },
+        {
+          "role": "dedupe_ordinary_two_consumers",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "Local managed unary source forms feed two downstream Computes"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "dedupe_ordinary_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "ordinary-dedupe-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "in_flight_cancel": "dedupe_ordinary_in_flight_host_timer",
+          "cleanup": "dedupe_bounded_cancel_cleanup"
+        },
+        "ordinary_entrypoint": {
+          "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short",
+          "in_flight_cancel": "dedupe_ordinary_in_flight_host_timer",
+          "cleanup": "dedupe_bounded_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          }
+        },
+        "ordinary_entrypoint": {
+          "work": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "dedupe_bounded_work_workspace_exact_one_short",
+            "one_short_limit": "dedupe_bounded_work_workspace_exact_one_short"
+          }
+        }
+      },
+      "shared_proof_reuse": [
+        {
+          "role": "dedupe_ordinary_in_flight_host_timer",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "The selected and ordinary paths invoke the same bounded provider; the ordinary Host timer exercises its exact production start and stop path."
+        },
+        {
+          "role": "dedupe_bounded_work_workspace_exact_one_short",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes select selected_binding_rows_execution and share its typed dedupe term admission, merge, output, and resource budgets."
+        },
+        {
+          "role": "dedupe_bounded_cancel_cleanup",
+          "paths": ["selected_entrypoint", "ordinary_entrypoint"],
+          "reason": "Both routes own the same bounded dedupe session and unpublished builder; the Host timer demonstrates real cancellation delivery."
         }
       ]
     },
