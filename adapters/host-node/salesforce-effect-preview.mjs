@@ -62,26 +62,31 @@ export function authorObservedSalesforceEffectPreview({
   const requestOrder = [];
   for (const [memberIndex, member] of members.entries()) {
     const proposal = template.effects[memberIndex];
+    if (!Number.isSafeInteger(member?.stageIndex) ||
+        member.stageIndex < 0 || typeof member.effectId !== 'string') {
+      fail('ForeignSalesforceEffectPreviewMember');
+    }
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
-      prepared, memberIndex));
-    if (!proposal || member?.effectId !== descriptor._0) {
+      prepared, member.stageIndex, member.effectId, planLimits.maxWork));
+    if (!proposal || proposal.effect_id !== member.effectId ||
+        member.effectId !== descriptor._1) {
       fail('ForeignSalesforceEffectPreviewMember');
     }
     Object.assign(proposal, {
-      effect_id: descriptor._0,
-      effect_kind: descriptor._1,
-      target: descriptor._2,
-      mapping: descriptor._3,
-      resolved_mapping_contract_cid: descriptor._4,
-      on_item_failure: descriptor._6,
+      effect_id: descriptor._1,
+      effect_kind: descriptor._2,
+      target: descriptor._3,
+      mapping: descriptor._4,
+      resolved_mapping_contract_cid: descriptor._5,
+      on_item_failure: descriptor._7,
     });
-    if (descriptor._5 === undefined) {
+    if (descriptor._6 === undefined) {
       delete proposal.source_result;
     } else {
-      proposal.source_result = descriptor._5;
+      proposal.source_result = descriptor._6;
     }
     const planCid = checked(moon.clientProgramEffectPlanCid(
-      prepared, memberIndex, planLimits.maxFields, planLimits.maxWork,
+      prepared, descriptor._0, planLimits.maxFields, planLimits.maxWork,
       planLimits.maxBytes, planLimits.maxNodes, planLimits.maxDepth));
     if (planCid === undefined) {
       delete proposal.effect_plan_logical_cid;

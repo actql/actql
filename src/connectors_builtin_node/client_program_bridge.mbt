@@ -381,6 +381,7 @@ pub fn client_program_effect_plan_cid(
 pub(all) enum ClientEffectMemberDescriptorIssue {
   InvalidMember
   MissingMapping
+  WorkLimit
 } derive(Debug)
 
 ///|
@@ -389,27 +390,47 @@ pub(all) enum ClientEffectMemberDescriptorIssue {
 #export_name("clientProgramEffectMemberDescriptor")
 pub fn client_program_effect_member_descriptor(
   value : @publication_host.PreparedClientEffectComputation,
-  member_index : Int,
+  stage_index : Int,
+  effect_id : String,
+  max_work : Int,
 ) -> Result[
-  (String, String, String, String, String, String?, String),
+  (Int, String, String, String, String, String, String?, String),
   ClientEffectMemberDescriptorIssue,
 ] {
+  if stage_index < 0 || effect_id.is_empty() || max_work < 1 {
+    return Err(InvalidMember)
+  }
   let candidate = @publication_host.prepared_client_effect_computation_candidate(
     value,
   )
-  let header = match
-    @stage_syntax.effect_header_at(
-      @program_check.effect_program_static_headers(candidate),
-      member_index,
-    ) {
-    Some(value) => value
-    None => return Err(InvalidMember)
+  let headers = @program_check.effect_program_static_headers(candidate)
+  let mut header_index = -1
+  let mut remaining = max_work
+  for index in 0..<@stage_syntax.effect_header_count(headers) {
+    if remaining == 0 {
+      return Err(WorkLimit)
+    }
+    remaining -= 1
+    let header = @stage_syntax.effect_header_at(headers, index).unwrap()
+    if @stage_syntax.effect_header_stage(header) == stage_index &&
+      @stage_syntax.effect_header_id(header) == effect_id {
+      header_index = index
+      break
+    }
   }
+  if header_index < 0 {
+    return Err(InvalidMember)
+  }
+  let header = @stage_syntax.effect_header_at(headers, header_index).unwrap()
   let effects = @program_check.effect_program_static_effects(candidate)
   let shapes = @effect_results.effect_mapping_rules_shapes(
     @effect_results.effect_static_candidate_mapping_rules(effects),
   )
   for index in 0..<@effect_results.effect_mapping_shape_count(shapes) {
+    if remaining == 0 {
+      return Err(WorkLimit)
+    }
+    remaining -= 1
     let shape = @effect_results.effect_mapping_shape_at(shapes, index).unwrap()
     let selected = @effect_results.effect_result_binding_header(
       @effect_results.effect_mapping_shape_effect(shape),
@@ -421,6 +442,7 @@ pub fn client_program_effect_member_descriptor(
       let mapping = @effect_results.effect_mapping_shape_contract(shape)
       return Ok(
         (
+          header_index,
           @stage_syntax.effect_header_id(header),
           @stage_syntax.effect_header_kind(header),
           @check_environment.mapping_shape_target(mapping),
