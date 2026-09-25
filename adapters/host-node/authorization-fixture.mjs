@@ -111,8 +111,11 @@ const cidOf = value =>
 // Durable deferral over the real SQLite Checkpoint journal. The reviewer and
 // Host attestation keys are fixture Ed25519 keys held here; `answer` signs one
 // Resolution as the fixture reviewer and commits it through the journal's
-// real admission (`submitResolution`).
-export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
+// real admission (`submitResolution`). `hooks.authorize` and `hooks.attest`
+// run inside the Host authentication and attestation ports (for example to
+// model slow asynchronous Host work).
+export async function sqliteDeferral(root, {now = () => Date.now(),
+  hooks = {}} = {}) {
   ensureCheckpointRuntime();
   const {openSqliteCheckpointJournal, loadCheckpointRuntime} = await import(
     './sqlite-checkpoint-journal.mjs');
@@ -120,7 +123,8 @@ export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
   const host = generateKeyPairSync('ed25519');
   const journal = openSqliteCheckpointJournal(root, {
     runtime: await loadCheckpointRuntime(),
-    authorizeResolution({resolutionWire, proofPreimage}) {
+    async authorizeResolution({resolutionWire, proofPreimage}) {
+      await hooks.authorize?.();
       const resolution = JSON.parse(resolutionWire);
       if (resolution.proof?.key_id !== 'reviewer-key' ||
           !verify(null, Buffer.from(proofPreimage, 'utf8'), reviewer.publicKey,
@@ -131,11 +135,14 @@ export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
         authorityContextCid: fixtureCid('5'), policyCid: fixtureCid('6'),
         verifiedPreimage: proofPreimage};
     },
-    attestResolution: preimage => ({
-      hostKeyId: 'host-key',
-      signature: sign(null, Buffer.from(preimage, 'utf8'), host.privateKey)
-        .toString('base64'),
-    }),
+    attestResolution: async preimage => {
+      await hooks.attest?.();
+      return {
+        hostKeyId: 'host-key',
+        signature: sign(null, Buffer.from(preimage, 'utf8'), host.privateKey)
+          .toString('base64'),
+      };
+    },
     now,
   });
   let sequence = 0;
@@ -147,13 +154,37 @@ export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
       environmentBindingCid: fixtureCid('e'),
     },
     // Commit the reviewer's `approved` or `rejected` Resolution of one
-    // persisted Checkpoint. Returns the journal's committed result.
-    answer(checkpointCid, decision) {
+    // persisted Checkpoint. Returns the journal's committed result. An
+    // Effect Set approval attests `claims` (default: the Checkpoint's
+    // requirements); any other approval is a run-scope approval whose
+    // permission lasts until `approvalExpiresAt` (default: the Checkpoint's
+    // answer deadline).
+    answer(checkpointCid, decision, {claims, approvalExpiresAt} = {}) {
       const checkpoint = journal.inspect(checkpointCid);
       if (checkpoint === undefined) throw new Error('CheckpointNotFound');
       const at = new Date(now()).toISOString();
       let evidence;
-      if (decision === 'approved') {
+      if (decision === 'approved' && checkpoint.kind === 'effect_set') {
+        const attestation = {
+          version: 'actql-approval-attestation/0.1',
+          effect_preview_cid: checkpoint.requiredArtifact.cid,
+          review_projection_cid: checkpoint.reviewProjectionCid,
+          approver: 'reviewer',
+          approved_at: at,
+          authority_scope_cid: fixtureCid('7'),
+          claims: [...(claims ?? checkpoint.requirements)],
+          proof: {scheme: 'ed25519-v1', key_id: 'reviewer-key',
+            signature: 'c2lnbmF0dXJl'},
+        };
+        attestation.attestation_cid = cidOf(attestation);
+        evidence = {
+          version: 'actql-checkpoint-approval-evidence/0.1',
+          kind: checkpoint.kind,
+          checkpoint_cid: checkpoint.checkpointCid,
+          review_projection_cid: checkpoint.reviewProjectionCid,
+          compatibility_approval: attestation,
+        };
+      } else if (decision === 'approved') {
         const approval = {
           version: 'actql-run-scope-approval/0.1',
           prepared_invocation_cid: checkpoint.requiredArtifact.cid,
@@ -161,7 +192,7 @@ export async function sqliteDeferral(root, {now = () => Date.now()} = {}) {
           claim: 'invocation_scope_approved',
           approver: 'reviewer',
           approved_at: at,
-          expires_at: checkpoint.expiresAt,
+          expires_at: approvalExpiresAt ?? checkpoint.expiresAt,
           proof: {scheme: 'ed25519-v1', key_id: 'reviewer-key',
             signature: 'c2lnbmF0dXJl'},
         };

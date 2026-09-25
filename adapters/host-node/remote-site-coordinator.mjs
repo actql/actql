@@ -409,6 +409,27 @@ export function createRemoteSiteCoordinator({
     }
     return decision;
   };
+  // A decision taken from a committed approval (basis `resumed`) must carry
+  // its admission; an account allow needs no Resolution and has none.
+  const enterResumed = decision => {
+    if (decision.admission === undefined && decision.basis !== 'resumed') {
+      return;
+    }
+    if (typeof decision.admission?.enter !== 'function') {
+      throw new ExecutionAuthorizationError(Object.freeze({...decision,
+        action: 'failure', reason: 'adapter_error',
+        detail: 'ResumeAdmissionUnavailable'}));
+    }
+    try {
+      decision.admission.enter();
+    } catch (error) {
+      throw new ExecutionAuthorizationError(Object.freeze({...decision,
+        action: 'failure', reason: 'adapter_error',
+        detail: typeof error?.code === 'string' ? error.code
+          : 'ResumeAdmissionFailed',
+        error}));
+    }
+  };
   return Object.freeze({
     recovered,
     recoveredOutputs,
@@ -417,11 +438,19 @@ export function createRemoteSiteCoordinator({
       // Before the durable intent and before any send: a deny, failure,
       // unsupported defer or persisted wait records nothing and sends nothing.
       const facts = dispatchFacts(request.dispatch);
-      await requireDispatch('activation', {
+      const decision = await requireDispatch('activation', {
         connection: facts.site,
         resource: facts.registration,
         operation: 'write',
       }, facts.runDefinitionCid, request.signal, request.resumption);
+      // A resumed dispatch is fenced again here, synchronously and after
+      // every await: the claim must still be the current live claim and the
+      // approval still valid at the Host trusted time, and this claim
+      // generation must not have started a protected dispatch already. From
+      // here to the send nothing awaits. A recorded earlier attempt keeps its
+      // durable identity (which the Site deduplicates); a new claimant gets
+      // no new physical attempt of the same task.
+      if (request.resumption !== undefined) enterResumed(decision);
       const admission = control.prepareCoordinatorIntent(
         journal,
         request.dispatch,

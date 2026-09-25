@@ -373,8 +373,12 @@ function gateFor(core, context) {
         version: 'actql-execution-checkpoint/0.1',
         phase,
         kind,
-        requirements: kind === 'effect_set'
-          ? ['effect_scope_approved'] : ['invocation_scope_approved'],
+        // An Effect Set review asks the reviewer for the optional
+        // partial-application claim only when the Host requires it.
+        requirements: kind !== 'effect_set' ? ['invocation_scope_approved']
+          : view.requiredClaims.includes('partial_application_accepted')
+            ? ['effect_scope_approved', 'partial_application_accepted']
+            : ['effect_scope_approved'],
         reason_code: 'delegated_decision_deferred',
         ...described.body,
         // The reviewed artifact of an authorization deferral is the sealed
@@ -396,6 +400,10 @@ function gateFor(core, context) {
         authorities: deferral.authorities,
         binding: described.binding ?? deferral.binding,
         decisionSubjectCid: bindingCid,
+        // The claims this decision was requested with; resume admits the
+        // approval only if they are unchanged and its evidence establishes
+        // every one of them.
+        requestedClaims: [...view.requiredClaims],
       });
     } catch (error) {
       return frozenDecision({...base, action: 'failure',
@@ -415,47 +423,8 @@ function gateFor(core, context) {
       })});
   }
 
-  // Resume check for one committed Resolution. Only the journal's committed
-  // rows count: a claimed resume intent (which exists only for an approved
-  // Resolution), the resolved Checkpoint carrying that Resolution, and a Run
-  // still `resuming`. Returns the Checkpoint and reviewer authority, or a
-  // failure detail.
-  function committedApproval(resumption) {
-    const journal = core.deferral.journal;
-    const claimed = resumption?.claim;
-    const resolution = resumption?.resolution;
-    if (claimed?.action !== 'claimed' || !text(claimed.checkpointCid) ||
-        !text(claimed.claim?.runId) || resolution?.decision !== 'approved' ||
-        !text(resolution.resolutionCid) ||
-        typeof resolution.verifiedResolutionWire !== 'string') {
-      return {detail: 'ResumeNotClaimed'};
-    }
-    if (typeof journal.inspect !== 'function' ||
-        typeof journal.getRunState !== 'function') {
-      return {detail: 'ResumeJournalUnavailable'};
-    }
-    const checkpoint = journal.inspect(claimed.checkpointCid);
-    if (checkpoint === undefined || checkpoint.closure !== 'resolved' ||
-        checkpoint.resolutionCid !== resolution.resolutionCid ||
-        checkpoint.runId !== claimed.claim.runId) {
-      return {detail: 'ResolutionNotCommitted'};
-    }
-    if (journal.getRunState(checkpoint.runId)?.status !== 'resuming') {
-      return {detail: 'RunNotResuming'};
-    }
-    let verified;
-    try { verified = JSON.parse(resolution.verifiedResolutionWire); }
-    catch { return {detail: 'ResolutionNotCommitted'}; }
-    if (verified?.resolution?.checkpoint_cid !== checkpoint.checkpointCid ||
-        verified.resolution.decision !== 'approved' ||
-        !text(verified.verified_reviewer_id)) {
-      return {detail: 'ResolutionNotCommitted'};
-    }
-    return {checkpoint, authority: verified.verified_reviewer_id};
-  }
-
   async function evaluateResumed(boundary, tuple, subjectCid, resumption,
-    sealedSubjectCid = subjectCid) {
+    sealedSubjectCid = subjectCid, signal = undefined) {
     const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
     count('evaluations');
     if (core.moon === undefined) {
@@ -497,32 +466,35 @@ function gateFor(core, context) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: bound.issue});
     }
-    let approval;
-    try { approval = committedApproval(resumption); }
-    catch (error) {
+    const boundSubjectCid = await decisionSubjectCid(bound.subject);
+    signal?.throwIfAborted();
+    // From here on nothing awaits: the admission read below and the answer
+    // it produces describe the journal at one Host trusted instant. The
+    // caller still enters the admission immediately before its send.
+    const admitted = admitResumedDispatch(core.deferral.journal, resumption,
+      {requiredClaims: bound.required_claims});
+    if (admitted.detail !== undefined) {
       return frozenDecision({...withEntry, action: 'failure',
-        reason: 'adapter_error', detail: 'ResolutionNotCommitted', error});
+        reason: 'adapter_error', detail: admitted.detail,
+        error: admitted.error});
     }
-    if (approval.detail !== undefined) {
-      return frozenDecision({...withEntry, action: 'failure',
-        reason: 'adapter_error', detail: approval.detail});
-    }
+    const {admission, claims} = admitted;
     // The approval covers only the sealed artifact and the decision subject
     // bound at defer time: another artifact, Site, registration, boundary,
     // subject, context, tuple or entry is not it. A two-phase preparation
     // names its captured prepared invocation as `sealedSubjectCid`.
     if (!cid(subjectCid) || !cid(sealedSubjectCid) ||
-        approval.checkpoint.requiredArtifact.cid !== sealedSubjectCid ||
-        approval.checkpoint.decisionSubjectCid !==
-          await decisionSubjectCid(bound.subject)) {
+        admission.requiredArtifactCid !== sealedSubjectCid ||
+        admission.decisionSubjectCid !== boundSubjectCid) {
       return frozenDecision({...withEntry, action: 'failure',
         reason: 'adapter_error', detail: 'ResolutionSubjectMismatch'});
     }
     // The committed approval is admitted as the Host permit for the bound
-    // request, so the runtime still checks subject, authority and claims.
+    // request with only the claims its evidence established, so the runtime
+    // still checks subject, authority and the exact required claims.
     const subject = SUBJECT_FIELDS.map(name => bound.subject[name]);
     const runtimeDecision = moon.executionAuthorizationAnswer(request,
-      'permit', subject, approval.authority, [...core.requiredClaims], '');
+      'permit', subject, admission.authority, [...claims], '');
     const projected = JSON.parse(
       moon.executionAuthorizationDecisionJson(runtimeDecision));
     if (projected.action !== 'dispatch') {
@@ -534,8 +506,9 @@ function gateFor(core, context) {
     return frozenDecision({...withEntry, action: 'dispatch',
       authority: projected.authority,
       claims: Object.freeze([...projected.claims]),
-      checkpointCid: approval.checkpoint.checkpointCid,
-      resolutionCid: approval.checkpoint.resolutionCid,
+      checkpointCid: admission.checkpointCid,
+      resolutionCid: admission.resolutionCid,
+      admission,
       runtimeDecision});
   }
 
@@ -693,13 +666,25 @@ function gateFor(core, context) {
     },
 
     // Continue a deferred boundary from its committed Resolution. The
-    // `resumption` is {claim, resolution}: the Checkpoint journal's
-    // claimResume result and its committed submitResolution result. The
+    // `resumption` is {claim}: the claim the caller holds, as the Checkpoint
+    // journal's claimResume result (or its `claim`). It only names the claim;
+    // the claim, the committed Resolution and its evidence are read from the
+    // journal through `admitResumedDispatch` (fence, approval validity and
+    // observed claims at the Host trusted time). Anything else the caller
+    // supplies, such as a Resolution or verified wrapper, is ignored. The
     // account is evaluated again for the current scope; the committed
     // approval then authorizes only the exact decision subject its Checkpoint
     // bound. No Host decision is asked and nothing is cached. For a
     // two-phase boundary `sealedSubjectCid` is the artifact the Checkpoint
     // sealed on its defer path (default: `subjectCid`).
+    //
+    // Caller contract (remote dispatch, Effect commit and any other resumed
+    // protected operation): a `dispatch` decision carries `admission`; the
+    // caller calls `admission.enter()` synchronously immediately before the
+    // protected send, with no await in between. `enter` fences again at the
+    // Host trusted time, rechecks the approval's validity and records the
+    // single protected dispatch start of this claim generation; if it throws
+    // nothing may be sent. The decision itself is not a reusable token.
     async resume(boundary, scope, {subjectCid, signal, resumption,
       sealedSubjectCid} = {}) {
       if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
@@ -719,7 +704,7 @@ function gateFor(core, context) {
         operation: scope.operation,
       });
       return record(await evaluateResumed(boundary, tuple, subjectCid,
-        resumption, sealedSubjectCid ?? subjectCid));
+        resumption, sealedSubjectCid ?? subjectCid, signal));
     },
 
     // Explicit no-protected-scope coverage for pure compute over captured
@@ -753,6 +738,106 @@ function gateFor(core, context) {
 
     counters() { return Object.freeze({...core.counts}); },
   });
+}
+
+// Claims each deferred approval evidence profile can establish. A run-scope
+// style approval establishes its single invocation claim; an Effect Set
+// attestation its effect and optional partial-application claims. A Host
+// requirement outside this set cannot be answered by a deferred approval.
+const REPRESENTABLE_CLAIMS = Object.freeze({
+  effect_set: Object.freeze(['effect_scope_approved',
+    'partial_application_accepted']),
+  other: Object.freeze(['invocation_scope_approved']),
+});
+
+const heldClaim = resumption => {
+  const held = resumption?.claim;
+  const claim = held?.claim ?? held;
+  return Object.freeze({
+    checkpointCid: text(held?.checkpointCid) ? held.checkpointCid : undefined,
+    claim: claim === null || typeof claim !== 'object' ? undefined
+      : Object.freeze({intentId: claim.intentId, claimant: claim.claimant,
+        generation: claim.generation}),
+  });
+};
+
+// The one authoritative resumed-dispatch admission path, shared by
+// `gate.resume` and every resumed dispatch caller (the remote Coordinator,
+// the Local Host resume port and Effect callers).
+//
+// Inputs: the Checkpoint journal, the caller's `resumption` ({claim}, which
+// only names the held claim), and the Host's current required claims.
+// Checks, all from committed journal rows at the journal's Host trusted time:
+// the claim is the current intent's live claim (MoonBit fence: claimant,
+// generation, unexpired lease), the Checkpoint is resolved by that intent's
+// committed approved Resolution, the Run or preparation is `resuming`, and
+// the approval's own permission is still current (`admitResume`). Then the
+// claims: the requirements bound when the decision was deferred must equal
+// the current ones, each must be representable by the evidence profile, and
+// each must be established by the committed evidence (observed claims). No
+// claim is ever taken from configuration or from what the Host asks for.
+// Output: `{admission, claims}` or `{detail}`. The admission binds Run or
+// preparation, Checkpoint, intent, Resolution, claimant, generation and
+// lease; its `enter()` must be called immediately before the protected send
+// and succeeds at most once per claim generation.
+export function admitResumedDispatch(journal, resumption, {
+  requiredClaims = [],
+} = {}) {
+  if (journal === null || typeof journal !== 'object' ||
+      typeof journal.admitResume !== 'function' ||
+      typeof journal.enterResumedDispatch !== 'function') {
+    return {detail: 'ResumeJournalUnavailable'};
+  }
+  const held = heldClaim(resumption);
+  if (held.claim === undefined) return {detail: 'ResumeNotClaimed'};
+  let admitted;
+  try {
+    admitted = journal.admitResume(held.claim,
+      {checkpointCid: held.checkpointCid});
+  } catch (error) {
+    return {detail: typeof error?.code === 'string' ? error.code
+      : 'ResumeAdmissionFailed', error};
+  }
+  const requested = [...admitted.requestedClaims].sort();
+  const current = [...new Set(requiredClaims)].sort();
+  if (JSON.stringify(requested) !== JSON.stringify(current)) {
+    return {detail: 'RequiredClaimsChanged'};
+  }
+  const representable = REPRESENTABLE_CLAIMS[admitted.kind] ??
+    REPRESENTABLE_CLAIMS.other;
+  if (!requested.every(claim => representable.includes(claim))) {
+    return {detail: 'RequiredClaimUnrepresentable'};
+  }
+  if (!requested.every(claim => admitted.observedClaims.includes(claim))) {
+    return {detail: 'RequiredClaimNotEstablished'};
+  }
+  let used = false;
+  const admission = Object.freeze({
+    ...admitted,
+    // Fence again at the Host trusted time immediately before the send and
+    // record the single protected dispatch start of this claim generation.
+    enter() {
+      if (used) {
+        throw Object.assign(new Error('ResumeAdmissionConsumed'),
+          {code: 'ResumeAdmissionConsumed'});
+      }
+      used = true;
+      const entered = journal.enterResumedDispatch({
+        intentId: admitted.intentId,
+        claimant: admitted.claimant,
+        generation: admitted.generation,
+      }, {checkpointCid: admitted.checkpointCid,
+        resolutionCid: admitted.resolutionCid});
+      if (entered.intentId !== admitted.intentId ||
+          entered.generation !== admitted.generation ||
+          entered.claimant !== admitted.claimant) {
+        throw Object.assign(new Error('ResumeClaimStale'),
+          {code: 'ResumeClaimStale'});
+      }
+      return entered;
+    },
+  });
+  return {admission, claims: Object.freeze(requested)};
 }
 
 // Boundary helper: continue only with a dispatch decision for this exact

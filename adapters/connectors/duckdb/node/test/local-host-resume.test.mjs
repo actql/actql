@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { exampleAccountConfiguration } from '../examples/physical-strategy.mjs';
-import { openLocalHost } from '../examples/local-host.mjs';
+import { openLocalHost, readSigner } from '../examples/local-host.mjs';
 import { decisionSubjectCid } from '../../../../host-common/authorization-gate.mjs';
 import { runtimeCore } from '../../../../host-common/runtime-core.mjs';
 import { loadPrivateEvidenceKey, openContinuationEvidence } from
@@ -540,4 +540,33 @@ test('a preparation denial reads and captures no path-backed input', async t => 
   assert.equal(failed.runtime_code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
   assert.equal(failed.reason, 'adapter_error');
   assert.deepEqual([input.rows().runs, input.rows().checkpoints], [0, 0]);
+});
+
+test('an approval whose permission lapsed resumes no provider session', async t => {
+  const input = await fixture(t);
+  const clock = { ms: Date.now() };
+  const host = await openLocalHost(input.config, { now: () => clock.ms });
+  t.after(() => host.close());
+  const waiting = await host.run({ database: input.database,
+    environment: input.files.environment, environmentCid: input.environmentCid,
+    program: input.files.program, parameters: input.files.parameters });
+  assert.equal(waiting.status, 'waiting_checkpoint');
+  const [answered] = await host.answer([waiting.checkpoint.checkpoint_id], 'approved',
+    { signer: await readSigner(input.signer) });
+  assert.equal(answered.status, 'committed');
+  // The run-scope approval lasts until the Checkpoint deadline; the resume
+  // comes after it. The claim itself succeeds (the lease is fresh), but the
+  // resume port admits nothing and opens no source.
+  clock.ms = Date.parse(waiting.checkpoint.expires_at);
+  const resumed = await host.resume(waiting.prepare_attempt_id);
+  assert.equal(resumed.status, 'ended');
+  assert.equal(resumed.run_created, false);
+  assert.equal(resumed.code, 'ApprovalExpired');
+  assert.equal(resumed.counters.continuation_starts, 1);
+  assert.equal(resumed.counters.provider_sessions, 0);
+  // The historical Resolution is kept; no Run was created.
+  const rows = input.rows();
+  assert.equal(rows.resolutions, 1);
+  assert.equal(rows.runs, 0);
+  assert.deepEqual(rows.intentRows.map(row => row.outcome_status), ['failed']);
 });

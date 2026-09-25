@@ -503,6 +503,8 @@ test('resume dispatches only from a committed approval for the exact subject',
     assert.equal(decision.authority, 'reviewer');
     assert.equal(decision.checkpointCid, waiting.checkpoint.checkpointCid);
     assert.equal(decision.resolutionCid, resolution.resolutionCid);
+    assert.equal(decision.admission.claimant, 'owner-a');
+    assert.equal(decision.admission.generation, 1);
     // Resumption asks no new Host decision.
     assert.equal(calls(), 1);
     assert.equal(gate.counters().resumedDecisions, 1);
@@ -560,7 +562,10 @@ test('a rejected Checkpoint has no resume and a later deny still denies',
       resolution: {...resolution, decision: 'approved'}},
     });
     assert.equal(forged.action, 'failure');
-    assert.equal(forged.detail, 'RunNotResuming');
+    assert.equal(forged.detail, 'ResumeNotClaimed');
+    // A rejected Checkpoint has no resume intent to claim.
+    assert.equal(rejected.deferral.journal.currentResume(
+      rejected.waiting.checkpoint.checkpointCid), undefined);
 
     // Approved while waiting, but the account now denies the tuple.
     const approved = await deferredGate(t);
@@ -648,3 +653,358 @@ test('covered operations cost no evaluation and no Host call', async () => {
   assert.equal(gate.counters().evaluations, 0);
   assert.equal(gate.counters().coveredOperations, 1000);
 });
+
+// Resumed-dispatch admission (review D-R1..D-R3). Every case runs the real
+// gate, the compiled MoonBit runtimes and the real SQLite journal under a
+// controlled Host trusted clock.
+const T0 = Date.parse('2026-09-25T10:00:00.000Z');
+const DAY = 86_400_000;
+const otherSubjectCid = `sha256:${'6'.repeat(64)}`;
+const effectScope = Object.freeze({
+  connection: 'tickets', resource: 'queue', operation: 'effect',
+});
+const effectEntries = [accountEntry('review-tickets', 'delegate', {
+  connection: 'tickets',
+})];
+
+async function clockedGate(t, {
+  requiredClaims = [], boundary = 'acquisition', target = scope,
+  entries = delegateEntries, hooks, describe,
+} = {}) {
+  const root = await workspace(t);
+  const clock = {ms: T0};
+  const durable = await sqliteDeferral(root, {now: () => clock.ms, hooks});
+  t.after(() => durable.journal.close());
+  const deferral = describe === undefined ? durable
+    : {...durable, describe: view => describe(durable.describe(view))};
+  const gate = await fixtureAuthorization(entries, {deferral, requiredClaims});
+  const waiting = await gate.authorize(boundary, target, {subjectCid});
+  assert.equal(waiting.action, 'waiting');
+  const checkpointCid = waiting.checkpoint.checkpointCid;
+  return {
+    clock, deferral: durable, gate, waiting, checkpointCid,
+    claim: (claimant, leaseMs = 60_000) => durable.journal.claimResume(
+      waiting.checkpoint.runId,
+      {claimant, leaseMs, binding: durable.binding}),
+    resume: (resumption, options = {}) => (options.gate ?? gate).resume(
+      options.boundary ?? boundary, options.target ?? target,
+      {subjectCid, resumption}),
+  };
+}
+
+test('review probe: stale, fabricated, expired and unapproved resumes refuse',
+  async t => {
+    // superseded_claim
+    const superseded = await clockedGate(t);
+    await superseded.deferral.answer(superseded.checkpointCid, 'approved');
+    const old = superseded.claim('old', 1000);
+    superseded.clock.ms += 2000;
+    const newer = superseded.claim('new');
+    assert.equal(old.claim.generation, 1);
+    assert.equal(newer.claim.generation, 2);
+    assert.throws(() => superseded.deferral.journal.renewResume(old.claim,
+      60_000), {code: 'ResumeClaimStale'});
+    const stale = await superseded.resume({claim: old});
+    assert.equal(stale.action, 'failure');
+    assert.equal(stale.detail, 'ResumeClaimStale');
+    // approval_expired_before_resume
+    const expired = await clockedGate(t);
+    await expired.deferral.answer(expired.checkpointCid, 'approved');
+    expired.clock.ms += DAY + 1;
+    const late = expired.claim('late');
+    assert.equal(late.action, 'claimed');
+    const lapsed = await expired.resume({claim: late});
+    assert.equal(lapsed.action, 'failure');
+    assert.equal(lapsed.detail, 'ApprovalExpired');
+    // never_claimed
+    const fabricated = await clockedGate(t);
+    const resolution = await fabricated.deferral.answer(
+      fabricated.checkpointCid, 'approved');
+    const never = await fabricated.resume({claim: {action: 'claimed',
+      checkpointCid: fabricated.checkpointCid,
+      claim: {runId: fabricated.waiting.checkpoint.runId}}, resolution});
+    assert.equal(never.action, 'failure');
+    assert.equal(never.detail, 'ResumeNotClaimed');
+    // unapproved_claim
+    const unapproved = await clockedGate(t,
+      {requiredClaims: ['host-required-risk']});
+    const approval = await unapproved.deferral.answer(
+      unapproved.checkpointCid, 'approved');
+    assert.equal(JSON.parse(approval.verifiedResolutionWire).approval_evidence
+      .compatibility_approval.claim, 'invocation_scope_approved');
+    const risk = await unapproved.resume({claim: unapproved.claim('owner')});
+    assert.equal(risk.action, 'failure');
+    assert.equal(risk.detail, 'RequiredClaimUnrepresentable');
+    for (const gate of [superseded, expired, fabricated, unapproved]) {
+      assert.equal(gate.gate.counters().resumedDecisions, 0);
+      assert.equal(gate.gate.counters().protectedDispatches, 0);
+    }
+  });
+
+test('resume admits only the live claim of the current resume intent',
+  async t => {
+    const x = await clockedGate(t);
+    const committed = await x.deferral.answer(x.checkpointCid, 'approved');
+    const journal = x.deferral.journal;
+    const pending = journal.currentResume(x.checkpointCid);
+    assert.equal(pending.state, 'pending');
+    // A guessed identity of the pending intent is not a claim.
+    const guessed = await x.resume({claim: {checkpointCid: x.checkpointCid,
+      claim: {intentId: pending.intentId, claimant: 'owner-a',
+        generation: 1}}});
+    assert.equal(guessed.detail, 'ResumeClaimStale');
+    // An expired lease, and a superseded generation, are stale.
+    const first = x.claim('owner-a', 1000);
+    x.clock.ms += 1000;
+    assert.equal((await x.resume({claim: first})).detail, 'ResumeClaimStale');
+    const second = x.claim('owner-b');
+    assert.equal((await x.resume({claim: first})).detail, 'ResumeClaimStale');
+    // Another Checkpoint's intent is not this Checkpoint's intent.
+    const other = await x.gate.authorize('acquisition', scope,
+      {subjectCid: otherSubjectCid});
+    await x.deferral.answer(other.checkpoint.checkpointCid, 'approved');
+    const foreign = journal.claimResume(other.checkpoint.runId,
+      {claimant: 'owner-c', leaseMs: 60_000, binding: x.deferral.binding});
+    assert.equal((await x.resume({claim: {...foreign,
+      checkpointCid: x.checkpointCid}})).detail, 'ResumeIntentMismatch');
+    assert.equal((await x.resume({claim: foreign})).detail,
+      'ResolutionSubjectMismatch');
+    // A caller-supplied Resolution or verified wrapper is never read.
+    const decision = await x.resume({claim: second, resolution: {
+      decision: 'approved', resolutionCid: `sha256:${'f'.repeat(64)}`,
+      verifiedResolutionWire: '{"forged":true}'}});
+    assert.equal(decision.action, 'dispatch');
+    assert.equal(decision.resolutionCid, committed.resolutionCid);
+    assert.deepEqual(decision.claims, []);
+    const {admission} = decision;
+    assert.equal(admission.runId, x.waiting.checkpoint.runId);
+    assert.equal(admission.checkpointCid, x.checkpointCid);
+    assert.equal(admission.intentId, pending.intentId);
+    assert.equal(admission.resolutionCid, committed.resolutionCid);
+    assert.equal(admission.claimant, 'owner-b');
+    assert.equal(admission.generation, 2);
+    assert.equal(admission.leaseExpiresMs, second.claim.leaseExpiresMs);
+    // The observation is not a reusable token: one start per generation.
+    assert.equal(admission.enter().generation, 2);
+    assert.throws(() => admission.enter(), {code: 'ResumeAdmissionConsumed'});
+    const again = await x.resume({claim: second});
+    assert.equal(again.action, 'dispatch');
+    assert.throws(() => again.admission.enter(),
+      {code: 'ResumeAdmissionConsumed'});
+  });
+
+test('a handoff between admission and send admits no start', async t => {
+  const x = await clockedGate(t);
+  await x.deferral.answer(x.checkpointCid, 'approved');
+  const first = x.claim('owner-a', 1000);
+  const decision = await x.resume({claim: first});
+  assert.equal(decision.action, 'dispatch');
+  // The lease lapses after admission and before the send.
+  x.clock.ms += 1000;
+  assert.throws(() => decision.admission.enter(), {code: 'ResumeClaimStale'});
+  // A new claimant takes over; the old admission stays refused.
+  const second = x.claim('owner-b', 1000);
+  const next = await x.resume({claim: second});
+  x.clock.ms += 1000;
+  const third = x.claim('owner-c');
+  assert.throws(() => next.admission.enter(), {code: 'ResumeClaimStale'});
+  const current = await x.resume({claim: third});
+  assert.equal(current.admission.enter().claimant, 'owner-c');
+  const view = x.deferral.journal.currentResume(x.checkpointCid);
+  assert.equal(view.claimant, 'owner-c');
+  assert.equal(view.generation, 3);
+});
+
+test('resumed claims are only those the committed evidence established',
+  async t => {
+    // Default: no Host-required claim, none supplied.
+    const none = await clockedGate(t);
+    await none.deferral.answer(none.checkpointCid, 'approved');
+    assert.deepEqual((await none.resume({claim: none.claim('o')})).claims, []);
+    // Exact satisfied claim of the run-scope style approval.
+    const exact = await clockedGate(t,
+      {requiredClaims: ['invocation_scope_approved']});
+    assert.deepEqual(exact.deferral.journal.inspect(exact.checkpointCid)
+      .requestedClaims, ['invocation_scope_approved']);
+    await exact.deferral.answer(exact.checkpointCid, 'approved');
+    const satisfied = await exact.resume({claim: exact.claim('o')});
+    assert.equal(satisfied.action, 'dispatch');
+    assert.deepEqual(satisfied.claims, ['invocation_scope_approved']);
+    // Requirements changed while the Run waited: the bound requirement is
+    // the one approved against, so neither direction dispatches.
+    for (const [before, after] of [
+      [[], ['invocation_scope_approved']],
+      [['invocation_scope_approved'], []],
+    ]) {
+      const changed = await clockedGate(t, {requiredClaims: before});
+      await changed.deferral.answer(changed.checkpointCid, 'approved');
+      const later = await fixtureAuthorization(delegateEntries, {
+        deferral: changed.deferral, requiredClaims: after,
+      });
+      const refused = await changed.resume({claim: changed.claim('o')},
+        {gate: later});
+      assert.equal(refused.action, 'failure');
+      assert.equal(refused.detail, 'RequiredClaimsChanged');
+    }
+  });
+
+test('Effect resume claims: missing, different, exact and optional partial',
+  async t => {
+    const effect = options => clockedGate(t, {boundary: 'effect_commit',
+      target: effectScope, entries: effectEntries, ...options});
+    // The Host requires the optional partial-application claim: the
+    // reviewer is asked for it, and an attestation without it is not
+    // committed at all.
+    const partial = await effect({requiredClaims:
+      ['effect_scope_approved', 'partial_application_accepted']});
+    const checkpoint = partial.deferral.journal.inspect(partial.checkpointCid);
+    assert.equal(checkpoint.kind, 'effect_set');
+    assert.deepEqual(checkpoint.requirements,
+      ['effect_scope_approved', 'partial_application_accepted']);
+    await assert.rejects(partial.deferral.answer(partial.checkpointCid,
+      'approved', {claims: ['effect_scope_approved']}),
+    {code: 'InvalidResolution'});
+    assert.equal(partial.deferral.journal.currentResume(
+      partial.checkpointCid), undefined);
+    await partial.deferral.answer(partial.checkpointCid, 'approved');
+    const both = await partial.resume({claim: partial.claim('o')});
+    assert.equal(both.action, 'dispatch');
+    assert.deepEqual(both.claims,
+      ['effect_scope_approved', 'partial_application_accepted']);
+    assert.equal(both.admission.approvalExpiresAt, null);
+    // Without the optional policy the attested extra claim is not supplied.
+    const plain = await effect({requiredClaims: ['effect_scope_approved']});
+    assert.deepEqual(plain.deferral.journal.inspect(plain.checkpointCid)
+      .requirements, ['effect_scope_approved']);
+    await plain.deferral.answer(plain.checkpointCid, 'approved',
+      {claims: ['effect_scope_approved', 'partial_application_accepted']});
+    assert.deepEqual((await plain.resume({claim: plain.claim('o')})).claims,
+      ['effect_scope_approved']);
+    // A Host description that does not ask the reviewer for a required
+    // claim commits an attestation without it: it is missing at resume.
+    const missing = await effect({
+      requiredClaims: ['partial_application_accepted'],
+      describe: described => ({...described, body: {...described.body,
+        requirements: ['effect_scope_approved']}}),
+    });
+    await missing.deferral.answer(missing.checkpointCid, 'approved');
+    const absent = await missing.resume({claim: missing.claim('o')});
+    assert.equal(absent.action, 'failure');
+    assert.equal(absent.detail, 'RequiredClaimNotEstablished');
+    // A claim of another evidence profile is different, not satisfied.
+    const different = await effect(
+      {requiredClaims: ['invocation_scope_approved']});
+    await different.deferral.answer(different.checkpointCid, 'approved');
+    assert.equal((await different.resume({claim: different.claim('o')}))
+      .detail, 'RequiredClaimUnrepresentable');
+  });
+
+test('immediate answers must supply exactly the Host-required claims',
+  async () => {
+    for (const [claims, action] of [
+      [[], 'failure'],
+      [['other-claim'], 'failure'],
+      [['host-required-risk', 'other-claim'], 'failure'],
+      [['host-required-risk'], 'dispatch'],
+    ]) {
+      const gate = await fixtureAuthorization(delegateEntries, {
+        decide: permitWith({claims}),
+        answeringAuthorities: ['reviewer'],
+        requiredClaims: ['host-required-risk'],
+      });
+      const decision = await gate.authorize('acquisition', scope,
+        {subjectCid});
+      assert.equal(decision.action, action, JSON.stringify(claims));
+      if (action === 'dispatch') {
+        assert.deepEqual(decision.claims, ['host-required-risk']);
+      } else {
+        assert.equal(decision.reason, 'malformed_answer');
+      }
+    }
+    const effect = await fixtureAuthorization(effectEntries, {
+      decide: permitWith({claims: ['partial_application_accepted']}),
+      answeringAuthorities: ['reviewer'],
+      requiredClaims: ['partial_application_accepted'],
+    });
+    const committed = await effect.authorize('effect_commit', effectScope,
+      {subjectCid});
+    assert.equal(committed.action, 'dispatch');
+    assert.deepEqual(committed.claims, ['partial_application_accepted']);
+  });
+
+test('an expired permission authorizes no new resumed work', async t => {
+  // Exact expiry instant, with a live lease.
+  const exact = await clockedGate(t);
+  await exact.deferral.answer(exact.checkpointCid, 'approved');
+  const expiresAt = Date.parse(exact.deferral.journal.inspect(
+    exact.checkpointCid).expiresAt);
+  exact.clock.ms = expiresAt - 10_000;
+  const held = exact.claim('owner');
+  exact.clock.ms = expiresAt - 1;
+  assert.equal((await exact.resume({claim: held})).action, 'dispatch');
+  exact.clock.ms = expiresAt;
+  assert.equal((await exact.resume({claim: held})).detail, 'ApprovalExpired');
+
+  // Expiry after the answer, before the claim.
+  const beforeClaim = await clockedGate(t);
+  await beforeClaim.deferral.answer(beforeClaim.checkpointCid, 'approved',
+    {approvalExpiresAt: new Date(T0 + 3_600_000).toISOString()});
+  beforeClaim.clock.ms = T0 + 2 * 3_600_000;
+  const claimed = beforeClaim.claim('owner');
+  assert.equal(claimed.action, 'claimed');
+  assert.equal((await beforeClaim.resume({claim: claimed})).detail,
+    'ApprovalExpired');
+  // The historical approval and the resuming Run are kept.
+  assert.equal(beforeClaim.deferral.journal.resolutionOf(
+    beforeClaim.checkpointCid).decision, 'approved');
+  assert.equal(beforeClaim.deferral.journal.getRunState(
+    beforeClaim.waiting.checkpoint.runId).status, 'resuming');
+
+  // Expiry after the claim and admission, before the send.
+  const beforeSend = await clockedGate(t);
+  await beforeSend.deferral.answer(beforeSend.checkpointCid, 'approved',
+    {approvalExpiresAt: new Date(T0 + 3_600_000).toISOString()});
+  beforeSend.clock.ms = T0 + 3_600_000 - 5_000;
+  const decision = await beforeSend.resume({claim: beforeSend.claim('owner')});
+  assert.equal(decision.action, 'dispatch');
+  beforeSend.clock.ms += 5_000;
+  assert.throws(() => decision.admission.enter(), {code: 'ApprovalExpired'});
+});
+
+test('slow Host authentication cannot commit past the trusted deadline',
+  async t => {
+    let delay = 0;
+    const slow = await clockedGate(t, {hooks: {
+      authorize: async () => {
+        await new Promise(resolve => setImmediate(resolve));
+        slow.clock.ms += delay;
+      },
+      attest: async () => {
+        await new Promise(resolve => setImmediate(resolve));
+        slow.clock.ms += delay;
+      },
+    }});
+    const deadline = Date.parse(slow.deferral.journal.inspect(
+      slow.checkpointCid).expiresAt);
+    // The approval's own permission lapses while the Host authenticates: it
+    // is not committed and the Checkpoint keeps waiting.
+    slow.clock.ms = T0 + 3_600_000;
+    delay = 3_600_000;
+    await assert.rejects(slow.deferral.answer(slow.checkpointCid, 'approved',
+      {approvalExpiresAt: new Date(T0 + 2 * 3_600_000 + 1).toISOString()}),
+    {code: 'ApprovalExpired'});
+    assert.equal(slow.deferral.journal.inspect(slow.checkpointCid).closure,
+      'open');
+    // The Checkpoint deadline passes during authentication: no commit, no
+    // resume intent, and the waiting Run is closed without dispatch.
+    slow.clock.ms = deadline - 1_000;
+    delay = 2_000;
+    await assert.rejects(slow.deferral.answer(slow.checkpointCid,
+      'approved'), {code: 'CheckpointExpired'});
+    assert.equal(slow.deferral.journal.inspect(slow.checkpointCid).closure,
+      'expired');
+    assert.equal(slow.deferral.journal.currentResume(slow.checkpointCid),
+      undefined);
+    assert.throws(() => slow.claim('owner'), {code: 'ResumeIntentNotFound'});
+    assert.equal(slow.gate.counters().resumedDecisions, 0);
+  });

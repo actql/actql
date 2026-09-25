@@ -262,6 +262,16 @@ test('defer persists a Checkpoint and sends nothing; the committed approval ' +
   assert.equal(elsewhere.error.authorization.detail,
     'ResolutionSubjectMismatch');
 
+  // A guessed claim identity is no claim: the real Site sees no request.
+  const pending = deferral.journal.currentResume(checkpoint.checkpointCid);
+  const guessed = await gatedDispatch(gate, 'e2e-defer', {resumption: {claim: {
+    checkpointCid: checkpoint.checkpointCid,
+    claim: {intentId: pending.intentId, claimant: 'coordinator-a',
+      generation: 0},
+  }}});
+  refused(guessed, 'ExecutionAuthorizationDecisionFailed', 'guessed claim');
+  assert.equal(guessed.error.authorization.detail, 'ResumeClaimStale');
+
   const resumed = await gatedDispatch(gate, 'e2e-defer', {resumption});
   assert.equal(resumed.error, undefined);
   assert.equal(resumed.dispatchRequests, 1);
@@ -272,6 +282,10 @@ test('defer persists a Checkpoint and sends nothing; the committed approval ' +
   assert.equal(hostCalls, 1);
   assert.equal(gate.counters().resumedDecisions, 1);
   assert.equal(siteJournalRows(siteB, 'e2e-defer'), 0);
+  // The same claim generation starts no second dispatch on the Site.
+  const reused = await gatedDispatch(gate, 'e2e-defer-reuse', {resumption});
+  refused(reused, 'ExecutionAuthorizationDecisionFailed', 'reused claim');
+  assert.equal(reused.error.authorization.detail, 'ResumeAdmissionConsumed');
 });
 
 test('a changed Site after a permit is decided again and not dispatched',
@@ -359,5 +373,5 @@ test('cancelling the Run while it waits sends nothing', async t => {
     },
   });
   refused(forged, 'ExecutionAuthorizationDecisionFailed', 'forged resume');
-  assert.equal(forged.error.authorization.detail, 'ResolutionNotCommitted');
+  assert.equal(forged.error.authorization.detail, 'ResumeNotClaimed');
 });

@@ -826,3 +826,89 @@ pub fn seal_immediate_resolution(
     Err(issue) => Err(issue)
   }
 }
+
+///|
+/// Read the permission of one committed approved verified Resolution wrapper
+/// (`actql-verified-checkpoint-resolution/0.1`) for a resumed dispatch. The
+/// claims are exactly those the stored approval evidence establishes, never
+/// the claims a Host asks for: a run-scope style approval establishes its one
+/// `claim`, an Effect Set attestation its `claims`.
+pub fn resumed_approval(
+  verified_wire : String,
+  limits : WireLimits,
+) -> Result[ResumedApproval, ResolutionIssue] {
+  Ok(resumed_approval_body(verified_wire, limits)) catch {
+    ResolutionFailed(issue) => Err(issue)
+  }
+}
+
+///|
+fn resumed_approval_body(
+  verified_wire : String,
+  limits : WireLimits,
+) -> ResumedApproval raise ResolutionFailure {
+  if !valid_limits(limits) {
+    raise ResolutionFailed(ResolutionInvalidLimits)
+  }
+  let value = match parse_wire(verified_wire, limits) {
+    Some(value) => value
+    None => raise ResolutionFailed(ResolutionInvalidWire)
+  }
+  if string_field(value, "version") != Some(VERIFIED_VERSION) {
+    raise ResolutionFailed(ResolutionInvalidField("version"))
+  }
+  if !self_cid(value, "verified_resolution_cid", limits) {
+    raise ResolutionFailed(ResolutionIdentityMismatch)
+  }
+  let resolution = object_of(value, "resolution", "")
+  if string_field(resolution, "decision") != Some("approved") {
+    raise ResolutionFailed(ResolutionInvalidField("resolution.decision"))
+  }
+  let evidence = match @json.object_field(value, "approval_evidence") {
+    Some(item) => item
+    None => raise ResolutionFailed(EvidenceRequired)
+  }
+  let prefix = "approval_evidence.compatibility_approval."
+  let approval = object_of(
+    evidence, "compatibility_approval", "approval_evidence.",
+  )
+  let effect = string_field(evidence, "kind") ==
+    Some(checkpoint_kind_token(EffectSet))
+  let (claims, expires_at) = if effect {
+    match string_list_field(approval, "claims") {
+      Some(claims) => (claims, None)
+      None => raise ResolutionFailed(ResolutionInvalidField(prefix + "claims"))
+    }
+  } else {
+    (
+      [text_of(approval, "claim", prefix)],
+      Some(time_field(approval, "expires_at", prefix)),
+    )
+  }
+  {
+    checkpoint_cid: cid_field(resolution, "checkpoint_cid", "resolution."),
+    resolution_cid: cid_field(resolution, "resolution_cid", "resolution."),
+    verified_resolution_cid: cid_field(value, "verified_resolution_cid", ""),
+    reviewer_id: text_of(value, "verified_reviewer_id", ""),
+    claims,
+    expires_at,
+  }
+}
+
+///|
+/// Whether the approval still authorizes new work at the Host-trusted time
+/// `at`: strictly before its `expires_at`. This is the lifetime of the granted
+/// permission, independent of the Checkpoint answer deadline and of any
+/// resume lease. An invalid time never authorizes.
+pub fn resumed_approval_current(
+  approval : ResumedApproval,
+  at : String,
+) -> Bool {
+  if !valid_timestamp(at) {
+    return false
+  }
+  match approval.expires_at {
+    Some(expires) => at < expires
+    None => true
+  }
+}

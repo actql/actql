@@ -573,6 +573,31 @@ pub fn resume_fence_decide(
 }
 
 ///|
+/// Permission of one committed approved verified Resolution at the Host
+/// trusted time `at`: the claims its evidence establishes, its expiry (null
+/// when the evidence carries none) and whether it is still current.
+#export_name("resumedApprovalAt")
+pub fn resumed_approval_at(verified_wire : String, at : String) -> String {
+  match @checkpoint.resumed_approval(verified_wire, limits()) {
+    Ok(approval) =>
+      ok({
+        "checkpoint_cid": Json::string(approval.checkpoint_cid),
+        "resolution_cid": Json::string(approval.resolution_cid),
+        "verified_resolution_cid": Json::string(
+          approval.verified_resolution_cid,
+        ),
+        "reviewer_id": Json::string(approval.reviewer_id),
+        "claims": Json::array(approval.claims.map(claim => Json::string(claim))),
+        "expires_at": optional_text(approval.expires_at),
+        "current": Json::boolean(
+          @checkpoint.resumed_approval_current(approval, at),
+        ),
+      })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
 /// Unsigned Resolution CID text: the exact UTF-8 text whose Ed25519
 /// `proof.signature` the Host authorization port verifies.
 #export_name("resolutionProofPreimage")

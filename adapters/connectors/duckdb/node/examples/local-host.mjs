@@ -38,8 +38,8 @@ import {
   localAuthorizationContext,
   readAccountConfiguration,
 } from '../../../../host-node/local-account-config.mjs';
-import {ExecutionAuthorizationError, decisionSubjectCid} from
-  '../../../../host-common/authorization-gate.mjs';
+import {ExecutionAuthorizationError, admitResumedDispatch, decisionSubjectCid}
+  from '../../../../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {
   createPrivateEvidenceKey,
@@ -740,15 +740,30 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
       invocation_cid: continuation.invocation_cid}];
       const port = {
         persistCheckpoint: ({body, authorities: reviewers, binding: bound,
-          decisionSubjectCid}) =>
+          decisionSubjectCid, requestedClaims}) =>
           journal.completeResume(fence.claim, {checkpoint: {body,
-            authorities: reviewers, binding: bound, decisionSubjectCid}}),
+            authorities: reviewers, binding: bound, decisionSubjectCid,
+            requestedClaims}}),
         submitResolution: item => journal.submitResolution(item),
       };
+      // An approved subject is permitted only through the common resumed
+      // admission: the live claim, the committed approval still valid at the
+      // Host trusted time and the claims its evidence established.
+      let admission;
+      let admissionRefusal;
       const resumeDecide = view => {
         const match = approved.find(item => approvedBy(item, view.subject));
         if (match !== undefined) {
-          return {decision: 'permit', subject: view.subject, authority: match.actor};
+          const admitted = admitResumedDispatch(journal, {claim: {
+            checkpointCid: claimed.checkpointCid, claim: fence.claim}},
+          {requiredClaims: view.requiredClaims});
+          if (admitted.detail !== undefined) {
+            admissionRefusal = admitted.detail;
+            fail(admitted.detail);
+          }
+          admission = admitted.admission;
+          return {decision: 'permit', subject: view.subject,
+            authority: match.actor, claims: [...admitted.claims]};
         }
         return decide !== undefined ? decide(view)
           : {decision: 'defer', subject: view.subject};
@@ -779,6 +794,10 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
             // claimant stops here.
             beforeAcquisition() {
               fence.claim = journal.renewResume(fence.claim, leaseMs);
+              // The provider session is the protected send: enter the
+              // admission (fence, approval validity, single start per claim
+              // generation) immediately before it.
+              admission?.enter();
             },
             // Preparation completed: the continuation creates its Run
             // directly in `running`, atomically with the intent completion.
@@ -798,7 +817,8 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           return plain({status: 'failed', run_id: runId, code: error.code,
             prepare_attempt_id: prepareAttemptId, counters: counts});
         }
-        if (error?.code === 'ResumeClaimStale') {
+        if (error?.code === 'ResumeClaimStale' ||
+            admissionRefusal === 'ResumeClaimStale') {
           return plain({status: 'stale_claim', prepare_attempt_id: prepareAttemptId,
             code: error.code, counters: counts});
         }
@@ -808,7 +828,9 @@ export async function openLocalHost(configPath, {now = () => Date.now()} = {}) {
           }
           return end('failed', {runtime_code: error.runtimeCode,
             boundary: error.authorization?.boundary,
-            reason: error.authorization?.reason});
+            reason: error.authorization?.reason,
+            ...(admissionRefusal === undefined ? {}
+              : {code: admissionRefusal})});
         }
         try { return await end('failed', {code: error.code}); }
         catch { throw error; }
