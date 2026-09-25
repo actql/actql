@@ -1212,6 +1212,12 @@
           "one_short_limit": "top_k_work_workspace_exact_one_short",
           "in_flight_cancel": "ordinary_top_k_host_timer",
           "cleanup": "top_k_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "top_k_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_host_timer",
+          "cleanup": "top_k_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -1224,8 +1230,23 @@
             "exact_limit": "top_k_work_workspace_exact_one_short",
             "one_short_limit": "top_k_work_workspace_exact_one_short"
           }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_work_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "top_k_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact top-k kernel and the same bounded work and workspace state."},
+        {"role": "ordinary_top_k_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and top-k into selected tasks, then delivers cancellation after positive top-k work."},
+        {"role": "top_k_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths use the same bounded top-k session stop and cleanup owner; the Host fixture reaches that exact provider."}
+      ]
     },
     {
       "inventory": "rela",
@@ -1286,6 +1307,12 @@
           "one_short_limit": "top_k_by_work_workspace_exact_one_short",
           "in_flight_cancel": "ordinary_top_k_by_host_timer",
           "cleanup": "top_k_by_bounded_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "top_k_by_work_workspace_exact_one_short",
+          "one_short_limit": "top_k_by_work_workspace_exact_one_short",
+          "in_flight_cancel": "ordinary_top_k_by_host_timer",
+          "cleanup": "top_k_by_bounded_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -1298,8 +1325,23 @@
             "exact_limit": "top_k_by_work_workspace_exact_one_short",
             "one_short_limit": "top_k_by_work_workspace_exact_one_short"
           }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "top_k_by_work_workspace_exact_one_short",
+            "one_short_limit": "top_k_by_work_workspace_exact_one_short"
+          }
         }
-      }
+      },
+      "shared_proof_reuse": [
+        {"role": "top_k_by_work_workspace_exact_one_short", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths enter selected_binding_rows_execution with the exact partitioned top-k kernel and the same bounded work and workspace state."},
+        {"role": "ordinary_top_k_by_host_timer", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "The ordinary Host fixture splits its checked assertion and partitioned top-k into selected tasks, then delivers cancellation after positive work."},
+        {"role": "top_k_by_bounded_cancel_cleanup", "paths": ["ordinary_entrypoint", "selected_entrypoint"], "reason": "Both checked paths use the same bounded partitioned top-k session stop and cleanup owner; the Host fixture reaches that provider."}
+      ]
     },
     {
       "inventory": "rela",

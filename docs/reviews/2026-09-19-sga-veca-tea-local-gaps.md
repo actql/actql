@@ -27,7 +27,7 @@ prove these properties; a normal gate result or an operation count does not.
 
 ### Remaining product work and its acceptance tests
 
-The strict gate currently rejects 29 RelA whole-sequence entrypoints, six
+The strict gate currently rejects 29 RelA whole-sequence entrypoints, four
 additional selected RelA paths, two same-Stage binary paths, thirteen SGA
 entrypoints, `merge_rankings`, two VecA row expressions, and the providerless
 synchronous computation. These are route/evidence gaps, not 53 claims of
@@ -37,13 +37,13 @@ separate input bindings and route-specific evidence.
 | Ordinary entry and current limitation | Required connection and proof |
 | --- | --- |
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
-| Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `top_k`, `top_k_by`, `row_window`, `unpivot`, `json_pick`, and `unnest`. |
+| Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` and the direct-product Host path have bounded subpaths but incomplete full-route assurance. | Prove ordered input positions, incremental product/append work and overlapping storage at exact/one-short limits; deliver a Host timer after cross-join work and verify both child input leases and final reclaim. |
 | Standard SGA Graph programs reach thirteen registered entrypoints with partial operation-specific examples but no complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | Normal VecA `merge_rankings` and `vector_score`/`vector_concat` row expressions lack full entrypoint assurance. | Exercise the standard Host and typed expression paths with independent dimension, key-width, work, workspace, cancel and cleanup fixtures; retain numeric and failure semantics across all targets. |
 
 The current `--require-boundary-complete` output is the finite acceptance
-list. Its 23 full-route and 49 path-scoped counts describe evidence, not
+list. Its 23 full-route and 51 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a
 required named fixture, suite result, exact production binding, or proof
 role is removed. The existing standard-Host successful composition tests
@@ -91,7 +91,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 23 |
 | Full route work/workspace assurance | 23 |
-| Path-scoped work/workspace assurance | 49 |
+| Path-scoped work/workspace assurance | 51 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 

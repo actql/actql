@@ -50,7 +50,7 @@ function run(mutator, routeMutator, args = [], gapsText) {
 }
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 49 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 23 with four-role boundary evidence, 23 with full work\/workspace assurance, 51 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('empty RelA resource boundaries are required by their routes', () => {
@@ -104,6 +104,16 @@ test('partitioned top-k loses bounded assurance if either fixture is absent', ()
       entry.operation === 'top_k_by');
     route.environment_tests = [];
   }), /RelA top_k_by: delivered Host cancellation evidence is missing/u);
+});
+
+test('selected top-k proof reuse requires the exact product entrypoint', () => {
+  for (const operation of ['top_k', 'top_k_by']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route.selected_entrypoint.symbol = 'unrelated_execution';
+    }), new RegExp(`RelA ${operation}: shared proof reuse lacks an exact common entrypoint`, 'u'));
+  }
 });
 
 test('row window loses its bounded route when production evidence is removed', () => {
@@ -478,8 +488,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 49 |',
-    '| Path-scoped work/workspace assurance | 48 |',
+    '| Path-scoped work/workspace assurance | 51 |',
+    '| Path-scoped work/workspace assurance | 50 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(
