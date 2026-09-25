@@ -28,6 +28,8 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission} from './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import {admitSourceInputLogical} from
+  '../../scripts/source-input-logical-contract.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -199,6 +201,28 @@ test('checked acquired source and downstream task emit their input ports',
           moon.clientProgramCapturedSourceLogicalCid(observed));
         assert.equal(moon.clientProgramCapturedSourceSchemaCid(repeated),
           moon.clientProgramCapturedSourceSchemaCid(observed));
+        const logicalInput = checked(
+          moon.clientProgramIssueCapturedSourceLogical(prepared,
+            capturedSource, requirement));
+        const logicalBody = JSON.parse(
+          moon.strategyRunEvidenceJson(logicalInput));
+        assert.equal(admitSourceInputLogical(logicalBody, {
+          logicalRelationCid:
+            moon.clientProgramCapturedSourceLogicalCid(observed),
+          relationSchemaCid:
+            moon.clientProgramCapturedSourceSchemaCid(observed),
+          sourceContractCid: opened.checkedSource.sourceContractCid,
+          completeness: 'complete',
+          orderingEvidence: {stable: false, keys: []},
+        }), moon.strategyRunEvidenceIdentity(logicalInput));
+        assert.throws(() => admitSourceInputLogical(logicalBody, {
+          logicalRelationCid: cid('0'),
+          relationSchemaCid:
+            moon.clientProgramCapturedSourceSchemaCid(observed),
+          sourceContractCid: opened.checkedSource.sourceContractCid,
+          completeness: 'complete',
+          orderingEvidence: {stable: false, keys: []},
+        }));
         const execution = await runCapturedStrategy(opened.setup);
         try {
           assert.equal(execution.status, 'host-tasks-completed');
@@ -215,6 +239,9 @@ test('checked acquired source and downstream task emit their input ports',
         opened.close();
         assert.throws(() => checked(
           moon.clientProgramIdentifyCapturedSourceRelation(capturedSource)));
+        assert.throws(() => checked(
+          moon.clientProgramIssueCapturedSourceLogical(prepared,
+            capturedSource, requirement)));
       }
     } finally {
       await rm(directory, {recursive: true, force: true});

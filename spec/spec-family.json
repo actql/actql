@@ -1083,6 +1083,12 @@
         },
         {
           "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/artifact_schemas/source_input_logical",
+          "cid": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
+          "version": "actql-protocol-schema-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/artifact_schemas/observation_set",
           "cid": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
           "version": "actql-protocol-schema-registry/0.1"

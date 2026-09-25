@@ -58,6 +58,7 @@ test "all generated Run evidence versions are exact" {
     ("observation_set", "actql-observation-set/0.1"),
     ("normalization_journal", "actql-normalization-journal/0.1"),
     ("source_evidence", "actql-source-evidence/0.1"),
+    ("source_input_logical", "actql-source-input-logical/0.1"),
     ("authoring_context", "actql-authoring-context/0.1"),
     ("model_invocation_evidence", "actql-model-invocation-evidence/0.1"),
     ("run_receipt", "actql-run-receipt/0.1"),

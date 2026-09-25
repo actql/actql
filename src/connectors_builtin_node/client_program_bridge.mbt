@@ -1207,9 +1207,7 @@ pub fn client_program_prepare_query_acquisition(
   @publication_host.ClientAcquisitionIssue,
 ] {
   @publication_host.prepare_client_query_acquisition(
-    prepared,
-    stage,
-    source_index,
+    prepared, stage, source_index,
   )
 }
 
@@ -1236,8 +1234,7 @@ pub fn client_program_prepare_local_query_requirement(
   @client_local_host.ClientLocalQueryIssue,
 ] {
   @client_local_host.prepare_local_query_requirement(
-    prepared, stage, source_index, registry_body, values_body,
-    fragment_body, ordered_body,
+    prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
   )
 }
 
@@ -1295,11 +1292,7 @@ pub fn client_program_prepare_duckdb_acquisition(
   @client_local_host.ClientDuckDBAcquisitionIssue,
 ] {
   @client_local_host.prepare_client_duckdb_acquisition(
-    requirement,
-    database_schema,
-    table,
-    query_contract_body,
-    evidence_contract_body,
+    requirement, database_schema, table, query_contract_body, evidence_contract_body,
     two_receipt_contract_body,
   )
 }
@@ -1327,21 +1320,29 @@ pub fn client_program_captured_source_matches(
 #export_name("clientProgramIdentifyCapturedSourceRelation")
 pub fn client_program_identify_captured_source_relation(
   source : @query.CapturedInputSource,
-) -> Result[
-  @query.CapturedSourceRelationIdentity,
-  @query.CapturedSourceIssue,
-] {
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
   @query.identify_captured_source_relation(
     source,
     10000,
-    { max_nodes: 1000000, max_text_bytes: 10000000, max_depth: 64, max_work: 1000000, },
     {
-      max_columns: 100, max_order_work: 1000000,
-      max_bytes: 10000000, max_nodes: 1000000, max_depth: 64,
+      max_nodes: 1000000,
+      max_text_bytes: 10000000,
+      max_depth: 64,
+      max_work: 1000000,
     },
     {
-      max_columns: 100, max_order_work: 1000000,
-      max_bytes: 10000000, max_nodes: 1000003, max_depth: 66,
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 10000000,
+      max_nodes: 1000000,
+      max_depth: 64,
+    },
+    {
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 10000000,
+      max_nodes: 1000003,
+      max_depth: 66,
     },
     { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
     65536,
@@ -1370,6 +1371,86 @@ pub fn client_program_captured_source_row_count(
   identity : @query.CapturedSourceRelationIdentity,
 ) -> Int {
   @query.captured_source_relation_row_count(identity)
+}
+
+///|
+pub(all) enum ClientCapturedSourceLogicalIssue {
+  ForeignCapture
+  Capture(@query.CapturedSourceIssue)
+  Encoding(@encode.EncodeFailure)
+  Evidence(@publication.RunEvidenceValueIssue)
+  Admission(@publication.SourceInputLogicalIssue)
+}
+
+///|
+/// Issue the semantic input only after the checked capture owner completes
+/// its bounded Relation traversal. The installed profile makes no source
+/// ordering guarantee; observation and read authority remain separate.
+#export_name("clientProgramIssueCapturedSourceLogical")
+pub fn client_program_issue_captured_source_logical(
+  prepared : @publication_host.PreparedClientProgram,
+  source : @query.CapturedInputSource,
+  requirement : @planning.QueryRequirement,
+) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let program = @program_check.source_identity(@strategy.graph_program(graph))
+  if !client_program_captured_source_matches(prepared, source) ||
+    !physical_equal(@planning.query_requirement_program(requirement), program) {
+    return Err(ForeignCapture)
+  }
+  let identity = match
+    client_program_identify_captured_source_relation(source) {
+    Ok(value) => value
+    Err(issue) => return Err(Capture(issue))
+  }
+  let rows = @query.captured_source_relation_logical_cid(identity)
+  let schema = @query.captured_source_relation_schema_cid(identity)
+  let source_contract = @planning.query_requirement_source(requirement).1
+  let order = "{\"stable\":false,\"keys\":[]}"
+  let writer = @encode.writer(4096, 128, 16) catch {
+    issue => return Err(Encoding(issue))
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-source-input-logical/0.1")
+    @encode.key(writer, "logical_relation_cid")
+    @encode.string_value(writer, rows)
+    @encode.key(writer, "relation_schema_cid")
+    @encode.string_value(writer, schema)
+    @encode.key(writer, "source_contract_cid")
+    @encode.string_value(writer, source_contract)
+    @encode.key(writer, "completeness")
+    @encode.string_value(writer, "complete")
+    @encode.key(writer, "ordering_evidence")
+    @encode.begin_object(writer)
+    @encode.key(writer, "stable")
+    @encode.bool_value(writer, false)
+    @encode.key(writer, "keys")
+    @encode.begin_array(writer)
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+  } catch {
+    issue => return Err(Encoding(issue))
+  }
+  let body = @encode.finish(writer) catch {
+    issue => return Err(Encoding(issue))
+  }
+  let evidence = match
+    @publication.seal_run_evidence_value(
+      "source_input_logical", body, 4096, 128, 16,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  match
+    @publication.admit_completed_source_input_logical(
+      evidence, rows, schema, source_contract, order, 4096, 128, 16,
+    ) {
+    Ok(_) => Ok(evidence)
+    Err(issue) => Err(Admission(issue))
+  }
 }
 
 ///|

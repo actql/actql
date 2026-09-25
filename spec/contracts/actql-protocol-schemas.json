@@ -10698,7 +10698,8 @@
     "captured_run": "sha256:f2f2a5293d2ce81867a4439381eb267870e1169d2bac86290656353385bed993",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
-    "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d"
+    "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
+    "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -72764,6 +72765,92 @@
         "captured_artifact_cids": {
           "type": "array",
           "maxItems": 0
+        }
+      }
+    },
+    "source_input_logical": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-source-input-logical-0.1.json",
+      "title": "actql-source-input-logical-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "logical_relation_cid",
+        "source_contract_cid",
+        "relation_schema_cid",
+        "completeness",
+        "ordering_evidence",
+        "input_logical_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-source-input-logical/0.1"
+        },
+        "logical_relation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "ordering_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stable",
+            "keys"
+          ],
+          "properties": {
+            "stable": {
+              "type": "boolean"
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "field",
+                  "dir",
+                  "nulls"
+                ],
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dir": {
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ]
+                  },
+                  "nulls": {
+                    "enum": [
+                      "first",
+                      "last"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "input_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     }

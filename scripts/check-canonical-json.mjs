@@ -114,6 +114,13 @@ function fixtures() {
   });
   const invocation = read('portability/corpus/invocation-bindings.json');
   const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
+  const sourceInputs = read('portability/corpus/source-input-logical.json');
+  assert.equal(sourceInputs.version, 'actql-source-input-logical-vectors/0.1');
+  for (const input of sourceInputs.cases) {
+    result.push({id: 'Source input logical ' + input.id,
+      value: input.body, cid: input.expected_cid,
+      text: input.expected_canonical_bytes});
+  }
   assert.equal(initialInputs.version,
     'actql-initial-input-artifact-set-vectors/0.1');
   for (const input of initialInputs.cases) {

@@ -33,6 +33,7 @@ fn run_evidence_identity_field(name : String) -> String? {
     "observation_set" => Some("observation_set_cid")
     "normalization_journal" => Some("journal_cid")
     "source_evidence" => Some("source_evidence_cid")
+    "source_input_logical" => Some("input_logical_cid")
     "authoring_context" => Some("authoring_context_cid")
     "model_invocation_evidence" => Some("model_invocation_evidence_cid")
     _ => None

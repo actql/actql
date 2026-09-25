@@ -63,6 +63,28 @@ when applicable, and canonical UTC `observed_at`. Run receipts MUST report
 `single_snapshot` or `independent_snapshots`; reading two systems at different
 times MUST NOT be presented as one cross-source transaction.
 
+The 0.1 preimage is exact. `logical_relation_cid` is the existing ordered-row
+Relation identity; it is not a second hash of the row payload. The checked
+source contract, observed Relation schema, completed
+capture, and logical ordering are bound separately:
+
+```text
+SourceInputLogical = CID({
+  version: "actql-source-input-logical/0.1",
+  logical_relation_cid,
+  source_contract_cid,
+  relation_schema_cid,
+  completeness,
+  ordering_evidence
+})
+```
+
+The capture owner issues completeness and ordering only after its bounded
+read finishes. This identity excludes physical attempt, observation time,
+and placement. Source Evidence retains their observation, provenance, and
+freshness bindings. Equal input identities do not imply equal observation,
+current authorization, or permission to acquire again.
+
 A connector that supplies `snapshot_ref`, version, cursor, watermark, or
 content identity is responsible for its stability and collision resistance.
 Page number, request time, provider enumeration order, or a mutable URL alone
@@ -496,6 +518,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba

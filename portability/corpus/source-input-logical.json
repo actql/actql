@@ -1,0 +1,27 @@
+{
+  "version": "actql-source-input-logical-vectors/0.1",
+  "cases": [
+    {
+      "id": "completed ordered captured Relation",
+      "body": {
+        "version": "actql-source-input-logical/0.1",
+        "logical_relation_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_contract_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "relation_schema_cid": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "completeness": "complete",
+        "ordering_evidence": {
+          "stable": true,
+          "keys": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "last"
+            }
+          ]
+        }
+      },
+      "expected_canonical_bytes": "{\"completeness\":\"complete\",\"logical_relation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ordering_evidence\":{\"keys\":[{\"dir\":\"asc\",\"field\":\"id\",\"nulls\":\"last\"}],\"stable\":true},\"relation_schema_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"source_contract_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"version\":\"actql-source-input-logical/0.1\"}",
+      "expected_cid": "sha256:4c0b352e47b4494f4f36267f7c3f2927986a79935e37bd542bc7480f94c7d220"
+    }
+  ]
+}

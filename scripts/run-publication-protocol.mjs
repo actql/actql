@@ -38,6 +38,10 @@ const selected = Object.freeze({
     schema: 'source_evidence',
     identity: 'source_evidence_cid',
   }),
+  source_input_logical: Object.freeze({
+    schema: 'source_input_logical',
+    identity: 'input_logical_cid',
+  }),
   authoring_context: Object.freeze({
     schema: 'authoring_context',
     identity: 'authoring_context_cid',

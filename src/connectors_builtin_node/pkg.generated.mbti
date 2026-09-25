@@ -98,6 +98,8 @@ pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
+pub fn client_program_issue_captured_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
+
 pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 
 pub fn client_program_issue_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
@@ -1537,6 +1539,14 @@ type AuthorizationDecision
 type AuthorizationEvaluation
 
 type AuthorizationRequest
+
+pub(all) enum ClientCapturedSourceLogicalIssue {
+  ForeignCapture
+  Capture(@execution_query.CapturedSourceIssue)
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Admission(@run_publication.SourceInputLogicalIssue)
+}
 
 pub(all) enum ClientProgramBridgeIssue {
   InvalidFormat

@@ -145,6 +145,17 @@ test "canonical large-integers" {
 }
 
 ///|
+test "Source input logical completed ordered captured Relation" {
+  let input = @json.parse([
+    "{\"version\":\"actql-source-input-logical/0.1\",\"logical_relation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"source_contract_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"relation_schema_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"completeness\":\"complete\",\"ordering_evidence\":{\"stable\":true,\"keys\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"last\"}]}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 13, 4, 446)
+  assert_eq(@canonical_json.cid_value(value, 446, 13, 4), "sha256:4c0b352e47b4494f4f36267f7c3f2927986a79935e37bd542bc7480f94c7d220")
+  assert_eq(@canonical_json.measure_value(value, 446, 13, 4), 446)
+  assert_eq(@canonical_json.stringify_value(value, 446, 13, 4), "{\"completeness\":\"complete\",\"logical_relation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"ordering_evidence\":{\"keys\":[{\"dir\":\"asc\",\"field\":\"id\",\"nulls\":\"last\"}],\"stable\":true},\"relation_schema_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"source_contract_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"version\":\"actql-source-input-logical/0.1\"}")
+}
+
+///|
 test "Initial input Artifact set no captured inputs at Run start" {
   let input = @json.parse([
     "{\"version\":\"actql-initial-input-artifact-set/0.1\",\"captured_artifact_cids\":[]}",
@@ -3457,6 +3468,17 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/sour
   let value = @canonical_json.from_json(input, 123, 9, 2251)
   assert_eq(@canonical_json.cid_value(value, 2251, 123, 9), "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6")
   assert_eq(@canonical_json.measure_value(value, 2251, 123, 9), 2251)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"$id\":\"https://smooth.dev/schemas/actql-source-input-logical-0.1.json\",\"title\":\"actql-source-input-logical-0.1\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"logical_relation_cid\",\"source_contract_cid\",\"relation_schema_cid\",\"completeness\",\"ordering_evidence\",\"input_logical_cid\"],\"properties\":{\"version\":{\"const\":\"actql-source-input-logical/0.1\"},\"logical_relation_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"relation_schema_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"completeness\":{\"enum\":[\"complete\",\"partial\"]},\"ordering_evidence\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"stable\",\"keys\"],\"properties\":{\"stable\":{\"type\":\"boolean\"},\"keys\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"field\",\"dir\",\"nulls\"],\"properties\":{\"field\":{\"type\":\"string\",\"minLength\":1},\"dir\":{\"enum\":[\"asc\",\"de",
+    "sc\"]},\"nulls\":{\"enum\":[\"first\",\"last\"]}}}}}},\"input_logical_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 63, 9, 1142)
+  assert_eq(@canonical_json.cid_value(value, 1142, 63, 9), "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea")
+  assert_eq(@canonical_json.measure_value(value, 1142, 63, 9), 1142)
 }
 
 ///|
