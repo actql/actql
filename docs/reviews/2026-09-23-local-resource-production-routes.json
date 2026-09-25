@@ -1314,6 +1314,10 @@
         "path": "src/execution_relation/generated_sequence.mbt",
         "symbol": "execute_generated_sequence"
       },
+      "selected_entrypoint": {
+        "path": "src/connectors/local/row_window_provider.mbt",
+        "symbol": "row_window_provider"
+      },
       "boundary_tests": [
         {
           "role": "row_window_empty_schema_workspace_exact_one_short",
@@ -1328,6 +1332,51 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/row_window_scale_wbtest.mbt",
           "fixture": "row window admits its input-name index before field traversal"
+        },
+        {
+          "role": "row_window_bounded_quantum_output",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row windows preserve ascending memberships at quantum one"
+        },
+        {
+          "role": "row_window_bounded_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window cancellation stops before exposing partial rows"
+        },
+        {
+          "role": "row_window_bounded_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window admits exact live metadata and rejects one short"
+        },
+        {
+          "role": "row_window_bounded_control_work_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window admits exact control work and rejects one short"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "row_window_standard_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "fixed parameter row window",
+          "case": "fixedRowWindowProgram"
+        },
+        {
+          "role": "row_window_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "split-values-row-window-in-flight"
         }
       ]
     },

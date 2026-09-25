@@ -129,6 +129,19 @@ Empty-input fixtures use fixed schema-width arithmetic for exact and one-short
 workspace limits. This closes a local allocation-order gap for those schema
 arrays; it does not make the enclosing providerless sequence cancellable or
 establish complete operation-level resource assurance.
+An independently resumable `row_window` provider now handles a selected
+single-step Relation input. It scans input cells, resolves schema fields,
+collects memberships, and constructs output rows in charged quantum steps.
+The fixed and sliding managed two-consumer fixtures, three-target bounded
+kernel fixtures, and Node standard Host program pass. The selected route has
+independently calculated exact/one-short control-work and peak-workspace
+fixtures, plus a kernel cancel/cleanup fixture. A Node standard Host timer
+delivers cancellation after bounded row-window work, observes stop, and
+reclaims the attempt without exposing partial output. This establishes the
+selected entrypoint only. Nested value checking and timestamp parsing still
+need a maximum non-interruptible interval audit.
+Multi-step sequences that cannot select this provider still use the
+providerless synchronous path. The operation is not marked fully assured.
 The `lag` evaluator likewise reserves its output-name entries before copying
 the input names. An empty-input fixture derives eleven simultaneously live
 slots from the checked partition/order terms and schema widths, and rejects

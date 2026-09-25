@@ -106,6 +106,27 @@ test('partitioned top-k loses bounded assurance if either fixture is absent', ()
   }), /RelA top_k_by: delivered Host cancellation evidence is missing/u);
 });
 
+test('row window loses its bounded route when production evidence is removed', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'row_window');
+    delete route.selected_entrypoint;
+  }), /RelA row_window: bounded selected row-window entrypoint is missing/u);
+  for (const role of [
+    'row_window_bounded_quantum_output',
+    'row_window_bounded_cancel_cleanup',
+    'row_window_bounded_workspace_exact_one_short',
+    'row_window_bounded_control_work_exact_one_short',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'row_window');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`RelA row_window: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('watermark loses its independent resource boundary with its fixture', () => {
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'RelA' &&

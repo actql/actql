@@ -521,6 +521,21 @@ for (const [index, route] of routeEntries.entries()) {
       fail(`${label}: empty schema workspace evidence is missing`);
     }
   }
+  if (route.family === 'RelA' && route.operation === 'row_window') {
+    if (route.selected_entrypoint?.symbol !== 'row_window_provider') {
+      fail(`${label}: bounded selected row-window entrypoint is missing`);
+    }
+    for (const role of [
+      'row_window_bounded_quantum_output',
+      'row_window_bounded_cancel_cleanup',
+      'row_window_bounded_workspace_exact_one_short',
+      'row_window_bounded_control_work_exact_one_short',
+    ]) {
+      if (!boundaryRoles.has(role)) {
+        fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+  }
   for (const operation of ['row_window', 'unpivot', 'unnest']) {
     if (route.family === 'RelA' && route.operation === operation) {
       const required = [`${operation}_input_index_pre_admission`];
@@ -652,7 +667,12 @@ for (const [index, route] of routeEntries.entries()) {
       continue;
     }
     const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
-    if (!sourceText.includes(`name: '${item.fixture}'`)) {
+    const namedCase = sourceText.includes(`name: '${item.fixture}'`);
+    const tupleCase = typeof item.case === 'string' &&
+      /^[a-zA-Z][a-zA-Z0-9]*$/u.test(item.case) &&
+      sourceText.includes(`const ${item.case} =`) &&
+      sourceText.includes(`['${item.fixture}', ${item.case},`);
+    if (!namedCase && !tupleCase) {
       fail(`${label}: missing environment fixture ${item.fixture}`);
     }
   }
