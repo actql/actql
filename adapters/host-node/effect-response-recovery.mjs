@@ -132,18 +132,14 @@ export async function readAuthorizedEffectTerminalOutcome(options) {
 // A member Receipt is not evidence by itself. Authorize the exact retained
 // dispatches first, then compare its row partition with one durable Store
 // snapshot and re-admit every terminal row Receipt from saved response bytes.
-export async function checkAuthorizedEffectMemberReceiptRowPartition({
+async function authorizeMemberReceiptRows({
   ledger,
   rowOwners,
-  preview,
-  memberIndex,
-  memberReceiptWire,
   commonMoon,
   authorizeEvidenceRead,
   providerBinding = {},
 }) {
-  if (!Array.isArray(rowOwners) || rowOwners.length === 0 ||
-      typeof ledger?.checkMemberReceiptRowPartitionEvidence !== 'function') {
+  if (!Array.isArray(rowOwners) || rowOwners.length === 0) {
     fail('InvalidEffectMemberReceiptEvidence');
   }
   const batches = new Map();
@@ -177,7 +173,35 @@ export async function checkAuthorizedEffectMemberReceiptRowPartition({
       authorizedBatches.add(owner.claims);
     }
   }
+  return ownedOwners;
+}
+
+export async function checkAuthorizedEffectMemberReceiptRowPartition({
+  ledger, rowOwners, preview, memberIndex, memberReceiptWire, commonMoon,
+  authorizeEvidenceRead, providerBinding = {},
+}) {
+  if (typeof ledger?.checkMemberReceiptRowPartitionEvidence !== 'function') {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const ownedOwners = await authorizeMemberReceiptRows({ledger, rowOwners,
+    commonMoon, authorizeEvidenceRead, providerBinding});
   return ledger.checkMemberReceiptRowPartitionEvidence({
     preview, memberIndex, rowOwners: ownedOwners, memberReceiptWire,
+  });
+}
+
+// Only the common owner issues a member Receipt. Authorization precedes the
+// durable head snapshot; the issuer then re-admits every terminal row fact.
+export async function issueAuthorizedEffectMemberReceipt({
+  ledger, rowOwners, preview, memberIndex, commonMoon,
+  authorizeEvidenceRead, providerBinding = {},
+}) {
+  if (typeof ledger?.issueMemberReceiptFromRowPartition !== 'function') {
+    fail('InvalidEffectMemberReceiptEvidence');
+  }
+  const ownedOwners = await authorizeMemberReceiptRows({ledger, rowOwners,
+    commonMoon, authorizeEvidenceRead, providerBinding});
+  return ledger.issueMemberReceiptFromRowPartition({
+    preview, memberIndex, rowOwners: ownedOwners,
   });
 }

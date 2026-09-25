@@ -398,3 +398,14 @@ rejects an Effect-free index, altered private wire, and omitted source holding.
 This check does not admit physical row outcomes, install a public index, or
 acquire final retention. The Effectful commit path and metadata deletion
 ownership remain open.
+
+The common MoonBit Effect owner can now issue a member Receipt from one
+durable row-head snapshot. The Host first authorizes evidence viewing, then
+re-admits each terminal row Receipt from the exact saved response. Unknown
+rows retain their dispatch and ledger-head references; unattempted rows have
+no invented terminal outcome. The issuer rejects an active physical owner,
+missing terminal evidence, or a foreign row binding. A real SQLite restart
+test compares the issued Receipt with the independently sealed fixture and
+checks an unknown/unattempted partition. This does not yet issue the set
+Receipt from every member or connect the standard Effectful Run apply and
+publication path; R2-G1 remains open.
