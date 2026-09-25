@@ -1290,6 +1290,57 @@ pub fn client_program_captured_source_matches(
 }
 
 ///|
+/// Installed Local bounds match the standard Result export profile. The
+/// identity is computed while the physical acquisition issuer remains live.
+#export_name("clientProgramIdentifyCapturedSourceRelation")
+pub fn client_program_identify_captured_source_relation(
+  source : @query.CapturedInputSource,
+) -> Result[
+  @query.CapturedSourceRelationIdentity,
+  @query.CapturedSourceIssue,
+] {
+  @query.identify_captured_source_relation(
+    source,
+    10000,
+    { max_nodes: 1000000, max_text_bytes: 10000000, max_depth: 64, max_work: 1000000, },
+    {
+      max_columns: 100, max_order_work: 1000000,
+      max_bytes: 10000000, max_nodes: 1000000, max_depth: 64,
+    },
+    {
+      max_columns: 100, max_order_work: 1000000,
+      max_bytes: 10000000, max_nodes: 1000003, max_depth: 66,
+    },
+    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
+    65536,
+  )
+}
+
+///|
+#export_name("clientProgramCapturedSourceLogicalCid")
+pub fn client_program_captured_source_logical_cid(
+  identity : @query.CapturedSourceRelationIdentity,
+) -> String {
+  @query.captured_source_relation_logical_cid(identity)
+}
+
+///|
+#export_name("clientProgramCapturedSourceSchemaCid")
+pub fn client_program_captured_source_schema_cid(
+  identity : @query.CapturedSourceRelationIdentity,
+) -> String {
+  @query.captured_source_relation_schema_cid(identity)
+}
+
+///|
+#export_name("clientProgramCapturedSourceRowCount")
+pub fn client_program_captured_source_row_count(
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Int {
+  @query.captured_source_relation_row_count(identity)
+}
+
+///|
 #export_name("clientProgramAdmitTaskPlanGraph")
 pub fn client_program_admit_task_plan_graph(
   prepared : @publication_host.PreparedClientProgram,

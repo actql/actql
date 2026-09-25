@@ -160,10 +160,26 @@ test('checked acquired source and downstream task emit their input ports',
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
           memoryBytes: 128 * 1024 * 1024, threads: 1,
         });
+      const capturedSource = acquired.source();
       try {
         assert.equal(JSON.parse(acquired.document()).output.row_count, 3);
         assert.equal(moon.clientProgramCapturedSourceMatches(prepared,
           acquired.source()), true);
+        const observed = checked(
+          moon.clientProgramIdentifyCapturedSourceRelation(
+            acquired.source()));
+        assert.equal(moon.clientProgramCapturedSourceRowCount(observed), 3);
+        assert.match(moon.clientProgramCapturedSourceLogicalCid(observed),
+          /^sha256:[0-9a-f]{64}$/u);
+        assert.match(moon.clientProgramCapturedSourceSchemaCid(observed),
+          /^sha256:[0-9a-f]{64}$/u);
+        const repeated = checked(
+          moon.clientProgramIdentifyCapturedSourceRelation(
+            acquired.source()));
+        assert.equal(moon.clientProgramCapturedSourceLogicalCid(repeated),
+          moon.clientProgramCapturedSourceLogicalCid(observed));
+        assert.equal(moon.clientProgramCapturedSourceSchemaCid(repeated),
+          moon.clientProgramCapturedSourceSchemaCid(observed));
         const localSetup = moon.clientProgramOpenCapturedLocalHost(prepared,
           acquired.source(), registry,
           JSON.stringify(aoa.execution_contracts['REL.values']),
@@ -186,6 +202,8 @@ test('checked acquired source and downstream task emit their input ports',
         }
       } finally {
         acquired.close();
+        assert.throws(() => checked(
+          moon.clientProgramIdentifyCapturedSourceRelation(capturedSource)));
       }
     } finally {
       await rm(directory, {recursive: true, force: true});

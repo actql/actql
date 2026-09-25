@@ -85,6 +85,89 @@ pub fn prepare_captured_source_relation_export(
 }
 
 ///|
+/// Identity established by one complete bounded traversal of the captured
+/// Relation. It describes observed input material, not Run admission or a
+/// source authorization grant.
+pub struct CapturedSourceRelationIdentity {
+  logical_relation_cid : String
+  schema_cid : String
+  row_count : Int
+}
+
+///|
+pub fn captured_source_relation_logical_cid(
+  identity : CapturedSourceRelationIdentity,
+) -> String {
+  identity.logical_relation_cid
+}
+
+///|
+pub fn captured_source_relation_schema_cid(
+  identity : CapturedSourceRelationIdentity,
+) -> String {
+  identity.schema_cid
+}
+
+///|
+pub fn captured_source_relation_row_count(
+  identity : CapturedSourceRelationIdentity,
+) -> Int {
+  identity.row_count
+}
+
+///|
+/// Complete the same bounded export used for Result identity without
+/// retaining its physical row frames in the environment adapter.
+pub fn identify_captured_source_relation(
+  source : CapturedInputSource,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema_limits : @execution.RelationSchemaIdentityLimits,
+  max_batch_bytes : Int,
+) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue] {
+  let stream = match prepare_captured_source_relation_export(
+      source, max_rows, values, payload_wire, logical_wire, schema_limits,
+      max_batch_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut more = true
+  while more {
+    match @execution.next_completed_output_export(stream) {
+      Ok(Some(_)) => ()
+      Ok(None) => more = false
+      Err(issue) => {
+        @execution.cancel_completed_output_export(stream)
+        return Err(Export(issue))
+      }
+    }
+  }
+  let receipt = match @execution.finish_completed_relation_export(stream) {
+    Ok((value, _)) => value
+    Err(issue) => {
+      @execution.cancel_completed_output_export(stream)
+      return Err(Export(issue))
+    }
+  }
+  let identity = {
+    logical_relation_cid: @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(receipt),
+    ),
+    schema_cid: @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(receipt),
+    ),
+    row_count: @execution.output_stream_identity(
+      @execution.completed_relation_export_content(receipt),
+    ).3,
+  }
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  Ok(identity)
+}
+
+///|
 pub fn captured_source_matches(
   source : CapturedInputSource,
   program : @context.ProgramSourceIdentity,

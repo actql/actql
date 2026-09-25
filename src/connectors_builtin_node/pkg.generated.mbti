@@ -58,7 +58,13 @@ pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
 
+pub fn client_program_captured_source_logical_cid(@execution_query.CapturedSourceRelationIdentity) -> String
+
 pub fn client_program_captured_source_matches(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource) -> Bool
+
+pub fn client_program_captured_source_row_count(@execution_query.CapturedSourceRelationIdentity) -> Int
+
+pub fn client_program_captured_source_schema_cid(@execution_query.CapturedSourceRelationIdentity) -> String
 
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
@@ -89,6 +95,8 @@ pub fn client_program_direct_values_result_root_row_contract_cid(@run_publicatio
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
+
+pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_issue_direct_task_result_root(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootIssue]
 

@@ -23,6 +23,12 @@ pub fn captured_source_available(CapturedInputSource) -> Bool
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
 
+pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
+
+pub fn captured_source_relation_row_count(CapturedSourceRelationIdentity) -> Int
+
+pub fn captured_source_relation_schema_cid(CapturedSourceRelationIdentity) -> String
+
 pub fn captured_source_row_count(CapturedInputSource) -> Int?
 
 pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatistics?
@@ -34,6 +40,8 @@ pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @e
 pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
 
 pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
+
+pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
 
 pub fn prepare_captured_source_relation_export(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedOutputExport, CapturedSourceIssue]
 
@@ -64,6 +72,12 @@ pub(all) enum CapturedSourceIssue {
   Completion(@execution_relation.TrustedOutputIssue)
   Storage(@execution_relation.ProducerReadIssue)
   Export(@execution_relation.CompletedExportIssue)
+}
+
+pub struct CapturedSourceRelationIdentity {
+  logical_relation_cid : String
+  schema_cid : String
+  row_count : Int
 }
 
 pub struct CapturedSourceStatistics {
