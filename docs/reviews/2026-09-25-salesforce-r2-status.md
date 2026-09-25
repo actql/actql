@@ -72,6 +72,15 @@ an `unknown_outcome` set without resending the uncertain row. This is a
 regression of the retained owners and durable progress, not a standard apply
 caller or formal publication of that two-member Run. The endpoint is local
 HTTP, not a credentialed Salesforce Site.
+The same fixture now retains exact private Effect-source Artifacts for both
+members, sharing one immutable physical allocation through two independently
+retirable Store holdings. The Captured Run records both source holdings and
+keeps the private `rows` inventory distinct from the public `answer` Result.
+After Ledger reopen, its durable mixed known/unknown set cannot be published
+as a successful Run; the Preview and both source holdings remain available for
+reconciliation until explicitly retired. This closes an inventory and
+holding connection, not the ordinary apply caller, successful multi-member
+publication, or credentialed Salesforce request path.
 
 SF-G2 requires a capability-to-evidence matrix for every advertised
 Salesforce read, metadata, and write operation, followed by isolated-org

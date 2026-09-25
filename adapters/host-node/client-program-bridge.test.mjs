@@ -1238,8 +1238,11 @@ test('owned update Plan matches approved rows and rejects altered intent',
       maxObjectBytes: outputLimits.maxWireBytes,
       maxObjects: 100, maxContractNodes: 10000,
       maxContractDepth: 64,
+      privateEvidenceKey: Buffer.alloc(32, 4),
     }, control);
-    let storedResults, inputs;
+    let storedResults, inputs, privateHoldingCid;
+    const sourcePayloads = [];
+    const sourceHoldings = [];
     try {
       assert.equal(execution.status, 'host-tasks-completed');
       const retention = control.seal('result_retention_policy',
@@ -1270,15 +1273,62 @@ test('owned update Plan matches approved rows and rejects altered intent',
         outputLimits, contractLimits: publicationLimits,
       });
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
+      const invocationContract = control.admit('run_invocation',
+        moon.strategyPublicationContractJson(invocation),
+        publicationLimits);
+      sourcePayloads.push(await preparePinnedEffectSourcePayload({
+        moon, execution, inputs, memberIndex: 0,
+        limits: moon.clientProgramEffectInputExportLimits(
+          ...effectInputExportArgs(outputLimits)),
+        store, maxBytes: outputLimits.maxWireBytes, control,
+        invocation: invocationContract, retention,
+        sourceBindingCid: cid('c'),
+        contractLimits: publicationLimits,
+      }));
+      assert.notEqual(sourcePayloads[0].summary.artifact.identity,
+        storedResults.artifacts[0].identity);
       const requestScope = checked(moon.strategyEffectLogicalRequestScope(
         cid('e'), 'two-effect-request', 128));
       const previewFor = (values, targets = values.map((_, index) =>
         index + 1)) => effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
-        storedResults.artifacts[0].identity, 'update', values,
+        sourcePayloads[0].summary.artifact.identity, 'update', values,
         targets, memberIds, memberIds.map((_, index) =>
           cid(String(index))), requestScope);
       const preview = previewFor([1, 2]);
+      const runDefinitionContract = control.admit('run_definition',
+        moon.strategyPublicationContractJson(definition),
+        publicationLimits);
+      const authoringContext = control.admitRunEvidence(
+        'authoring_context',
+        canonicalJson(JSON.parse(preview.wire).authoring_context),
+        publicationLimits);
+      const admittedPreview = control.admitEffectComputationPreview(
+        preview.wire, runDefinitionContract, authoringContext,
+        publicationLimits);
+      privateHoldingCid = control.effectPrivateEvidenceBinding(
+        admittedPreview, store.storeAuthorityCid).holdingCid;
+      for (let memberIndex = 0; memberIndex < memberIds.length;
+        memberIndex++) {
+        if (memberIndex === 1) {
+          await assert.rejects(commitPinnedEffectSourceHolding({
+            payload: sourcePayloads[0], store, control,
+            preview: admittedPreview, memberIndex,
+            invocation: invocationContract,
+            shareFromHoldingCid: cid('9'),
+          }), {code: 'PublicationPhysicalHoldingUnavailable'});
+        }
+        sourceHoldings.push(await commitPinnedEffectSourceHolding({
+          payload: sourcePayloads[0], store, control,
+          preview: admittedPreview, memberIndex,
+          invocation: invocationContract,
+          ...(memberIndex === 0 ? {} : {
+            shareFromHoldingCid: sourceHoldings[0].holdingCid,
+          }),
+        }));
+      }
+      assert.notEqual(sourceHoldings[0].holdingCid,
+        sourceHoldings[1].holdingCid);
       const duplicateIdentity = JSON.parse(preview.wire);
       duplicateIdentity.effects[1].effect_identity_cid =
         duplicateIdentity.effects[0].effect_identity_cid;
@@ -1555,6 +1605,45 @@ test('owned update Plan matches approved rows and rejects altered intent',
         return checked(result);
       };
       assert.doesNotThrow(() => preflight());
+      const runEvidence = evidence.slice(0, 3).map((value, index) =>
+        control.admitRunEvidence(
+          ['bound_invocation_template', 'prepared_invocation',
+            'run_authorization'][index],
+          moon.strategyRunEvidenceJson(value), publicationLimits));
+      const compiledPlan = control.admit('compiled_plan',
+        moon.strategyPublicationContractJson(evidence[3]),
+        publicationLimits);
+      const runAdmission = control.admitCheckedClientEffectRunPublication(
+        prepared, ...runEvidence, compiledPlan);
+      const normalizationJournal = control.sealRunEvidence(
+        'normalization_journal', JSON.stringify({
+          version: 'actql-normalization-journal/0.1',
+          rule_catalog_cid: cid('1'), entries: [],
+        }), publicationLimits);
+      const computation = await issueCompletedEffectfulComputationEvidence({
+        execution, store, storedResults, control, admission: runAdmission,
+        runDefinition: runDefinitionContract,
+        invocation: invocationContract,
+        observation: control.admitRunEvidence('observation_set',
+          moon.strategyRunEvidenceJson(observation), publicationLimits),
+        normalizationJournal, authoringContext,
+        receiptEvidence: {bindings: [], sourceEvidence: [],
+          modelEvidence: [], barrierAttemptReceiptCids: []},
+        captureEvidence: {pendingSourceStateAdvances: [],
+          modelEvidence: []},
+        preview: admittedPreview,
+        plans: [{name: memberIds[0], wire: chunks.join('')},
+          {name: memberIds[1], wire: secondChunks.join('')}],
+        effectSourceHoldings: sourceHoldings,
+        contractLimits: publicationLimits,
+      });
+      const captured = JSON.parse(computation.capturedRun.wire);
+      assert.deepEqual(Object.keys(captured.effect_context
+        .effect_source_holding_cids).sort(), memberIds);
+      assert.deepEqual(Object.keys(captured.effect_context
+        .result_artifacts), ['answer']);
+      assert.deepEqual(memberIds.map(id => captured.effect_context
+        .effect_source_artifacts[id].source_result), ['rows', 'rows']);
       assert.throws(() => preflight({proofs: [verified.proof]}),
         {code: 'MoonBitHostFailure'});
       assert.throws(() => preflight({sources: [cid('c'), cid('f')]}),
@@ -1671,6 +1760,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
         const issued = await issueAuthorizedEffectSetReceipt({
           ledger: resumedProgress, preview: applyPreview,
           commonMoon: moon, authorizeEvidenceRead: async () => true,
+          publicationPreview: admittedPreview,
           members: progressMembers.map(member => ({
             rowOwners: member.claims.map(claim => ({claim})),
             replayed: false,
@@ -1681,6 +1771,27 @@ test('owned update Plan matches approved rows and rejects altered intent',
           'unknown_outcome');
         assert.deepEqual(JSON.parse(issued.set.wire).effects.map(
           member => member.state), ['unknown', 'applied']);
+        await assert.rejects(publishCompletedEffectfulRun({
+          execution, store, storedResults, control, computation,
+          preview: admittedPreview, ledger: resumedProgress,
+          issuedSet: issued,
+          request: {tenantId: 'tenant-a', authorityScopeCid: cid('a'),
+            publicationPolicyCid: cid('e'),
+            publicationTargetCid: cid('f'),
+            requestedAt: '2026-09-24T00:00:01.000Z'},
+          attempt: {attemptId: 'two-effect-attempt',
+            fenceCid: cid('0'), externalIdempotencyKey: undefined,
+            startedAt: '2026-09-24T00:00:02.000Z'},
+          contractLimits: publicationLimits,
+          now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
+        }), {code: 'EffectfulRunNeedsReconciliation'});
+        assert.equal(await store.inspectCommittedIndex({tenantId: 'tenant-a',
+          authorityScopeCid: cid('a'),
+          runDefinitionCid: runDefinitionContract.identity}), undefined);
+        assert.ok(await store.inspectPhysicalHolding(privateHoldingCid));
+        for (const holding of sourceHoldings) {
+          assert.ok(await store.inspectPhysicalHolding(holding.holdingCid));
+        }
       } finally {
         resumedProgress.close();
       }
@@ -1725,6 +1836,19 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }
       if (storedResults !== undefined) {
         await releaseCompletedRunPreparedPayloads(storedResults, control);
+        if (privateHoldingCid !== undefined) {
+          assert.equal((await store.retirePhysicalHolding(
+            privateHoldingCid)).deleted, true);
+        }
+        for (const holding of sourceHoldings) {
+          assert.equal((await store.retirePhysicalHolding(
+            holding.holdingCid)).deleted, true);
+        }
+        for (const payload of sourcePayloads) {
+          if (payload.prepared.status().pending) {
+            await payload.prepared.release();
+          }
+        }
         assert.equal(store.status().storedBytes, 0);
         assert.equal(store.status().objectCount, 0);
       }

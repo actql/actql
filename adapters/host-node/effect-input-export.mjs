@@ -191,6 +191,7 @@ export async function preparePinnedEffectSourcePayload({
  */
 export async function commitPinnedEffectSourceHolding({
   payload, store, control, preview, memberIndex, invocation,
+  shareFromHoldingCid,
 }) {
   if (preparedEffectSourceOwners.get(payload) !== store ||
       typeof store?.commitPhysicalHolding !== 'function' ||
@@ -211,7 +212,17 @@ export async function commitPinnedEffectSourceHolding({
       cid: payload.physical.cid, byte_count: payload.physical.bytes,
     })]),
   });
-  await store.commitPhysicalHolding(record, [payload.prepared]);
+  if (shareFromHoldingCid === undefined) {
+    await store.commitPhysicalHolding(record, [payload.prepared]);
+  } else {
+    if (typeof store.sharePhysicalHolding !== 'function' ||
+        typeof shareFromHoldingCid !== 'string') {
+      throw new TypeError('InvalidEffectSourceHoldingShare');
+    }
+    // The Store verifies the existing exact immutable allocation and gives
+    // this member independent durable holding and retirement responsibility.
+    await store.sharePhysicalHolding(shareFromHoldingCid, record);
+  }
   return Object.freeze({source, artifact: payload.summary.artifact,
     holdingCid, record});
 }
