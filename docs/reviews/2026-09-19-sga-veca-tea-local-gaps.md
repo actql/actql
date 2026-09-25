@@ -117,8 +117,9 @@ Relation provider without splitting the task. The normal Host exercises two
 downstream computations and timer cancellation after positive work; portable
 tests also check independent release and final ledger reclamation. This closes
 that captured-input chain shape, not either operation's whole production route:
-retained-only predecessor views still enter the existing synchronous import
-path, and other checked chains need their own reachability and boundary proof.
+retained-only predecessor views now use the bounded selected-provider import
+when the result does not require retained-file output. Other checked chains
+still need their own reachability and boundary proof.
 The same bounded step-dispatch path now handles captured `group count` then
 `filter`/`select`, and fixed `row_window` then `filter`/`select` in one Stage.
 Their three-target portable fixtures exercise quantum-one execution and two
@@ -139,8 +140,11 @@ work` in `src/query_integration/local_managed_unary_wbtest.mbt`, plus the
 captured filter, count, and window chains and their in-flight timer cases in
 `adapters/connectors/duckdb/node/test/standard-host.test.mjs`. The portable
 fixture checks quantum-one work and ledger reclamation; the Node case checks
-the standard asynchronous cancellation delivery. Neither fixture proves a
-bounded retained-file import or all unary operation variants.
+the standard asynchronous cancellation delivery. A separate standard Host
+fixture now streams a real retained DuckDB capture into bounded filter/select
+and count/filter chains, each with two actual consumers and final reclamation.
+This is bounded import of a retained input, not retained-file output or proof
+for all unary operation variants.
 
 Ordinary `values` → `unpivot`/`unnest` → `filter` Programs form five exact
 tasks through the existing typed task splitter. The standard Node Host now
@@ -149,6 +153,11 @@ while the later filter task is active. This is evidence for those ordinary
 source shapes, not for an unsplit captured or retained Relation predecessor;
 the `unpivot` and `unnest` whole-route obligations remain in the connection
 category until those paths and their exact resource boundaries are proved.
+The selected bounded chain now also accepts an unsplit `unpivot` step.
+A captured or retained Relation feeding `unpivot` → `filter` → `select`
+uses that route in the standard Host, with two downstream Computes; the
+captured-input fixture also delivers cancellation after positive work.
+The `unnest` shape and the complete resource boundary remain unproved.
 
 `match_nodes` and `match_edges` now have full entrypoint assurance. Their
 registered provider invokes the exact bounded matcher with the control,
