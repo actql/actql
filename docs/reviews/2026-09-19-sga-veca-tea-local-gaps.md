@@ -106,8 +106,10 @@ Quantum-one fixtures cover cancellation inside an unused 256-element
 array and a long unused text cell, exact and one-short limits, and cursor
 cleanup. The normal managed Host also runs the nested-input count through
 two consumers and tests cancellation before publication. On this HEAD,
-the count kernel's 10 tests and managed group's 19 tests passed on each
-of JS, Wasm, and native. This input-side evidence alone did not close the
+the count kernel's 13 tests and managed group's 21 tests passed on each
+of JS, Wasm, and native. The resource gate requires the nested exact/one-short,
+active stop, Host cancellation, and two-consumer fixtures. Removing one now
+rejects the group route. This input-side evidence alone did not close the
 output-key admission or the providerless fallback listed above.
 
 The selected bounded Relation row evaluator now uses the same stepped
