@@ -84,8 +84,10 @@ text and work, and the overlapping workspace boundary. Raw RowTable values
 and recursive checked values can still recheck synchronously. The normal
 Host sort/take composition
 now includes a 512-byte selected value feeding two real downstream Computes
-and final cleanup. It is a connection control, not proof that every internal
-value pass is interruptible.
+and final cleanup. A separate normal-Host timer now cancels the downstream
+take after positive work while that long intermediate value is retained,
+then confirms stop, nonpublication, and cleanup. These are connection and
+lifetime controls, not proof that every internal value pass is interruptible.
 The strict gate now recognizes the existing direct and external cross-join
 Host timer cases: both request cancellation after positive pair progress,
 observe stop, and reclaim their owners. This removes a stale evidence-name

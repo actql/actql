@@ -1107,6 +1107,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-take-in-flight"
+        },
+        {
+          "role": "long_selected_take_in_flight_host_timer",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "long-selected-take-in-flight"
         }
       ],
       "path_assurance": {

@@ -7108,6 +7108,8 @@ async function exerciseStrategyGraph(
       program: splitValuesSortTakeProgram, cancelAtStart: 3},
     {name: 'separate-sort-in-flight',
       program: separateSortTakeProgram, cancelAtStart: 3},
+    {name: 'long-selected-take-in-flight',
+      program: longSelectedSortTakeProgram, cancelAtStart: 3},
     {name: 'separate-filter-sort-in-flight',
       program: separateFilterSortTakeProgram, cancelAtStart: 4},
     {name: 'chained-filter-sort-in-flight',
@@ -7125,6 +7127,8 @@ async function exerciseStrategyGraph(
       'nest-output-unnest-chain-in-flight';
     const nestedCountCancellation = cancellationName ===
       'nested-global-count-in-flight';
+    const longSelectedTakeCancellation = cancellationName ===
+      'long-selected-take-in-flight';
     const rowWindowCancellation = cancellationName ===
       'split-values-row-window-in-flight';
     const sameStageGlobalCountCancellation = cancellationName ===
@@ -7160,7 +7164,8 @@ async function exerciseStrategyGraph(
               sameStageJsonFilterCancellation
               ? 'json_pick_values' : 'values_a'),
     );
-    if (!capturedRelationChainCancellation && !nestUnwrapCancellation) {
+    if (!capturedRelationChainCancellation && !nestUnwrapCancellation &&
+        !longSelectedTakeCancellation) {
       const reshapeFilterChain = cancellationName ===
         'unpivot-filter-chain-in-flight' ||
         cancellationName === 'unnest-filter-chain-in-flight';
@@ -7195,6 +7200,7 @@ async function exerciseStrategyGraph(
     let valuesManagedStarts = 0;
     let valuesWorkObserved = false;
     let nestedCountWork = 0n;
+    let longSelectedTakeWork = 0n;
     let valuesCancellationDeliveredAt;
     let valuesStopObservedAt;
     valuesCancellation.signal.addEventListener('abort', () => {
@@ -7233,7 +7239,8 @@ async function exerciseStrategyGraph(
                   return Reflect.get(operation, name, operationReceiver);
                 }
                 return quantum => {
-                  const stepQuantum = nestUnwrapCancellation &&
+                  const stepQuantum = (nestUnwrapCancellation ||
+                    longSelectedTakeCancellation) &&
                     start === cancelAtStart ? 1 : start === cancelAtStart &&
                     (capturedRelationChainCancellation ||
                       cancellationName === 'split-values-take-in-flight' ||
@@ -7250,6 +7257,10 @@ async function exerciseStrategyGraph(
                       start === cancelAtStart) {
                     nestedCountWork += observation.work;
                   }
+                  if (longSelectedTakeCancellation &&
+                      start === cancelAtStart) {
+                    longSelectedTakeWork += observation.work;
+                  }
                   if (start === cancelAtStart) {
                     assert(observation.work <= BigInt(stepQuantum));
                   }
@@ -7259,6 +7270,8 @@ async function exerciseStrategyGraph(
                       (!watermarkCancellation || observation.progress > 0n) &&
                       (cancellationName !== 'nested-global-count-in-flight' ||
                         nestedCountWork >= 100n) &&
+                      (!longSelectedTakeCancellation ||
+                        longSelectedTakeWork >= 10n) &&
                       !valuesWorkObserved) {
                     valuesWorkObserved = true;
                     setTimeout(() => valuesCancellation.abort(), 0);
@@ -7278,7 +7291,10 @@ async function exerciseStrategyGraph(
         valuesCancellation.signal,
       );
       assert.equal(valuesManagedStarts, cancelAtStart,
-        valuesCancellationCase.name);
+        longSelectedTakeCancellation
+          ? `${valuesCancellationCase.name}: ` +
+            `target work ${longSelectedTakeWork}`
+          : valuesCancellationCase.name);
       assert.equal(valuesWorkObserved, true, valuesCancellationCase.name);
       assert.equal(valuesCancellation.signal.aborted, true);
       assert.equal(Number.isFinite(valuesCancellationDeliveredAt), true);
