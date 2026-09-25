@@ -6,7 +6,11 @@
   "engines": { "node": ">=22" },
   "dependencies": {"@actql/client-wire": "0.0.0-development"},
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./index.mjs" }
+    ".": { "types": "./index.d.ts", "default": "./index.mjs" },
+    "./host-port": {
+      "types": "./host-port.d.ts", "default": "./host-port.mjs"
+    }
   },
-  "files": ["index.mjs", "index.d.ts", "README.md"]
+  "files": ["index.mjs", "index.d.ts", "host-port.mjs",
+    "host-port.d.ts", "README.md"]
 }

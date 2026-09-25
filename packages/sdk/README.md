@@ -34,6 +34,17 @@ require a separate `movementPolicyRef`. The references select targets and
 policies, while the Host still checks current grants and authorization.
 This lightweight package does not install an embedded Local provider.
 
+The `@actql/sdk/host-port` subpath is for the installed standard provider,
+not application-side provider registration. It reuses the same Client facade
+with an in-process Host port. Control values are objects, and Result reads
+use typed frames rather than HTTP or JSONL. Each frame reports the bytes
+transferred through that ABI; the Client enforces wire and decoded-value
+bounds independently. The provider must enforce its own pre-transfer row
+bound, current authorization, and Run ownership before yielding a frame.
+The port's `AbortSignal` belongs only to that observation or read attempt.
+This boundary does not install a provider or imply that the current
+`@actql/node` artifact supports embedded Local.
+
 `attach(ref)` retrieves another handle for the same Run. `result(name)` only
 selects a named Result. Each `rows()`, `batches()` or `all()` call creates a
 new delivery attempt; a reader exposes `attemptId` before iteration.

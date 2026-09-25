@@ -53,6 +53,36 @@ async function boundedHostJson(response) {
   }
 }
 
+const controlValue = response => response instanceof Response
+  ? boundedHostJson(response) : response;
+
+function inProcessOptions(options) {
+  if (options === null || typeof options !== 'object' ||
+      Array.isArray(options) || options.mode !== 'local' ||
+      options.owner !== 'local' || options.endpoint !== undefined ||
+      options.token !== undefined ||
+      options.runtime !== undefined && options.runtime !== 'embedded' ||
+      Object.keys(options).some(key => ![
+        'mode', 'owner', 'runtime', 'durability', 'consentRefs',
+      ].includes(key)) ||
+      options.durability !== undefined &&
+        !['volatile', 'durable'].includes(options.durability) ||
+      !Array.isArray(options.consentRefs ?? []) ||
+      (options.consentRefs ?? []).some(value =>
+        typeof value !== 'string' || !value) ||
+      new Set(options.consentRefs ?? []).size !==
+        (options.consentRefs ?? []).length) {
+    fail('InvalidConnectionOptions');
+  }
+  const wire = Object.freeze({mode: 'local', owner: 'local',
+    ...(options.durability === undefined ? {} :
+      {durability: options.durability}),
+    consentRefs: Object.freeze([...(options.consentRefs ?? [])]),
+    runners: Object.freeze([])});
+  if (!validClientConnection(wire)) fail('InvalidConnectionOptions');
+  return Object.freeze({wire, endpoint: 'actql:embedded'});
+}
+
 function connectionOptions(options) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options)) fail('InvalidConnectionOptions');
@@ -135,10 +165,38 @@ function retainedValueBytes(value) {
 }
 
 export async function connect(options) {
-  const selected = connectionOptions(options);
+  return connectSelected(connectionOptions(options));
+}
+
+// Only an installed Local provider calls this pure Client facade. The port
+// returns typed control values and Result frames; it is never a public URL.
+export async function connectInProcess(options, port) {
+  if (port === null || typeof port !== 'object' ||
+      typeof port.perform !== 'function') fail('InvalidLocalHostPort');
+  return connectSelected(inProcessOptions(options), port);
+}
+
+async function connectSelected(selected, port) {
   let closed = false;
   const exchange = async (operation, body = {}, signal, submitContext) => {
     if (closed) fail('ClientClosed');
+    if (port !== undefined) {
+      let request;
+      try { request = structuredClone({connection: selected.wire, ...body}); }
+      catch { fail('InvalidClientPayload'); }
+      try {
+        const value = await port.perform(operation, request, signal);
+        if (value instanceof Response) fail('InvalidLocalHostPortResponse');
+        return value;
+      }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        if (operation === 'submit') {
+          throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+        }
+        throw new ClientError('ClientTransportUnknown', {cause});
+      }
+    }
     let payload;
     try { payload = JSON.stringify({connection: selected.wire, ...body}); }
     catch { fail('InvalidClientPayload'); }
@@ -181,7 +239,7 @@ export async function connect(options) {
   };
   const profileResponse = await exchange('connect');
   let profile;
-  try { profile = await boundedHostJson(profileResponse); }
+  try { profile = await controlValue(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
   if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
   const confirmed = Object.freeze({...profile,
@@ -199,7 +257,7 @@ export async function connect(options) {
       exchange(operation, {ref, ...body}, signal);
     const readControl = async (operation, body, signal) => {
       const response = await runRequest(operation, body, signal);
-      try { return await boundedHostJson(response); }
+      try { return await controlValue(response); }
       catch (cause) { throw new ClientError('InvalidHostResponse', {cause}); }
     };
 
@@ -226,49 +284,74 @@ export async function connect(options) {
           let stream, failure;
           try {
             const response = await runRequest('read', {
-              resultName: name, format: 'jsonl', attemptId,
+              resultName: name, format: port === undefined ? 'jsonl' :
+                'typed', attemptId,
             }, controller.signal);
-            stream = response.body?.getReader();
-            if (!stream) fail('InvalidResultStream');
-            const decoder = new TextDecoder('utf-8', {fatal: true});
-            const acceptText = function* (text) {
-              line += text;
-              let newline;
-              while ((newline = line.indexOf('\n')) >= 0) {
-                const item = line.slice(0, newline);
-                line = line.slice(newline + 1);
-                if (!item) fail('InvalidResultStream');
-                if (new TextEncoder().encode(item).byteLength >
+            if (port !== undefined) {
+              if (response?.kind !== 'rows' ||
+                  typeof response.frames?.[Symbol.asyncIterator] !==
+                    'function') fail('InvalidResultStream');
+              for await (const frame of response.frames) {
+                controller.signal.throwIfAborted();
+                if (frame === null || typeof frame !== 'object' ||
+                    !Number.isSafeInteger(frame.byteLength) ||
+                    frame.byteLength < 1 ||
+                    frame.value === null ||
+                    typeof frame.value !== 'object' ||
+                    Array.isArray(frame.value)) fail('InvalidResultFrame');
+                if (frame.byteLength > maxRowWireBytes) {
+                  fail('ResultRowWireLimit');
+                }
+                wireBytes += frame.byteLength;
+                if (wireBytes > maxWireBytes) fail('ResultWireLimit');
+                if (retainedValueBytes(frame.value) >
+                    maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
+                yield structuredClone(frame.value);
+              }
+              state = 'complete';
+            } else {
+              stream = response.body?.getReader();
+              if (!stream) fail('InvalidResultStream');
+              const decoder = new TextDecoder('utf-8', {fatal: true});
+              const acceptText = function* (text) {
+                line += text;
+                let newline;
+                while ((newline = line.indexOf('\n')) >= 0) {
+                  const item = line.slice(0, newline);
+                  line = line.slice(newline + 1);
+                  if (!item) fail('InvalidResultStream');
+                  if (new TextEncoder().encode(item).byteLength >
+                      maxRowWireBytes) {
+                    fail('ResultRowWireLimit');
+                  }
+                  const row = JSON.parse(item);
+                  if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
+                    fail('ResultRowRetainedLimit');
+                  }
+                  yield row;
+                }
+                if (new TextEncoder().encode(line).byteLength >
                     maxRowWireBytes) {
                   fail('ResultRowWireLimit');
                 }
-                const row = JSON.parse(item);
-                if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
-                  fail('ResultRowRetainedLimit');
+              };
+              while (true) {
+                const {done, value} = await stream.read();
+                if (done) break;
+                wireBytes += value.byteLength;
+                if (wireBytes > maxWireBytes) fail('ResultWireLimit');
+                const sliceBytes = Math.min(8192, maxRowWireBytes);
+                for (let offset = 0; offset < value.byteLength;
+                  offset += sliceBytes) {
+                  yield* acceptText(decoder.decode(
+                    value.subarray(offset, offset + sliceBytes),
+                    {stream: true}));
                 }
-                yield row;
               }
-              if (new TextEncoder().encode(line).byteLength >
-                  maxRowWireBytes) {
-                fail('ResultRowWireLimit');
-              }
-            };
-            while (true) {
-              const {done, value} = await stream.read();
-              if (done) break;
-              wireBytes += value.byteLength;
-              if (wireBytes > maxWireBytes) fail('ResultWireLimit');
-              const sliceBytes = Math.min(8192, maxRowWireBytes);
-              for (let offset = 0; offset < value.byteLength;
-                offset += sliceBytes) {
-                yield* acceptText(decoder.decode(
-                  value.subarray(offset, offset + sliceBytes),
-                  {stream: true}));
-              }
+              yield* acceptText(decoder.decode());
+              if (line !== '\x1e') fail('IncompleteResultStream');
+              state = 'complete';
             }
-            yield* acceptText(decoder.decode());
-            if (line !== '\x1e') fail('IncompleteResultStream');
-            state = 'complete';
           } catch (cause) {
             failure = new ClientError(cause.code ?? 'ResultReadUnknown',
               {attemptId, cause});
@@ -368,7 +451,7 @@ export async function connect(options) {
             resultName: name, attemptId,
           }, signal);
           let answer;
-          try { answer = await boundedHostJson(response); }
+          try { answer = await controlValue(response); }
           catch (cause) {
             throw new ClientError('InvalidHostAttemptLookup', {cause});
           }
@@ -410,7 +493,7 @@ export async function connect(options) {
     const response = await exchange('submit', {requestId, kind, input,
       parameters: options.parameters ?? null}, options.signal, context);
     let admitted;
-    try { admitted = await boundedHostJson(response); }
+    try { admitted = await controlValue(response); }
     catch (cause) {
       throw new ClientError('SubmissionUnknown', {...context, cause});
     }
@@ -441,7 +524,7 @@ export async function connect(options) {
       if (!validRunRef(requested)) fail('InvalidRunReference');
       const response = await exchange('attach', {ref: requested}, signal);
       let admitted;
-      try { admitted = await boundedHostJson(response); }
+      try { admitted = await controlValue(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       if (!validRunRef(admitted?.ref)) fail('InvalidHostAdmission');
       if (admitted.ref.tenantId !== requested.tenantId ||
@@ -455,7 +538,7 @@ export async function connect(options) {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
       const response = await exchange('lookup-request', {requestId}, signal);
       let answer;
-      try { answer = await boundedHostJson(response); }
+      try { answer = await controlValue(response); }
       catch (cause) {
         throw new ClientError('InvalidHostRequestLookup', {cause});
       }

@@ -40,10 +40,15 @@ for (const name of ['client-host.generated.js',
   assert((await readFile(join(root, 'node_modules', '@actql',
     'client-wire', name), 'utf8')).length > 0);
 }
+for (const name of ['host-port.mjs', 'host-port.d.ts']) {
+  assert((await readFile(join(root, 'node_modules', '@actql',
+    'sdk', name), 'utf8')).length > 0);
+}
 
 await writeFile(join(root, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {connect, ClientError} from '@actql/node';
+import {connectInProcess} from '@actql/sdk/host-port';
 
 const calls = [];
 globalThis.fetch = async (_url, init) => {
@@ -82,6 +87,20 @@ await assert.rejects(connect({mode: 'hybrid', owner: 'local',
   error => error instanceof ClientError &&
     error.code === 'LocalProviderNotInstalled');
 assert.equal(calls.length, connected.length);
+const local = await connectInProcess({mode: 'local', owner: 'local'}, {
+  async perform(operation) {
+    assert.equal(operation, 'connect');
+    return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+      durability: 'volatile', scopeRef: 'embedded-scope',
+      capabilities: [], limits: {maxReadWireBytes: 1024,
+        maxRowWireBytes: 512, maxRowRetainedValueBytes: 512,
+        maxRetainedValueBytes: 1024, maxRows: 10, maxBatchRows: 10,
+        maxBatchRetainedValueBytes: 1024}};
+  },
+});
+assert.equal(local.profile.owner, 'local');
+assert.equal(calls.length, connected.length);
+local.close();
 `);
 run(process.execPath, ['smoke.mjs'], root);
 const browser = join(root, 'actql-sdk-browser.mjs');
