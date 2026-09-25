@@ -9,6 +9,7 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {applyCapturedEffectSet} from './effect-run-apply.mjs';
 import {issueAuthorizedEffectSetReceipt} from
   './effect-response-recovery.mjs';
 import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
@@ -1226,8 +1227,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
-    const execution = await runCapturedInternalStrategy(
-      moon.clientProgramLocalEffectHostRuntime(owned));
+    const execution = await runCapturedEffectComputation(owned);
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname, 'update-plan-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
@@ -1341,8 +1341,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const foreignOwned = moon.clientProgramOpenSourceFreeLocalEffectHost(
         bound, registry, values, 1n, 0n, 0n, 0n);
       assert.ok(foreignOwned);
-      const foreignExecution = await runCapturedInternalStrategy(
-        moon.clientProgramLocalEffectHostRuntime(foreignOwned));
+      const foreignExecution = await runCapturedEffectComputation(
+        foreignOwned);
       try {
         assert.equal(foreignExecution.status, 'host-tasks-completed');
         const foreignInputs = checked(moon.clientProgramPinEffectSources(
@@ -1528,24 +1528,6 @@ test('owned update Plan matches approved rows and rejects altered intent',
           (_, index) => [effect.setFrontierReadyMember(frontier, index),
             effect.setFrontierReadyRow(frontier, index)]);
       };
-      const firstProgress = openProgress();
-      try {
-        assert.deepEqual(ready(firstProgress), [[0, 0], [1, 0]]);
-        const claimed = firstProgress.claimDispatch(
-          progressMembers[0].claims[0]);
-        assert.equal(claimed.claimed, true);
-        assert.deepEqual(ready(firstProgress), [[1, 0]]);
-      } finally {
-        firstProgress.close();
-      }
-      const reopenedProgress = openProgress();
-      try {
-        assert.deepEqual(ready(reopenedProgress), [[1, 0]]);
-        assert.equal(reopenedProgress.claimDispatch(
-          progressMembers[0].claims[0]).claimed, false);
-      } finally {
-        reopenedProgress.close();
-      }
       assert.throws(() => checkCurrent({capabilities: [cid('d')]}),
       {code: 'MoonBitHostFailure'});
       assert.throws(() => checkCurrent({sources: [cid('c'), cid('f')]}),
@@ -1701,6 +1683,66 @@ test('owned update Plan matches approved rows and rejects altered intent',
       }), {code: 'MoonBitHostFailure'});
       assert.deepEqual(omittedChunks, []);
       assert.equal(moon.clientProgramEffectInputAvailable(inputs, 0), true);
+      const applyOptions = {
+        moon, capturedInputs: previewInputs, members: progressMembers,
+        maxFrontierWork: 64,
+        preflight: {
+          proofs: [second.proof, verified.proof],
+          sources: [cid('c'), cid('c')],
+          contracts: [mappingCid, mappingCid],
+          capabilities: [cid('d'), cid('d')],
+          authorities: [cid('e'), cid('e')],
+          observedRows: guardRows,
+          guardVersions: guardRows.map(() => cid('6')),
+          routes: selectedRoutes, risk,
+          reviewProjectionCid: cid('a'),
+          authorityScopeCid: cid('e'), policyCid: cid('a'),
+          validityCid: cid('a'), issuerCid: cid('a'),
+          authenticationCid: cid('a'), issuerKind: 'policy',
+          decision: 'allow', requestScope, keys: preview.keys,
+          maxMembers: 2, maxRows: 4, maxFootprintWork: 4,
+          maxWork: 100,
+        },
+      };
+      const firstProgress = openProgress();
+      try {
+        assert.deepEqual(ready(firstProgress), [[0, 0], [1, 0]]);
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: firstProgress,
+          preflight: {...applyOptions.preflight,
+            sources: [cid('c'), cid('f')]},
+          dispatchRow: () => assert.fail('stale preflight sent a row'),
+        }), {code: 'MoonBitHostFailure'});
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: firstProgress,
+          dispatchRow: async () => {},
+        }), {code: 'EffectApplyDidNotAdvance'});
+        for (const member of progressMembers) {
+          for (const claim of member.claims) {
+            assert.equal(firstProgress.current(
+              effect.logicalItemLocatorCid(claim.locator)), undefined);
+          }
+        }
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, ledger: firstProgress,
+          dispatchRow: ({memberIndex, rowIndex, claim}) => {
+            assert.deepEqual([memberIndex, rowIndex], [0, 0]);
+            assert.equal(firstProgress.claimDispatch(claim).claimed, true);
+            throw new Error('LostEffectResponse');
+          },
+        }), {message: 'LostEffectResponse'});
+        assert.deepEqual(ready(firstProgress), [[1, 0]]);
+      } finally {
+        firstProgress.close();
+      }
+      const reopenedProgress = openProgress();
+      try {
+        assert.deepEqual(ready(reopenedProgress), [[1, 0]]);
+        assert.equal(reopenedProgress.claimDispatch(
+          progressMembers[0].claims[0]).claimed, false);
+      } finally {
+        reopenedProgress.close();
+      }
       const applyPreview = effect.admitPreviewIdentity(
         preview.wire, JSON.parse(preview.wire).run_identity_cid,
         preview.authoringCid, requestScope, preview.keys,
@@ -1725,34 +1767,38 @@ test('owned update Plan matches approved rows and rejects altered intent',
           execute: async () => { throw new Error('UnknownRowResent'); },
         });
         assert.equal(replay.claimed, false);
-        for (let rowIndex = 0; rowIndex < 2; rowIndex++) {
-          assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
-          const claim = progressMembers[1].claims[rowIndex];
-          const response = await captureClaimedEffectResponse({
-            ledger: resumedProgress, claim,
-            requestCid: claim.canonicalRequestCid,
-            execute: async () => {
-              const reply = await fetch(
-                `http://127.0.0.1:${endpoint.address().port}` +
-                  claim.requestPath,
-                {method: 'PATCH', body: claim.requestBody});
-              return {observation: {useCid: cid('4'),
-                statusCode: reply.status,
-                body: Buffer.from(await reply.arrayBuffer())}};
-            },
-          });
-          assert.equal(response.claimed, true);
-          resumedProgress.recordAdmittedRowOutcome({
-            claim, preview: applyPreview, memberIndex: 1,
-            previewRowIndex: rowIndex,
-            outcomeWire: canonicalJson({state: 'applied',
-              result: {record_id: `row-${rowIndex + 1}`}}),
-          });
-          resumedProgress.commitAdmittedRowOutcome({
-            claim, preview: applyPreview, memberIndex: 1,
-            previewRowIndex: rowIndex,
-          });
-        }
+        const advanced = await applyCapturedEffectSet({
+          ...applyOptions, ledger: resumedProgress,
+          dispatchRow: async ({memberIndex, rowIndex, claim}) => {
+            assert.equal(memberIndex, 1);
+            assert.deepEqual(ready(resumedProgress), [[1, rowIndex]]);
+            const response = await captureClaimedEffectResponse({
+              ledger: resumedProgress, claim,
+              requestCid: claim.canonicalRequestCid,
+              execute: async () => {
+                const reply = await fetch(
+                  `http://127.0.0.1:${endpoint.address().port}` +
+                    claim.requestPath,
+                  {method: 'PATCH', body: claim.requestBody});
+                return {observation: {useCid: cid('4'),
+                  statusCode: reply.status,
+                  body: Buffer.from(await reply.arrayBuffer())}};
+              },
+            });
+            assert.equal(response.claimed, true);
+            resumedProgress.recordAdmittedRowOutcome({
+              claim, preview: applyPreview, memberIndex,
+              previewRowIndex: rowIndex,
+              outcomeWire: canonicalJson({state: 'applied',
+                result: {record_id: `row-${rowIndex + 1}`}}),
+            });
+            resumedProgress.commitAdmittedRowOutcome({
+              claim, preview: applyPreview, memberIndex,
+              previewRowIndex: rowIndex,
+            });
+          },
+        });
+        assert.equal(advanced.dispatched, 2);
         assert.deepEqual(ready(resumedProgress), []);
         assert.deepEqual(seenRequests, progressMembers[1].claims.map(
           claim => ({method: 'PATCH', path: claim.requestPath,
