@@ -2091,6 +2091,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const applyOptions = {
         moon, capturedInputs: previewInputs, members: progressMembers,
         maxFrontierWork: 64,
+        refreshPreflight: async ({preflight}) => preflight,
         preflight: {
           proofs: [second.proof, verified.proof],
           sources: [cid('c'), cid('c')],
@@ -3367,7 +3368,8 @@ test(`two-member captured Effect Run ${
         maxMembers: 2, maxRows: 4, maxFootprintWork: 4, maxWork: 100,
       };
       const applyOptions = {moon, capturedInputs: previewInputs,
-        preflight, ledger, members, maxFrontierWork: 64};
+        preflight, ledger, members, maxFrontierWork: 64,
+        refreshPreflight: async ({preflight}) => preflight};
       const expectedCredentialUses = baseline => baseline.map(
         (count, index) => count + sites[index].seen.filter(item =>
           item.method === 'GET').length);
@@ -3392,7 +3394,7 @@ test(`two-member captured Effect Run ${
           .filter(item => item.method === 'PATCH').length, 0);
       }
       if (siteRun) {
-        applyOptions.refreshGuardObservations = async ({signal}) => {
+        applyOptions.refreshPreflight = async ({signal, preflight}) => {
           currentCatalogs = await refreshSalesforceEffectWriteCatalogs({
             moon: salesforceMoon,
             members: sites.map((site, index) => ({
@@ -3402,11 +3404,33 @@ test(`two-member captured Effect Run ${
               refreshCatalog: site.refreshCatalog,
             })), maxMembers: 2, maxRows: 4, signal,
           });
-          return {observedRows,
+          return {...preflight, observedRows,
             guardVersions: writeKind === 'create' ? [] :
               (await observeCurrentTargets({signal})).flatMap(member =>
                 member.map(observed => observed.versionCid))};
         };
+      }
+      if (physical === 'salesforce') {
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions, refreshPreflight: undefined,
+          dispatchRow: () => assert.fail('missing refresh sent a row'),
+        }), {code: 'InvalidCapturedEffectApply'});
+        for (const [field, values] of [
+          ['capabilities', [cid('9'), cid('d')]],
+          ['authorities', [cid('9'), cid('e')]],
+        ]) {
+          const writesBefore = sites.flatMap(site => site.seen)
+            .filter(item => item.method === 'PATCH').length;
+          await assert.rejects(applyCapturedEffectSet({
+            ...applyOptions,
+            refreshPreflight: async args => ({
+              ...await applyOptions.refreshPreflight(args), [field]: values,
+            }),
+            dispatchRow: () => assert.fail('drifted preflight sent a row'),
+          }), {code: 'MoonBitHostFailure'});
+          assert.equal(sites.flatMap(site => site.seen)
+            .filter(item => item.method === 'PATCH').length, writesBefore);
+        }
       }
       let recoveredApplyOptions;
       let processUnknownSetCid;
@@ -3674,8 +3698,8 @@ test(`two-member captured Effect Run ${
           keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3,
             maxWork: 100},
           refreshPreflight: async ({signal}) => {
-            const current = {...preflight,
-              ...(await applyOptions.refreshGuardObservations({signal}))};
+            const current = await applyOptions.refreshPreflight({signal,
+              preflight});
             delete current.proofs;
             delete current.keys;
             return current;
@@ -4006,7 +4030,7 @@ test(`two-member captured Effect Run ${
           [0].errorCode, 'REQUEST_LIMIT_EXCEEDED');
         const noReplay = await applyCapturedEffectSet({
           ...applyOptions, ledger,
-          refreshGuardObservations: () =>
+          refreshPreflight: () =>
             assert.fail('rate-limited replay refreshed current Site'),
           dispatchRow: () => assert.fail('rate-limited row resent'),
         });
@@ -4053,7 +4077,7 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         const noReplay = await applyCapturedEffectSet({
           ...applyOptions, ledger,
-          refreshGuardObservations: () =>
+          refreshPreflight: () =>
             assert.fail('unknown replay refreshed current Site'),
           dispatchRow: () => assert.fail('uncertain or terminal row resent'),
         });
@@ -4127,7 +4151,7 @@ test(`two-member captured Effect Run ${
         ledger = openLedger();
         const replay = await applyCapturedEffectSet({
           ...applyOptions, ledger,
-          refreshGuardObservations: () =>
+          refreshPreflight: () =>
             assert.fail('terminal replay refreshed current Site'),
           dispatchRow: () => assert.fail('known row resent'),
         });
@@ -4206,13 +4230,13 @@ test(`two-member captured Effect Run ${
       await assert.rejects(applyCapturedEffectSet({
         ...applyOptions, ledger,
         preflight: {...preflight, sources: [cid('c'), cid('f')]},
-        refreshGuardObservations: () =>
+        refreshPreflight: () =>
           assert.fail('foreign terminal replay refreshed current Site'),
         dispatchRow: () => assert.fail('foreign terminal row resent'),
       }), {code: 'MoonBitHostFailure'});
       const replay = await applyCapturedEffectSet({
         ...applyOptions, ledger,
-        refreshGuardObservations: () =>
+        refreshPreflight: () =>
           assert.fail('terminal replay refreshed current Site'),
         dispatchRow: () => assert.fail('terminal row resent'),
       });
@@ -4349,7 +4373,7 @@ test(`two-member captured Effect Run ${
         assert.equal(reconciled.outcome, 'committed');
         const afterRestart = await applyCapturedEffectSet({
           ...applyOptions, ledger,
-          refreshGuardObservations: () =>
+          refreshPreflight: () =>
             assert.fail('publication replay refreshed current Site'),
           dispatchRow: () => assert.fail('committed Effect row resent'),
         });

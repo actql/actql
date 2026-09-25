@@ -57,20 +57,20 @@ const driveAdmittedFrontier = async ({control, frontier, members,
 };
 
 // Drive only the rows admitted by the retained MoonBit Effect frontier.
-// The Site operation owns current credential use and physical observation;
-// this Host boundary never infers a row outcome from its return value.
+// Before any ready row sends, refresh the complete current-use preflight, not
+// only target guards. The Site operation owns credential use and physical
+// observation; this Host never infers an outcome from its return value.
 export async function applyCapturedEffectSet({
   moon, capturedInputs, preflight: suppliedPreflight, ledger, members,
   dispatchRow,
-  maxFrontierWork, signal, refreshGuardObservations,
+  maxFrontierWork, signal, refreshPreflight,
 }) {
   if (!moon || !capturedInputs || !suppliedPreflight || !ledger ||
       typeof ledger.frontierFromCapturedHeads !== 'function' ||
       typeof ledger.prepareCapturedSetIntents !== 'function' ||
       !Array.isArray(members) || members.length === 0 ||
       typeof dispatchRow !== 'function' ||
-      (refreshGuardObservations !== undefined &&
-        typeof refreshGuardObservations !== 'function') ||
+      typeof refreshPreflight !== 'function' ||
       !Number.isSafeInteger(maxFrontierWork) || maxFrontierWork < 1) {
     fail('InvalidCapturedEffectApply');
   }
@@ -90,25 +90,21 @@ export async function applyCapturedEffectSet({
   const initialFrontier = ledger.frontierFromCapturedHeads(
     capturedInputs, ownedMembers, maxFrontierWork);
   const noReadyRows = control.setFrontierReadyCount(initialFrontier) === 0;
-  const currentGuards = noReadyRows || refreshGuardObservations === undefined
-    ? preflight : await refreshGuardObservations({signal});
-  if (!Array.isArray(currentGuards?.observedRows) ||
-      !Array.isArray(currentGuards.guardVersions)) {
-    fail('InvalidCapturedEffectGuardObservations');
-  }
+  const current = noReadyRows ? preflight :
+    ownPreflight(await refreshPreflight({signal, preflight}));
   signal?.throwIfAborted();
   checked(moon.clientProgramCheckEffectApplyPreflight(
-    capturedInputs, preflight.proofs, preflight.sources,
-    preflight.contracts, preflight.capabilities, preflight.authorities,
-    currentGuards.observedRows, currentGuards.guardVersions,
-    preflight.routes,
-    preflight.risk, preflight.reviewProjectionCid,
-    preflight.authorityScopeCid, preflight.policyCid,
-    preflight.validityCid, preflight.issuerCid,
-    preflight.authenticationCid, preflight.issuerKind,
-    preflight.decision, preflight.requestScope, preflight.keys,
-    preflight.maxMembers, preflight.maxRows,
-    preflight.maxFootprintWork, preflight.maxWork,
+    capturedInputs, current.proofs, current.sources,
+    current.contracts, current.capabilities, current.authorities,
+    current.observedRows, current.guardVersions,
+    current.routes,
+    current.risk, current.reviewProjectionCid,
+    current.authorityScopeCid, current.policyCid,
+    current.validityCid, current.issuerCid,
+    current.authenticationCid, current.issuerKind,
+    current.decision, current.requestScope, current.keys,
+    current.maxMembers, current.maxRows,
+    current.maxFootprintWork, current.maxWork,
   ));
   if (noReadyRows) {
     return Object.freeze({dispatched: 0, frontier: initialFrontier});
