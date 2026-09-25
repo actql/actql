@@ -2205,6 +2205,17 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       );
     },
+    capturedEffectSourceRecoveryInventoryValid(preview, sources) {
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex))) {
+        throw new TypeError('Invalid recovered Effect source inventory');
+      }
+      return moon.strategyCapturedEffectSourceRecoveryInventoryValid(
+        ownedPreview, sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)),
+      );
+    },
     issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||

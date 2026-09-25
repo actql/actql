@@ -3112,6 +3112,15 @@ test(`two-member captured Effect Run ${
         runDefinition, store.storeAuthorityCid),
       control.effectComputationRecordHoldingCid(
         runDefinition, store.storeAuthorityCid));
+      const captureSources = [firstHolding, secondHolding].map(
+        value => ({memberIndex: value.memberIndex,
+          artifact: value.artifact}));
+      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
+        admittedPreview, captureSources), true);
+      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
+        admittedPreview, captureSources.slice(1)), false);
+      assert.equal(control.capturedEffectSourceRecoveryInventoryValid(
+        admittedPreview, [captureSources[0], captureSources[0]]), false);
       if (restartBeforeApply) {
         const before = JSON.stringify(await store.inspectPhysicalHolding(
           control.effectComputationCaptureHoldingCid(

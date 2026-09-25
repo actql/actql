@@ -98,7 +98,8 @@ release responsibility or counting its bytes twice. An encrypted private
 record retains the exact captured chain and schema wires. Recovery derives
 both holding keys from the admitted Run and Store authority, decrypts the
 record, re-admits the computation chain with MoonBit, confirms source and
-output custody, and reconstructs only the publication owner. It does not
+output custody, and reconstructs only the publication owner. MoonBit also
+rejects omitted or duplicated recovered source members before apply. It does not
 re-run Compute or grant write authority. A separate Node process opens the
 real Store and re-admits this capture from the Run Definition alone. The
 two-member Host regression then reopens the Store with a fresh publication

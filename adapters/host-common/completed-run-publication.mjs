@@ -612,7 +612,8 @@ export async function recoverCompletedEffectfulComputation(options) {
         'capturedEffectSourceArtifactCid',
         'effectComputationCaptureHoldingCid',
         'effectComputationRecordHoldingCid',
-        'effectfulComputationEvidenceChainValid']
+        'effectfulComputationEvidenceChainValid',
+        'capturedEffectSourceRecoveryInventoryValid']
         .every(name => typeof control?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryOptions');
   }
@@ -693,15 +694,22 @@ export async function recoverCompletedEffectfulComputation(options) {
   }, preview, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
-  const sourceHoldings = [];
-  for (const item of captured.effect_source_artifacts) {
+  const sourceInventory = captured.effect_source_artifacts.map(item => {
     if (!exactKeys(item, ['member_index', 'artifact']) ||
         !Number.isSafeInteger(item.member_index) || item.member_index < 0) {
       fail('InvalidCompletedEffectfulCaptureSource');
     }
-    const artifact = admit('effect_source_artifact', item.artifact);
+    return Object.freeze({memberIndex: item.member_index,
+      artifact: admit('effect_source_artifact', item.artifact)});
+  });
+  if (!control.capturedEffectSourceRecoveryInventoryValid(
+    preview, sourceInventory)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  const sourceHoldings = [];
+  for (const {memberIndex, artifact} of sourceInventory) {
     const source = control.admitCapturedEffectSourceArtifact(
-      preview, item.member_index, invocation, artifact,
+      preview, memberIndex, invocation, artifact,
       store.storeAuthorityCid,
     );
     const holdingCid = control.capturedEffectSourceHoldingCid(source);

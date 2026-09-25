@@ -439,6 +439,8 @@ pub fn strategy_captured_effect_source_artifact_cid(@run_publication.CapturedEff
 
 pub fn strategy_captured_effect_source_holding_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
+pub fn strategy_captured_effect_source_recovery_inventory_valid(@run_publication.EffectPreviewIdentity, Array[Int], Array[@run_publication.PublicationContract]) -> Bool
+
 pub fn strategy_captured_effect_source_store_authority_cid(@run_publication.CapturedEffectSourceArtifact) -> String
 
 pub fn strategy_check_effect_member_receipt_row_partition_evidence(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], String, Int, Int, Int, Int) -> Bool raise NodeHostFailure

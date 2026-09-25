@@ -59,6 +59,8 @@ pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> Strin
 
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 
+pub fn captured_effect_source_recovery_inventory_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract]) -> Bool
+
 pub fn captured_effect_source_store_authority_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?

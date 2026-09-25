@@ -89,6 +89,42 @@ pub fn effect_computation_record_holding_cid(
 }
 
 ///|
+/// An encrypted recovery inventory may only reattach every exact source
+/// member of the admitted Preview, once each. The Captured Run chain already
+/// validates its own source inventory against this Preview separately.
+pub fn captured_effect_source_recovery_inventory_valid(
+  preview : EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[PublicationContract],
+) -> Bool {
+  let count = effect_preview_member_count(preview)
+  if count == 0 || member_indices.length() != artifacts.length() {
+    return false
+  }
+  let seen = Array::make(count, false)
+  for index in 0..<member_indices.length() {
+    let member_index = member_indices[index]
+    if member_index < 0 ||
+      member_index >= count ||
+      seen[member_index] ||
+      artifacts[index].name != "effect_source_artifact" ||
+      effect_preview_member_source_result(preview, member_index) is None ||
+      effect_preview_member_result_artifact_cid(preview, member_index) !=
+      Some(artifacts[index].identity) {
+      return false
+    }
+    seen[member_index] = true
+  }
+  for index in 0..<count {
+    if (effect_preview_member_source_result(preview, index) is Some(_)) !=
+      seen[index] {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Independent Effect-source custody for one member and Run occurrence.
 /// A public Result and this private input may share immutable bytes, never
 /// the same holding or release responsibility.

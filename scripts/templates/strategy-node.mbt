@@ -1679,6 +1679,18 @@ pub fn strategy_effectful_computation_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyCapturedEffectSourceRecoveryInventoryValid")
+pub fn strategy_captured_effect_source_recovery_inventory_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_recovery_inventory_valid(
+    preview, member_indices, artifacts,
+  )
+}
+
+///|
 #export_name("strategyEffectFreePublicationCommitValid")
 pub fn strategy_effect_free_publication_commit_valid(
   run_definition : @publication.PublicationContract,
