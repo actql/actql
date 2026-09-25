@@ -17,21 +17,24 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
+| The installed Host fixture authors its private Preview and supplies current target guards itself. The ordinary Salesforce path does not yet obtain the exact target observations under current Site authority and author that Preview from the captured input. Connect that Site observation and Preview construction to the existing captured owner before apply. | For update and upsert, observe every guarded target before the first write. A missing or changed observation rejects the whole set with zero write sends and zero write-credential uses; an approved Preview is never silently rebuilt from the new state. Check create's explicit not-applicable guard separately. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and restart without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
 | Declared Salesforce Catalog/read/write capabilities still need section 22.5 evidence at one revision. | A capability-to-entrypoint/test matrix covers authority, pagination, partial metadata, staleness, schema drift, rate limit, preview freshness, and unknown recovery. Local contract tests and live-org evidence are distinguished. |
 
-Completed locally, not a remaining connection: `applyCapturedEffectSet`
-drives the admitted two-member, multi-row owner through the MoonBit frontier,
-credentialed Salesforce-shaped Site operations, durable row custody, and
+Completed locally, not a remaining connection: given an exact private Preview
+and current guard observations, `applyCapturedEffectSet` drives the admitted
+two-member, multi-row owner through the MoonBit frontier, credentialed
+Salesforce-shaped Site operations, durable row custody, and
 `publishCompletedEffectfulRun`. The Host regressions cover halt/continue,
-unknown without resend, Collections partial failure, claim and saved-response
-faults, and lost publication-index acknowledgement. A Store restart after
-durable index commit leaves a commit-unknown owner that reconciles the exact
+unknown without resend, Collections partial failure, missing and stale guards,
+claim and saved-response faults, and lost publication-index acknowledgement.
+A Store restart after durable index commit leaves a commit-unknown owner
+that reconciles the exact
 index without another Effect send. The installed SDK can then attach, inspect
 committed success, and read `answer` through an authorized delivery attempt.
 After Store reopen, retiring the public Result alone leaves private Preview
-and both Effect-source holdings intact;
-metadata retirement removes them after the last owner. These tests do not
+and both Effect-source holdings intact; metadata retirement removes them
+after the last owner. These tests do not
 constitute public Effectful `submit`, live Salesforce validation, or
 same-SHA Linux CI.
 
@@ -224,7 +227,7 @@ its exact Catalog observation, current grant, and selected Site capability.
 | --- | --- | --- |
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Run the same declared metadata projection against the isolated org; confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use on both raw and managed paths, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner. The managed path also rejects a foreign continuation and does not append a fresh query after locator failure. | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
-| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `client-program-bridge.test.mjs` runs each operation as a separate checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. A lost create reply remains unknown after Ledger reopen without resending POST. | Verify current target and Preview freshness against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
+| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `client-program-bridge.test.mjs` runs each operation as a separate checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. It rejects missing or stale fixture-supplied guards before any write; a lost create reply remains unknown after Ledger reopen without resending POST. | Connect authorized current target observation and Preview authoring to the captured owner, then verify freshness against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
 | Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
 | Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
 | Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |

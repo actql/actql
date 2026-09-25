@@ -2510,6 +2510,13 @@ test(`two-member captured Effect Run ${
         await assert.rejects(applyCapturedEffectSet({
           ...applyOptions,
           preflight: {...preflight,
+            observedRows: observedRows.slice(1),
+            guardVersions: preflight.guardVersions.slice(1)},
+          dispatchRow: () => assert.fail('missing guard dispatched'),
+        }), {code: 'MoonBitHostFailure'});
+        await assert.rejects(applyCapturedEffectSet({
+          ...applyOptions,
+          preflight: {...preflight,
             guardVersions: observedRows.map(() => cid('9'))},
           dispatchRow: () => assert.fail('stale row dispatched'),
         }), {code: 'MoonBitHostFailure'});
