@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeQuery } from '../native-query.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 100, maxTransportBytes: 10000,
@@ -80,7 +81,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
     try {
       await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE); INSERT INTO records VALUES (3, 30), (1, NULL), (2, 20)');
     } finally { connection.closeSync(); database.closeSync(); }
-    const grant = await authorizeLocalDatabase(path);
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const events = [];
     let transferred = 0;
     const captured = await runNativeQuery(grant, factory(events, 'success'), limits, undefined, {

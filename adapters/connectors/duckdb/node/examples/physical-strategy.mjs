@@ -1,4 +1,5 @@
 import { readFile, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -14,6 +15,8 @@ import { checked } from '../runtime-result.mjs';
 import {configureLocalProcessStore} from '../../../../local-node/retained-process.mjs';
 import {completionObserver} from '../../../../host-common/completion-observer.mjs';
 import {snapshotDataProfile} from './data-profile.mjs';
+import {createNodeAuthorizationGate} from '../../../../host-node/authorization.mjs';
+import {requireAuthorizedDispatch} from '../../../../host-common/authorization-gate.mjs';
 
 const root = new URL('../../../../../', import.meta.url);
 const runtimeUrl = new URL('_build/js/release/build/physical_strategy_example/physical_strategy_example.js', root);
@@ -37,6 +40,36 @@ export function exampleDatabaseMemoryBytes(
     ? Number(configured / 2n) : limits.memoryBytes;
 }
 
+// The example application's installed execution account: an explicit Local
+// profile that allows preparing and reading exactly its configured source
+// table, and nothing else. It is Host installation, never Program input, and
+// not a missing-configuration fallback. Pure compute over the captured input
+// needs no grant; a caller may install a different gate.
+export function exampleAuthorization({database, schema = 'main', table = 'records'}) {
+  const configuration = JSON.stringify({
+    version: 'actql-execution-account-config/0.1',
+    account_id: 'example-application',
+    entries: [{
+      entry_id: 'example-source',
+      outcome: 'allow',
+      principal: {all: true},
+      connection: {any_of: [database]},
+      resource: {any_of: [`${schema}.${table}`]},
+      operation: {any_of: ['prepare', 'read']},
+      exclusions: [],
+    }],
+  });
+  return createNodeAuthorizationGate({
+    configuration,
+    // Installation-time digest of the exact installed configuration text.
+    configurationCid: `sha256:${createHash('sha256').update(configuration).digest('hex')}`,
+    context: {principal: 'example-application', contextCid: `sha256:${'0'.repeat(64)}`},
+  });
+}
+
+const exampleSourceScope = ({database, schema = 'main', table = 'records'}) =>
+  Object.freeze({connection: database, resource: `${schema}.${table}`});
+
 async function boundedText(path) {
   if ((await stat(path)).size > 1000000) throw new Error('Example input exceeds 1000000 bytes');
   const bytes = await readFile(path);
@@ -51,9 +84,16 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal }, observer) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal,
+  authorization }, observer) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
+  if (typeof database !== 'string') throw new Error('Invalid example configuration');
+  // Preparation boundary: authorized before any Program/Environment path read,
+  // source capture or Run creation.
+  const gate = authorization ?? await exampleAuthorization({database, schema, table});
+  await requireAuthorizedDispatch(gate, 'preparation',
+    {...exampleSourceScope({database, schema, table}), operation: 'prepare'}, {signal});
   const [programText, environmentText, parameterText, adoptedText, query, evidence, receipts] =
     await Promise.all([program, environment, parameters,
       new URL('../contracts/adopted-relation.json', import.meta.url),
@@ -66,11 +106,12 @@ export async function runExample({ database, environment, environmentCid, progra
     acquisitionRetainedOutput, managedOutput,
     retainedWorkMilliseconds, localImportWorkMilliseconds,
     localExportWorkMilliseconds, nativeTaskMilliseconds, localTaskMilliseconds,
-    localEligible, dataProfile});
+    localEligible, dataProfile, authorization: gate});
   const opened = await plan.open(signal);
   let execution;
   try {
-    execution = await runCapturedStrategy(opened.setup, opened.configurations, signal, observer);
+    execution = await runCapturedStrategy(opened.setup,
+      {...opened.configurations, authorization: gate}, signal, observer);
     return Object.freeze({report: opened.describe(execution), execution, capture: opened.capture,
       close() {
         // Revoke both result ports synchronously; await independent physical
@@ -97,7 +138,8 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedOutput, acquisitionRetainedOutput, managedOutput,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
-  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile}, resourceLimits) {
+  nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile,
+  authorization}, resourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -258,7 +300,13 @@ export async function prepareExampleText({database, environmentCid, programText,
         retainedOutput: computeRetention,
       })
       : duckdbConfiguration;
-    const grant = await authorizeLocalDatabase(database);
+    // Acquisition boundary: the source grant carries the installed gate and
+    // the exact source scope; no provider session opens without a dispatch
+    // decision for it.
+    const grant = await authorizeLocalDatabase(database, {
+      authorization: authorization ?? await exampleAuthorization({database, schema, table}),
+      ...exampleSourceScope({database, schema, table}),
+    });
     signal?.throwIfAborted();
     const capture = acquisitionRetention
       ? await runRetainedStrategyNativeHostQuery(grant, app.applicationAcquisition(prepared),

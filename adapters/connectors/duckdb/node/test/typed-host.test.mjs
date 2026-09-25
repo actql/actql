@@ -10,6 +10,7 @@ import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeHostQuery, runBroadHostQuery } from '../host.mjs';
 import { canonical, hash, typedCatalog } from './typed-catalog.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -57,7 +58,7 @@ test('standard native and broad Hosts admit exact scalar families and reject dis
           await connection.run(`CREATE TABLE records(id DOUBLE, amount ${sqlType})`);
           await connection.run(`INSERT INTO records VALUES (3,${sql}),(1,${invalid ? badSql : 'NULL'}),(3,${sql})`);
         } finally { connection.closeSync(); db.closeSync(); }
-        const grant = await authorizeLocalDatabase(path);
+        const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
         for (const native of [true, false]) {
           const fixture = native ? moon.issuedNativeCreate(...setupArgs, 100, () => false)
             : moon.issuedBroadCreate(...setupArgs.slice(0, -1), 100, () => false);
