@@ -1030,6 +1030,29 @@ test "Effect Set receipt references every exact Preview member receipt" {
     256,
     12,
   ).unwrap()
+  let issued = issue_effect_set_apply_receipt_from_members(
+    preview,
+    [member_receipt],
+    [false],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(issued),
+    publication_contract_identity(set),
+  )
+  assert_true(
+    issue_effect_set_apply_receipt_from_members(
+      preview,
+      [member_receipt],
+      [],
+      8192,
+      256,
+      12,
+    )
+    is Err(InvalidInventory),
+  )
   assert_true(
     admit_effect_set_apply_receipt_references(
       preview,
@@ -1146,6 +1169,46 @@ test "Effect Set receipt closes two members regardless of dispatch order" {
     ).unwrap(),
   ]
   let wires = receipts.map(publication_contract_json)
+  let issued = issue_effect_set_apply_receipt_from_members(
+    preview,
+    receipts,
+    [false, true],
+    16384,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    admit_effect_set_apply_receipt_references(
+      preview,
+      publication_contract_json(issued),
+      wires,
+      16384,
+      512,
+      16,
+    )
+    is Ok(_),
+  )
+  guard @json.object_field(issued.value, "effects") is Some(@json.Array(items)) else {
+    fail("missing issued set inventory")
+  }
+  let effects = @json.array_values(items)
+  assert_true(
+    @json.object_field(effects[0], "replayed") is Some(@json.Bool(false)),
+  )
+  assert_true(
+    @json.object_field(effects[1], "replayed") is Some(@json.Bool(true)),
+  )
+  assert_true(
+    issue_effect_set_apply_receipt_from_members(
+      preview,
+      [receipts[1], receipts[0]],
+      [false, true],
+      16384,
+      512,
+      16,
+    )
+    is Err(MemberReceipt(0, _)),
+  )
   let first = effect_receipt_test_set_entry(
     "WriteOne",
     member_cids[0],

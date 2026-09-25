@@ -1057,6 +1057,11 @@ test('portable control validates Receipt and Captured Run references',
       }],
       status: 'applied',
     }), limits);
+  const issuedSet = control.issueEffectSetApplyReceiptFromMembers(
+    preview, [memberReceipt], [false], limits);
+  assert.equal(issuedSet.identity, setReceipt.identity);
+  assert.throws(() => control.issueEffectSetApplyReceiptFromMembers(
+    preview, [memberReceipt], [], limits), {code: 'MoonBitHostFailure'});
   const finalChain = {
     runDefinition: run, invocation: invoked,
     definitions: [definition], artifacts: [artifact], manifest,
