@@ -47,6 +47,18 @@ export function openEffectLedger({
     authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes,
     maxStoredBytes,
   });
+  const ownedBatchEvidence = new WeakSet();
+  const assertOwnedBatchEvidence = (claims, evidence) => {
+    if (!Array.isArray(claims) || !ownedBatchEvidence.has(evidence) ||
+        claims !== evidence.claims ||
+        claims.length !== evidence.locatorCids.length ||
+        claims.some((item, index) =>
+          control.logicalItemLocatorCid(item.locator) !==
+            evidence.locatorCids[index] ||
+          item.canonicalRequestCid !== evidence.requestCid)) {
+      fail('EffectPhysicalResponseNotOwned');
+    }
+  };
   const flightPrefix = `${realpathSync(root)}\0${scopeCid}\0`;
   // A physical call still owns its row if the durable head advances from
   // dispatching to unknown while the call is settling.
@@ -98,10 +110,15 @@ export function openEffectLedger({
     });
   };
   const admitStoredRowOutcome = ({claim, claims, batchRowIndex, preview,
-    memberIndex, previewRowIndex}) => {
-    const stored = claims === undefined
-      ? ledger.readClaimedResponse(claim)
-      : ledger.readClaimedBatchResponse(claims);
+    memberIndex, previewRowIndex, responseEvidence}) => {
+    if (responseEvidence !== undefined) {
+      assertOwnedBatchEvidence(claims, responseEvidence);
+    }
+    const stored = responseEvidence === undefined
+      ? claims === undefined
+        ? ledger.readClaimedResponse(claim)
+        : ledger.readClaimedBatchResponse(claims)
+      : responseEvidence.stored;
     if (stored === undefined ||
         (claims === undefined && batchRowIndex !== undefined) ||
         (claims !== undefined &&
@@ -112,7 +129,8 @@ export function openEffectLedger({
     const ownedClaim = claims === undefined ? claim : claims[batchRowIndex];
     const locatorCid = control.logicalItemLocatorCid(ownedClaim.locator);
     const current = validateStored(physical.current(locatorCid));
-    const outcome = physical.outcomeForLocator(locatorCid);
+    const outcome = physical.outcomeForLocator(
+      locatorCid, responseEvidence?.stored);
     if (current === undefined || outcome === undefined ||
         outcome.responsePhysicalSha256 !== stored.responsePhysicalSha256) {
       fail('EffectPhysicalOutcomeNotOwned');
@@ -120,22 +138,34 @@ export function openEffectLedger({
     const dispatchEntryCid = claims === undefined
       ? stored.dispatchEntryCid
       : stored.batchMembers[batchRowIndex].dispatchEntryCid;
-    const receipt = control.admitRowOutcomeReceipt(
-      preview, memberIndex, previewRowIndex, dispatchEntryCid,
-      stored.credentialUseCid, stored.responseBytes, stored.statusCode,
-      outcome.outcomeJson, maxResponseBytes, maxEntryBytes,
-      maxOutcomeNodes, maxOutcomeDepth);
+    const receipt = responseEvidence === undefined
+      ? control.admitRowOutcomeReceipt(
+        preview, memberIndex, previewRowIndex, dispatchEntryCid,
+        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+        outcome.outcomeJson, maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth)
+      : control.admitRowOutcomeReceiptFromResponse(
+        preview, memberIndex, previewRowIndex, dispatchEntryCid,
+        responseEvidence.typed, outcome.outcomeJson, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth);
     if (receipt.identity !== outcome.outcomeCid) {
       fail('EffectPhysicalOutcomeCollision');
     }
-    const terminal = control.issueRowReceiptTerminalEntry(
-      preview, memberIndex, previewRowIndex, ownedClaim.scope,
-      ownedClaim.locator, ownedClaim.key, ownedClaim.canonicalRequestCid,
-      current.entry, physical.history(locatorCid, maxEntries).map(row =>
-        validateStored(row).entry), dispatchEntryCid, stored.credentialUseCid,
-      stored.responseBytes, stored.statusCode, receipt.wire,
-      maxResponseBytes, maxEntryBytes,
-      maxOutcomeNodes, maxOutcomeDepth);
+    const history = physical.history(locatorCid, maxEntries).map(row =>
+      validateStored(row).entry);
+    const terminal = responseEvidence === undefined
+      ? control.issueRowReceiptTerminalEntry(
+        preview, memberIndex, previewRowIndex, ownedClaim.scope,
+        ownedClaim.locator, ownedClaim.key, ownedClaim.canonicalRequestCid,
+        current.entry, history, dispatchEntryCid, stored.credentialUseCid,
+        stored.responseBytes, stored.statusCode, receipt.wire,
+        maxResponseBytes, maxEntryBytes,
+        maxOutcomeNodes, maxOutcomeDepth)
+      : control.issueRowReceiptTerminalEntryFromResponse(
+        preview, memberIndex, previewRowIndex, ownedClaim.scope,
+        ownedClaim.locator, ownedClaim.key, ownedClaim.canonicalRequestCid,
+        current.entry, history, dispatchEntryCid, responseEvidence.typed,
+        receipt.wire, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
     return Object.freeze({current, receipt, terminal});
   };
   const ledger = Object.freeze({
@@ -373,15 +403,20 @@ export function openEffectLedger({
     // The common MoonBit issuer fixes the receipt semantics before SQLite
     // retains it. The original response remains the sole physical observation.
     recordAdmittedRowOutcome({claim, claims, batchRowIndex, preview,
-      memberIndex, previewRowIndex, outcomeWire}) {
+      memberIndex, previewRowIndex, outcomeWire, responseEvidence}) {
       if (!preview || !Number.isSafeInteger(memberIndex) ||
           !Number.isSafeInteger(previewRowIndex) ||
           typeof outcomeWire !== 'string') {
         fail('InvalidEffectRowOutcomeReceipt');
       }
-      const stored = claims === undefined
-        ? ledger.readClaimedResponse(claim)
-        : ledger.readClaimedBatchResponse(claims);
+      if (responseEvidence !== undefined) {
+        assertOwnedBatchEvidence(claims, responseEvidence);
+      }
+      const stored = responseEvidence === undefined
+        ? claims === undefined
+          ? ledger.readClaimedResponse(claim)
+          : ledger.readClaimedBatchResponse(claims)
+        : responseEvidence.stored;
       if (stored === undefined ||
           (claims === undefined && batchRowIndex !== undefined) ||
           (claims !== undefined &&
@@ -402,21 +437,33 @@ export function openEffectLedger({
       const dispatchEntryCid = claims === undefined
         ? stored.dispatchEntryCid
         : stored.batchMembers[batchRowIndex].dispatchEntryCid;
-      const issued = control.issueRowOutcomeReceipt(
-        preview, memberIndex, previewRowIndex, dispatchEntryCid,
-        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
-        outcomeWire, maxResponseBytes, maxEntryBytes,
-        maxOutcomeNodes, maxOutcomeDepth);
-      control.admitRowOutcomeReceipt(
-        preview, memberIndex, previewRowIndex, dispatchEntryCid,
-        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
-        issued.wire, maxResponseBytes, maxEntryBytes,
-        maxOutcomeNodes, maxOutcomeDepth);
-      const custody = ledger.recordClaimedOutcome({
-        claim, claims, rowIndex: batchRowIndex,
-        responsePhysicalSha256: stored.responsePhysicalSha256,
-        outcomeCid: issued.identity, outcomeJson: issued.wire,
-      });
+      const issued = responseEvidence === undefined
+        ? control.issueRowOutcomeReceipt(
+          preview, memberIndex, previewRowIndex, dispatchEntryCid,
+          stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+          outcomeWire, maxResponseBytes, maxEntryBytes,
+          maxOutcomeNodes, maxOutcomeDepth)
+        : control.issueRowOutcomeReceiptFromResponse(
+          preview, memberIndex, previewRowIndex, dispatchEntryCid,
+          responseEvidence.typed, outcomeWire, maxEntryBytes,
+          maxOutcomeNodes, maxOutcomeDepth);
+      // The issuer owns this freshly sealed Receipt. Re-admit only after a
+      // persisted or external boundary, where the original trust is absent.
+      const custody = responseEvidence === undefined
+        ? ledger.recordClaimedOutcome({
+          claim, claims, rowIndex: batchRowIndex,
+          responsePhysicalSha256: stored.responsePhysicalSha256,
+          outcomeCid: issued.identity, outcomeJson: issued.wire,
+        })
+        : physical.recordOutcome({
+          logicalRequestScopeCid: scopeCid,
+          logicalItemLocatorCid:
+            stored.batchMembers[batchRowIndex].logicalItemLocatorCid,
+          dispatchEntryCid,
+          responsePhysicalSha256: stored.responsePhysicalSha256,
+          outcomeCid: issued.identity, outcomeJson: issued.wire,
+          batchEvidence: stored,
+        });
       return Object.freeze({receipt: issued, custody});
     },
     // Commit only a previously retained and re-admitted row Receipt. This is
@@ -427,8 +474,8 @@ export function openEffectLedger({
         control.ledgerEntryWire(terminal))});
     },
     // A terminal row can be read for member aggregation only after the caller
-    // separately admits evidence viewing. This rechecks exact physical bytes,
-    // the semantic Receipt, and the full durable dispatch history.
+    // separately admits evidence viewing. An external read rechecks exact
+    // physical bytes, the Receipt, and the durable dispatch history.
     readAdmittedTerminalOutcome(options) {
       const {current, receipt, terminal} = admitStoredRowOutcome(options);
       if (control.ledgerEntryCid(terminal) !==
@@ -469,17 +516,28 @@ export function openEffectLedger({
         validateStored(row)?.entry);
       const activeOwners = heads.map(head => head !== undefined &&
         activePhysicalFlights.has(flightKey(head)));
+      const batchEvidence = new Map();
       const terminalWires = heads.map((head, rowIndex) => {
         if (head === undefined ||
             ![2, 3, 4].includes(control.ledgerEntryStateCode(head))) {
           return undefined;
         }
         const owner = rowOwners[rowIndex];
+        let responseEvidence;
+        if (owner.claims !== undefined) {
+          responseEvidence = batchEvidence.get(owner.claims);
+          if (responseEvidence === undefined) {
+            responseEvidence = ledger.prepareOwnedBatchResponseEvidence(
+              owner.claims);
+            batchEvidence.set(owner.claims, responseEvidence);
+          }
+        }
         const {current, receipt, terminal} = admitStoredRowOutcome({
           ...(owner.claims === undefined ? {claim: claims[rowIndex]} : {
             claims: owner.claims, batchRowIndex: owner.batchRowIndex,
           }),
           preview, memberIndex, previewRowIndex: rowIndex,
+          responseEvidence,
         });
         if (control.ledgerEntryCid(current.entry) !==
             control.ledgerEntryCid(head) ||
@@ -544,6 +602,22 @@ export function openEffectLedger({
         fail('EffectCollectionResponseBindingMismatch');
       }
       return row;
+    },
+    // One exact, Store-verified batch read yields an opaque MoonBit response
+    // fact for all its row Receipts. A bare digest cannot enter this path.
+    prepareOwnedBatchResponseEvidence(claims) {
+      const stored = ledger.readClaimedBatchResponse(claims);
+      if (stored === undefined) fail('EffectPhysicalResponseNotOwned');
+      const typed = control.admitSavedResponseEvidence(
+        stored.batchMembers.map(member => member.dispatchEntryCid),
+        stored.credentialUseCid, stored.responseBytes, stored.statusCode,
+        maxResponseBytes);
+      const evidence = Object.freeze({claims, stored, typed,
+        requestCid: claims[0].canonicalRequestCid,
+        locatorCids: Object.freeze(stored.batchMembers.map(member =>
+          member.logicalItemLocatorCid))});
+      ownedBatchEvidence.add(evidence);
+      return evidence;
     },
     // Each Collections row retains its own dispatch and outcome owner even
     // though all rows share one durable HTTP observation.

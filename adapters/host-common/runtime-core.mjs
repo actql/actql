@@ -83,6 +83,17 @@ function effectApplicationControl(moon) {
         terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
       });
     },
+    admitSavedResponseEvidence: (...args) => checked(
+      moon.strategyAdmitEffectSavedResponseEvidence(...args)),
+    issueRowOutcomeReceiptFromResponse: (...args) => {
+      const value = checked(
+        moon.strategyIssueEffectRowOutcomeReceiptFromResponse(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
     admitRowOutcomeReceipt: (...args) => {
       const value = checked(moon.strategyAdmitEffectRowOutcomeReceipt(...args));
       return Object.freeze({
@@ -91,8 +102,20 @@ function effectApplicationControl(moon) {
         terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
       });
     },
+    admitRowOutcomeReceiptFromResponse: (...args) => {
+      const value = checked(
+        moon.strategyAdmitEffectRowOutcomeReceiptFromResponse(...args));
+      return Object.freeze({
+        identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value),
+        terminalState: moon.strategyEffectRowOutcomeReceiptTerminalState(value),
+      });
+    },
     issueRowReceiptTerminalEntry: (...args) => checked(
       moon.strategyIssueEffectRowReceiptTerminalEntry(...args),
+    ),
+    issueRowReceiptTerminalEntryFromResponse: (...args) => checked(
+      moon.strategyIssueEffectRowReceiptTerminalEntryFromResponse(...args),
     ),
     checkMemberReceiptRowPartitionEvidence: (...args) => checked(
       moon.strategyCheckEffectMemberReceiptRowPartitionEvidence(...args),

@@ -339,6 +339,9 @@ export function openSqliteEffectLedger(root, {
       responsePhysicalSha256: row.physical_sha256,
     });
   };
+  const dataVersion = database.prepare('PRAGMA data_version');
+  const currentDataVersion = () => dataVersion.get().data_version;
+  const verifiedBatchResponses = new WeakMap();
   const materializeBatchResponse = dispatchEntryCid => {
     const member = readBatchMember.get(dispatchEntryCid);
     if (member === undefined) return undefined;
@@ -366,7 +369,7 @@ export function openSqliteEffectLedger(root, {
           ?.logical_request_scope_cid !== row.logical_request_scope_cid) {
       fail('EffectLedgerIntegrityFailed');
     }
-    return Object.freeze({
+    const verified = Object.freeze({
       logicalItemLocatorCid: member.logical_item_locator_cid,
       dispatchEntryCid,
       logicalRequestScopeCid: row.logical_request_scope_cid,
@@ -382,6 +385,8 @@ export function openSqliteEffectLedger(root, {
         logicalItemLocatorCid: item.logical_item_locator_cid,
       }))),
     });
+    verifiedBatchResponses.set(verified, currentDataVersion());
+    return verified;
   };
   const response = dispatchEntryCid => {
     active();
@@ -405,12 +410,8 @@ export function openSqliteEffectLedger(root, {
       readResponseLocators, readBatchLocators);
     return dispatchCid === undefined ? undefined : response(dispatchCid);
   };
-  const outcome = dispatchEntryCid => {
-    active();
-    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
-    const row = readOutcome.get(dispatchEntryCid);
+  const materializeOutcome = (row, observed) => {
     if (row === undefined) return undefined;
-    const observed = response(dispatchEntryCid);
     if (!cid(row.dispatch_entry_cid) ||
         !cid(row.logical_item_locator_cid) ||
         !cid(row.logical_request_scope_cid) ||
@@ -420,7 +421,11 @@ export function openSqliteEffectLedger(root, {
         Buffer.byteLength(row.outcome_json) > maxEntryBytes ||
         !sha256Hex(row.physical_sha256) ||
         outcomeDigest(row) !== row.physical_sha256 ||
-        observed?.logicalItemLocatorCid !== row.logical_item_locator_cid ||
+        !(observed?.batchMembers === undefined
+          ? observed?.logicalItemLocatorCid === row.logical_item_locator_cid
+          : observed.batchMembers.some(member =>
+            member.dispatchEntryCid === row.dispatch_entry_cid &&
+            member.logicalItemLocatorCid === row.logical_item_locator_cid)) ||
         observed.logicalRequestScopeCid !== row.logical_request_scope_cid ||
         observed.responsePhysicalSha256 !==
           row.response_physical_sha256) {
@@ -434,6 +439,13 @@ export function openSqliteEffectLedger(root, {
       outcomeCid: row.outcome_cid,
       outcomeJson: row.outcome_json,
     });
+  };
+  const outcome = dispatchEntryCid => {
+    active();
+    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+    const row = readOutcome.get(dispatchEntryCid);
+    return row === undefined ? undefined :
+      materializeOutcome(row, response(dispatchEntryCid));
   };
   return Object.freeze({
     current,
@@ -466,17 +478,27 @@ export function openSqliteEffectLedger(root, {
     },
     responseForLocator,
     outcome,
-    outcomeForLocator(locatorCid) {
+    outcomeForLocator(locatorCid, batchEvidence) {
       active();
       if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+      if (batchEvidence !== undefined &&
+          !verifiedBatchResponses.has(batchEvidence)) {
+        fail('EffectPhysicalResponseNotOwned');
+      }
       const rows = readOutcomeLocators.all(locatorCid);
       if (rows.length > 1) fail('EffectLedgerIntegrityFailed');
-      return rows.length === 0 ? undefined : outcome(rows[0].dispatch_entry_cid);
+      if (rows.length === 0) return undefined;
+      const dispatchEntryCid = rows[0].dispatch_entry_cid;
+      const reused = batchEvidence !== undefined &&
+        verifiedBatchResponses.get(batchEvidence) === currentDataVersion();
+      const observed = reused ? batchEvidence : response(dispatchEntryCid);
+      return materializeOutcome(readOutcome.get(dispatchEntryCid), observed);
     },
     // This is physical custody, not semantic outcome admission. The common
     // MoonBit issuer must bind and classify the stored response before use.
     recordOutcome({logicalRequestScopeCid, logicalItemLocatorCid,
-      dispatchEntryCid, responsePhysicalSha256, outcomeCid, outcomeJson}) {
+      dispatchEntryCid, responsePhysicalSha256, outcomeCid, outcomeJson,
+      batchEvidence}) {
       active();
       if (!cid(logicalRequestScopeCid) ||
           !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
@@ -485,14 +507,36 @@ export function openSqliteEffectLedger(root, {
           Buffer.byteLength(outcomeJson) > maxEntryBytes) {
         fail('InvalidEffectPhysicalOutcome');
       }
+      if (batchEvidence !== undefined &&
+          !verifiedBatchResponses.has(batchEvidence)) {
+        fail('EffectPhysicalResponseNotOwned');
+      }
       return transaction(database, () => {
-        const observed = response(dispatchEntryCid);
-        if (observed?.logicalItemLocatorCid !== logicalItemLocatorCid ||
+        // A write through another connection invalidates the short-lived
+        // verified view. Re-read and re-hash before accepting its custody.
+        const reused = batchEvidence !== undefined &&
+          verifiedBatchResponses.get(batchEvidence) === currentDataVersion();
+        const observed = reused ? batchEvidence : response(dispatchEntryCid);
+        if (batchEvidence !== undefined &&
+            (!batchEvidence.batchMembers.some(member =>
+              member.dispatchEntryCid === dispatchEntryCid &&
+              member.logicalItemLocatorCid === logicalItemLocatorCid) ||
+              readBatchResponse.get(batchEvidence.batchOwnerCid)
+                ?.physical_sha256 !== batchEvidence.responsePhysicalSha256)) {
+          fail('EffectPhysicalResponseNotOwned');
+        }
+        if (!(observed?.batchMembers === undefined
+          ? observed?.logicalItemLocatorCid === logicalItemLocatorCid
+          : observed.batchMembers.some(member =>
+            member.dispatchEntryCid === dispatchEntryCid &&
+            member.logicalItemLocatorCid === logicalItemLocatorCid)) ||
             observed.logicalRequestScopeCid !== logicalRequestScopeCid ||
             observed.responsePhysicalSha256 !== responsePhysicalSha256) {
           fail('EffectPhysicalResponseNotOwned');
         }
-        const existing = outcome(dispatchEntryCid);
+        const existing = batchEvidence === undefined
+          ? outcome(dispatchEntryCid)
+          : materializeOutcome(readOutcome.get(dispatchEntryCid), observed);
         if (existing !== undefined) {
           if (existing.outcomeCid !== outcomeCid ||
               existing.outcomeJson !== outcomeJson) {
@@ -531,7 +575,9 @@ export function openSqliteEffectLedger(root, {
           }
           throw error;
         }
-        return Object.freeze({outcome: outcome(dispatchEntryCid),
+        return Object.freeze({outcome: batchEvidence === undefined
+          ? outcome(dispatchEntryCid)
+          : materializeOutcome(readOutcome.get(dispatchEntryCid), observed),
           created: true});
       });
     },

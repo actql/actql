@@ -30,6 +30,72 @@ pub fn issue_effect_row_receipt_terminal_entry(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue] {
+  let receipt = match
+    @publication.admit_effect_row_outcome_receipt(
+      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
+      http_status_code, receipt_wire, max_response_bytes, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignReceipt)
+  }
+  issue_effect_row_receipt_terminal_entry_admitted(
+    preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+    current, history, dispatch_entry_cid, receipt, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// The response fact was established from the same Store-owned batch within
+/// this invocation. No response bytes are rescanned for each row.
+pub fn issue_effect_row_receipt_terminal_entry_from_response(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : LogicalRequestScope,
+  locator : LogicalItemLocator,
+  key : EffectDispatchKey,
+  canonical_request_cid : String,
+  current : EffectLedgerEntry,
+  history : Array[EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  response : @publication.EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue] {
+  let receipt = match
+    @publication.admit_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+      max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignReceipt)
+  }
+  issue_effect_row_receipt_terminal_entry_admitted(
+    preview, member_index, row_index, scope, locator, key, canonical_request_cid,
+    current, history, dispatch_entry_cid, receipt, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_effect_row_receipt_terminal_entry_admitted(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  scope : LogicalRequestScope,
+  locator : LogicalItemLocator,
+  key : EffectDispatchKey,
+  canonical_request_cid : String,
+  current : EffectLedgerEntry,
+  history : Array[EffectLedgerEntry],
+  dispatch_entry_cid : String,
+  receipt : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue] {
   guard @publication.effect_preview_member_kind(preview, member_index)
     is Some(effect_kind) &&
     @publication.effect_preview_ordered_row_identity(
@@ -49,15 +115,6 @@ pub fn issue_effect_row_receipt_terminal_entry(
     @publication.effect_preview_semantic_identity(preview) ||
     current.canonical_request_cid != canonical_request_cid {
     return Err(ForeignClaim)
-  }
-  let receipt = match
-    @publication.admit_effect_row_outcome_receipt(
-      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
-      http_status_code, receipt_wire, max_response_bytes, max_wire_bytes, max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(ForeignReceipt)
   }
   guard @publication.effect_row_outcome_receipt_terminal_state(receipt)
     is Some(state) else {

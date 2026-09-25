@@ -9,6 +9,53 @@ pub(all) enum EffectRowOutcomeIssue {
 } derive(Debug)
 
 ///|
+/// An in-process fact issued from bounded response bytes. It is not physical
+/// custody: the Host must first verify the saved response and exact dispatch
+/// inventory. Only this issuer can construct the opaque value.
+struct EffectSavedResponseEvidence {
+  dispatch_entry_cids : Array[String]
+  credential_use_cid : String
+  physical_sha256 : String
+  byte_count : Int
+  http_status_code : Int
+}
+
+///|
+pub fn admit_effect_saved_response_evidence(
+  dispatch_entry_cids : Array[String],
+  credential_use_cid : String,
+  response_bytes : Bytes,
+  http_status_code : Int,
+  max_response_bytes : Int,
+) -> Result[EffectSavedResponseEvidence, EffectRowOutcomeIssue] {
+  if dispatch_entry_cids.length() == 0 ||
+    !valid_contract_cid(credential_use_cid) ||
+    dispatch_entry_cids.any(entry => !valid_contract_cid(entry)) {
+    return Err(InvalidDispatch)
+  }
+  if http_status_code < 100 ||
+    http_status_code > 599 ||
+    max_response_bytes < 1 ||
+    response_bytes.length() > max_response_bytes {
+    return Err(ForeignResponse)
+  }
+  let seen : Array[String] = []
+  for entry in dispatch_entry_cids {
+    if seen.contains(entry) {
+      return Err(InvalidDispatch)
+    }
+    seen.push(entry)
+  }
+  Ok({
+    dispatch_entry_cids,
+    credential_use_cid,
+    physical_sha256: @sha.hex(response_bytes),
+    byte_count: response_bytes.length(),
+    http_status_code,
+  })
+}
+
+///|
 /// Check a typed provider projection against one admitted Preview row. This
 /// establishes neither response custody nor a terminal outcome receipt.
 pub fn check_effect_preview_row_outcome(
@@ -52,21 +99,45 @@ pub fn issue_effect_row_outcome_receipt(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectRowOutcomeIssue] {
+  let response = match
+    admit_effect_saved_response_evidence(
+      [dispatch_entry_cid],
+      credential_use_cid,
+      response_bytes,
+      http_status_code,
+      max_response_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  issue_effect_row_outcome_receipt_from_response(
+    preview, member_index, row_index, dispatch_entry_cid, response, outcome_wire,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Reuse one admitted digest and bounded byte count across ordered batch
+/// rows. This does not replace Store custody or external re-admission.
+pub fn issue_effect_row_outcome_receipt_from_response(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : EffectSavedResponseEvidence,
+  outcome_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectRowOutcomeIssue] {
   guard effect_preview_member_identity(preview, member_index)
     is Some(member_cid) &&
     effect_preview_row_identity(preview, member_index, row_index)
     is Some(row_cid) else {
     return Err(InvalidRow)
   }
-  if !valid_contract_cid(dispatch_entry_cid) ||
-    !valid_contract_cid(credential_use_cid) {
+  if !response.dispatch_entry_cids.contains(dispatch_entry_cid) {
     return Err(InvalidDispatch)
-  }
-  if http_status_code < 100 ||
-    http_status_code > 599 ||
-    max_response_bytes < 1 ||
-    response_bytes.length() > max_response_bytes {
-    return Err(ForeignResponse)
   }
   let outcome = match
     parse_effect_outcome_shape(
@@ -90,7 +161,7 @@ pub fn issue_effect_row_outcome_receipt(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "credential_use_cid")
-    @encode.string_value(writer, credential_use_cid)
+    @encode.string_value(writer, response.credential_use_cid)
     @encode.key(writer, "dispatch_entry_cid")
     @encode.string_value(writer, dispatch_entry_cid)
     @encode.key(writer, "effect_member_preview_cid")
@@ -98,11 +169,11 @@ pub fn issue_effect_row_outcome_receipt(
     @encode.key(writer, "effect_preview_cid")
     @encode.string_value(writer, effect_preview_semantic_identity(preview))
     @encode.key(writer, "http_status_code")
-    @encode.number_value(writer, http_status_code.to_double())
+    @encode.number_value(writer, response.http_status_code.to_double())
     @encode.key(writer, "response_byte_count")
-    @encode.number_value(writer, response_bytes.length().to_double())
+    @encode.number_value(writer, response.byte_count.to_double())
     @encode.key(writer, "response_physical_sha256")
-    @encode.string_value(writer, @sha.hex(response_bytes))
+    @encode.string_value(writer, response.physical_sha256)
     @encode.key(writer, "row_preview_cid")
     @encode.string_value(writer, row_cid)
     @encode.key(writer, "typed_outcome")
@@ -138,6 +209,37 @@ pub fn admit_effect_row_outcome_receipt(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectRowOutcomeIssue] {
+  let response = match
+    admit_effect_saved_response_evidence(
+      [dispatch_entry_cid],
+      credential_use_cid,
+      response_bytes,
+      http_status_code,
+      max_response_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  admit_effect_row_outcome_receipt_from_response(
+    preview, member_index, row_index, dispatch_entry_cid, response, receipt_wire,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Re-admit a retained row Receipt against a response fact already checked
+/// in this invocation. External reads must construct a fresh fact from bytes.
+pub fn admit_effect_row_outcome_receipt_from_response(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  dispatch_entry_cid : String,
+  response : EffectSavedResponseEvidence,
+  receipt_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectRowOutcomeIssue] {
   let candidate = match
     admit_publication_contract(
       "effect_row_outcome_receipt", receipt_wire, max_wire_bytes, max_nodes, max_depth,
@@ -155,10 +257,9 @@ pub fn admit_effect_row_outcome_receipt(
     _ => return Err(Encoding)
   }
   let expected = match
-    issue_effect_row_outcome_receipt(
-      preview, member_index, row_index, dispatch_entry_cid, credential_use_cid, response_bytes,
-      http_status_code, typed_wire, max_response_bytes, max_wire_bytes, max_nodes,
-      max_depth,
+    issue_effect_row_outcome_receipt_from_response(
+      preview, member_index, row_index, dispatch_entry_cid, response, typed_wire,
+      max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -187,6 +288,16 @@ pub fn effect_row_outcome_receipt_terminal_state(
   } else {
     None
   }
+}
+
+///|
+pub fn effect_row_outcome_receipt_dispatch_identity(
+  receipt : PublicationContract,
+) -> String? {
+  if receipt.name != "effect_row_outcome_receipt" {
+    return None
+  }
+  contract_string(receipt, "dispatch_entry_cid")
 }
 
 ///|

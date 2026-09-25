@@ -4,11 +4,81 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
   correctedContracts,
+  effectApplyReceiptSchema,
+  effectReconciliationReceiptSchema,
+  effectSetApplyReceiptSchema,
   effectSourceArtifactSchema,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
+
+test('independent multi-row Effect receipt 0.1 vector and closed inventory', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  const member = {
+    version: 'actql-effect-apply-receipt/0.1',
+    run_identity_cid: cid('1'), effect_preview_cid: cid('2'),
+    effect_member_preview_cid: cid('3'),
+    rows: [
+      {row_index: 0, row_preview_cid: cid('4'), state: 'applied',
+        dispatch_entry_cid: cid('6'), attempt_sequence: 1,
+        outcome_receipt_cid: cid('8')},
+      {row_index: 1, row_preview_cid: cid('5'), state: 'unknown',
+        dispatch_entry_cid: cid('7'), attempt_sequence: 1,
+        ledger_head_cid: cid('9')},
+    ], status: 'unknown_outcome',
+  };
+  const expected = 'sha256:ac602de3d5d17923ef77bf9416b20bb9e9c230009a08384fa3bf7d0ec45a27a4';
+  assert.equal(hash(member), expected);
+  assert.notEqual(hash({...member, rows: [...member.rows].reverse()}), expected);
+  assert.notEqual(hash({...member, run_identity_cid: cid('a')}), expected);
+  assert.notEqual(hash({...member, rows: [member.rows[0],
+    {...member.rows[1], ledger_head_cid: cid('a')}]}), expected);
+  const registry = read('spec/contracts/actql-protocol-schemas.json');
+  assert.deepEqual(registry.artifact_schemas.effect_apply_receipt,
+    effectApplyReceiptSchema());
+  assert.equal(registry.artifact_schema_cids.effect_apply_receipt,
+    machineCid(effectApplyReceiptSchema()));
+  assert.deepEqual(registry.artifact_schemas.effect_set_apply_receipt,
+    effectSetApplyReceiptSchema(registry.artifact_schemas.effect_set_apply_receipt));
+  assert.ok(!('outcome' in registry.artifact_schemas.effect_set_apply_receipt
+    .properties.effects.items.properties));
+  const set = {
+    version: 'actql-effect-set-apply-receipt/0.1',
+    effect_preview_cid: cid('2'), apply_policy: 'attempt_all',
+    effects: [{effect_id: 'WriteOne',
+      effect_member_preview_cid: cid('3'), state: 'unknown',
+      replayed: false, member_receipt_cid: expected}],
+    status: 'unknown_outcome',
+  };
+  const setCid = 'sha256:ff1d2d85eb4e71ea996c6792e8c2669aee625dadaac8a625fa9cf1200b1ae0e4';
+  assert.equal(hash(set), setCid);
+  const reconciliation = {
+    version: 'actql-effect-reconciliation-receipt/0.1',
+    effect_id: 'WriteOne', effect_set_receipt_cid: setCid,
+    prior_receipt_cid: expected, run_identity_cid: cid('1'),
+    effect_preview_cid: cid('2'), effect_member_preview_cid: cid('3'),
+    row_preview_cid: cid('5'), dispatch_entry_cid: cid('7'),
+    dispatch_attempt_sequence: 1, prior_ledger_head_cid: cid('9'),
+    attempt_sequence: 1, terminal: false,
+    command_id: 'write-1', idempotency_key: 'key-1',
+    outcome: {state: 'unknown', command_id: 'write-1',
+      idempotency_key: 'key-1', reason: 'connection_lost',
+      reconciliation_contract: {id: 'lookup', version: '0.1', cid: cid('a')}},
+  };
+  const reconciliationCid = 'sha256:1130effbaa2a6f852ecccaa1105aa8c7b5aeb154ef0a26e73efa84724930592b';
+  assert.equal(hash(reconciliation), reconciliationCid);
+  assert.notEqual(hash({...reconciliation, row_preview_cid: cid('4')}),
+    reconciliationCid);
+  assert.notEqual(hash({...reconciliation, prior_ledger_head_cid: cid('8')}),
+    reconciliationCid);
+  assert.deepEqual(registry.artifact_schemas.effect_reconciliation_receipt,
+    effectReconciliationReceiptSchema(
+      registry.artifact_schemas.effect_reconciliation_receipt));
+});
 
 test('independent Effect-source Artifact and holding 0.1 vectors', () => {
   const cid = digit => `sha256:${digit.repeat(64)}`;

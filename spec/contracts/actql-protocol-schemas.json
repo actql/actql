@@ -10672,7 +10672,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:4595b8c32a481b6a47aca1c83e2a6513c20ceb2aba8b476bf3e9f15e849ec7b4",
+  "artifact_registry_cid": "sha256:bc2f8dda282f48ac55a55238161550eb4f8fbc67ea2b636e5a90e84100995cfe",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10688,9 +10688,9 @@
     "effect_preview": "sha256:32dec306d694f6faddd5272895d5fa917f23dcd0e13fd3d1a9f142c760fe795b",
     "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
-    "effect_apply_receipt": "sha256:3e636d16300f17ac4ce13bab71e8131985cb7422df1ab3bb507005580b2dd889",
-    "effect_set_apply_receipt": "sha256:ae7b45405ba8e504cc1fa4e7acf660395c3c0915451c26cf38d9373a183b2bdf",
-    "effect_reconciliation_receipt": "sha256:d28124575ba45a4fa25936a4200918d2208d5757f286c114051a46ba5e9f4fa4",
+    "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
+    "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
+    "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
     "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:bce481b86ddcbd958ab98c54df73a7040d21ab8115088f25cb7552928cfb30de",
@@ -37638,20 +37638,20 @@
       "additionalProperties": false,
       "required": [
         "version",
+        "run_identity_cid",
         "effect_preview_cid",
         "effect_member_preview_cid",
-        "applied",
-        "accepted",
-        "unknown",
-        "failed",
-        "unattempted",
+        "rows",
         "status",
-        "outcome",
         "receipt_cid"
       ],
       "properties": {
         "version": {
           "const": "actql-effect-apply-receipt/0.1"
+        },
+        "run_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "effect_preview_cid": {
           "type": "string",
@@ -37669,58 +37669,247 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
-        "applied": {
+        "rows": {
           "type": "array",
           "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "accepted": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "unknown": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
-        },
-        "failed": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "row_preview_cid",
-              "error_cid"
-            ],
-            "properties": {
-              "row_preview_cid": {
-                "type": "string",
-                "pattern": "^sha256:[0-9a-f]{64}$"
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unattempted"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
               },
-              "error_cid": {
-                "type": "string",
-                "pattern": "^sha256:[0-9a-f]{64}$"
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "ledger_head_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "unknown"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "ledger_head_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "applied"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "accepted"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "failed"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_index",
+                  "row_preview_cid",
+                  "state",
+                  "dispatch_entry_cid",
+                  "attempt_sequence",
+                  "outcome_receipt_cid",
+                  "batch_result_cid"
+                ],
+                "properties": {
+                  "state": {
+                    "const": "rolled_back"
+                  },
+                  "row_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "row_preview_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "dispatch_entry_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "attempt_sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "outcome_receipt_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "batch_result_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
               }
-            }
+            ]
           }
-        },
-        "unattempted": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
-          },
-          "uniqueItems": true
         },
         "status": {
           "enum": [
@@ -37730,252 +37919,6 @@
             "partial_failure",
             "failed",
             "stale_preview"
-          ]
-        },
-        "outcome": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "result"
-              ],
-              "properties": {
-                "state": {
-                  "const": "applied"
-                },
-                "result": {}
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "operation_ref",
-                "poll_contract",
-                "cancel_capability",
-                "result_schema",
-                "reconciliation_contract"
-              ],
-              "properties": {
-                "state": {
-                  "const": "accepted"
-                },
-                "operation_ref": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "$actql_ref",
-                    "version",
-                    "resource_kind",
-                    "provider_namespace",
-                    "provider_identity_cid",
-                    "authority_scope_cid",
-                    "boundary_cid",
-                    "identity_cid"
-                  ],
-                  "properties": {
-                    "$actql_ref": {
-                      "const": "resource"
-                    },
-                    "version": {
-                      "const": "actql-resource-ref/0.1"
-                    },
-                    "resource_kind": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "provider_namespace": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "provider_identity_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "authority_scope_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "boundary_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    },
-                    "identity_cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "poll_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "cancel_capability": {
-                  "enum": [
-                    "supported",
-                    "unsupported"
-                  ]
-                },
-                "result_schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "expiration": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reconciliation_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "error"
-              ],
-              "properties": {
-                "state": {
-                  "const": "failed"
-                },
-                "error": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "message": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "details": {}
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "state",
-                "command_id",
-                "reconciliation_contract",
-                "idempotency_key",
-                "reason"
-              ],
-              "properties": {
-                "state": {
-                  "const": "unknown"
-                },
-                "command_id": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reconciliation_contract": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "id",
-                    "version",
-                    "cid"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "version": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "cid": {
-                      "type": "string",
-                      "pattern": "^sha256:[0-9a-f]{64}$"
-                    }
-                  }
-                },
-                "idempotency_key": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "reason": {
-                  "enum": [
-                    "transport_timeout",
-                    "connection_lost",
-                    "provider_outcome_unknown"
-                  ]
-                }
-              }
-            }
           ]
         },
         "receipt_cid": {
@@ -38041,7 +37984,8 @@
                   "accepted",
                   "failed",
                   "unknown",
-                  "unattempted"
+                  "unattempted",
+                  "rolled_back"
                 ]
               },
               "dispatch_sequence": {
@@ -38059,252 +38003,6 @@
               "effect_apply_evidence_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
-              },
-              "outcome": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "result"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "applied"
-                      },
-                      "result": {}
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "operation_ref",
-                      "poll_contract",
-                      "cancel_capability",
-                      "result_schema",
-                      "reconciliation_contract"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "accepted"
-                      },
-                      "operation_ref": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "$actql_ref",
-                          "version",
-                          "resource_kind",
-                          "provider_namespace",
-                          "provider_identity_cid",
-                          "authority_scope_cid",
-                          "boundary_cid",
-                          "identity_cid"
-                        ],
-                        "properties": {
-                          "$actql_ref": {
-                            "const": "resource"
-                          },
-                          "version": {
-                            "const": "actql-resource-ref/0.1"
-                          },
-                          "resource_kind": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "provider_namespace": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "provider_identity_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "authority_scope_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "boundary_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          },
-                          "identity_cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "poll_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "cancel_capability": {
-                        "enum": [
-                          "supported",
-                          "unsupported"
-                        ]
-                      },
-                      "result_schema": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "expiration": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reconciliation_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "error"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "failed"
-                      },
-                      "error": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "code",
-                          "message"
-                        ],
-                        "properties": {
-                          "code": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "message": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "details": {}
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": [
-                      "state",
-                      "command_id",
-                      "reconciliation_contract",
-                      "idempotency_key",
-                      "reason"
-                    ],
-                    "properties": {
-                      "state": {
-                        "const": "unknown"
-                      },
-                      "command_id": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reconciliation_contract": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "id",
-                          "version",
-                          "cid"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "version": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "cid": {
-                            "type": "string",
-                            "pattern": "^sha256:[0-9a-f]{64}$"
-                          }
-                        }
-                      },
-                      "idempotency_key": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "reason": {
-                        "enum": [
-                          "transport_timeout",
-                          "connection_lost",
-                          "provider_outcome_unknown"
-                        ]
-                      }
-                    }
-                  }
-                ]
               },
               "termination_evidence_cid": {
                 "type": "string",
@@ -38349,7 +38047,14 @@
         "attempt_sequence",
         "terminal",
         "outcome",
-        "reconciliation_receipt_cid"
+        "reconciliation_receipt_cid",
+        "run_identity_cid",
+        "effect_preview_cid",
+        "effect_member_preview_cid",
+        "row_preview_cid",
+        "dispatch_entry_cid",
+        "dispatch_attempt_sequence",
+        "prior_ledger_head_cid"
       ],
       "properties": {
         "version": {
@@ -38681,6 +38386,39 @@
         "reconciliation_receipt_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_identity_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effect_member_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_preview_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_entry_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prior_ledger_head_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "outcome_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_attempt_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       },
       "oneOf": [
@@ -38763,6 +38501,11 @@
               "terminal": {
                 "const": false
               }
+            },
+            "not": {
+              "required": [
+                "outcome_receipt_cid"
+              ]
             }
           },
           "else": {
@@ -38770,7 +38513,10 @@
               "terminal": {
                 "const": true
               }
-            }
+            },
+            "required": [
+              "outcome_receipt_cid"
+            ]
           }
         }
       ]

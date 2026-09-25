@@ -1037,12 +1037,11 @@ test('portable control validates Receipt and Captured Run references',
   const memberReceipt = control.seal('effect_apply_receipt',
     JSON.stringify({
       version: 'actql-effect-apply-receipt/0.1',
+      run_identity_cid: previewBody.run_identity_cid,
       effect_preview_cid: previewBody.effect_preview_cid,
       effect_member_preview_cid:
         previewBody.effects[0].effect_member_preview_cid,
-      applied: [], accepted: [], unknown: [], failed: [],
-      unattempted: [], status: 'applied',
-      outcome: {state: 'applied', result: {}},
+      rows: [], status: 'applied',
     }), limits);
   const setReceipt = control.seal('effect_set_apply_receipt',
     JSON.stringify({

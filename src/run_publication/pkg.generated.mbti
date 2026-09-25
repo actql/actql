@@ -17,7 +17,13 @@ pub fn admit_effect_apply_receipt_for_member(EffectPreviewIdentity, Int, String,
 
 pub fn admit_effect_preview_identity(String, String, String, Int, Int, Int) -> Result[EffectPreviewIdentity, EffectPreviewIdentityIssue]
 
+pub fn admit_effect_reconciliation_receipt_for_row(EffectPreviewIdentity, Int, Int, PublicationContract, PublicationContract, PublicationContract?, String, Int, Int, Int) -> Result[PublicationContract, EffectRowReconciliationIssue]
+
 pub fn admit_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
+pub fn admit_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int, Int, String, EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
+pub fn admit_effect_saved_response_evidence(Array[String], String, Bytes, Int, Int) -> Result[EffectSavedResponseEvidence, EffectRowOutcomeIssue]
 
 pub fn admit_effect_set_apply_receipt_references(EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectSetApplyReceiptBindingIssue]
 
@@ -82,6 +88,10 @@ pub fn derive_effect_preview_identities(String, Int, Int, Int) -> Result[(String
 pub fn derive_effect_preview_row_identities(String, Int, Int, Int) -> Result[Array[Array[String]], EffectPreviewIdentityIssue]
 
 pub fn durable_payload_failure_action_code(DurablePayloadFailureAction) -> Int
+
+pub fn effect_apply_receipt_row_attempt_sequence(PublicationContract, String) -> Int64?
+
+pub fn effect_apply_receipt_row_field(PublicationContract, String, String) -> String?
 
 pub fn effect_apply_receipt_row_state(PublicationContract, String) -> String?
 
@@ -161,7 +171,11 @@ pub fn effect_preview_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -
 
 pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
 
+pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
+
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
+
+pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
@@ -190,6 +204,8 @@ pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, 
 pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_effect_row_outcome_receipt(EffectPreviewIdentity, Int, Int, String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
+
+pub fn issue_effect_row_outcome_receipt_from_response(EffectPreviewIdentity, Int, Int, String, EffectSavedResponseEvidence, String, Int, Int, Int) -> Result[PublicationContract, EffectRowOutcomeIssue]
 
 pub fn issue_effect_source_artifact(PublicationContract, PublicationContract, String, String, String, String, String, Int, Int, Int, Int) -> Result[PublicationContract, EffectSourceArtifactIssue]
 
@@ -622,6 +638,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
   Receipt(PublicationContractIssue)
   InvalidMember
   ForeignPreview
+  ForeignRun
   ForeignMember
   RowPartitionMismatch
 } derive(@debug.Debug)
@@ -705,6 +722,19 @@ pub(all) enum EffectRowOutcomeIssue {
   Outcome(PublicationContractIssue)
 } derive(@debug.Debug)
 
+pub(all) enum EffectRowReconciliationIssue {
+  Receipt(PublicationContractIssue)
+  ForeignSet
+  ForeignMember
+  ForeignRow
+  NotUnknown
+  ForeignDispatch
+  ForeignOutcome
+  Encoding
+} derive(@debug.Debug)
+
+type EffectSavedResponseEvidence
+
 pub(all) enum EffectSetApplyReceiptBindingIssue {
   SetReceipt(PublicationContractIssue)
   MemberReceipt(Int, EffectApplyReceiptBindingIssue)
@@ -715,7 +745,6 @@ pub(all) enum EffectSetApplyReceiptBindingIssue {
   ForeignEffectId(Int)
   ForeignMemberReceipt(Int)
   MemberStateMismatch(Int)
-  MemberOutcomeMismatch(Int)
   SetStatusMismatch
 } derive(@debug.Debug)
 
