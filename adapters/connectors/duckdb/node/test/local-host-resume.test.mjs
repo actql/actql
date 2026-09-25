@@ -362,14 +362,13 @@ test('a superseded claimant cannot complete; a killed one leaves the intent to t
   const stale = await held.done;
   assert.equal(stale.code, 1);
   // The winner's terminal Run exit permits retiring the continuation's
-  // private evidence. D2 is refused as stale either at its fence or, when it
-  // wakes after that retirement, when it tries to end the continuation.
-  if (stale.json === undefined) {
-    assert.deepEqual(JSON.parse(stale.stderr), { error: 'ResumeClaimStale' });
-  } else {
-    assert.equal(stale.json.status, 'stale_claim');
-    assert.equal(stale.json.counters.provider_sessions, 0);
-  }
+  // private evidence. D2 is refused as stale at its fence or, when it wakes
+  // after that retirement, when it tries to end the continuation: either way
+  // in the single JSON `stale_claim` form.
+  assert.equal(stale.stderr, '');
+  assert.equal(stale.json.status, 'stale_claim');
+  assert.equal(stale.json.code, 'ResumeClaimStale');
+  assert.equal(stale.json.counters.provider_sessions, 0);
   const rows = input.rows();
   assert.equal(rows.runs, 1);
   assert.deepEqual(rows.intentRows, [{ state: 'completed', generation: 3,

@@ -705,8 +705,19 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
       if (holdAfterClaimMs > 0) {
         await new Promise(done => setTimeout(done, holdAfterClaimMs));
       }
+      // A superseded claimant is reported in one form, `stale_claim`,
+      // wherever the fence refuses it: here when it tries to end the
+      // continuation (for example after the winner's terminal exit retired
+      // the private evidence it could no longer read).
+      const staleClaim = code => plain({status: 'stale_claim',
+        prepare_attempt_id: prepareAttemptId, code, counters: counts});
       const end = async (status, extra) => {
-        journal.completeResume(fence.claim, {status});
+        try {
+          journal.completeResume(fence.claim, {status});
+        } catch (error) {
+          if (error?.code === 'ResumeClaimStale') return staleClaim(error.code);
+          throw error;
+        }
         return plain({status: 'ended', prepare_attempt_id: prepareAttemptId,
           run_created: false, end_reason: status, counters: counts, ...extra});
       };
@@ -865,8 +876,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
         }
         if (error?.code === 'ResumeClaimStale' ||
             admissionRefusal === 'ResumeClaimStale') {
-          return plain({status: 'stale_claim', prepare_attempt_id: prepareAttemptId,
-            code: error.code, counters: counts});
+          return staleClaim('ResumeClaimStale');
         }
         if (error instanceof ExecutionAuthorizationError) {
           if (error.authorization?.action === 'waiting') {
