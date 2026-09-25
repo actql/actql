@@ -402,6 +402,29 @@ pub fn admit_run_state_wire(
 }
 
 ///|
+/// Run state of a waiting Run whose Checkpoint was rejected or expired, or
+/// whose cancellation was admitted, without dispatch: `cancelled`, or
+/// `needs_reconciliation` with a `reconcile` action over `unknown_effects`,
+/// the earlier Effect outcomes the Run owner still records as unknown.
+pub fn issue_waiting_exit_run_state(
+  run_id : String,
+  updated_at : String,
+  declared_results : Array[String],
+  unknown_effects : Array[String],
+  limits : WireLimits,
+) -> Result[String, RunStateWireIssue] {
+  lifecycle_run_state_body(
+    run_id,
+    waiting_exit_status(unknown_effects),
+    updated_at,
+    declared_results,
+    None,
+    limits,
+    reconcile_effects=unknown_effects,
+  )
+}
+
+///|
 /// Run state of a Run-unit continuation that failed resume revalidation. The
 /// status is `failed`, or `needs_reconciliation` with a `reconcile` action
 /// over `unknown_effects` when earlier Effect outcomes remain unknown; either

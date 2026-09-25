@@ -872,6 +872,7 @@ test "run transitions follow the public table" {
     (Resuming, WaitingCheckpoint),
     (WaitingCheckpoint, Resuming),
     (WaitingCheckpoint, Cancelled),
+    (WaitingCheckpoint, NeedsReconciliation),
     (Resuming, Succeeded),
     (Resuming, Failed),
     (Resuming, NeedsReconciliation),
@@ -888,7 +889,9 @@ test "run transitions follow the public table" {
     (WaitingCheckpoint, Running),
     (WaitingCheckpoint, WaitingCheckpoint),
     (WaitingCheckpoint, Succeeded),
+    (WaitingCheckpoint, Failed),
     (Cancelled, Resuming),
+    (Cancelled, NeedsReconciliation),
     (Succeeded, WaitingCheckpoint),
     (Failed, Resuming),
     (NeedsReconciliation, WaitingCheckpoint),
@@ -1188,6 +1191,69 @@ test "resolution effect depends on the checkpoint subject" {
   assert_eq(resolution_effect(unit, Rejected), MoveRun(Cancelled))
   assert_eq(resolution_effect(prep, Approved), ContinuePreparation)
   assert_eq(resolution_effect(prep, Rejected), EndPreparation)
+  // Earlier Effect outcomes still unknown: a rejection does not hide them.
+  assert_eq(
+    resolution_effect(unit, Rejected, unknown_effects=["effect-1"]),
+    MoveRun(NeedsReconciliation),
+  )
+  assert_eq(
+    resolution_effect(unit, Approved, unknown_effects=["effect-1"]),
+    MoveRun(Resuming),
+  )
+  assert_eq(
+    resolution_effect(prep, Rejected, unknown_effects=["effect-1"]),
+    EndPreparation,
+  )
+}
+
+///|
+test "a rejected, expired or cancelled wait preserves unknown Effect outcomes" {
+  assert_eq(waiting_exit_status([]), Cancelled)
+  assert_eq(waiting_exit_status(["effect-1"]), NeedsReconciliation)
+  assert_true(
+    run_transition_allowed(WaitingCheckpoint, waiting_exit_status([])),
+  )
+  assert_true(
+    run_transition_allowed(WaitingCheckpoint, waiting_exit_status(["e"])),
+  )
+  let cancelled = issue_waiting_exit_run_state(
+    "run-1",
+    "2026-09-25T13:00:00.000Z",
+    ["tickets"],
+    [],
+    limits(),
+  ).unwrap()
+  assert_true(cancelled.contains("\"next_action\":{\"kind\":\"none\"}"))
+  assert_true(!cancelled.contains("terminal_error"))
+  assert_eq(
+    admit_run_state_wire(cancelled, limits()).unwrap().status,
+    Cancelled,
+  )
+  let unknown = issue_waiting_exit_run_state(
+    "run-1",
+    "2026-09-25T13:00:00.000Z",
+    ["tickets"],
+    ["effect-2", "effect-1"],
+    limits(),
+  ).unwrap()
+  assert_true(
+    unknown.contains(
+      "\"next_action\":{\"effects\":[\"effect-2\",\"effect-1\"],\"kind\":\"reconcile\"}",
+    ),
+  )
+  let view = admit_run_state_wire(unknown, limits()).unwrap()
+  assert_eq(view.status, NeedsReconciliation)
+  assert_eq(view.checkpoint_cid, None)
+  assert_eq(
+    issue_waiting_exit_run_state(
+      "run-1",
+      "2026-09-25T13:00:00.000Z",
+      ["tickets"],
+      ["effect-1", "effect-1"],
+      limits(),
+    ),
+    Err(RunStateInvalidField("next_action.effects")),
+  )
 }
 
 ///|

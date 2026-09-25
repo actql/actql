@@ -41,6 +41,8 @@ pub fn issue_lifecycle_run_state(String, @run_publication.RunOutcomeStatus, Stri
 
 pub fn issue_revalidation_failed_run_state(String, String, Array[String], Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
+pub fn issue_waiting_exit_run_state(String, String, Array[String], Array[String], WireLimits) -> Result[String, RunStateWireIssue]
+
 pub fn issue_waiting_run_state(PersistedCheckpoint, String, Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
 pub fn parse_checkpoint_kind(String) -> CheckpointKind?
@@ -49,7 +51,7 @@ pub fn parse_checkpoint_requirement(String) -> CheckpointRequirement?
 
 pub fn parse_run_status(String) -> @run_publication.RunOutcomeStatus?
 
-pub fn resolution_effect(SealedCheckpoint, ResolutionDecision) -> ResolutionEffect
+pub fn resolution_effect(SealedCheckpoint, ResolutionDecision, unknown_effects? : Array[String]) -> ResolutionEffect
 
 pub fn resolution_proof_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
 
@@ -74,6 +76,8 @@ pub fn seal_immediate_resolution(ImmediateAdmittedResolution, String, String, Wi
 pub fn seal_verified_resolution(AdmittedResolution, String, String, WireLimits) -> Result[VerifiedResolution, ResolutionIssue]
 
 pub fn verified_resolution_attestation_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
+
+pub fn waiting_exit_status(Array[String]) -> @run_publication.RunOutcomeStatus
 
 // Errors
 

@@ -1308,7 +1308,8 @@ the public state does not require a new state name.
 | `preparing` | `running` | Initial admission completed; execution may begin. |
 | `preparing`, `running`, `resuming` | `waiting_checkpoint` | The exact continuation and Checkpoint were persisted before protected dispatch ([Checkpoints and Resolutions](#checkpoints)). |
 | `waiting_checkpoint` | `resuming` | A Host-verified approved Resolution and unique resume intent were stored atomically ([Checkpoints and Resolutions](#checkpoints)). |
-| `waiting_checkpoint` | `cancelled` | The Checkpoint was rejected or expired without dispatching its continuation. |
+| `waiting_checkpoint` | `cancelled` | The Checkpoint was rejected or expired without dispatching its continuation, and no earlier Effect outcome of the Run remains unknown. |
+| `waiting_checkpoint` | `needs_reconciliation` | The Checkpoint was rejected or expired, or cancellation was admitted, without dispatching its continuation while earlier Effect outcomes recorded by the Run owner remain unknown ([Checkpoints and Resolutions](#checkpoints)). |
 | `preparing`, `waiting_checkpoint`, `resuming` | `cancelled` | Cancellation was admitted with no dispatch in flight or unresolved Effect outcome. |
 | `preparing`, `running`, `resuming` | `succeeded`, `failed`, `needs_reconciliation` | The continuation completed or failed; admission, publication, and Effect aggregation conditions determine the destination ([Capture, execution, and replay](#capture-and-replay), [Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `needs_reconciliation`, `succeeded`, `failed` | A valid reconciliation receipt extended the sealed member history and all member outcomes were aggregated ([Outcomes and reconciliation](#reconciliation)). |
@@ -1405,6 +1406,16 @@ An approved preparation continuation that revalidates creates its Run directly i
 `running`; preparation already completed before the Checkpoint. The Host does not weaken or reinterpret the old
 approval, and a changed artifact or target found at a later boundary uses that
 boundary's existing failure.
+
+<!-- requirement-block: checkpoints.a-rejected-expired-or-cancelled-wait-must-not-hide-unknown-effect-outcomes -->
+A rejected or expired Checkpoint, or an admitted cancellation of a waiting Run,
+never dispatches the continuation and creates no resume intent. Such an exit
+MUST NOT hide unknown Effect outcomes: when earlier Effect outcomes recorded by
+the Run owner remain unknown, the Run exits `waiting_checkpoint` to
+`needs_reconciliation` with next action `reconcile` over exactly those Effects
+and its prior facts are preserved; otherwise it exits to `cancelled`. A
+preparation Checkpoint precedes its Run and has no Effect outcomes; it ends
+without creating a Run.
 
 <!-- requirement-block: checkpoints.every-path-backed-run-input-and-model-replay-bundle-must-be-captured -->
 Every path-backed Run input and model-replay bundle MUST be captured as an

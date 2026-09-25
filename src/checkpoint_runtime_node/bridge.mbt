@@ -400,7 +400,12 @@ pub fn resolution_decide(
   signature : String,
   closure_state : String,
   closure_resolution_cid : String,
+  unknown_effects_json : String,
 ) -> String {
+  let unknown = match text_list(unknown_effects_json) {
+    Some(values) => values
+    None => return fail("InvalidUnknownEffects")
+  }
   let (checkpoint, admitted) = match
     admit_resolution(
       checkpoint_wire, resolution_wire, evidence_wire, authentication_json, authorities_json,
@@ -427,7 +432,11 @@ pub fn resolution_decide(
     checkpoint, current, verified,
   )
   let (effect, run_status) = match
-    @checkpoint.resolution_effect(checkpoint, verified.decision) {
+    @checkpoint.resolution_effect(
+      checkpoint,
+      verified.decision,
+      unknown_effects=unknown,
+    ) {
     MoveRun(status) =>
       ("move_run", Json::string(@checkpoint.run_status_token(status)))
     ContinuePreparation => ("continue_preparation", Json::null())
@@ -733,6 +742,44 @@ pub fn revalidation_failed_state(
         ),
         "terminal_error_code": Json::string(
           @checkpoint.RESUME_REVALIDATION_FAILED_CODE,
+        ),
+        "run_state_wire": Json::string(wire),
+      })
+    Err(issue) => fail(@debug.to_string(issue))
+  }
+}
+
+///|
+/// Run state of a waiting Run whose Checkpoint was rejected, expired or
+/// cancelled without dispatch: `cancelled`, or `needs_reconciliation` over
+/// the unknown Effects.
+#export_name("waitingExitState")
+pub fn waiting_exit_state(
+  run_id : String,
+  updated_at : String,
+  declared_results_json : String,
+  unknown_effects_json : String,
+) -> String {
+  let declared = match text_list(declared_results_json) {
+    Some(values) => values
+    None => return fail("InvalidDeclaredResults")
+  }
+  let unknown = match text_list(unknown_effects_json) {
+    Some(values) => values
+    None => return fail("InvalidUnknownEffects")
+  }
+  match
+    @checkpoint.issue_waiting_exit_run_state(
+      run_id,
+      updated_at,
+      declared,
+      unknown,
+      limits(),
+    ) {
+    Ok(wire) =>
+      ok({
+        "run_status": Json::string(
+          @checkpoint.run_status_token(@checkpoint.waiting_exit_status(unknown)),
         ),
         "run_state_wire": Json::string(wire),
       })

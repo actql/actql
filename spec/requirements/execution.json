@@ -1104,7 +1104,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.from-to-required-condition-preparing",
-      "statement_sha256": "03aed3062d017fe0f62a1dbe5d7bff70b8d91cdd9871992985664c0c5bf50df9",
+      "statement_sha256": "010cf5be04519cbeaaeea52c12f939d8e478af50db39a54e314340114390845b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -1248,6 +1248,17 @@
     {
       "requirement_id": "actql.execution/checkpoints.a-failed-resume-revalidation-must-not-dispatch-and-must-end-the-continuation",
       "statement_sha256": "676a7b4c361874fd2c9841080fe525c47d213031ff4a8d0a36f7354026da0871",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "checkpoints",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/checkpoints.a-rejected-expired-or-cancelled-wait-must-not-hide-unknown-effect-outcomes",
+      "statement_sha256": "805d5e55ab27ab6f9f20c8aa90d42a36c7e800096a1af6264b20c13ea8709d98",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

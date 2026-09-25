@@ -16,7 +16,7 @@ pub fn resolution_admit(String, String, String, String, String, String) -> Strin
 
 pub fn resolution_admit_immediate(String, String, String, String, String, String) -> String
 
-pub fn resolution_decide(String, String, String, String, String, String, String, String, String, String) -> String
+pub fn resolution_decide(String, String, String, String, String, String, String, String, String, String, String) -> String
 
 pub fn resolution_proof_preimage(String) -> String
 
@@ -37,6 +37,8 @@ pub fn run_state_admit(String) -> String
 pub fn run_transition_allowed(String, String) -> Bool
 
 pub fn verified_attestation_preimage(String) -> String
+
+pub fn waiting_exit_state(String, String, String, String) -> String
 
 // Errors
 

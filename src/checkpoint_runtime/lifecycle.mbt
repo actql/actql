@@ -8,7 +8,7 @@ pub fn run_transition_allowed(
     (Preparing, Running) => true
     (Preparing | Running | Resuming, WaitingCheckpoint) => true
     (WaitingCheckpoint, Resuming) => true
-    (WaitingCheckpoint, Cancelled) => true
+    (WaitingCheckpoint, Cancelled | NeedsReconciliation) => true
     (Preparing | Resuming, Cancelled) => true
     (Preparing | Running | Resuming, Succeeded | Failed | NeedsReconciliation) =>
       true
@@ -165,17 +165,35 @@ pub fn resume_completion_allowed(to : @publication.RunOutcomeStatus) -> Bool {
 }
 
 ///|
+/// Exit of a waiting Run whose Checkpoint was rejected or expired, or whose
+/// cancellation was admitted, without dispatching the continuation:
+/// `cancelled`, or `needs_reconciliation` when earlier Effect outcomes
+/// recorded by the Run owner remain unknown.
+pub fn waiting_exit_status(
+  unknown_effects : Array[String],
+) -> @publication.RunOutcomeStatus {
+  if unknown_effects.is_empty() {
+    Cancelled
+  } else {
+    NeedsReconciliation
+  }
+}
+
+///|
 /// What committing a verified Resolution does to its Checkpoint's subject. A
-/// Run-unit Checkpoint moves its waiting Run (`resuming` on approval,
-/// `cancelled` on rejection). A preparation Checkpoint has no Run: approval
+/// Run-unit Checkpoint moves its waiting Run (`resuming` on approval; on
+/// rejection `cancelled`, or `needs_reconciliation` over the earlier Effect
+/// outcomes still unknown). A preparation Checkpoint has no Run: approval
 /// continues the same preparation attempt through the resume intent, and
 /// rejection ends it without creating a Run.
 pub fn resolution_effect(
   checkpoint : SealedCheckpoint,
   decision : ResolutionDecision,
+  unknown_effects? : Array[String] = [],
 ) -> ResolutionEffect {
   match (checkpoint.checkpoint.subject, decision) {
-    (RunUnit(..), _) => MoveRun(resolution_run_status(decision))
+    (RunUnit(..), Approved) => MoveRun(resolution_run_status(decision))
+    (RunUnit(..), Rejected) => MoveRun(waiting_exit_status(unknown_effects))
     (PrepareAttempt(..), Approved) => ContinuePreparation
     (PrepareAttempt(..), Rejected) => EndPreparation
   }
