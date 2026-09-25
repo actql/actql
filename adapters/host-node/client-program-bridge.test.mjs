@@ -78,6 +78,10 @@ const parametersCid =
 const publicationLimits = Object.freeze({
   maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64,
 });
+const previewPlanLimits = Object.freeze({
+  maxFields: 10, maxWork: 100, maxBytes: 20000,
+  maxNodes: 1000, maxDepth: 20,
+});
 const outputLimits = Object.freeze({
   maxResultFields: 10, maxResultMappingWork: 1000,
   maxResultOrderWork: 10000, maxResultWorkspaceEntries: 100,
@@ -2431,12 +2435,14 @@ test(`two-member captured Effect Run ${
           templateOnly: siteRun});
       const preview = siteRun
         ? authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, templateWire: previewDraft.wire,
+          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
-            requests, observations: previewTargetObservations?.[index],
+            effectId: memberIds[index], requests,
+            observations: previewTargetObservations?.[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
         }) : previewDraft;
       if (siteRun && writeKind === 'create') {
         assert.throws(() => checked(moon.clientProgramAuthorEffectPreview(
@@ -2453,23 +2459,30 @@ test(`two-member captured Effect Run ${
         fabricated.effects[0].changes[0].target_guard =
           {state: 'version', version_cid: cid('9')};
         const restored = authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, templateWire: JSON.stringify(fabricated),
-          requestScope, members: siteRequests.map(requests => ({requests})),
+          moon, salesforceMoon, prepared,
+          templateWire: JSON.stringify(fabricated),
+          requestScope, members: siteRequests.map((requests, index) => ({
+            effectId: memberIds[index], requests,
+          })),
           maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
         });
         assert.equal(restored.wire, preview.wire);
         if (physical === 'salesforce-create') {
           assert.throws(() => authorObservedSalesforceEffectPreview({
-            moon, salesforceMoon: {...salesforceMoon,
+            moon, prepared, salesforceMoon: {...salesforceMoon,
               salesforceSingleWriteRequestBody: () =>
                 '{"Name":9007199254740993}'},
             templateWire: previewDraft.wire, requestScope,
-            members: siteRequests.map(requests => ({requests})),
+            members: siteRequests.map((requests, index) => ({
+              effectId: memberIds[index], requests,
+            })),
             maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
             maxKeyNodes: 8, maxKeyDepth: 3,
+            planLimits: previewPlanLimits,
           }), {code: 'LossySalesforceEffectPreviewProjection'});
         }
         const foreignContent = JSON.parse(preview.wire);
@@ -2507,25 +2520,59 @@ test(`two-member captured Effect Run ${
           {state: 'present', value: {Name: 'fabricated-after'}};
         alteredTemplate.effects[0].changes[0].target_guard =
           {state: 'version', version_cid: cid('9')};
+        Object.assign(alteredTemplate.effects[0], {
+          effect_kind: 'create', target: 'connector://foreign/resource',
+          mapping: 'mapping:foreign', resolved_mapping_contract_cid: cid('9'),
+          source_result: 'foreign', on_item_failure: 'continue',
+          effect_plan_logical_cid: cid('9'),
+        });
         const restored = authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, templateWire: JSON.stringify(alteredTemplate),
+          moon, salesforceMoon, prepared,
+          templateWire: JSON.stringify(alteredTemplate),
           requestScope, members: siteRequests.map((requests, index) => ({
+            effectId: memberIds[index], requests,
+            observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        });
+        assert.equal(restored.wire, preview.wire);
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
+          requestScope, members: siteRequests.map((requests, index) => ({
+            effectId: index === 0 ? 'foreign' : memberIds[index],
             requests, observations: previewTargetObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
-        });
-        assert.equal(restored.wire, preview.wire);
+          planLimits: previewPlanLimits,
+        }), {code: 'ForeignSalesforceEffectPreviewMember'});
+        const foreignProgram = JSON.parse(previewDraft.wire);
+        foreignProgram.program_definition_cid = cid('9');
+        assert.throws(() => authorObservedSalesforceEffectPreview({
+          moon, salesforceMoon, prepared,
+          templateWire: JSON.stringify(foreignProgram), requestScope,
+          members: siteRequests.map((requests, index) => ({
+            effectId: memberIds[index], requests,
+            observations: previewTargetObservations[index],
+          })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
+          maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
+          maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
+        }), {code: 'InvalidSalesforceEffectPreviewAuthoring'});
         const foreignObservations = previewTargetObservations.map(rows =>
           [...rows]);
         foreignObservations[0][0] = previewTargetObservations[1][0];
         assert.throws(() => authorObservedSalesforceEffectPreview({
-          moon, salesforceMoon, templateWire: previewDraft.wire,
+          moon, salesforceMoon, prepared, templateWire: previewDraft.wire,
           requestScope, members: siteRequests.map((requests, index) => ({
-            requests, observations: foreignObservations[index],
+            effectId: memberIds[index], requests,
+            observations: foreignObservations[index],
           })), maxWireBytes: 20000, maxNodes: 1000, maxDepth: 20,
           maxRows: 4, maxIdentityBytes: 4096, maxKeyBytes: 128,
           maxKeyNodes: 8, maxKeyDepth: 3,
+          planLimits: previewPlanLimits,
         }), {code: 'ForeignSalesforceEffectPreviewObservation'});
       }
       const authoringContext = control.admitRunEvidence(

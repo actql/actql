@@ -152,6 +152,8 @@ pub fn client_program_effect_managed_input_cancel(ClientEffectManagedInputImport
 
 pub fn client_program_effect_managed_input_finish(ClientEffectManagedInputImport) -> Result[@execution_relation.CompletedResultRelationExportPreparation, ClientEffectManagedInputIssue]
 
+pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[(String, String, String, String, String, String?, String), ClientEffectMemberDescriptorIssue]
+
 pub fn client_program_effect_plan_advance(ClientEffectPlanPreparation, Int) -> Result[(Bool, Int), ClientEffectPlanStreamIssue]
 
 pub fn client_program_effect_plan_cancel(ClientEffectPlanCursor) -> Unit
@@ -1626,6 +1628,11 @@ pub(all) enum ClientEffectManagedInputIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@execution_relation.CompletedExportIssue)
 }
+
+pub(all) enum ClientEffectMemberDescriptorIssue {
+  InvalidMember
+  MissingMapping
+} derive(@debug.Debug)
 
 type ClientEffectPlanCursor
 
