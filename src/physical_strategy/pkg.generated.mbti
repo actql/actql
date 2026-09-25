@@ -130,9 +130,13 @@ pub fn captured_effect_preview_inputs_available(CapturedEffectPreviewInputs) -> 
 
 pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
 
+pub fn captured_effect_preview_member_count(CapturedEffectPreviewInputs) -> Int?
+
 pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @program_check.EffectProgramRunPreview
 
 pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
+
+pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
 
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 

@@ -799,3 +799,36 @@ pub fn start_captured_effect_input_export(
 pub fn release_captured_effect_input(value : CapturedEffectInput) -> Bool {
   release_captured_any_result_borrow(value.borrow)
 }
+
+///|
+/// Sealed Effect Set Preview identity of one live captured Preview: the
+/// exact decision subject for the Effect commit boundary. It is the same
+/// semantic CID a risk body binds as `effect_preview_cid`. `None` once the
+/// captured inputs are released. It is not a send permit.
+pub fn captured_effect_preview_subject_cid(
+  value : CapturedEffectPreviewInputs,
+) -> String? {
+  if !value.inputs.live {
+    return None
+  }
+  Some(
+    @publication.effect_preview_semantic_identity(
+      @checked.effect_program_run_preview_identity(value.preview),
+    ),
+  )
+}
+
+///|
+/// Number of members of the live captured Preview.
+pub fn captured_effect_preview_member_count(
+  value : CapturedEffectPreviewInputs,
+) -> Int? {
+  if !value.inputs.live {
+    return None
+  }
+  Some(
+    @publication.effect_preview_member_count(
+      @checked.effect_program_run_preview_identity(value.preview),
+    ),
+  )
+}
