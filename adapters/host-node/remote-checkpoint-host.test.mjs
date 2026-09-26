@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
+import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
 import {DatabaseSync} from 'node:sqlite';
@@ -100,11 +100,13 @@ const protectedHost = (outcome, extra = {}) => ({
   reviewers, reviewReaders: ['reader-principal'], hostKey, ...extra,
 });
 
+// A bounded wait for a Host-driven outcome (lease retries and restarts take
+// real time on a loaded machine). This bounds waiting, never a count.
 async function waitFor(check) {
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 400; attempt++) {
     const value = await check();
     if (value) return value;
-    await new Promise(resolve => setTimeout(resolve, 25));
+    await new Promise(resolve => setTimeout(resolve, 50));
   }
   throw new Error('Timeout');
 }
@@ -386,7 +388,6 @@ test('more than one page of approved requests resumes at Host start',
 test('a lost or corrupt request index is rebuilt from the held evidence',
   async t => {
     const directory = await mkdtemp(join(scratch, 'index-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     const first = await remoteHost(t, protectedHost('delegate'),
       {directory});
     const client = await first.as('owner-token');
@@ -400,6 +401,8 @@ test('a lost or corrupt request index is rebuilt from the held evidence',
     await writeFile(join(index, files[1]), '{not json');
     const second = await remoteHost(t, protectedHost('delegate'),
       {directory});
+    // After both Hosts' own cleanup.
+    t.after(() => rm(directory, {recursive: true, force: true}));
     const reviewer = await second.as('reviewer-token');
     const items = await allCheckpoints(reviewer);
     assert.deepEqual(items.map(item => item.subject.requestId).sort(),
@@ -418,7 +421,6 @@ test('a lost or corrupt request index is rebuilt from the held evidence',
 test('closing during a resumed dispatch records its end before releasing',
   async t => {
     const directory = await mkdtemp(join(scratch, 'close-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     const steps = [];
     let released;
     const stalled = new Promise(resolve => { released = resolve; });
@@ -427,6 +429,8 @@ test('closing during a resumed dispatch records its end before releasing',
         steps.push(name);
         if (name === 'physical_start_reserved') await stalled;
       }}), {directory});
+    // After the Host's own cleanup.
+    t.after(() => rm(directory, {recursive: true, force: true}));
     const client = await host.as('owner-token');
     const reviewer = await host.as('reviewer-token');
     await heldRequests(client, ['close-a']);
@@ -520,4 +524,87 @@ test('a resubmit while the resuming claim lapses starts the Run once',
     assert.equal(state.status, 'succeeded');
     // The lapsed claim started nothing; a later claim did.
     assert.ok(steps.filter(name => name === 'resume_claimed').length >= 2);
+  });
+
+// DCI-R8: a held request's intent is always compared before its held state
+// or Run is returned, and unavailable evidence is an error, never a pass.
+test('a held request resubmit is matched to its intent, whatever the evidence',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'intent-'));
+    const host = await remoteHost(t, protectedHost('delegate'),
+      {directory});
+    // Registered after the Host's own cleanup, so it runs after close.
+    t.after(async () => {
+      await chmod(join(directory, 'state', 'checkpoints', 'attempts'), 0o700)
+        .catch(() => {});
+      await rm(directory, {recursive: true, force: true});
+    });
+    const client = await host.as('owner-token');
+    const reviewer = await host.as('reviewer-token');
+    const variant = (id, rows) => {
+      const value = JSON.parse(document);
+      value.id = id;
+      if (rows !== undefined) value.stages[0].steps[0].values.rows = rows;
+      return JSON.stringify(value);
+    };
+    await heldRequests(client, ['done-a', 'held-b']);
+    const items = await allCheckpoints(reviewer);
+    await approveAll(reviewer, items.filter(item =>
+      item.subject.requestId === 'done-a'));
+    assert.equal(await succeeded(client, 'done-a'), true);
+    const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
+    const ledgerOf = async requestId => {
+      for (const file of await readdir(ledgers)) {
+        const summary = items.find(item =>
+          item.subject.requestId === requestId);
+        if (file === `${summary.subject.prepareAttemptId}.json`) {
+          return join(ledgers, file);
+        }
+      }
+      throw new Error('LedgerNotFound');
+    };
+    // Normal: the same request returns the same Run; another intent conflicts.
+    const found = await client.lookupRequest('done-a');
+    const again = await client.aql(variant('done-a'), {format: 'json',
+      requestId: 'done-a'});
+    assert.deepEqual(again.ref, found.ref);
+    await assert.rejects(client.aql(variant('done-a', [{id: 999}]),
+      {format: 'json', requestId: 'done-a'}),
+    {code: 'ClientRequestIntentConflict'});
+    // A Run exists: the request journal's identity decides, even with the
+    // held evidence ledger corrupt.
+    await writeFile(await ledgerOf('done-a'), '{broken');
+    await assert.rejects(client.aql(variant('done-a', [{id: 999}]),
+      {format: 'json', requestId: 'done-a'}),
+    {code: 'ClientRequestIntentConflict'});
+    assert.deepEqual((await client.aql(variant('done-a'), {format: 'json',
+      requestId: 'done-a'})).ref, found.ref);
+    // No Run yet: the held request's durable fingerprint must be readable.
+    const held = await ledgerOf('held-b');
+    const original = await readFile(held);
+    await assert.rejects(client.aql(variant('held-b', [{id: 999}]),
+      {format: 'json', requestId: 'held-b'}),
+    {code: 'ClientRequestIntentConflict'});
+    const unavailable = error => error.code === 'SubmissionUnknown' &&
+      error.cause?.code === 'HeldRequestEvidenceUnavailable';
+    for (const [label, damage] of [
+      ['corrupt', () => writeFile(held, '{broken')],
+      ['missing', () => rm(held)],
+      ['unreadable', async () => {
+        await writeFile(held, original);
+        await chmod(held, 0o000);
+      }],
+    ]) {
+      await damage();
+      for (const text of [variant('held-b'), variant('held-b', [{id: 999}])]) {
+        await assert.rejects(client.aql(text, {format: 'json',
+          requestId: 'held-b'}), unavailable, label);
+      }
+    }
+    await chmod(held, 0o600);
+    await writeFile(held, original);
+    await assert.rejects(client.aql(variant('held-b'), {format: 'json',
+      requestId: 'held-b'}), error => error instanceof RequestHeld);
+    // Nothing was started by any of these submits.
+    assert.equal(host.dispatches(), 1);
   });
