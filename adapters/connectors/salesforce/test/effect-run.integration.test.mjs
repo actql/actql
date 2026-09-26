@@ -33,6 +33,8 @@ import {installSalesforceEffectCurrentUse} from
   '../host/salesforce-effect-current-use.mjs';
 import {installSalesforceEffectDispatch} from
   '../host/salesforce-effect-dispatch.mjs';
+import {installSalesforceEffectRoute} from
+  '../host/salesforce-effect-route.mjs';
 import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
 import {openSalesforceEffectSiteFixture} from
@@ -2373,26 +2375,64 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
       }
-      const currentUse = siteRun ? installSalesforceEffectCurrentUse({
-        moon: salesforceMoon, commonMoon: moon, observedRows,
-        members: sites.map((site, index) => ({
-          requests: siteRequests[index],
-          capability: productCapabilities[index],
-          collectionRequest: collectionMode && index === 0
-            ? collectionRequest : undefined,
-          refreshCatalog: site.refreshCatalog,
-          target: writeKind === 'create' ? undefined : {
-            authorizationForRow: async () => ({...site.observe,
-              useId: `target-read-${targetRead++}`}),
-            credential: site.credential,
-            limits: {maxResponseBytes: 1024, maxNodes: 32,
-              maxDepth: 5, maxIdentityBytes: 1024},
-          },
-        })), maxMembers: 2, maxRows: 4,
-        maxTotalResponseBytes: 4096,
-      }) : undefined;
-      if (currentUse) {
-        applyOptions.refreshPreflight = currentUse.refreshPreflight;
+      const productRouteCases = [
+        'salesforce', 'salesforce-upsert', 'salesforce-create',
+        'salesforce-create-duplicates', 'salesforce-publication-restart',
+        'salesforce-preapply-restart', 'salesforce-prepared-intent-restart',
+        'salesforce-collection-partial',
+        'salesforce-terminal-store-restart',
+        'salesforce-terminal-process-publication',
+      ];
+      const useProductRoute = productRouteCases.includes(physical);
+      const routeMembers = siteRun ? sites.map((site, index) => ({
+        requests: siteRequests[index],
+        capability: productCapabilities[index],
+        refreshCatalog: site.refreshCatalog,
+        target: writeKind === 'create' ? undefined : {
+          authorizationForRow: async () => ({...site.observe,
+            useId: `target-read-${targetRead++}`}),
+          credential: site.credential,
+          limits: {maxResponseBytes: 1024, maxNodes: 32,
+            maxDepth: 5, maxIdentityBytes: 1024},
+        },
+        authorizationForRow: rowIndex => ({...site.write,
+          useId: `write-${index}-${rowIndex}`}),
+        credential: site.credential,
+        limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+          maxNodes: 32, maxDepth: 5},
+        collection: collectionMode && index === 0 ? {
+          request: collectionRequest,
+          authorization: () => ({...site.write,
+            useId: 'partial-collection'}),
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 64, maxDepth: 6, maxRows: 2},
+        } : undefined,
+      })) : undefined;
+      const makeProductRoute = () => installSalesforceEffectRoute({
+        commonMoon: moon, moon: salesforceMoon, ledger,
+        admittedPreview: applyPreview, observedRows, members: routeMembers,
+        maxMembers: 2, maxRows: 4, maxTotalResponseBytes: 4096,
+      });
+      let productRoute = useProductRoute ? makeProductRoute() : undefined;
+      if (physical === 'salesforce') {
+        const before = sites.map(site => site.seen.length);
+        assert.throws(() => productRoute.bindDispatch({members,
+          subjectCid: cid('9')}), {code: 'InvalidSalesforceEffectRoute'});
+        assert.deepEqual(sites.map(site => site.seen.length), before);
+      }
+      const currentUse = siteRun && !productRoute
+        ? installSalesforceEffectCurrentUse({
+          moon: salesforceMoon, commonMoon: moon, observedRows,
+          members: routeMembers.map(member => ({
+            requests: member.requests, capability: member.capability,
+            collectionRequest: member.collection?.request,
+            refreshCatalog: member.refreshCatalog, target: member.target,
+          })), maxMembers: 2, maxRows: 4,
+          maxTotalResponseBytes: 4096,
+        }) : undefined;
+      if (productRoute || currentUse) {
+        applyOptions.refreshPreflight = (productRoute ?? currentUse)
+          .refreshPreflight;
       }
       if (physical === 'salesforce') {
         const foreignAuthored = checked(
@@ -2625,6 +2665,10 @@ test(`two-member captured Effect Run ${
           preview.authoringCid, requestScope, preview.keys,
           publicationLimits.maxWireBytes, publicationLimits.maxNodes,
           publicationLimits.maxDepth);
+        if (productRoute) {
+          productRoute = makeProductRoute();
+          applyOptions.refreshPreflight = productRoute.refreshPreflight;
+        }
         assert.equal(completed.connectorRecovery.length, 2);
         const originalCatalogs = completed.connectorRecovery.map(
           (entry, index) => {
@@ -2934,33 +2978,11 @@ test(`two-member captured Effect Run ${
       let collectionFaultPending = collectionRecovered;
       let terminalFaultPending = restartAfterTerminal;
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
-      const bindDispatch = [
-        'salesforce', 'salesforce-upsert', 'salesforce-create',
-        'salesforce-create-duplicates', 'salesforce-publication-restart',
-        'salesforce-preapply-restart', 'salesforce-prepared-intent-restart',
-        'salesforce-collection-partial',
-        'salesforce-terminal-store-restart',
-        'salesforce-terminal-process-publication',
-      ].includes(physical) ? ({members: activeMembers, subjectCid, signal}) => {
+      const bindDispatch = productRoute ? ({members: activeMembers,
+        subjectCid, signal}) => {
         assert.equal(subjectCid, body.effect_preview_cid);
-        const dispatch = installSalesforceEffectDispatch({commonMoon: moon,
-          moon: salesforceMoon, ledger, admittedPreview: applyPreview,
-          currentUse, signal, members: sites.map((site, memberIndex) => ({
-            requests: siteRequests[memberIndex],
-            claims: activeMembers[memberIndex].claims,
-            authorizationForRow: rowIndex => ({...site.write,
-              useId: `write-${memberIndex}-${rowIndex}`}),
-            credential: site.credential,
-            limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
-              maxNodes: 32, maxDepth: 5},
-            collection: collectionMode && memberIndex === 0 ? {
-              request: collectionRequest,
-              authorization: () => ({...site.write,
-                useId: 'partial-collection'}),
-              limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
-                maxNodes: 64, maxDepth: 6, maxRows: 2},
-            } : undefined,
-          }))});
+        const dispatch = productRoute.bindDispatch({members: activeMembers,
+          subjectCid, signal});
         return row => dispatchRow(row, dispatch);
       } : undefined;
       const dispatchRow = async ({memberIndex, rowIndex, claim,
