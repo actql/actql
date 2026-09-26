@@ -69,9 +69,14 @@ function principals(values, code) {
 // Install the Checkpoint connection for one installed Host scope. Returns
 // undefined when the Host installs no Run-acceptance protection (then its
 // in-process Site is unprotected and pure compute is covered, as before).
+// `source` (optional): the installed source's own read authorization,
+// {accountConfiguration, context}. With it, a request whose Program acquires
+// that source is decided for the Host-resolved read tuple before any Run or
+// provider I/O exists, and a delegated read is held like Run acceptance.
 export async function installRemoteCheckpoints({root, tenantId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
-  environmentCid, contractControl, authorization, now = () => Date.now()}) {
+  environmentCid, contractControl, authorization, source,
+  now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
@@ -109,10 +114,20 @@ export async function installRemoteCheckpoints({root, tenantId,
   const gate = await createLocalAuthorizationGate({accountConfig,
     accountConfiguration, principal: ownerPrincipal});
   const configured = gate.configurationCid !== undefined;
+  // The source's read decision uses the source installation's own account
+  // configuration and context (the same one its adapter rechecks before
+  // provider I/O). Without a decision function or deferral a delegated read
+  // is unsupported here, so this gate is also the current-authority check.
+  const sourceGate = source === undefined ? undefined :
+    await createLocalAuthorizationGate({
+      accountConfiguration: source.accountConfiguration,
+      context: source.context});
   const binding = Object.freeze({
     authorizationContextCid: contentCid({principal: ownerPrincipal,
       account_id: gate.accountId ?? null,
-      configuration_cid: gate.configurationCid ?? 'missing'}),
+      configuration_cid: gate.configurationCid ?? 'missing',
+      // A changed source configuration also revalidates held requests.
+      source_configuration_cid: sourceGate?.configurationCid ?? null}),
     environmentBindingCid: contentCid({version:
       'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
     realization_key: realizationKey, environment_cid: environmentCid,
@@ -218,6 +233,16 @@ export async function installRemoteCheckpoints({root, tenantId,
     accountConfiguration, principal: ownerPrincipal, deferral: {journal,
       authorities, binding,
       describe() { fail('ResumeDoesNotDefer'); }}});
+  const readResumeGate = source === undefined ? undefined :
+    await createLocalAuthorizationGate({
+      accountConfiguration: source.accountConfiguration,
+      context: source.context, deferral: {journal, authorities, binding,
+        describe() { fail('ResumeDoesNotDefer'); }}});
+  // The read approval admitted immediately before a held request's physical
+  // start, for the source adapter's current-authority check that follows in
+  // the same process (after a restart a started acquisition is only
+  // reconciled, never started again).
+  const admittedReads = new Map();
   // The Host-resolved request: this installation scope, the caller's request
   // identity and intent, and the Site and realization it would run on. The
   // caller supplies none of these values directly.
@@ -331,16 +356,145 @@ export async function installRemoteCheckpoints({root, tenantId,
     };
   }
 
+  // The pre-acquisition binding of a held read: the request, the exact
+  // captured submission, the Host-checked source and the Host-resolved read
+  // tuple. It is not a Prepared Invocation: the formal invocation depends on
+  // the later source observation and is issued by its owner after it.
+  const acquisitionIntent = (requestCid, captured) => ({
+    version: 'actql-remote-acquisition-intent/0.1',
+    request_cid: requestCid,
+    captured_submission_cid: contentCid(captured),
+    checked_source: captured.acquisition.checkedSource,
+    read_tuple: captured.acquisition.readTuple,
+    physical_binding: captured.acquisition.physicalBinding,
+  });
+
+  // The durable deferral of a request's source read (`read_access`,
+  // `prepare_attempt`). `port` persists the Checkpoint: the journal for a new
+  // held request, or the current resume claim for one already resuming.
+  // `earlier` names the approvals this attempt already holds (checked again
+  // on their own before the start).
+  function readDeferralFor({prepareAttemptId, request, requestCid, captured,
+    answering, port, earlier = []}) {
+    return {
+      journal: port,
+      authorities,
+      binding,
+      async describe(view) {
+        const intent = acquisitionIntent(requestCid, captured);
+        const intentCid = contentCid(intent);
+        const created = now();
+        const expiresAt = new Date(created + checkpointTtlMs).toISOString();
+        const projection = {
+          version: 'actql-run-review-projection/0.1',
+          prepared_invocation_cid: intentCid,
+          execution_context_cid: sourceGate.contextCid,
+          host_policy_cid: sourceGate.configurationCid,
+          approval_claims: ['invocation_scope_approved'],
+          authoring_context_cid: contentCid({principal: captured.principalId,
+            request_id: captured.requestId}),
+          redaction_policy_cid: contentCid({version:
+            'actql-remote-review-redaction/0.1', redacted: []}),
+          sensitivity: 'restricted',
+          retention_class: 'approval-evidence',
+          encryption_required: true,
+          expires_at: expiresAt,
+          displayed_scope: {
+            request_id: captured.requestId,
+            kind: captured.kind,
+            format: captured.kind === 'aql' ? captured.input.format : 'json',
+            document: captured.kind === 'aql' ? captured.input.text
+              : captured.input,
+            parameters: captured.parameters,
+            source: captured.acquisition.checkedSource,
+            read_tuple: captured.acquisition.readTuple,
+            physical_binding: captured.acquisition.physicalBinding,
+          },
+          displayed_authoring_context: [{principal: captured.principalId}],
+        };
+        projection.review_projection_cid = contentCid(projection);
+        const reviewWire = canonicalJson(projection);
+        if (Buffer.byteLength(reviewWire, 'utf8') > maxReviewBytes) {
+          fail('CheckpointReviewTooLarge');
+        }
+        const reviewCid = contentCid(JSON.parse(reviewWire));
+        const items = [
+          {name: 'captured_input', wire: canonicalJson(captured)},
+          {name: 'invocation_request', wire: canonicalJson(request)},
+          // The Store's prepared-invocation slot holds the acquisition
+          // intent (a distinct version), never a fabricated invocation.
+          {name: 'prepared_invocation', wire: canonicalJson(intent)},
+          {name: 'review_projection', wire: reviewWire},
+        ];
+        const continuation = {
+          version: 'actql-remote-continuation/0.1',
+          prepare_attempt_id: prepareAttemptId,
+          boundary: view.boundary,
+          invocation_cid: intentCid,
+          request_subject_cid: request.subject_cid,
+          request_id: captured.requestId,
+          delegated_subject: JSON.parse(JSON.stringify(view.subject)),
+          answering_authorities: [...answering],
+          earlier_approvals: [...earlier],
+          evidence: items.map(({name, wire}) =>
+            evidence.reference(prepareAttemptId, name, wire)),
+        };
+        const continuationCid = contentCid(continuation);
+        await recordHeld(prepareAttemptId, captured.requestId);
+        await evidence.hold(prepareAttemptId, requestCid, [...items,
+          {name: 'continuation_record', wire: canonicalJson(continuation)}]);
+        return {
+          priorStatus: undefined,
+          declaredResults: [...captured.resultNames],
+          binding,
+          body: {
+            checkpoint_id: `${prepareAttemptId}-acquisition`,
+            continuation_state_cid: continuationCid,
+            subject: {kind: 'prepare_attempt',
+              prepare_attempt_id: prepareAttemptId, continuation: 'start_run'},
+            kind: 'read_access',
+            required_artifact: {artifact_type: 'read_scope',
+              artifact_cid: intentCid},
+            review_projection_cid: reviewCid,
+            human_summary: `Read ${captured.acquisition.checkedSource.sourceRef}` +
+              ` for request ${captured.requestId}`,
+            created_at: new Date(created).toISOString(),
+            expires_at: expiresAt,
+          },
+        };
+      },
+    };
+  }
+
+  // Decide a request's source read for the Host-resolved read tuple. The
+  // account allows, denies or delegates; a delegated read is answered by the
+  // Host's decision function or held through `port`.
+  async function decideRead({prepareAttemptId, request, requestCid,
+    captured, port, earlier, signal}) {
+    const answering = answeringAuthorities ??
+      authorities.map(item => item.reviewerId);
+    const deferring = await createLocalAuthorizationGate({
+      accountConfiguration: source.accountConfiguration,
+      context: source.context, decide,
+      answeringAuthorities: decide === undefined ? undefined : answering,
+      deferral: readDeferralFor({prepareAttemptId, request, requestCid,
+        captured, answering, port, earlier})});
+    const intentCid = contentCid(acquisitionIntent(requestCid, captured));
+    return deferring.authorize('acquisition',
+      captured.acquisition.readTuple, {subjectCid: intentCid, signal});
+  }
+
   // The exact held evidence of one prepare attempt, from its ledger: the
   // continuation record, the captured submission and the request, checked
   // against each other.
   async function continuationOf(prepareAttemptId, continuationStateCid) {
     const opened = await evidence.open(prepareAttemptId);
-    const [anchor, ...others] = continuationStateCid === undefined
+    // Every continuation of one attempt (a Run-acceptance hold and a
+    // later read hold) binds the same captured submission; any held one
+    // anchors it when no exact one is named.
+    const [anchor] = continuationStateCid === undefined
       ? opened.held('continuation_record') : [continuationStateCid];
-    if (anchor === undefined || others.length !== 0) {
-      fail('ContinuationEvidenceNotHeld');
-    }
+    if (anchor === undefined) fail('ContinuationEvidenceNotHeld');
     const continuation = await opened.record('continuation_record', anchor);
     const references = new Map(continuation.evidence.map(item =>
       [item.name, item.semantic_cid]));
@@ -423,7 +577,8 @@ export async function installRemoteCheckpoints({root, tenantId,
   const PERMANENT = new Set(['ArtifactIntegrityFailed',
     'ContinuationEvidenceNotHeld', 'ContinuationEvidenceRetired',
     'PrivateEvidenceKeyMismatch', 'HeldRunDefinitionMissing',
-    'HeldRequestChanged', 'InvalidContinuationLedger']);
+    'HeldRequestChanged', 'HeldAcquisitionChanged',
+    'InvalidContinuationLedger']);
   const retryable = error => !PERMANENT.has(error?.code ?? error?.message);
   // Observe Runs created from approved preparations. The intent completes
   // only after the physical start is reserved, so these Runs are started
@@ -536,17 +691,74 @@ export async function installRemoteCheckpoints({root, tenantId,
     // Otherwise the physical start is still ahead: the common resumed
     // authorization holds now (current configuration, approval validity at
     // trusted time, live claim), whether or not the Run Definition exists.
-    const decision = await resumeGate.resume('preparation', tuple, {
-      subjectCid: request.subject_cid,
-      sealedSubjectCid: continuation.invocation_cid,
-      resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
-    });
-    if (decision.action !== 'dispatch' || decision.admission === undefined) {
+    // The resumed Checkpoint is Run acceptance (`run_scope`) or a held
+    // source read (`read_access`), each decided for its own tuple.
+    const resumedKind = journal.inspect(claimed.checkpointCid)?.kind;
+    const readHeld = resumedKind === 'read_access';
+    if (readHeld && (readResumeGate === undefined ||
+        captured.acquisition === undefined)) {
+      await host.abandon(captured);
+      end('failed');
+      return 'done';
+    }
+    // Approvals this attempt answered earlier (Run acceptance before a read)
+    // are each checked on their own at the Host trusted time.
+    const earlierCurrent = () => {
+      for (const checkpointCid of continuation.earlier_approvals ?? []) {
+        if (journal.committedApprovalAt(checkpointCid).current !== true) {
+          throw Object.assign(new Error('ApprovalExpired'),
+            {code: 'ApprovalExpired'});
+        }
+      }
+    };
+    const decision = readHeld
+      ? await readResumeGate.resume('acquisition',
+        captured.acquisition.readTuple, {
+          subjectCid: continuation.invocation_cid,
+          sealedSubjectCid: continuation.invocation_cid,
+          resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
+        })
+      : await resumeGate.resume('preparation', tuple, {
+        subjectCid: request.subject_cid,
+        sealedSubjectCid: continuation.invocation_cid,
+        resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
+      });
+    let earlierValid = true;
+    try { earlierCurrent(); } catch { earlierValid = false; }
+    if (decision.action !== 'dispatch' || decision.admission === undefined ||
+        !earlierValid) {
       // A lapsed or superseded claim sends nothing and ends nothing.
       if (decision.detail === 'ResumeClaimStale') return 'busy';
       await host.abandon(captured);
       end('failed');
       return 'done';
+    }
+    // Run acceptance approved for a Program that reads the installed
+    // source: its read is decided now, before any Run or provider I/O. A
+    // delegated read is held as this attempt's next Checkpoint (under the
+    // current claim) and resumes later on its own approval. An immediate
+    // Host permit is kept for this attempt's start, as for a new request.
+    let readPermit = false;
+    if (!readHeld && captured.acquisition !== undefined &&
+        sourceGate !== undefined) {
+      const read = await decideRead({prepareAttemptId, request,
+        requestCid: contentCid(request), captured,
+        earlier: [claimed.checkpointCid],
+        port: {
+          persistCheckpoint: ({body, authorities: reviewers, binding: bound,
+            decisionSubjectCid, requestedClaims, configurationCid}) =>
+            journal.completeResume(claim, {checkpoint: {body,
+              authorities: reviewers, binding: bound, decisionSubjectCid,
+              requestedClaims, configurationCid}}),
+          submitResolution: item => journal.submitResolution(item),
+        }});
+      if (read.action === 'waiting') return 'done';
+      if (read.action !== 'dispatch') {
+        await host.abandon(captured);
+        end('failed');
+        return 'done';
+      }
+      readPermit = read.basis === 'host_permit';
     }
     const admission = decision.admission;
     const identity = request.subject.logical_request_scope_cid;
@@ -567,10 +779,29 @@ export async function installRemoteCheckpoints({root, tenantId,
         // The claimant keeps its lease while it works; a lapsed or
         // superseded claim throws here and nothing starts.
         journal.renewResume(claim, leaseMs);
+        earlierCurrent();
         try { admission.enter(identity); }
         catch (error) {
           if (error?.code !== 'PriorAdmissionUnresolved') throw error;
           admission.reconcile(identity);
+        }
+        // The source adapter's current-authority check right after the
+        // start reservation accepts this exact admitted read approval.
+        if (readHeld) {
+          admittedReads.set(captured.requestId, Object.freeze({
+            checkpointCid: claimed.checkpointCid,
+            readTuple: captured.acquisition.readTuple,
+            earlier: [...(continuation.earlier_approvals ?? [])],
+            prepareAttemptId}));
+        } else if (readPermit) {
+          // The Host's immediate read permit for this attempt: it holds
+          // only while the Run acceptance approval is current and the
+          // request is not cancelled, and ends with the dispatch.
+          admittedReads.set(captured.requestId, Object.freeze({
+            readTuple: captured.acquisition.readTuple,
+            earlier: [claimed.checkpointCid,
+              ...(continuation.earlier_approvals ?? [])],
+            prepareAttemptId}));
         }
       },
       // The intent completes with the Run right after its physical start is
@@ -757,6 +988,78 @@ export async function installRemoteCheckpoints({root, tenantId,
       if (sealed !== undefined) await evidence.abandon(prepareAttemptId);
       throw refusal(decision);
     },
+
+    // Decide the source read of a new request whose Run acceptance was just
+    // allowed or permitted, before any Run Definition or provider I/O. A
+    // delegated read is held as a `read_access` `prepare_attempt`
+    // Checkpoint (the held reply); refusals throw and record nothing.
+    async acceptAcquisition({requested, captured, signal}) {
+      if (captured.acquisition === undefined || sourceGate === undefined) {
+        return {kind: 'dispatch'};
+      }
+      const prepareAttemptId = prepareAttemptIdOf(captured.requestId);
+      const subject = requestSubject(requested);
+      const request = {version: 'actql-remote-invocation-request/0.1',
+        subject, subject_cid: contentCid(subject)};
+      const requestCid = contentCid(request);
+      const decision = await decideRead({prepareAttemptId, request,
+        requestCid, captured, port: journal, signal});
+      if (decision.action === 'dispatch') {
+        // An immediate Host permit (not an account allow) is this request's
+        // one-time read grant for the adapter's current-authority check in
+        // this process; it is never persisted or reused elsewhere.
+        if (decision.basis === 'host_permit') {
+          admittedReads.set(captured.requestId, Object.freeze({
+            readTuple: captured.acquisition.readTuple, earlier: []}));
+        }
+        return {kind: 'dispatch'};
+      }
+      if (decision.action === 'waiting') {
+        return {kind: 'held', held: held(prepareAttemptId,
+          captured.requestId)};
+      }
+      await evidence.abandon(prepareAttemptId);
+      throw refusal(decision);
+    },
+
+    // The source access a request's acquisition uses. For a request whose
+    // read was held and approved, the adapter's current-authority check just
+    // before provider I/O (and before Source Evidence) accepts that exact
+    // admitted approval while it is still current and the request is not
+    // cancelled; deny and allow are the source account's own. Every other
+    // request uses the installed access unchanged.
+    acquisitionAccess(requestId, base) {
+      const admitted = admittedReads.get(requestId);
+      if (admitted === undefined || sourceGate === undefined) return base;
+      const same = scope => ['connection', 'resource', 'operation'].every(
+        key => scope?.[key] === admitted.readTuple[key]);
+      const authorization = Object.freeze({
+        ...base.authorization,
+        async authorize(boundary, scope, options) {
+          const current = await base.authorization.authorize(boundary, scope,
+            options);
+          if (current.action === 'dispatch' || current.action === 'deny' ||
+              boundary !== 'acquisition' || !same(scope)) return current;
+          const preparation = admitted.prepareAttemptId === undefined
+            ? undefined : journal.getPreparation(admitted.prepareAttemptId);
+          const approvedNow = cid => {
+            try { return journal.committedApprovalAt(cid).current === true; }
+            catch { return false; }
+          };
+          const valid = preparation?.cancelRequested !== true &&
+            [admitted.checkpointCid, ...admitted.earlier]
+              .filter(cid => cid !== undefined).every(approvedNow);
+          return valid ? Object.freeze({boundary, action: 'dispatch',
+            basis: 'resumed_approval', tuple: Object.freeze({...scope}),
+            checkpointCid: admitted.checkpointCid}) : current;
+        },
+      });
+      return Object.freeze({...base, authorization});
+    },
+
+    // The dispatch of a held read ended; its admitted approval is no longer
+    // used for provider I/O in this process.
+    releaseAcquisition(requestId) { admittedReads.delete(requestId); },
 
     // Durable request cancellation of a held request (before or after its
     // Run exists); the caller applies it to an existing Run.

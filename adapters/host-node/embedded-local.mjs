@@ -26,6 +26,7 @@ import {installRunStateAuthority, installRunStateService,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, acquiredTaskRunAdmission,
   acquiredTaskPublicationPlan} from './local-values-plan.mjs';
@@ -153,7 +154,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
       realizationKey: sourceProfile === undefined ? REALIZATION_KEY
         : 'duckdb-acquired', environmentCid: evidenceCid,
-      contractControl: control, authorization});
+      contractControl: control, authorization,
+      source: sourceProfile?.readAuthorization});
   } catch (error) {
     journal.close();
     await store.close();
@@ -301,11 +303,12 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     return {requested, resultNames, acquired};
   };
-  const prepareAcquisition = preparedProgram =>
+  const prepareAcquisition = (preparedProgram,
+    sourceAccess = sourceProfile.sourceAccess) =>
     prepareCapturedDuckDBSource({moon, preparedProgram, registry, values,
       fragment, ordered, database: sourceProfile.database,
       schema: sourceProfile.schema, table: sourceProfile.table,
-      sourceAccess: sourceProfile.sourceAccess});
+      sourceAccess});
   const planFor = ({preparedProgram, kind, input, parameters, requestId},
     retainedDefinitionWire) => {
     const common = {moon, control, preparedProgram,
@@ -410,17 +413,29 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       gate?.started();
       reached('started');
       await observed('physical_start_reserved', {ref: accepted.ref});
+      // A held and approved read uses its own admitted approval for the
+      // adapter's current-authority check; every other request uses the
+      // installed source access.
+      const sourceAccess = checkpoints?.acquisitionAccess(
+        submission.requestId, sourceProfile?.sourceAccess) ??
+        sourceProfile?.sourceAccess;
       if (acquiring) {
-        held.preparedSource ??= await prepareAcquisition(preparedProgram);
+        if (held.preparedSourceAccess !== sourceAccess) {
+          held.preparedSource = await prepareAcquisition(preparedProgram,
+            sourceAccess);
+          held.preparedSourceAccess = sourceAccess;
+        }
         const captureStartedAt = now();
+        await observed('acquisition_started', {ref: accepted.ref});
         active.sourceCapture = await openCapturedDuckDBSource({moon,
           preparedProgram, registry, values, fragment, ordered,
           database: sourceProfile.database, schema: sourceProfile.schema,
-          table: sourceProfile.table, sourceAccess: sourceProfile.sourceAccess,
+          table: sourceProfile.table, sourceAccess,
           transportLimits: sourceProfile.transportLimits,
           signal: active.abort.signal,
           preparedSource: held.preparedSource});
         const captureCompletedAt = now();
+        await observed('acquisition_completed', {ref: accepted.ref});
         const sourceEvidenceWire = await active.sourceCapture.issueSourceEvidence({
           authorityScopeCid,
           effectiveDataPolicyCid:
@@ -438,7 +453,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       const published = await runPublishedCapturedStrategy(setup,
         {store, plan: held.plan},
         sourceProfile === undefined ? {} :
-          {authorization: sourceProfile.sourceAccess.authorization},
+          {authorization: sourceAccess.authorization},
         active.abort.signal);
       await observed('computed', {ref: accepted.ref});
       await published.close();
@@ -474,6 +489,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       if (active.physicalStarted) await finished?.();
     }).finally(() => {
       reached('not_started');
+      checkpoints?.releaseAcquisition(submission.requestId);
       if (active.cleanupOwner === undefined) {
         active.sourceCapture?.close();
         activeDispatches.delete(accepted.ref.runDefinitionCid);
@@ -516,18 +532,25 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         (checkpoints.heldOrigin(requestId) ||
          journal.lookup({tenantId, authorityScopeCid, requestId}, moon) ===
            undefined)) {
-      const decided = await checkpoints.acceptRun({
-        requested: {
-          logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
-          intentFingerprintCid: moon.clientRequestIntentCid(requested),
-        },
-        captured: {version: 'actql-remote-captured-submission/0.1',
-          requestId, principalId: actual, connection, kind, input,
-          parameters, resultNames,
-          ...(preparedSource === undefined ? {} : {acquisition: {
-            checkedSource: preparedSource.checkedSource,
-            readTuple: preparedSource.readTuple}})},
-      });
+      const requestedFacts = {
+        logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
+        intentFingerprintCid: moon.clientRequestIntentCid(requested),
+      };
+      const captured = {version: 'actql-remote-captured-submission/0.1',
+        requestId, principalId: actual, connection, kind, input,
+        parameters, resultNames,
+        ...(preparedSource === undefined ? {} : {acquisition: {
+          checkedSource: preparedSource.checkedSource,
+          readTuple: preparedSource.readTuple,
+          physicalBinding: preparedSource.physicalBinding}})};
+      let decided = await checkpoints.acceptRun({requested: requestedFacts,
+        captured});
+      // Run acceptance allowed or permitted: a Program that reads the
+      // installed source has its read decided before any Run exists.
+      if (decided.kind === 'dispatch') {
+        decided = await checkpoints.acceptAcquisition({
+          requested: requestedFacts, captured});
+      }
       if (decided.kind !== 'dispatch') {
         const existing = journal.lookupDefinition({tenantId,
           authorityScopeCid, requestId}, moon, control);
@@ -542,7 +565,8 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           revision: existing.revision};
       }
     }
-    const held = {preparedSource};
+    const held = {preparedSource,
+      preparedSourceAccess: sourceProfile?.sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     // A resumed request's journal Run (if any) ends with its dispatch.
@@ -567,9 +591,12 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const acquisition = preparedSource === undefined ? undefined : {
       checkedSource: preparedSource.checkedSource,
-      readTuple: preparedSource.readTuple};
-    if (JSON.stringify(acquisition) !==
-        JSON.stringify(captured.acquisition)) {
+      readTuple: preparedSource.readTuple,
+      physicalBinding: preparedSource.physicalBinding};
+    // Compared as canonical JSON: the held submission is stored in its
+    // canonical form, so key order carries no meaning here.
+    if (canonicalJson(acquisition ?? null) !==
+        canonicalJson(captured.acquisition ?? null)) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
@@ -670,9 +697,21 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   };
   const resumeHeld = async ({captured, beforePhysicalStart, started,
     step, renew, preparationCancelled}) => {
-    const {submission, requested, resultNames, preparedSource} =
-      await heldSubmission(captured);
-    const held = {preparedSource};
+    // A request whose physical target or result inventory differs from the
+    // one held is refused before anything is admitted or read: the earlier
+    // approval does not cover it.
+    let resolved;
+    try { resolved = await heldSubmission(captured); }
+    catch (error) {
+      if (['HeldAcquisitionChanged', 'HeldRequestChanged']
+        .includes(error?.message)) {
+        return {refused: Object.assign(error, {code: error.message})};
+      }
+      throw error;
+    }
+    const {submission, requested, resultNames, preparedSource} = resolved;
+    const held = {preparedSource,
+      preparedSourceAccess: sourceProfile?.sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     await step('definition_admitted', {ref: accepted.ref});

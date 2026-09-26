@@ -7,8 +7,11 @@ import {spawn, spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {canonicalText} from './check-canonical-json.mjs';
+import {machineCid} from './actql-spec-family.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -57,6 +60,62 @@ await writeFile(join(root, 'values.json'), document);
 const expected = JSON.parse(document).stages[0].steps[0].values.rows;
 await writeFile(join(root, 'expected.json'), JSON.stringify(expected));
 
+// The installed DuckDB source for Programs with real input: a real table,
+// its checked Catalog view and the source's own read account (delegate).
+await writeFile(join(root, 'source-program.json'), await readFile(join(
+  repository, 'adapters/connectors/duckdb/node/examples/program.json')));
+{
+  const catalogSource = await readFile(join(repository,
+    'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+  const catalog = catalogSource.slice(catalogSource.indexOf(
+    'fn query_amount_nullable_catalog')).match(
+    /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+  assert.ok(catalog);
+  const environment = JSON.parse(JSON.parse(catalog[1]));
+  const selector = {source_ref: 'connector://crm/main/r#v',
+    source_contract_cid:
+      'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+    source_view_contract_cid:
+      'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+    read_mode: 'snapshot'};
+  environment.schema_snapshots = [{...selector, output_carrier: 'relation',
+    carrier_schema_contract_cid:
+      'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+    source_data_policy_cid:
+      'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+    data_classification: 'unknown'}];
+  environment.connector_capabilities = [{...selector,
+    capability_contract_cids: [
+      'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8'],
+  }];
+  delete environment.evidence_bundle_cid;
+  environment.evidence_bundle_cid = machineCid(environment);
+  const database = join(root, 'records.duckdb');
+  const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
+    'local-node', 'package.json'))('@duckdb/node-api');
+  const instance = await DuckDBInstance.create(database);
+  const connection = await instance.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),' +
+      '(2,20),(3,30)');
+  } finally {
+    connection.closeSync();
+    instance.closeSync();
+  }
+  await writeFile(join(root, 'source-profile.json'), JSON.stringify({
+    version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
+    table: 'records', sourceRef: selector.source_ref,
+    checkEnvironmentWire: canonicalText(environment),
+    accountConfigurationWire: canonicalText({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'source-account', entries: [{entry_id: 'source-read',
+        exclusions: [], operation: {any_of: ['read']}, outcome: 'delegate',
+        principal: {all: true}, connection: {all: true},
+        resource: {all: true}}]}),
+  }));
+}
+
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 const reviewer = generateKeyPairSync('ed25519');
@@ -89,7 +148,7 @@ const configuration = outcome === 'missing' ? undefined : canonical({
   entries: [{entry_id: 'run-acceptance', exclusions: [],
     connection: {any_of: ['actql-remote-host']},
     operation: {any_of: ['write']}, outcome, principal: {all: true},
-    resource: {any_of: ['source-free-values']}}]});
+    resource: {any_of: ['duckdb-acquired', 'source-free-values']}}]});
 const tokens = new Map([['owner-token', userInfo().username],
   ['reviewer-token', 'reviewer-principal'],
   ['reader-token', 'reader-principal'],
@@ -122,6 +181,9 @@ const decide = process.env.DECIDE === 'none' ? undefined : view => {
 };
 const host = await openInstalledRemoteHttpHost({
   directory: process.env.STATE,
+  ...(process.env.ACQUIRED === '1' ?
+    {sourceProfilePath: new URL('source-profile.json',
+      'file://' + process.cwd() + '/').pathname} : {}),
   authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
   beforeDispatch: async () => {
     await mark('hook');
@@ -180,11 +242,15 @@ const variant = id => {
 };
 const step = process.argv[2];
 const requestId = process.argv[3];
-const text = requestId === undefined ? document : variant(requestId);
+// A Program with real input reads the installed DuckDB source.
+const acquired = process.env.ACQUIRED === '1';
+const text = acquired ? readFileSync('source-program.json', 'utf8')
+  : requestId === undefined ? document : variant(requestId);
+const submitOptions = acquired ? {parameters: {minimum: 1}} : {};
 async function held() {
   const owner = await as('owner-token');
   try {
-    await owner.aql(text, {format: 'json', requestId});
+    await owner.aql(text, {format: 'json', requestId, ...submitOptions});
   } catch (error) {
     assert.equal(error instanceof RequestHeld, true, String(error?.code));
     assert.equal(error.code, 'RequestHeld');
@@ -213,7 +279,13 @@ async function finished(id = requestId) {
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   assert.equal(state.status, process.env.EXPECT_STATUS ?? 'succeeded');
-  if (state.status === 'succeeded') {
+  if (state.status === 'succeeded' && acquired) {
+    // Independent expectation from the source rows (amount >= 1).
+    assert.deepEqual((await execution.result('b').all()).map(row => row.id)
+      .sort(), [2, 3, 3]);
+    assert.deepEqual((await execution.result('c').all()).map(row => row.id)
+      .sort(), [3, 3]);
+  } else if (state.status === 'succeeded') {
     assert.deepEqual(await execution.result('answer').all(), expected);
   }
   return lookup.ref;
@@ -456,7 +528,8 @@ async function events(name) {
 // dispatch reservation, the pre-start hook, the physical start reservation
 // and the completed computation.
 const STEPS = ['decide', 'dispatch_reserved', 'hook',
-  'physical_start_reserved', 'computed'];
+  'physical_start_reserved', 'acquisition_started', 'acquisition_completed',
+  'computed'];
 async function counts(name) {
   const logged = await events(name);
   return Object.fromEntries(STEPS.map(step =>
@@ -496,12 +569,14 @@ async function crashed(name, options) {
 }
 // Hold one request and approve it on a Host that only stores answers.
 async function approvedAndStopped(name, requestId, extra = {}) {
+  // Client steps use the same Program kind as the Host (real input or not).
+  const env = extra.ACQUIRED === undefined ? {} : {ACQUIRED: extra.ACQUIRED};
   await withHost(name, extra, started => client(started, 'hold',
-    [requestId]));
+    [requestId], env));
   await withHost(name, {RESUME_AFTER_ANSWER: '0', ...extra}, started => {
-    client(started, 'review', [requestId]);
-    client(started, 'approve', [requestId]);
-    client(started, 'resumeWaiting', [requestId]);
+    client(started, 'review', [requestId], env);
+    client(started, 'approve', [requestId], env);
+    client(started, 'resumeWaiting', [requestId], env);
   });
 }
 // Wait (bounded) until the running Host has released the held evidence.
@@ -629,6 +704,44 @@ for (const [name, crashAt, restart, extra, step] of [
   assert.equal(counted.physical_start_reserved, 0, name);
   assert.equal(counted.computed, 0, name);
 }
+
+// D-next-2 (A3): a Program with real input is held before its source read,
+// answered later from another process, and resumed by a restarted Host to
+// Results computed from the real DuckDB table. The source is read once.
+// The run itself is allowed, so the only hold is the source read.
+const readOnly = {ACQUIRED: '1', OUTCOME: 'allow'};
+const readHeld = ran({acquisition_started: 1, acquisition_completed: 1});
+await approvedAndStopped('acq-held', 'acq-held', readOnly);
+assert.deepEqual(await counts('acq-held'), none);
+await withHost('acq-held', readOnly, started =>
+  client(started, 'finished', ['acq-held'], readOnly));
+assert.deepEqual(await counts('acq-held'), readHeld);
+await assertRetired('acq-held');
+
+// A6: the Host crashes after the acquisition started. The restarted Host
+// keeps the Run unknown and never reads the source again.
+await approvedAndStopped('acq-crash', 'acq-crash', {...readOnly,
+  LEASE_MS: '2000'});
+await crashed('acq-crash', {...readOnly, LEASE_MS: '2000',
+  CRASH_AT: 'acquisition_started'});
+await withHost('acq-crash', {...readOnly, LEASE_MS: '2000'}, started =>
+  client(started, 'finished', ['acq-crash'], {...readOnly,
+    EXPECT_STATUS: 'running'}));
+assert.deepEqual(await counts('acq-crash'),
+  ran({acquisition_started: 1, computed: 0}));
+await assertRetired('acq-crash', 'held');
+
+// C1 with real input: the owner cancels a request held before its source
+// read; nothing is read and its evidence is released.
+await withHost('acq-cancel', readOnly, started => {
+  client(started, 'hold', ['acq-cancel'], readOnly);
+  client(started, 'review', ['acq-cancel'], readOnly);
+  client(started, 'cancelHeld', ['acq-cancel'], readOnly);
+  client(started, 'ended', ['acq-cancel'], {...readOnly,
+    END_REASON: 'cancelled'});
+});
+assert.deepEqual(await counts('acq-cancel'), none);
+await assertRetired('acq-cancel');
 
 // 8. The owner cancels a held request before any Run exists, from another
 // process; the lost reply is resent and matched; a late answer does not

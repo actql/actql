@@ -94,6 +94,11 @@ Checkpoint reference, and never a RunRef. Follow the request with
 `lookupRequest(requestId)`. It reports `held` with the state
 `waiting_checkpoint`, `resuming` or `ended` (with its reason) until the Run
 exists, and then `found` with the RunRef for `attach`, `status` and `wait`.
+A Program with real input can also be held before the Host reads its
+source. It is the same held request, with a `read_access` Checkpoint instead
+of `run_scope`; a request can be held for its run first and then for its
+read. Nothing is read before the answer, and the Client still only looks the
+request up.
 
 The owner can cancel a request by its ID with `cancelRequest(requestId)`,
 whether or not its Run exists yet. The reply is `accepted`,

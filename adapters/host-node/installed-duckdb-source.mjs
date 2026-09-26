@@ -35,13 +35,18 @@ export async function loadInstalledDuckDBSource(path, {root, principalId}) {
         typeof profile[key] === 'string' && profile[key].length > 0)) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
+  const context = Object.freeze({principal: principalId,
+    contextCid: cid({version: 'actql-installed-source-context/0.1',
+      root, principalId})});
   const authorization = await createNodeAuthorizationGate({
-    configuration: profile.accountConfigurationWire,
-    context: {principal: principalId,
-      contextCid: cid({version: 'actql-installed-source-context/0.1',
-        root, principalId})},
+    configuration: profile.accountConfigurationWire, context,
   });
   return Object.freeze({
+    // The source's own read authorization, for the Host's pre-acquisition
+    // Checkpoint decision (the same configuration and context as the
+    // adapter's check).
+    readAuthorization: Object.freeze({
+      accountConfiguration: profile.accountConfigurationWire, context}),
     environmentWire: profile.checkEnvironmentWire,
     database: profile.database, schema: profile.schema,
     table: profile.table, sourceRef: profile.sourceRef,

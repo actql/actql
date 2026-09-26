@@ -100,6 +100,13 @@ test('a signed answer binds this Checkpoint and verifies with the reviewer key',
     assert.equal(rejected.approvalEvidenceWire, '');
     await assert.rejects(signedAnswer({...summary, kind: 'effect_set'},
       'approved', signer, 'x'), {message: 'UnsupportedCheckpointAnswer'});
+    // A held source read of a request before its Run is answered the same way.
+    const read = await signedAnswer({...summary, kind: 'read_access',
+      requiredArtifact: {type: 'read_scope', cid: cid('7')}}, 'approved',
+    signer, '2026-09-26T01:00:00.000Z');
+    assert.equal(JSON.parse(read.approvalEvidenceWire).kind, 'read_access');
+    assert.equal(JSON.parse(read.resolutionWire).required_artifact_cid,
+      cid('7'));
     await assert.rejects(signedAnswer(summary, 'maybe', signer, 'x'),
       {message: 'InvalidCheckpointDecision'});
   });

@@ -82,10 +82,11 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   if (decision !== 'approved' && decision !== 'rejected') {
     throw new TypeError('InvalidCheckpointDecision');
   }
-  if (summary?.kind !== 'run_scope' ||
+  if (!['run_scope', 'read_access'].includes(summary?.kind) ||
       summary.subject?.kind !== 'prepare_attempt') {
-    // Other kinds carry their own evidence profiles (for example an Effect
-    // Set attestation); this Client builds run-scope answers only.
+    // Run acceptance and a held source read of a request before its Run
+    // share the run-scope approval profile. Other kinds carry their own
+    // evidence profiles (for example an Effect Set attestation).
     throw new TypeError('UnsupportedCheckpointAnswer');
   }
   let evidence;
