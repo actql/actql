@@ -2826,6 +2826,8 @@ async function exerciseStrategyGraph(
     {length: 5}, (_, index) => `sort_key_${index + 1}`,
   );
   const stressSortTextBytes = 660;
+  const stressSortText = '𠮷' + 'x'.repeat(stressSortTextBytes - 4);
+  assert.equal(Buffer.byteLength(stressSortText, 'utf8'), stressSortTextBytes);
   const graphCancellationCases = [{
     name: 'concise-graph-construction',
     concise: true,
@@ -4459,9 +4461,9 @@ async function exerciseStrategyGraph(
         valueStep.schema[key] = {type: 'string', nullable: false};
       }
       for (const row of valueStep.rows) {
-        row.node_name = 'x'.repeat(stressSortTextBytes);
+        row.node_name = stressSortText;
         for (const key of stressSortKeys) {
-          row[key] = 'x'.repeat(stressSortTextBytes);
+          row[key] = stressSortText;
         }
       }
       graphCancellationProgram.stages[1].results.r.fields.push(
