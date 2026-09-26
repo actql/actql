@@ -7,6 +7,40 @@ struct NumericAggregateExecution {
     @numeric.ReductionIssue,
   ]?
   seal : (Int, String, Int) -> Bool
+  start : ((Int, String, Int, Array[Double], Int, Int) -> Result[
+    NumericAggregateStep,
+    @numeric.ReductionIssue,
+  ]?)?
+}
+
+///|
+/// A common-Host-owned occurrence. Closing never publishes a numeric capture.
+struct NumericAggregateStep {
+  advance : () -> Result[@numeric.Outcome?, @numeric.ReductionIssue]?
+  close : () -> Bool
+}
+
+///|
+pub fn numeric_aggregate_step(
+  advance : () -> Result[@numeric.Outcome?, @numeric.ReductionIssue]?,
+  close : () -> Bool,
+) -> NumericAggregateStep {
+  { advance, close, }
+}
+
+///|
+pub fn numeric_aggregate_execution_with_steps(
+  reduce : (Int, String, Int, Array[Double], Int, Int) -> Result[
+    @numeric.Outcome,
+    @numeric.ReductionIssue,
+  ]?,
+  seal : (Int, String, Int) -> Bool,
+  start : (Int, String, Int, Array[Double], Int, Int) -> Result[
+    NumericAggregateStep,
+    @numeric.ReductionIssue,
+  ]?,
+) -> NumericAggregateExecution {
+  { reduce, seal, start: Some(start), }
 }
 
 ///|
@@ -18,7 +52,7 @@ pub fn numeric_aggregate_execution(
     @numeric.ReductionIssue,
   ]?,
 ) -> NumericAggregateExecution {
-  { reduce, seal: fn(_step, _name, _count) { true }, }
+  { reduce, seal: fn(_step, _name, _count) { true }, start: None, }
 }
 
 ///|
@@ -32,7 +66,7 @@ pub fn numeric_aggregate_execution_with_seal(
   ]?,
   seal : (Int, String, Int) -> Bool,
 ) -> NumericAggregateExecution {
-  { reduce, seal, }
+  { reduce, seal, start: None, }
 }
 
 ///|
@@ -45,6 +79,28 @@ fn run_numeric_aggregate(
   expected_count : Int,
   max_work : Int,
 ) -> Result[@numeric.Outcome, @numeric.ReductionIssue]? {
+  if execution.start is Some(start) {
+    let pending = match
+      start(step, name, occurrence, contributors, expected_count, max_work) {
+      None => return None
+      Some(Err(issue)) => return Some(Err(issue))
+      Some(Ok(value)) => value
+    }
+    while true {
+      match (pending.advance)() {
+        None => {
+          (pending.close)() |> ignore
+          return None
+        }
+        Some(Err(issue)) => {
+          (pending.close)() |> ignore
+          return Some(Err(issue))
+        }
+        Some(Ok(None)) => ()
+        Some(Ok(Some(outcome))) => return Some(Ok(outcome))
+      }
+    }
+  }
   (execution.reduce)(
     step, name, occurrence, contributors, expected_count, max_work,
   )

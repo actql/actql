@@ -672,6 +672,10 @@ pub fn numeric_aggregate_execution((Int, String, Int, Array[Double], Int, Int) -
 
 pub fn numeric_aggregate_execution_with_seal((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?, (Int, String, Int) -> Bool) -> NumericAggregateExecution
 
+pub fn numeric_aggregate_execution_with_steps((Int, String, Int, Array[Double], Int, Int) -> Result[@numeric_reduction.Outcome, @numeric_reduction.ReductionIssue]?, (Int, String, Int) -> Bool, (Int, String, Int, Array[Double], Int, Int) -> Result[NumericAggregateStep, @numeric_reduction.ReductionIssue]?) -> NumericAggregateExecution
+
+pub fn numeric_aggregate_step(() -> Result[@numeric_reduction.Outcome?, @numeric_reduction.ReductionIssue]?, () -> Bool) -> NumericAggregateStep
+
 pub fn ordered_params_kernel(OrderedParams) -> @lowering_relation.PreparedKernel
 
 pub fn ordered_params_registry(OrderedParams) -> RegisteredRelationContracts
@@ -1780,6 +1784,8 @@ pub(all) enum NestEnvelopeScope {
 } derive(Eq, @debug.Debug)
 
 type NumericAggregateExecution
+
+type NumericAggregateStep
 
 pub(all) enum OrderedContractIssue {
   InvalidOrderedContractLimits

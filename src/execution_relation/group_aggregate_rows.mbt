@@ -757,55 +757,6 @@ fn[T : IndexedRows] aggregate_group_ranges(
 }
 
 ///|
-fn[T : IndexedRows] aggregate_expression_value(
-  expression : @lower.Expression,
-  input : T,
-  names : Array[String],
-  row : Int,
-  aggregate : Int,
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  scope : ExpressionRoots?,
-) -> Result[Value, RowIssue] {
-  let baseline = workspace.live
-  let snapshot : Map[String, Value] = Map([])
-  for column in 0..<names.length() {
-    if !spend_control(control, 1) ||
-      !spend_control_text(control, names[column]) ||
-      !reserve_slots(workspace, 1) {
-      release_slots(workspace, workspace.live - baseline)
-      return Err(RowLimit)
-    }
-    snapshot[names[column]] = IndexedRows::read_cell(input, row, column)
-  }
-  guard scope is Some(value) else {
-    release_slots(workspace, workspace.live - baseline)
-    return Err(MissingOrderedResourceContext)
-  }
-  match charge_logical_work(value.budget, 1L) {
-    Ok(_) => ()
-    Err(issue) => {
-      release_slots(workspace, workspace.live - baseline)
-      return Err(LogicalRows(issue))
-    }
-  }
-  let result = match
-    evaluate_expression_with_workspace(
-      expression,
-      snapshot,
-      [],
-      control,
-      workspace,
-      logical_work=Some(value.budget),
-    ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(evaluation_row_issue(row, aggregate, issue))
-  }
-  release_slots(workspace, workspace.live - baseline)
-  result
-}
-
-///|
 fn[T : IndexedRows] evaluate_dynamic_aggregate(
   aggregate : @lower.PreparedAggregate,
   input : T,
@@ -824,70 +775,30 @@ fn[T : IndexedRows] evaluate_dynamic_aggregate(
   numeric_step? : Int = -1,
   numeric_occurrence? : Int = -1,
 ) -> Result[Value, RowIssue] {
-  let sources : Array[Int] = []
-  let values : Array[Value] = []
-  for position = range.start; position < range.end; position = position + 1 {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
+  let preparation = start_aggregate_preparation(
+    input,
+    names,
+    indices,
+    range,
+    argument,
+    @lower.group_aggregate_filter(aggregate),
+    aggregate_index,
+    order,
+    control,
+    workspace,
+    scope,
+  )
+  let (sorted, local_indices) = while true {
+    match advance_aggregate_preparation(preparation) {
+      Ok(None) => ()
+      Ok(Some(values)) => break values
+      Err(issue) => return Err(issue)
     }
-    let source = indices[position]
-    if @lower.group_aggregate_filter(aggregate) is Some(filter) {
-      let accepted = match
-        aggregate_expression_value(
-          filter, input, names, source, aggregate_index, control, workspace, scope,
-        ) {
-        Ok(Boolean(true)) => true
-        Ok(Boolean(false) | Null) => false
-        Ok(_) => return Err(InvalidRows)
-        Err(issue) => return Err(issue)
-      }
-      if !accepted {
-        continue
-      }
-    }
-    let value = match argument {
-      AggregateInputRows => Null
-      AggregateInputField(column) =>
-        IndexedRows::read_cell(input, source, column)
-      AggregateInputExpression(expression) =>
-        match
-          aggregate_expression_value(
-            expression, input, names, source, aggregate_index, control, workspace,
-            scope,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-    }
-    if !reserve_slots(workspace, 2) {
-      return Err(RowLimit)
-    }
-    sources.push(source)
-    values.push(value)
+  } nobreak {
+    close_aggregate_preparation(preparation)
+    return Err(InvalidRows)
   }
-  let contributors : AggregateContributorRows[T] = { input, sources, }
-  let ordered = if order.is_empty() {
-    if !reserve_slots(workspace, values.length()) ||
-      !spend_control(control, values.length()) {
-      return Err(RowLimit)
-    }
-    Array::makei(values.length(), i => i)
-  } else {
-    match stable_order_indices(contributors, order, control, workspace) {
-      Ok(value) => value
-      Err(issue) => return Err(ordering_row_issue(issue))
-    }
-  }
-  if !reserve_slots(workspace, values.length()) {
-    return Err(RowLimit)
-  }
-  let sorted = ordered.map(index => values[index])
   let rows : DynamicAggregateRows = { values: sorted, }
-  let local_indices = Array::makei(rows.values.length(), i => i)
-  if !reserve_slots(workspace, local_indices.length()) ||
-    !spend_control(control, local_indices.length()) {
-    return Err(RowLimit)
-  }
   let ordered_function = match @lower.group_aggregate_function(aggregate) {
     @relation.First
     | @relation.Last
