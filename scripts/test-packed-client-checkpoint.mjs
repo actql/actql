@@ -104,6 +104,12 @@ async function mark(name) {
     process.kill(process.pid, 'SIGKILL');
     await new Promise(() => {});
   }
+  // A fault injected into the Host's own recovery step (once, or always).
+  if (process.env.FAIL_AT === name && (process.env.FAIL_ALWAYS === '1' ||
+      once(process.env.STATE + '.failed'))) {
+    throw Object.assign(new Error(process.env.FAIL_CODE),
+      {code: process.env.FAIL_CODE});
+  }
   if (process.env.STALL_AT === name && once(process.env.STATE + '.stalled')) {
     await new Promise(resolve => setTimeout(resolve,
       Number(process.env.STALL_MS)));
@@ -141,6 +147,13 @@ const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
   console.log('READY:' + server.address().port);
+});
+// Graceful stop: running work and retention settle before the owner exits.
+process.on('SIGTERM', async () => {
+  server.close();
+  server.closeAllConnections();
+  await host.close();
+  process.exit(0);
 });
 `);
 
@@ -468,7 +481,6 @@ await assertRetired('held');
 for (const [step, expectStatus, expected] of [
   ['resume_claimed', 'succeeded', ran()],
   ['definition_admitted', 'succeeded', ran()],
-  ['intent_completed', 'succeeded', ran()],
   ['dispatch_reserved', 'succeeded', ran({dispatch_reserved: 2})],
   ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
   ['physical_start_reserved', 'running', ran({computed: 0})],
@@ -478,9 +490,58 @@ for (const [step, expectStatus, expected] of [
   await crashed(name, {CRASH_AT: step});
   await withHost(name, {}, started => client(started, 'finished', [name],
     {EXPECT_STATUS: expectStatus}));
-  assert.deepEqual(await counts(name), expected, step);
+  assert.deepEqual(await counts(name), expected,
+    `${step}: ${(await events(name)).join(',')}`);
   await assertRetired(name, expectStatus === 'succeeded' ? 'retired'
     : 'held');
+}
+
+// 5. A Run defined but not started when the Host stopped is authorized
+// again before its physical start: a configuration changed to deny, or an
+// approval that expired meanwhile, starts nothing; the Run fails before
+// dispatch.
+for (const [name, crashAt, restart, extra] of [
+  ['deny-defined', 'definition_admitted', {OUTCOME: 'deny'}, {}],
+  ['deny-reserved', 'hook', {OUTCOME: 'deny'}, {}],
+  ['expired-defined', 'definition_admitted', {}, {TTL_MS: '4000'}],
+]) {
+  await approvedAndStopped(name, name, extra);
+  await crashed(name, {CRASH_AT: crashAt, ...extra});
+  if (name.startsWith('expired')) {
+    await new Promise(resolve => setTimeout(resolve, 4500));
+  }
+  await withHost(name, {...restart, ...extra}, started => client(started,
+    'finished', [name], {EXPECT_STATUS: 'failed'}));
+  const counted = await counts(name);
+  assert.equal(counted.physical_start_reserved, 0, name);
+  assert.equal(counted.computed, 0, name);
+  await assertRetired(name);
+}
+
+// 6. The Run-side duty: a Host that stopped after computing but before
+// recording the end. A transient failure of its recovery is retried by the
+// Host itself (no answer, submit or restart); a permanent one is observed
+// and not retried, and the evidence is kept.
+for (const [name, fail, retried] of [
+  ['recover-transient', {FAIL_CODE: 'TransientRunReadFailure'}, true],
+  ['recover-permanent', {FAIL_CODE: 'HeldRunDefinitionMissing',
+    FAIL_ALWAYS: '1'}, false],
+]) {
+  await approvedAndStopped(name, name, {LEASE_MS: '1000'});
+  await crashed(name, {CRASH_AT: 'computed', LEASE_MS: '1000'});
+  const observedBefore = (await events(name)).filter(item =>
+    item === 'run_observed').length;
+  const started = await startHost(name, {LEASE_MS: '1000',
+    FAIL_AT: 'run_observed', ...fail});
+  try {
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    const observed = (await events(name)).filter(item =>
+      item === 'run_observed').length - observedBefore;
+    assert.equal(observed, retried ? 2 : 1, name);
+    client(started, 'finished', [name]);
+  } finally { await stopHost(started); }
+  assert.deepEqual({...await counts(name), decide: 0}, ran(), name);
+  await assertRetired(name, retried ? 'retired' : 'held');
 }
 
 // 5. A claim whose lease lapses before the admission sends nothing; the

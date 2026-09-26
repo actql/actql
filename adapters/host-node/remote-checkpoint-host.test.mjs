@@ -9,6 +9,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
+import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -412,4 +413,42 @@ test('a lost or corrupt request index is rebuilt from the held evidence',
       assert.equal(await succeeded(owner, requestId), true, requestId);
     }
     await second.close();
+  });
+
+test('closing during a resumed dispatch records its end before releasing',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'close-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const steps = [];
+    let released;
+    const stalled = new Promise(resolve => { released = resolve; });
+    const host = await remoteHost(t, protectedHost('delegate', {
+      async observe(name) {
+        steps.push(name);
+        if (name === 'physical_start_reserved') await stalled;
+      }}), {directory});
+    const client = await host.as('owner-token');
+    const reviewer = await host.as('reviewer-token');
+    await heldRequests(client, ['close-a']);
+    await approveAll(reviewer, await allCheckpoints(reviewer));
+    await waitFor(() => steps.includes('physical_start_reserved'));
+    const closing = host.close();
+    released();
+    await closing;
+    assert.ok(steps.includes('computed'));
+    // The journal Run ended with the dispatch; no later start is needed.
+    const database = new DatabaseSync(join(directory, 'state',
+      'checkpoints', 'journal', 'checkpoint-journal.sqlite3'),
+    {readOnly: true});
+    try {
+      assert.deepEqual(database.prepare('SELECT status FROM runs').all()
+        .map(row => row.status), ['succeeded']);
+    } finally { database.close(); }
+    const ledgers = join(directory, 'state', 'checkpoints', 'attempts');
+    for (const file of await readdir(ledgers)) {
+      const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+      assert.ok(ledger.holdings.filter(item =>
+        item.name !== 'invocation_request').every(item =>
+        item.state === 'retired'), file);
+    }
   });
