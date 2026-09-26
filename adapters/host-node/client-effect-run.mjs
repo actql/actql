@@ -5,6 +5,8 @@ import {randomUUID} from 'node:crypto';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 export {openClientRequestJournal} from './client-request-journal.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {issuedEffectSetReceiptWires} from
+  '../host-common/effect-receipt-custody.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
@@ -38,6 +40,31 @@ export function installNodeClientEffectRun({moon,
     'run_definition', definition.wire, limits.maxWireBytes,
     limits.maxNodes, limits.maxDepth));
   return Object.freeze({
+    // Record the public state of a started Run whose complete admitted Effect
+    // Set has unknown outcomes. The owner names exactly those Effects; the
+    // journal keeps the state for status and reconcile in any later process.
+    // Nothing is resent, and no answer or Store write relabels the outcome.
+    // `issuedSet` must be the exact Set the receipt owner issued for this
+    // ledger and Preview, as for publication.
+    recordReconciliation(ref, {issuedSet, ledger, preview,
+      updatedAt = now()}) {
+      const retained = journal.lookupRunDefinition(ref, moon, control);
+      if (retained === undefined || retained.resultNames === undefined) {
+        throw denied();
+      }
+      const runId = JSON.parse(retained.runDefinition.wire).run_id;
+      const receipts = issuedEffectSetReceiptWires(issuedSet, ledger, preview);
+      const wire = control.effectReconciliationRunState(preview, receipts,
+        {runId, updatedAt, resultNames: retained.resultNames}, limits);
+      journal.recordReconciliationState(ref, wire);
+      return JSON.parse(wire);
+    },
+    // The recorded reconciliation state of a Run, or undefined. Reading it
+    // performs no provider I/O and never starts or resends work.
+    reconciliation(ref) {
+      const wire = journal.lookupReconciliationState(ref);
+      return wire === undefined ? undefined : Object.freeze(JSON.parse(wire));
+    },
     async accept({prepared, authorityScopeCid, requestId, tenantId,
       principalId, connection, lookupExpiresAt}) {
       // Authentication/current acceptance authority precedes even lookup, so

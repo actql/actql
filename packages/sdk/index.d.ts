@@ -102,7 +102,7 @@ export interface Execution {
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
   cancel(options?: {signal?: AbortSignal}): Promise<WireCancellation>;
-  reconcile(options?: {signal?: AbortSignal}): Promise<unknown>;
+  reconcile(options?: {signal?: AbortSignal}): Promise<RunState>;
   result(name: string): Result;
 }
 

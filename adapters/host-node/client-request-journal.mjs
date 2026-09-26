@@ -251,6 +251,10 @@ export function openClientRequestJournal(directory, {
           `INTEGER NOT NULL DEFAULT 0 CHECK (${field} IN (0, 1))`);
       }
     }
+    if (!fields.some(field => field.name === 'reconciliation_state_wire')) {
+      database.exec('ALTER TABLE client_requests ADD COLUMN '
+        + 'reconciliation_state_wire TEXT');
+    }
     if (!existed) syncDirectory(root);
   } catch (error) {
     database.close();
@@ -757,6 +761,65 @@ export function openClientRequestJournal(directory, {
               error.code.startsWith('ClientRequest'))) throw error;
         fail('ClientRunFailureObservationUnknown', error);
       }
+    },
+    // Keep the owner-issued `needs_reconciliation` state of a started Run
+    // whose Effect outcomes are unknown. It is recorded once and never
+    // replaced: a different state for the same Run is a conflict.
+    recordReconciliationState(ref, wire) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid) || typeof wire !== 'string' ||
+          Buffer.byteLength(wire, 'utf8') > maxRunDefinitionWireBytes) {
+        fail('InvalidClientRunReconciliation');
+      }
+      let state;
+      try { state = JSON.parse(wire); }
+      catch { fail('InvalidClientRunReconciliation'); }
+      if (state?.status !== 'needs_reconciliation' ||
+          state?.next_action?.kind !== 'reconcile') {
+        fail('InvalidClientRunReconciliation');
+      }
+      database.exec('BEGIN IMMEDIATE');
+      try {
+        const row = database.prepare(`SELECT physical_start_reserved,
+          reconciliation_state_wire FROM client_requests
+          WHERE tenant_id = ? AND authority_scope_cid = ? AND
+            run_definition_cid = ?`).get(ref.tenantId, ref.authorityScopeCid,
+          ref.runDefinitionCid);
+        if (row === undefined || row.physical_start_reserved !== 1) {
+          fail('ClientRunReconciliationDenied');
+        }
+        if (row.reconciliation_state_wire !== null &&
+            row.reconciliation_state_wire !== wire) {
+          fail('ClientRunReconciliationConflict');
+        }
+        if (row.reconciliation_state_wire === null) {
+          database.prepare(`UPDATE client_requests SET
+            reconciliation_state_wire = ?, revision = revision + 1
+            WHERE tenant_id = ? AND authority_scope_cid = ? AND
+              run_definition_cid = ?`).run(wire, ref.tenantId,
+            ref.authorityScopeCid, ref.runDefinitionCid);
+        }
+        database.exec('COMMIT');
+      } catch (error) {
+        try { database.exec('ROLLBACK'); }
+        catch (rollback) { fail('ClientRunReconciliationUnknown', rollback); }
+        if (typeof error?.code === 'string' &&
+            error.code.startsWith('ClientRun')) throw error;
+        fail('ClientRunReconciliationUnknown', error);
+      }
+    },
+    lookupReconciliationState(ref) {
+      ensureOpen();
+      if (!text(ref?.tenantId) || !cid(ref?.authorityScopeCid) ||
+          !cid(ref?.runDefinitionCid)) {
+        fail('InvalidClientRunLookup');
+      }
+      const row = database.prepare(`SELECT reconciliation_state_wire
+        FROM client_requests WHERE tenant_id = ? AND
+          authority_scope_cid = ? AND run_definition_cid = ?`).get(
+        ref.tenantId, ref.authorityScopeCid, ref.runDefinitionCid);
+      return row?.reconciliation_state_wire ?? undefined;
     },
     close() {
       if (closed) return;

@@ -508,8 +508,13 @@ async function connectSelected(selected, port) {
         }
         return response;
       },
+      // The Run's current state after the Host's reconciliation attempt. An
+      // unknown Effect outcome stays `needs_reconciliation` until the Host
+      // has provider evidence; nothing is resent to find out.
       reconcile: async ({signal} = {}) => {
-        return readControl('reconcile', {}, signal);
+        const state = await readControl('reconcile', {}, signal);
+        if (!validRunState(state)) fail('InvalidHostRunState');
+        return state;
       },
     });
   };

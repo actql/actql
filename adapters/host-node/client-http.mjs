@@ -286,7 +286,11 @@ export function createClientHttpHandler({
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
       } else if (operation === 'reconcile') {
-        sendJson(await invoke(reconcile));
+        // The reply is the Run's current state after the Host's
+        // reconciliation attempt; an unknown outcome stays unknown.
+        const state = await invoke(reconcile);
+        if (!validRunState(state)) invalid('InvalidClientHostRunState');
+        sendJson(state);
       } else if (operation === 'delivery-attempt') {
         const lookup = deliveryAttempt === undefined
           ? await inspectAuthorizedDeliveryAttempt(resultService, {
