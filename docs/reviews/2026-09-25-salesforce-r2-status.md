@@ -5,7 +5,7 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The installed Host has checked local Effect identities, exact captured source inventory, durable row claims, recovered apply, row/set Receipts, formal Store publication, authorized Result read, and holding retirement. Its new completion entry joins apply, Receipt issuance, and publication on one captured owner; a fresh process exercises the recovered entry. The multi-member local HTTPS/SQLite fixture still constructs the earlier preparation/capture steps and supplies example capability/approval references. Connect those steps and authentic capability evidence to one production Host caller and expose its completed or uncertain state to public ingress. Test normal multi-member/multi-row execution, whole-set preflight rejection with zero sends, response loss without resend, restart at each durable boundary, publication commit uncertainty, Result read, and last-owner cleanup through that caller. The section 22.5 entrypoint-to-test inventory below exists; authorized discovery/resource resolution and live-org validation remain open. |
+| Remaining implementation and acceptance | The installed Host has checked local Effect identities, exact captured source inventory, authenticated Site write capabilities, durable row claims, recovered apply, row/set Receipts, formal Store publication, authorized Result read, and holding retirement. Its completion entry joins apply, Receipt issuance, and publication on one captured owner; a fresh process exercises the recovered entry. The multi-member local HTTPS/SQLite fixture still composes the earlier preparation/capture steps and supplies the logical request scope authority. Join those steps and admitted request authority in one production Host caller and expose completed or uncertain state to public ingress. Preserve normal multi-member/multi-row execution, whole-set rejection with zero sends, response loss without resend, restart, publication uncertainty, Result read, and last-owner cleanup through that caller. The section 22.5 entrypoint-to-test inventory below exists; authorized discovery/resource resolution and live-org validation remain open. |
 | Cross-owner dependency | This branch owns the common checked Effect Run/Host caller, local Artifact/Manifest issuer, and Salesforce Site operations. Distribution owns public Client `submit`, attach/status/Checkpoint projection and must consume the same Host owner rather than implement an Effect scheduler; this remains an exact integration dependency, not evidence of completion here. The isolated Salesforce org, secret-manager reference, and write permission are not supplied, so live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, and fleet deployment remain separate. These exclusions do not shrink the current product-path acceptance or complete the original ten-Connector objective. |
 
@@ -18,8 +18,8 @@ fresh-process test covers settled recovery and publication. They are Host
 connection progress, not public `submit` acceptance or live-org evidence.
 The Salesforce Preview author now takes member authority from the checked
 logical request scope; a member cannot choose or relabel that authority. The
-local fixture's scope origin and capability evidence still need product
-issuance, so this does not close current-use evidence acceptance.
+local fixture's logical request scope origin still needs product issuance;
+the Site capability issuer described below no longer accepts example CIDs.
 The common completion entry now rejects a foreign apply or Receipt Preview
 before any row send. Replaying a Set with no ready rows needs no fresh mutation
 grant or target refresh; current evidence-read admission still governs Receipt
@@ -30,7 +30,7 @@ Catalogs and target versions. Physical dispatch receives that preflight from
 the common apply owner and cannot fetch a mutable "latest Catalog" selected by
 another refresh. PATCH rows require target observation; POST rows must not
 pretend to have a target guard. This closes the fixture's split-Catalog
-handoff, not the remaining capability-evidence issuance or public ingress.
+handoff; public ingress remains a separate connection.
 The ordinary local HTTPS case now passes the common frontier into an installed
 Salesforce physical dispatcher. It selects single-record or same-member
 Collections operations from owned requests, checks the frontier's exact claim
@@ -52,8 +52,44 @@ The fresh-process recovery fixture now uses the installed current-use and
 physical-dispatch adapters, including response-loss and saved-response recovery,
 instead of independently assembling Catalog refresh and row sends. The combined
 Client bridge and Salesforce integration suite passed all 46 cases locally.
-Authentic capability evidence, the earlier preparation/capture composition,
+The product Preview author and current-use refresh now require the same opaque
+Salesforce capability owner, issued from typed requests, observed field
+constraints, and a currently accepted signed credential grant. The runtime
+binding comes from that grant. Ready-row recovery reissues the same content
+identity from retained inputs and current authority; no-ready replay does not
+request a mutation grant. The current-use test now uses real MoonBit Catalog
+and capability values rather than fabricated observations. The internal profile
+and trust boundary are documented in
+[Salesforce write capability evidence](../design/salesforce-write-capability.md).
+The earlier preparation/capture composition, logical request authority,
 authorized discovery, public ingress, and live-org acceptance remain open.
+
+## Capability connection verification
+
+Implementation SHA: `8a6924f1f4ca7d91088686ad3937b99a896beaa0`.
+The shared non-consuming credential admission operation is isolated in
+`3522564d3`; it does not replace the physical credential claim.
+
+- Salesforce Catalog MoonBit tests: JS, Wasm, and native each 73/73.
+- `npm run check:salesforce-site`: 169/169, including normal multi-member
+  writes, Collections partial outcomes, fresh-process unknown/saved-response
+  recovery, formal publication, public Result read, and holding retirement.
+- Common Client bridge plus SQLite credential journal: 23/23.
+- `npm run check:docs`, generated API consistency, `moon fmt --check`,
+  document links, and whitespace checks passed locally.
+- New code/document text is English; new commit message lines are at most
+  72 characters.
+
+An initial parallel run collided with documentation checks rebuilding the
+shared release JS artifact: one child hit its timeout and another read a
+partial JS file. After that process completed, the full tests above passed
+serially. Do not run artifact-regenerating gates concurrently with child
+process integration tests that load the same artifact directory.
+
+These are local implementation checks, not Linux CI or live Salesforce
+acceptance. Public Effectful submit remains the Distribution integration
+dependency described above. No merge, push, org schema change, or external
+provider write was performed.
 
 ## OSS main integration baseline
 
@@ -101,9 +137,9 @@ retained data. The same path must report partial failure and unknown honestly.
 
 | Remaining product connection | Required acceptance evidence |
 | --- | --- |
-| The Salesforce Host assembles the Preview draft from typed Run contracts, checked member descriptors, exact source Artifacts, typed write requests, and target observations. The local Effect identity is issued from the checked owner and exact local Result Artifact; the product Preview author checks every admitted member against those opaque identities. The ordinary local Host path does not take a fixture-authored template. Captured Run now retains a separate local Stage Result inventory and re-admits it alongside the physical source. Local Artifact scope, policy, and capture authority come from admitted Run evidence rather than raw caller CIDs. Ready-row apply now requires a complete current-use preflight refresh after asynchronous observation; replay with no ready row does not reacquire mutation authority. Capability and current-use authority evidence still have example references in the Host fixture. | Resolve the remaining current-use evidence against the admitted Run and bind its checks to whole-set preflight and apply before any write. Current Catalog and target observations must still be refreshed before send; a 404 alone is not proof of absence. Public ingress remains Distribution-owned. |
+| The Salesforce Host assembles the Preview draft from typed Run contracts, checked member descriptors, exact source Artifacts, typed write requests, observed targets, and authenticated Site capability owners. Local identity and Artifact ownership are checked by the common owner and retained in the separate Stage Result inventory. Ready-row apply refreshes current Catalog, target guards, and capability authority; no-ready replay does not reacquire mutation authority. The fixture still supplies the logical request scope origin and composes preparation/capture. | Join admitted request authority and preparation/capture to the installed completion caller. Preserve whole-set checks before any write. Current Catalog and target observations must still be refreshed before send; a 404 alone is not proof of absence. Public ingress remains Distribution-owned. |
 | The public Program/Client ingress still rejects nonempty Effects. Install Effect-aware preparation and `submit` for the existing checked/captured owner, and expose known and unknown Run state without adding a second apply scheduler. The Host now rehydrates an admitted computation, request keys, Catalog, and durable claims in a fresh process, then uses the common apply owner with current signed Site grants. The public ingress and response-loss recovery through it remain unconnected. | Public HTTP submits a two-member Program, reports `needs_reconciliation` after a lost reply and a fresh Host process without resending known writes, and exposes a separately successful Run only after publication commit. Stale or overlapping sets send zero writes and use no write credential. |
-| The section 22.5 capability inventory below covers the declared Catalog, read, and write entrypoints, but does not establish live-provider completion. Authorized discovery/resource resolution, authentic apply capability issuance, and isolated-org validation remain open. | Keep each declared operation tied to its actual product entry and independent test. Finish the missing discovery surface and current Site capability binding; distinguish local contract evidence from unavailable live-org evidence. |
+| The section 22.5 capability inventory below covers the declared Catalog, read, and write entrypoints, including authenticated Site write capability issuance, but does not establish live-provider completion. Authorized discovery/resource resolution and isolated-org validation remain open. | Keep each declared operation tied to its actual product entry and independent test. Finish the missing discovery surface; distinguish local contract evidence from unavailable live-org evidence. |
 
 The common checked owner now issues `actql-local-computation-semantics/0.1`
 for a source-free Unit from its Unit Definition, local used values, contract
@@ -212,9 +248,9 @@ loses the first write reply after the HTTPS Site receives the request. Another
 fresh process retains that row as unknown, sends only the two rows of the
 independent member, and issues an unknown Set Receipt. Reopening the Ledger
 again sends no row, formal publication rejects the uncertain Set, and private
-holdings are retired explicitly. The fixture still supplies example capability
-and approval references; this is not public Effectful submit or a live
-Salesforce org validation.
+holdings are retired explicitly. Capability issuance now uses current signed
+Site authority rather than example CIDs. Request-scope integration remains;
+this is not public Effectful submit or a live Salesforce org validation.
 Another fresh-process fault case stops after the first HTTP response is
 durably saved but before its row Outcome is committed. A separate evidence-read
 path re-admits the exact saved dispatch and response, then projects and commits
@@ -309,8 +345,8 @@ derives the member footprint and count from those requests, so a forged
 template boundary cannot change whole-set conflict admission, and mixed-org
 requests within one member are rejected. The ordinary Host success path now
 builds the surrounding draft from typed Run contracts and checked member
-facts; the product author now issues local Effect identities, while test
-fixtures still supply example capability and authority evidence values. For
+facts; the product author now issues local Effect identities and checks Site
+capability owners, while fixtures still supply the request scope authority. For
 update/upsert, the selected
 checked Mapping now projects each canonical row of the same bounded Result
 export used to seal the private Effect-source Artifact. A shared export may
@@ -320,9 +356,9 @@ remain intact. Result-backed create now projects checked row-mapping values,
 including explicit null behavior, from that same export. Its Site request body
 uses the projection. The Salesforce Host author now fills create row facts from
 typed requests, while common MoonBit derives canonical content-row identities
-and duplicate occurrences. The remaining product connection is issuance and
-exact ownership of the member identity and authority evidence passed to this
-authoring operation. Row-to-set identity and dispatch-key sealing uses one
+and duplicate occurrences. The remaining product connection is the admitted
+request authority passed to this authoring operation, not local member identity
+issuance. Row-to-set identity and dispatch-key sealing uses one
 MoonBit product operation; draft shape and canonical encoding are now exercised
 on the Host path.
 A Store restart after durable index commit leaves a commit-unknown owner
@@ -535,10 +571,10 @@ its exact Catalog observation, current grant, and selected Site capability.
 | --- | --- | --- |
 | Object/field Catalog: `syncSalesforceCatalog` | `salesforce-catalog-sync.test.mjs`: scoped list/describe, partial or rate-limited describe, truncation, cancellation, foreign generation, retargeted CLI alias | Expose the authorized list/search/inspect/peek and resource-resolution product surface required by section 22.5; the bounded listing and selector alone are not that surface. Run the metadata projection against the isolated org and confirm actual field and write constraints. |
 | Authorized query with projection and locator: `readSalesforceQuery` / `readSalesforceManagedQuery` | Same suite: exact locator, page ceiling before HTTP and credential use on both raw and managed paths, changed schema or permission before use, stale Catalog, foreign continuation, partial consumer failure, typed output owner. The managed path also rejects a foreign continuation and does not append a fresh query after locator failure. | Verify real-org pagination, provider failures, supported comparison semantics, and actual pushdown against independent expected rows. Locator completion is not a point-in-time snapshot. |
-| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `client-program-bridge.test.mjs` runs each operation as a separate checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. The local Host authors the Preview from typed requests and current target observations, then refreshes all selected Catalogs and target guards before sending. A changed permission in the second member rejects the whole set with zero writes; a lost create reply remains unknown after Ledger reopen without resending POST. The separate local Artifact inventory is durable and re-admitted after restart. | Bind authentic capability/current-use authority evidence before apply, then verify the declared behavior against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
-| Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. `client-program-bridge.test.mjs` includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
+| Single create, ID update, external-ID upsert: `captureSalesforceSingleEffectWrite` | Same suite: exact target/request authority, physical response custody, restart without resend, rejected response, alias/footprint mismatch; MoonBit write-request fixtures. `adapters/connectors/salesforce/test/effect-run.integration.test.mjs` runs each operation as a checked two-member Program through local HTTPS writes, final publication, SDK read after restart, and holding retirement. The local Host authors the Preview from typed requests, current target observations, and authenticated capability handles, then refreshes selected Catalogs, guards, and capability authority before sending. Changed permission rejects the whole set with zero writes; a lost create reply remains unknown after Ledger reopen without resending POST. The separate local Artifact inventory is durable and re-admitted after restart. | Finish the admitted request-authority composition, then verify behavior against the isolated org, including required External ID, duplicate key, field omission versus NULL, permission changes, and provider failures. Live writes remain unauthorized and untested. |
+| Same-member Collections continue (`allOrNone=false`): `captureSalesforceCollectionEffectWrite` | Same suite: row order, shared response custody, target identity and operation authority. The Salesforce integration suite includes two-row Collections partial failure and saved-response recovery in the checked two-member Host Run, with Ledger reopen and no resend. Its authenticated capability distinguishes Collections from ordered single-record execution. | Validate actual provider limits and partial-result behavior in the isolated org. No cross-member atomicity is claimed. |
 | Provider-atomic Collections command (`allOrNone=true`) | Not declared or connected. The current request builder fixes `allOrNone=false`, and common apply admission rejects a provider-atomic collection as a `continue` route. | If declared under the agreed Command contract, add a distinct typed command, batch rollback evidence and a normal Host path. Do not count the existing continue collection as this capability. |
-| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | `client-program-bridge.test.mjs`: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
+| Effect Set completion and publication: `applyCapturedEffectSet` / `publishCompletedEffectfulRun` | Salesforce integration suite: checked two-member Program, credentialed local HTTPS Site writes, durable rows, final chain, lost index acknowledgement, public SDK attach/status/authorized Result read after Store reopen, and retirement; saved-response/terminal/claim fault cases, lost physical HTTP reply, halt/continue, unknown and partial failure; simulated response control remains. The common `client-program-bridge.test.mjs` keeps provider-independent contracts. | Install public Effectful `submit` and uncommitted unknown-state reporting with the Distribution owner. Local Site tests do not validate a live Salesforce org. |
 
 The org alias, instance, dedicated custom object, external-ID field, and
 write scope have not been supplied. No existing Smooth Cloud connection is
