@@ -15,8 +15,11 @@ import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from
   '../../../host-node/effect-run-apply.mjs';
-import {accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from
+import {accountConfiguration, accountEntry, FIXTURE_CONTEXT,
+  fixtureAuthorization} from
   '../../../host-node/authorization-fixture.mjs';
+import {createLocalAuthorizationGate} from
+  '../../../host-node/local-account-config.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
   '../../../host-node/sqlite-checkpoint-journal.mjs';
 import {captureSalesforceCollectionEffectWrite,
@@ -709,10 +712,14 @@ async function verifyEffectCommitAuthorization(t, {
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
   const delegateAccount = [accountEntry('crm-effect', 'delegate',
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
-  const commitGate = (entries, options) => fixtureAuthorization([
-    ...entries,
-    accountEntry('scenario-target-read', 'allow', {operation: 'read'}),
-  ], options);
+  const commitGate = (entries, options) => createLocalAuthorizationGate({
+    accountConfiguration: accountConfiguration([
+      ...entries,
+      accountEntry('scenario-target-read', 'allow', {operation: 'read'}),
+    ]),
+    context: FIXTURE_CONTEXT,
+    ...options,
+  });
   // The reviewer answering a deferred decision is one of the Host's
   // answering authorities; its committed approval is admitted as the permit.
   const hostOptions = (answer, extra = {}) => ({

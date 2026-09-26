@@ -44,6 +44,16 @@ resource discovery, live-provider behavior and hosted Linux CI remain open.
 The historical sections below describe earlier milestones; their statements
 that formal Plan issuance or public submit is pending are superseded here.
 
+At `98240e24216d8dbd71a37942f07df13758c822ad`, the shared Host bridge
+regression also rejects a receipt from an equal-valued but different Result
+export and rejects a released receipt. The public Client gate passed 104/104.
+The following integration change routes the two-member Effect authorization
+matrix through the production local account-configuration installer rather
+than directly constructing the test gate. Its targeted case and the full
+Salesforce Site gate passed (172/172). The account document and HTTP provider
+remain test supplied; this does not establish live-org authorization or the
+final installed Salesforce Host configuration.
+
 ## Shared integration baseline
 
 Current work is on `feat/connector-salesforce-integration`, based on
