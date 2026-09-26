@@ -70,7 +70,8 @@ await writeFile(join(root, 'host.key'), pem(host.privateKey), {mode: 0o600});
 // configuration; nothing defaults to allow. The event log records protected
 // dispatches and Host decision calls for the assertions.
 await writeFile(join(root, 'remote-host.mjs'), `
-import {appendFileSync, readFileSync} from 'node:fs';
+import {appendFileSync, existsSync, readFileSync, writeFileSync} from
+  'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from
@@ -93,6 +94,21 @@ const tokens = new Map([['owner-token', userInfo().username],
   ['reviewer-token', 'reviewer-principal'],
   ['reader-token', 'reader-principal'],
   ['stranger-token', 'stranger-principal']]);
+// Every protected step is logged. A test may crash (SIGKILL) or stall the
+// Host once at a named step.
+const once = marker => !existsSync(marker) &&
+  (writeFileSync(marker, ''), true);
+async function mark(name) {
+  log(name);
+  if (process.env.CRASH_AT === name && once(process.env.STATE + '.crashed')) {
+    process.kill(process.pid, 'SIGKILL');
+    await new Promise(() => {});
+  }
+  if (process.env.STALL_AT === name && once(process.env.STATE + '.stalled')) {
+    await new Promise(resolve => setTimeout(resolve,
+      Number(process.env.STALL_MS)));
+  }
+}
 const decide = process.env.DECIDE === 'none' ? undefined : view => {
   log('decide');
   return {decision: process.env.DECIDE, subject: view.subject,
@@ -102,7 +118,7 @@ const host = await openInstalledRemoteHttpHost({
   directory: process.env.STATE,
   authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
   beforeDispatch: async () => {
-    log('dispatch');
+    await mark('hook');
     if (process.env.HOLD_DISPATCH === '1') await new Promise(() => {});
   },
   authorization: {
@@ -116,7 +132,9 @@ const host = await openInstalledRemoteHttpHost({
     ...(decide === undefined ? {} :
       {decide, answeringAuthorities: ['host-policy']}),
     resumeAfterAnswer: process.env.RESUME_AFTER_ANSWER !== '0',
-    leaseMs: 2000,
+    leaseMs: Number(process.env.LEASE_MS ?? 2000),
+    checkpointTtlMs: Number(process.env.TTL_MS ?? 86400000),
+    observe: mark,
   },
 });
 const server = createServer({key: readFileSync('remote.key'),
@@ -172,12 +190,19 @@ async function finished(id = requestId) {
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   assert.equal(lookup.kind, 'found', JSON.stringify(lookup));
+  // Only lookup, attach, status and wait: the Host carries the Run on by
+  // itself, the Client never submits again.
   const execution = await owner.attach(lookup.ref);
-  // An interrupted dispatch continues on the idempotent submit.
-  const again = await owner.aql(text, {format: 'json', requestId: id});
-  assert.deepEqual(again.ref, lookup.ref);
-  assert.equal((await execution.wait()).status, 'succeeded');
-  assert.deepEqual(await execution.result('answer').all(), expected);
+  let state;
+  for (let attempt = 0; attempt < 400; attempt++) {
+    state = await execution.wait();
+    if (['succeeded', 'failed', 'cancelled'].includes(state.status)) break;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  assert.equal(state.status, process.env.EXPECT_STATUS ?? 'succeeded');
+  if (state.status === 'succeeded') {
+    assert.deepEqual(await execution.result('answer').all(), expected);
+  }
   return lookup.ref;
 }
 const steps = {
@@ -350,99 +375,149 @@ async function events(name) {
     throw error;
   }
 }
+// Separate counts of each protected step: the Host decision call, the
+// dispatch reservation, the pre-start hook, the physical start reservation
+// and the completed computation.
+const STEPS = ['decide', 'dispatch_reserved', 'hook',
+  'physical_start_reserved', 'computed'];
+async function counts(name) {
+  const logged = await events(name);
+  return Object.fromEntries(STEPS.map(step =>
+    [step, logged.filter(item => item === step).length]));
+}
+const none = Object.fromEntries(STEPS.map(step => [step, 0]));
+const ran = (extra = {}) => ({...none, dispatch_reserved: 1, hook: 1,
+  physical_start_reserved: 1, computed: 1, ...extra});
 async function withHost(name, options, work) {
   const started = await startHost(name, options);
   try { return await work(started); }
   finally { await stopHost(started); }
+}
+// A Host that crashes at its step, possibly before it is ready.
+async function crashed(name, options) {
+  const child = spawn(process.execPath, ['remote-host.mjs'], {cwd: root,
+    env: {...environment, STATE: join(root, name), EVENTS: join(root,
+      `${name}.events`), OUTCOME: 'delegate', DECIDE: 'none',
+    RESUME_AFTER_ANSWER: '1', HOLD_DISPATCH: '0', ...options}});
+  let output = '';
+  child.stdout.setEncoding('utf8').on('data', chunk => { output += chunk; });
+  child.stderr.setEncoding('utf8').on('data', chunk => { output += chunk; });
+  const timer = setTimeout(() => child.kill('SIGTERM'), 30000);
+  const [code, signal] = await once(child, 'exit');
+  clearTimeout(timer);
+  assert.equal(signal, 'SIGKILL', `${name}: ${code} ${output}`);
+}
+// Hold one request and approve it on a Host that only stores answers.
+async function approvedAndStopped(name, requestId, extra = {}) {
+  await withHost(name, extra, started => client(started, 'hold',
+    [requestId]));
+  await withHost(name, {RESUME_AFTER_ANSWER: '0', ...extra}, started => {
+    client(started, 'review', [requestId]);
+    client(started, 'approve', [requestId]);
+    client(started, 'resumeWaiting', [requestId]);
+  });
+}
+// The continuation's private evidence is retired after a terminal Run and
+// held while the Run is not terminal.
+async function assertRetired(name, state = 'retired') {
+  const ledgers = join(root, name, 'checkpoints', 'attempts');
+  for (const file of await readdir(ledgers)) {
+    const ledger = JSON.parse(await readFile(join(ledgers, file), 'utf8'));
+    for (const holding of ledger.holdings.filter(item =>
+      item.name !== 'invocation_request')) {
+      assert.equal(holding.state, state, `${file} ${holding.name}`);
+    }
+  }
 }
 
 // 1 and 9. allow runs with no Checkpoint and no Host policy call; deny and a
 // missing configuration make no protected call.
 await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit'}, started =>
   client(started, 'allowed', ['allow-a']));
-assert.deepEqual(await events('allow'), ['dispatch']);
+assert.deepEqual(await counts('allow'), ran());
 for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
   ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
   await withHost(outcome, {OUTCOME: outcome}, started =>
     client(started, 'refused', [`${outcome}-a`], {CODE: code}));
-  assert.deepEqual(await events(outcome), [], outcome);
+  assert.deepEqual(await counts(outcome), none, outcome);
 }
 
 // 2. delegate with an immediate Host permit or reject.
 await withHost('permit', {DECIDE: 'permit'}, started =>
   client(started, 'allowed', ['permit-a']));
-assert.deepEqual(await events('permit'), ['decide', 'dispatch']);
+assert.deepEqual(await counts('permit'), ran({decide: 1}));
 await withHost('reject', {DECIDE: 'reject'}, started =>
   client(started, 'refused', ['reject-a'],
     {CODE: 'ACTQL_E_DELEGATION_REJECTED'}));
-assert.deepEqual(await events('reject'), ['decide']);
+assert.deepEqual(await counts('reject'), {...none, decide: 1});
 
-// 3, 4, 6, 7 and 8. Hold -> Host exits -> review and answer from other
-// processes on a Host that only records answers -> that Host exits ->
-// a restarted Host resumes the same request -> its Run is interrupted and
-// continued after another restart -> the Named Result.
-await withHost('held', {}, started =>
-  client(started, 'hold', ['held-a']));
-await withHost('held', {RESUME_AFTER_ANSWER: '0'}, started => {
-  client(started, 'review', ['held-a']);
-  client(started, 'approve', ['held-a']);
-  client(started, 'resumeWaiting', ['held-a']);
-});
-assert.deepEqual(await events('held'), []);
-// The restarted Host resumes from the durable intent; its dispatch is held
-// and the process is killed after the Run exists.
-const interrupted = await startHost('held', {HOLD_DISPATCH: '1'});
-try {
-  for (let attempt = 0; attempt < 400 &&
-    !(await events('held')).includes('dispatch'); attempt++) {
-    await new Promise(resolve => setTimeout(resolve, 25));
-  }
-  assert.deepEqual(await events('held'), ['dispatch']);
-} finally { await stopHost(interrupted, 'SIGKILL'); }
-// Another restart: the same Run (never a second one) completes.
+// 3, 4, 6 and 7. Hold -> Host exits -> review, lost-reply answer and
+// contradiction from other processes on an answer-only Host -> a restarted
+// Host resumes by itself -> Named Result, with lookup/attach/wait only.
+await approvedAndStopped('held', 'held-a');
+assert.deepEqual(await counts('held'), none);
 await withHost('held', {}, started => client(started, 'finished',
   ['held-a']));
-assert.deepEqual(await events('held'), ['dispatch', 'dispatch']);
-// The continuation's private evidence is released after the terminal Run.
-const ledgers = join(root, 'held', 'checkpoints', 'attempts');
-for (const name of await readdir(ledgers)) {
-  const ledger = JSON.parse(await readFile(join(ledgers, name), 'utf8'));
-  for (const holding of ledger.holdings.filter(item =>
-    item.name !== 'invocation_request')) {
-    assert.equal(holding.state, 'retired', `${name} ${holding.name}`);
-  }
+assert.deepEqual(await counts('held'), ran());
+await assertRetired('held');
+
+// 4. The Host crashes at each step of the resume; a restarted Host carries
+// the same request on by itself (no Client resubmission). Before the
+// physical start reservation it starts the Run once; after it, the start is
+// unknown and is never sent again.
+for (const [step, expectStatus, expected] of [
+  ['resume_claimed', 'succeeded', ran()],
+  ['definition_admitted', 'succeeded', ran()],
+  ['intent_completed', 'succeeded', ran()],
+  ['dispatch_reserved', 'succeeded', ran({dispatch_reserved: 2})],
+  ['hook', 'succeeded', ran({dispatch_reserved: 2, hook: 2})],
+  ['physical_start_reserved', 'running', ran({computed: 0})],
+]) {
+  const name = `crash-${step}`;
+  await approvedAndStopped(name, name);
+  await crashed(name, {CRASH_AT: step});
+  await withHost(name, {}, started => client(started, 'finished', [name],
+    {EXPECT_STATUS: expectStatus}));
+  assert.deepEqual(await counts(name), expected, step);
+  await assertRetired(name, expectStatus === 'succeeded' ? 'retired'
+    : 'held');
 }
+
+// 5. A claim whose lease lapses before the admission sends nothing; the
+// Host itself continues the durable intent under a later claim.
+await approvedAndStopped('lease', 'lease-a', {LEASE_MS: '1000'});
+await withHost('lease', {LEASE_MS: '1000', STALL_AT: 'resume_claimed',
+  STALL_MS: '1500'}, started => client(started, 'finished', ['lease-a']));
+assert.deepEqual(await counts('lease'), ran());
+
+// 5. An approval whose own permission expired before the Host resumed
+// starts nothing; the request ends without a Run.
+await approvedAndStopped('expired', 'expired-a', {TTL_MS: '3000'});
+await new Promise(resolve => setTimeout(resolve, 3500));
+await withHost('expired', {}, started => client(started, 'ended',
+  ['expired-a'], {END_REASON: 'failed'}));
+assert.deepEqual(await counts('expired'), none);
 
 // 5. A configuration changed while waiting (to allow) does not resume the
 // held request: it ends without a Run and nothing is dispatched.
-await withHost('changed', {}, started =>
-  client(started, 'hold', ['changed-a']));
-await withHost('changed', {RESUME_AFTER_ANSWER: '0'}, started => {
-  client(started, 'review', ['changed-a']);
-  client(started, 'approve', ['changed-a']);
-});
+await approvedAndStopped('changed', 'changed-a');
 await withHost('changed', {OUTCOME: 'allow'}, started =>
   client(started, 'ended', ['changed-a'],
     {END_REASON: 'revalidation_failed'}));
-assert.deepEqual(await events('changed'), []);
+assert.deepEqual(await counts('changed'), none);
 
 // 5. A second Host on the same state is refused by the Store's single
 // owner before it can claim anything; the first resumes exactly once.
-await withHost('race', {}, started =>
-  client(started, 'hold', ['race-a']));
-await withHost('race', {RESUME_AFTER_ANSWER: '0'}, started => {
-  client(started, 'review', ['race-a']);
-  client(started, 'approve', ['race-a']);
-});
+await approvedAndStopped('race', 'race-a');
 const owning = await startHost('race', {});
 try {
   await assert.rejects(startHost('race', {}), /PublicationStoreBusy/u);
   client(owning, 'finished', ['race-a']);
 } finally { await stopHost(owning); }
-assert.deepEqual(await events('race'), ['dispatch']);
+assert.deepEqual(await counts('race'), ran());
 
 // 6. A batch with independent per-item results; rejection ends the request
-// without a Run.
+// without a Run, the approved one runs on the next Host start.
 await withHost('batch', {RESUME_AFTER_ANSWER: '0'}, started => {
   client(started, 'hold', ['batch-a']);
   client(started, 'hold', ['batch-b']);
@@ -454,5 +529,5 @@ await withHost('batch', {RESUME_AFTER_ANSWER: '0'}, started => {
 });
 await withHost('batch', {}, started =>
   client(started, 'finished', ['batch-b']));
-assert.deepEqual(await events('batch'), ['dispatch']);
+assert.deepEqual(await counts('batch'), ran());
 console.log('packed client Checkpoint acceptance: ok');

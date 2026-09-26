@@ -6,7 +6,8 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
+  'node:fs/promises';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {userInfo} from 'node:os';
@@ -45,9 +46,8 @@ const tokens = new Map([['owner-token', owner],
   ['reader-token', 'reader-principal'],
   ['stranger-token', 'stranger-principal']]);
 
-async function remoteHost(t, authorization) {
-  const root = await mkdtemp(join(scratch, 'host-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+async function remoteHost(t, authorization, {directory} = {}) {
+  const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
     '-subj', '/CN=localhost',
@@ -64,9 +64,20 @@ async function remoteHost(t, authorization) {
   const server = createServer({key: await readFile(join(root, 'remote.key')),
     cert: certificate}, host.handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => {
+  let closed = false;
+  const close = async () => {
+    if (closed) return;
+    closed = true;
+    server.closeAllConnections?.();
     await new Promise(resolve => server.close(resolve));
     await host.close();
+  };
+  // Close the Host (and its Store owner) before removing its state.
+  t.after(async () => {
+    await close();
+    if (directory === undefined) {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   // Trust this test certificate for the process's fetch.
@@ -74,7 +85,7 @@ async function remoteHost(t, authorization) {
     certificate.toString('utf8')]);
   const as = token => connect({mode: 'remote', endpoint, token,
     durability: 'durable'});
-  return {as, dispatches: () => dispatches};
+  return {as, dispatches: () => dispatches, close};
 }
 
 const reviewers = [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -263,4 +274,142 @@ test('rejected answers end the request without a Run; answers are per item',
       assert.equal(lookup.endReason, 'rejected');
     }
     assert.equal(host.dispatches(), 0);
+  });
+
+async function heldRequests(client, ids) {
+  for (const requestId of ids) {
+    const changed = JSON.parse(document);
+    changed.id = requestId;
+    await assert.rejects(client.aql(JSON.stringify(changed),
+      {format: 'json', requestId}), error => error instanceof RequestHeld);
+  }
+}
+async function allCheckpoints(reviewer) {
+  const items = [];
+  let after;
+  do {
+    const page = await reviewer.checkpoints({after, limit: 100});
+    items.push(...page.items);
+    after = page.next;
+  } while (after !== undefined);
+  return items;
+}
+async function approveAll(reviewer, items) {
+  for (let index = 0; index < items.length; index += 16) {
+    const answered = await reviewer.resolveCheckpoints(items.slice(index,
+      index + 16).map(checkpoint => ({checkpoint, decision: 'approved'})),
+    {signer});
+    assert.ok(answered.results.every(item => item.status === 'committed'));
+  }
+}
+async function succeeded(client, requestId) {
+  const found = await waitFor(async () => {
+    const lookup = await client.lookupRequest(requestId);
+    return lookup.kind === 'found' ? lookup : undefined;
+  });
+  const execution = await client.attach(found.ref);
+  return waitFor(async () => (await execution.wait()).status === 'succeeded');
+}
+
+// The first claim stalls while a second request is approved; nothing else
+// (no submit, answer, lease retry or restart) wakes the Host afterwards.
+async function stalledSweep(t, {leaseMs, stallMs}) {
+  const steps = [];
+  let stall = true;
+  let released;
+  const stalled = new Promise(resolve => { released = resolve; });
+  const host = await remoteHost(t, protectedHost('delegate', {
+    leaseMs,
+    async observe(name) {
+      steps.push(name);
+      if (name === 'resume_claimed' && stall) {
+        stall = false;
+        await stalled;
+      }
+    }}));
+  const client = await host.as('owner-token');
+  const reviewer = await host.as('reviewer-token');
+  await heldRequests(client, ['race-a', 'race-b']);
+  const [first, second] = await allCheckpoints(reviewer);
+  await approveAll(reviewer, [first]);
+  await waitFor(() => steps.includes('resume_claimed'));
+  await approveAll(reviewer, [second]);
+  await new Promise(resolve => setTimeout(resolve, stallMs));
+  released();
+  for (const requestId of ['race-a', 'race-b']) {
+    assert.equal(await succeeded(client, requestId), true, requestId);
+  }
+  assert.equal(host.dispatches(), 2);
+  assert.equal(steps.filter(name => name === 'computed').length, 2);
+}
+
+test('an answer committed during a resume is not lost', async t => {
+  // The lease stays live: only the recorded wake continues the second one.
+  await stalledSweep(t, {leaseMs: 60_000, stallMs: 100});
+});
+
+test('a claim whose lease lapsed sends nothing and is retried by the Host',
+  async t => {
+    await stalledSweep(t, {leaseMs: 1000, stallMs: 1200});
+  });
+
+test('more than one page of approved requests resumes at Host start',
+  async t => {
+    // Pages of 5 over 12 requests: the same continuation as 101 requests
+    // over the default page of 100.
+    const count = 12;
+    const ids = Array.from({length: count}, (_, index) =>
+      `start-${String(index).padStart(3, '0')}`);
+    const directory = await mkdtemp(join(scratch, 'restart-'));
+    const answering = await remoteHost(t, protectedHost('delegate',
+      {resumeAfterAnswer: false, sweepPage: 5}), {directory});
+    const client = await answering.as('owner-token');
+    const reviewer = await answering.as('reviewer-token');
+    await heldRequests(client, ids);
+    const items = await allCheckpoints(reviewer);
+    assert.equal(items.length, count);
+    await approveAll(reviewer, items);
+    assert.equal(answering.dispatches(), 0);
+    await answering.close();
+    const restarted = await remoteHost(t, protectedHost('delegate',
+      {sweepPage: 5}), {directory});
+    const owner = await restarted.as('owner-token');
+    for (const requestId of ids) {
+      assert.equal(await succeeded(owner, requestId), true, requestId);
+    }
+    assert.equal(restarted.dispatches(), count);
+    await restarted.close();
+    await rm(directory, {recursive: true, force: true});
+  });
+
+test('a lost or corrupt request index is rebuilt from the held evidence',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'index-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const first = await remoteHost(t, protectedHost('delegate'),
+      {directory});
+    const client = await first.as('owner-token');
+    await heldRequests(client, ['index-a', 'index-b']);
+    await first.close();
+    const index = join(directory, 'state', 'checkpoints', 'held');
+    const files = (await readdir(index)).filter(name =>
+      name.endsWith('.json')).sort();
+    assert.equal(files.length, 2);
+    await rm(join(index, files[0]));
+    await writeFile(join(index, files[1]), '{not json');
+    const second = await remoteHost(t, protectedHost('delegate'),
+      {directory});
+    const reviewer = await second.as('reviewer-token');
+    const items = await allCheckpoints(reviewer);
+    assert.deepEqual(items.map(item => item.subject.requestId).sort(),
+      ['index-a', 'index-b']);
+    // The rebuilt entries are durable again.
+    assert.deepEqual((await readdir(index)).filter(name =>
+      name.endsWith('.json')).sort(), files);
+    await approveAll(reviewer, items);
+    const owner = await second.as('owner-token');
+    for (const requestId of ['index-a', 'index-b']) {
+      assert.equal(await succeeded(owner, requestId), true, requestId);
+    }
+    await second.close();
   });
