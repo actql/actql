@@ -26,6 +26,10 @@ pub fn advance_bounded_key_comparison(BoundedKeyComparison, Int) -> Result[Bound
 
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
+pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
+
+pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
+
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
 
 pub fn append_object_field(ObjectBuilder, String, Value) -> Bool
@@ -44,7 +48,11 @@ pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
+pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
+
 pub fn cancel_vector_value(VectorBuilder) -> Bool
+
+pub fn cancel_wire_emit(WireEmitCursor) -> Unit
 
 pub fn canonical_scalar_text(CheckedValue, Int) -> String?
 
@@ -127,6 +135,10 @@ pub fn start_bounded_key_comparison(CheckedValue, CheckedValue) -> Result[Bounde
 pub fn start_bounded_present_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
+
+pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
+
+pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
 pub fn text_value(String, Int) -> Value?
 
@@ -219,6 +231,14 @@ pub(all) struct Limits {
 
 type ObjectBuilder
 
+type RecheckCursor
+
+pub enum RecheckPoll {
+  RecheckContinue
+  RecheckComplete(CheckedValue, Int, Int)
+  RecheckFailed
+}
+
 type ReferenceDomain
 
 pub(all) enum ReferenceIssue {
@@ -271,6 +291,8 @@ pub enum Value {
 }
 
 type VectorBuilder
+
+type WireEmitCursor
 
 // Type aliases
 

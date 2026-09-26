@@ -4,9 +4,9 @@
 /// separate occurrences, and each parent's items follow the resolved child
 /// order. Admission, name resolution, the child index sort, every key
 /// comparison unit, match collection, item construction, envelope
-/// measurement and output cells advance one bounded step at a time. One
-/// parent's nested array is measured in one step, bounded by the required
-/// per-parent item limit and the output value limits.
+/// measurement and output cells advance one bounded step at a time. The
+/// nested array is built in place, and its envelope measurement and output
+/// contract check advance one value node per step.
 priv enum BoundedNestPhase {
   ChargeInput
   ResolveKey
@@ -79,7 +79,9 @@ priv struct BoundedNestState {
   mut item : Int
   mut item_column : Int
   mut entries : Array[(String, @admitted.Value)]
-  items : Array[@admitted.Value]
+  mut builder : @admitted.ArrayBuilder?
+  mut measure : LogicalMeasureCursor?
+  mut recheck : @admitted.RecheckCursor?
   mut nested : Value
   mut nested_bytes : Int64
   mut column : Int
@@ -140,7 +142,7 @@ fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
   state.child_index = []
   state.grouped.clear()
   state.matches.clear()
-  state.items.clear()
+  bounded_nest_release_value(state)
   state.entries = []
   state.checked_row = []
   release_slots(state.workspace, state.workspace.live)
@@ -198,6 +200,73 @@ fn bounded_nest_pay(state : BoundedNestState, units : Int) -> Bool? {
     Ok(true) => {
       state.charging = false
       Some(true)
+    }
+  }
+}
+
+///|
+/// Drop the unpublished nested value and every builder or cursor that still
+/// references it or its parts.
+fn bounded_nest_release_value(state : BoundedNestState) -> Unit {
+  if state.builder is Some(builder) {
+    @admitted.cancel_array_value(builder) |> ignore
+    state.builder = None
+  }
+  if state.measure is Some(cursor) {
+    clear_logical_measure(cursor)
+    state.measure = None
+  }
+  if state.recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.recheck = None
+  }
+  state.nested = Null
+}
+
+///|
+/// One step of `measure_nest_value`: the envelope check, one logical measure
+/// node, or the final weight charge. Returns the wire bytes when measured.
+fn bounded_nest_measure_step(
+  state : BoundedNestState,
+  value : Value,
+  ceiling : Int64,
+  used : Int64,
+) -> Result[Int64?, RowIssue] {
+  let cursor = match state.measure {
+    Some(cursor) => cursor
+    None => {
+      if ceiling < 0L || used < 0L || used > ceiling {
+        return Err(NestEnvelope(Measurement))
+      }
+      match
+        start_logical_measure(
+          value,
+          state.control.remaining.to_int64(),
+          2147483647,
+          state.value_output.limits.max_nodes,
+          state.value_output.limits.max_depth,
+        ) {
+        Ok(cursor) => {
+          state.measure = Some(cursor)
+          return Ok(None)
+        }
+        Err(LogicalWorkLimit) => return Err(RowLimit)
+        Err(_) => return Err(NestEnvelope(Measurement))
+      }
+    }
+  }
+  match advance_logical_measure(cursor) {
+    Ok(None) => Ok(None)
+    Ok(Some(measured)) => {
+      state.measure = None
+      if !spend_control_bytes(state.control, measured.weight) {
+        return Err(RowLimit)
+      }
+      Ok(Some(measured.wire_bytes.to_int64()))
+    }
+    Err(issue) => {
+      state.measure = None
+      Err(if issue is LogicalWorkLimit { RowLimit } else { NestEnvelope(Measurement) })
     }
   }
 }
@@ -514,7 +583,7 @@ fn bounded_nest_step(
               !reserve_slots(state.workspace, 1) {
               return row_limit(used)
             }
-            state.items.clear()
+            state.builder = @admitted.prepare_array_value(state.matches.length())
             state.item = 0
             state.item_column = -1
             state.phase = BuildItem
@@ -524,7 +593,13 @@ fn bounded_nest_step(
       }
       BuildItem => {
         if state.item >= state.matches.length() {
-          state.nested = Captured(@admitted.array_value(state.items.copy()))
+          // Seal the in-place builder; no element array is copied.
+          guard state.builder is Some(builder) &&
+            @admitted.finish_array_value(builder) is Some(array) else {
+            return bounded_nest_failure(Rows(InvalidRows), progress, used + 1)
+          }
+          state.builder = None
+          state.nested = Captured(array)
           state.phase = MeasureNested
           continue
         }
@@ -567,7 +642,10 @@ fn bounded_nest_step(
         guard @admitted.object_value(state.entries) is Some(object) else {
           return bounded_nest_failure(Rows(InvalidRows), progress, used + 1)
         }
-        state.items.push(object)
+        guard state.builder is Some(builder) &&
+          @admitted.append_array_item(builder, object) else {
+          return bounded_nest_failure(Rows(InvalidRows), progress, used + 1)
+        }
         state.entries = []
         state.item += 1
         state.item_column = -1
@@ -575,14 +653,17 @@ fn bounded_nest_step(
       }
       MeasureNested => {
         let bytes = match
-          measure_nest_value(
+          bounded_nest_measure_step(
+            state,
             state.nested,
             Int64::max(state.grouped_limit, state.attached_limit),
             0L,
-            state.control,
-            state.value_output,
           ) {
-          Ok(value) => value
+          Ok(Some(value)) => value
+          Ok(None) => {
+            used += 1
+            continue
+          }
           Err(issue) =>
             return bounded_nest_failure(Rows(issue), progress, used + 1)
         }
@@ -621,14 +702,17 @@ fn bounded_nest_step(
               return bounded_nest_failure(InvalidExecution, progress, used)
             }
             match
-              measure_nest_value(
+              bounded_nest_measure_step(
+                state,
                 value,
                 state.attached_limit,
                 state.attached_bytes,
-                state.control,
-                state.value_output,
               ) {
-              Ok(value) => value
+              Ok(Some(value)) => value
+              Ok(None) => {
+                used += 1
+                continue
+              }
               Err(issue) =>
                 return bounded_nest_failure(Rows(issue), progress, used + 1)
             }
@@ -659,17 +743,45 @@ fn bounded_nest_step(
                 return bounded_nest_failure(InvalidExecution, progress, used)
             }
         }
-        guard @schema.field_at(state.output_schema, state.column) is Some(field) &&
-          checked_ordered_output_value(
-            value,
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(checked) else {
-          return bounded_nest_failure(Rows(InputMismatch), progress, used + 1)
+        // The output contract check advances one value node per step.
+        let cursor = match state.recheck {
+          Some(cursor) => cursor
+          None => {
+            let admitted = match value {
+              Null => Some(@admitted.null_value())
+              Number(number) => @admitted.number_value(number)
+              Boolean(boolean) => Some(@admitted.boolean_value(boolean))
+              Text(text) =>
+                @admitted.text_value(text, state.admitted_limits.max_text_bytes)
+              Captured(captured) => Some(captured)
+            }
+            guard admitted is Some(admitted) &&
+              @schema.field_at(state.output_schema, state.column) is Some(field) &&
+              @admitted.start_recheck_runtime_value(
+                admitted,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return bounded_nest_failure(Rows(InputMismatch), progress, used + 1)
+            }
+            state.recheck = Some(cursor)
+            used += 1
+            continue
+          }
         }
-        state.checked_row.push(checked)
-        state.column += 1
+        match @admitted.advance_recheck_runtime_value(cursor) {
+          RecheckContinue => ()
+          RecheckComplete(checked, _, _) => {
+            state.recheck = None
+            state.checked_row.push(checked)
+            state.column += 1
+          }
+          RecheckFailed => {
+            state.recheck = None
+            return bounded_nest_failure(Rows(InputMismatch), progress, used + 1)
+          }
+        }
         used += 1
       }
       CommitRow => {
@@ -682,8 +794,7 @@ fn bounded_nest_step(
           Ok(_) => ()
         }
         state.checked_row = []
-        state.items.clear()
-        state.nested = Null
+        bounded_nest_release_value(state)
         state.parent_row += 1
         state.phase = BeginParent
         progress += 1
@@ -874,7 +985,9 @@ pub fn start_bounded_nest(
     item: 0,
     item_column: -1,
     entries: [],
-    items: [],
+    builder: None,
+    measure: None,
+    recheck: None,
     nested: Null,
     nested_bytes: 0L,
     column: 0,

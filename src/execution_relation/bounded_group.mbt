@@ -162,6 +162,7 @@ priv struct BoundedGroupState {
   mut output_row : Array[@admitted.Value]
   mut output_measure : SteppedValueMeasure?
   mut output_pending : @admitted.Value?
+  mut output_recheck : @admitted.RecheckCursor?
 }
 
 ///|
@@ -227,6 +228,10 @@ fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
     state.output_measure = None
   }
   state.output_pending = None
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
   if state.charge_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.charge_measure = None
@@ -245,14 +250,15 @@ fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
 ///|
 /// The admitted value published for one output cell, following the count
 /// kernel: an exact source contract reuses the input's admitted value,
-/// otherwise the runtime value is admitted and rechecked by the output field.
+/// otherwise the runtime value is admitted and must be rechecked by the
+/// output field. The Bool is true when that recheck is still required.
 fn bounded_group_admitted_cell(
   state : BoundedGroupState,
   field : @schema.Field,
   value : Value,
   source : Int?,
   representative : Int,
-) -> @admitted.Value? {
+) -> (@admitted.Value, Bool)? {
   let admitted_source = match source {
     None => None
     Some(index) =>
@@ -276,19 +282,8 @@ fn bounded_group_admitted_cell(
           @admitted.text_value(text, state.admitted_limits.max_text_bytes)
       }
   }
-  guard admitted is Some(admitted) &&
-    (
-      admitted_source is Some(_) ||
-      @admitted.recheck_runtime_value(
-        admitted,
-        field.contract,
-        state.admitted_limits,
-      )
-      is Some(_)
-    ) else {
-    return None
-  }
-  Some(admitted)
+  guard admitted is Some(admitted) else { return None }
+  Some((admitted, admitted_source is None))
 }
 
 ///|
@@ -410,6 +405,36 @@ fn bounded_group_step(
         guard @schema.field_at(state.output_schema, state.field) is Some(field) else {
           return bounded_group_failure(InvalidExecution, progress, used)
         }
+        // A composite runtime value's output contract check advances one node
+        // per step before its size is measured.
+        if state.output_recheck is Some(recheck) {
+          match @admitted.advance_recheck_runtime_value(recheck) {
+            RecheckContinue => {
+              used += 1
+              continue
+            }
+            RecheckFailed => {
+              state.output_recheck = None
+              return bounded_group_failure(Rows(InvalidRows), progress, used + 1)
+            }
+            RecheckComplete(_, _, _) => {
+              state.output_recheck = None
+              guard state.output_pending is Some(admitted) else {
+                return bounded_group_failure(InvalidExecution, progress, used)
+              }
+              guard start_stepped_measure_result(
+                  Captured(admitted),
+                  state.workspace,
+                )
+                is Some(cursor) else {
+                return bounded_group_failure(Rows(RowLimit), progress, used)
+              }
+              state.output_measure = Some(cursor)
+              used += 1
+              continue
+            }
+          }
+        }
         if state.output_measure is None {
           if !reserve_slots(state.workspace, 1) ||
             !spend_control(state.control, 1) {
@@ -429,11 +454,20 @@ fn bounded_group_step(
               state.output_sources[state.field],
               representative,
             )
-            is Some(admitted) else {
+            is Some((admitted, recheck)) else {
             return bounded_group_failure(Rows(InvalidRows), progress, used)
           }
           if admitted
             is (@admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)) {
+            if recheck &&
+              @admitted.recheck_runtime_value(
+                admitted,
+                field.contract,
+                state.admitted_limits,
+              )
+              is None {
+              return bounded_group_failure(Rows(InvalidRows), progress, used)
+            }
             if !measure_result(Captured(admitted), output.buffer.budget) {
               return bounded_group_failure(
                 Capture(CaptureLimit),
@@ -446,6 +480,20 @@ fn bounded_group_step(
             used += 1
             continue
           }
+          state.output_pending = Some(admitted)
+          if recheck {
+            guard @admitted.start_recheck_runtime_value(
+                admitted,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return bounded_group_failure(Rows(InvalidRows), progress, used)
+            }
+            state.output_recheck = Some(cursor)
+            used += 1
+            continue
+          }
           guard start_stepped_measure_result(
               Captured(admitted),
               state.workspace,
@@ -453,7 +501,6 @@ fn bounded_group_step(
             is Some(cursor) else {
             return bounded_group_failure(Rows(RowLimit), progress, used)
           }
-          state.output_pending = Some(admitted)
           state.output_measure = Some(cursor)
         }
         let cursor = state.output_measure.unwrap()
@@ -771,6 +818,7 @@ fn start_bounded_group_with_input(
     output_row: [],
     output_measure: None,
     output_pending: None,
+    output_recheck: None,
   }
   let (session, token) = @bounded.start(
     engine,

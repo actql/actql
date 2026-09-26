@@ -1053,9 +1053,6 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       if !reserve_slots(s.workspace, s.ranges.length()) {
         return Err(RowLimit)
       }
-      for _ in 0..<s.ranges.length() {
-        s.failure_sources.push([])
-      }
       s.inner = 0
       s.index = 0
       s.phase = 15
@@ -1063,6 +1060,11 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
     }
     // Failure order: sources by partition.
     15 => {
+      // One reserved partition list per advance.
+      if s.failure_sources.length() < s.ranges.length() {
+        s.failure_sources.push([])
+        return Ok(None)
+      }
       if s.index < count {
         let range_index = s.partition_by_row[s.index]
         if range_index < 0 ||

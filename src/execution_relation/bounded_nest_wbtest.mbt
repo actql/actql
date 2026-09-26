@@ -243,3 +243,159 @@ test "bounded nest admits exact work and rejects one unit short" {
   }
   assert_true(cleanup_bounded_nest(short).unwrap())
 }
+
+///|
+fn bounded_nest_released(execution : BoundedNestExecution) -> Bool {
+  let state = execution.state
+  state.nested is Null &&
+  state.builder is None &&
+  state.measure is None &&
+  state.recheck is None &&
+  state.entries.length() == 0 &&
+  state.matches.length() == 0 &&
+  state.checked_row.length() == 0 &&
+  state.workspace.live == 0
+}
+
+///|
+/// Advance with quantum 1 until the state enters `phase`, then cancel.
+fn bounded_nest_cancel_in(
+  execution : BoundedNestExecution,
+  control : @bounded.Control,
+  phase : BoundedNestPhase,
+  skip? : Int = 0,
+) -> Bool {
+  let mut seen = 0
+  for _ in 0..<100000 {
+    if nest_phase_id(execution.state.phase) == nest_phase_id(phase) {
+      if seen == skip {
+        break
+      }
+      seen += 1
+    }
+    match advance_bounded_nest(execution, 1) {
+      Ok(BoundedNestContinue(..)) => ()
+      _ => return false
+    }
+  }
+  @bounded.request_cancel(control) |> ignore
+  advance_bounded_nest(execution, 1) is Ok(BoundedNestStopped(_, ..))
+}
+
+///|
+test "bounded nest cleanup releases the nested value at every phase" {
+  for phase in [BuildItem, MeasureNested, CheckAttached, BuildCell] {
+    let (control, started, reads) = bounded_nest_fixture(
+      max_work=100000,
+      max_entries=1000,
+    )
+    let execution = started.unwrap()
+    if !bounded_nest_cancel_in(execution, control, phase, skip=1) {
+      fail("phase " + nest_phase_id(phase).to_string())
+    }
+    assert_true(cleanup_bounded_nest(execution).unwrap())
+    assert_true(bounded_nest_released(execution))
+    assert_true(reads.all(read => producer_read_available(read)))
+  }
+}
+
+///|
+test "bounded nest cleanup releases the nested value after failures" {
+  // Grouped and attached envelope failures stop after the nested value exists.
+  for limits in [(1L, 10000L), (10000L, 1L)] {
+    let (_, started, _) = bounded_nest_fixture(
+      grouped_bytes=limits.0,
+      attached_bytes=limits.1,
+      max_work=100000,
+      max_entries=1000,
+    )
+    let execution = started.unwrap()
+    assert_true(drive_bounded_nest(execution) is BoundedNestFailed(_, ..))
+    assert_true(cleanup_bounded_nest(execution).unwrap())
+    assert_true(bounded_nest_released(execution))
+  }
+  // The item limit fails after the first parent's nested value was built.
+  let (_, started, _) = bounded_nest_fixture(
+    nest="\"on\":[{\"left\":\"key\",\"right\":\"key\"}],\"into\":\"items\",\"fields\":[{\"amount\":\"value\"}],\"max_items\":1",
+    max_work=100000,
+    max_entries=1000,
+  )
+  let execution = started.unwrap()
+  assert_true(drive_bounded_nest(execution) is BoundedNestFailed(_, ..))
+  assert_true(cleanup_bounded_nest(execution).unwrap())
+  assert_true(bounded_nest_released(execution))
+}
+
+///|
+test "bounded nest nested phases visit one element per advance" {
+  // Ten children under one parent with long text values: building, measuring
+  // and rechecking the nested array must not run in one advance.
+  let text = "x".repeat(200)
+  let right = Array::makei(10, i => {
+      "{\"key\":1,\"value\":\"" + text + i.to_string() + "\"}"
+    })
+  let (_, started, _) = bounded_nest_fixture(
+    nest="\"on\":[{\"left\":\"key\",\"right\":\"key\"}],\"into\":\"items\",\"fields\":[{\"amount\":\"value\"}],\"max_items\":10",
+    right_schema="{\"key\":{\"type\":\"number\",\"nullable\":true},\"value\":{\"type\":\"string\",\"nullable\":true}}",
+    left_rows="[{\"id\":1,\"key\":1}]",
+    right_rows="[" + right.join(",") + "]",
+    max_work=100000,
+    max_entries=1000,
+    input_nodes=10000,
+  )
+  let execution = started.unwrap()
+  let advances : Map[Int, Int] = Map([])
+  let mut last = 0L
+  let mut max_nested = 0L
+  for _ in 0..<100000 {
+    let phase = nest_phase_id(execution.state.phase)
+    match advance_bounded_nest(execution, 1) {
+      Ok(BoundedNestContinue(work~, ..)) => {
+        let delta = work - last
+        last = work
+        advances.set(phase, advances.get_or_default(phase, 0) + 1)
+        if phase == nest_phase_id(MeasureNested) || phase == nest_phase_id(BuildCell) {
+          max_nested = Int64::max(max_nested, delta)
+        }
+      }
+      Ok(BoundedNestComplete(output, ..)) => {
+        assert_eq(bounded_nest_item_counts(output), [10])
+        break
+      }
+      _ => fail("nest did not complete")
+    }
+  }
+  // One text value (about 200 bytes) at most per measuring advance.
+  assert_true(max_nested <= 220L)
+  assert_true(advances.get_or_default(nest_phase_id(BuildItem), 0) >= 10)
+  assert_true(advances.get_or_default(nest_phase_id(MeasureNested), 0) >= 30)
+  assert_true(advances.get_or_default(nest_phase_id(BuildCell), 0) >= 30)
+  assert_true(cleanup_bounded_nest(execution).unwrap())
+  assert_true(bounded_nest_released(execution))
+}
+
+///|
+fn nest_phase_id(phase : BoundedNestPhase) -> Int {
+  match phase {
+    ChargeInput => 0
+    ResolveKey => 1
+    ResolveOrder => 2
+    ResolveField => 3
+    ResolveOutput => 4
+    SeedChild => 5
+    SortChild => 6
+    InitGrouped => 7
+    BeginParent => 8
+    CheckNull => 9
+    SearchChild => 10
+    MatchChild => 11
+    ChargeRow => 12
+    BuildItem => 13
+    MeasureNested => 14
+    CheckAttached => 15
+    BuildCell => 16
+    CommitRow => 17
+    FinishOutput => 18
+    Terminal => 19
+  }
+}
