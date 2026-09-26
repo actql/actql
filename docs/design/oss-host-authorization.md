@@ -307,24 +307,29 @@ The Client wire adds three operations. Each one is authorized separately.
 The Host resumes approved requests when it starts, and after an answer
 unless `resumeAfterAnswer` is false. The sweep never loses a wake: a wake
 during a drain triggers another pass. A drain pages through every resumable
-preparation, and a busy or lapsed claim is retried after the lease. The
-resume path:
-1. Claims the durable intent and passes `gate.resume` with the common
-   admission (live claim, committed approval still valid, same
-   configuration, exact sealed artifact and decision subject).
-2. Enters the admission immediately before the Run Definition is admitted.
-   A later claim generation only reconciles the same request identity, which
-   the request journal deduplicates.
-3. Completes the intent with the created Run. From then on, the Run's
-   execution is a durable Run-side duty (`listPreparationRuns`) that every
-   Host start carries on:
-   - a Run whose physical start is not reserved is started under the
-     request journal's start fence;
+preparation. A busy or lapsed claim, or a transient failure, is retried
+after the lease. The resume path:
+1. Claims the durable intent. A claim whose revalidation fails (for example
+   after a configuration change) ends the preparation. A Run already defined
+   for it fails before dispatch.
+2. Reconciles a Run whose physical start an earlier claim already reserved:
+   the intent completes with it, and nothing is authorized or sent again.
+3. Otherwise passes `gate.resume` with the common admission (live claim,
+   committed approval still valid, same configuration, exact sealed artifact
+   and decision subject). A refusal fails any defined Run before dispatch.
+4. Admits (or looks up) the Run Definition. It enters the admission
+   synchronously immediately before the physical start reservation; a later
+   claim generation only reconciles the same request identity. Right after
+   the reservation it completes the intent with the Run.
+5. From then on, the Run is only observed (`listPreparationRuns`):
+   - a terminal Run ends the journal Run;
    - a Run whose start is reserved but unfinished stays unknown and is never
-     sent again;
-   - a terminal Run ends the journal Run.
-4. Releases the continuation's evidence once the Run is terminal and keeps it
+     sent again.
+6. Releases the continuation's evidence once the Run is terminal and keeps it
    while the Run is not terminal.
+
+`close()` stops new resumes, waits for running dispatches and records their
+ends, settles retention, and only then releases the journals and the Store.
 
 The held-request index names only request IDs. It is written with a
 directory sync and rebuilt from the captured submission when it is missing
