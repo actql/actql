@@ -5,11 +5,20 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The local public Client path now reaches formal publication and last-owner retirement, including response-loss and restart faults. Connect configured, nonfixture Host authorization and the Distribution-owned public Checkpoint projection for uncertain Runs. Finish list/search/inspect/peek and connect the authorized resolver to the installed discovery surface and retained snapshots. Verify declared read/write behavior against the isolated org when access is supplied. |
+| Remaining implementation and acceptance | The local public Client path now reaches formal publication and last-owner retirement, including response-loss and restart faults. Connect configured, nonfixture Host authorization and the Distribution-owned public Checkpoint projection for uncertain Runs. Connect the provider-owned list/search/inspect/resolve view to the public discovery surface and retained snapshots; implement authorized bounded peek. Verify declared read/write behavior against the isolated org when access is supplied. |
 | Cross-owner dependency | Distribution owns public Client Checkpoint projection and shared ingress; Connector owns Salesforce Site operations and consumes the delivered common compiler and Run-start owner. The isolated org, secret-manager reference and write permission have not been supplied; live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, fleet deployment and the separately managed performance work remain separate. This does not complete the original ten-Connector objective. |
 
 ## Current connection (2026-09-26)
+
+The provider-owned Resource discovery view now exposes list, search, inspect,
+and resolve over one exact MoonBit Catalog observation. It freezes the
+observation binding, checks current account disclosure per Resource, separates
+snapshot truncation from display truncation, and performs no provider request
+or credential use. Inspect returns bounded typed metadata, not execution
+authority. The local HTTPS test covers denied resources, exact binding,
+partial observations, and zero extra network uses. The view is not yet exposed
+through the public discovery endpoint, and business-row peek remains open.
 
 An authorized Resource resolver now consumes one supplied exact Salesforce
 Catalog observation and the installed account gate. It checks current metadata

@@ -303,6 +303,16 @@ pub fn catalog_observation_identity(value : CatalogObservation) -> String {
 }
 
 ///|
+/// A historical observation can be projected only under its exact owner.
+/// This check does not authorize current metadata disclosure or execution.
+pub fn catalog_observation_matches_binding(
+  observation : CatalogObservation,
+  current : CatalogObservationBinding,
+) -> Bool {
+  observation.binding == current
+}
+
+///|
 /// Equal content in a different connection or Site generation is not the
 /// observation admitted for this execution. Current authority remains separate.
 pub fn catalog_observation_resource(
@@ -342,6 +352,79 @@ pub fn catalog_observation_first_unconfirmed_field(
     }
   }
   Ok(None)
+}
+
+///|
+/// A bounded metadata display projection, never execution authority.
+pub fn catalog_observation_resource_summary_json(
+  observation : CatalogObservation,
+  current : CatalogObservationBinding,
+  resource_name : String,
+  max_bytes : Int,
+) -> Result[String, CatalogObservationIssue] {
+  let resource = match
+    catalog_observation_resource(observation, current, resource_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let writer = @encode.writer(max_bytes, 100000, 5) catch {
+    _ => return Err(OutputLimit)
+  }
+  try {
+    @encode.begin_object(writer)
+    observation_field(writer, "name", resource.name)
+    @encode.key(writer, "queryable")
+    @encode.bool_value(writer, resource.queryable)
+    @encode.key(writer, "createable")
+    @encode.bool_value(writer, resource.createable)
+    @encode.key(writer, "updateable")
+    @encode.bool_value(writer, resource.updateable)
+    @encode.key(writer, "fields")
+    @encode.begin_array(writer)
+    for field in resource.fields {
+      @encode.begin_object(writer)
+      observation_field(writer, "name", field.name)
+      observation_field(writer, "native_type", field.native_type)
+      @encode.key(writer, "nullable")
+      @encode.bool_value(writer, field.nullable)
+      @encode.key(writer, "nullability_confirmed")
+      @encode.bool_value(writer, field.nullability_confirmed)
+      @encode.key(writer, "defaulted_on_create")
+      @encode.bool_value(writer, field.defaulted_on_create)
+      @encode.key(writer, "default_on_create_confirmed")
+      @encode.bool_value(writer, field.default_on_create_confirmed)
+      @encode.key(writer, "createable")
+      @encode.bool_value(writer, field.createable)
+      @encode.key(writer, "updateable")
+      @encode.bool_value(writer, field.updateable)
+      @encode.key(writer, "filterable")
+      @encode.bool_value(writer, field.filterable)
+      @encode.key(writer, "sortable")
+      @encode.bool_value(writer, field.sortable)
+      @encode.key(writer, "external_id")
+      @encode.bool_value(writer, field.external_id)
+      @encode.key(writer, "unique")
+      @encode.bool_value(writer, field.unique)
+      @encode.key(writer, "case_sensitive")
+      match field.case_sensitive {
+        Some(value) => @encode.bool_value(writer, value)
+        None => @encode.null_value(writer)
+      }
+      @encode.key(writer, "reference_to")
+      @encode.begin_array(writer)
+      for name in field.reference_to {
+        @encode.string_value(writer, name)
+      }
+      @encode.end_array(writer)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+  } catch {
+    _ => return Err(OutputLimit)
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(OutputLimit) }
+  Ok(body)
 }
 
 ///|

@@ -35,6 +35,8 @@ import {signRemoteCredentialGrant} from
 import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
 import {resolveSalesforceResource} from
   '../host/salesforce-resource-resolver.mjs';
+import {installSalesforceResourceDiscovery} from
+  '../host/salesforce-resource-discovery.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
 import {accountEntry, fixtureAuthorization} from
@@ -492,6 +494,89 @@ test('Resource resolution uses only the supplied authorized Catalog snapshot',
       field: 'Undisclosed_Field__c', observationCid: catalog.observationCid});
     assert.equal(setup.seen.length, requests);
     assert.equal(setup.journal.recover().length, uses);
+  });
+
+test('installed Resource discovery filters current disclosure without provider I/O',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('account-read', 'allow', {resource: 'Account',
+        operation: 'read'}),
+      accountEntry('record-read', 'deny', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const suppliedCatalog = {...catalog};
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog: suppliedCatalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`});
+    const requests = setup.seen.length;
+    const uses = setup.journal.recover().length;
+    assert.deepEqual(await discovery.list(), {
+      observationCid: catalog.observationCid,
+      resources: [{name: 'Account', outcome: 'described'}],
+      snapshotTruncated: false, resultTruncated: false,
+    });
+    assert.deepEqual((await discovery.search('test')).resources, []);
+    suppliedCatalog.observationCid = cid('f');
+    suppliedCatalog.observationJson = '{}';
+    const inspected = await discovery.inspect({resource: 'Account'});
+    assert.equal(inspected.status, 'ready');
+    assert.equal(inspected.observationCid, catalog.observationCid);
+    assert.deepEqual(inspected.summary.fields.map(field => field.name),
+      ['Id']);
+    assert.equal(inspected.summary.fields[0].nullable, false);
+    await assert.rejects(discovery.inspect({resource: 'Test_Record__c'}),
+      {code: 'ExecutionAuthorizationDenied'});
+    assert.equal((await discovery.resolve({resource: 'Account',
+      operation: 'read', fieldNames: ['Id']})).status, 'ready');
+    await assert.rejects(discovery.resolve({resource: 'Test_Record__c',
+      operation: 'read', fieldNames: ['Id']}),
+    {code: 'ExecutionAuthorizationDenied'});
+    assert.equal(setup.seen.length, requests);
+    assert.equal(setup.journal.recover().length, uses);
+    await assert.rejects(async () => installSalesforceResourceDiscovery({
+      moon: salesforceMoon, catalog, binding: {...binding,
+        site_generation: binding.site_generation + 1}, authorization,
+      connection: `salesforce:${setup.orgId}`}),
+    {code: 'InvalidSalesforceResourceDiscovery'});
+  });
+
+test('Resource discovery preserves snapshot and display truncation separately',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('all-read', 'allow', {operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`});
+    assert.deepEqual(await discovery.list({maxResults: 1}), {
+      observationCid: catalog.observationCid,
+      resources: [{name: 'Account', outcome: 'described'}],
+      snapshotTruncated: false, resultTruncated: true,
+    });
+    const partial = await syncSalesforceCatalog(request(setup, {
+      listLimits: {...listLimits, maxSelected: 1},
+      listAuthorization: {...setup.list, useId: 'partial-list'},
+      describeAuthorization: () => ({...setup.describe,
+        useId: 'partial-describe'}),
+    }));
+    const partialDiscovery = installSalesforceResourceDiscovery({
+      moon: salesforceMoon, catalog: partial,
+      binding: JSON.parse(partial.observationJson).binding, authorization,
+      connection: `salesforce:${setup.orgId}`,
+    });
+    const listed = await partialDiscovery.list();
+    assert.equal(listed.snapshotTruncated, true);
+    assert.equal(listed.resultTruncated, false);
+    assert.deepEqual(await partialDiscovery.inspect({
+      resource: 'Test_Record__c',
+    }), {status: 'catalog_required',
+      observationCid: partial.observationCid, reason: 'listing_truncated'});
   });
 
 test('Resource resolution keeps partial metadata as a typed requirement',

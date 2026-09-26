@@ -49,11 +49,15 @@ pub fn salesforce_catalog_observation_cid(@catalog.CatalogObservation) -> String
 
 pub fn salesforce_catalog_observation_json(@catalog.CatalogObservation) -> String
 
+pub fn salesforce_catalog_observation_matches_binding(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String) -> Bool
+
 pub fn salesforce_catalog_observed_resource_state(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String) -> Int raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_catalog_resource_names(@catalog.ResourceListing) -> Array[String]
 
 pub fn salesforce_catalog_resource_state(@catalog.CatalogSync, String) -> Int
+
+pub fn salesforce_catalog_resource_summary_json(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, String, Int) -> String raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_catalog_response_sha256(Bytes) -> String
 
