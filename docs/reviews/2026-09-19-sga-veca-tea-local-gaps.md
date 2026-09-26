@@ -70,6 +70,54 @@ bounded row provider. `pivot` and whole-sequence dedupe combinations still
 need a separate bounded connection; the historical probe is not current proof
 of a single-step dedupe fallback.
 
+The ordinary two-input equality join and its unary Relation suffix now
+select the existing Relation provider. The join validates both positions,
+builds a stable key index, finds pairs, and measures output in resumable
+steps. Long Text comparisons reuse the stepped comparison cursor; output
+projection reuses exact admitted cells rather than rebuilding nested values.
+An unprojected join keeps its checked qualified schema for the later select;
+the private kernel buffer does not use the object-only external importer.
+The chain retains each child and its private output until reverse-order
+cleanup. Input acquisition is not replaced, and the supplied/producer
+authorities remain distinct.
+
+This closes the observed providerless `join → select` shape, not all joins
+embedded in arbitrary whole-Stage DAGs. A multi-source Values prefix that
+is not selected separately can still reach the generic evaluator. Raw
+RowTable projection can also require synchronous contract revalidation.
+The strict whole-operation claim therefore remains open. Boundary evidence
+for the new path is registered separately: empty exact/one-short work and
+workspace, nonempty overlapping workspace, output value limits, obligation
+priority, ordered output at multiple quanta, and private-state cancellation.
+The standard Host fixtures cover two real consumers, timer-delivered
+cancellation, nonpublication, and cleanup. Formal publication also retrieves
+the independently expected ordered rows from the committed Result.
+
+The latest fetched `origin/main` was
+`826fc49188cc184f5a9bedcfcd2b49ad6ae3e658`. It was already an ancestor of
+the pre-change Local HEAD `224cae0dd6ba19263e1c298cb281631d344c8853`,
+so no additional rebase or individual authorization cherry-pick was needed.
+The common task activation and resume admission code is unchanged by this
+connection. Neither main nor another worktree was modified.
+
+Local validation of the integrated join source passed on 2026-09-26:
+
+- `execution_relation` and `query_integration`: 1,675 tests on each of
+  JS, Wasm, and native, including required task-activation rejection.
+- The rebuilt standard Node/native Host suite passed with real DuckDB
+  acquisition, two consumers, delivered cancellation, and Named Result
+  publication/retrieval. This is local product-path evidence, not Linux CI.
+- Retained-boundary tests: 263 passed; Workers runtime tests: 24 passed.
+- Resource-accounting gate tests: 197 passed. The ordinary inventory gate
+  passed; the strict completion gate still rejected the remaining routes.
+- Docs, metadata, pinned formatting, generated Workers fixture freshness,
+  cross-target public API, portable dependency checks, and authorization
+  vectors passed. Generated interfaces came from the integrated source.
+
+No push, main integration, or same-SHA Linux CI result is claimed. This
+join connection does not change the remaining delivery scope or certify
+the providerless fallback.
+
 The current `--require-boundary-complete` output is the finite acceptance
 list. Its 31 full-route and 70 path-scoped counts describe evidence, not
 overall feature completion. For every row, the release gate must fail if a

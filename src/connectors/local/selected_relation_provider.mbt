@@ -1,5 +1,5 @@
 ///|
-/// Checked unary Relation execution shared by single-step and chained tasks.
+/// Checked Relation execution shared by single-step and chained tasks.
 /// Family providers do not reinterpret RelA after a Carrier bridge.
 fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
   match @lower.kernel_body(kernel) {
@@ -196,7 +196,7 @@ fn bounded_relation_step_provider(
 ///|
 fn start_bounded_relation_step(
   selected : @execution.GeneratedSequence,
-  input : ManagedProviderInput,
+  inputs : Array[ManagedProviderInput],
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
@@ -215,7 +215,7 @@ fn start_bounded_relation_step(
   start_managed_provider_with_inputs_and_execution(
     provider,
     selected,
-    [input],
+    inputs,
     execution.rows.max_rows,
     max_value_bytes,
     limited,
@@ -268,11 +268,11 @@ fn bounded_relation_chain_capacity(
 }
 
 ///|
-/// Execute a checked unary Relation chain inside its original task. Every
+/// Execute a checked Relation chain inside its original task. Every
 /// intermediate result remains private and supplies only the next exact edge.
 fn bounded_relation_chain_execution(
   sequence : @execution.GeneratedSequence,
-  input : ManagedProviderInput,
+  inputs : Array[ManagedProviderInput],
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   max_value_bytes : Int,
@@ -288,7 +288,7 @@ fn bounded_relation_chain_execution(
   let initial = match
     start_bounded_relation_step(
       first,
-      input,
+      inputs,
       execution,
       measurement,
       max_value_bytes,
@@ -339,7 +339,7 @@ fn bounded_relation_chain_execution(
     let next = match
       start_bounded_relation_step(
         selected,
-        RelationInput(read),
+        [RelationInput(read)],
         execution,
         measurement,
         max_value_bytes,
@@ -555,8 +555,7 @@ fn selected_relation_provider(
       let count = @execution.generated_sequence_step_count(sequence)
       let owner = @execution.generated_sequence_owner(sequence)
       let prepared = @lower.bound_preparation(owner)
-      if count < 1 ||
-        (count > 1 && @lower.preparation_input_count(prepared) != 1) {
+      if count < 1 {
         return false
       }
       for index in 0..<count {
@@ -578,6 +577,7 @@ fn selected_relation_provider(
         let single_unsupported = if count == 1 {
           match operation {
             @lower.RowStep(kernel) => !selected_binding_rows_supported(kernel)
+            @lower.JoinStep(_) => false
             _ => true
           }
         } else {
@@ -592,24 +592,36 @@ fn selected_relation_provider(
         } else {
           false
         }
-        if single_unsupported ||
-          chain_unsupported ||
-          !@lower.node_accepts_managed_relation_view(node, 0) ||
-          @lower.node_input_count(node) != 1 {
+        let input_count = if operation is @lower.JoinStep(_) { 2 } else { 1 }
+        if count > 1 &&
+          index == 0 &&
+          @lower.preparation_input_count(prepared) != input_count {
           return false
         }
-        if count > 1 &&
-          @lower.node_input_target(node, 0) !=
-          Some(
-            if index == 0 {
-              @pipeline.Input(0)
+        if single_unsupported ||
+          chain_unsupported ||
+          @lower.node_input_count(node) != input_count {
+          return false
+        }
+        for port in 0..<input_count {
+          if !@lower.node_accepts_managed_relation_view(node, port) {
+            return false
+          }
+          if count > 1 {
+            let target = if index == 0 {
+              @pipeline.Input(port)
             } else {
+              if input_count != 1 {
+                return false
+              }
               @pipeline.Step(
                 @execution.generated_sequence_step_index_at(sequence, index - 1).unwrap(),
               )
-            },
-          ) {
-          return false
+            }
+            if @lower.node_input_target(node, port) != Some(target) {
+              return false
+            }
+          }
         }
       }
       match
@@ -624,16 +636,22 @@ fn selected_relation_provider(
     },
     sequence => bounded_relation_chain_capacity(sequence, limits, measurement),
     (sequence, inputs, _max_rows, max_value_bytes, execution) => {
-      guard inputs is [input] else {
-        return Err(@connector.Execution(@execution.InputSet))
-      }
       if @execution.generated_sequence_step_count(sequence) > 1 {
         return bounded_relation_chain_execution(
-          sequence, input, execution, measurement, max_value_bytes,
+          sequence, inputs, execution, measurement, max_value_bytes,
         )
       }
       guard @execution.generated_sequence_step_index_at(sequence, 0)
-        is Some(step) &&
+        is Some(step) else {
+        return Err(@connector.Execution(@execution.InputSet))
+      }
+      if @execution.generated_sequence_step_at(sequence, 0)
+        is Some(@lower.JoinStep(_)) {
+        return selected_join_execution(
+          sequence, inputs, execution, max_value_bytes, step,
+        )
+      }
+      guard inputs is [input] &&
         @execution.generated_sequence_step_at(sequence, 0)
         is Some(@lower.RowStep(kernel)) else {
         return Err(@connector.Execution(@execution.InputSet))

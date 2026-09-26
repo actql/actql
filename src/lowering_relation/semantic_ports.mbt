@@ -188,7 +188,7 @@ pub fn node_prefers_fused_without_relation_consumer(
 
 ///|
 /// The common selected-operation Relation reader can preserve the checked
-/// unary row kernel at this exact internal input. This is typed capability
+/// row kernel at this exact internal input. This is typed capability
 /// metadata, not a second interpretation of the authored operation name.
 pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
@@ -196,7 +196,7 @@ pub fn node_accepts_managed_relation_view(
 ) -> Bool {
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      CrossJoinRows(_) | AppendRows(_) => true
+      InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) => true
       _ => false
     }
   }

@@ -147,6 +147,8 @@ fn run_local_managed_join_case(
     [left_rows, right_rows],
     join_task,
     join_live,
+    require_provider=true,
+    execution_quantum=1,
   )
   let joined_rows = local_managed_test_rows(join_ops)
   assert_eq(joined_rows, expected_joined)

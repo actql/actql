@@ -1420,6 +1420,8 @@ test "Local qualified select feeds two downstream Computes" {
     [left_rows, right_rows],
     3,
     selected_live,
+    require_provider=true,
+    execution_quantum=1,
   )
   let selected_rows = local_managed_test_rows(selected_ops)
   assert_eq(selected_rows, [

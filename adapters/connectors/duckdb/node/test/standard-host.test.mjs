@@ -6178,6 +6178,31 @@ async function exerciseStrategyGraph(
       ? externalCrossFields : [...externalCrossFields].reverse()}},
   })));
   const splitCrossJoinProgram = structuredClone(externalCrossJoinProgram);
+  const boundedEqualityJoinProgram = structuredClone(externalCrossJoinProgram);
+  const equalityRight = boundedEqualityJoinProgram.stages.find(
+    stage => stage.id === 'cross_right');
+  equalityRight.steps[0].values = {
+    schema: {
+      id: {type: 'number', nullable: false},
+      tag: {type: 'string', nullable: false},
+    },
+    rows: [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}],
+  };
+  equalityRight.results.r.fields = ['id', 'tag'];
+  const equalityStage = boundedEqualityJoinProgram.stages.find(
+    stage => stage.id === 'crossed');
+  equalityStage.steps = [{
+    from: 'l',
+    join: {
+      with: 'r', kind: 'inner',
+      on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', tag: 'right.tag'},
+      max_output_rows: 6,
+    },
+    as: 'joined_rows',
+  }, {
+    from: 'joined_rows', select: ['id', 'tag'], as: 'out',
+  }];
   const splitCrossedStage = splitCrossJoinProgram.stages.find(
     stage => stage.id === 'crossed',
   );
@@ -6269,6 +6294,8 @@ async function exerciseStrategyGraph(
     ['singleton cross join', singletonCrossJoinProgram,
       [1, 2, 3, 4, 5, 6, 7]],
     ['external cross join', externalCrossJoinProgram, [1, 2, 3, 4, 5]],
+    ['bounded equality join/select', boundedEqualityJoinProgram,
+      [1, 2, 3, 4, 5]],
     ['split external cross join', splitCrossJoinProgram, [1, 2, 3, 4, 5, 6]],
     ['external append', externalAppendProgram, [1, 2, 3, 4, 5]],
   ]) {
@@ -6320,6 +6347,13 @@ async function exerciseStrategyGraph(
           zeroInputExecution.completed.map(item => item.outputRows),
           [4, 4, 4, 4],
           'sort and both consumers publish complete retained outputs',
+        );
+      }
+      if (name === 'bounded equality join/select') {
+        assert.deepEqual(
+          zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 3, 3, 3, 3],
+          'the unsplit equality join feeds two real downstream Computes',
         );
       }
       if (name === 'captured Relation filter/select chain') {
@@ -6554,6 +6588,73 @@ async function exerciseStrategyGraph(
     assert.equal(await zeroInputExecution.cleanup(), true);
     assert.equal(zeroInputExecution.usage().heldBytes, 0n);
     assert.equal(zeroInputExecution.usage().reservedExecutionBytes, 0n);
+  }
+  // The same bounded binary chain reaches formal publication and retrieval,
+  // not just a private completion or a row-count assertion.
+  const equalityPublicationCase = {
+    name: 'bounded-join-publication',
+    program: structuredClone(boundedEqualityJoinProgram),
+  };
+  const equalityPublicationProgram = equalityPublicationCase.program;
+  equalityPublicationProgram.results = {
+    joined: {from: {stage: 'crossed', result: 'r'}},
+  };
+  const equalityPublicationFixture = fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(equalityPublicationProgram));
+  const equalityPublicationCapture = await runNativeHostQuery(
+    grant, fixture.strategyFixtureAcquisition(equalityPublicationFixture),
+    suppliedLimits);
+  const equalityPublicationDirectory = await mkdtemp(join(
+    root, '_build/duckdb-fixtures/bounded-join-publication-'));
+  let equalityPublicationOwner;
+  let equalityPublicationStore;
+  try {
+    assert.equal(fixture.strategyFixtureOpen(
+      equalityPublicationFixture, equalityPublicationCapture.source()), true);
+    const setup = fixture.strategyFixtureModuleSubset(
+      equalityPublicationFixture, 0);
+    const runtime = runtimeCore(hostRuntime);
+    equalityPublicationStore = await openLocalPublicationStore({
+      directory: equalityPublicationDirectory,
+      storeAuthorityCid: hash('bounded-join-publication-store'),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100,
+      maxContractNodes: 10000,
+      maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const plan = standardPublicationPlan(
+      runtime, runtime.programDefinitionCid(setup),
+      runtime.resultInventory(setup).length, equalityPublicationCase.name);
+    equalityPublicationOwner = await runPublishedCapturedStrategy(
+      setup, {store: equalityPublicationStore, plan}, {},
+      new AbortController().signal);
+    assert.equal(equalityPublicationOwner.status, 'published');
+    assert.deepEqual(equalityPublicationOwner.execution.completed.map(
+      value => value.realization), Array(5).fill('local-managed'));
+    const occurrence =
+      equalityPublicationOwner.execution.publicationInventory.occurrences[0];
+    const received = [];
+    await equalityPublicationStore.consumeCommittedResult({
+      tenantId: plan.request.tenantId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => received.push(Buffer.from(chunk)));
+    assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+      [{id: 1, tag: 'a'}, {id: 1, tag: 'b'}, {id: 2, tag: 'c'}]);
+  } finally {
+    if (equalityPublicationOwner !== undefined) {
+      await equalityPublicationOwner.close();
+      assert.equal(await equalityPublicationOwner.cleanup(), true);
+      assert.equal(equalityPublicationOwner.cleanupPending(), false);
+      assert.equal(equalityPublicationOwner.execution.usage().heldBytes, 0n);
+      assert.equal(equalityPublicationOwner.execution.usage()
+        .reservedExecutionBytes, 0n);
+    }
+    equalityPublicationCapture.close();
+    await equalityPublicationStore?.close();
+    await rm(equalityPublicationDirectory, {recursive: true, force: true});
   }
   const retainedManagedRoot = await mkdtemp(join(
     root, '_build/duckdb-fixtures/local-retained-managed-',
@@ -7074,6 +7175,8 @@ async function exerciseStrategyGraph(
   } of [
     {name: 'captured-relation-chain-in-flight',
       program: capturedRelationChainProgram, cancelAtStart: 1},
+    {name: 'equality-join-chain-in-flight',
+      program: boundedEqualityJoinProgram, cancelAtStart: 3},
     {name: 'dedupe-filter-chain-in-flight',
       program: dedupeFilterProgram, cancelAtStart: 2},
     {name: 'captured-count-chain-in-flight',
@@ -7140,6 +7243,8 @@ async function exerciseStrategyGraph(
       program: chainedFilterSortTakeProgram, cancelAtStart: 4},
   ]) {
     const valuesCancellationCase = {name: cancellationName};
+    const equalityJoinCancellation = cancellationName ===
+      'equality-join-chain-in-flight';
     const cancellableValuesProgram = structuredClone(cancellationProgram);
     const capturedRelationChainCancellation = cancellationName ===
       'captured-relation-chain-in-flight' || cancellationName ===
@@ -7191,6 +7296,7 @@ async function exerciseStrategyGraph(
               ? 'json_pick_values' : 'values_a'),
     );
     if (!capturedRelationChainCancellation && !nestUnwrapCancellation &&
+        !equalityJoinCancellation &&
         !dedupeFilterCancellation &&
         !longSelectedTakeCancellation) {
       const reshapeFilterChain = cancellationName ===
@@ -7266,7 +7372,8 @@ async function exerciseStrategyGraph(
                   return Reflect.get(operation, name, operationReceiver);
                 }
                 return quantum => {
-                  const stepQuantum = (nestUnwrapCancellation ||
+                  const stepQuantum = (equalityJoinCancellation ||
+                    nestUnwrapCancellation ||
                     longSelectedTakeCancellation) &&
                     start === cancelAtStart ? 1 : start === cancelAtStart &&
                     (capturedRelationChainCancellation ||
