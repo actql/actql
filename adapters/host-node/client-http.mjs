@@ -6,7 +6,7 @@ import {deliverAuthorizedResult,
 import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
-  validRunState, validSubmitReply} from
+  validRequestCancellation, validRunState, validSubmitReply} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -44,9 +44,11 @@ function responseCode(error) {
       error?.code === 'CheckpointListDenied' ||
       error?.code === 'CheckpointReviewDenied' ||
       error?.code === 'CheckpointAnswerDenied' ||
+      error?.code === 'ClientRequestCancellationDenied' ||
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
+  if (error?.code === 'ClientRequestNotFound') return 404;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict') return 409;
@@ -120,7 +122,7 @@ export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
-  resolve, maxRequestBytes = 65536,
+  resolve, cancelRequest, maxRequestBytes = 65536,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -249,6 +251,12 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostResolveReply');
         }
         sendJson(answered);
+      } else if (operation === 'cancel-request') {
+        const cancelled = await invoke(cancelRequest);
+        if (!validRequestCancellation(cancelled, body.requestId)) {
+          invalid('InvalidClientHostRequestCancellation');
+        }
+        sendJson(cancelled);
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
       } else if (operation === 'reconcile') {

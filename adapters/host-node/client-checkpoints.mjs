@@ -497,10 +497,22 @@ export async function installRemoteCheckpoints({root, tenantId,
       end('failed');
       return 'done';
     }
+    const probe = await host.inspect(captured);
+    // A durable request cancellation: nothing new starts. A Run already
+    // defined but not started is cancelled through its own cancellation;
+    // one whose start is reserved keeps the existing stop and cleanup
+    // owners (the cancellation was applied to the Run by cancel-request).
+    const cancelRequested = () =>
+      journal.getPreparation(prepareAttemptId)?.cancelRequested === true;
+    if (cancelRequested() && probe.state !== 'started' &&
+        probe.state !== 'terminal') {
+      if (probe.state === 'unstarted') await host.cancelRun(captured);
+      end(probe.state === 'abandoned' ? 'failed' : 'cancelled');
+      return 'done';
+    }
     // A Run whose physical start an earlier claim already reserved (running,
     // unknown or ended) is only reconciled: the intent completes with it and
     // nothing is authorized or sent again.
-    const probe = await host.inspect(captured);
     // A Run an earlier claim failed before dispatch (authorization no
     // longer held) ends the request without a journal Run.
     if (probe.state === 'abandoned') {
@@ -544,7 +556,14 @@ export async function installRemoteCheckpoints({root, tenantId,
       // Entered synchronously immediately before the physical start
       // reservation (fence, approval validity, single start per claim
       // generation). A later generation reconciles the same identity.
+      preparationCancelled: cancelRequested,
       beforePhysicalStart() {
+        // A request cancellation recorded at any point before now stops the
+        // start (checked synchronously with the reservation).
+        if (cancelRequested()) {
+          throw Object.assign(new Error('PreparationCancelled'),
+            {code: 'PreparationCancelled'});
+        }
         // The claimant keeps its lease while it works; a lapsed or
         // superseded claim throws here and nothing starts.
         journal.renewResume(claim, leaseMs);
@@ -573,6 +592,11 @@ export async function installRemoteCheckpoints({root, tenantId,
       return 'busy';
     }
     if (refusal?.code === 'ResumeClaimStale') return 'busy';
+    if (refusal?.code === 'PreparationCancelled') {
+      await host.cancelRun(captured);
+      end('cancelled');
+      return 'done';
+    }
     if (refusal !== undefined) {
       await host.abandon(captured);
       end('failed');
@@ -732,6 +756,14 @@ export async function installRemoteCheckpoints({root, tenantId,
       // remaining need.
       if (sealed !== undefined) await evidence.abandon(prepareAttemptId);
       throw refusal(decision);
+    },
+
+    // Durable request cancellation of a held request (before or after its
+    // Run exists); the caller applies it to an existing Run.
+    cancelHeld(requestId) {
+      const cancelled = journal.requestPreparationCancellation(
+        prepareAttemptIdOf(requestId));
+      return Object.freeze({outcome: cancelled.outcome});
     },
 
     // Whether this Host held the request (a prepare attempt exists): its Run

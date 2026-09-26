@@ -206,6 +206,37 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     return accepted;
   };
+  // Cancel a request by its ID. For a request this Host held, the
+  // cancellation is first made durable on its prepare attempt, so a resume
+  // (on this or a later start) cannot start it and hands it to the Run.
+  // When the request has a Run (created before or concurrently), the same
+  // cancellation is then applied to that Run through its own cancellation,
+  // which the physical start reservation observes atomically.
+  const cancelRequest = async ({principalId: actual, connection,
+    requestId}) => {
+    if (!hostConnection({principalId: actual, connection})) {
+      throw Object.assign(new Error('ClientRequestCancellationDenied'),
+        {code: 'ClientRequestCancellationDenied'});
+    }
+    const held = checkpoints?.heldOrigin(requestId)
+      ? checkpoints.cancelHeld(requestId) : undefined;
+    const existing = journal.lookupDefinition({tenantId, authorityScopeCid,
+      requestId}, moon, control);
+    if (existing !== undefined) {
+      const run = await cancel({ref: existing.ref, principalId: actual,
+        connection});
+      void checkpoints?.sweep();
+      return {requestId, ref: run.ref, revision: run.revision,
+        kind: held?.outcome === 'accepted' && run.kind === 'already_requested'
+          ? 'accepted' : run.kind};
+    }
+    if (held === undefined) {
+      throw Object.assign(new Error('ClientRequestNotFound'),
+        {code: 'ClientRequestNotFound'});
+    }
+    void checkpoints.sweep();
+    return {requestId, kind: held.outcome};
+  };
   const wait = async ({ref, principalId: actual, until, signal}) => {
     if (until !== null && until !== 'terminal') {
       throw new Error('InvalidWaitCondition');
@@ -343,7 +374,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       await published.close();
       await published.cleanup();
       if (!published.cleanupPending()) journal.markPhysicalClose(accepted.ref);
-      finished?.('succeeded');
+      await finished?.();
     }).catch(async cause => {
       if (cause?.cleanupPending === true) active.cleanupOwner = cause;
       if (active.reserved && !active.physicalStartClaimAttempted &&
@@ -364,7 +395,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         // Failed cleanup remains with its existing execution owner. It is
         // never converted to physical stop by the cancellation request.
       }
-      if (active.physicalStarted) finished?.('failed');
+      if (active.physicalStarted) await finished?.();
     }).finally(() => {
       reached('not_started');
       if (active.cleanupOwner === undefined) {
@@ -435,7 +466,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     // A resumed request's journal Run (if any) ends with its dispatch.
     startDispatch(submission, requested, accepted, held,
       checkpoints === undefined ? undefined : status =>
-        checkpoints.runFinished(runIdOf(accepted), status));
+        settleHeldRun(accepted, runIdOf(accepted)));
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
@@ -488,13 +519,39 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       ? {state: 'terminal', runId, status: current.status}
       : {state: 'started', runId, status: current.status};
   };
+  // After a held request's dispatch ends, its journal Run ends only with the
+  // Run's observed terminal state; a Run whose physical stop is unknown (for
+  // example after a cancel) stays with its owners and is observed again by
+  // the sweep. Nothing is inferred from how the dispatch returned.
+  const settleHeldRun = async (accepted, runId) => {
+    let status;
+    try {
+      status = (await observeRun({ref: accepted.ref, principalId})).status;
+    } catch {}
+    if (terminal(status)) checkpoints.runFinished(runId, status);
+    else void checkpoints.sweep();
+  };
   // Continue one approved held request whose physical start is not
   // reserved. The Run Definition is admitted (or looked up); the common
   // resumed admission is entered synchronously immediately before the
   // physical start reservation, and the resume intent completes with the
   // Run right after it. Resolves with 'started', {refused} or 'not_started'.
+  // The Run cancellation of a held request's defined Run (the Host itself
+  // applies a durable request cancellation to its Run).
+  const cancelHeldRun = async captured => {
+    const accepted = definitionOf(captured);
+    if (accepted === undefined) return;
+    const publicationCommitted =
+      await store.confirmCommittedIndex(accepted.ref) !== undefined;
+    const result = journal.requestCancellation(accepted.ref, {
+      currentAuthorization: true, publicationCommitted}, moon, control);
+    if (result.kind !== 'already_terminal') {
+      activeDispatches.get(accepted.ref.runDefinitionCid)?.abort.abort(
+        new Error('ClientRunCancellationRequested'));
+    }
+  };
   const resumeHeld = async ({captured, beforePhysicalStart, started,
-    step, renew}) => {
+    step, renew, preparationCancelled}) => {
     const {submission, requested, resultNames} =
       await heldSubmission(captured);
     const held = {};
@@ -503,12 +560,18 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     await step('definition_admitted', {ref: accepted.ref});
     try { renew(); }
     catch (error) { return {refused: error}; }
-    // A cancellation accepted meanwhile is read from the journal, not from
-    // the admitted snapshot: the Run is not dispatched.
+    // A request cancellation recorded meanwhile (even before this Run
+    // existed) is applied to the Run now; a Run cancellation is read from
+    // the journal, not from the admitted snapshot. Either way the Run is not
+    // dispatched.
+    if (preparationCancelled()) {
+      await cancelHeldRun(captured);
+      return 'not_started';
+    }
     if (definitionOf(captured)?.cancellationRequested) return 'not_started';
     const runId = runIdOf(accepted);
     return startDispatch(submission, requested, accepted, held,
-      status => checkpoints.runFinished(runId, status),
+      () => settleHeldRun(accepted, runId),
       {beforePhysicalStart, started: () => started(runId)});
   };
   // A held request whose authorization no longer holds before any physical
@@ -573,12 +636,13 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, attach, lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, cancel,
+    stateService, resultService, observeRun, wait, cancel, cancelRequest,
     ...checkpointOperations,
   };
   if (checkpoints !== undefined) {
     await checkpoints.start({inspect: inspectHeld, resume: resumeHeld,
-      abandon: abandonHeld, observe: observeHeldRun});
+      abandon: abandonHeld, observe: observeHeldRun,
+      cancelRun: cancelHeldRun});
   }
   const port = createNodeInProcessClientHost({
     authenticate: () => principalId,
