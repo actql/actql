@@ -31,7 +31,11 @@ on each of JS, Wasm and native, the public Client gate passed 104/104, and
 `check:docs` passed after regenerating the RelA Effect bridge. The worktree
 was clean. These are local and fixture-backed results, not hosted Linux CI or
 live Salesforce evidence. The subsequent unsupported-Program regression and
-bridge projection must be included in the next fixed-SHA gate run.
+bridge projection passed the local Salesforce gate (172/172), shared Host
+package tests on JS, Wasm and native (15/15 each), public Client gate
+(104/104), public API and format checks, and `check:docs`. The generated
+packaged Node bundle was refreshed from the same source. Hosted Linux CI and
+live Salesforce remain unverified.
 
 This local connection uses test-configured authorization and an authenticated
 Salesforce-shaped HTTP resource. The isolated Salesforce org and write scope
