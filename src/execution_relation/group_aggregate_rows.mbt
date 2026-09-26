@@ -882,50 +882,18 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
     }
     return Ok(Null)
   }
-  let values : Array[Value] = []
-  let mut count = 0
-  for position = range.start; position < range.end; position = position + 1 {
-    if !spend_control(control, 1) {
-      return Err(RowLimit)
+  let collection = start_aggregate_direct_collection(
+    input, indices, range, argument, function, control, workspace,
+  )
+  let (values, count) = while true {
+    match advance_aggregate_direct_collection(collection) {
+      Ok(None) => ()
+      Ok(Some(result)) => break result
+      Err(issue) => return Err(issue)
     }
-    let value = match argument {
-      None => Null
-      Some(column) => IndexedRows::read_cell(input, indices[position], column)
-    }
-    match function {
-      @relation.Count =>
-        if argument is None {
-          count += 1
-        } else if !(value is Null) {
-          if !reserve_slots(workspace, 1) {
-            return Err(RowLimit)
-          }
-          values.push(value)
-        }
-      @relation.CountIf =>
-        match value {
-          Boolean(true) => count += 1
-          Boolean(false) | Null => ()
-          _ => return Err(InvalidRows)
-        }
-      @relation.Sum
-      | @relation.Avg
-      | @relation.Min
-      | @relation.Max
-      | @relation.PercentileDisc
-      | @relation.PercentileCont
-      | @relation.VarPop
-      | @relation.VarSamp
-      | @relation.StddevPop
-      | @relation.StddevSamp =>
-        if !(value is Null) {
-          if !reserve_slots(workspace, 1) {
-            return Err(RowLimit)
-          }
-          values.push(value)
-        }
-      _ => return Err(InvalidRows)
-    }
+  } nobreak {
+    close_aggregate_direct_collection(collection)
+    return Err(InvalidRows)
   }
   let values = if @lower.group_aggregate_distinct(aggregate) == Some(true) {
     match
