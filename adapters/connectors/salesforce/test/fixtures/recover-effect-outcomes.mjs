@@ -14,6 +14,8 @@ import {checked} from '../../../../host-common/runtime-result.mjs';
 import {openLocalPublicationStore} from
   '../../../../store-local/publication-store.mjs';
 import {openEffectLedger} from '../../../../host-node/effect-ledger.mjs';
+import {openClientRequestJournal} from
+  '../../../../host-node/client-request-journal.mjs';
 import {issueAuthorizedEffectSetReceipt} from
   '../../../../host-node/effect-response-recovery.mjs';
 import {recoverCapturedSalesforceSingleRequests} from
@@ -92,11 +94,24 @@ try {
   const recovered = await recoverCompletedEffectfulComputation({
     store, control, runDefinition, contractLimits: input.limits,
   });
+  const requests = openClientRequestJournal(input.requestJournalRoot);
+  let requestIdentity;
+  try {
+    const key = {tenantId: 'tenant-a',
+      authorityScopeCid: input.authorityScopeCid,
+      requestId: input.callerRequestId};
+    const retained = requests.lookupDefinition(key, moon, control);
+    assert.equal(retained?.runDefinition.identity, runDefinition.identity);
+    requestIdentity = requests.lookupIdentity(key, moon);
+    assert.ok(requestIdentity);
+  } finally {
+    requests.close();
+  }
   ledger = openEffectLedger({moon, root: input.ledgerRoot,
-    authorityScopeCid: input.authorityScopeCid,
-    callerRequestId: input.callerRequestId, maxEntryBytes: 4096});
-  const scope = core.effectApplicationControl.logicalRequestScope(
-    input.authorityScopeCid, input.callerRequestId, 256);
+    authorityScopeCid: moon.clientRequestAuthorityScopeCid(requestIdentity),
+    callerRequestId: moon.clientRequestCallerId(requestIdentity),
+    maxEntryBytes: 4096});
+  const scope = moon.clientRequestLogicalScope(requestIdentity);
   const admittedPreview = control.effectComputationPreviewLedgerIdentity(
     recovered.preview);
   let recorded = (input.prepared === true

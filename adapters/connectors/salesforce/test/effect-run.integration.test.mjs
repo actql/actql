@@ -92,9 +92,6 @@ const runChildWithLiveSite = (script, input) => new Promise((resolve,
   child.stdin.on('error', reject);
   child.stdin.end(JSON.stringify(input));
 });
-const effectParametersCid = prepared => moon.clientRequestParametersCid(
-  moon.clientProgramEffectRequestIdentity(
-    prepared, cid('a'), 'effect-fixture', cid('b')));
 const hashWithoutSelf = (value, selfKey) => {
   const body = {...value};
   delete body[selfKey];
@@ -1436,11 +1433,14 @@ test(`two-member captured Effect Run ${
       writeKind, memberIds, target, mappingRef, sourceIds,
       continueMembers,
     });
-    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      document, 'json', environment, undefined, []);
-    const prepared = moon.clientProgramEffectPreparationReady(outcome);
-    assert.ok(prepared,
-      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const prepareProgram = installNodeClientEffectProgramPreparation({
+      moon, environment,
+    });
+    const prepared = prepareProgram({kind: 'program',
+      input: JSON.parse(document), parameters: null});
+    const clientRequest = moon.clientProgramEffectRequestIdentity(
+      prepared, cid('e'), 'complete-two-effects-request', cid('b'));
+    assert.ok(clientRequest);
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
         prepared, 0, 4096, 64, 8));
@@ -1449,7 +1449,7 @@ test(`two-member captured Effect Run ${
       moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
     const evidence = publicationEvidence(
       moon.clientProgramEffectDefinitionCid(prepared),
-      effectParametersCid(prepared),
+      moon.clientRequestParametersCid(clientRequest),
       moon.clientProgramEffectSemanticsCid(prepared),
       moon.clientProgramEffectEnvironmentCid(prepared));
     const admission = moon.clientProgramAdmitEffectPublication(
@@ -1485,12 +1485,24 @@ test(`two-member captured Effect Run ${
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
-    const execution = await runCapturedEffectComputation(owned);
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'effect-two-published-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     let control = runtimeCore(moon).publicationControl;
+    const requestJournalRoot = join(directory, 'client-requests');
+    const requestJournal = openClientRequestJournal(requestJournalRoot);
+    try {
+      assert.equal(requestJournal.acceptDefinition(clientRequest, {
+        tenantId: 'tenant-a',
+        runDefinition: control.admit('run_definition',
+          moon.strategyPublicationContractJson(definition), publicationLimits),
+        lookupExpiresAt: '2027-01-01T00:00:00.000Z',
+      }, moon, control).inserted, true);
+    } finally {
+      requestJournal.close();
+    }
+    const execution = await runCapturedEffectComputation(owned);
     const configuration = {
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -1694,8 +1706,11 @@ test(`two-member captured Effect Run ${
         ? await observeCurrentTargets() : undefined;
       const previewGuardVersions = previewTargetObservations?.map(member =>
         member.map(observed => observed.versionCid));
-      const requestScope = effect.logicalRequestScope(
-        cid('e'), 'complete-two-effects-request', 128);
+      const requestScope = moon.clientProgramEffectRequestScope(
+        prepared, clientRequest);
+      assert.ok(requestScope);
+      assert.equal(effect.logicalRequestScopeCid(requestScope),
+        moon.clientRequestScopeCid(clientRequest));
       const previewDraft = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
@@ -2434,7 +2449,7 @@ test(`two-member captured Effect Run ${
             maxContractNodes: configuration.maxContractNodes,
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
-            ledgerRoot, authorityScopeCid: cid('e'),
+            ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
@@ -2460,6 +2475,13 @@ test(`two-member captured Effect Run ${
             },
           };
         if (processPreparedIntent) {
+          const foreignRequest = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, callerRequestId: 'another-business-request'});
+          assert.notEqual(foreignRequest.status, 0);
+          assert.deepEqual(sites.map(site => site.seen.filter(
+            item => item.method === 'PATCH' || item.method === 'POST').length),
+          [0, 0]);
           const foreignSite = structuredClone(childInput);
           foreignSite.salesforceRecovery.sites[0].authorityPublicKey =
             sites[1].recoveryConnection.authorityPublicKey;
@@ -3462,7 +3484,7 @@ test(`two-member captured Effect Run ${
             maxContractNodes: configuration.maxContractNodes,
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
-            ledgerRoot, authorityScopeCid: cid('e'),
+            ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,

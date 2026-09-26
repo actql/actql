@@ -4,7 +4,44 @@ Status: implementation interface proposal, not a completion claim.
 Initial baseline inspected: `311921b14d608617f715c531829c75139ac2f7a3`.
 Rechecked against `5217412b1e2bce5592b9dcfab0cb54fd75c111f7`.
 
-## Current product boundary
+## Current Client request handoff (2026-09-26)
+
+The dated development narrative below is historical. Use
+[the current Salesforce completion record](2026-09-25-salesforce-r2-status.md)
+for remaining work rather than restarting the already connected owners.
+
+The common `ClientRequestIdentity` now retains the same opaque
+`LogicalRequestScope` used by Effect dispatch, not only its CID.
+`clientProgramEffectRequestScope(prepared, request)` checks the request's
+Program Definition and effective parameters against the checked Effect owner.
+`clientRequestLogicalScope(request)` reuses an issued or re-admitted scope
+without generating another key or rehashing it. The canonical preimages and
+existing journal schema are unchanged.
+
+The installed internal Effect preparation accepts the normal Program request
+shape. The Salesforce integration path uses it, persists the Client request
+and exact Run Definition before Compute, and passes the request's scope into
+Preview and Effect dispatch. Fresh-process recovery uses
+`client-request-journal.lookupIdentity` after checking the saved Run Definition;
+an unrelated caller ID cannot create a new recovery scope. These are internal
+owner operations, not a new public Client endpoint or authorization grant.
+
+Distribution must supply the authenticated ingress authority and retain its
+normal admit-or-lookup/launch boundary. Current account authorization, claim,
+generation, lease, and send-time admission remain mandatory; a scope recovered
+from SQLite cannot override them. No canonical identity format or compatibility
+decoder is added by this connection.
+
+The remaining compiler dependency is concrete: Distribution's
+`client_values_compilation.mbt` was introduced by `c879e3caa`, extended by
+`f7e1b604a`, and its task compilation/run identities by `8e6cfd606`. Connector
+needs the adoptable shared dependency series and an Effect-aware adaptation
+that retains the original checked owner. Do not strip Effects, recheck as an
+Effect-free Program, or copy this compiler evidence generator into Salesforce.
+The existing local HTTPS Effect fixture still supplies compiler/Host policy
+evidence while that connection is pending; this is not formal compiler closure.
+
+## Historical product boundary at the initial baseline
 
 `src/program_check/source.mbt::audit_declarations` rejects every nonempty
 Stage `effects` object. `src/stage_results/local_program.mbt` rejects Receipt

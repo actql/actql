@@ -17,9 +17,15 @@ two-member HTTPS test covers successful completion and an unknown row, while a
 fresh-process test covers settled recovery and publication. They are Host
 connection progress, not public `submit` acceptance or live-org evidence.
 The Salesforce Preview author now takes member authority from the checked
-logical request scope; a member cannot choose or relabel that authority. The
-local fixture's logical request scope origin still needs product issuance;
-the Site capability issuer described below no longer accepts example CIDs.
+logical request scope; a member cannot choose or relabel that authority.
+The normal internal preparation now issues a checked Client request identity
+and durably accepts its Run Definition before Compute. Effect preparation
+reuses that request's opaque scope; fresh-process recovery re-admits the
+saved identity rather than deriving a replacement from caller strings.
+Authenticated ingress authority still comes from fixture configuration, and
+compiler/Host policy evidence is still fixture-supplied. Those origins and
+the preparation/capture composition remain product connection work; the
+Site capability issuer described below no longer accepts example CIDs.
 The common completion entry now rejects a foreign apply or Receipt Preview
 before any row send. Replaying a Set with no ready rows needs no fresh mutation
 grant or target refresh; current evidence-read admission still governs Receipt
@@ -61,8 +67,30 @@ request a mutation grant. The current-use test now uses real MoonBit Catalog
 and capability values rather than fabricated observations. The internal profile
 and trust boundary are documented in
 [Salesforce write capability evidence](../design/salesforce-write-capability.md).
-The earlier preparation/capture composition, logical request authority,
-authorized discovery, public ingress, and live-org acceptance remain open.
+The earlier preparation/capture composition, authenticated request authority,
+formal compiler/Host policy evidence, authorized discovery, public ingress,
+and live-org acceptance remain open. Distribution owns the shared compiler
+dependency and public ingress, as detailed in the
+[current request handoff](2026-09-24-effect-run-shared-port.md).
+
+## Client request connection verification
+
+Shared implementation commit: `79e89a07f`. The existing Client request
+identity, canonical body, and journal schema are unchanged. The new internal
+accessor retains the same opaque scope for initial execution and recovery.
+No scope accessor grants current execution permission.
+
+- `logical_request_scope`: JS, Wasm, and native each 3/3.
+- `run_publication_host`: JS, Wasm, and native each 8/8.
+- `npm run check:salesforce-site`: 169/169, including a foreign caller ID
+  rejection before fresh-process recovery can send another write.
+- Common Client bridge and Client request journal: 28/28.
+- Generated API consistency, `moon fmt --check`, document links, common
+  connector dispatch boundary, and whitespace checks passed locally.
+
+These checks cover the integration commit accompanying this record on top
+of the shared implementation. They are not Linux CI, live
+Salesforce, authenticated public Effect submit, or compiler closure evidence.
 
 ## Capability connection verification
 
