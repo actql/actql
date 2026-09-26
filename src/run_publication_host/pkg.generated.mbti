@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/logical_request_scope",
   "actql/actql/lowering_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
@@ -180,6 +181,8 @@ pub fn client_request_input_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_intent_cid(ClientRequestIdentity) -> String
 
+pub fn client_request_logical_scope(ClientRequestIdentity) -> @logical_request_scope.LogicalRequestScope
+
 pub fn client_request_parameters_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_program_cid(ClientRequestIdentity) -> String
@@ -312,6 +315,10 @@ pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputati
 
 pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientEffectCompiledRunIssue]
 
+pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
@@ -427,6 +434,8 @@ pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComp
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
 
 pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
+
+pub fn prepared_client_effect_request_scope(PreparedClientEffectComputation, ClientRequestIdentity) -> Result[@logical_request_scope.LogicalRequestScope, ClientRequestIdentityIssue]
 
 pub fn prepared_client_effect_run_computation(PreparedClientEffectRun) -> PreparedClientEffectComputation
 

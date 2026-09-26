@@ -331,6 +331,93 @@ pub fn salesforce_catalog_observation_cid(
 }
 
 ///|
+#export_name("salesforceCatalogObservationMatchesBinding")
+pub fn salesforce_catalog_observation_matches_binding(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+) -> Bool {
+  @catalog.catalog_observation_matches_binding(observation, {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  })
+}
+
+///|
+#export_name("salesforceCatalogObservationIsComplete")
+pub fn salesforce_catalog_observation_is_complete(
+  observation : @catalog.CatalogObservation,
+) -> Bool {
+  @catalog.catalog_observation_is_complete(observation)
+}
+
+///|
+#export_name("salesforceCatalogResourceSummaryJson")
+pub fn salesforce_catalog_resource_summary_json(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  resource_name : String,
+  max_bytes : Int,
+) -> String raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.catalog_observation_resource_summary_json(
+      observation, binding, resource_name, max_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
 /// Inspect one retained observation under its exact original binding. This
 /// reports metadata completeness, not current disclosure or execution rights.
 #export_name("salesforceCatalogObservedResourceState")
@@ -381,6 +468,50 @@ pub fn salesforce_catalog_observed_resource_state(
       }
     Err(Resource(NotVisible)) => -1
     Err(Resource(ListingTruncated)) => -2
+    Err(issue) => raise Observation(issue)
+  }
+}
+
+///|
+#export_name("salesforceCatalogFirstUnconfirmedField")
+pub fn salesforce_catalog_first_unconfirmed_field(
+  observation : @catalog.CatalogObservation,
+  tenant : String,
+  principal : String,
+  environment : String,
+  connection_revision : String,
+  org_id : String,
+  site_key : String,
+  site_generation : Int,
+  connector_registration : String,
+  connector_revision : String,
+  resource_origin : String,
+  run_invocation_cid : String,
+  dispatch_request_cid : String,
+  sync_occurrence : String,
+  resource_name : String,
+  field_names : Array[String],
+) -> String? raise SalesforceCatalogBridgeIssue {
+  let binding : @catalog.CatalogObservationBinding = {
+    tenant,
+    principal,
+    environment,
+    connection_revision,
+    org_id,
+    site_key,
+    site_generation,
+    connector_registration,
+    connector_revision,
+    resource_origin,
+    run_invocation_cid,
+    dispatch_request_cid,
+    sync_occurrence,
+  }
+  match
+    @catalog.catalog_observation_first_unconfirmed_field(
+      observation, binding, resource_name, field_names,
+    ) {
+    Ok(value) => value
     Err(issue) => raise Observation(issue)
   }
 }

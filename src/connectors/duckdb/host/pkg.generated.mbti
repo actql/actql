@@ -2,13 +2,17 @@
 package "actql/actql/connectors/duckdb/host"
 
 import {
+  "actql/actql/check_environment",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/query_planning",
+  "actql/actql/run_publication",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -34,6 +38,8 @@ pub fn broad_host_metadata(BroadHostRun, Int, Array[(String, @adapter.PhysicalTy
 
 pub fn broad_host_scan(BroadHostRun) -> @adapter.BroadScan
 
+pub fn capture_native_host_source(NativeHostRun, @acquisition.DuckDBNativeObservation, Bool, Int, @execution_relation.ValueLimits, Int, Int) -> Result[NativeHostSourceCapture, @execution_query.CapturedSourceIssue]
+
 pub fn close_broad_host(BroadHostRun) -> Unit
 
 pub fn close_native_host(NativeHostRun) -> Unit
@@ -58,6 +64,8 @@ pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
 
 pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue]
 
+pub fn issue_native_host_source_evidence(NativeHostSourceCapture, NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, NativeSourceEvidenceIssue]
+
 pub fn native_host_attempt(NativeHostRun) -> @acquisition.DuckDBNativeAttempt
 
 pub fn native_host_metadata(NativeHostRun, Int, Array[(String, @adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, NativeHostIssue]
@@ -69,6 +77,14 @@ pub fn native_host_retained_output(NativeHostRun, @acquisition.DuckDBNativeObser
 pub fn native_host_retained_source(NativeHostRun, @acquisition.DuckDBNativeObservation, Int, Int) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn native_host_scan(NativeHostRun) -> @adapter.NativeScan
+
+pub fn native_host_source_capture_identity_matches(NativeHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn native_host_source_capture_source(NativeHostSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn native_host_source_capture_source_ref(NativeHostSourceCapture) -> String?
+
+pub fn prepare_native_source_evidence_context(@query_planning.QueryRequirement) -> Result[NativeSourceEvidenceContext, NativeSourceEvidenceIssue]
 
 pub fn start_configured_broad_host(BroadHostConfiguration, String, (@acquisition.DuckDBBroadAttempt) -> Bool) -> Result[BroadHostRun, BroadHostIssue]
 
@@ -127,6 +143,24 @@ pub(all) struct NativeHostLimits {
 }
 
 type NativeHostRun
+
+type NativeHostSourceCapture
+
+pub struct NativeSourceEvidenceContext {
+  requirement : @query_planning.QueryRequirement
+  facts : @query_planning.QuerySourceEvidenceFacts
+  members : @check_environment.ConnectorSourceEvidenceMembers
+}
+
+pub(all) enum NativeSourceEvidenceIssue {
+  ObservationUnavailable
+  ObservationMismatch
+  Member(@check_environment.SourceEvidenceMemberIssue)
+  LogicalInput(@run_publication.SourceInputLogicalIssue)
+  InvalidPolicy
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(@debug.Debug)
 
 // Type aliases
 

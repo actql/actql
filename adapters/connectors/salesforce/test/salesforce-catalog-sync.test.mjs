@@ -33,8 +33,14 @@ import {callHttpsCredentialResource} from
 import {signRemoteCredentialGrant} from
   '../../../site-node/remote-credential-signature.mjs';
 import {syncSalesforceCatalog} from '../site/salesforce-catalog-sync.mjs';
+import {resolveSalesforceResource} from
+  '../host/salesforce-resource-resolver.mjs';
+import {installSalesforceResourceDiscovery} from
+  '../host/salesforce-resource-discovery.mjs';
 import {recoverRetainedSalesforceCatalog} from
   '../site/salesforce-catalog-recovery.mjs';
+import {accountEntry, fixtureAuthorization} from
+  '../../../host-node/authorization-fixture.mjs';
 import {createSalesforceCliSecretResolver} from '../site/salesforce-cli-secret.mjs';
 import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
   readSalesforceQuery} from
@@ -425,6 +431,245 @@ test('Site HTTPS catalog sync completes with scoped credential uses',
       binding.resourceOrigin, binding.runInvocationCid,
       binding.dispatchRequestCid, 'catalog-sync-a', 'Account',
       ['Id'], 22)), {code: 'MoonBitHostFailure'});
+  });
+
+test('Resource resolution uses only the supplied authorized Catalog snapshot',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('account-read', 'allow', {resource: 'Account',
+        operation: 'read'}),
+      accountEntry('record-read', 'deny', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const resolve = (resource, overrides = {}) => resolveSalesforceResource({
+      moon: salesforceMoon, catalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`, resource, operation: 'read',
+      fieldNames: ['Id'], ...overrides,
+    });
+    const requests = setup.seen.length;
+    const uses = setup.journal.recover().length;
+    const account = await resolve('Account');
+    assert.equal(account.status, 'ready');
+    assert.equal(account.observationCid, catalog.observationCid);
+    assert.equal(salesforceMoon.salesforceReadProjectionSoql(
+      account.projection), 'SELECT Id FROM Account');
+    const mutableBinding = {...binding};
+    const mutatingAuthorization = {
+      principal: authorization.principal,
+      async authorize(...args) {
+        const decision = await authorization.authorize(...args);
+        mutableBinding.tenant = 'foreign-tenant';
+        mutableBinding.site_generation++;
+        return decision;
+      },
+    };
+    assert.equal((await resolve('Account', {binding: mutableBinding,
+      authorization: mutatingAuthorization})).status, 'ready');
+    await assert.rejects(resolve('Test_Record__c'),
+      {code: 'ExecutionAuthorizationDenied'});
+    await assert.rejects(resolve('Account', {
+      connection: 'salesforce:foreign-org',
+    }), {code: 'InvalidSalesforceResourceResolution'});
+    await assert.rejects(resolve('Account', {binding: {...binding,
+      site_generation: binding.site_generation + 1}}),
+    {code: 'MoonBitHostFailure'});
+    const writeAuthorization = await fixtureAuthorization([
+      accountEntry('record-metadata', 'allow',
+        {resource: 'Test_Record__c', operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const candidate = await resolve('Test_Record__c', {
+      operation: 'create', fieldNames: ['External_Key__c'],
+      authorization: writeAuthorization,
+    });
+    assert.equal(candidate.status, 'ready');
+    assert.equal(checked(salesforceMoon.salesforceRecheckWriteProjection(
+      candidate.projection, catalog.observation)), true);
+    assert.deepEqual(await resolve('Test_Record__c', {
+      fieldNames: ['Undisclosed_Field__c'],
+      authorization: writeAuthorization,
+    }), {status: 'catalog_required', reason: 'field_unconfirmed',
+      field: 'Undisclosed_Field__c', observationCid: catalog.observationCid});
+    assert.equal(setup.seen.length, requests);
+    assert.equal(setup.journal.recover().length, uses);
+  });
+
+test('installed Resource discovery filters current disclosure without provider I/O',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('account-read', 'allow', {resource: 'Account',
+        operation: 'read'}),
+      accountEntry('record-read', 'deny', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const suppliedCatalog = {...catalog};
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog: suppliedCatalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`});
+    const requests = setup.seen.length;
+    const uses = setup.journal.recover().length;
+    assert.deepEqual(await discovery.list(), {
+      observationCid: catalog.observationCid,
+      resources: [{name: 'Account', outcome: 'described'}],
+      snapshotTruncated: false, snapshotComplete: true,
+      resultTruncated: false,
+    });
+    assert.deepEqual((await discovery.search('test')).resources, []);
+    suppliedCatalog.observationCid = cid('f');
+    suppliedCatalog.observationJson = '{}';
+    const inspected = await discovery.inspect({resource: 'Account'});
+    assert.equal(inspected.status, 'ready');
+    assert.equal(inspected.observationCid, catalog.observationCid);
+    assert.deepEqual(inspected.summary.fields.map(field => field.name),
+      ['Id']);
+    assert.equal(inspected.summary.fields[0].nullable, false);
+    await assert.rejects(discovery.inspect({resource: 'Test_Record__c'}),
+      {code: 'ExecutionAuthorizationDenied'});
+    assert.equal((await discovery.resolve({resource: 'Account',
+      operation: 'read', fieldNames: ['Id']})).status, 'ready');
+    await assert.rejects(discovery.resolve({resource: 'Test_Record__c',
+      operation: 'read', fieldNames: ['Id']}),
+    {code: 'ExecutionAuthorizationDenied'});
+    assert.equal(setup.seen.length, requests);
+    assert.equal(setup.journal.recover().length, uses);
+    await assert.rejects(async () => installSalesforceResourceDiscovery({
+      moon: salesforceMoon, catalog, binding: {...binding,
+        site_generation: binding.site_generation + 1}, authorization,
+      connection: `salesforce:${setup.orgId}`}),
+    {code: 'InvalidSalesforceResourceDiscovery'});
+  });
+
+test('Resource discovery preserves snapshot and display truncation separately',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('all-read', 'allow', {operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`});
+    assert.deepEqual(await discovery.list({maxResults: 1}), {
+      observationCid: catalog.observationCid,
+      resources: [{name: 'Account', outcome: 'described'}],
+      snapshotTruncated: false, snapshotComplete: true,
+      resultTruncated: true,
+    });
+    const partial = await syncSalesforceCatalog(request(setup, {
+      listLimits: {...listLimits, maxSelected: 1},
+      listAuthorization: {...setup.list, useId: 'partial-list'},
+      describeAuthorization: () => ({...setup.describe,
+        useId: 'partial-describe'}),
+    }));
+    const partialDiscovery = installSalesforceResourceDiscovery({
+      moon: salesforceMoon, catalog: partial,
+      binding: JSON.parse(partial.observationJson).binding, authorization,
+      connection: `salesforce:${setup.orgId}`,
+    });
+    const listed = await partialDiscovery.list();
+    assert.equal(listed.snapshotTruncated, true);
+    assert.equal(listed.snapshotComplete, false);
+    assert.equal(listed.resultTruncated, false);
+    assert.deepEqual(await partialDiscovery.inspect({
+      resource: 'Test_Record__c',
+    }), {status: 'catalog_required',
+      observationCid: partial.observationCid, reason: 'listing_truncated'});
+  });
+
+test('recovered Resource discovery keeps partial metadata and current authority',
+  async t => {
+    const setup = await fixture(t, {customStatus: 403});
+    const observed = await syncSalesforceCatalog(request(setup, {
+      retainResponses: true, maxRetainedBytes: 20000,
+    }));
+    const recovered = recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: observed.retainedResponses,
+      expectedObservationCid: observed.observationCid,
+      maxRetainedBytes: 20000,
+    });
+    const binding = JSON.parse(observed.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('account-read', 'allow', {resource: 'Account',
+        operation: 'read'}),
+      accountEntry('record-read', 'deny', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const discovery = installSalesforceResourceDiscovery({moon: salesforceMoon,
+      catalog: recovered,
+      binding, authorization, connection: `salesforce:${setup.orgId}`});
+    const requests = setup.seen.length;
+    const uses = setup.journal.recover().length;
+    const listed = await discovery.list();
+    assert.deepEqual(listed.resources,
+      [{name: 'Account', outcome: 'described'}]);
+    assert.equal(listed.snapshotTruncated, false);
+    assert.equal(listed.snapshotComplete, false);
+    assert.deepEqual(await discovery.inspect({resource: 'Account'}), {
+      status: 'ready', observationCid: observed.observationCid,
+      summary: {name: 'Account', queryable: true, createable: false,
+        updateable: false, fields: [{name: 'Id', native_type: 'id',
+          nullable: false, nullability_confirmed: true,
+          defaulted_on_create: false, default_on_create_confirmed: false,
+          createable: false, updateable: false, filterable: false,
+          sortable: false, external_id: false, unique: false,
+          case_sensitive: null, reference_to: []}]},
+    });
+    await assert.rejects(discovery.inspect({resource: 'Test_Record__c'}),
+      {code: 'ExecutionAuthorizationDenied'});
+    assert.equal(setup.seen.length, requests);
+    assert.equal(setup.journal.recover().length, uses);
+  });
+
+test('Resource resolution keeps partial metadata as a typed requirement',
+  async t => {
+    const setup = await fixture(t, {customStatus: 403});
+    const catalog = await syncSalesforceCatalog(request(setup));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('record-read', 'allow', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    const response = await resolveSalesforceResource({moon: salesforceMoon,
+      catalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`,
+      resource: 'Test_Record__c', operation: 'create',
+      fieldNames: ['External_Key__c']});
+    assert.deepEqual(response, {
+      status: 'catalog_required', reason: 'describe_unavailable',
+      observationCid: catalog.observationCid,
+    });
+    assert.equal(setup.seen.length, 3);
+  });
+
+test('Resource resolution does not infer absence from a truncated listing',
+  async t => {
+    const setup = await fixture(t);
+    const catalog = await syncSalesforceCatalog(request(setup, {
+      listLimits: {...listLimits, maxSelected: 1},
+    }));
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const authorization = await fixtureAuthorization([
+      accountEntry('record-read', 'allow', {resource: 'Test_Record__c',
+        operation: 'read'}),
+    ], {context: {principal: binding.principal, contextCid: cid('d')}});
+    assert.deepEqual(await resolveSalesforceResource({moon: salesforceMoon,
+      catalog, binding, authorization,
+      connection: `salesforce:${setup.orgId}`,
+      resource: 'Test_Record__c', operation: 'read',
+      fieldNames: ['Id']}), {
+      status: 'catalog_required', reason: 'listing_truncated',
+      observationCid: catalog.observationCid,
+    });
+    assert.deepEqual(setup.seen.map(({path}) => path), [
+      '/services/data/v62.0/sobjects/',
+      '/services/data/v62.0/sobjects/Account/describe',
+    ]);
   });
 
 test('Catalog org binding is fixed before any scoped metadata request',

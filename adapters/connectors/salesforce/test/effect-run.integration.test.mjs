@@ -15,8 +15,11 @@ import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-dispatch.mjs';
 import {applyCapturedEffectSet, applyRecoveredEffectSet} from
   '../../../host-node/effect-run-apply.mjs';
-import {accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from
+import {accountConfiguration, accountEntry, FIXTURE_CONTEXT,
+  fixtureAuthorization} from
   '../../../host-node/authorization-fixture.mjs';
+import {createLocalAuthorizationGate} from
+  '../../../host-node/local-account-config.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
   '../../../host-node/sqlite-checkpoint-journal.mjs';
 import {captureSalesforceCollectionEffectWrite,
@@ -30,6 +33,8 @@ import {installSalesforceEffectCurrentUse} from
   '../host/salesforce-effect-current-use.mjs';
 import {installSalesforceEffectDispatch} from
   '../host/salesforce-effect-dispatch.mjs';
+import {installSalesforceEffectRoute} from
+  '../host/salesforce-effect-route.mjs';
 import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
   '../site/salesforce-effect-capability.mjs';
 import {openSalesforceEffectSiteFixture} from
@@ -42,8 +47,8 @@ import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {issueAuthorizedEffectSetReceipt} from
   '../../../host-node/effect-response-recovery.mjs';
-import {commitPinnedEffectSourceHolding, exportPinnedEffectInput,
-  preparePinnedEffectSourcePayload} from '../../../host-node/effect-input-export.mjs';
+import {exportPinnedEffectInput, preparePinnedEffectSourceHoldings,
+  preparePinnedEffectSourceSet} from '../../../host-node/effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
@@ -93,9 +98,6 @@ const runChildWithLiveSite = (script, input) => new Promise((resolve,
   child.stdin.on('error', reject);
   child.stdin.end(JSON.stringify(input));
 });
-const effectParametersCid = prepared => moon.clientRequestParametersCid(
-  moon.clientProgramEffectRequestIdentity(
-    prepared, cid('a'), 'effect-fixture', cid('b')));
 const hashWithoutSelf = (value, selfKey) => {
   const body = {...value};
   delete body[selfKey];
@@ -712,10 +714,14 @@ async function verifyEffectCommitAuthorization(t, {
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
   const delegateAccount = [accountEntry('crm-effect', 'delegate',
     {connection: 'crm', resource: 'Account', operation: 'effect'})];
-  const commitGate = (entries, options) => fixtureAuthorization([
-    ...entries,
-    accountEntry('scenario-target-read', 'allow', {operation: 'read'}),
-  ], options);
+  const commitGate = (entries, options) => createLocalAuthorizationGate({
+    accountConfiguration: accountConfiguration([
+      ...entries,
+      accountEntry('scenario-target-read', 'allow', {operation: 'read'}),
+    ]),
+    context: FIXTURE_CONTEXT,
+    ...options,
+  });
   // The reviewer answering a deferred decision is one of the Host's
   // answering authorities; its committed approval is admitted as the permit.
   const hostOptions = (answer, extra = {}) => ({
@@ -1364,6 +1370,7 @@ for (const physical of ['simulated', 'simulated-authorization',
   'salesforce-collection-partial', 'salesforce-collection-recovered',
   'salesforce-preapply-restart',
   'salesforce-prepared-intent-restart',
+  'salesforce-client-reply-lost',
   'salesforce-process-prepared-intent-restart',
   'salesforce-process-unknown-restart',
   'salesforce-process-saved-response-restart',
@@ -1374,6 +1381,7 @@ test(`two-member captured Effect Run ${
   physical === 'simulated-authorization'
     ? 'gates the Effect commit on the sealed Set Preview' :
   physical.startsWith('salesforce-unknown') ||
+    physical === 'salesforce-client-reply-lost' ||
     physical === 'salesforce-process-unknown-restart' ||
     physical === 'salesforce-rate-limit' ||
     physical.endsWith('lost-http-reply')
@@ -1413,9 +1421,10 @@ test(`two-member captured Effect Run ${
       processPublication;
     const loseHttpReply = physical.endsWith('lost-http-reply') ||
       processUnknownIntent;
+    const loseClientReply = physical === 'salesforce-client-reply-lost';
     const rateLimitWrite = physical === 'salesforce-rate-limit';
     const unknownAfterClaim = physical.startsWith('salesforce-unknown') ||
-      loseHttpReply;
+      loseHttpReply || loseClientReply;
     const continueAfterUnknown = physical === 'salesforce-unknown-continue';
     const collectionPartial = physical === 'salesforce-collection-partial';
     const collectionRecovered = physical === 'salesforce-collection-recovered';
@@ -1438,20 +1447,28 @@ test(`two-member captured Effect Run ${
       writeKind, memberIds, target, mappingRef, sourceIds,
       continueMembers,
     });
-    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      document, 'json', environment, undefined, []);
-    const prepared = moon.clientProgramEffectPreparationReady(outcome);
-    assert.ok(prepared,
-      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const prepareProgram = installNodeClientEffectProgramPreparation({
+      moon, environment,
+    });
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'effect-two-published-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let control = runtimeCore(moon).publicationControl;
+    const requestJournalRoot = join(directory, 'client-requests');
+    const requestJournal = openClientRequestJournal(requestJournalRoot);
+    let physicalStarts = 0;
+    let publishedRunDefinitionCid;
+    const executeEffectRun = async ({owner: bound, prepared,
+      compilation: effectCompilation, allowed, definition,
+      identity: clientRequest}) => {
+    physicalStarts++;
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
         prepared, 0, 4096, 64, 8));
     assert.equal(JSON.parse(moon.clientProgramLocalEffectInvocationJson(
       semanticInvocation)).self_cid,
       moon.clientProgramLocalEffectInvocationCid(semanticInvocation));
-    const effectCompilation = checked(moon.clientProgramCompileLocalEffects(prepared));
-    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-      effectCompilation, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
     const evidence = [
       checked(moon.strategyRunEvidenceAdmit('bound_invocation_template',
         moon.clientProgramEffectCompilationTemplateWire(effectCompilation),
@@ -1464,26 +1481,14 @@ test(`two-member captured Effect Run ${
     ];
     const admission = moon.clientProgramAdmitEffectPublication(
       prepared, ...evidence);
-    const definition = checked(moon.strategyIssueRunDefinition(
-      admission, 'tenant-a-scope', 'complete-two-effects', cid('c'),
-      '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z',
-      100000, 10000, 64));
-    const observation = checked(moon.strategyRunEvidenceSeal(
-      'observation_set', JSON.stringify({
-        version: 'actql-observation-set/0.1',
-        invocation_template_cid: moon.strategyRunEvidenceIdentity(
-          evidence[0]),
-        source_evidence_cids: [], captured_input_artifact_cids: [],
-        consistency: 'no_external_sources', capture_started_at: null,
-        capture_completed_at: null,
-        replayability: {materialized: false, availability_evidence_cids: []},
-        data_policy_cid: cid('d'),
-      }), 100000, 10000, 64));
-    const invocation = checked(moon.strategyIssueRunInvocation(
-      evidence[0], observation, 100000, 10000, 64));
-    const bound = moon.clientProgramBindEffectRun(
-      prepared, admission, definition);
-    assert.ok(bound);
+    assert.ok(admission);
+    const sourceFree = checked(moon.clientProgramIssueEffectSourceFreeInvocation(
+      effectCompilation, cid('d'), 100000, 10000, 64));
+    const observation = sourceFree._0;
+    const invocation = sourceFree._1;
+    assert.equal(JSON.parse(moon.strategyRunEvidenceJson(observation))
+      .invocation_template_cid,
+    moon.strategyRunEvidenceIdentity(evidence[0]));
     const [registry, contract] = await Promise.all([
       readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
@@ -1496,11 +1501,6 @@ test(`two-member captured Effect Run ${
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
     const execution = await runCapturedEffectComputation(owned);
-    await mkdir(scratch, {recursive: true});
-    const directory = await mkdtemp(join(scratch.pathname,
-      'effect-two-published-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
-    let control = runtimeCore(moon).publicationControl;
     const configuration = {
       directory, storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -1511,7 +1511,14 @@ test(`two-member captured Effect Run ${
     let physicalStore = await openLocalPublicationStore(
       configuration, control);
     let commitCalls = 0;
+    let holdingCommitCalls = 0;
+    let onHoldingCommit;
     let store = Object.freeze({...physicalStore,
+      async commitPhysicalHolding(...args) {
+        holdingCommitCalls++;
+        await onHoldingCommit?.();
+        return physicalStore.commitPhysicalHolding(...args);
+      },
       async commitEffectfulIndex(...args) {
         commitCalls++;
         const result = await physicalStore.commitEffectfulIndex(...args);
@@ -1573,8 +1580,9 @@ test(`two-member captured Effect Run ${
       assert.equal(storedResults.results[0].occurrence.name, 'answer');
       inputs = checked(moon.clientProgramPinEffectSources(owned, 2));
       const proposedRows = memberIds.map(() => []);
-      sourcePayload = await preparePinnedEffectSourcePayload({
-        moon, checkedOwner: prepared, execution, inputs, memberIndex: 0,
+      const sourceSet = await preparePinnedEffectSourceSet({
+        moon, checkedOwner: prepared, execution, inputs,
+        maxMembers: memberIds.length, maxGroupingWork: 4,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -1583,7 +1591,6 @@ test(`two-member captured Effect Run ${
         contractLimits: publicationLimits,
         localEvidenceContext,
         ...(siteRun ? {
-          proposalMemberIndexes: [0, 1],
           proposalLimits: {maxFields: 10, maxWork: 100,
             maxBytes: 20000, maxNodes: 1000, maxDepth: 20,
             maxUtf16Units: 20000},
@@ -1593,6 +1600,12 @@ test(`two-member captured Effect Run ${
           },
         } : {}),
       });
+      assert.equal(sourceSet.payloads.length, 1);
+      assert.equal(sourceSet.members.length, memberIds.length);
+      sourcePayload = sourceSet.payloads[0];
+      for (const member of sourceSet.members) {
+        assert.equal(member.payload, sourcePayload);
+      }
       const custodyInvocationCid = JSON.parse(
         sourcePayload.summary.artifact.wire).invocation_cid;
       assert.equal(custodyInvocationCid, runInvocation.identity);
@@ -1704,8 +1717,11 @@ test(`two-member captured Effect Run ${
         ? await observeCurrentTargets() : undefined;
       const previewGuardVersions = previewTargetObservations?.map(member =>
         member.map(observed => observed.versionCid));
-      const requestScope = effect.logicalRequestScope(
-        cid('e'), 'complete-two-effects-request', 128);
+      const requestScope = moon.clientProgramEffectRequestScope(
+        prepared, clientRequest);
+      assert.ok(requestScope);
+      assert.equal(effect.logicalRequestScopeCid(requestScope),
+        moon.clientRequestScopeCid(clientRequest));
       const previewDraft = effectInputPreview(
         prepared, evidence, definition, invocation, mappingCid,
         sourcePayload.summary.artifact.identity,
@@ -2024,15 +2040,11 @@ test(`two-member captured Effect Run ${
       let admittedPreview = control.admitEffectComputationPreview(
         preview.wire, runDefinition, authoringContext,
         publicationLimits);
-      const firstHolding = await commitPinnedEffectSourceHolding({
-        payload: sourcePayload, store, control, preview: admittedPreview,
-        memberIndex: 0, invocation: runInvocation,
+      const holdingOwner = preparePinnedEffectSourceHoldings({
+        sources: sourceSet, store, control, preview: admittedPreview,
+        invocation: runInvocation,
       });
-      const secondHolding = await commitPinnedEffectSourceHolding({
-        payload: sourcePayload, store, control, preview: admittedPreview,
-        memberIndex: 1, invocation: runInvocation,
-        shareFromHoldingCid: firstHolding.holdingCid,
-      });
+      const [firstHolding, secondHolding] = await holdingOwner.commit();
       assert.notEqual(firstHolding.holdingCid, secondHolding.holdingCid);
       if (overlappingMembers) {
         const usesBefore = sites.map(site => site.journal.recover().length);
@@ -2094,7 +2106,7 @@ test(`two-member captured Effect Run ${
           version: 'actql-normalization-journal/0.1',
           rule_catalog_cid: cid('1'), entries: [],
         }), publicationLimits);
-      let computation = await issueCompletedEffectfulComputationEvidence({
+      const captureOptions = {
         execution, store, storedResults, control,
         admission: runAdmission, runDefinition,
         invocation: runInvocation,
@@ -2123,7 +2135,38 @@ test(`two-member captured Effect Run ${
           }),
         })) : [],
         contractLimits: publicationLimits,
-      });
+      };
+      if (physical === 'salesforce') {
+        const before = holdingCommitCalls;
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions,
+          effectSourceHoldings: [firstHolding, {...secondHolding,
+            record: {...secondHolding.record, manifest_cid: cid('9')},
+          }],
+        }), {code: 'InvalidCompletedEffectSourceHolding'});
+        assert.equal(holdingCommitCalls, before);
+        await assert.rejects(issueCompletedEffectfulComputationEvidence({
+          ...captureOptions, plans: [],
+        }));
+        assert.equal(holdingCommitCalls, before);
+        // Mutate caller containers during the first asynchronous Store sync.
+        // The admitted capture and its saved wire must already be owned.
+        onHoldingCommit = async () => {
+          onHoldingCommit = undefined;
+          await Promise.resolve();
+          captureOptions.plans.length = 0;
+          captureOptions.captureEvidence.pendingSourceStateAdvances
+            .push({foreign: true});
+          captureOptions.receiptEvidence.bindings.push({foreign: true});
+          captureOptions.connectorRecovery.length = 0;
+        };
+      }
+      let computation = await issueCompletedEffectfulComputationEvidence(
+        captureOptions);
+      if (physical === 'salesforce') {
+        assert.equal(onHoldingCommit, undefined);
+        assert.equal(captureOptions.plans.length, 0);
+      }
       assert.notEqual(control.effectComputationCaptureHoldingCid(
         runDefinition, store.storeAuthorityCid),
       control.effectComputationRecordHoldingCid(
@@ -2332,26 +2375,64 @@ test(`two-member captured Effect Run ${
         assert.equal(sites.flatMap(site => site.seen)
           .filter(item => item.method === 'PATCH').length, 0);
       }
-      const currentUse = siteRun ? installSalesforceEffectCurrentUse({
-        moon: salesforceMoon, commonMoon: moon, observedRows,
-        members: sites.map((site, index) => ({
-          requests: siteRequests[index],
-          capability: productCapabilities[index],
-          collectionRequest: collectionMode && index === 0
-            ? collectionRequest : undefined,
-          refreshCatalog: site.refreshCatalog,
-          target: writeKind === 'create' ? undefined : {
-            authorizationForRow: async () => ({...site.observe,
-              useId: `target-read-${targetRead++}`}),
-            credential: site.credential,
-            limits: {maxResponseBytes: 1024, maxNodes: 32,
-              maxDepth: 5, maxIdentityBytes: 1024},
-          },
-        })), maxMembers: 2, maxRows: 4,
-        maxTotalResponseBytes: 4096,
-      }) : undefined;
-      if (currentUse) {
-        applyOptions.refreshPreflight = currentUse.refreshPreflight;
+      const productRouteCases = [
+        'salesforce', 'salesforce-upsert', 'salesforce-create',
+        'salesforce-create-duplicates', 'salesforce-publication-restart',
+        'salesforce-preapply-restart', 'salesforce-prepared-intent-restart',
+        'salesforce-collection-partial',
+        'salesforce-terminal-store-restart',
+        'salesforce-terminal-process-publication',
+      ];
+      const useProductRoute = productRouteCases.includes(physical);
+      const routeMembers = siteRun ? sites.map((site, index) => ({
+        requests: siteRequests[index],
+        capability: productCapabilities[index],
+        refreshCatalog: site.refreshCatalog,
+        target: writeKind === 'create' ? undefined : {
+          authorizationForRow: async () => ({...site.observe,
+            useId: `target-read-${targetRead++}`}),
+          credential: site.credential,
+          limits: {maxResponseBytes: 1024, maxNodes: 32,
+            maxDepth: 5, maxIdentityBytes: 1024},
+        },
+        authorizationForRow: rowIndex => ({...site.write,
+          useId: `write-${index}-${rowIndex}`}),
+        credential: site.credential,
+        limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+          maxNodes: 32, maxDepth: 5},
+        collection: collectionMode && index === 0 ? {
+          request: collectionRequest,
+          authorization: () => ({...site.write,
+            useId: 'partial-collection'}),
+          limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
+            maxNodes: 64, maxDepth: 6, maxRows: 2},
+        } : undefined,
+      })) : undefined;
+      const makeProductRoute = () => installSalesforceEffectRoute({
+        commonMoon: moon, moon: salesforceMoon, ledger,
+        admittedPreview: applyPreview, observedRows, members: routeMembers,
+        maxMembers: 2, maxRows: 4, maxTotalResponseBytes: 4096,
+      });
+      let productRoute = useProductRoute ? makeProductRoute() : undefined;
+      if (physical === 'salesforce') {
+        const before = sites.map(site => site.seen.length);
+        assert.throws(() => productRoute.bindDispatch({members,
+          subjectCid: cid('9')}), {code: 'InvalidSalesforceEffectRoute'});
+        assert.deepEqual(sites.map(site => site.seen.length), before);
+      }
+      const currentUse = siteRun && !productRoute
+        ? installSalesforceEffectCurrentUse({
+          moon: salesforceMoon, commonMoon: moon, observedRows,
+          members: routeMembers.map(member => ({
+            requests: member.requests, capability: member.capability,
+            collectionRequest: member.collection?.request,
+            refreshCatalog: member.refreshCatalog, target: member.target,
+          })), maxMembers: 2, maxRows: 4,
+          maxTotalResponseBytes: 4096,
+        }) : undefined;
+      if (productRoute || currentUse) {
+        applyOptions.refreshPreflight = (productRoute ?? currentUse)
+          .refreshPreflight;
       }
       if (physical === 'salesforce') {
         const foreignAuthored = checked(
@@ -2444,7 +2525,7 @@ test(`two-member captured Effect Run ${
             maxContractNodes: configuration.maxContractNodes,
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
-            ledgerRoot, authorityScopeCid: cid('e'),
+            ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
@@ -2470,6 +2551,20 @@ test(`two-member captured Effect Run ${
             },
           };
         if (processPreparedIntent) {
+          const beforeDenied = sites.map(site => site.seen.length);
+          const deniedRecovery = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, denyEvidence: true});
+          assert.notEqual(deniedRecovery.status, 0);
+          assert.match(deniedRecovery.stderr, /EffectEvidenceAccessDenied/);
+          assert.deepEqual(sites.map(site => site.seen.length), beforeDenied);
+          const foreignRequest = await runChildWithLiveSite(
+            './fixtures/recover-effect-outcomes.mjs',
+            {...childInput, callerRequestId: 'another-business-request'});
+          assert.notEqual(foreignRequest.status, 0);
+          assert.deepEqual(sites.map(site => site.seen.filter(
+            item => item.method === 'PATCH' || item.method === 'POST').length),
+          [0, 0]);
           const foreignSite = structuredClone(childInput);
           foreignSite.salesforceRecovery.sites[0].authorityPublicKey =
             sites[1].recoveryConnection.authorityPublicKey;
@@ -2570,6 +2665,10 @@ test(`two-member captured Effect Run ${
           preview.authoringCid, requestScope, preview.keys,
           publicationLimits.maxWireBytes, publicationLimits.maxNodes,
           publicationLimits.maxDepth);
+        if (productRoute) {
+          productRoute = makeProductRoute();
+          applyOptions.refreshPreflight = productRoute.refreshPreflight;
+        }
         assert.equal(completed.connectorRecovery.length, 2);
         const originalCatalogs = completed.connectorRecovery.map(
           (entry, index) => {
@@ -2879,33 +2978,11 @@ test(`two-member captured Effect Run ${
       let collectionFaultPending = collectionRecovered;
       let terminalFaultPending = restartAfterTerminal;
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
-      const bindDispatch = [
-        'salesforce', 'salesforce-upsert', 'salesforce-create',
-        'salesforce-create-duplicates', 'salesforce-publication-restart',
-        'salesforce-preapply-restart', 'salesforce-prepared-intent-restart',
-        'salesforce-collection-partial',
-        'salesforce-terminal-store-restart',
-        'salesforce-terminal-process-publication',
-      ].includes(physical) ? ({members: activeMembers, subjectCid, signal}) => {
+      const bindDispatch = productRoute ? ({members: activeMembers,
+        subjectCid, signal}) => {
         assert.equal(subjectCid, body.effect_preview_cid);
-        const dispatch = installSalesforceEffectDispatch({commonMoon: moon,
-          moon: salesforceMoon, ledger, admittedPreview: applyPreview,
-          currentUse, signal, members: sites.map((site, memberIndex) => ({
-            requests: siteRequests[memberIndex],
-            claims: activeMembers[memberIndex].claims,
-            authorizationForRow: rowIndex => ({...site.write,
-              useId: `write-${memberIndex}-${rowIndex}`}),
-            credential: site.credential,
-            limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
-              maxNodes: 32, maxDepth: 5},
-            collection: collectionMode && memberIndex === 0 ? {
-              request: collectionRequest,
-              authorization: () => ({...site.write,
-                useId: 'partial-collection'}),
-              limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
-                maxNodes: 64, maxDepth: 6, maxRows: 2},
-            } : undefined,
-          }))});
+        const dispatch = productRoute.bindDispatch({members: activeMembers,
+          subjectCid, signal});
         return row => dispatchRow(row, dispatch);
       } : undefined;
       const dispatchRow = async ({memberIndex, rowIndex, claim,
@@ -3306,6 +3383,7 @@ test(`two-member captured Effect Run ${
         await rejectPublicationAndRetire(uncertainSet,
           'EffectfulRunNeedsReconciliation',
           'unknown-two-effects-attempt');
+        if (loseClientReply) throw new Error('LostEffectExecutionReply');
         return;
       }
       const dispatchOptions = bindDispatch === undefined ? {dispatchRow} :
@@ -3472,7 +3550,7 @@ test(`two-member captured Effect Run ${
             maxContractNodes: configuration.maxContractNodes,
             maxContractDepth: configuration.maxContractDepth,
             runDefinitionWire: runDefinition.wire,
-            ledgerRoot, authorityScopeCid: cid('e'),
+            ledgerRoot, requestJournalRoot, authorityScopeCid: cid('e'),
             callerRequestId: 'complete-two-effects-request',
             programId: 'program-1', nodeId: 'node-1',
             maxRows: 4, maxWork: 100, limits: publicationLimits,
@@ -3738,6 +3816,7 @@ test(`two-member captured Effect Run ${
           undefined);
       }
       assert.equal(store.status().storedBytes, 0);
+      publishedRunDefinitionCid = definition.identity;
       published = true;
     } catch (error) {
       testFailure = error;
@@ -3759,8 +3838,158 @@ test(`two-member captured Effect Run ${
       assert.equal(execution.cleanupPending(), false);
     }
     assert.equal(published, true);
+    return published;
+    };
+    const runs = installNodeClientEffectRun({
+      moon, publicationControl: control, journal: requestJournal,
+      authorizeRequest: async ({principalId, connection}) =>
+        principalId === 'principal-before-restart' &&
+        connection.mode === 'local' && connection.owner === 'local'
+          ? {executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+            createdAt: '2026-09-24T00:00:00.000Z',
+            expiresAt: '2027-01-01T00:00:00.000Z'} : undefined,
+      authorizeRunStart: async ({principalId, connection}) =>
+        principalId === 'principal-before-restart' &&
+        connection.mode === 'local' && connection.owner === 'local',
+      execute: executeEffectRun,
+    });
+    const clientServer = createServer(createClientHttpHandler({
+      authenticate: header => header === 'Bearer scoped-token'
+        ? 'principal-before-restart' : undefined,
+      authorizeConnection: facts => facts.connection.mode === 'local' &&
+        facts.connection.owner === 'local',
+      negotiate: () => ({
+        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'principal-before-restart',
+        capabilities: ['result-jsonl'],
+        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024,
+          maxRetainedValueBytes: 4096, maxRows: 100,
+          maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+      }),
+      prepareSubmit: prepareProgram,
+      submit: async ({preparedProgram, requestId, principalId,
+        connection}) => {
+        const accepted = await runs.accept({
+          prepared: preparedProgram, authorityScopeCid: cid('e'),
+          requestId, tenantId: 'tenant-a', principalId, connection,
+          lookupExpiresAt: '2027-01-01T00:00:00.000Z',
+        });
+        const started = await runs.start(accepted);
+        assert.ok(started.kind === 'started' ||
+          started.kind === 'reconcile');
+        return {ref: accepted.ref, durability: accepted.durability,
+          revision: accepted.revision};
+      },
+    }));
+    await new Promise(resolve => clientServer.listen(0, '127.0.0.1',
+      resolve));
+    try {
+      const client = await connectClient({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${clientServer.address().port}/`,
+        token: 'scoped-token', durability: 'durable'});
+      try {
+        let run;
+        if (loseClientReply) {
+          await assert.rejects(client.aql(document, {format: 'json',
+            requestId: 'complete-two-effects-request'}),
+          {code: 'SubmissionUnknown'});
+        } else {
+          run = await client.aql(document, {format: 'json',
+            requestId: 'complete-two-effects-request'});
+        }
+        run ??= await client.aql(document, {format: 'json',
+          requestId: 'complete-two-effects-request'});
+        assert.equal(run.ref.tenantId, 'tenant-a');
+        if (publishedRunDefinitionCid !== undefined) {
+          assert.equal(run.ref.runDefinitionCid, publishedRunDefinitionCid);
+        }
+        const replay = await client.aql(document, {format: 'json',
+          requestId: 'complete-two-effects-request'});
+        assert.deepEqual(replay.ref, run.ref);
+        assert.equal(physicalStarts, 1);
+      } finally { client.close(); }
+    } finally {
+      await new Promise(resolve => clientServer.close(resolve));
+      requestJournal.close();
+    }
   });
 }
+
+test('public Effect submit rejects an unsupported checked Program before acceptance',
+  async t => {
+    const unsupported = await effectFixture({splitSource: true,
+      writeKind: 'create', memberIds: ['save', 'save_again'],
+      sourceIds: ['001000000000001', '001000000000002']});
+    const prepare = installNodeClientEffectProgramPreparation({
+      moon, environment: unsupported.environment,
+    });
+    const prepared = prepare({kind: 'aql',
+      input: {text: unsupported.document, format: 'json'},
+      parameters: null});
+    assert.equal(moon.clientProgramEffectCompilationIssueCode(
+      moon.clientProgramCompileLocalEffects(prepared)),
+    'unsupported_program');
+    await mkdir(scratch, {recursive: true});
+    const directory = await mkdtemp(join(scratch.pathname,
+      'unsupported-effect-submit-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const journal = openClientRequestJournal(directory);
+    const runs = installNodeClientEffectRun({moon, journal,
+      authorizeRequest: async () => ({
+        executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+        createdAt: '2026-09-24T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z',
+      }),
+      authorizeRunStart: async () => true,
+      execute: () => assert.fail('unsupported Program started execution'),
+    });
+    const server = createServer(createClientHttpHandler({
+      authenticate: header => header === 'Bearer scoped-token'
+        ? 'principal-a' : undefined,
+      authorizeConnection: () => true,
+      negotiate: () => ({
+        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+        durability: 'durable', scopeRef: 'principal-a',
+        capabilities: ['result-jsonl'],
+        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+          maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+          maxRows: 100, maxBatchRows: 10,
+          maxBatchRetainedValueBytes: 2048},
+      }),
+      prepareSubmit: prepare,
+      submit: async ({preparedProgram, requestId, principalId,
+        connection}) => {
+        const accepted = await runs.accept({prepared: preparedProgram,
+          authorityScopeCid: cid('e'), requestId, tenantId: 'tenant-a',
+          principalId, connection,
+          lookupExpiresAt: '2027-01-01T00:00:00.000Z'});
+        await runs.start(accepted);
+        return {ref: accepted.ref, durability: accepted.durability,
+          revision: accepted.revision};
+      },
+    }));
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const client = await connectClient({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${server.address().port}/`,
+        token: 'scoped-token', durability: 'durable'});
+      try {
+        await assert.rejects(client.aql(unsupported.document,
+          {format: 'json', requestId: 'unsupported-effect-request'}),
+        {code: 'ClientProgramUnsupported'});
+      } finally { client.close(); }
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+      journal.close();
+    }
+    const database = new DatabaseSync(join(directory,
+      'client-requests.sqlite3'), {readOnly: true});
+    try {
+      assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests')
+        .get().n, 0);
+    } finally { database.close(); }
+  });
 
 function publicationEvidence(program, parameters, semantics,
   checkEnvironmentCid, aoaLogicalCid = cid('9')) {

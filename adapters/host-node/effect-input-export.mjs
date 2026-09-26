@@ -1,8 +1,101 @@
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {releasePreparedResults} from
+  '../host-common/completed-run-publication.mjs';
 
 const preparedEffectSourceOwners = new WeakMap();
+const preparedEffectSourceSets = new WeakMap();
+
+// Prepare every pinned member under one retention and source-binding policy.
+// MoonBit alone decides whether two members own the same live Result view.
+// The caller retains the pins and receives every distinct physical owner;
+// durable holdings remain independent even when members share these bytes.
+export async function preparePinnedEffectSourceSet({
+  maxMembers, maxGroupingWork, ...options
+}) {
+  const {moon, inputs, control, signal} = options;
+  if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
+      !Number.isSafeInteger(maxGroupingWork) || maxGroupingWork < 0 ||
+      typeof moon?.clientProgramEffectInputCount !== 'function' ||
+      typeof moon?.clientProgramEffectInputsShareView !== 'function' ||
+      typeof moon?.clientProgramEffectInputStage !== 'function' ||
+      typeof control?.publicationPreparedReleaseAction !== 'function' ||
+      typeof control?.publicationCleanupOwnerAction !== 'function' ||
+      options.memberIndex !== undefined ||
+      options.proposalMemberIndexes !== undefined) {
+    throw new TypeError('InvalidEffectSourceSet');
+  }
+  const count = moon.clientProgramEffectInputCount(inputs);
+  if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
+    throw new RangeError('EffectSourceMemberLimit');
+  }
+  const groups = [];
+  let remaining = maxGroupingWork;
+  const shares = (left, right) => {
+    if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');
+    remaining--;
+    return moon.clientProgramEffectInputsShareView(inputs, left, right) ===
+      true;
+  };
+  // Finish bounded grouping before creating any Store reservation.
+  for (let index = 0; index < count; index++) {
+    signal?.throwIfAborted();
+    if (!shares(index, index)) throw new TypeError('UnavailableEffectSource');
+    const group = groups.find(value => shares(value[0], index));
+    if (group === undefined) groups.push([index]);
+    else group.push(index);
+  }
+  const owned = {...options,
+    contractLimits: Object.freeze({...options.contractLimits}),
+    localEvidenceContext: Object.freeze({...options.localEvidenceContext}),
+    proposalLimits: options.proposalLimits === undefined ? undefined :
+      Object.freeze({...options.proposalLimits}),
+  };
+  const payloads = [];
+  const members = new Array(count);
+  const manifestSet = new Map();
+  try {
+    for (const indexes of groups) {
+      const payload = await preparePinnedEffectSourcePayloadOwned({
+        ...owned, memberIndex: indexes[0],
+        ...(owned.onProposalRow === undefined ? {} : {
+          proposalMemberIndexes: indexes,
+        }),
+      }, manifestSet);
+      payloads.push(payload);
+      for (const memberIndex of indexes) {
+        members[memberIndex] = Object.freeze({memberIndex, payload});
+      }
+    }
+    for (const unit of manifestSet.values()) {
+      unit.manifest = control.issueLocalEffectResultManifest(
+        owned.checkedOwner, unit.invocation, unit.artifacts,
+        owned.contractLimits);
+    }
+    // Expose payloads only after every Unit's complete Manifest is admitted.
+    const finalized = new Map();
+    for (const payload of payloads) {
+      const owner = preparedEffectSourceOwners.get(payload);
+      const unit = manifestSet.get(owner.unitIndex);
+      const value = Object.freeze({...payload, localManifest: unit.manifest});
+      preparedEffectSourceOwners.set(value, owner);
+      finalized.set(payload, value);
+    }
+    signal?.throwIfAborted();
+    const result = Object.freeze({payloads: Object.freeze(payloads.map(value =>
+      finalized.get(value))), members: Object.freeze(members.map(member =>
+      Object.freeze({...member, payload: finalized.get(member.payload)})))});
+    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+      control: owned.control}));
+    return result;
+  } catch (error) {
+    // This is the existing MoonBit-controlled publication cleanup path, not
+    // a second Effect cleanup state machine. Pending owners escape on error.
+    await releasePreparedResults(payloads, error, control);
+    throw error;
+  }
+}
 
 /**
  * Stream one pinned Effect source through the shared checked Result view.
@@ -109,12 +202,16 @@ export async function exportPinnedEffectInput({
  * owner must be committed to an independent holding or explicitly released.
  * Neither sealing bytes nor this summary claims a completed Captured Run.
  */
-export async function preparePinnedEffectSourcePayload({
+export async function preparePinnedEffectSourcePayload(options) {
+  return preparePinnedEffectSourcePayloadOwned(options);
+}
+
+async function preparePinnedEffectSourcePayloadOwned({
   moon, checkedOwner, execution, inputs, memberIndex, limits, store, maxBytes,
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits,
-}) {
+}, manifestSet) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -174,11 +271,17 @@ export async function preparePinnedEffectSourcePayload({
       localDefinition),
     wire: moon.clientProgramLocalEffectResultDefinitionJson(localDefinition),
   });
-  const localInvocationToken = checked(
+  const unitIndex = manifestSet === undefined ? undefined :
+    moon.clientProgramEffectInputStage(
+      moon.clientProgramEffectInputAt(inputs, memberIndex));
+  const localInvocationToken = manifestSet?.get(unitIndex)?.invocation ?? checked(
     moon.clientProgramIssueCapturedEffectInputLocalInvocation(
       checkedOwner, inputs, memberIndex,
       contractLimits.maxWireBytes, contractLimits.maxNodes,
       contractLimits.maxDepth));
+  if (manifestSet !== undefined && !manifestSet.has(unitIndex)) {
+    manifestSet.set(unitIndex, {invocation: localInvocationToken, artifacts: []});
+  }
   const localInvocation = Object.freeze({
     identity: moon.clientProgramLocalEffectInvocationCid(
       localInvocationToken),
@@ -263,9 +366,10 @@ export async function preparePinnedEffectSourcePayload({
       checked(moon.clientProgramEffectProposalFinish(plan,
         summary.rowCount));
     }
-    const localManifest = control.issueLocalEffectResultManifest(
-      checkedOwner, localInvocationToken, [localResultArtifact],
-      contractLimits);
+    const localManifest = manifestSet === undefined
+      ? control.issueLocalEffectResultManifest(checkedOwner,
+        localInvocationToken, [localResultArtifact], contractLimits)
+      : undefined;
     const physicalCid = `sha256:${digest.digest('hex')}`;
     sealed = await writer.seal(physicalCid);
     if (sealed.cid !== physicalCid || sealed.bytes !== byteCount) {
@@ -281,9 +385,10 @@ export async function preparePinnedEffectSourcePayload({
       prepared: sealed.prepared,
     });
     preparedEffectSourceOwners.set(payload, Object.freeze({
-      store, checkedOwner, inputs, memberIndex, localInvocationToken,
+      store, checkedOwner, inputs, memberIndex, localInvocationToken, unitIndex,
       contractLimits: Object.freeze({...contractLimits}),
     }));
+    manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
     return payload;
   } catch (failure) {
     const pendingOwners = [];
@@ -337,14 +442,9 @@ export async function preparePinnedEffectSourcePayload({
   }
 }
 
-/**
- * Reconcile one exact physical holding without re-exporting the source. A
- * failed commit leaves the prepared owner with the caller for same-record
- * retry or explicit cleanup; it never authorizes another Compute attempt.
- */
-export async function commitPinnedEffectSourceHolding({
+// Admission creates no physical holding and performs no Store I/O.
+function admitPinnedEffectSourceHolding({
   payload, store, control, preview, memberIndex, invocation,
-  shareFromHoldingCid,
 }) {
   const owner = preparedEffectSourceOwners.get(payload);
   if (owner?.store !== store ||
@@ -376,17 +476,6 @@ export async function commitPinnedEffectSourceHolding({
       cid: payload.physical.cid, byte_count: payload.physical.bytes,
     })]),
   });
-  if (shareFromHoldingCid === undefined) {
-    await store.commitPhysicalHolding(record, [payload.prepared]);
-  } else {
-    if (typeof store.sharePhysicalHolding !== 'function' ||
-        typeof shareFromHoldingCid !== 'string') {
-      throw new TypeError('InvalidEffectSourceHoldingShare');
-    }
-    // The Store verifies the existing exact immutable allocation and gives
-    // this member independent durable holding and retirement responsibility.
-    await store.sharePhysicalHolding(shareFromHoldingCid, record);
-  }
   return Object.freeze({source, memberIndex,
     artifact: payload.summary.artifact,
     localResultDefinition: payload.localResultDefinition,
@@ -395,4 +484,76 @@ export async function commitPinnedEffectSourceHolding({
     localManifest: payload.localManifest,
     localEvidence,
     holdingCid, record});
+}
+
+/**
+ * Reconcile one exact physical holding without re-exporting the source. A
+ * failed commit leaves the prepared owner with the caller for same-record
+ * retry or explicit cleanup; it never authorizes another Compute attempt.
+ */
+export async function commitPinnedEffectSourceHolding(options) {
+  const holding = admitPinnedEffectSourceHolding(options);
+  const {store, payload, shareFromHoldingCid} = options;
+  if (shareFromHoldingCid === undefined) {
+    await store.commitPhysicalHolding(holding.record, [payload.prepared]);
+  } else {
+    if (typeof store.sharePhysicalHolding !== 'function' ||
+        typeof shareFromHoldingCid !== 'string') {
+      throw new TypeError('InvalidEffectSourceHoldingShare');
+    }
+    await store.sharePhysicalHolding(shareFromHoldingCid, holding.record);
+  }
+  return holding;
+}
+
+// Admit the entire inventory before the first durable write. Return exact
+// responsibility records synchronously so a failed or lost commit reply
+// cannot hide an already-created holding from the caller. There is no
+// cross-member transaction: Store reconciliation uses the same records.
+export function preparePinnedEffectSourceHoldings({
+  sources, store, control, preview, invocation,
+}) {
+  const owner = preparedEffectSourceSets.get(sources);
+  if (owner?.store !== store || owner?.control !== control ||
+      typeof store?.commitPhysicalHolding !== 'function' ||
+      typeof store?.sharePhysicalHolding !== 'function' ||
+      typeof control?.capturedEffectSourceRecoveryInventoryValid !==
+        'function') {
+    throw new TypeError('InvalidEffectSourceSetOwner');
+  }
+  const commit = store.commitPhysicalHolding.bind(store);
+  const share = store.sharePhysicalHolding.bind(store);
+  const firstByPayload = new Map();
+  const entries = sources.members.map(({memberIndex, payload}) => {
+    const holding = admitPinnedEffectSourceHolding({payload, store, control,
+      preview, memberIndex, invocation});
+    const first = firstByPayload.get(payload);
+    if (first === undefined) firstByPayload.set(payload, holding.holdingCid);
+    return Object.freeze({holding, payload, first});
+  });
+  const holdings = Object.freeze(entries.map(entry => entry.holding));
+  if (control.capturedEffectSourceRecoveryInventoryValid(preview,
+    holdings.map(({memberIndex, artifact}) => ({memberIndex, artifact}))) !==
+      true) {
+    throw new TypeError('IncompleteEffectSourceHoldings');
+  }
+  let flight;
+  return Object.freeze({holdings,
+    // Single-flight is physical I/O ownership, not an Effect retry decision.
+    // A later call revalidates/re-syncs the Store's exact durable records.
+    commit() {
+      if (flight !== undefined) return flight;
+      flight = (async () => {
+        for (const {holding, payload, first} of entries) {
+          if (first === undefined) {
+            await commit(holding.record, [payload.prepared]);
+          } else {
+            await share(first, holding.record);
+          }
+        }
+        return holdings;
+      })().finally(() => { flight = undefined; });
+      return flight;
+    },
+  });
 }

@@ -160,6 +160,12 @@ pub fn compiler_grammar_manifest_wire() -> String
 
 pub fn compiler_version_token() -> String
 
+pub fn connector_source_evidence_member_cids(ConnectorSourceEvidenceMembers) -> (String, String)
+
+pub fn connector_source_evidence_supports(ConnectorSourceEvidenceMembers, Array[String]) -> Bool
+
+pub fn connector_source_snapshot_selector(Member) -> Result[ConnectorSourceEvidenceSelector?, SourceEvidenceMemberIssue]
+
 pub fn contract_at(ContractRegistry, Int) -> ContractEnvelope?
 
 pub fn contract_body(ContractEnvelope) -> @decode_core.Cursor
@@ -328,6 +334,8 @@ pub fn member_index(Member) -> Int
 
 pub fn member_section(Member) -> Section
 
+pub fn member_usage(Member) -> (Int, Int)
+
 pub fn program_source_grammar_cid() -> String
 
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
@@ -401,6 +409,8 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
+
+pub fn select_connector_source_evidence_members(WireEnvironment, ConnectorSourceEvidenceSelector) -> Result[ConnectorSourceEvidenceMembers, SourceEvidenceMemberIssue]
 
 pub fn select_mapping_permissions(MappingContractShape, String, String, Array[String], Int) -> Result[MappingPermissionSelection, MappingPermissionIssue]
 
@@ -626,6 +636,17 @@ pub(all) enum CommandTargetIssue {
   MissingCommand(String)
   InvalidCommand(String)
 } derive(Eq, @debug.Debug)
+
+type ConnectorSourceEvidenceMembers
+
+pub(all) struct ConnectorSourceEvidenceSelector {
+  source_ref : String
+  source_contract_cid : String
+  source_view_contract_cid : String
+  carrier_schema_contract_cid : String
+  source_data_policy_cid : String
+  data_classification : String
+} derive(Eq)
 
 type ContractBodyDependencies
 
@@ -953,6 +974,14 @@ type SourceCorrelation
 type SourceDataPolicies
 
 type SourceDataPolicy
+
+pub(all) enum SourceEvidenceMemberIssue {
+  MissingMember
+  AmbiguousMember
+  InvalidMember
+  ContractMismatch(String)
+  CapabilityMismatch
+} derive(Eq, @debug.Debug)
 
 type SourceLookupFacts
 

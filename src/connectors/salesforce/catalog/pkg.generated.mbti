@@ -20,13 +20,21 @@ pub fn cancel_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
 
 pub fn catalog_http_failure(Int, Bytes, Int) -> DescribeFailure
 
+pub fn catalog_observation_first_unconfirmed_field(CatalogObservation, CatalogObservationBinding, String, Array[String]) -> Result[String?, CatalogObservationIssue]
+
 pub fn catalog_observation_identity(CatalogObservation) -> String
 
+pub fn catalog_observation_is_complete(CatalogObservation) -> Bool
+
 pub fn catalog_observation_json(CatalogObservation) -> String
+
+pub fn catalog_observation_matches_binding(CatalogObservation, CatalogObservationBinding) -> Bool
 
 pub fn catalog_observation_resource(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceMetadata, CatalogObservationIssue]
 
 pub fn catalog_observation_resource_outcome(CatalogObservation, CatalogObservationBinding, String) -> Result[ResourceDescribeOutcome, CatalogObservationIssue]
+
+pub fn catalog_observation_resource_summary_json(CatalogObservation, CatalogObservationBinding, String, Int) -> Result[String, CatalogObservationIssue]
 
 pub fn catalog_response_sha256(Bytes) -> String
 

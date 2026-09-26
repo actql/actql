@@ -85,5 +85,6 @@ export function recoverRetainedSalesforceCatalog({moon, retained,
   if (observationCid !== expectedObservationCid) {
     fail('ForeignRetainedSalesforceCatalog');
   }
-  return Object.freeze({observation, observationCid});
+  return Object.freeze({observation, observationCid,
+    observationJson: moon.salesforceCatalogObservationJson(observation)});
 }

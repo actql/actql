@@ -2784,6 +2784,15 @@ pub fn client_program_effect_input_task(
 }
 
 ///|
+/// Checked Unit coordinate for grouping a complete local Result Manifest.
+#export_name("clientProgramEffectInputStage")
+pub fn client_program_effect_input_stage(
+  value : @strategy.CapturedEffectInput,
+) -> Int {
+  @strategy.captured_effect_input_stage(value)
+}
+
+///|
 /// Release one member holding without revoking another borrow of the Result.
 #export_name("clientProgramReleaseEffectInput")
 pub fn client_program_release_effect_input(
@@ -4328,6 +4337,23 @@ pub fn client_program_compile_local_effects(
 }
 
 ///|
+/// Expose only the unsupported-profile decision to the Host. Other compiler
+/// failures retain their typed cause and must not be reported as a caller's
+/// unsupported Program.
+#export_name("clientProgramEffectCompilationIssueCode")
+pub fn client_program_effect_compilation_issue_code(
+  outcome : Result[
+    @publication_host.ClientEffectCompilation,
+    ClientProgramEffectCompilationBridgeIssue,
+  ],
+) -> String? {
+  match outcome {
+    Err(Compilation(UnsupportedProgram)) => Some("unsupported_program")
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramEffectCompilationPlanWire")
 pub fn client_program_effect_compilation_plan_wire(
   value : @publication_host.ClientEffectCompilation,
@@ -4354,6 +4380,26 @@ pub fn client_program_effect_compilation_template_wire(
 ) -> String {
   @publication.run_evidence_value_json(
     @publication_host.client_effect_compilation_template(value),
+  )
+}
+
+///|
+/// Issue the source-free observation and Run Invocation from the exact
+/// checked Effect compilation. The Host supplies its data-policy identity;
+/// the Program cannot substitute a Template or observation body.
+#export_name("clientProgramIssueEffectSourceFreeInvocation")
+pub fn client_program_issue_effect_source_free_invocation(
+  value : @publication_host.ClientEffectCompilation,
+  data_policy_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication_host.issue_client_effect_source_free_invocation(
+    value, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
   )
 }
 
