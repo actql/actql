@@ -13,7 +13,8 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+  './captured-duckdb-source.mjs';
 import {loadInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -269,6 +270,11 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     }
     return {requested, resultNames, acquired};
   };
+  const prepareAcquisition = preparedProgram =>
+    prepareCapturedDuckDBSource({moon, preparedProgram, registry, values,
+      fragment, ordered, database: sourceProfile.database,
+      schema: sourceProfile.schema, table: sourceProfile.table,
+      sourceAccess: sourceProfile.sourceAccess});
   const planFor = ({preparedProgram, kind, input, parameters, requestId},
     retainedDefinitionWire) => {
     const common = {moon, control, preparedProgram,
@@ -374,13 +380,15 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       reached('started');
       await observed('physical_start_reserved', {ref: accepted.ref});
       if (acquiring) {
+        held.preparedSource ??= await prepareAcquisition(preparedProgram);
         const captureStartedAt = now();
         active.sourceCapture = await openCapturedDuckDBSource({moon,
           preparedProgram, registry, values, fragment, ordered,
           database: sourceProfile.database, schema: sourceProfile.schema,
           table: sourceProfile.table, sourceAccess: sourceProfile.sourceAccess,
           transportLimits: sourceProfile.transportLimits,
-          signal: active.abort.signal});
+          signal: active.abort.signal,
+          preparedSource: held.preparedSource});
         const captureCompletedAt = now();
         const sourceEvidenceWire = await active.sourceCapture.issueSourceEvidence({
           authorityScopeCid,
@@ -452,7 +460,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
     if (!hostConnection({principalId: actual, connection})) {
       throw new Error('ClientConnectionDenied');
     }
-    const {requested, resultNames} = requestOf(submission);
+    const {requested, resultNames, acquired} = requestOf(submission);
+    const preparedSource = acquired
+      ? await prepareAcquisition(submission.preparedProgram) : undefined;
     // Run acceptance on the protected Site is decided before any Run
     // Definition exists. A request that was held is never started from here:
     // submitting it again returns its held state, or its existing Run, and
@@ -482,7 +492,10 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
         },
         captured: {version: 'actql-remote-captured-submission/0.1',
           requestId, principalId: actual, connection, kind, input,
-          parameters, resultNames},
+          parameters, resultNames,
+          ...(preparedSource === undefined ? {} : {acquisition: {
+            checkedSource: preparedSource.checkedSource,
+            readTuple: preparedSource.readTuple}})},
       });
       if (decided.kind !== 'dispatch') {
         const existing = journal.lookupDefinition({tenantId,
@@ -498,7 +511,7 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
           revision: existing.revision};
       }
     }
-    const held = {};
+    const held = {preparedSource};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     // A resumed request's journal Run (if any) ends with its dispatch.
@@ -518,12 +531,21 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters};
     submission.preparedProgram = await prepareSubmit(submission);
-    const {requested, resultNames} = requestOf(submission);
+    const {requested, resultNames, acquired} = requestOf(submission);
+    const preparedSource = acquired
+      ? await prepareAcquisition(submission.preparedProgram) : undefined;
+    const acquisition = preparedSource === undefined ? undefined : {
+      checkedSource: preparedSource.checkedSource,
+      readTuple: preparedSource.readTuple};
+    if (JSON.stringify(acquisition) !==
+        JSON.stringify(captured.acquisition)) {
+      throw new Error('HeldAcquisitionChanged');
+    }
     if (JSON.stringify(resultNames) !==
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames};
+    return {submission, requested, resultNames, preparedSource};
   };
   const definitionOf = captured => journal.lookupDefinition({tenantId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -564,9 +586,9 @@ async function openInstalledHost(root, mode = 'local', beforeDispatch,
   // Run right after it. Resolves with 'started', {refused} or 'not_started'.
   const resumeHeld = async ({captured, beforePhysicalStart, started,
     step, renew}) => {
-    const {submission, requested, resultNames} =
+    const {submission, requested, resultNames, preparedSource} =
       await heldSubmission(captured);
-    const held = {};
+    const held = {preparedSource};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     await step('definition_admitted', {ref: accepted.ref});

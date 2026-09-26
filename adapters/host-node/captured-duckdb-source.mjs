@@ -14,10 +14,14 @@ const contractFiles = [
   'actql-query-process-evidence.json',
   'actql-query-two-receipt.json',
 ];
+const preparations = new WeakMap();
 
-export async function openCapturedDuckDBSource({moon, preparedProgram,
+// Checked preparation for the Host's acquisition Checkpoint. It does not
+// open the database or infer authority from the source CID. The returned
+// handle can only be consumed with the same checked Program and Host profile.
+export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   registry, values, fragment, ordered, database, schema, table,
-  sourceAccess, transportLimits, signal}) {
+  sourceAccess}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || typeof registry !== 'string' ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
@@ -58,6 +62,33 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     readFile(new URL(name, contractRoot), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
     requirement, schema, table, ...contracts));
+  const prepared = Object.freeze({checkedSource,
+    readTuple: Object.freeze({connection: sourceAccess.connection ??
+      'local-database', resource: sourceAccess.resource ?? database,
+    operation: 'read'})});
+  preparations.set(prepared, Object.freeze({moon, preparedProgram, registry,
+    values, fragment, ordered, database, schema, table, sourceAccess,
+    requirement, evidenceContext, acquisition}));
+  return prepared;
+}
+
+export async function openCapturedDuckDBSource({moon, preparedProgram,
+  registry, values, fragment, ordered, database, schema, table,
+  sourceAccess, transportLimits, signal, preparedSource}) {
+  const prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
+    preparedProgram, registry, values, fragment, ordered, database, schema,
+    table, sourceAccess});
+  const owner = preparations.get(prepared);
+  if (owner === undefined || owner.moon !== moon ||
+      owner.preparedProgram !== preparedProgram ||
+      owner.registry !== registry || owner.values !== values ||
+      owner.fragment !== fragment || owner.ordered !== ordered ||
+      owner.database !== database || owner.schema !== schema ||
+      owner.table !== table || owner.sourceAccess !== sourceAccess) {
+    throw new Error('InstalledSourcePreparationMismatch');
+  }
+  const {checkedSource} = prepared;
+  const {requirement, evidenceContext, acquisition} = owner;
   const grant = await authorizeLocalDatabase(database, sourceAccess);
   const capture = await runNativeHostQuery(grant, acquisition,
     transportLimits, signal);

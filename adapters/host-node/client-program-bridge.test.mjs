@@ -23,7 +23,8 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan} from './local-values-plan.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
-import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+  './captured-duckdb-source.mjs';
 import {fixtureSourceAccess, accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from './authorization-fixture.mjs';
 import {admitSourceInputLogical} from '../../scripts/source-input-logical-contract.mjs';
 import {spawn, spawnSync} from 'node:child_process';
@@ -197,19 +198,32 @@ test('checked acquired source and downstream task emit their input ports',
         connection.closeSync();
         database.closeSync();
       }
-      const opened = await openCapturedDuckDBSource({moon,
+      const sourceAccess = {...fixtureSourceAccess,
+        sourceRef: sourceSelector.source_ref};
+      const sourceOptions = {moon,
         preparedProgram: prepared, registry,
         values: JSON.stringify(aoa.execution_contracts['REL.values']),
         fragment: JSON.stringify(aoa.execution_contracts[
           'ACTQL.expression_fragment/0.1']),
         ordered: JSON.stringify(aoa.execution_contracts[
           'REL.derive.ordered']), database: path,
-        sourceAccess: {...fixtureSourceAccess, sourceRef: sourceSelector.source_ref},
+        sourceAccess,
         schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
           memoryBytes: 128 * 1024 * 1024, threads: 1,
-        }});
+        }};
+      const preparedSource = await prepareCapturedDuckDBSource(sourceOptions);
+      assert.equal(preparedSource.checkedSource.sourceRef,
+        sourceSelector.source_ref);
+      assert.deepEqual(preparedSource.readTuple, {connection:
+        sourceAccess.connection ?? 'local-database',
+      resource: sourceAccess.resource ?? path, operation: 'read'});
+      await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
+        preparedSource: {...preparedSource}}),
+      {message: 'InstalledSourcePreparationMismatch'});
+      const opened = await openCapturedDuckDBSource({...sourceOptions,
+        preparedSource});
       const capturedSource = opened.capture.source();
       try {
         assert.deepEqual(opened.checkedSource, {
