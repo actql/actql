@@ -2,6 +2,9 @@ import {refreshSalesforceEffectWriteCatalogs} from
   '../site/salesforce-effect-current-catalog.mjs';
 import {observeSalesforceTargetSet} from
   '../site/salesforce-target-observation.mjs';
+import {inspectSalesforceEffectCapability} from
+  '../site/salesforce-effect-capability.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidSalesforceEffectCurrentUse'), {
@@ -14,7 +17,7 @@ const positive = value => Number.isSafeInteger(value) && value > 0;
 // Site transport observes current physical facts only. The common Effect
 // owner authorizes the reads before calling refreshPreflight and re-admits
 // the complete set before any row is dispatched.
-export function installSalesforceEffectCurrentUse({moon, members,
+export function installSalesforceEffectCurrentUse({moon, commonMoon, members,
   observedRows, maxMembers, maxRows, maxTotalResponseBytes}) {
   if (!moon || !Array.isArray(members) || members.length === 0 ||
       typeof moon.salesforceSingleWriteRequestMethod !== 'function' ||
@@ -25,6 +28,9 @@ export function installSalesforceEffectCurrentUse({moon, members,
       members.length > maxMembers) fail();
   let totalRows = 0;
   let guardedRows = 0;
+  if (typeof commonMoon
+      ?.clientProgramEffectApplyCapabilityFromCodes !== 'function' ||
+      members.some(member => !member?.capability)) fail();
   const ownedMembers = Object.freeze(members.map(member => {
     if (!Array.isArray(member?.requests) || member.requests.length === 0 ||
         typeof member.refreshCatalog !== 'function') fail();
@@ -50,6 +56,7 @@ export function installSalesforceEffectCurrentUse({moon, members,
       guardedRows += requests.length;
     }
     return Object.freeze({requests,
+      capability: member.capability,
       collectionRequest: member.collectionRequest,
       refreshCatalog: member.refreshCatalog,
       target: target === undefined ? undefined : Object.freeze({
@@ -90,9 +97,19 @@ export function installSalesforceEffectCurrentUse({moon, members,
       const guardVersions = observed.flatMap(member => member.map(row =>
         row.versionCid));
       if (guardVersions.length !== rows.length) fail();
+      const capabilities = ownedMembers.map((member, index) =>
+        inspectSalesforceEffectCapability(member.capability, member.requests,
+          {currentObservation: catalogs[index],
+            collection: member.collectionRequest !== undefined}));
       signal?.throwIfAborted();
       const current = Object.freeze({...preflight, observedRows: rows,
-        guardVersions: Object.freeze(guardVersions)});
+        guardVersions: Object.freeze(guardVersions),
+        capabilities: Object.freeze(capabilities.map(value => value.identity)),
+        routes: Object.freeze(capabilities.map(value => checked(
+          commonMoon.clientProgramEffectApplyCapabilityFromCodes(
+            value.identity, value.route, 0, 0, true,
+            value.route === 0, 2, 1)))),
+      });
       catalogsByPreflight.set(current, Object.freeze([...catalogs]));
       return current;
     },

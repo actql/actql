@@ -29,6 +29,8 @@ import {installSalesforceEffectCurrentUse} from
   '../host/salesforce-effect-current-use.mjs';
 import {installSalesforceEffectDispatch} from
   '../host/salesforce-effect-dispatch.mjs';
+import {issueSalesforceEffectCapability, inspectSalesforceEffectCapability} from
+  '../site/salesforce-effect-capability.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
 import {recoverRetainedSalesforceCatalog} from
@@ -408,28 +410,89 @@ function effectInputPreview(prepared, evidence, definition, invocation,
     authoring.authoring_context_cid, keys};
 }
 
+async function capabilitySite(t) {
+  const site = await openSalesforceEffectSiteFixture(t, {
+    commonMoon: moon, salesforceMoon, runInvocationCid: cid('b'),
+    dispatchRequestCid: cid('c'), writeOperation: 'create',
+  });
+  const scope = site.write.scope;
+  const projection = checked(salesforceMoon.salesforcePrepareWriteProjection(
+    site.catalog.observation, scope.tenant, scope.principal, scope.environment,
+    'connection-revision-a', site.orgId, scope.siteKey, scope.siteGeneration,
+    scope.connectorRegistration, scope.connectorRevision, scope.resourceOrigin,
+    scope.runInvocationCid, scope.dispatchRequestCid, 'catalog-sync-a',
+    'Test_Record__c', 0, '', ['Name', 'External_Key__c'], 2));
+  const body = checked(salesforceMoon.salesforcePrepareWriteBody(projection,
+    Buffer.from('{"Name":"value","External_Key__c":"value"}'), 1024, 32, 5));
+  const request = checked(salesforceMoon.salesforcePrepareSingleWriteRequest(
+    body, 'v62.0', 0, '', 0, 256, 128, 1024));
+  const options = {moon: salesforceMoon, requests: [request],
+    currentObservation: site.catalog.observation,
+    authorization: site.write, credential: site.credential,
+    maxRows: 2, maxBytes: 20000};
+  return {site, request, options};
+}
+
+test('Salesforce capability requires current signed authority without a use',
+  async t => {
+    const {site, request, options} = await capabilitySite(t);
+    const uses = site.journal.recover().length;
+    const sent = site.seen.length;
+    const capability = issueSalesforceEffectCapability(options);
+    assert.equal(inspectSalesforceEffectCapability(capability, [request]).route, 0);
+    assert.equal(JSON.parse(capability.wire).binding.runtime_bundle_cid, cid('a'));
+    assert.throws(() => inspectSalesforceEffectCapability({...capability},
+      [request]), {code: 'InvalidSalesforceEffectCapability'});
+    assert.throws(() => inspectSalesforceEffectCapability(capability,
+      [request], {collection: true}), {code: 'InvalidSalesforceEffectCapability'});
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      credential: {...site.credential, now: () => 2_000_000_000_000}}));
+    for (const changed of [{tenant: 'foreign'}, {siteGeneration: 5},
+      {runtimeBundleCid: cid('f')}]) {
+      assert.throws(() => issueSalesforceEffectCapability({...options,
+        authorization: {...site.write, scope: {...site.write.scope, ...changed}}}));
+    }
+    const unsigned = site.credential.control.prepare({...site.write.scope,
+      dispatchRequestCid: cid('f')});
+    assert.throws(() => issueSalesforceEffectCapability({...options,
+      authorization: {...site.write, grant: unsigned}}),
+    {code: 'RemoteCredentialGrantMissing'});
+    assert.equal(site.journal.recover().length, uses);
+    assert.equal(site.seen.length, sent);
+    const refreshed = await site.refreshCatalog();
+    assert.equal(issueSalesforceEffectCapability({...options,
+      currentObservation: refreshed.observation}).identity, capability.identity);
+    site.setNameUpdateable(false);
+    const changed = await site.refreshCatalog();
+    assert.throws(() => inspectSalesforceEffectCapability(capability, [request],
+      {currentObservation: changed.observation}));
+    const beforeRevoke = site.journal.recover().length;
+    site.journal.revoke(site.credential.control.identity(site.write.grant));
+    assert.throws(() => inspectSalesforceEffectCapability(capability, [request]));
+    assert.equal(site.journal.recover().length, beforeRevoke);
+  });
+
 test('Salesforce current-use catalogs belong to one exact refresh',
-  async () => {
-    const requests = ['first'];
-    const checkedRequests = [];
+  async t => {
+    const {site, request, options} = await capabilitySite(t);
+    const requests = [request];
+    const capability = issueSalesforceEffectCapability(options);
+    const firstCatalog = site.catalog;
+    const secondCatalog = await site.refreshCatalog();
     let revision = 0;
     let firstRefreshStarted;
     let finishFirstRefresh;
     const started = new Promise(resolve => { firstRefreshStarted = resolve; });
     const firstGate = new Promise(resolve => { finishFirstRefresh = resolve; });
     const currentUse = installSalesforceEffectCurrentUse({
-      moon: {salesforceSingleWriteRequestMethod() { return 'POST'; },
-        salesforceRecheckSingleWriteRequest(request, catalog) {
-        checkedRequests.push([request, catalog.revision]);
-        return {$tag: 1, _0: true};
-      }},
-      members: [{requests, refreshCatalog: async () => {
+      moon: salesforceMoon, commonMoon: moon,
+      members: [{requests, capability, refreshCatalog: async () => {
         const current = ++revision;
         if (current === 1) {
           firstRefreshStarted();
           await firstGate;
         }
-        return {observation: {revision: current}};
+        return current === 1 ? firstCatalog : secondCatalog;
       }}],
       observedRows: [], maxMembers: 1, maxRows: 1,
       maxTotalResponseBytes: 1024,
@@ -442,9 +505,10 @@ test('Salesforce current-use catalogs belong to one exact refresh',
     const second = await currentUse.refreshPreflight({preflight: {marker: 2}});
     finishFirstRefresh();
     const first = await firstFlight;
-    assert.deepEqual(checkedRequests, [['first', 2], ['first', 1]]);
-    assert.equal(currentUse.catalogAt(first, 0).revision, 1);
-    assert.equal(currentUse.catalogAt(second, 0).revision, 2);
+    assert.equal(currentUse.catalogAt(first, 0), firstCatalog.observation);
+    assert.equal(currentUse.catalogAt(second, 0), secondCatalog.observation);
+    assert.deepEqual(first.capabilities, [capability.identity]);
+    assert.deepEqual(second.capabilities, [capability.identity]);
     assert.throws(() => currentUse.catalogAt({...first}, 0),
       {code: 'InvalidSalesforceEffectCurrentUse'});
   });
@@ -1606,6 +1670,13 @@ test(`two-member captured Effect Run ${
               checked(target)))};
       }) : undefined;
       const currentCatalogs = sites?.map(site => site.catalog.observation);
+      const productCapabilities = sites?.map((site, index) =>
+        issueSalesforceEffectCapability({moon: salesforceMoon,
+          requests: siteRequests[index],
+          currentObservation: currentCatalogs[index],
+          authorization: site.write, credential: site.credential,
+          collection: collectionMode && index === 0,
+          maxRows: 4, maxBytes: 20000}));
       let targetRead = 0;
       const observeCurrentTargets = ({signal} = {}) =>
         observeSalesforceTargetSet({moon: salesforceMoon,
@@ -1646,7 +1717,7 @@ test(`two-member captured Effect Run ${
         observations: previewTargetObservations?.[index],
         localResultArtifact: sourcePayload.localResultArtifact,
         sourceArtifact: sourcePayload.summary.artifact,
-        capabilityEvidenceCid: cid('d'),
+        capability: productCapabilities[index],
         requiredPermissions: ['write'],
         maxItems: 2, approval: 'none', previewStrength: 'full_diff',
       })) : undefined;
@@ -2186,24 +2257,23 @@ test(`two-member captured Effect Run ${
       ledger = openLedger();
       const observedRows = writeKind === 'create' ? [] :
         body.effects.flatMap(member => member.row_order);
-      const singleRoute = checked(
+      const routes = body.effects.map((member, index) => checked(
         moon.clientProgramEffectApplyCapabilityFromCodes(
-          cid('d'), 0, 0, 0, true, true, 2, 1));
-      const collectionRoute = collectionMode ? checked(
-        moon.clientProgramEffectApplyCapabilityFromCodes(
-          cid('d'), 1, 0, 0, true, false, 2, 1)) : undefined;
+          member.capability_evidence_cid,
+          collectionMode && index === 0 ? 1 : 0, 0, 0, true,
+          !(collectionMode && index === 0), 2, 1)));
       const sent = [];
       const preflight = {
         proofs: plans.map(plan => plan.proof),
         sources: [cid('c'), cid('c')],
         contracts: [mappingCid, mappingCid],
-        capabilities: [cid('d'), cid('d')],
+        capabilities: body.effects.map(member => member.capability_evidence_cid),
         authorities: [cid('e'), cid('e')],
         observedRows, guardVersions: writeKind === 'create' ? [] :
           previewGuardVersions?.flat() ?? observedRows.map(() => cid('6')),
         // D2.multi-allow: an account allow commits the two-member set
         // after whole-set preflight without a fabricated risk claim.
-        routes: [collectionRoute ?? singleRoute, singleRoute],
+        routes,
         risk: undefined,
         reviewProjectionCid: cid('a'),
         authorityScopeCid: cid('e'), policyCid: cid('a'),
@@ -2253,9 +2323,10 @@ test(`two-member captured Effect Run ${
           .filter(item => item.method === 'PATCH').length, 0);
       }
       const currentUse = siteRun ? installSalesforceEffectCurrentUse({
-        moon: salesforceMoon, observedRows,
+        moon: salesforceMoon, commonMoon: moon, observedRows,
         members: sites.map((site, index) => ({
           requests: siteRequests[index],
+          capability: productCapabilities[index],
           collectionRequest: collectionMode && index === 0
             ? collectionRequest : undefined,
           refreshCatalog: site.refreshCatalog,

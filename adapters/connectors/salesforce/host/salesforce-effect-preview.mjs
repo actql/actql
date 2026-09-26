@@ -1,4 +1,6 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {inspectSalesforceEffectCapability} from
+  '../site/salesforce-effect-capability.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -62,7 +64,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
           !Array.isArray(member.requests) ||
           !member.localResultArtifact ||
           !member.sourceArtifact ||
-          typeof member.capabilityEvidenceCid !== 'string' ||
+          !member.capability ||
           !Array.isArray(member.requiredPermissions) ||
           !Number.isSafeInteger(member.maxItems) ||
           member.maxItems < member.requests.length ||
@@ -76,6 +78,8 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
       }
       const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
         prepared, member.stageIndex, member.effectId, planLimits.maxWork));
+      const capability = inspectSalesforceEffectCapability(
+        member.capability, member.requests);
       if (descriptor._6 === undefined) {
         fail('MissingSalesforceEffectSourceResult');
       }
@@ -97,7 +101,7 @@ function productPreviewDraft({moon, control, prepared, inputs, context, members,
         result_artifact_cid: source._0,
         preview_strength: member.previewStrength,
         source_binding_cid: source._1,
-        capability_evidence_cid: member.capabilityEvidenceCid,
+        capability_evidence_cid: capability.identity,
         authority_scope_cid: requestAuthority,
         write_footprint: {
           kind: 'opaque', provider_boundary_cid: pendingCid,

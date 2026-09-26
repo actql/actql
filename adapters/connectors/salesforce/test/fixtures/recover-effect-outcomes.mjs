@@ -24,6 +24,8 @@ import {installSalesforceEffectCurrentUse} from
   '../../host/salesforce-effect-current-use.mjs';
 import {installSalesforceEffectDispatch} from
   '../../host/salesforce-effect-dispatch.mjs';
+import {issueSalesforceEffectCapability} from
+  '../../site/salesforce-effect-capability.mjs';
 import {applyRecoveredEffectSet} from '../../../../host-node/effect-run-apply.mjs';
 import {completeRecoveredEffectRun} from '../../../../host-node/entry.mjs';
 import {allowAllAuthorization} from '../../../../host-node/authorization-fixture.mjs';
@@ -185,34 +187,44 @@ try {
         reconciledResponse = true;
       } : undefined;
     const effects = previewBody.effects;
-    const currentUse = installSalesforceEffectCurrentUse({
-      moon: salesforceMoon,
-      observedRows: effects.flatMap(member => member.row_order),
-      members: activeSites.map((site, memberIndex) => ({
-        requests: recoveredSalesforce.requests[memberIndex],
-        refreshCatalog: async ({signal} = {}) => syncSalesforceCatalog({
-          moon: salesforceMoon, apiVersion: 'v62.0',
-          connectionRevision: 'connection-revision-a',
-          orgId: site.orgId, syncOccurrence: 'catalog-sync-restart',
-          maxObservationBytes: 10000,
-          listAuthorization: site.list,
-          authorizationForDescribe: async () => site.describe,
-          credential: site.credential,
-          listLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
-            maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
-          describeLimits: {maxBytes: 10000, maxNodes: 1000,
-            maxDepth: 20, maxFields: 20, maxNameUnits: 1000}, signal,
-        }),
-        target: {
-          authorizationForRow: async rowIndex => ({...site.observe,
-            useId: `${usePrefix}-observe-${rowIndex}`}),
-          credential: site.credential,
-          limits: {maxResponseBytes: 1024, maxNodes: 32,
-            maxDepth: 5, maxIdentityBytes: 4096},
-        },
-      })), maxMembers: effects.length, maxRows: input.maxRows,
-      maxTotalResponseBytes: 4096,
-    });
+    const prepareCurrentUse = () => {
+      const capabilities = activeSites.map((site, memberIndex) =>
+        issueSalesforceEffectCapability({moon: salesforceMoon,
+          requests: recoveredSalesforce.requests[memberIndex],
+          currentObservation: recoveredSalesforce.catalogs[memberIndex],
+          authorization: site.write, credential: site.credential,
+          maxRows: input.maxRows, maxBytes: 20000}));
+      return installSalesforceEffectCurrentUse({
+        moon: salesforceMoon, commonMoon: moon,
+        observedRows: effects.flatMap(member => member.row_order),
+        members: activeSites.map((site, memberIndex) => ({
+          requests: recoveredSalesforce.requests[memberIndex],
+          capability: capabilities[memberIndex],
+          refreshCatalog: async ({signal} = {}) => syncSalesforceCatalog({
+            moon: salesforceMoon, apiVersion: 'v62.0',
+            connectionRevision: 'connection-revision-a',
+            orgId: site.orgId, syncOccurrence: 'catalog-sync-restart',
+            maxObservationBytes: 10000,
+            listAuthorization: site.list,
+            authorizationForDescribe: async () => site.describe,
+            credential: site.credential,
+            listLimits: {maxBytes: 10000, maxNodes: 1000, maxDepth: 20,
+              maxResources: 20, maxSelected: 20, maxNameUnits: 1000},
+            describeLimits: {maxBytes: 10000, maxNodes: 1000,
+              maxDepth: 20, maxFields: 20, maxNameUnits: 1000}, signal,
+          }),
+          target: {
+            authorizationForRow: async rowIndex => ({...site.observe,
+              useId: `${usePrefix}-observe-${rowIndex}`}),
+            credential: site.credential,
+            limits: {maxResponseBytes: 1024, maxNodes: 32,
+              maxDepth: 5, maxIdentityBytes: 4096},
+          },
+        })), maxMembers: effects.length, maxRows: input.maxRows,
+        maxTotalResponseBytes: 4096,
+      });
+    };
+    let currentUse;
     const preflight = {
       sources: effects.map(member => member.source_binding_cid),
       contracts: effects.map(member => member.resolved_mapping_contract_cid),
@@ -249,8 +261,10 @@ try {
           resource: 'Test_Record__c',
         }))},
       reconcileStoredResponses,
-      refreshPreflight: ({signal}) =>
-        currentUse.refreshPreflight({signal, preflight}),
+      refreshPreflight: ({signal}) => {
+        currentUse = prepareCurrentUse();
+        return currentUse.refreshPreflight({signal, preflight});
+      },
       bindDispatch: ({members, subjectCid, signal}) => {
         assert.equal(subjectCid, previewBody.effect_preview_cid);
         const physicalLedger = input.faultAfterSavedResponse === true

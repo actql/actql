@@ -42,6 +42,8 @@ pub fn catalog_sync_resource(CatalogSync, String) -> Result[ResourceMetadata, Re
 
 pub fn catalog_sync_unavailable(CatalogSync, String, DescribeFailure) -> Result[Unit, CatalogSyncIssue]
 
+pub fn check_write_capability_request(WriteCapabilityEvidence, SingleWriteRequest, String) -> Result[Unit, WriteCapabilityIssue]
+
 pub fn described_field(ResourceMetadata, String) -> FieldMetadata?
 
 pub fn finish_catalog_sync(CatalogSync) -> Result[Unit, CatalogSyncIssue]
@@ -61,6 +63,8 @@ pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRe
 pub fn prepare_target_observation(SingleWriteRequest, Int, Bytes, TargetObservationLimits) -> Result[TargetObservation, TargetObservationIssue]
 
 pub fn prepare_write_body(WriteProjection, Bytes, WriteBodyLimits) -> Result[WriteBody, WriteBodyIssue]
+
+pub fn prepare_write_capability_evidence(SingleWriteRequest, String, WriteCapabilityRoute, Int) -> Result[WriteCapabilityEvidence, WriteCapabilityIssue]
 
 pub fn prepare_write_projection(CatalogObservation, CatalogObservationBinding, String, WriteOperation, Array[String], Int) -> Result[WriteProjection, WriteProjectionIssue]
 
@@ -121,6 +125,8 @@ pub fn read_projection_soql(ReadProjection) -> String
 pub fn recheck_read_projection(ReadProjection, CatalogObservation) -> Result[Unit, ReadProjectionIssue]
 
 pub fn recheck_single_write_request(SingleWriteRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
+
+pub fn recheck_write_capability(WriteCapabilityEvidence, CatalogObservation) -> Result[Unit, WriteCapabilityIssue]
 
 pub fn recheck_write_collection_request(WriteCollectionRequest, CatalogObservation) -> Result[Unit, WriteProjectionIssue]
 
@@ -191,6 +197,12 @@ pub fn with_exact_int_comparison(ReadProjection, String, ExactIntComparison, Int
 pub fn write_body_json(WriteBody) -> String
 
 pub fn write_body_projection(WriteBody) -> WriteProjection
+
+pub fn write_capability_body(WriteCapabilityEvidence) -> String
+
+pub fn write_capability_identity(WriteCapabilityEvidence) -> String
+
+pub fn write_capability_route(WriteCapabilityEvidence) -> WriteCapabilityRoute
 
 pub fn write_collection_bound_result_at(WriteCollectionResponse, Int) -> (String, WriteRowResult)?
 
@@ -520,6 +532,7 @@ pub(all) enum ResourceSelectionIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct SingleWriteRequest {
+  api_version : String
   verb : String
   path : String
   body : String
@@ -583,6 +596,29 @@ pub(all) struct WriteBodyLimits {
   max_nodes : Int
   max_depth : Int
 }
+
+pub struct WriteCapabilityEvidence {
+  projection : WriteProjection
+  fields : Map[String, FieldMetadata]
+  api_version : String
+  runtime_bundle_cid : String
+  route : WriteCapabilityRoute
+  body : String
+  cid : String
+}
+
+pub(all) enum WriteCapabilityIssue {
+  InvalidLimits
+  InvalidRuntime
+  ForeignRequest
+  OutputLimit
+  CurrentCatalog(WriteProjectionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum WriteCapabilityRoute {
+  SerialRows
+  ContinueCollection
+} derive(Eq, @debug.Debug)
 
 pub(all) struct WriteCollectionItem {
   row_preview_cid : String

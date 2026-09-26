@@ -35,6 +35,7 @@ pub(all) enum RecoveredWriteRequestIssue {
 /// Provider request material only; this is not a dispatch permit. Effect
 /// preview, apply admission, current grant, and durable intent come first.
 pub struct SingleWriteRequest {
+  api_version : String
   verb : String
   path : String
   body : String
@@ -425,6 +426,7 @@ pub fn prepare_single_write_request(
     path: prefix + suffix,
     body: text,
     kind,
+    api_version,
     projection,
     target,
     max_target_bytes: limits.max_target_bytes,
