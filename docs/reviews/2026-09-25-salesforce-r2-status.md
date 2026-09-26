@@ -5,9 +5,41 @@
 | Required view | Current boundary |
 | --- | --- |
 | User capability at completion | Submit a normal Program with at least two multi-row Salesforce Effect members; inspect or reconcile uncertain rows without resending known writes; read its separately named published Result; release private and public holdings after the last user. |
-| Remaining implementation and acceptance | The local public Client path now reaches formal publication and last-owner retirement, including response-loss and restart faults. Connect configured, nonfixture Host authorization and the Distribution-owned public Checkpoint projection for uncertain Runs. Connect the provider-owned list/search/inspect/resolve view to the public discovery surface and retained snapshots; implement authorized bounded peek. Verify declared read/write behavior against the isolated org when access is supplied. |
+| Remaining implementation and acceptance | Connected locally: configured Host authorization (installed Site profiles and one installed account gate issuing every record grant), public `needs_reconciliation` status and reconcile for uncertain Runs, and public discovery (list/search/inspect from the current or retained Catalog observation, authorized bounded peek). Remaining: verify declared read/write behavior against the isolated org when access is supplied. |
 | Cross-owner dependency | Distribution owns public Client Checkpoint projection and shared ingress; Connector owns Salesforce Site operations and consumes the delivered common compiler and Run-start owner. The isolated org, secret-manager reference and write permission have not been supplied; live-provider acceptance is unverified. |
 | Existing plan outside this unit | New providers, Cloud OAuth management, Bulk API, unrelated frontends or optimizers, fleet deployment and the separately managed performance work remain separate. This does not complete the original ten-Connector objective. |
+
+## Closure of the fixed unit (2026-09-26)
+
+- Configured Host authorization: `loadInstalledSalesforceSite` installs each
+  Site from a Host profile (org binding, credential authority key, sf CLI
+  secret reference). `installSalesforceAuthorization` installs one account gate
+  for the Host's Sites from the exact configuration text. Record grants are
+  issued only for a dispatch decision that gate returned for the same
+  connection, Resource and operation class; copied or constructed decisions
+  are refused. The Effect Site fixture and the main Effect commit now use this
+  installed gate; the test supplies only the local org and its secret.
+  Variant gates remain only where a test proves a denial.
+- Uncertain Runs: `issue_effect_reconciliation_run_state_wire` derives
+  `needs_reconciliation` from the complete admitted Effect Set and names
+  exactly the unknown Effects. When publication is refused for unknown
+  outcomes, the Host records that owner-issued state in the request journal
+  from the exact issued receipt set. Public `status` and `reconcile` answer
+  from the record, also after the Host is reinstalled over the reopened
+  journal, with one physical start and no further provider writes. This is a
+  Run state, not a Checkpoint: the protocol forbids a Checkpoint on a
+  `needs_reconciliation` Run and only a reconciliation receipt leaves it.
+  `run_unit` commit Checkpoints through the public Client remain outside this
+  unit.
+- Discovery: the public `resources`, `resource-inspect` and `resource-peek`
+  operations are served by `installSalesforceResourceService` from one current
+  Catalog observation per Site, restored from retained responses after a
+  restart without provider I/O. A preview needs its own read dispatch, syncs a
+  Catalog bound to its own dispatch, adds one `LIMIT`, reads one page under a
+  one-use query grant and returns a bounded prefix.
+- Still open: the isolated org, secret-manager reference and write
+  permission have not been supplied, so every live-provider cell stays
+  unverified.
 
 ## Current connection (2026-09-26)
 
@@ -841,7 +873,7 @@ following audit uses the current product entrypoints rather than test counts.
 | 1. Static Catalog closure | No pinned Salesforce Connector Catalog, SourceView, Command and lock closure is registered under `spec/`. The dynamic observation is not that static identity. | Define and independently vector-check only the capabilities that the product actually installs. |
 | 2. Resource Snapshot | `syncSalesforceCatalog` binds exact connection/authority and records partial Describe, truncation and retained responses. | Confirm metadata revision and provider behavior with the isolated org. |
 | 3. Metadata projection | MoonBit read/write projections use observed fields and constraints. | Carrier, relations, keys and per-column semantic capability coverage are not proven as a complete provider projection. |
-| 4. Discovery | The authorized provider view supplies list/search/inspect/resolve from one observation. | Public Resource discovery and bounded, separately authorized row peek are not connected. |
+| 4. Discovery | Public `resources`, `resource-inspect` and `resource-peek` over installed Sites; retained-snapshot restore; separately authorized bounded peek. | Live-org verification of discovery results and peek. |
 | 5. Supplied-snapshot planning | The resolver uses its supplied observation without network I/O and returns `catalog_required` for missing Resource/field facts. | The ordinary compiler profile remains source-free Values; external Acquisition planning is not connected. |
 | 6. Drift and refresh | Query and Effect Site paths refresh and recheck current Catalog/target authority before physical use. | Broader public replanning after changed connection/scope/schema is not demonstrated. |
 | 7. Declared execution | The local HTTPS path exercises query, single write and non-atomic Collections through their respective physical owners. | Static Catalog registration and complete candidate-to-cleanup coverage are not yet proven for all declared operations. |

@@ -159,3 +159,36 @@ if (lookup.kind === 'found') {
   const rows = await execution.result('answer').all();
 }
 ```
+
+## Unknown Effect outcomes
+
+A Run whose Effect writes may have reached the provider without a known
+outcome is never reported as succeeded or failed. `status()` reports
+`needs_reconciliation`, and `next_action` is `{kind: 'reconcile', effects}`
+naming exactly the Effects whose outcome is unknown. `reconcile()` returns the
+Run's current state after the Host's reconciliation attempt. Neither call
+resends a write, and a restarted Host reports the same state for the same
+request. Submitting the same request again returns the existing Run.
+
+## Resource discovery
+
+`resources(resourceConnection, {query, limit})` lists the Resources an
+installed Host connection shows to the caller, from the Host's current Catalog
+observation. `snapshotComplete`, `snapshotTruncated` and `resultTruncated` say
+whether the listing is the whole Catalog; a missing name is not evidence that
+a Resource is absent. `inspectResource(resourceConnection, resource)` returns
+typed metadata, or `catalog_required` with a reason when the Catalog cannot
+answer yet. Neither call reads business rows or grants reading or running
+anything.
+
+`peekResource(resourceConnection, resource, {fields, maxRows, maxBytes})` is
+authorized separately. It returns at most `maxRows` rows with exactly the
+requested `fields`; `limited` marks a prefix. A preview is display material,
+never a complete read, Acquisition evidence or a Result.
+
+```js
+const listing = await client.resources('salesforce:00D000000000001EAA',
+  {query: 'record'});
+const preview = await client.peekResource('salesforce:00D000000000001EAA',
+  'Test_Record__c', {fields: ['Id', 'Name'], maxRows: 5});
+```
