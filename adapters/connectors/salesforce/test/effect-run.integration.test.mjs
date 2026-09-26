@@ -1461,9 +1461,13 @@ test(`two-member captured Effect Run ${
     const requestJournal = openClientRequestJournal(requestJournalRoot);
     let physicalStarts = 0;
     let publishedRunDefinitionCid;
+    // The owner-issued reconciliation state of an unknown Run, and the
+    // provider writes observed when it was recorded.
+    let reconciled;
+    let observedWrites;
     const executeEffectRun = async ({owner: bound, prepared,
       compilation: effectCompilation, allowed, definition,
-      identity: clientRequest}) => {
+      identity: clientRequest, ref: clientRef}) => {
     physicalStarts++;
     const semanticInvocation = checked(
       moon.clientProgramIssueSourceFreeLocalEffectInvocation(
@@ -3193,6 +3197,14 @@ test(`two-member captured Effect Run ${
           now: () => '2026-09-24T00:00:03.000Z', signal: undefined,
         }), {code});
         assert.equal(await store.inspectCommittedIndex(key), undefined);
+        if (code === 'EffectfulRunNeedsReconciliation') {
+          // The Host records the owner's state for the public Client.
+          reconciled = runs.recordReconciliation(clientRef, {issuedSet,
+            ledger, preview: admittedPreview,
+            updatedAt: '2026-09-24T00:00:03.000Z'});
+          observedWrites = () => sites?.map(site => site.seen.filter(item =>
+            item.method !== 'GET').length) ?? [];
+        }
         assert.ok(await store.inspectPhysicalHolding(firstHolding.holdingCid));
         assert.ok(await store.inspectPhysicalHolding(secondHolding.holdingCid));
         const privateHoldingCid = control.effectPrivateEvidenceBinding(
@@ -3851,54 +3863,75 @@ test(`two-member captured Effect Run ${
     assert.equal(published, true);
     return published;
     };
-    const runs = installNodeClientEffectRun({
-      moon, publicationControl: control, journal: requestJournal,
-      authorizeRequest: async ({principalId, connection}) =>
-        principalId === 'principal-before-restart' &&
-        connection.mode === 'local' && connection.owner === 'local'
-          ? {executionContextCid: cid('a'), hostPolicyCid: cid('b'),
-            createdAt: '2026-09-24T00:00:00.000Z',
-            expiresAt: '2027-01-01T00:00:00.000Z'} : undefined,
-      authorizeRunStart: async ({principalId, connection}) =>
-        principalId === 'principal-before-restart' &&
-        connection.mode === 'local' && connection.owner === 'local',
-      execute: executeEffectRun,
-    });
-    const clientServer = createServer(createClientHttpHandler({
-      authenticate: header => header === 'Bearer scoped-token'
-        ? 'principal-before-restart' : undefined,
-      authorizeConnection: facts => facts.connection.mode === 'local' &&
-        facts.connection.owner === 'local',
-      negotiate: () => ({
-        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-        durability: 'durable', scopeRef: 'principal-before-restart',
-        capabilities: ['result-jsonl'],
-        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
-          maxRowRetainedValueBytes: 1024,
-          maxRetainedValueBytes: 4096, maxRows: 100,
-          maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
-      }),
-      prepareSubmit: prepareProgram,
-      submit: async ({preparedProgram, requestId, principalId,
-        connection}) => {
-        const accepted = await runs.accept({
-          prepared: preparedProgram, authorityScopeCid: cid('e'),
-          requestId, tenantId: 'tenant-a', principalId, connection,
-          lookupExpiresAt: '2027-01-01T00:00:00.000Z',
-        });
-        const started = await runs.start(accepted);
-        assert.ok(started.kind === 'started' ||
-          started.kind === 'reconcile');
-        return {ref: accepted.ref, durability: accepted.durability,
-          revision: accepted.revision};
-      },
-    }));
-    await new Promise(resolve => clientServer.listen(0, '127.0.0.1',
-      resolve));
-    try {
-      const client = await connectClient({mode: 'local', owner: 'local',
-        endpoint: `http://127.0.0.1:${clientServer.address().port}/`,
+    // One installation of the public Host over a request journal. A later
+    // installation over the reopened journal plays a fresh Host process.
+    const installPublicHost = journal => {
+      const installed = installNodeClientEffectRun({
+        moon, publicationControl: control, journal,
+        authorizeRequest: async ({principalId, connection}) =>
+          principalId === 'principal-before-restart' &&
+          connection.mode === 'local' && connection.owner === 'local'
+            ? {executionContextCid: cid('a'), hostPolicyCid: cid('b'),
+              createdAt: '2026-09-24T00:00:00.000Z',
+              expiresAt: '2027-01-01T00:00:00.000Z'} : undefined,
+        authorizeRunStart: async ({principalId, connection}) =>
+          principalId === 'principal-before-restart' &&
+          connection.mode === 'local' && connection.owner === 'local',
+        execute: executeEffectRun,
+      });
+      // Status and reconcile of an unpublished Run answer only from the
+      // recorded owner state; they never start, send or relabel anything.
+      const recorded = async ({ref}) => {
+        const state = installed.reconciliation(ref);
+        if (state === undefined) {
+          throw Object.assign(new Error('ResultUnavailable'),
+            {code: 'ResultUnavailable'});
+        }
+        return state;
+      };
+      const server = createServer(createClientHttpHandler({
+        authenticate: header => header === 'Bearer scoped-token'
+          ? 'principal-before-restart' : undefined,
+        authorizeConnection: facts => facts.connection.mode === 'local' &&
+          facts.connection.owner === 'local',
+        negotiate: () => ({
+          version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'principal-before-restart',
+          capabilities: ['result-jsonl'],
+          limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+            maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 100,
+            maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
+        }),
+        prepareSubmit: prepareProgram,
+        submit: async ({preparedProgram, requestId, principalId,
+          connection}) => {
+          const accepted = await installed.accept({
+            prepared: preparedProgram, authorityScopeCid: cid('e'),
+            requestId, tenantId: 'tenant-a', principalId, connection,
+            lookupExpiresAt: '2027-01-01T00:00:00.000Z',
+          });
+          const started = await installed.start(accepted);
+          assert.ok(started.kind === 'started' ||
+            started.kind === 'reconcile');
+          return {ref: accepted.ref, durability: accepted.durability,
+            revision: accepted.revision};
+        },
+        observeRun: recorded, reconcile: recorded,
+      }));
+      return {installed, server};
+    };
+    const serve = async server => {
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      return await connectClient({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${server.address().port}/`,
         token: 'scoped-token', durability: 'durable'});
+    };
+    const {installed: runs, server: clientServer} =
+      installPublicHost(requestJournal);
+    let reconcileRef;
+    try {
+      const client = await serve(clientServer);
       try {
         let run;
         if (loseClientReply) {
@@ -3919,10 +3952,52 @@ test(`two-member captured Effect Run ${
           requestId: 'complete-two-effects-request'});
         assert.deepEqual(replay.ref, run.ref);
         assert.equal(physicalStarts, 1);
+        if (reconciled !== undefined) {
+          // An unknown Effect outcome is reported, never success or failure,
+          // and neither status nor reconcile sends a write.
+          const writes = observedWrites();
+          const state = await run.status();
+          assert.equal(state.status, 'needs_reconciliation');
+          assert.equal(state.result_available, false);
+          assert.deepEqual(state.next_action, reconciled.next_action);
+          assert.ok(state.next_action.effects.length > 0);
+          assert.deepEqual(await run.reconcile(), state);
+          assert.deepEqual(observedWrites(), writes);
+          reconcileRef = run.ref;
+        }
       } finally { client.close(); }
     } finally {
       await new Promise(resolve => clientServer.close(resolve));
       requestJournal.close();
+    }
+    // Every Run that kept an unknown outcome was reported through the Client.
+    assert.equal(reconcileRef !== undefined, reconciled !== undefined);
+    if (unknownAfterClaim || processUnknownIntent || rateLimitWrite) {
+      assert.notEqual(reconciled, undefined);
+    }
+    if (reconcileRef !== undefined) {
+      // A fresh Host over the reopened journal answers the same state for
+      // the same request without starting or sending anything.
+      const writes = observedWrites();
+      const reopened = openClientRequestJournal(requestJournalRoot);
+      const {server} = installPublicHost(reopened);
+      try {
+        const client = await serve(server);
+        try {
+          const run = await client.aql(document, {format: 'json',
+            requestId: 'complete-two-effects-request'});
+          assert.deepEqual(run.ref, reconcileRef);
+          const state = await run.status();
+          assert.equal(state.status, 'needs_reconciliation');
+          assert.deepEqual(state.next_action, reconciled.next_action);
+          assert.deepEqual(await run.reconcile(), state);
+          assert.equal(physicalStarts, 1);
+          assert.deepEqual(observedWrites(), writes);
+        } finally { client.close(); }
+      } finally {
+        await new Promise(resolve => server.close(resolve));
+        reopened.close();
+      }
     }
   });
 }
