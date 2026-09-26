@@ -1,0 +1,144 @@
+// Public Resource discovery over installed Salesforce Sites. Each Site answers
+// from one current Catalog observation of that Site, installed by a sync or
+// restored from its retained responses. Listing and inspection check current
+// read disclosure per Resource; a preview needs its own read dispatch. The
+// caller must be the principal the Site was installed for.
+import {createHash} from 'node:crypto';
+import {installSalesforceResourceDiscovery} from
+  './salesforce-resource-discovery.mjs';
+import {recoverRetainedSalesforceCatalog} from
+  '../site/salesforce-catalog-recovery.mjs';
+
+const fail = (code, cause) => {
+  throw Object.assign(new Error(code, {cause}), {code});
+};
+const cid = value => `sha256:${createHash('sha256')
+  .update(JSON.stringify(value)).digest('hex')}`;
+const utf8Bytes = text => Buffer.byteLength(text, 'utf8');
+// Denials and malformed Resource names keep their public meaning; nothing is
+// revealed about why a Resource is not visible.
+const denied = (code, error) => {
+  if (error?.code === 'ExecutionAuthorizationDenied' ||
+      error?.code === 'SalesforcePeekNotAuthorized') fail(code, error);
+  if (error?.code === 'InvalidSalesforceResourceDiscovery' ||
+      error?.code === 'InvalidSalesforcePeek') fail('InvalidClientRequest', error);
+  throw error;
+};
+
+export function installSalesforceResourceService({salesforceMoon, sites,
+  maxRetainedBytes = 8_000_000}) {
+  if (salesforceMoon === undefined || !Array.isArray(sites) ||
+      sites.length === 0 || !Number.isSafeInteger(maxRetainedBytes) ||
+      maxRetainedBytes < 1) {
+    fail('InvalidSalesforceResourceService');
+  }
+  const byConnection = new Map(sites.map(site => [site.connection, site]));
+  if (byConnection.size !== sites.length) {
+    fail('InvalidSalesforceResourceService');
+  }
+  const current = new Map();
+  const install = (site, catalog) => {
+    const binding = JSON.parse(catalog.observationJson).binding;
+    const discovery = installSalesforceResourceDiscovery({
+      moon: salesforceMoon, catalog, binding,
+      authorization: site.authorization, connection: site.connection});
+    const held = Object.freeze({catalog, discovery});
+    current.set(site.connection, held);
+    return held;
+  };
+  const siteFor = (principalId, resourceConnection) => {
+    const site = byConnection.get(resourceConnection);
+    if (site === undefined) fail('ResourceConnectionNotFound');
+    if (principalId !== site.principal) fail('ResourceDiscoveryDenied');
+    return site;
+  };
+
+  // Install a new current observation of one Site. Its retained responses
+  // are the snapshot a restarted Host restores without provider I/O.
+  async function refresh(resourceConnection, {signal} = {}) {
+    const site = byConnection.get(resourceConnection);
+    if (site === undefined) fail('ResourceConnectionNotFound');
+    const catalog = await site.refreshCatalog({retainResponses: true,
+      maxRetainedBytes, signal});
+    if (catalog.status === 'interrupted') fail('ResourceCatalogUnavailable');
+    install(site, catalog);
+    return Object.freeze({resourceConnection,
+      observationCid: catalog.observationCid,
+      retained: catalog.retainedResponses});
+  }
+
+  // Restore one Site's observation from its retained snapshot. The MoonBit
+  // owner must reproduce the exact observation CID; no credential is used.
+  function restore(resourceConnection, {retained, observationCid}) {
+    const site = byConnection.get(resourceConnection);
+    if (site === undefined) fail('ResourceConnectionNotFound');
+    const catalog = recoverRetainedSalesforceCatalog({moon: salesforceMoon,
+      retained, expectedObservationCid: observationCid, maxRetainedBytes});
+    install(site, catalog);
+    return catalog.observationCid;
+  }
+
+  async function discoveryFor(principalId, resourceConnection, signal) {
+    const site = siteFor(principalId, resourceConnection);
+    const held = current.get(resourceConnection) ??
+      (await refresh(resourceConnection, {signal}),
+      current.get(resourceConnection));
+    return {site, discovery: held.discovery};
+  }
+
+  return Object.freeze({
+    refresh, restore,
+    // Public `resources`: one bounded page of visible Resource names.
+    async resources({principalId, resourceConnection, query, limit, signal}) {
+      const {discovery} = await discoveryFor(principalId, resourceConnection,
+        signal);
+      let listing;
+      try {
+        listing = await discovery.list({query, maxResults: limit, signal});
+      } catch (error) { denied('ResourceDiscoveryDenied', error); }
+      return Object.freeze({resourceConnection, ...listing});
+    },
+    // Public `resource-inspect`: typed metadata or the Catalog reason.
+    async inspectResource({principalId, resourceConnection, resource,
+      maxBytes, signal}) {
+      const {discovery} = await discoveryFor(principalId, resourceConnection,
+        signal);
+      let inspected;
+      try {
+        inspected = await discovery.inspect({resource,
+          maxSummaryBytes: maxBytes, signal});
+      } catch (error) { denied('ResourceDiscoveryDenied', error); }
+      if (inspected.status !== 'ready') {
+        return Object.freeze({resourceConnection, resource,
+          observationCid: inspected.observationCid,
+          status: inspected.status, reason: inspected.reason});
+      }
+      const summaryJson = JSON.stringify(inspected.summary);
+      if (utf8Bytes(summaryJson) > maxBytes) fail('ResourceInspectionTooLarge');
+      return Object.freeze({resourceConnection, resource,
+        observationCid: inspected.observationCid, status: 'ready',
+        summaryJson});
+    },
+    // Public `resource-peek`: a separately authorized bounded prefix.
+    async peekResource({principalId, resourceConnection, resource, fields,
+      maxRows, maxBytes, signal}) {
+      const site = siteFor(principalId, resourceConnection);
+      const decision = await site.authorization.authorize('acquisition', {
+        connection: site.connection, resource, operation: 'read'}, {
+        subjectCid: cid({version: 'actql-resource-peek-request/0.1',
+          principalId, resourceConnection, resource, fields, maxRows}),
+        signal});
+      if (decision.action !== 'dispatch') fail('ResourcePeekDenied');
+      let preview;
+      try {
+        preview = await site.peek({decision, resource, fields, maxRows,
+          maxBytes, signal});
+      } catch (error) { denied('ResourcePeekDenied', error); }
+      const rowsJson = JSON.stringify(preview.rows);
+      if (utf8Bytes(rowsJson) > maxBytes) fail('ResourcePeekTooLarge');
+      return Object.freeze({resourceConnection, resource,
+        observationCid: preview.observationCid,
+        fields: preview.fields, rowsJson, limited: preview.limited});
+    },
+  });
+}

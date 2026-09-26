@@ -158,6 +158,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     credentialAuthorities: new Map([[profile.credentialAuthorityId,
       new Map([[profile.credentialKeyId, createPublicKey(privateKey)]])]]),
   });
+  let closed = false;
   const credential = Object.freeze({orgId: profile.orgId, control, journal,
     resolveSecret: secret, ca, now});
 
@@ -339,6 +340,10 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectionRevision: profile.connectionRevision,
     principal: principalId, context, authorization, credential,
     issueGrant, refreshCatalog, peek,
-    close() { journal.close(); },
+    close() {
+      if (closed) return;
+      closed = true;
+      journal.close();
+    },
   });
 }
