@@ -343,6 +343,8 @@ pub fn native_host_document(@acquisition.DuckDBNativeObservation) -> String
 
 pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
 
+pub fn native_host_issue_source_evidence(@host.NativeHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
+
 pub fn native_host_measurement_usage(@acquisition.DuckDBNativeObservation) -> Array[Int]
 
 pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NodeHostFailure
@@ -364,6 +366,14 @@ pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFa
 pub fn native_host_receipt_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
 
 pub fn native_host_record_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
+
+pub fn native_host_source_capture(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @host.NativeHostSourceCapture raise NodeHostFailure
+
+pub fn native_host_source_capture_identity_matches(@host.NativeHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn native_host_source_capture_source(@host.NativeHostSourceCapture) -> @execution_query.CapturedInputSource raise NodeHostFailure
+
+pub fn native_host_source_capture_source_ref(@host.NativeHostSourceCapture) -> String?
 
 pub fn native_host_sql(NativeNodeRun, Int) -> String raise NodeHostFailure
 
@@ -459,6 +469,7 @@ pub fn retained_frames_prepare(Int, Int, Int, Int, Int) -> @run_publication.Dura
 
 // Errors
 pub(all) suberror NodeHostFailure {
+  SourceEvidence(@host.NativeSourceEvidenceIssue)
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)
   Compute(@compute.DuckDBComputeIssue)
