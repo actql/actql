@@ -17,6 +17,7 @@ struct TaskExecution {
   attempt : @execution.ManagedExecutionAttempt
   numeric : Array[TaskNumericReduction]
   numeric_captures : Array[TaskNumericCapture]
+  numeric_pending : Array[TaskNumericExecution]
   numeric_occurrence_counts : Array[Int?]
   mut numeric_sealed : Bool
 }
@@ -276,6 +277,7 @@ pub fn[I, T] start_captured_managed_execution(
         attempt: @execution.issue_managed_execution_attempt(),
         numeric,
         numeric_captures: [],
+        numeric_pending: [],
         numeric_occurrence_counts: Array::make(numeric.length(), None),
         numeric_sealed: false,
       }
@@ -429,6 +431,7 @@ fn[T] start_task_execution(
         attempt: @execution.issue_managed_execution_attempt(),
         numeric: [],
         numeric_captures: [],
+        numeric_pending: [],
         numeric_occurrence_counts: [],
         numeric_sealed: true,
       }
@@ -495,44 +498,27 @@ pub fn execute_task_numeric_reduction_for_slot(
   expected_count : Int,
   max_work : Int,
 ) -> Result[@numeric.Outcome, @numeric.ReductionIssue]? {
-  if !task_execution_matches(run, execution) ||
-    execution.disposed ||
-    execution.numeric_sealed ||
-    occurrence < 0 {
-    return None
+  let pending = match
+    start_task_numeric_reduction_for_slot(
+      run, execution, step, name, occurrence, contributors, expected_count, max_work,
+    ) {
+    None => return None
+    Some(Err(issue)) => return Some(Err(issue))
+    Some(Ok(pending)) => pending
   }
-  let mut selected_index = None
-  for index, selected in execution.numeric {
-    if selected.observation.step == step && selected.observation.name == name {
-      if selected_index is Some(_) {
+  while true {
+    match advance_task_numeric_reduction(run, pending) {
+      None => {
+        close_task_numeric_reduction(run, pending) |> ignore
         return None
       }
-      selected_index = Some(index)
+      Some(Err(issue)) => return Some(Err(issue))
+      Some(Ok(None)) => ()
+      Some(Ok(Some(outcome))) => return Some(Ok(outcome))
     }
-  }
-  guard selected_index is Some(index) else { return None }
-  if !numeric_reduction_slot_open(execution.numeric_occurrence_counts, index) {
-    return None
-  }
-  if execution.numeric_captures.any(capture => {
-      capture.selected == index && capture.occurrence == occurrence
-    }) {
-    return None
-  }
-  let selected = execution.numeric[index]
-  match
-    @numeric.execute(
-      selected.reduction,
-      selected.observation.operation,
-      contributors,
-      expected_count,
-      max_work,
-    ) {
-    Err(issue) => Some(Err(issue))
-    Ok(outcome) => {
-      execution.numeric_captures.push({ selected: index, occurrence, outcome, })
-      Some(Ok(outcome))
-    }
+  } nobreak {
+    close_task_numeric_reduction(run, pending) |> ignore
+    None
   }
 }
 
@@ -566,6 +552,9 @@ pub fn seal_task_numeric_reduction_slot(
     execution.numeric_occurrence_counts[selected] is None else {
     return false
   }
+  if execution.numeric_pending.any(pending => pending.selected == selected) {
+    return false
+  }
   let mut count = 0
   for capture in execution.numeric_captures {
     if capture.selected == selected {
@@ -592,6 +581,7 @@ pub fn seal_task_numeric_reductions(
   if !task_execution_matches(run, execution) ||
     execution.disposed ||
     execution.numeric_sealed ||
+    !execution.numeric_pending.is_empty() ||
     execution.numeric_occurrence_counts.any(value => value is None) {
     return false
   }
@@ -897,6 +887,11 @@ pub fn close_task_execution(
     stop_captured_dag(run)
   }
   execution.disposed = true
+  for pending in execution.numeric_pending {
+    @numeric.close_reduction(pending.state)
+    pending.closed = true
+  }
+  execution.numeric_pending.clear()
   execution.retained_bytes = None
   task_execution_dispose(execution)
   close_captured_task_output(run, execution.task)
