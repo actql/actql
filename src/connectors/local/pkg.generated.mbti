@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn advance_local_materializing_attempt(LocalMaterializingAttempt, Int) -> Result[LocalMaterializingAdvance, LocalMaterializingIssue]
+
 pub fn advance_managed_provider(ManagedProviderExecution, Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
 pub fn append_local_materializing_input(LocalMaterializingAttempt, Int, String) -> Result[Unit, LocalMaterializingIssue]
@@ -18,6 +20,8 @@ pub fn begin_local_materializing_input(LocalMaterializingAttempt, Int) -> Result
 pub fn begin_local_output_export(LocalMaterializingAttempt) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn bind_local_output_export(LocalMaterializingAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, LocalMaterializingIssue]
+
+pub fn cancel_local_materializing_attempt(LocalMaterializingAttempt) -> Bool
 
 pub fn cancel_managed_provider(ManagedProviderExecution) -> Bool
 
@@ -39,6 +43,8 @@ pub fn finish_local_output_export(LocalMaterializingAttempt) -> Result[(@executi
 
 pub fn install_local_export_retention(LocalMaterializingAttempt, () -> Bool) -> Result[Unit, LocalMaterializingIssue]
 
+pub fn local_default_import_limits(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> LocalImportLimits
+
 pub fn local_export_retention_capacity(LocalExportLimits) -> Int64?
 
 pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
@@ -54,6 +60,8 @@ pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execu
 pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
+
+pub fn local_materializing_stopped(LocalMaterializingAttempt) -> Bool
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -107,7 +115,7 @@ pub fn prepare_local_compute_execution(@connector_sdk.FixedComputeChoice, @conne
 
 pub fn prepare_local_compute_module(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[ManagedProvider]) -> Result[LocalComputeModule, @connector_sdk.FixedComputeIssue]
 
-pub fn[E] prepare_local_materializing_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, LocalImportLimits, (LocalMaterializingIssue) -> E, join_output_ceiling? : (Int, Int64)?, output_limits? : LocalExportLimits?, join_output_ceilings? : Array[(Int, Int64)]) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E], LocalMaterializingIssue]
+pub fn[E] prepare_local_materializing_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, LocalImportLimits, (LocalMaterializingIssue) -> E, join_output_ceiling? : (Int, Int64)?, output_limits? : LocalExportLimits?, join_output_ceilings? : Array[(Int, Int64)], interval_search_ceilings? : Array[(Int, Int64)], asof_search_ceilings? : Array[(Int, Int64)], aggregate_output_ceilings? : Array[@connector_sdk.AggregateOutputCeiling], analytic_envelopes? : Array[@connector_sdk.AnalyticEnvelope], family_providers? : Array[ManagedProvider], provider_capacity? : @connector_sdk.FixedComputeCapacity?) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E], LocalMaterializingIssue]
 
 pub fn prepare_local_module_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, (Int, Int64)?, join_output_ceilings? : Array[(Int, Int64)]) -> Result[@connector_sdk.SynchronousCompute, LocalModuleIssue]
 
@@ -115,7 +123,7 @@ pub fn[T] prepare_local_module_managed_compute(LocalComputeModule, Int, @connect
 
 pub fn[T] prepare_local_module_managed_compute_with_estimates(LocalComputeModule, Int, @connector_sdk.ManagedFixedComputeRequest[T], Array[@physical_cost.SerialEstimateLine], interval_search_ceilings? : Array[(Int, Int64)], asof_search_ceilings? : Array[(Int, Int64)]) -> Result[(@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.ManagedFixedComputeChoice[T]), LocalModuleIssue]
 
-pub fn[E] prepare_local_module_materializing_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, LocalImportLimits, (LocalMaterializingIssue) -> E, (Int, Int64)?, output_limits? : LocalExportLimits?, join_output_ceilings? : Array[(Int, Int64)]) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E], LocalModuleIssue]
+pub fn[E] prepare_local_module_materializing_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, LocalImportLimits, (LocalMaterializingIssue) -> E, (Int, Int64)?, output_limits? : LocalExportLimits?, join_output_ceilings? : Array[(Int, Int64)], interval_search_ceilings? : Array[(Int, Int64)], asof_search_ceilings? : Array[(Int, Int64)], aggregate_output_ceilings? : Array[@connector_sdk.AggregateOutputCeiling], analytic_envelopes? : Array[@connector_sdk.AnalyticEnvelope]) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E], LocalModuleIssue]
 
 pub fn start_managed_provider(ManagedProvider, @execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
 
@@ -143,6 +151,12 @@ pub(all) struct LocalImportLimits {
   wire : @execution_relation.RowWireLimits
   row : @execution_relation.RetainedRowDecodeLimits
   max_batch_bytes : Int
+}
+
+pub(all) struct LocalMaterializingAdvance {
+  complete : Bool
+  progress : Int64
+  work : Int64
 }
 
 type LocalMaterializingAttempt

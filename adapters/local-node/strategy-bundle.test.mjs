@@ -18,6 +18,12 @@ import {beginExecutionSiteTeardown, createInProcessExecutionSite,
 import * as portableRuntime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
+const completedAdvance = run => () => {
+  const result = run();
+  return result?.$tag === 1
+    ? {$tag: 1, _0: {complete: true, progress: 0n, work: 0n}} : result;
+};
+
 const siteControl = createExecutionSiteControlFixture();
 const ok = value => ({$tag: 1, _0: value});
 const failed = value => ({$tag: 0, _0: value});
@@ -33,7 +39,7 @@ function installed(consume, completionFailure, options = {}) {
       append: row => { events.push(['row', row]); return ok(); },
       finish: () => { events.push('verified'); return ok(); },
     }],
-    execute: () => { events.push('execute'); return ok(); },
+    advance: completedAdvance(() => { events.push('execute'); return ok(); }),
     guard_usage: () => options.guardUsage ?? [12, 34, 5],
     settle: () => { events.push('settle'); return ok(); },
     complete: () => {
@@ -90,10 +96,10 @@ test('standard Local legacy completion observes forced Site loss', async () => {
     let completed = false, completionCalls = 0;
     const operations = {
       inputs: [],
-      execute() {
+      advance() {
         if (forced) revokeExecutionSite(selectedSite);
         else beginExecutionSiteTeardown(selectedSite);
-        return ok();
+        return ok({complete: true, progress: 0n, work: 0n});
       },
       settle: () => ok(),
       guard_usage: () => [0, 0, 0],

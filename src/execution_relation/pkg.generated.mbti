@@ -82,6 +82,8 @@ pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
 
+pub fn anchor_completed_output_inputs(CompletedOutput, Array[ProducerRead]) -> CompletedOutput?
+
 pub fn append_admitted_input(AdmittedInput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
 
 pub fn append_admitted_output(AdmittedOutput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]

@@ -9,7 +9,7 @@ import {
 }
 
 // Values
-pub fn configure_subset(@physical_strategy.CapturedDAG, Array[@execution_relation.GeneratedSequence], Int, managed_providers? : Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+pub fn configure_subset(@physical_strategy.CapturedDAG, Array[@execution_relation.GeneratedSequence], Int, managed_providers? : Array[@local.ManagedProvider], retained_output? : Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 // Errors
 

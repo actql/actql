@@ -78,6 +78,33 @@ pub fn strategy_fixture_module_subset(
 }
 
 ///|
+/// Local-only subset with a configured retained Store output: every Local task
+/// runs through the retained-output driver.
+#export_name("strategyFixtureRetainedLocalSubset")
+pub fn strategy_fixture_retained_local_subset(
+  f : StrategyFixture,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
+  let generated = Array::makei(@strategy.graph_task_count(f.graph) - 1, i => {
+    fixture_generated_with_ordered(
+      @strategy.graph_task_owner(f.graph, i + 1).unwrap(),
+      f.registry_json,
+      f.values_json,
+      f.fragment_json,
+      true,
+      f.ordered_json,
+    ) catch {
+      _ => abort("invalid fixture generation for task " + (i + 1).to_string())
+    }
+  })
+  @connector_gate.configure_subset(
+    f.run.unwrap(),
+    generated,
+    0,
+    retained_output=true,
+  )
+}
+
+///|
 /// Explicit SGA-enabled conformance artifact. The ordinary module subset does
 /// not import or install this family provider.
 #export_name("strategyFixtureSgaSubset")

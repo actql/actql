@@ -353,6 +353,8 @@ pub fn strategy_fixture_resident_cleanup_dispatch(StrategyFixture) -> @connector
 
 pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
+
 pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_run(StrategyFixture) -> @physical_strategy.CapturedDAG

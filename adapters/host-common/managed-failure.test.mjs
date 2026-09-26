@@ -23,6 +23,12 @@ import {createInProcessExecutionSite, prepareExecutionSitePolicy} from
 import {createExecutionSiteControlFixture} from
   './execution-site-control.fixture.mjs';
 
+const completedAdvance = run => () => {
+  const result = run();
+  return result?.$tag === 1
+    ? {$tag: 1, _0: {complete: true, progress: 0n, work: 0n}} : result;
+};
+
 const ok = _0 => ({$tag: 1, _0});
 const failed = _0 => ({$tag: 0, _0});
 const siteControl = createExecutionSiteControlFixture();
@@ -58,7 +64,7 @@ function managedCase(factory, prefix, provider, overrides = {}) {
   );
   const operations = {
     inputs: [{input, append: () => ok(), finish: () => ok()}],
-    execute: () => ok(),
+    execute: () => ok(), advance: completedAdvance(() => ok()),
     settle: () => { events.push('settle'); return ok(); },
     complete: () => ok({}),
     material: () => ({}),
@@ -128,7 +134,7 @@ for (const [name, factory, prefix] of [
         factory,
         prefix,
         {async read() { if (phase === 'read') throw primary; }},
-        phase === 'execute' ? {execute: () => failed(primary)} : {},
+        phase === 'execute' ? {execute: () => failed(primary), advance: completedAdvance(() => failed(primary))} : {},
       );
       await assert.rejects(f.entry.runPrepared(f.prepared), error =>
         phase === 'read' ? error === primary :
@@ -229,7 +235,8 @@ for (const [name, factory, prefix] of [
       };
       const f = managedCase(factory, prefix, provider, {
         execute: () => phase === 'evaluation-budget'
-          ? failed(primary) : ok(),
+          ? failed(primary) : ok(), advance: completedAdvance(() => phase === 'evaluation-budget'
+          ? failed(primary) : ok()),
         settle: () => {
           f.events.push('settle');
           reservedExecutionBytes = 0n;
@@ -348,7 +355,7 @@ test('standard file-to-Local cancellation closes the real read before settlement
       },
       finish: () => ok(),
     }],
-    execute: () => ok(),
+    execute: () => ok(), advance: completedAdvance(() => ok()),
     settle: () => {
       events.push(['settle-readers', store.status().activeReaders]);
       reservedExecutionBytes = 0n;
@@ -480,7 +487,7 @@ for (const [name, factory, prefix] of [
         append: () => ok(),
         finish: () => { events.push('finish'); return ok(); },
       }],
-      execute: () => { events.push('execute'); return ok(); },
+      execute: () => { events.push('execute'); return ok(); }, advance: completedAdvance(() => { events.push('execute'); return ok(); }),
       settle: () => {
         events.push('settle');
         reservedExecutionBytes = 0n;

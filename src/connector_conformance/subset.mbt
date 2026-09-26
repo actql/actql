@@ -7,6 +7,7 @@ pub fn configure_subset(
   sequences : Array[@execution.GeneratedSequence],
   mode : Int,
   managed_providers? : Array[@local.ManagedProvider] = [],
+  retained_output? : Bool = false,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] {
   if mode < 0 || mode > 2 {
     abort("invalid conformance configuration")
@@ -72,7 +73,13 @@ pub fn configure_subset(
             measurement,
             max_work: 100,
           },
-          _ => @strategy.RunIssue::ForeignCandidate,
+          issue => match issue {
+            @local_driver.Configuration(value) => @strategy.RunIssue::Compute(value)
+            @local_driver.Execution(value) => value
+            @local_driver.Preparation(Materializing(Candidate(value))) =>
+              @strategy.RunIssue::Compute(value)
+            _ => @strategy.RunIssue::ForeignCandidate
+          },
           _ => @strategy.RunIssue::ForeignCandidate,
         ),
       )
@@ -136,6 +143,25 @@ pub fn configure_subset(
       },
       Some(1L),
     ).unwrap()
+    // A retained Store output selects the Local retained-output driver.
+    if retained_output {
+      @local_driver.configure_local_retained_output(
+        @builtin.configured_local_module(modules).unwrap(),
+        {
+          max_rows: 100,
+          values,
+          wire: {
+            max_columns: 100,
+            max_order_work: 10000,
+            max_bytes: 10000,
+            max_nodes: 10000,
+            max_depth: 64,
+          },
+          max_batch_bytes: 10000,
+        },
+        Some(1L),
+      ).unwrap()
+    }
     let schedule = @cost.prepare_rate_schedule(
       @builtin.local_estimate_work_slots(),
       [

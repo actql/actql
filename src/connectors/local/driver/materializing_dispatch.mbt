@@ -49,6 +49,9 @@ pub struct LocalDispatchOperations {
   inputs : Array[LocalInputTransfer]
   output : LocalOutputTransfer?
   execute : () -> Result[Unit, LocalDispatchIssue]
+  advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  request_cancel : () -> Bool
+  execution_stopped : () -> Bool
   guard_usage : () -> Array[Int]
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
@@ -68,21 +71,6 @@ pub fn[C, E] start_local_dispatch(
   let run = installed.run
   let index = @host.prepared_task_index(task)
   match plan {
-    Synchronous(compute) => {
-      match @strategy.execute_captured_synchronous_task(run, index, compute) {
-        Err(issue) => return Err(Execution(issue))
-        Ok(_) => ()
-      }
-      Ok({
-        inputs: [],
-        output: None,
-        execute: () => Ok(()),
-        guard_usage: () => [],
-        settle: () => Ok(()),
-        complete: () => Ok(()),
-        close: fn() {  },
-      })
-    }
     Materializing(prepared, limits, output_limits) => {
       let (attempt, ticket) = match
         @strategy.start_captured_materializing_execution(run, index, prepared) {
@@ -140,9 +128,20 @@ pub fn[C, E] start_local_dispatch(
         }),
         execute: () => {
           @local.execute_local_materializing_attempt(attempt).map_err(issue => {
-            Preparation(Materializing(issue))
+            local_materializing_issue(attempt, issue)
           })
         },
+        advance: quantum => {
+          @local.advance_local_materializing_attempt(attempt, quantum)
+          .map(value => {
+            complete: value.complete,
+            progress: value.progress,
+            work: value.work,
+          })
+          .map_err(issue => local_materializing_issue(attempt, issue))
+        },
+        request_cancel: () => @local.cancel_local_materializing_attempt(attempt),
+        execution_stopped: () => @local.local_materializing_stopped(attempt),
         guard_usage: () => {
           match @local.local_materializing_guard_usage(attempt) {
             Some((work, bytes, nodes)) => [work, bytes, nodes]
@@ -167,5 +166,18 @@ pub fn[C, E] start_local_dispatch(
         close: fn() { @strategy.close_task_execution(run, ticket) },
       })
     }
+  }
+}
+
+///|
+/// A provider stop surfaces as the common stopped execution, not a state fault.
+fn local_materializing_issue(
+  attempt : @local.LocalMaterializingAttempt,
+  issue : @local.LocalMaterializingIssue,
+) -> LocalDispatchIssue {
+  if issue is State && @local.local_materializing_stopped(attempt) {
+    Execution(Stopped)
+  } else {
+    Preparation(Materializing(issue))
   }
 }

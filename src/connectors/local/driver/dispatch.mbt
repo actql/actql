@@ -19,7 +19,6 @@ fn local_task_slot(installed : LocalDispatchModule, task : Int) -> Int {
 
 ///|
 priv enum LocalDispatchPlan {
-  Synchronous(@connector.SynchronousCompute)
   Materializing(
     @connector.PreparedExecution[
       @local.LocalMaterializingAttempt,
@@ -116,6 +115,22 @@ pub fn prepare_local_dispatch_module(
     output_policy: None,
     policy_sealed: false,
   })
+}
+
+///|
+/// Import limits a bounded materializing attempt uses: the Host's
+/// configuration, or the module's own defaults when none was configured.
+fn local_effective_import_limits(
+  installed : LocalDispatchModule,
+) -> @local.LocalImportLimits {
+  match installed.import_policy {
+    Some((configured, _)) => configured
+    None =>
+      @local.local_default_import_limits(
+        @local.local_module_execution_limits(installed.implementation),
+        @local.local_module_measurement_limits(installed.implementation),
+      )
+  }
 }
 
 ///|
@@ -226,46 +241,35 @@ pub fn prepare_local_dispatch(
     return Err(Configuration(ComputeUnsupported))
   }
   guard local_task_join_output_ceilings(installed.run, task)
-    is Some(join_output_ceilings) else {
+    is Some(join_output_ceilings) &&
+    local_task_interval_search_ceilings(installed.run, task)
+    is Some(interval_search_ceilings) &&
+    local_task_asof_search_ceilings(installed.run, task)
+    is Some(asof_search_ceilings) &&
+    local_task_aggregate_output_ceilings(installed.run, task)
+    is Some(aggregate_output_ceilings) &&
+    local_task_analytic_envelopes(installed.run, task)
+    is Some(analytic_envelopes) else {
     return Err(Configuration(InvalidLimits))
   }
-  if installed.import_policy is Some((limits, _)) &&
-    (
-      installed.output_policy is Some(_) ||
-      @connector.fixed_compute_request_inputs(request).any(input => {
-        !@execution.producer_read_has_cell_access(input)
-      })
-    ) {
-    let output_limits = installed.output_policy.map(value => value.0)
-    let compute = match
-      @local.prepare_local_module_materializing_compute(
-        installed.implementation,
-        local_task_slot(installed, task),
-        request,
-        limits,
-        _ => @strategy.RunIssue::Compute(InvalidLimits),
-        None,
-        output_limits~,
-        join_output_ceilings~,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Preparation(issue))
-    }
-    return @host.stage_dispatch_work(
-      installed.channel,
-      task,
-      revision,
-      request,
-      Materializing(compute, limits, output_limits),
-    ).map_err(issue => Dispatch(issue))
-  }
+  // Every Local task runs as a bounded materializing attempt: its provider
+  // advances in quanta, and retained inputs and outputs keep their Store path.
+  let limits = local_effective_import_limits(installed)
+  let output_limits = installed.output_policy.map(value => value.0)
   let compute = match
-    @local.prepare_local_module_compute(
+    @local.prepare_local_module_materializing_compute(
       installed.implementation,
       local_task_slot(installed, task),
       request,
+      limits,
+      _ => @strategy.RunIssue::Compute(InvalidLimits),
       None,
+      output_limits~,
       join_output_ceilings~,
+      interval_search_ceilings~,
+      asof_search_ceilings~,
+      aggregate_output_ceilings~,
+      analytic_envelopes~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preparation(issue))
@@ -275,24 +279,34 @@ pub fn prepare_local_dispatch(
     task,
     revision,
     request,
-    Synchronous(compute),
+    Materializing(compute, limits, output_limits),
   ).map_err(issue => Dispatch(issue))
 }
 
 ///|
+/// Drain one staged Local task on a Host without an event loop. The same
+/// bounded attempt runs to completion; inputs must already be cell-readable.
 pub fn[C, E] execute_local_dispatch(
   installed : LocalDispatchModule,
   host : @host.DispatchHost[C, E],
   task : @host.PreparedTaskDispatch,
 ) -> Result[Unit, LocalDispatchIssue] {
-  let compute = match @host.take_installed_task(host, task, installed.channel) {
-    Ok(Synchronous(value)) => value
-    Ok(Materializing(_, _, _)) => return Err(Configuration(ComputeUnsupported))
-    Err(issue) => return Err(Dispatch(issue))
+  let operations = match start_local_dispatch(installed, host, task) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  @strategy.execute_captured_synchronous_task(
-    installed.run,
-    @host.prepared_task_index(task),
-    compute,
-  ).map_err(issue => Execution(issue))
+  let result = if operations.inputs.length() != 0 ||
+    operations.output is Some(_) {
+    Err(Configuration(InputUnavailable))
+  } else {
+    (operations.execute)()
+    .bind(_ => (operations.settle)())
+    .bind(_ => (operations.complete)())
+  }
+  // A completed output belongs to the captured DAG; closing the attempt would
+  // also close that output. Only a failed attempt is closed here.
+  if result is Err(_) {
+    (operations.close)()
+  }
+  result
 }

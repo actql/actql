@@ -42,11 +42,11 @@ const stopBoundedExecution = (operations, checked) => {
   }
 };
 
+// Local computation is bounded on every path: there is no synchronous
+// whole-task execute fallback.
 const runManagedExecution = async (operations, checked, signal) => {
   if (typeof operations.advance !== 'function') {
-    signal?.throwIfAborted();
-    checked(operations.execute());
-    return;
+    throw new Error('MissingBoundedLocalExecution');
   }
   while (true) {
     if (signal?.aborted) {
@@ -97,8 +97,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
     async prepareNext(outputs) {
       // This managed path returns an in-memory representation. A configured
-      // retained Store requires the established retained-output driver until
-      // managed finalization can publish the same physical holding contract.
+      // retained Store publishes through the retained-output driver in run(),
+      // whose computation is the same bounded provider advanced in quanta.
       if (createLease) return undefined;
       const task = moon.strategyHostNextTask(setup);
       const producers = moon.strategyHostManagedProducers(setup);
@@ -424,8 +424,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           importedRows += usage.rows;
           importedBytes += BigInt(usage.bytes);
         }
-        signal?.throwIfAborted();
-        checked(operations.execute());
+        await runManagedExecution(operations, checked, signal);
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         recordManagedFailureExecutionSettled(failureProgress);
@@ -460,6 +459,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             }
           } : () => operations.close()};
       } catch (error) {
+        stopBoundedExecution(operations, checked);
         throw settleFailedManagedOperations(
           operations,
           checked,

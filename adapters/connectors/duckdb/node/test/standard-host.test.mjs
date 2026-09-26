@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { tmpdir } from 'node:os';
 import { chmod, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -22,6 +23,8 @@ import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
 import {localStrategyContribution} from
   '../../../../local-node/strategy-bundle.mjs';
+import {installLocalRetainedStore} from
+  '../../../../local-node/retained-store.mjs';
 import {
   prepareManagedIdentityPolicy,
 } from '../../../../host-node/managed-identity-policy.mjs';
@@ -6997,6 +7000,139 @@ async function exerciseStrategyGraph(
       }
     }
   }
+  // Retained Store Local: every task runs through the retained-output driver,
+  // whose computation is the bounded provider advanced in quanta. A completed
+  // run publishes retained files read by two consumers; an abort during the
+  // sort is observed between advances, stops the provider and never reaches
+  // the Store for that task.
+  for (const cancel of [false, true]) {
+    // The retained lane serves Local tasks that read captured inputs and carry
+    // only its admitted obligations (no zero-input Values, no cross product).
+    const retainedProgram = JSON.parse(program);
+    retainedProgram.stages.splice(1, 3, stage('retained_rows', 'a', 'id > 0'), {
+      id: 'retained_sorted',
+      inputs: {x: {result: {stage: 'retained_rows', result: 'r'}}},
+      steps: [{sort: [{id: 'desc'}], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}},
+    }, ...['a', 'b'].map(id => ({
+      id: `retained_consumer_${id}`,
+      inputs: {x: {result: {stage: 'retained_sorted', result: 'r'}}},
+      steps: [{select: ['id'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['id']}},
+    })));
+    retainedProgram.results = {
+      a: {from: {stage: 'retained_consumer_a', result: 'r'}},
+      b: {from: {stage: 'retained_consumer_b', result: 'r'}},
+    };
+    await replaceRows(`INSERT INTO records VALUES ${Array.from({length: 9},
+      (_, index) => `(${index + 2},${index})`).join(',')}`);
+    const retainedFixture = fixture.strategyFixtureCreate(
+      ...args, JSON.stringify(retainedProgram));
+    const retainedCapture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(retainedFixture), suppliedLimits);
+    const retainedDirectory = await mkdtemp(join(tmpdir(), 'actql-retained-local-'));
+    const store = await createLocalRetainedStore({parentDirectory: retainedDirectory,
+      capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
+    const leased = [];
+    const configuration = installLocalRetainedStore((key, bytes) => {
+      leased.push(key);
+      let writer, closed = false;
+      return Object.freeze({
+        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+          cleanupPending: false}),
+        reserve: value => (writer = store.reserve(value)),
+        close() { closed = true; writer?.cancel(); },
+        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+      });
+    });
+    const controller = new AbortController();
+    const advances = new Map();
+    let starts = 0, scheduled = false, stoppedAfterAbort = false;
+    const observedRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_Dispatch') {
+          return Reflect.get(target, property, receiver);
+        }
+        return (setup, task) => {
+          const start = ++starts;
+          const operations = checked(target.strategyModule_local_Dispatch(setup, task));
+          return {$tag: 1, _0: new Proxy(operations, {
+            get(operation, name, operationReceiver) {
+              if (name === 'execute') assert.fail('retained Local ran synchronously');
+              if (name === 'execution_stopped') {
+                return () => {
+                  const stopped = operation.execution_stopped();
+                  if (stopped && controller.signal.aborted) stoppedAfterAbort = true;
+                  return stopped;
+                };
+              }
+              if (name !== 'advance') return Reflect.get(operation, name, operationReceiver);
+              // A small quantum makes the fixture-sized sort span advances.
+              return quantum => {
+                const result = operation.advance(Math.min(quantum, 4));
+                const observation = checked(result);
+                advances.set(start, (advances.get(start) ?? 0) + 1);
+                if (cancel && start === 2 && observation.complete === false &&
+                    observation.progress > 0n && !scheduled) {
+                  scheduled = true;
+                  setTimeout(() => controller.abort(), 0);
+                }
+                return result;
+              };
+            },
+          })};
+        };
+      },
+    });
+    let execution;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(retainedFixture, retainedCapture.source()), true);
+      const setup = fixture.strategyFixtureRetainedLocalSubset(retainedFixture);
+      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
+        [localStrategyContribution(observedRuntime, setup, checked, configuration)],
+        controller.signal);
+      if (cancel) {
+        assert.equal(execution.status, 'host-tasks-failed');
+        assert.equal(execution.failure?.name, 'AbortError');
+        assert.equal(stoppedAfterAbort, true);
+        assert.deepEqual(execution.completed.map(item => item.task), [1]);
+        assert.deepEqual(leased, ['task-1']);
+      } else {
+        assert.equal(execution.status, 'host-tasks-completed', String(execution.failure));
+        assert.deepEqual(execution.completed.map(item => item.realization),
+          Array(4).fill('local'));
+        assert(execution.completed.every(item =>
+          item.outputRepresentation === 'retained-file'));
+        assert.deepEqual(execution.completed.map(item => item.exportedRows),
+          [9, 9, 9, 9]);
+        assert.equal(leased.length, 4);
+        // Both consumers publish the sorted rows: exact content, order and
+        // no duplicates against an independently built expectation.
+        const sorted = hash(Array.from({length: 9}, (_, index) => ({id: 10 - index})));
+        for (const task of [2, 3, 4]) {
+          assert.equal(fixture.strategyFixtureCid(retainedFixture, task), sorted,
+            `retained task ${task}`);
+        }
+      }
+      // The sort ran over several bounded advances.
+      assert((advances.get(2) ?? 0) > 1, JSON.stringify([...advances]));
+    } finally {
+      retainedCapture.close();
+      await execution?.close();
+    }
+    let cleaned = false;
+    for (let attempt = 0; attempt < 3 && !cleaned; attempt++) {
+      cleaned = await execution.cleanup();
+    }
+    assert.equal(cleaned, true);
+    assert.equal(execution.cleanupPending(), false);
+    assert.equal(execution.usage().heldBytes, 0n);
+    assert.equal(execution.usage().reservedExecutionBytes, 0n);
+    store.close();
+    await store.cleanup();
+    await rm(retainedDirectory, {recursive: true, force: true});
+  }
+  await replaceRows('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
   const copyCancellationCase = {
     name: 'same-stage-distinct-in-flight',
   };
@@ -10563,7 +10699,11 @@ async function exerciseStrategyGraph(
           // transfer budget. Reselection must choose Local B, not erase A's
           // spent transfer to retain the old all-resident placement.
           assert.equal(hostRuntime.strategyHostRegistration(task), hostRuntime.strategyModule_local_Registration(dispatch));
-          checked(hostRuntime.strategyModule_local_Dispatch(dispatch, task));
+          // Local dispatch starts a bounded attempt; drive it to completion.
+          const local = checked(hostRuntime.strategyModule_local_Dispatch(dispatch, task));
+          while (!checked(local.advance(256)).complete) {}
+          checked(local.settle());
+          checked(local.complete());
           capture.close();
           continue;
         }
