@@ -741,6 +741,13 @@ export async function installRemoteCheckpoints({root, tenantId,
     let readPermit = false;
     if (!readHeld && captured.acquisition !== undefined &&
         sourceGate !== undefined) {
+      // The read decision gets a full lease; a claim that lapses meanwhile
+      // persists nothing and the next claim decides the read again.
+      try { journal.renewResume(claim, leaseMs); }
+      catch (error) {
+        if (error?.code === 'ResumeClaimStale') return 'busy';
+        throw error;
+      }
       const read = await decideRead({prepareAttemptId, request,
         requestCid: contentCid(request), captured,
         earlier: [claimed.checkpointCid],
@@ -753,6 +760,10 @@ export async function installRemoteCheckpoints({root, tenantId,
           submitResolution: item => journal.submitResolution(item),
         }});
       if (read.action === 'waiting') return 'done';
+      // A lapsed or superseded claim sends nothing and ends nothing: the
+      // read Checkpoint was not persisted, and the intent is retried.
+      if (read.error?.code === 'ResumeClaimStale' ||
+          read.detail === 'ResumeClaimStale') return 'busy';
       if (read.action !== 'dispatch') {
         await host.abandon(captured);
         end('failed');

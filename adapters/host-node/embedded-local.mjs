@@ -831,15 +831,37 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost(resolve(directory), 'remote',
     beforeDispatch, authorization, sourceProfilePath);
+  const handle = createClientHttpHandler({
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+  });
+  // A request's handling can outlive its response: a Result read records
+  // its delivery attempt after the last bytes are sent. Close waits for
+  // every request still being handled; once closing, new requests are
+  // refused before they touch the Store.
+  const handling = new Set();
+  let closing = false;
   return Object.freeze({
-    handler: createClientHttpHandler({
-      ...host.hostOperations, authenticate, maxRequestBytes: 65536,
-    }),
+    handler(request, response) {
+      if (closing) {
+        response.writeHead(503, {'content-type': 'application/json'});
+        response.end(JSON.stringify({code: 'ClientHostClosing'}));
+        return Promise.resolve();
+      }
+      const handled = Promise.resolve(handle(request, response));
+      handling.add(handled);
+      handled.finally(() => handling.delete(handled)).catch(() => {});
+      return handled;
+    },
     inspectAcquisition: host.inspectAcquisition,
-    // Stop starting resumes, let running dispatches finish and record their
-    // ends, settle retention, then release the journals and the Store owner.
-    // Returns what remains for the next owner instead of hiding it.
+    // Stop accepting requests and wait for those being handled, stop
+    // starting resumes, let running dispatches finish and record their
+    // ends, settle retention, then release the journals and the Store
+    // owner. Returns what remains for the next owner instead of hiding it.
     async close() {
+      closing = true;
+      while (handling.size > 0) {
+        await Promise.allSettled([...handling]);
+      }
       await host.checkpoints?.stop();
       // Each dispatch is awaited once; an entry kept for its cleanup owner
       // stays with that owner.
