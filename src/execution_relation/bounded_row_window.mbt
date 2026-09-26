@@ -105,6 +105,7 @@ priv struct BoundedRowWindowState {
   mut charge_row : Int
   mut charge_column : Int
   mut charge_open : Bool
+  mut charge_measure : SteppedValueMeasure?
   mut source : Int
   mut time : @grid.Coordinate?
   mut current : @bigint.BigInt
@@ -130,6 +131,7 @@ pub(all) enum BoundedRowWindowIssue {
 
 ///|
 struct BoundedRowWindowExecution {
+  state : BoundedRowWindowState
   session : @bounded.Session[
     BoundedRowWindowState,
     CompletedOutput,
@@ -137,6 +139,15 @@ struct BoundedRowWindowExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+#warnings("-unused_value")
+fn bounded_row_window_measuring_input(
+  execution : BoundedRowWindowExecution,
+) -> Bool {
+  execution.state.phase is ChargeInput &&
+  execution.state.charge_measure is Some(_)
 }
 
 ///|
@@ -171,6 +182,10 @@ fn cleanup_bounded_row_window_state(state : BoundedRowWindowState) -> Bool {
   state.input_ordinals.clear()
   state.memberships = []
   state.checked_row = []
+  if state.charge_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.charge_measure = None
+  }
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
     state.rows.val = None
@@ -295,16 +310,42 @@ fn bounded_row_window_step(
           state.charge_open = true
           used += 1
         } else if state.charge_column < width {
-          let column = state.charge_column
-          guard bounded_window_input_cell(state.input, state.charge_row, column)
-            is Some(value) else {
-            return bounded_row_window_failure(InvalidExecution, progress, used)
+          if state.charge_measure is None {
+            let column = state.charge_column
+            guard bounded_window_input_cell(
+                state.input,
+                state.charge_row,
+                column,
+              )
+              is Some(value) else {
+              return bounded_row_window_failure(
+                InvalidExecution,
+                progress,
+                used,
+              )
+            }
+            if !charge_text(state.input_values, state.input_names[column]) {
+              return bounded_row_window_failure(InputLimit, progress, used)
+            }
+            guard start_stepped_measure_result(value, state.workspace)
+              is Some(cursor) else {
+              return bounded_row_window_failure(Rows(RowLimit), progress, used)
+            }
+            state.charge_measure = Some(cursor)
           }
-          if !charge_text(state.input_values, state.input_names[column]) ||
-            !measure_result(value, state.input_values) {
-            return bounded_row_window_failure(InputLimit, progress, used)
+          let cursor = state.charge_measure.unwrap()
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return bounded_row_window_failure(InputLimit, progress, used)
+            SteppedMeasureWorkspaceLimit =>
+              return bounded_row_window_failure(Rows(RowLimit), progress, used)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.charge_measure = None
+              state.charge_column += 1
+            }
           }
-          state.charge_column += 1
           used += 1
         } else {
           state.charge_row += 1
@@ -592,6 +633,7 @@ fn start_bounded_row_window_with_input(
     charge_row: 0,
     charge_column: 0,
     charge_open: false,
+    charge_measure: None,
     source: 0,
     time: None,
     current: @bigint.BigInt::from_int(0),
@@ -614,7 +656,7 @@ fn start_bounded_row_window_with_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

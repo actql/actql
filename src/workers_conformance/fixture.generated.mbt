@@ -3021,6 +3021,14 @@ fn local_values_window_program(variant : String) -> String {
         "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}}",
         "[{\"at\":-1,\"id\":1},{\"at\":2,\"id\":2},{\"at\":12,\"id\":3}]", "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":{\"$param\":\"minimum\"},\"step\":{\"$param\":\"minimum\"}}",
       )
+    "nested" =>
+      (
+        "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}",
+        "[{\"at\":5,\"id\":1,\"payload\":[" +
+        Array::make(256, "1").join(",") +
+        "]}]",
+        "{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+      )
     _ => abort("unknown Local window fixture")
   }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +

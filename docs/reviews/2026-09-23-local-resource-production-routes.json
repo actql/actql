@@ -1418,6 +1418,27 @@
           "fixture": "bounded row windows preserve ascending memberships at quantum one"
         },
         {
+          "role": "row_window_nested_input_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window stops inside an unused nested input value"
+        },
+        {
+          "role": "row_window_nested_input_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_row_window_wbtest.mbt",
+          "fixture": "bounded row window preserves exact nested input value charges"
+        },
+        {
+          "role": "row_window_nested_input_host_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+          "fixture": "standard Host cancels a unary kernel inside a nested input"
+        },
+        {
           "role": "row_window_exact_output_boundary",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

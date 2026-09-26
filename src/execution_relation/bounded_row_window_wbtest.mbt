@@ -1,13 +1,23 @@
 ///|
 fn bounded_row_window_fixture(
   rows : String,
+  unused_payload? : Bool = false,
+  input_values? : ValueLimits = run_limits().input_values,
   window? : String = "{\"kind\":\"sliding\",\"time\":\"at\",\"size\":10,\"step\":6,\"offset\":2}",
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
 ) -> (@bounded.Control, BoundedRowWindowExecution, CompletedOutput) raise {
+  let schema = "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}" +
+    (if unused_payload {
+      ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}}"
+    } else {
+      "}"
+    })
   let source_owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":" +
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":" +
     rows +
     "},\"as\":\"seed\"}]",
   )
@@ -72,7 +82,7 @@ fn bounded_row_window_fixture(
     generated,
     read,
     max_rows,
-    run_limits().input_values,
+    input_values,
     run_limits().output_values,
     max_work,
     100,
@@ -80,6 +90,88 @@ fn bounded_row_window_fixture(
     10000,
   ).unwrap()
   (control, execution, source)
+}
+
+///|
+fn row_window_unused_payload_rows(count : Int) -> String {
+  "[{\"at\":5,\"id\":1,\"payload\":[" +
+  Array::make(count, "1").join(",") +
+  "]}]"
+}
+
+///|
+test "bounded row window stops inside an unused nested input value" {
+  let (control, execution, source) = bounded_row_window_fixture(
+    row_window_unused_payload_rows(256),
+    unused_payload=true,
+    window="{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+    max_work=1000,
+    max_entries=1000,
+  )
+  let mut measuring = false
+  for _ in 0..<50 {
+    if !measuring {
+      match advance_bounded_row_window(execution, 1).unwrap() {
+        BoundedRowWindowContinue(..) =>
+          measuring = bounded_row_window_measuring_input(execution)
+        _ => fail("nested input finished before cancellation")
+      }
+    }
+  }
+  assert_true(measuring)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_row_window(execution, 1).unwrap()
+    is BoundedRowWindowStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_row_window(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded row window preserves exact nested input value charges" {
+  // Row, two scalar cells, array, and eight items: 12 nodes and 23 work.
+  for
+    (nodes, work, accepted) in [
+      (12, 23, true),
+      (11, 23, false),
+      (12, 22, false),
+    ] {
+    let input_values : ValueLimits = {
+      ..run_limits().input_values,
+      max_nodes: nodes,
+      max_text_bytes: 11,
+      max_work: work,
+    }
+    let (_, execution, source) = bounded_row_window_fixture(
+      row_window_unused_payload_rows(8),
+      unused_payload=true,
+      input_values~,
+      window="{\"kind\":\"fixed\",\"time\":\"at\",\"size\":10}",
+      max_work=1000,
+    )
+    let mut terminal = false
+    for _ in 0..<200 {
+      if !terminal {
+        match advance_bounded_row_window(execution, 1).unwrap() {
+          BoundedRowWindowContinue(..) => ()
+          BoundedRowWindowComplete(output, ..) => {
+            assert_true(accepted)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedRowWindowFailed(InputLimit, ..) => {
+            assert_false(accepted)
+            terminal = true
+          }
+          _ => fail("nested input ended with another result")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_row_window(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
 }
 
 ///|

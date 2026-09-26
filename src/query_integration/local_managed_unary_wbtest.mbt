@@ -616,16 +616,24 @@ test "ordinary Local filters resume within quantum" {
 
 ///|
 test "standard Host cancels a unary kernel inside a nested input" {
-  for kind in ["filter_nested", "unpivot_unused_payload", "unnest_long_items"] {
+  for
+    kind in [
+      "filter_nested", "unpivot_unused_payload", "unnest_long_items", "row_window_nested",
+    ] {
     run_local_managed_nested_input_cancel(kind)
   }
 }
 
 ///|
 fn run_local_managed_nested_input_cancel(kind : String) -> Unit raise {
-  let (run, issuer) = captured_graph_fixture(
-    local_values_unary_chain=Some(kind),
-  )
+  let (run, issuer) = if kind == "row_window_nested" {
+    captured_graph_fixture(
+      local_values_window_chain=true,
+      local_values_window_variant="nested",
+    )
+  } else {
+    captured_graph_fixture(local_values_unary_chain=Some(kind))
+  }
   let registry = search_registry()
   let limits = dispatch_test_limits()
   let installed = @local_driver.prepare_local_dispatch_module(

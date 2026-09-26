@@ -155,6 +155,12 @@ array input. Independent eight-item exact/one-short value budgets and a
 256-item input cancellation prove the local boundary; the normal Program
 also delivers cancellation during the large input via the standard Host.
 Existing two-consumer success fixtures remain the output-lifetime control.
+The selected `row_window` provider now measures every input cell in resumed
+steps as well, including an unused nested field. Independent exact/one-short
+input value budgets and a 256-item cancellation cover the kernel boundary.
+The standard Host delivers cancellation while this input is measured, then
+confirms stop and cleanup without publishing a partial result. This does not
+certify the separate providerless whole-sequence route.
 
 The output continuation now charges the output row and each field to the
 existing value budget and traverses long text for that charge in bounded
