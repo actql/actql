@@ -95,6 +95,19 @@ Checkpoint reference, and never a RunRef. Follow the request with
 `waiting_checkpoint`, `resuming` or `ended` (with its reason) until the Run
 exists, and then `found` with the RunRef for `attach`, `status` and `wait`.
 
+The owner can cancel a request by its ID with `cancelRequest(requestId)`,
+whether or not its Run exists yet. The reply is `accepted`,
+`already_requested` or `already_terminal`. `accepted` means the Host recorded
+the cancellation durably; it does not mean anything stopped or was cleaned
+up. Follow the request with `lookupRequest`, which reports a held request as
+`ended` with `endReason: 'cancelled'`, or with `status()` once there is a
+Run. When the request already has a Run, the reply names it (`ref`) and that
+Run is cancelled through its own cancellation. A lost reply or a Host
+failure raises `CancellationUnknown` with the `requestId`: call
+`cancelRequest` again with the same ID, and it is matched to the recorded
+cancellation. Aborting the call never withdraws a recorded cancellation. A
+reviewer or review reader cannot cancel.
+
 Three operations serve reviewers. Each needs its own Host authorization:
 listing, reading the review body and answering are separate permissions.
 
