@@ -5579,6 +5579,13 @@ async function exerciseStrategyGraph(
       from: 'out', fields: id === 'a' ? ['id', 'n'] : ['n', 'id'],
     }},
   })));
+  // A general group: the extra max aggregate leaves the count kernel.
+  const directGroupProgram = structuredClone(groupProgram);
+  directGroupProgram.stages.find(stage => stage.id === 'group_a').steps = [
+    {group: {by: ['id'], aggregates: {
+      n: {fn: 'count'}, highest: {fn: 'max', field: 'id'},
+    }}, as: 'out'},
+  ];
   const globalCountProgram = structuredClone(groupProgram);
   const globalCountStage = globalCountProgram.stages.find(
     stage => stage.id === 'group_a',
@@ -6332,6 +6339,7 @@ async function exerciseStrategyGraph(
     ['nest', nestProgram, [1, 2, 3, 4, 5]],
     ['nest then unnest/filter', nestUnwrapProgram, [1, 2, 3, 4, 5, 6]],
     ['group count', groupProgram, [1, 2, 3, 4]],
+    ['direct general group', directGroupProgram, [1, 2, 3, 4]],
     ['global count', globalCountProgram, [1, 2, 3, 4]],
     ['same-stage global count/take', sameStageGlobalCountProgram,
       [1, 2, 3, 4, 5]],
@@ -7312,6 +7320,8 @@ async function exerciseStrategyGraph(
       program: nestedGlobalCountProgram, cancelAtStart: 2},
     {name: 'group-count-in-flight',
       program: groupProgram, cancelAtStart: 2},
+    {name: 'direct-group-in-flight',
+      program: directGroupProgram, cancelAtStart: 2},
     {name: 'same-stage-global-count-in-flight',
       program: sameStageGlobalCountProgram, cancelAtStart: 2},
     {name: 'same-stage-count-if-in-flight',
@@ -7384,6 +7394,7 @@ async function exerciseStrategyGraph(
       'global-count-in-flight' ||
       nestedCountCancellation ||
       cancellationName === 'group-count-in-flight' ||
+      cancellationName === 'direct-group-in-flight' ||
       sameStageGlobalCountCancellation;
     const watermarkCancellation = cancellationName ===
       'split-values-fixed-watermark-in-flight' ||
