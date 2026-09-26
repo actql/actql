@@ -781,6 +781,159 @@ const schemas = {
       }
     }
   },
+  "resource_listing": {
+    "type": "object",
+    "required": [
+      "resourceConnection",
+      "observationCid",
+      "resources",
+      "snapshotComplete",
+      "snapshotTruncated",
+      "resultTruncated"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "resourceConnection": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "observationCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "resources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "outcome"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "outcome": {
+              "type": "string",
+              "pattern": "^[a-z_]+$",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        }
+      },
+      "snapshotComplete": {
+        "type": "boolean"
+      },
+      "snapshotTruncated": {
+        "type": "boolean"
+      },
+      "resultTruncated": {
+        "type": "boolean"
+      }
+    }
+  },
+  "resource_inspection": {
+    "type": "object",
+    "required": [
+      "resourceConnection",
+      "resource",
+      "observationCid",
+      "status"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "resourceConnection": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "resource": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "observationCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "status": {
+        "enum": [
+          "ready",
+          "catalog_required"
+        ]
+      },
+      "reason": {
+        "enum": [
+          "listing_truncated",
+          "not_visible",
+          "describe_unavailable"
+        ]
+      },
+      "summaryJson": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 1048576
+      }
+    }
+  },
+  "resource_peek": {
+    "type": "object",
+    "required": [
+      "resourceConnection",
+      "resource",
+      "observationCid",
+      "fields",
+      "rowsJson",
+      "limited"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "resourceConnection": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "resource": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "observationCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "fields": {
+        "type": "array",
+        "uniqueItems": true,
+        "minItems": 1,
+        "items": {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "rowsJson": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 4194304
+      },
+      "limited": {
+        "type": "boolean"
+      }
+    }
+  },
   "run_state": {
     "type": "object",
     "required": [
@@ -1314,6 +1467,26 @@ const operationKeys = {
   "cancel-request": [
     "connection",
     "requestId"
+  ],
+  "resources": [
+    "connection",
+    "resourceConnection",
+    "query",
+    "limit"
+  ],
+  "resource-inspect": [
+    "connection",
+    "resourceConnection",
+    "resource",
+    "maxBytes"
+  ],
+  "resource-peek": [
+    "connection",
+    "resourceConnection",
+    "resource",
+    "fields",
+    "maxRows",
+    "maxBytes"
   ]
 };
 
@@ -1375,4 +1548,7 @@ export const validResolveResultShape = value => valid(value, schemas.resolve_res
 export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
 export const validCancellationShape = value => valid(value, schemas.cancellation);
 export const validRequestCancellationShape = value => valid(value, schemas.request_cancellation);
+export const validResourceListingShape = value => valid(value, schemas.resource_listing);
+export const validResourceInspectionShape = value => valid(value, schemas.resource_inspection);
+export const validResourcePeekShape = value => valid(value, schemas.resource_peek);
 export const validRunStateShape = value => valid(value, schemas.run_state);

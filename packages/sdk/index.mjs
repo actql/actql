@@ -4,7 +4,8 @@ import {checkpointLimits, validCancellation, validCheckpointPage,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
-  validSubmitReply} from
+  validSubmitReply, validClientBody, validResourceInspection,
+  validResourceListing, validResourcePeek} from
   '@actql/client-wire';
 import {bytesCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -613,6 +614,73 @@ async function connectSelected(selected, port) {
       }
       return Object.freeze({...answer, ...(answer.ref === undefined ? {} :
         {ref: Object.freeze({...answer.ref})})});
+    },
+    // Resources an installed connection shows to this caller, from the
+    // Host's current Catalog observation. A listing is display material:
+    // `snapshotComplete` and the truncation flags say whether it is the whole
+    // Catalog, and it never grants reading rows or running anything.
+    resources: async (resourceConnection, {query = '', limit = 100,
+      signal} = {}) => {
+      const body = {resourceConnection, query, limit};
+      if (!validClientBody('resources', {connection: selected.wire,
+        ...body})) fail('InvalidResourceListing');
+      let listing;
+      try { listing = await controlValue(await exchange('resources', body,
+        signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourceListing', {cause});
+      }
+      if (!validResourceListing(listing, {resourceConnection, limit})) {
+        fail('InvalidHostResourceListing');
+      }
+      return Object.freeze({...listing, resources: Object.freeze(
+        listing.resources.map(item => Object.freeze({...item})))});
+    },
+    // Typed metadata of one Resource the caller may see. `catalog_required`
+    // with a reason means the Host's Catalog cannot answer yet; it is never
+    // evidence that the Resource is absent.
+    inspectResource: async (resourceConnection, resource, {
+      maxBytes = 64 * 1024, signal} = {}) => {
+      const body = {resourceConnection, resource, maxBytes};
+      if (!validClientBody('resource-inspect', {connection: selected.wire,
+        ...body})) fail('InvalidResourceInspection');
+      let inspection;
+      try { inspection = await controlValue(await exchange('resource-inspect',
+        body, signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourceInspection', {cause});
+      }
+      if (!validResourceInspection(inspection, body)) {
+        fail('InvalidHostResourceInspection');
+      }
+      const {summaryJson, ...rest} = inspection;
+      return Object.freeze({...rest, ...(summaryJson === undefined ? {} :
+        {summary: JSON.parse(summaryJson)})});
+    },
+    // A separately authorized preview of at most `maxRows` rows with exactly
+    // `fields`. `limited` marks a prefix; a preview is never a complete read,
+    // Acquisition evidence or a Result.
+    peekResource: async (resourceConnection, resource, {fields, maxRows = 10,
+      maxBytes = 64 * 1024, signal} = {}) => {
+      const body = {resourceConnection, resource,
+        fields: Array.isArray(fields) ? [...fields] : fields, maxRows,
+        maxBytes};
+      if (!validClientBody('resource-peek', {connection: selected.wire,
+        ...body})) fail('InvalidResourcePeek');
+      let peek;
+      try { peek = await controlValue(await exchange('resource-peek', body,
+        signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostResourcePeek', {cause});
+      }
+      if (!validResourcePeek(peek, body)) fail('InvalidHostResourcePeek');
+      const {rowsJson, ...rest} = peek;
+      return Object.freeze({...rest, fields: Object.freeze([...peek.fields]),
+        rows: Object.freeze(JSON.parse(rowsJson).map(row =>
+          Object.freeze(row)))});
     },
     // One authorized page of waiting Checkpoints: safe metadata only, never
     // review contents. `next` continues the listing.

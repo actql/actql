@@ -2,7 +2,8 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
-  WireRequestCancellationShape,
+  WireRequestCancellationShape, WireResourceInspectionShape,
+  WireResourceListingShape, WireResourcePeekShape,
   WireResolveItemShape, WireResolveResultShape, WireRunRefShape,
   WireRunStateShape, WireSubmitPreparationErrorShape} from
   './client-host.generated.js';
@@ -61,6 +62,23 @@ export type WireClientBodyByOperation = Readonly<{
   }>;
   resolve: WireBodyBase & Readonly<{items: readonly WireResolveItem[]}>;
   'cancel-request': WireBodyBase & Readonly<{requestId: string}>;
+  resources: WireBodyBase & Readonly<{
+    resourceConnection: string;
+    query: string;
+    limit: number;
+  }>;
+  'resource-inspect': WireBodyBase & Readonly<{
+    resourceConnection: string;
+    resource: string;
+    maxBytes: number;
+  }>;
+  'resource-peek': WireBodyBase & Readonly<{
+    resourceConnection: string;
+    resource: string;
+    fields: readonly string[];
+    maxRows: number;
+    maxBytes: number;
+  }>;
 }>;
 
 export type WireClientBody =
@@ -149,3 +167,28 @@ export declare function validCancellation(value: unknown): value is WireCancella
 export type WireRequestCancellation = WireRequestCancellationShape;
 export declare function validRequestCancellation(value: unknown,
   expectedRequestId: string): value is WireRequestCancellation;
+
+export declare const resourceLimits: Readonly<{
+  maxQueryLength: number;
+  maxListItems: number;
+  maxInspectBytes: number;
+  maxPeekFields: number;
+  maxPeekRows: number;
+  maxPeekBytes: number;
+}>;
+
+export type WireResourceListing = WireResourceListingShape;
+export declare function validResourceListing(value: unknown,
+  expected: Readonly<{resourceConnection: string; limit: number}>):
+  value is WireResourceListing;
+
+export type WireResourceInspection = WireResourceInspectionShape;
+export declare function validResourceInspection(value: unknown,
+  expected: Readonly<{resourceConnection: string; resource: string;
+    maxBytes: number}>): value is WireResourceInspection;
+
+export type WireResourcePeek = WireResourcePeekShape;
+export declare function validResourcePeek(value: unknown,
+  expected: Readonly<{resourceConnection: string; resource: string;
+    fields: readonly string[]; maxRows: number; maxBytes: number}>):
+  value is WireResourcePeek;

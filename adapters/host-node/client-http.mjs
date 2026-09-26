@@ -6,7 +6,8 @@ import {deliverAuthorizedResult,
 import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
-  validRequestCancellation, validRunState, validSubmitReply} from
+  validRequestCancellation, validResourceInspection, validResourceListing,
+  validResourcePeek, validRunState, validSubmitReply} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -45,10 +46,14 @@ function responseCode(error) {
       error?.code === 'CheckpointReviewDenied' ||
       error?.code === 'CheckpointAnswerDenied' ||
       error?.code === 'ClientRequestCancellationDenied' ||
+      error?.code === 'ResourceDiscoveryDenied' ||
+      error?.code === 'ResourcePeekDenied' ||
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
   if (error?.code === 'CheckpointReviewUnavailable') return 410;
-  if (error?.code === 'ClientRequestNotFound') return 404;
+  if (error?.code === 'ClientRequestNotFound' ||
+      error?.code === 'ResourceConnectionNotFound') return 404;
+  if (error?.code === 'ResourceCatalogUnavailable') return 503;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict') return 409;
@@ -122,7 +127,8 @@ export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
-  resolve, cancelRequest, maxRequestBytes = 65536,
+  resolve, cancelRequest, resources, inspectResource, peekResource,
+  maxRequestBytes = 65536,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -257,6 +263,26 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostRequestCancellation');
         }
         sendJson(cancelled);
+      } else if (operation === 'resources' ||
+          operation === 'resource-inspect' || operation === 'resource-peek') {
+        // Aborting a discovery read ends only that read.
+        const observer = observationAttempt(response);
+        try {
+          const handler = operation === 'resources' ? resources
+            : operation === 'resource-inspect' ? inspectResource
+              : peekResource;
+          const answer = await invoke(handler, observer.signal);
+          const {connection: _connection, ...expected} = body;
+          if (!(operation === 'resources'
+            ? validResourceListing(answer, {
+              resourceConnection: body.resourceConnection, limit: body.limit})
+            : operation === 'resource-inspect'
+              ? validResourceInspection(answer, expected)
+              : validResourcePeek(answer, expected))) {
+            invalid('InvalidClientHostResourceReply');
+          }
+          sendJson(answer);
+        } finally { observer.release(); }
       } else if (operation === 'cancel') {
         sendJson(await invoke(cancel));
       } else if (operation === 'reconcile') {

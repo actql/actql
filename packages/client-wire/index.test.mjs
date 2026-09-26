@@ -5,6 +5,8 @@ import {checkpointLimits, clientHostOperations, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
   validHeldRequest, validRequestCancellation, validRequestLookup, validResolveResults, validRunRef,
+  resourceLimits, validResourceInspection, validResourceListing,
+  validResourcePeek,
   validRunState, validSubmitPreparationError,
   validSubmitReply} from './index.mjs';
 
@@ -15,7 +17,8 @@ const ref = Object.freeze({tenantId: 'tenant-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
 test('public wire accepts the exact connected request shapes', () => {
-  assert.equal(clientHostOperations.length, 14);
+  // The Run, request, Checkpoint and three Resource discovery operations.
+  assert.equal(clientHostOperations.length, 17);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -335,4 +338,62 @@ test('a request cancellation names its request and, with a Run, that Run', () =>
     kind: 'accepted', ref}, 'saved-a'), false);
   assert.equal(validRequestCancellation({requestId: 'saved-a',
     kind: 'not_found'}, 'saved-a'), false);
+});
+
+test('Resource discovery requests and replies stay within their bounds', () => {
+  const at = {resourceConnection: 'salesforce:00D000000000001EAA'};
+  assert.equal(validClientBody('resources', {connection, ...at, query: '',
+    limit: 10}), true);
+  assert.equal(validClientBody('resources', {connection, ...at, query: 'a',
+    limit: resourceLimits.maxListItems + 1}), false);
+  assert.equal(validClientBody('resources', {connection, ...at,
+    query: 'a\u0000', limit: 1}), false);
+  assert.equal(validClientBody('resource-inspect', {connection, ...at,
+    resource: 'Account', maxBytes: 1024}), true);
+  const peek = {connection, ...at, resource: 'Account', fields: ['Id', 'Name'],
+    maxRows: 2, maxBytes: 4096};
+  assert.equal(validClientBody('resource-peek', peek), true);
+  for (const change of [{fields: []}, {fields: ['Id', 'Id']},
+    {maxRows: resourceLimits.maxPeekRows + 1}, {maxBytes: 0}]) {
+    assert.equal(validClientBody('resource-peek', {...peek, ...change}), false);
+  }
+  const cid = `sha256:${'c'.repeat(64)}`;
+  const listing = {...at, observationCid: cid,
+    resources: [{name: 'Account', outcome: 'described'}],
+    snapshotComplete: true, snapshotTruncated: false, resultTruncated: false};
+  assert.equal(validResourceListing(listing, {...at, limit: 1}), true);
+  assert.equal(validResourceListing({...listing, resources: [
+    listing.resources[0], listing.resources[0]]}, {...at, limit: 5}), false);
+  assert.equal(validResourceListing(listing, {resourceConnection: 'other',
+    limit: 1}), false);
+  const expected = {...at, resource: 'Account', maxBytes: 64};
+  assert.equal(validResourceInspection({...at, resource: 'Account',
+    observationCid: cid, status: 'ready', summaryJson: '{"fields":[]}'},
+  expected), true);
+  assert.equal(validResourceInspection({...at, resource: 'Account',
+    observationCid: cid, status: 'catalog_required', reason: 'not_visible'},
+  expected), true);
+  assert.equal(validResourceInspection({...at, resource: 'Account',
+    observationCid: cid, status: 'ready', reason: 'not_visible',
+    summaryJson: '{}'}, expected), false);
+  assert.equal(validResourceInspection({...at, resource: 'Account',
+    observationCid: cid, status: 'ready',
+    summaryJson: JSON.stringify({x: 'y'.repeat(64)})}, expected), false);
+  const peekExpected = {...at, resource: 'Account', fields: ['Id', 'Name'],
+    maxRows: 2, maxBytes: 4096};
+  const reply = {...at, resource: 'Account', observationCid: cid,
+    fields: ['Id', 'Name'], limited: true,
+    rowsJson: JSON.stringify([{Id: '1', Name: 'a'}, {Id: '2', Name: null}])};
+  assert.equal(validResourcePeek(reply, peekExpected), true);
+  for (const change of [
+    {limited: false},
+    {rowsJson: JSON.stringify([{Id: '1'}])},
+    {rowsJson: JSON.stringify([{Id: '1', Name: {nested: true}}])},
+    {rowsJson: JSON.stringify([{Id: '1', Name: 'a'}, {Id: '2', Name: 'b'},
+      {Id: '3', Name: 'c'}])},
+    {fields: ['Name', 'Id']},
+  ]) {
+    assert.equal(validResourcePeek({...reply, ...change}, peekExpected),
+      false, JSON.stringify(change));
+  }
 });

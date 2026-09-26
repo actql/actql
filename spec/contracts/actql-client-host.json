@@ -14,7 +14,10 @@
     "checkpoints": ["connection", "after", "limit"],
     "checkpoint-review": ["connection", "checkpointCid", "maxBytes"],
     "resolve": ["connection", "items"],
-    "cancel-request": ["connection", "requestId"]
+    "cancel-request": ["connection", "requestId"],
+    "resources": ["connection", "resourceConnection", "query", "limit"],
+    "resource-inspect": ["connection", "resourceConnection", "resource", "maxBytes"],
+    "resource-peek": ["connection", "resourceConnection", "resource", "fields", "maxRows", "maxBytes"]
   },
   "schemas": {
     "cancellation": {
@@ -220,6 +223,45 @@
         "kind": {"enum": ["accepted", "already_requested", "already_terminal"]},
         "ref": {"type": "object", "additionalProperties": false, "required": ["tenantId", "authorityScopeCid", "runDefinitionCid"], "properties": {"tenantId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "authorityScopeCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "runDefinitionCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}},
         "revision": {"type": "integer", "minimum": 0, "maximum": 2147483647}
+      }
+    },
+    "resource_listing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceConnection", "observationCid", "resources", "snapshotComplete", "snapshotTruncated", "resultTruncated"],
+      "properties": {
+        "resourceConnection": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "observationCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "resources": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "outcome"], "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}, "outcome": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z_]+$"}}}},
+        "snapshotComplete": {"type": "boolean"},
+        "snapshotTruncated": {"type": "boolean"},
+        "resultTruncated": {"type": "boolean"}
+      }
+    },
+    "resource_inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceConnection", "resource", "observationCid", "status"],
+      "properties": {
+        "resourceConnection": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "resource": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "observationCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "status": {"enum": ["ready", "catalog_required"]},
+        "reason": {"enum": ["listing_truncated", "not_visible", "describe_unavailable"]},
+        "summaryJson": {"type": "string", "minLength": 2, "maxLength": 1048576}
+      }
+    },
+    "resource_peek": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceConnection", "resource", "observationCid", "fields", "rowsJson", "limited"],
+      "properties": {
+        "resourceConnection": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "resource": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
+        "observationCid": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "fields": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
+        "rowsJson": {"type": "string", "minLength": 2, "maxLength": 4194304},
+        "limited": {"type": "boolean"}
       }
     },
     "submit_preparation_error": {

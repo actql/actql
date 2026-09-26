@@ -125,6 +125,26 @@ export interface Client {
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
   cancelRequest(requestId: string, options?: {signal?: AbortSignal}):
     Promise<RequestCancellation>;
+  resources(resourceConnection: string, options?: {query?: string;
+    limit?: number; signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; observationCid: string;
+      resources: readonly Readonly<{name: string; outcome: string}>[];
+      snapshotComplete: boolean; snapshotTruncated: boolean;
+      resultTruncated: boolean}>>;
+  inspectResource(resourceConnection: string, resource: string, options?: {
+    maxBytes?: number; signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; resource: string; observationCid: string;
+      status: 'ready' | 'catalog_required';
+      reason?: 'listing_truncated' | 'not_visible' | 'describe_unavailable';
+      summary?: unknown}>>;
+  peekResource(resourceConnection: string, resource: string, options: {
+    fields: readonly string[]; maxRows?: number; maxBytes?: number;
+    signal?: AbortSignal}): Promise<Readonly<{
+      resourceConnection: string; resource: string; observationCid: string;
+      fields: readonly string[];
+      rows: readonly Readonly<Record<string,
+        string | number | boolean | null>>[];
+      limited: boolean}>>;
   checkpoints(options?: {after?: string; limit?: number;
     signal?: AbortSignal}): Promise<Readonly<{
       items: readonly CheckpointSummary[]; next?: string}>>;

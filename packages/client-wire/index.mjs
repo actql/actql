@@ -7,7 +7,8 @@ import {clientHostOperations, clientHostRequestKeys,
   validCheckpointSummaryShape, validConnectionShape, validHeldShape,
   validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
   validProfileShape, validRequestCancellationShape, validResolveItemShape,
-  validResolveResultShape,
+  validResolveResultShape, validResourceInspectionShape,
+  validResourceListingShape, validResourcePeekShape,
   validRunRefShape, validRunStateShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
@@ -21,6 +22,15 @@ export const checkpointLimits = Object.freeze({
   maxCursorLength: 512,
   maxReviewBytes: 1024 * 1024,
   maxResolveItems: 16,
+});
+// Bounds of the Resource discovery operations. A Host may apply tighter ones.
+export const resourceLimits = Object.freeze({
+  maxQueryLength: 255,
+  maxListItems: 1000,
+  maxInspectBytes: 1024 * 1024,
+  maxPeekFields: 100,
+  maxPeekRows: 200,
+  maxPeekBytes: 4 * 1024 * 1024,
 });
 const boundedText = (value, maximum = 256) => typeof value === 'string' &&
   value.length > 0 && value.length <= maximum &&
@@ -71,6 +81,30 @@ export function validClientBody(operation, body) {
   }
   if (operation === 'lookup-request' || operation === 'cancel-request') {
     return boundedText(body.requestId);
+  }
+  if (operation === 'resources') {
+    return boundedText(body.resourceConnection) &&
+      typeof body.query === 'string' &&
+      body.query.length <= resourceLimits.maxQueryLength &&
+      !/[\u0000-\u001f\u007f]/u.test(body.query) &&
+      Number.isSafeInteger(body.limit) && body.limit > 0 &&
+      body.limit <= resourceLimits.maxListItems;
+  }
+  if (operation === 'resource-inspect') {
+    return boundedText(body.resourceConnection) && boundedText(body.resource) &&
+      Number.isSafeInteger(body.maxBytes) && body.maxBytes > 0 &&
+      body.maxBytes <= resourceLimits.maxInspectBytes;
+  }
+  if (operation === 'resource-peek') {
+    return boundedText(body.resourceConnection) && boundedText(body.resource) &&
+      Array.isArray(body.fields) && body.fields.length > 0 &&
+      body.fields.length <= resourceLimits.maxPeekFields &&
+      body.fields.every(field => boundedText(field)) &&
+      new Set(body.fields).size === body.fields.length &&
+      Number.isSafeInteger(body.maxRows) && body.maxRows > 0 &&
+      body.maxRows <= resourceLimits.maxPeekRows &&
+      Number.isSafeInteger(body.maxBytes) && body.maxBytes > 0 &&
+      body.maxBytes <= resourceLimits.maxPeekBytes;
   }
   if (operation === 'checkpoints') {
     return Number.isSafeInteger(body.limit) && body.limit > 0 &&
@@ -249,4 +283,61 @@ export function validRequestCancellation(value, expectedRequestId) {
     validRequestCancellationShape(value) &&
     value.requestId === expectedRequestId &&
     (value.ref === undefined) === (value.revision === undefined);
+}
+
+const utf8Bytes = text => new TextEncoder().encode(text).length;
+const jsonObject = text => {
+  try {
+    const value = JSON.parse(text);
+    return value !== null && typeof value === 'object' &&
+      !Array.isArray(value) ? value : undefined;
+  } catch { return undefined; }
+};
+
+// One page of Resource names answering the exact request. Names are unique.
+export function validResourceListing(value, expected) {
+  if (!shape(expected, ['resourceConnection', 'limit']) ||
+      !validResourceListingShape(value) ||
+      value.resourceConnection !== expected.resourceConnection ||
+      value.resources.length > expected.limit) return false;
+  return new Set(value.resources.map(item => item.name)).size ===
+    value.resources.length;
+}
+
+// A ready inspection carries only its bounded summary object; a Resource
+// that needs Catalog evidence carries only the reason.
+export function validResourceInspection(value, expected) {
+  if (!shape(expected, ['resourceConnection', 'resource', 'maxBytes']) ||
+      !validResourceInspectionShape(value) ||
+      value.resourceConnection !== expected.resourceConnection ||
+      value.resource !== expected.resource) return false;
+  if (value.status === 'ready') {
+    return value.reason === undefined && value.summaryJson !== undefined &&
+      utf8Bytes(value.summaryJson) <= expected.maxBytes &&
+      jsonObject(value.summaryJson) !== undefined;
+  }
+  return value.summaryJson === undefined && value.reason !== undefined;
+}
+
+// A bounded preview: at most the requested rows, each with exactly the
+// requested fields and scalar JSON values. `limited` marks a prefix.
+export function validResourcePeek(value, expected) {
+  if (!shape(expected, ['resourceConnection', 'resource', 'fields',
+        'maxRows', 'maxBytes']) ||
+      !validResourcePeekShape(value) ||
+      value.resourceConnection !== expected.resourceConnection ||
+      value.resource !== expected.resource ||
+      value.fields.length !== expected.fields.length ||
+      value.fields.some((field, index) => field !== expected.fields[index]) ||
+      utf8Bytes(value.rowsJson) > expected.maxBytes) return false;
+  let rows;
+  try { rows = JSON.parse(value.rowsJson); } catch { return false; }
+  const keys = [...value.fields].sort().join('\0');
+  return Array.isArray(rows) && rows.length <= expected.maxRows &&
+    (value.limited || rows.length < expected.maxRows) &&
+    rows.every(row => row !== null && typeof row === 'object' &&
+      !Array.isArray(row) && Object.keys(row).sort().join('\0') === keys &&
+      Object.values(row).every(cell => cell === null ||
+        ['string', 'boolean'].includes(typeof cell) ||
+        typeof cell === 'number' && Number.isFinite(cell)));
 }

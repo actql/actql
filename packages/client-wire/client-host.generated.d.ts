@@ -1,5 +1,5 @@
 // Generated from the registered Client–Host machine contract.
-export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request";
+export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireRunRefShape = Readonly<{
   tenantId: string;
   authorityScopeCid: string;
@@ -152,6 +152,36 @@ export type WireRequestCancellationShape = Readonly<{
   runDefinitionCid: string;
 }>;
   revision?: number;
+}>;
+
+export type WireResourceListingShape = Readonly<{
+  resourceConnection: string;
+  observationCid: string;
+  resources: readonly Readonly<{
+  name: string;
+  outcome: string;
+}>[];
+  snapshotComplete: boolean;
+  snapshotTruncated: boolean;
+  resultTruncated: boolean;
+}>;
+
+export type WireResourceInspectionShape = Readonly<{
+  resourceConnection: string;
+  resource: string;
+  observationCid: string;
+  status: "ready" | "catalog_required";
+  reason?: "listing_truncated" | "not_visible" | "describe_unavailable";
+  summaryJson?: string;
+}>;
+
+export type WireResourcePeekShape = Readonly<{
+  resourceConnection: string;
+  resource: string;
+  observationCid: string;
+  fields: readonly string[];
+  rowsJson: string;
+  limited: boolean;
 }>;
 
 export type WireRunStateShape = Readonly<{
