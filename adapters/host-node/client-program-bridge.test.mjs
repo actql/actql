@@ -4492,11 +4492,29 @@ test('Effect source set shares exact owners and retains failed cleanup',
             metadata_retention_policy_cid: cid('f'),
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
+        const issuedArguments = [];
+        const issuerControl = Object.freeze({...control,
+          issueSourceFreeLocalEffectResultArtifact(...args) {
+            if (distinctResults && issuedArguments.length === 1) {
+              // Equal Result values do not let the first preparation claim
+              // the second Result's live export receipt.
+              const foreign = [...issuedArguments[0]];
+              foreign[6] = args[6];
+              assert.throws(() => control
+                .issueSourceFreeLocalEffectResultArtifact(...foreign),
+              {code: 'MoonBitHostFailure'});
+            }
+            const issued = control.issueSourceFreeLocalEffectResultArtifact(
+              ...args);
+            issuedArguments.push(args);
+            return issued;
+          },
+        });
         const options = {moon, checkedOwner: prepared, execution, inputs,
           maxMembers: 2, maxGroupingWork: 3,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
-          store, maxBytes: 100000, control,
+          store, maxBytes: 100000, control: issuerControl,
           invocation: control.admit('run_invocation',
             moon.strategyPublicationContractJson(invocation), publicationLimits),
           retention, sourceBindingCid: cid('c'), contractLimits: publicationLimits,
@@ -4509,6 +4527,14 @@ test('Effect source set shares exact owners and retains failed cleanup',
           assert.equal(writers, 0);
           const sources = await preparePinnedEffectSourceSet(options);
           assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
+          assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
+          for (const args of issuedArguments) {
+            // The receipt was released by exportPinnedEffectInput before
+            // returning the prepared Store owner.
+            assert.throws(() => control
+              .issueSourceFreeLocalEffectResultArtifact(...args),
+            {code: 'MoonBitHostFailure'});
+          }
           assert.equal(writers, distinctResults ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
