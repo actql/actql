@@ -473,6 +473,7 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   max_nodes : Int,
   max_depth : Int,
   cancelled_before_start? : Bool = false,
+  observed_terminal_outcome? : RunOutcomeStatus? = None,
 ) -> Result[String, RunStateIssue] {
   if run_id.is_empty() {
     return Err(InvalidRunId)
@@ -483,7 +484,18 @@ pub fn issue_effect_free_unpublished_run_state_wire(
   if pre_dispatch_failure_confirmed && !dispatch_reserved {
     return Err(ActionStatusMismatch)
   }
-  let status = if cancelled_before_start && !pre_dispatch_failure_confirmed {
+  if observed_terminal_outcome is Some(outcome) {
+    if !dispatch_reserved ||
+      (
+        outcome != RunOutcomeStatus::Failed &&
+        outcome != RunOutcomeStatus::Cancelled
+      ) {
+      return Err(ActionStatusMismatch)
+    }
+  }
+  let status = if observed_terminal_outcome is Some(outcome) {
+    outcome
+  } else if cancelled_before_start && !pre_dispatch_failure_confirmed {
     RunOutcomeStatus::Cancelled
   } else if !dispatch_reserved {
     RunOutcomeStatus::Preparing

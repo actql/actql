@@ -1448,3 +1448,25 @@ export function openResultDeliveryControl() {
     },
   });
 }
+
+/** Project an admitted durable Site record bound to this checked Run. */
+export function projectSiteRun(prepared, compilation, admission, definition,
+  authority, durableWire, observedAt) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if ([authority, durableWire, observedAt].some(value =>
+      typeof value !== 'string')) throw new TypeError('InvalidSiteObservation');
+  checkRunBinding(prepared, admission, definition);
+  const fields = checked(owner.clientValuesHostProjectSiteRun(
+    requireHandle(definitions, definition), compiled.value,
+    authority, durableWire, observedAt), 'RunHostSiteProjectionRejected');
+  if (fields === undefined) {
+    throw Object.assign(new Error('RunHostSiteProjectionRejected'),
+      {code: 'RunHostSiteProjectionRejected'});
+  }
+  return Object.freeze({stateWire: fields[0], execution: fields[1],
+    cleanup: fields[2], revision: Number(fields[3]), nextWork: fields[4]});
+}

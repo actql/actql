@@ -2147,3 +2147,97 @@ pub fn client_values_host_issue_source_free_captured_run(
     max_depth,
   )
 }
+
+///|
+/// Restore admitted Site facts and bind them to this checked Run and task.
+/// Projection cannot dispatch, claim a retry or release physical resources.
+#export_name("clientValuesHostProjectSiteRun")
+pub fn client_values_host_project_site_run(
+  definition : @publication.PublicationContract,
+  compilation : @host.ClientValuesCompilation,
+  authority : String,
+  durable_wire : String,
+  observed_at : String,
+) -> Result[Array[String], Unit] {
+  let durable = match
+    @remote.admit_durable_coordinator_dispatch_record(
+      @utf8.encode(durable_wire),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let journal = match @remote.create_coordinator_dispatch_journal(authority) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let record = match
+    @remote.restore_durable_coordinator_dispatch_record(journal, durable) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let observation = match
+    @remote.coordinator_execution_observation(
+      record,
+      authority,
+      @publication.publication_contract_identity(definition),
+      @host.client_values_compilation_plan_node_id(compilation),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let run_id = match @publication.run_definition_run_id(definition) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let terminal = match observation.execution {
+    Some(@remote.ExecutionFailed) => Some(@publication.RunOutcomeStatus::Failed)
+    Some(@remote.ExecutionCancelled) =>
+      Some(@publication.RunOutcomeStatus::Cancelled)
+    _ => None
+  }
+  let state = match
+    @publication.issue_effect_free_unpublished_run_state_wire(
+      run_id,
+      observed_at,
+      @host.client_values_compilation_result_names(compilation),
+      true,
+      false,
+      100000,
+      10000,
+      64,
+      observed_terminal_outcome=terminal,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  let execution = match observation.execution {
+    None => "unobserved"
+    Some(@remote.Accepted | @remote.Provisioning | @remote.Running) => "running"
+    Some(@remote.NativeSettled) => "settled"
+    Some(@remote.ExecutionFailed) => "failed"
+    Some(@remote.ExecutionCancelled) => "cancelled"
+    Some(@remote.ExecutionUnknown) => "unknown"
+  }
+  let work = if terminal is Some(_) {
+    if observation.cleanup_complete {
+      "none"
+    } else {
+      "cleanup"
+    }
+  } else if observation.execution is Some(@remote.NativeSettled) {
+    "publication"
+  } else {
+    "reconcile"
+  }
+  Ok([
+    state,
+    execution,
+    if observation.cleanup_complete {
+      "complete"
+    } else {
+      "pending"
+    },
+    observation.revision.to_string(),
+    work,
+  ])
+}

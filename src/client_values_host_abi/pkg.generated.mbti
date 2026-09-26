@@ -165,6 +165,8 @@ pub fn client_values_host_project_committed_result_read_wire(@run_publication.Pu
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
+pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[Array[String], Unit]
+
 pub fn client_values_host_publication_contract_identity(@run_publication.PublicationContract) -> String
 
 pub fn client_values_host_publication_contract_identity_field(@run_publication.PublicationContract) -> String

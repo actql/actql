@@ -598,3 +598,13 @@ export function issueSourceFreeCapturedRun(
   snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence,
   models: readonly RunEvidence[], limits: PublicationLimits):
   PublicationContract;
+
+/** Authenticated storage is supplied by the Host; this grants no execution. */
+export function projectSiteRun(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, authority: string, durableWire: string,
+  observedAt: string): Readonly<{stateWire: string;
+    execution: 'unobserved' | 'running' | 'settled' | 'failed' |
+      'cancelled' | 'unknown';
+    cleanup: 'complete' | 'pending'; revision: number;
+    nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile'}>;

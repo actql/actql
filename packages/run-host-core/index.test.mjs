@@ -4,7 +4,10 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {validRunState} from '../client-wire/index.mjs';
-import {admitDispatchJson, dispatchCid} from '../coordinator-core/index.mjs';
+import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
+  admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
+  prepareResponseObservation, responseDurableJson}
+  from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
@@ -39,7 +42,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   issueSourceFreeInvocation,
   admitCompletedSourceObservation,
   issueTaskInvocation,
-  issueUnpublishedRunStateWire, issueSucceededRunStateWire,
+  issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
   resultReadAvailability,
   prepareRunStart,
   prepareSourceFreeRequest,
@@ -994,6 +997,33 @@ test('checked Run issues one source-free Site dispatch identity', () => {
     grantCid: `sha256:${'5'.repeat(64)}`};
   const issued = issueSourceFreeDispatch(prepared, compilation, admission,
     definition, request, selection);
+  for (const [execution, cleanup, outcome, work] of [
+    [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
+    [5, 2, 'cancelled', 'none'], [6, 3, 'running', 'reconcile'],
+  ]) {
+    const dispatch = admitDispatchJson(issued.wire, issued.cid);
+    const intent = prepareIntent(createJournal(scope), dispatch);
+    const durable = admitDurableJson(admissionDurableJson(intent));
+    const record = commitIntent(intent);
+    const response = admitResponseJson(JSON.stringify({
+      version: 'actql-remote-dispatch-response/0.1',
+      dispatch_request_cid: issued.cid, revision: 2,
+      state: [execution, 0, cleanup, 0, 0],
+    }), dispatch, false);
+    const saved = responseDurableJson(durable,
+      prepareResponseObservation(record, response), response);
+    const observe = authority => projectSiteRun(prepared, compilation,
+      admission, definition, authority, saved, '2026-09-25T00:00:01.000Z');
+    const result = observe(scope);
+    assert.equal(result.nextWork, work);
+    assert.equal(JSON.parse(result.stateWire).status, outcome);
+    assert(validRunState(JSON.parse(result.stateWire)));
+    assert.deepEqual(observe(scope), result);
+    assert.throws(() => observe(`sha256:${'f'.repeat(64)}`),
+      {code: 'RunHostSiteProjectionRejected'});
+    assert.throws(() => projectSiteRun(prepared, compilation, admission,
+      substituted, scope, saved, '2026-09-25T00:00:01.000Z'));
+  }
   const wire = JSON.parse(issued.wire);
   assert.equal(wire.run_definition_cid,
     privateRunDefinition(definition).cid);
