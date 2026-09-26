@@ -2798,19 +2798,20 @@ test(`two-member captured Effect Run ${
       let collectionFaultPending = collectionRecovered;
       let terminalFaultPending = restartAfterTerminal;
       let unknownFaultPending = unknownAfterClaim && !loseHttpReply;
-      const productDispatch = [
+      const bindDispatch = [
         'salesforce', 'salesforce-upsert', 'salesforce-create',
         'salesforce-create-duplicates', 'salesforce-publication-restart',
-        'salesforce-preapply-restart',
+        'salesforce-preapply-restart', 'salesforce-prepared-intent-restart',
         'salesforce-collection-partial',
         'salesforce-terminal-store-restart',
         'salesforce-terminal-process-publication',
-      ].includes(physical) ?
-        installSalesforceEffectDispatch({commonMoon: moon,
+      ].includes(physical) ? ({members: activeMembers, subjectCid, signal}) => {
+        assert.equal(subjectCid, body.effect_preview_cid);
+        const dispatch = installSalesforceEffectDispatch({commonMoon: moon,
           moon: salesforceMoon, ledger, admittedPreview: applyPreview,
-          currentUse, members: sites.map((site, memberIndex) => ({
+          currentUse, signal, members: sites.map((site, memberIndex) => ({
             requests: siteRequests[memberIndex],
-            claims: members[memberIndex].claims,
+            claims: activeMembers[memberIndex].claims,
             authorizationForRow: rowIndex => ({...site.write,
               useId: `write-${memberIndex}-${rowIndex}`}),
             credential: site.credential,
@@ -2823,9 +2824,11 @@ test(`two-member captured Effect Run ${
               limits: {maxRequestBytes: 1024, maxResponseBytes: 1024,
                 maxNodes: 64, maxDepth: 6, maxRows: 2},
             } : undefined,
-          }))}) : undefined;
+          }))});
+        return row => dispatchRow(row, dispatch);
+      } : undefined;
       const dispatchRow = async ({memberIndex, rowIndex, claim,
-        currentPreflight}) => {
+        currentPreflight}, productDispatch) => {
           sent.push([memberIndex, rowIndex]);
           if (sent.length === 1) {
             for (const pending of members.flatMap(member => member.claims)) {
@@ -3224,16 +3227,18 @@ test(`two-member captured Effect Run ${
           'unknown-two-effects-attempt');
         return;
       }
+      const dispatchOptions = bindDispatch === undefined ? {dispatchRow} :
+        {bindDispatch};
       const applied = restartPreparedIntent
         ? await applyRecoveredEffectSet({
           ...recoveredApplyOptions,
-          dispatchRow: processPreparedIntent
-            ? () => assert.fail('fresh-process write resent') : dispatchRow,
+          ...(processPreparedIntent ? {dispatchRow: () =>
+            assert.fail('fresh-process write resent')} : dispatchOptions),
           ...(processPreparedIntent ? {refreshPreflight: () =>
             assert.fail('settled process replay refreshed Site')} : {}),
         })
         : await applyCapturedEffectSet({
-          ...applyOptions, ledger, dispatchRow,
+          ...applyOptions, ledger, ...dispatchOptions,
         });
       assert.equal(applied.dispatched, processPreparedIntent ? 0 :
         collectionRecovered ? 2 :

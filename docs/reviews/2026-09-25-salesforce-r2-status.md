@@ -43,6 +43,17 @@ Salesforce Host and Site adapters and their integration tests live under
 provider-independent checked-owner and public Client contracts. The Salesforce
 integration test still invokes that public Client entry for Run status and
 published Result access; this layout change does not claim public Effect submit.
+The common apply entry now offers `bindDispatch({members, subjectCid, signal})`
+after whole-set admission and authorization (shared commit `178385615`). The
+synchronous binder receives the exact live or recovered claims owned by that
+apply frontier. Denied, stale, or no-ready-row replays do not bind a dispatcher.
+Salesforce uses this port for normal execution and prepared-intent recovery.
+The fresh-process recovery fixture now uses the installed current-use and
+physical-dispatch adapters, including response-loss and saved-response recovery,
+instead of independently assembling Catalog refresh and row sends. The combined
+Client bridge and Salesforce integration suite passed all 46 cases locally.
+Authentic capability evidence, the earlier preparation/capture composition,
+authorized discovery, public ingress, and live-org acceptance remain open.
 
 ## OSS main integration baseline
 
