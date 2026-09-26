@@ -861,26 +861,23 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
       start: range.start,
       end: range.end,
     }
-    let ordered = match
-      stable_order_indices(members, order, control, workspace) {
-      Ok(ordered) => ordered
-      Err(issue) => return Err(ordering_row_issue(issue))
+    let endpoint = start_aggregate_endpoint(
+      members,
+      order,
+      column,
+      function is @relation.First,
+      control,
+      workspace,
+    )
+    return while true {
+      match advance_aggregate_endpoint(endpoint) {
+        Ok(None) => ()
+        Ok(Some(value)) => break Ok(value)
+        Err(issue) => break Err(issue)
+      }
+    } nobreak {
+      Err(InvalidRows)
     }
-    for offset = 0; offset < ordered.length(); offset = offset + 1 {
-      if !spend_control(control, 1) {
-        return Err(RowLimit)
-      }
-      let position = if function is @relation.First {
-        offset
-      } else {
-        ordered.length() - offset - 1
-      }
-      let value = IndexedRows::read_cell(members, ordered[position], column)
-      if !(value is Null) {
-        return Ok(value)
-      }
-    }
-    return Ok(Null)
   }
   let collection = start_aggregate_direct_collection(
     input, indices, range, argument, function, control, workspace,
@@ -976,26 +973,17 @@ fn[T : IndexedRows] evaluate_direct_aggregate(
         is @contract.Decimal(precision~, scale~) else {
         return Err(InvalidRows)
       }
-      let mut coefficient = "0"
-      for value in values {
-        guard value is Captured(@admitted.Decimal(decimal)) &&
-          decimal.scale == scale else {
-          return Err(InvalidRows)
+      let sum = start_aggregate_decimal_sum(
+        values, precision, scale, control, workspace,
+      )
+      while true {
+        match advance_aggregate_decimal_sum(sum) {
+          Ok(None) => ()
+          Ok(Some(value)) => break Ok(value)
+          Err(issue) => break Err(issue)
         }
-        coefficient = match
-          add_decimal_coefficients(
-            coefficient,
-            decimal.coefficient,
-            control,
-            workspace,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-      }
-      match @admitted.decimal_from_coefficient(coefficient, precision, scale) {
-        Some(value) => Ok(Captured(value))
-        None => Err(Aggregation(ArithmeticFailure))
+      } nobreak {
+        Err(InvalidRows)
       }
     }
     @relation.PercentileDisc | @relation.PercentileCont =>
