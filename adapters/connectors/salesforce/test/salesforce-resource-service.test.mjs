@@ -164,7 +164,8 @@ test('a restarted Host restores discovery from the retained snapshot',
     assert.equal(host.org.seen.length, requests);
     // A foreign restore is refused and the current view stays.
     assert.throws(() => second.service.restore(host.connection, {
-      ...snapshot, observationCid: cid('9')}));
+      ...snapshot, observationCid: cid('9')}),
+    {code: 'ForeignRetainedSalesforceCatalog'});
     assert.equal((await client.resources(host.connection)).observationCid,
       snapshot.observationCid);
   });
@@ -215,7 +216,12 @@ test('a snapshot of another Site installation never becomes current discovery',
         error.fields.includes('site_generation'));
     assert.equal((await client.resources(host.connection)).observationCid,
       snapshot.observationCid);
+    // A snapshot whose bytes do not reproduce the named observation is
+    // refused before any binding check, and the current view still stays.
+    assert.throws(() => same.service.restore(host.connection, {
+      ...snapshot, observationCid: cid('9')}),
+    {code: 'ForeignRetainedSalesforceCatalog'});
+    assert.equal((await client.resources(host.connection)).observationCid,
+      snapshot.observationCid);
     assert.equal(host.org.seen.length, requests);
-    assert.throws(() => second.service.restore(host.connection, {
-      ...snapshot, observationCid: cid('9')}));
   });
