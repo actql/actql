@@ -32,6 +32,19 @@ pub fn issue_prepared_client_task_bound_template(
     Ok(_) => ()
     Err(issue) => return Err(Graph(issue))
   }
+  issue_client_task_bound_template(
+    value, manifests, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_client_task_bound_template(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientTaskBoundTemplateIssue] {
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
       value, max_wire_bytes, max_nodes, max_depth,

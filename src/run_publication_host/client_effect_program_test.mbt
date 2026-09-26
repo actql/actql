@@ -513,3 +513,136 @@ test "Effectful Client request uses the common checked intent and scope" {
     is Err(InvalidRequestId),
   )
 }
+
+///|
+test "Effectful compiler issues owner-bound Plan and Template" {
+  let (document, environment, limits) = client_effect_fixture()
+  let owner = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let manifests = admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let sequence : @lower.SequenceLimits = {
+    max_steps: 10,
+    max_rows: 10,
+    max_cells: 10,
+    max_bindings: 10,
+    max_name_bytes: 1000,
+    expressions: {
+      max_nodes: 100,
+      max_work: 1000,
+      max_depth: 10,
+      max_literal_nodes: 100,
+      max_literal_text_bytes: 1000,
+    },
+  }
+  let compiled = issue_prepared_client_effect_compilation(
+    owner, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
+  ).unwrap()
+  assert_true(physical_equal(client_effect_compilation_owner(compiled), owner))
+  let plan = client_effect_compilation_plan(compiled)
+  let wire = client_task_executable_plan_wire(plan)
+  let facts = client_task_executable_plan_fact_manifest_wire(plan)
+  let template = @publication.run_evidence_value_json(
+    client_effect_compilation_template(compiled),
+  )
+  let envelope = @publication.publication_contract_json(
+    client_effect_compilation_compiled_plan(compiled),
+  )
+  assert_true(wire.contains("\"effect_result\""))
+  assert_true(wire.contains("\"effects\":{\"save\":"))
+  assert_true(wire.contains("\"effect_plan_logical_cids\":{}"))
+  assert_true(
+    template.contains(prepared_client_effect_computation_definition_cid(owner)),
+  )
+  assert_true(envelope.contains(client_task_executable_plan_cid(plan)))
+  let restored = admit_prepared_client_effect_compilation(
+    owner, wire, facts, template, envelope, manifests, sequence, 1000, 10000, 1000000,
+    100000, 100,
+  ).unwrap()
+  assert_true(physical_equal(client_effect_compilation_owner(restored), owner))
+  let changed = prepare_client_effect_computation(
+    document.replace(old="\"save\":", new="\"other\":"),
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    admit_prepared_client_effect_compilation(
+      changed, wire, facts, template, envelope, manifests, sequence, 1000, 10000,
+      1000000, 100000, 100,
+    )
+    is Err(ClientEffectCompilationAdmissionIssue::MismatchedCompilation),
+  )
+  assert_true(
+    admit_prepared_client_effect_compilation(
+      owner, wire, facts, "{}", envelope, manifests, sequence, 1000, 10000, 1000000,
+      100000, 100,
+    )
+    is Err(ClientEffectCompilationAdmissionIssue::MismatchedCompilation),
+  )
+  assert_true(
+    issue_prepared_client_effect_compilation(
+      owner, manifests, sequence, 1000, 10000, 1, 100000, 100,
+    )
+    is Err(_),
+  )
+  let allowed = issue_client_effect_allowed_run(
+    compiled, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "tenant-a", "effect-run", "2026-09-26T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let bound = bind_client_effect_compiled_run(owner, allowed, definition).unwrap()
+  assert_true(
+    physical_equal(prepared_client_effect_run_computation(bound), owner),
+  )
+  assert_true(
+    bind_client_effect_compiled_run(changed, allowed, definition)
+    is Err(ClientEffectCompiledRunIssue::ForeignCompilation),
+  )
+  let equal_owner = prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    bind_client_effect_compiled_run(equal_owner, allowed, definition)
+    is Err(ClientEffectCompiledRunIssue::ForeignCompilation),
+  )
+  let restored_allowed = admit_client_effect_allowed_run(
+    compiled,
+    client_effect_allowed_run_prepared(allowed),
+    client_effect_allowed_run_authorization(allowed),
+  ).unwrap()
+  ignore(
+    bind_client_effect_compiled_run(owner, restored_allowed, definition).unwrap(),
+  )
+  let foreign_compilation = issue_prepared_client_effect_compilation(
+    changed, manifests, sequence, 1000, 10000, 1000000, 100000, 100,
+  ).unwrap()
+  assert_true(
+    admit_client_effect_allowed_run(
+      foreign_compilation,
+      client_effect_allowed_run_prepared(allowed),
+      client_effect_allowed_run_authorization(allowed),
+    )
+    is Err(ClientEffectCompiledRunIssue::Admission(_)),
+  )
+}

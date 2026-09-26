@@ -35,6 +35,27 @@ pub fn issue_prepared_client_task_plan_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
+  issue_client_task_plan_graph(
+    value,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    false,
+    [],
+  )
+}
+
+///|
+fn issue_client_task_plan_graph(
+  value : PreparedClientProgram,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  effects : Bool,
+  effect_roots : Array[(String, Int)],
+) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
@@ -43,7 +64,7 @@ pub fn issue_prepared_client_task_plan_graph(
   if count == 0 ||
     count > max_nodes ||
     @strategy.graph_result_count(graph) == 0 ||
-    @strategy.graph_program_has_effects(graph) ||
+    (@strategy.graph_program_has_effects(graph) && !effects) ||
     !@strategy.graph_ordered_inputs_complete(graph) {
     return Err(UnsupportedGraph)
   }
@@ -156,6 +177,24 @@ pub fn issue_prepared_client_task_plan_graph(
     @encode.begin_array(writer)
     for root in roots {
       @canonical.emit_value(root, writer)
+    }
+    for (name, task) in effect_roots {
+      guard fragments.get(task) is Some(fragment) else {
+        return Err(InvalidEdge)
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "name")
+      @encode.string_value(writer, name)
+      @encode.key(writer, "ref")
+      @encode.begin_object(writer)
+      @encode.key(writer, "node_id")
+      @encode.string_value(writer, fragment.node_id)
+      @encode.key(writer, "port")
+      @encode.string_value(writer, fragment.output_port)
+      @encode.end_object(writer)
+      @encode.key(writer, "role")
+      @encode.string_value(writer, "effect_result")
+      @encode.end_object(writer)
     }
     @encode.end_array(writer)
     @encode.end_object(writer)

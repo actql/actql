@@ -92,6 +92,21 @@ pub fn issue_prepared_client_task_compilation(
     Ok(graph) => graph
     Err(issue) => return Err(Graph(issue))
   }
+  finish_client_task_compilation(
+    value, plan, template, graph, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn finish_client_task_compilation(
+  value : PreparedClientProgram,
+  plan : ClientTaskExecutablePlan,
+  template : @publication.RunEvidenceValue,
+  graph : ClientTaskPlanGraph,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
   guard parse_plan_identity_value(
       graph.wire,
       max_wire_bytes,
