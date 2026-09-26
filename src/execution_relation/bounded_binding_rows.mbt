@@ -173,6 +173,26 @@ priv struct BoundedRowComparison {
   mut term : Int
   mut phase : Int
   mut offset : Int
+  charge : BoundedTextCharge
+}
+
+///|
+fn bounded_comparison_charge_text(
+  value : Value,
+) -> Result[String?, OrderingIssue] {
+  match value {
+    Text(text) => Ok(Some(text))
+    Captured(@admitted.Date(text)) | Captured(@admitted.Timestamp(text)) =>
+      Ok(Some(text))
+    Captured(@admitted.Decimal(decimal)) => Ok(Some(decimal.coefficient))
+    Captured(@admitted.Reference(reference)) =>
+      if @admitted.reference_available(reference) {
+        Ok(Some(@admitted.reference_identity_cid(reference)))
+      } else {
+        Err(Scalar(InvalidOperand))
+      }
+    _ => Ok(None)
+  }
 }
 
 ///|
@@ -195,6 +215,7 @@ fn bounded_row_comparison_step_with(
     cursor.term = 0
     cursor.phase = 0
     cursor.offset = 0
+    reset_bounded_text_charge(cursor.charge)
   } else if cursor.left != left_row ||
     cursor.right != right_row ||
     cursor.terms != terms {
@@ -219,17 +240,15 @@ fn bounded_row_comparison_step_with(
       Ok(None)
     }
     1 => {
-      match left {
-        Text(value) =>
-          if cursor.offset < value.length() {
-            cursor.offset = match
-              bounded_text_charge_step(control, value, cursor.offset) {
-              Ok(next) => next
-              Err(issue) => return Err(issue)
-            }
-            return Ok(None)
+      match bounded_comparison_charge_text(left) {
+        Err(issue) => return Err(issue)
+        Ok(Some(value)) =>
+          match advance_bounded_text_charge(cursor.charge, control, value) {
+            Ok(false) => return Ok(None)
+            Ok(true) => ()
+            Err(issue) => return Err(issue)
           }
-        _ =>
+        Ok(None) =>
           match charge_comparison_operand(control, left) {
             Ok(_) => ()
             Err(ComparisonChargeLimit) => return Err(Limit)
@@ -239,20 +258,19 @@ fn bounded_row_comparison_step_with(
       }
       cursor.phase = 2
       cursor.offset = 0
+      reset_bounded_text_charge(cursor.charge)
       Ok(None)
     }
     2 => {
-      match right {
-        Text(value) =>
-          if cursor.offset < value.length() {
-            cursor.offset = match
-              bounded_text_charge_step(control, value, cursor.offset) {
-              Ok(next) => next
-              Err(issue) => return Err(issue)
-            }
-            return Ok(None)
+      match bounded_comparison_charge_text(right) {
+        Err(issue) => return Err(issue)
+        Ok(Some(value)) =>
+          match advance_bounded_text_charge(cursor.charge, control, value) {
+            Ok(false) => return Ok(None)
+            Ok(true) => ()
+            Err(issue) => return Err(issue)
           }
-        _ =>
+        Ok(None) =>
           match charge_comparison_operand(control, right) {
             Ok(_) => ()
             Err(ComparisonChargeLimit) => return Err(Limit)
@@ -262,6 +280,7 @@ fn bounded_row_comparison_step_with(
       }
       cursor.phase = 3
       cursor.offset = 0
+      reset_bounded_text_charge(cursor.charge)
       Ok(None)
     }
     3 => {
@@ -307,6 +326,7 @@ fn bounded_row_comparison_step_with(
         cursor.term += 1
         cursor.phase = 0
         cursor.offset = 0
+        reset_bounded_text_charge(cursor.charge)
         Ok(None)
       }
     }
@@ -2806,6 +2826,7 @@ fn start_bounded_binding_rows_with_input(
       term: 0,
       phase: -1,
       offset: 0,
+      charge: { offset: 0, next: 0, remaining: 0, },
     },
     sort_kernel,
     sort_only,

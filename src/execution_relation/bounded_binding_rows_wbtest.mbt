@@ -1044,6 +1044,26 @@ test "bounded text comparison charge uses exact UTF-8 bytes" {
 }
 
 ///|
+test "bounded text cursor admits a scalar before bytewise charging" {
+  let exact : ControlBudget = { remaining: 4, max_frames: 1, }
+  let cursor : BoundedTextCharge = { offset: 0, next: 0, remaining: 0, }
+  for index in 0..<4 {
+    let before = exact.remaining
+    assert_eq(
+      advance_bounded_text_charge(cursor, exact, "𠮷").unwrap(),
+      index == 3,
+    )
+    assert_eq(before - exact.remaining, 1)
+  }
+  assert_eq(cursor.offset, 2)
+  let short : ControlBudget = { remaining: 3, max_frames: 1, }
+  reset_bounded_text_charge(cursor)
+  assert_true(advance_bounded_text_charge(cursor, short, "𠮷") is Err(Limit))
+  assert_eq(short.remaining, 3)
+  assert_eq(cursor.offset, 0)
+}
+
+///|
 test "bounded selected empty sort reuses the input order" {
   let (_, execution, input) = bounded_binding_rows_fixture(
     "[{\"id\":3,\"left\":[1,2],\"right\":[3,4]},{\"id\":1,\"left\":[2,1],\"right\":[4,3]},{\"id\":2,\"left\":[5,6],\"right\":[7,8]}]",

@@ -60,6 +60,70 @@ fn bounded_text_charge_step(
 }
 
 ///|
+/// Keep a multi-byte scalar inside the same logical charge while exposing
+/// one charged byte per bounded advance.
+priv struct BoundedTextCharge {
+  mut offset : Int
+  mut next : Int
+  mut remaining : Int
+}
+
+///|
+fn reset_bounded_text_charge(cursor : BoundedTextCharge) -> Unit {
+  cursor.offset = 0
+  cursor.next = 0
+  cursor.remaining = 0
+}
+
+///|
+fn advance_bounded_text_charge(
+  cursor : BoundedTextCharge,
+  control : ControlBudget,
+  value : String,
+) -> Result[Bool, OrderingIssue] {
+  if cursor.remaining == 0 {
+    if cursor.offset == value.length() {
+      return Ok(true)
+    }
+    if cursor.offset < 0 || cursor.offset > value.length() {
+      return Err(InvalidInput)
+    }
+    let unit = value[cursor.offset].to_int()
+    let (width, next) = if unit < 0x80 {
+      (1, cursor.offset + 1)
+    } else if unit < 0x800 {
+      (2, cursor.offset + 1)
+    } else if unit >= 0xd800 && unit <= 0xdbff {
+      if cursor.offset + 1 >= value.length() {
+        return Err(Limit)
+      }
+      let trailing = value[cursor.offset + 1].to_int()
+      if trailing < 0xdc00 || trailing > 0xdfff {
+        return Err(Limit)
+      }
+      (4, cursor.offset + 2)
+    } else if unit >= 0xdc00 && unit <= 0xdfff {
+      return Err(Limit)
+    } else {
+      (3, cursor.offset + 1)
+    }
+    if control.remaining < width {
+      return Err(Limit)
+    }
+    cursor.next = next
+    cursor.remaining = width
+  }
+  if !spend_control(control, 1) {
+    return Err(Limit)
+  }
+  cursor.remaining -= 1
+  if cursor.remaining == 0 {
+    cursor.offset = cursor.next
+  }
+  Ok(cursor.offset == value.length() && cursor.remaining == 0)
+}
+
+///|
 priv struct BoundedCompleteValueComparison {
   mut phase : Int
   mut offset : Int
