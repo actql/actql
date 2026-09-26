@@ -233,6 +233,26 @@ export function openSqliteCredentialJournal(root, {
         return grant;
       });
     },
+    checkGrant(grantCid, trustedNowMilliseconds, scope, control) {
+      active();
+      requireControl(control);
+      if (!text(grantCid) || typeof trustedNowMilliseconds !== 'bigint' ||
+          trustedNowMilliseconds < 0n || scope === null ||
+          typeof scope !== 'object') fail('InvalidRemoteCredentialUse');
+      return transaction(database, () => {
+        const row = selectGrant.get(grantCid);
+        if (row === undefined) fail('RemoteCredentialGrantMissing');
+        const grant = admitGrant(row, control);
+        // Reuse the common scope, expiry, revocation and remaining-use rules.
+        // This prospective use is neither persisted nor a physical permit.
+        control.prepareUse(grant, {
+          useId: 'admission-check', trustedNowMilliseconds,
+          usedCount: Number(grantUseCount.get(grantCid).count),
+          revoked: row.revoked === 1, scope,
+        });
+        return grant;
+      });
+    },
     claim(grantCid, useId, trustedNowMilliseconds, scope, control) {
       active();
       requireControl(control);
